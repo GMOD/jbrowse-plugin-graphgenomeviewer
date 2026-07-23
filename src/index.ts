@@ -6,20 +6,25 @@ import GetSubgraph from './GetSubgraph'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
 import LaunchGraphGenomeViewF from './LaunchGraphGenomeView'
+import MinigraphBubbleAdapterF from './MinigraphBubbleAdapter/index'
+import RgfaTabixAdapterF from './RgfaTabixAdapter/index'
 import LaunchSubgraphMenuItemF from './launchSubgraph/index'
+import { PLUGIN_NAME } from './pluginName'
 import { version } from './version'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { AbstractSessionModel } from '@jbrowse/core/util'
 
 export default class GraphGenomeViewPlugin extends Plugin {
-  name = 'GraphGenomeView'
+  name = PLUGIN_NAME
   version = version
 
   install(pluginManager: PluginManager) {
     GraphGenomeViewF(pluginManager)
     LaunchGraphGenomeViewF(pluginManager)
     LaunchSubgraphMenuItemF(pluginManager)
+    RgfaTabixAdapterF(pluginManager)
+    MinigraphBubbleAdapterF(pluginManager)
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
   }
