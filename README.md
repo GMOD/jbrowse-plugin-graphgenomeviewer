@@ -1,4 +1,4 @@
-# jbrowse-plugin-graphgenomeview
+# jbrowse-plugin-graphgenomeviewer
 
 A JBrowse 2 plugin that adds a **GraphGenomeView** for pangenome graphs (GFA /
 rGFA), plus a right-click launcher to open the local subgraph around a region
@@ -47,7 +47,7 @@ both side by side:
 
 ```
 ~/src/jbrowse-components/     # provides @jbrowse/render-core
-~/src/jbrowse-plugin-graphgenomeview/
+~/src/jbrowse-plugin-graphgenomeviewer/
 ```
 
 Then:
@@ -67,7 +67,7 @@ pnpm build        # typecheck (tsc) + minified UMD bundle via esbuild
 ```
 
 The bundle is written to
-`dist/jbrowse-plugin-graphgenomeview.umd.production.min.js`. Load it from any
+`dist/jbrowse-plugin-graphgenomeviewer.umd.production.min.js`. Load it from any
 JBrowse 2 config:
 
 ```json
@@ -75,7 +75,7 @@ JBrowse 2 config:
   "plugins": [
     {
       "name": "GraphGenomeView",
-      "url": "https://your-host/jbrowse-plugin-graphgenomeview.umd.production.min.js"
+      "url": "https://your-host/jbrowse-plugin-graphgenomeviewer.umd.production.min.js"
     }
   ]
 }

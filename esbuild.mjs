@@ -56,7 +56,7 @@ const config = {
   ...(isWatch
     ? { outfile: 'dist/out.js' }
     : {
-        outfile: 'dist/jbrowse-plugin-graphgenomeview.umd.production.min.js',
+        outfile: 'dist/jbrowse-plugin-graphgenomeviewer.umd.production.min.js',
         sourcemap: true,
         minify: true,
       }),

@@ -1,5 +1,5 @@
 {
-  "name": "jbrowse-plugin-graphgenomeview",
+  "name": "jbrowse-plugin-graphgenomeviewer",
   "version": "0.0.1",
   "description": "JBrowse 2 graph genome (pangenome) view: rGFA reference-anchored layouts plus the Bandage force-directed engine",
   "license": "Apache-2.0",
