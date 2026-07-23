@@ -4,6 +4,19 @@ A JBrowse 2 plugin that adds a **GraphGenomeView** for pangenome graphs (GFA /
 rGFA), plus a right-click launcher to open the local subgraph around a region
 from a linear genome view.
 
+## Screenshots
+
+The HLA class II locus of the HPRC human pangenome, the same subgraph in two
+layouts:
+
+| Anchored (rGFA, reference-aligned)     | Force-directed (Bandage)         |
+| -------------------------------------- | -------------------------------- |
+| ![Anchored layout](img/anchored_hla.png) | ![Force layout](img/force_hla.png) |
+
+Left: rank-0 backbone drawn at its GRCh38 offsets with each rank on its own row,
+under the bubble and segment feature tracks it was launched from. Right: the same
+subgraph laid out by the Bandage force engine, the shape people recognize.
+
 It ships three layouts:
 
 - **Anchored** (rGFA only): x is reference bp, one row per stable rank, read from
@@ -15,9 +28,10 @@ It ships three layouts:
 
 ## About the Bandage engine (GPL)
 
-The force-directed layout is computed by a WebAssembly build of Bandage's OGDF
-FMMM layout, which is **GPL-licensed**. That engine is **not bundled** in this
-plugin: it is fetched at runtime from a configurable URL (default
+The force-directed layout is computed by a WebAssembly build of Bandage's FMMM
+layout from [OGDF](https://ogdf.github.io/). Both Bandage and OGDF are
+**GPL-licensed**. That engine is **not bundled** in this plugin: it is fetched at
+runtime from a configurable URL (default
 `https://jbrowse.org/demos/bandage`) inside the layout RPC. Keeping this view as
 a separate plugin is why the rest of JBrowse can stay Apache-2.0 while still
 offering the Bandage layout to those who load this plugin. The anchored and
