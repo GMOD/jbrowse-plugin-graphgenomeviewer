@@ -16,6 +16,6 @@ beforeEach(() => {
 
 // Stable BaseAdapter.id in tests so adapter-derived feature uniqueIds stay
 // snapshot-safe. Keeps the test detection out of the production class.
-jest.mock('@jbrowse/core/data_adapters/BaseAdapter/getAdapterId', () => ({
+vi.mock('@jbrowse/core/data_adapters/BaseAdapter/getAdapterId', () => ({
   getAdapterId: () => 'test',
 }))

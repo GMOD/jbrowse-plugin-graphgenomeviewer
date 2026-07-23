@@ -8,9 +8,9 @@ import { anchoredLayout } from './GraphGenomeView/layout/anchoredLayout'
 import { parseGFA, stableCoordinate } from './gfa-core/index'
 import GraphPlugin from './index'
 
-jest.mock('@jbrowse/core/data_adapters/dataAdapterCache')
+vi.mock('@jbrowse/core/data_adapters/dataAdapterCache')
 
-const mockGetAdapter = jest.mocked(getAdapter)
+const mockGetAdapter = vi.mocked(getAdapter)
 
 const region = {
   refName: 'chr',
@@ -45,7 +45,7 @@ test('the plugin registers GetSubgraph under the name the view calls', () => {
 })
 
 test('forwards the region and context to the adapter', async () => {
-  const getSubgraph = jest.fn().mockResolvedValue('H\tVN:Z:1.0')
+  const getSubgraph = vi.fn().mockResolvedValue('H\tVN:Z:1.0')
   mockGetAdapter.mockResolvedValue({
     dataAdapter: { getSubgraph },
   })
@@ -63,10 +63,10 @@ test('forwards the region and context to the adapter', async () => {
 // message.
 test('returns empty for an adapter that cannot cut subgraphs', async () => {
   mockGetAdapter.mockResolvedValue({
-    dataAdapter: { getFeatures: jest.fn() },
+    dataAdapter: { getFeatures: vi.fn() },
   })
 
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
   const result = await makeMethod().execute(makeArgs(), 'MainThreadRpcDriver')
   expect(result).toBe('')
   expect(warn).toHaveBeenCalled()

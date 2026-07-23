@@ -28,8 +28,8 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
 export function createTestEnvironment({
   subgraphCapable = true,
 }: { subgraphCapable?: boolean } = {}) {
-  console.warn = jest.fn()
-  console.error = jest.fn()
+  console.warn = vi.fn()
+  console.error = vi.fn()
   const pluginManager = new PluginManager()
 
   pluginManager.addAdapterType(
@@ -124,7 +124,7 @@ export function createTestEnvironment({
       notifications: [] as string[],
       // isSessionModel keys on rpcManager + configuration; the launch menu
       // never calls it, but getSession has to find this node
-      rpcManager: { call: jest.fn() },
+      rpcManager: { call: vi.fn() },
       assemblyManager: {
         get: (name: string) => (name === 'volvox' ? assembly : undefined),
         waitForAssembly: () => Promise.resolve(assembly),

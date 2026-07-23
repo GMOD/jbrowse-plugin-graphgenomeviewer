@@ -3,15 +3,15 @@ import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 import { bandageAutoScale } from './layout/drawnScale'
 import stateModelFactory from './model'
 
-const mockRpcCall = jest.fn()
+const mockRpcCall = vi.fn()
 const mockSession = {
   tracks: [] as { trackId: string; [key: string]: unknown }[],
   rpcManager: { call: mockRpcCall },
 }
 
-// Don't use jest.requireActual due to circular dependencies
+// Don't use vi.importActual due to circular dependencies
 // Instead, manually mock just what we need
-jest.mock('@jbrowse/core/util', () => {
+vi.mock('@jbrowse/core/util', () => {
   // Return minimal mock that doesn't trigger circular load
   return {
     getSession: () => mockSession,
@@ -30,8 +30,8 @@ jest.mock('@jbrowse/core/util', () => {
   }
 })
 
-jest.mock('@jbrowse/core/configuration', () => ({
-  readConfObject: jest.fn((obj: Record<string, unknown>, key: string) =>
+vi.mock('@jbrowse/core/configuration', () => ({
+  readConfObject: vi.fn((obj: Record<string, unknown>, key: string) =>
     key === 'adapter' ? obj.adapter : undefined,
   ),
 }))
@@ -316,7 +316,7 @@ describe('empty subgraph handling', () => {
   })
 
   test('sets an error when the adapter returns no GFA', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve('')

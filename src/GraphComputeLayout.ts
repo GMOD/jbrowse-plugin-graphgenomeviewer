@@ -1,6 +1,10 @@
 import RpcMethodType from '@jbrowse/core/pluggableElementTypes/RpcMethodType'
 
+import { PLUGIN_NAME } from './pluginName'
+
 import type { Graph, LayoutResult } from './GraphGenomeView/types'
+import type { PluginDefinition } from '@jbrowse/core/PluginLoader'
+import type PluginManager from '@jbrowse/core/PluginManager'
 
 export interface GraphComputeLayoutArgs {
   sessionId: string
@@ -26,35 +30,63 @@ interface BandageModule {
   ): LayoutResult
 }
 
-const DEFAULT_LAYOUT_URL = 'https://jbrowse.org/demos/bandage'
+type BandageModuleFactory = () => Promise<BandageModule>
 
-// Lazily initialized WASM module, shared across calls within same worker
-let layoutModule: BandageModule | null = null
-let initPromise: Promise<BandageModule> | null = null
-let lastBaseUrl = ''
+// esbuild substitutes the content-hashed filename it wrote to dist/, so a
+// redeployed engine can never be served from cache under an old plugin's name.
+declare const __BANDAGE_CHUNK__: string
+const CHUNK_NAME = __BANDAGE_CHUNK__
 
-async function ensureModule(baseUrl: string): Promise<BandageModule> {
-  if (layoutModule && lastBaseUrl === baseUrl) {
-    return layoutModule
+// The engine is a ~425kb lazy chunk sitting next to the plugin bundle, so it
+// only downloads when someone actually picks the force-directed layout. Keyed
+// by url so a layoutUrl override doesn't reuse a module from a different build.
+const modules = new Map<string, Promise<BandageModule>>()
+
+// Each definition names its url under a different key depending on which plugin
+// syntax the config used; baseUri is set when the uri is config-relative.
+function definitionUrl(def: PluginDefinition) {
+  return 'umdLoc' in def
+    ? new URL(def.umdLoc.uri, def.umdLoc.baseUri).href
+    : 'esmLoc' in def
+      ? new URL(def.esmLoc.uri, def.esmLoc.baseUri).href
+      : 'umdUrl' in def
+        ? def.umdUrl
+        : 'url' in def
+          ? def.url
+          : 'esmUrl' in def
+            ? def.esmUrl
+            : def.cjsUrl
+}
+
+// Resolved from the plugin's own definition rather than document.currentScript,
+// because this runs in the RPC web worker where there is no document. The
+// worker gets the same definitions the main thread loaded from (RpcManager
+// passes pm.runtimePluginDefinitions through).
+function chunkUrl(pluginManager: PluginManager) {
+  const def = pluginManager.runtimePluginDefinitions.find(
+    d => 'name' in d && d.name === PLUGIN_NAME,
+  )
+  if (!def) {
+    throw new Error(
+      `Could not locate the ${PLUGIN_NAME} plugin definition, so the Bandage layout engine's URL is unknown. Set layoutUrl on the view to point at a directory serving ${CHUNK_NAME}.`,
+    )
   }
-  if (lastBaseUrl !== baseUrl) {
-    layoutModule = null
-    initPromise = null
-    lastBaseUrl = baseUrl
+  return new URL(CHUNK_NAME, definitionUrl(def)).href
+}
+
+async function ensureModule(url: string) {
+  let pending = modules.get(url)
+  if (!pending) {
+    pending = import(/* webpackIgnore: true */ url)
+      .then((mod: { default: BandageModuleFactory }) => mod.default())
+      .catch((e: unknown) => {
+        // let a later attempt retry rather than caching the failure forever
+        modules.delete(url)
+        throw e
+      })
+    modules.set(url, pending)
   }
-  initPromise ??= (async () => {
-    const jsUrl = `${baseUrl}/bandage-layout.js`
-    const wasmUrl = `${baseUrl}/bandage-layout.wasm`
-    const mod = await import(/* webpackIgnore: true */ jsUrl)
-    return mod.default({
-      locateFile: () => wasmUrl,
-    }) as Promise<BandageModule>
-  })().catch((e: unknown) => {
-    initPromise = null
-    throw e
-  })
-  layoutModule = await initPromise
-  return layoutModule
+  return pending
 }
 
 export default class GraphComputeLayout extends RpcMethodType {
@@ -62,10 +94,12 @@ export default class GraphComputeLayout extends RpcMethodType {
 
   async execute(args: GraphComputeLayoutArgs) {
     const { graph, options, layoutUrl, statusCallback } = args
-    const baseUrl = (layoutUrl || DEFAULT_LAYOUT_URL).replace(/\/$/, '')
+    const url = layoutUrl
+      ? new URL(CHUNK_NAME, `${layoutUrl.replace(/\/$/, '')}/`).href
+      : chunkUrl(this.pluginManager)
 
-    statusCallback?.('Downloading layout engine')
-    const module = await ensureModule(baseUrl)
+    statusCallback?.('Loading layout engine')
+    const module = await ensureModule(url)
 
     statusCallback?.('Computing layout')
     const startTime = performance.now()

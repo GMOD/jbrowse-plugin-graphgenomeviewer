@@ -133,9 +133,9 @@ export default function stateModelFactory() {
         // Whole-GFA source loaded on attach — lets a GraphGenomeView be
         // instantiated declaratively from a session/config snapshot.
         gfaLocation: types.maybe(types.frozen<FileLocation>()),
-        // Override the WASM layout-engine base URL (default: the hosted
-        // jbrowse.org/demos/bandage). Relative values resolve against the app
-        // origin, so a deployment can self-host the engine.
+        // Override the directory the WASM layout engine is served from. By
+        // default it ships beside the plugin bundle and its url is derived from
+        // the plugin's own. Relative values resolve against the app origin.
         layoutUrl: types.maybe(types.string),
       }),
     )
