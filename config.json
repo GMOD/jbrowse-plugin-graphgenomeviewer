@@ -1,0 +1,39 @@
+{
+  "plugins": [
+    {
+      "name": "GraphGenomeView",
+      "url": "http://localhost:9000/dist/out.js"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "hg38",
+      "aliases": ["GRCh38"],
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "GRCh38-ReferenceSequenceTrack",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "fastaLocation": {
+            "uri": "https://jbrowse.org/genomes/GRCh38/fasta/hg38.prefix.fa.gz"
+          },
+          "faiLocation": {
+            "uri": "https://jbrowse.org/genomes/GRCh38/fasta/hg38.prefix.fa.gz.fai"
+          },
+          "gziLocation": {
+            "uri": "https://jbrowse.org/genomes/GRCh38/fasta/hg38.prefix.fa.gz.gzi"
+          }
+        }
+      }
+    }
+  ],
+  "defaultSession": {
+    "name": "Graph genome view test session",
+    "views": [
+      {
+        "id": "graph-view-1",
+        "type": "GraphGenomeView"
+      }
+    ]
+  }
+}
