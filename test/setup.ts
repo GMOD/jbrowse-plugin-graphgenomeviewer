@@ -87,7 +87,7 @@ function createTestConfig() {
     plugins: [
       {
         name: 'GraphGenomeView',
-        url: `${base}/plugin/jbrowse-plugin-graphgenomeviewer.umd.production.min.js`,
+        esmUrl: `${base}/plugin/jbrowse-plugin-graphgenomeviewer.esm.js`,
       },
     ],
     assemblies: [],

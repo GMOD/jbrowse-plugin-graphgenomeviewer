@@ -63,40 +63,36 @@ In another terminal, serve a JBrowse Web that points at `config.json` (its
 ## Building
 
 ```console
-pnpm build        # minified UMD bundle via esbuild
+pnpm build        # native ESM bundle via esbuild (code-split)
 pnpm typecheck    # tsc, separately — esbuild strips types without checking them
 ```
 
-This writes two files to `dist/`, and **both must be served from the same
-directory**:
+This writes the plugin to `dist/`, and the **whole directory must be served
+together** — the entry loads its sibling chunks relative to its own url:
 
-- `jbrowse-plugin-graphgenomeviewer.umd.production.min.js` — the plugin (~180kb)
-- `bandage-layout.<hash>.js` — the Bandage layout engine (~425kb), named by
-  content hash so a redeployed engine is never served from cache
+- `jbrowse-plugin-graphgenomeviewer.esm.js` — the plugin entry
+- `chunks/bandage-layout-<hash>.js` — the Bandage layout engine (~425kb),
+  imported on demand and named by content hash so a redeployed engine is never
+  served from cache
+- `chunks/*.js` — other lazily-loaded code split out of the entry
 
-Load the plugin from any JBrowse 2 config:
+Load the plugin from any JBrowse 2 config with an `esmUrl`:
 
 ```json
 {
   "plugins": [
     {
       "name": "GraphGenomeView",
-      "url": "https://your-host/jbrowse-plugin-graphgenomeviewer.umd.production.min.js"
+      "esmUrl": "https://your-host/jbrowse-plugin-graphgenomeviewer.esm.js"
     }
   ]
 }
 ```
 
-For a fixed deployment you can pin the bundle with subresource integrity, which
-JBrowse enforces on load (`integrity` alongside `url`):
-
-```json
-{
-  "name": "GraphGenomeView",
-  "url": "https://your-host/jbrowse-plugin-graphgenomeviewer.umd.production.min.js",
-  "integrity": "sha384-<base64 digest>"
-}
-```
+Note: ESM plugins are loaded via a dynamic `import()`, which cannot carry a
+subresource-integrity hash the way a UMD `<script integrity>` can. For a
+deployment that needs pinned, tamper-evident bytes, serve the plugin from an
+immutable, version-pinned url on a host you control.
 
 Generate the digest with
 `openssl dgst -sha384 -binary FILE | openssl base64 -A`. The engine chunk is

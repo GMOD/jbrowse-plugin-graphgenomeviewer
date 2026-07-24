@@ -11,8 +11,10 @@
     "gfa",
     "bandage"
   ],
+  "type": "module",
   "main": "dist/jbrowse-plugin-graphgenomeviewer.esm.js",
   "module": "dist/jbrowse-plugin-graphgenomeviewer.esm.js",
+  "exports": "./dist/jbrowse-plugin-graphgenomeviewer.esm.js",
   "files": [
     "dist",
     "src"
