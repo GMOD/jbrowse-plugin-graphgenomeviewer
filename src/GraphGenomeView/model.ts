@@ -1,11 +1,12 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import BaseViewModel from '@jbrowse/core/pluggableElementTypes/models/BaseViewModel'
-import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
+import { getEnv, getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
+import { bandageEngineUrl } from '../bandageEngineUrl'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
@@ -390,9 +391,13 @@ export default function stateModelFactory() {
         // Stable grouping key for the layout RPC; a view has no display-level
         // rpcSessionId. `rpcManager.call` injects sessionId into the args.
         const sessionId = 'graph'
-        const layoutUrl = self.layoutUrl
+        const override = self.layoutUrl
           ? new URL(self.layoutUrl, window.location.href).href
           : undefined
+        const engineUrl = bandageEngineUrl(
+          getEnv(self).pluginManager,
+          override,
+        )
         return rpcManager.call(sessionId, 'GraphComputeLayout', {
           graph: { nodes: graph.nodes, edges: graph.edges },
           options: {
@@ -400,7 +405,7 @@ export default function stateModelFactory() {
             linearLayout: self.linearLayout,
             ...extraOpts,
           },
-          layoutUrl,
+          engineUrl,
           statusCallback: (message: string) => {
             self.setStatusMessage(message)
           },

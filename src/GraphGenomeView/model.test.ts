@@ -18,7 +18,13 @@ vi.mock('@jbrowse/core/util', () => {
     isSessionModelWithWidgets: () => false,
     // Add stubs for other potentially imported items
     parseLocString: () => ({}),
-    getEnv: () => ({}),
+    getEnv: () => ({
+      pluginManager: {
+        runtimePluginDefinitions: [
+          { name: 'GraphGenomeView', url: 'http://localhost/plugin.js' },
+        ],
+      },
+    }),
     useWidthSetter: () => {},
     measureText: () => 0,
     IntervalTree: class {},
