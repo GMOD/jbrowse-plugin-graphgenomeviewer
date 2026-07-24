@@ -154,6 +154,13 @@ export default function stateModelFactory() {
       baseEdgeColors: undefined as Uint32Array | undefined,
       baseArrowColors: undefined as Uint32Array | undefined,
       draggingNode: null as string | null,
+      // Set once the user pans/zooms (or a restored session carries a
+      // transform). While false the view keeps auto-fitting as the layout and
+      // canvas dimensions settle; a manual move opts out so we never fight the
+      // user. Distinct from `isDefaultViewport`, which zoomToFit itself
+      // invalidates on its first run — that made the fit fire once against
+      // not-yet-measured dimensions and then never re-fit.
+      userMovedViewport: false,
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
       // Performance instrumentation, surfaced in GraphStats for browser tests
@@ -275,11 +282,13 @@ export default function stateModelFactory() {
       },
 
       setTransform(s: number, tx: number, ty: number) {
+        self.userMovedViewport = true
         self.scale = clampZoom(s)
         self.translateX = tx
         self.translateY = ty
       },
       zoom(factor: number, centerX: number, centerY: number) {
+        self.userMovedViewport = true
         const newScale = clampZoom(self.scale * factor)
         const ratio = newScale / self.scale
         self.scale = newScale
@@ -530,16 +539,20 @@ export default function stateModelFactory() {
           if (!track) {
             return
           }
-          // Save pan/zoom — zoomToFit autorun fires when layoutResult is set,
-          // overriding the persisted transform; we restore it afterward.
+          // Save pan/zoom — the fit autorun fires when layoutResult is set. If
+          // the restored session carried a real transform (userMovedViewport),
+          // restore it afterward; otherwise let the fresh view auto-fit.
           const savedScale = self.scale
           const savedTx = self.translateX
           const savedTy = self.translateY
+          const restore = self.userMovedViewport
           const adapterConfig = readConfObject(track, 'adapter')
           yield* doSubgraphLoad(adapterConfig, self.loadedRegion, {})
-          self.scale = savedScale
-          self.translateX = savedTx
-          self.translateY = savedTy
+          if (restore) {
+            self.scale = savedScale
+            self.translateX = savedTx
+            self.translateY = savedTy
+          }
         }),
         recomputeLayout: flow(function* () {
           const graph = self.graph
@@ -563,17 +576,18 @@ export default function stateModelFactory() {
     .actions(self => ({
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
-          // Autorun: zoom to fit when a layout result arrives, unless the view
-          // already carries a transform (restored session, or the user panned).
-          // Skipping the autorun's *first* run instead would swallow the fit
-          // whenever the load beat the renderer backend to start — the normal
-          // case for a view created from a session spec.
+          // Autorun: keep the view fitted to the graph until the user moves it.
+          // Reads layoutResult plus (via zoomToFit) width/canvasHeight, so it
+          // re-fires — and re-fits — as the layout arrives and the canvas is
+          // measured, rather than firing once against not-yet-known dimensions.
+          // A manual pan/zoom (or a restored-session transform) sets
+          // userMovedViewport, opting out so we never override the user.
           addDisposer(
             self,
             autorun(() => {
               if (
                 self.layoutResult &&
-                untracked(() => self.isDefaultViewport)
+                untracked(() => !self.userMovedViewport)
               ) {
                 self.zoomToFit()
               }
@@ -744,6 +758,11 @@ export default function stateModelFactory() {
       // the canvas only mounts once `hasGraph` is true (the import form shows
       // until then), so a view whose graph must be fetched would never fetch it.
       afterAttach() {
+        // A restored session that already carries a non-default transform is
+        // the user's own view — mark it so the fit autorun leaves it alone.
+        if (!self.isDefaultViewport) {
+          self.userMovedViewport = true
+        }
         if (self.gfaLocation && !self.graph) {
           void self.loadFromLocation()
         }
