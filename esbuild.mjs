@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
 import * as esbuild from 'esbuild'
@@ -44,45 +43,28 @@ const rebuildLogPlugin = {
   },
 }
 
-// The Bandage engine ships as a sibling of the plugin bundle rather than inside
-// it: GraphComputeLayout imports it by url at runtime, so it only downloads when
-// someone picks the force-directed layout. It is already a self-contained ES
-// module (Emscripten -sSINGLE_FILE=1, wasm inlined as base64), so it just gets
-// copied — bundling it would defeat the point and inline 425kb into the bundle.
-// The chunk url is derived from the plugin's own url at runtime, and JBrowse's
-// cache buster only decorates the plugin url with a query that `new URL()` then
-// drops. Without a hash here a redeployed plugin can load a browser-cached copy
-// of the old engine, so the content hash rides along in the filename.
-function copyBandageChunk() {
-  const source = fs.readFileSync('src/bandage/bandage-layout.js')
-  const hash = crypto
-    .createHash('sha256')
-    .update(source)
-    .digest('hex')
-    .slice(0, 8)
-  const name = `bandage-layout.${hash}.js`
-  fs.mkdirSync('dist', { recursive: true })
-  fs.writeFileSync(`dist/${name}`, source)
-  return name
-}
-
-const bandageChunk = copyBandageChunk()
-
 const globals = JBrowseReExports
 const config = {
   entryPoints: ['src/index.ts'],
   bundle: true,
-  define: { __BANDAGE_CHUNK__: JSON.stringify(bandageChunk) },
-  // JBrowse reads window.JBrowsePlugin<configName>; config name is 'GraphGenomeView'.
-  globalName: 'JBrowsePluginGraphGenomeView',
+  // Native ESM plugin. The Bandage engine is a plain `import(...)` in
+  // loadBandage.ts; splitting emits it as a content-hashed sibling chunk that
+  // the browser resolves relative to the plugin's own module url — no manual
+  // url plumbing, and it works the same on the main thread and in the RPC
+  // worker (import.meta.url is defined in a module worker, currentScript is
+  // not). Loaded via an `esmUrl` plugin definition.
+  format: 'esm',
+  splitting: true,
+  outdir: 'dist',
+  chunkNames: 'chunks/[name]-[hash]',
   // Automatic JSX runtime; react/jsx-runtime is a JBrowse global (ReExports).
   jsx: 'automatic',
   metafile: true,
   plugins: [globalExternals(createGlobalMap(globals)), rebuildLogPlugin],
   ...(isWatch
-    ? { outfile: 'dist/out.js' }
+    ? { entryNames: 'out' }
     : {
-        outfile: 'dist/jbrowse-plugin-graphgenomeviewer.umd.production.min.js',
+        entryNames: 'jbrowse-plugin-graphgenomeviewer.esm',
         sourcemap: true,
         minify: true,
       }),

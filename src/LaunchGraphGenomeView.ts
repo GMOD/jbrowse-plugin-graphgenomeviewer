@@ -9,7 +9,6 @@ export interface LaunchGraphGenomeViewArgs {
   session: AbstractSessionModel
   id?: string
   gfaLocation?: FileLocation
-  layoutUrl?: string
   colorScheme?: string
   linearLayout?: boolean
   drawPaths?: boolean

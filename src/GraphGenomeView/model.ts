@@ -1,12 +1,11 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import BaseViewModel from '@jbrowse/core/pluggableElementTypes/models/BaseViewModel'
-import { getEnv, getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
+import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
-import { bandageEngineUrl } from '../bandageEngineUrl'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
@@ -134,10 +133,6 @@ export default function stateModelFactory() {
         // Whole-GFA source loaded on attach — lets a GraphGenomeView be
         // instantiated declaratively from a session/config snapshot.
         gfaLocation: types.maybe(types.frozen<FileLocation>()),
-        // Override the directory the WASM layout engine is served from. By
-        // default it ships beside the plugin bundle and its url is derived from
-        // the plugin's own. Relative values resolve against the app origin.
-        layoutUrl: types.maybe(types.string),
       }),
     )
     .volatile(() => ({
@@ -391,13 +386,6 @@ export default function stateModelFactory() {
         // Stable grouping key for the layout RPC; a view has no display-level
         // rpcSessionId. `rpcManager.call` injects sessionId into the args.
         const sessionId = 'graph'
-        const override = self.layoutUrl
-          ? new URL(self.layoutUrl, window.location.href).href
-          : undefined
-        const engineUrl = bandageEngineUrl(
-          getEnv(self).pluginManager,
-          override,
-        )
         return rpcManager.call(sessionId, 'GraphComputeLayout', {
           graph: { nodes: graph.nodes, edges: graph.edges },
           options: {
@@ -405,7 +393,6 @@ export default function stateModelFactory() {
             linearLayout: self.linearLayout,
             ...extraOpts,
           },
-          engineUrl,
           statusCallback: (message: string) => {
             self.setStatusMessage(message)
           },
