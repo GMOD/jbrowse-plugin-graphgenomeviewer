@@ -16,6 +16,14 @@ const TEST_JBROWSE_DIR =
   process.env.JBROWSE_TEST_DIR ??
   path.join(process.cwd(), `.test-jbrowse-${TEST_JBROWSE_VERSION}`)
 
+export const BASE_URL = `http://localhost:${JBROWSE_PORT}`
+
+export const PLUGIN_ESM_URL = `${BASE_URL}/plugin/jbrowse-plugin-graphgenomeviewer.esm.js`
+
+// Where screenshots land. Gitignored: they are evidence a run produced, not
+// committed baselines — nothing here diffs against a golden image.
+export const SCREENSHOT_DIR = path.join(process.cwd(), 'test-screenshots')
+
 export async function waitForServer(port: number, timeout = 30_000) {
   const start = Date.now()
   let lastError: unknown
@@ -47,7 +55,17 @@ export async function waitForServer(port: number, timeout = 30_000) {
 // The plugin bundle plus the hashed engine chunk are copied into the JBrowse
 // static dir, and the GFA test file is served alongside so the view can fetch
 // it over http exactly as a real deployment would.
-export function setupJBrowse() {
+export function setupJBrowse({
+  config,
+  dataFiles = [],
+}: {
+  // A whole JBrowse config to serve. Defaults to the force-layout graph view
+  // the original e2e tests boot into.
+  config?: unknown
+  // `[sourcePathRelativeToRepo, destNameInServedDir]` pairs, copied verbatim so
+  // a test can serve its own fixtures over http exactly as a deployment would.
+  dataFiles?: [string, string][]
+} = {}) {
   if (!fs.existsSync(TEST_JBROWSE_DIR)) {
     throw new Error(
       `JBrowse dir missing at ${TEST_JBROWSE_DIR}. Run: jbrowse create ${TEST_JBROWSE_DIR} --nightly`,
@@ -67,29 +85,43 @@ export function setupJBrowse() {
   fs.mkdirSync(pluginDir, { recursive: true })
   fs.cpSync(distDir, pluginDir, { recursive: true })
 
-  fs.copyFileSync(
-    path.join(process.cwd(), 'test_data', 'ecoli_pggb_subgraph.gfa'),
-    path.join(TEST_JBROWSE_DIR, 'test.gfa'),
-  )
+  for (const [source, dest] of [
+    ['test_data/ecoli_pggb_subgraph.gfa', 'test.gfa'],
+    ...dataFiles,
+  ] satisfies [string, string][]) {
+    const target = path.join(TEST_JBROWSE_DIR, dest)
+    fs.mkdirSync(path.dirname(target), { recursive: true })
+    fs.copyFileSync(path.join(process.cwd(), source), target)
+  }
 
   fs.writeFileSync(
     path.join(TEST_JBROWSE_DIR, 'config.json'),
-    JSON.stringify(createTestConfig(), null, 2),
+    JSON.stringify(config ?? createTestConfig(), null, 2),
   )
+}
+
+// Written into the served dir rather than committed: it is derived from the rGFA
+// fixture, so it can't drift from it.
+export function writeServedFile(dest: string, contents: string) {
+  const target = path.join(TEST_JBROWSE_DIR, dest)
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  fs.writeFileSync(target, contents)
+}
+
+export async function screenshot(page: Page, name: string) {
+  fs.mkdirSync(SCREENSHOT_DIR, { recursive: true })
+  const file = path.join(SCREENSHOT_DIR, `${name}.png`)
+  await page.screenshot({ path: file })
+  console.log(`[screenshot] ${file}`)
 }
 
 // A GraphGenomeView instantiated straight from the session snapshot: gfaLocation
 // points at the served file and layoutMode 'force' selects the Bandage engine,
 // so loading the page alone drives the lazy-chunk path end to end.
 function createTestConfig() {
-  const base = `http://localhost:${JBROWSE_PORT}`
+  const base = BASE_URL
   return {
-    plugins: [
-      {
-        name: 'GraphGenomeView',
-        esmUrl: `${base}/plugin/jbrowse-plugin-graphgenomeviewer.esm.js`,
-      },
-    ],
+    plugins: [{ name: 'GraphGenomeView', esmUrl: PLUGIN_ESM_URL }],
     assemblies: [],
     defaultSession: {
       name: 'e2e',

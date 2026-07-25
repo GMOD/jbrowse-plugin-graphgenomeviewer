@@ -1,5 +1,13 @@
-import { parsePanSN, projectAlleles } from '../../alleleProjection/projectAlleles'
-import { backboneNodes, backboneSpan } from '../anchoredNodes'
+import {
+  parsePanSN,
+  projectAlleles,
+} from '../../alleleProjection/projectAlleles'
+import {
+  backboneNodes,
+  backboneSpan,
+  isBackbone,
+  isOffReference,
+} from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment } from '../types'
 
@@ -34,7 +42,7 @@ const MIN_ALLELE_SPAN_FRACTION = 0.015
 function contributingSamples(graph: Graph) {
   const samples = new Set<string>()
   for (const node of graph.nodes) {
-    if (node.stable && node.stable.rank > 0) {
+    if (isOffReference(node)) {
       samples.add(parsePanSN(node.stable.refName).sample)
     }
   }
@@ -100,9 +108,9 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
 // Rows this layout will draw, for a legend or an axis. Exported so a caller
 // labels rows from the same source that positions them.
 export function sampleRows(graph: Graph) {
-  const backbone = graph.nodes.find(n => n.stable?.rank === 0)
+  const backbone = graph.nodes.find(isBackbone)
   const reference = backbone
-    ? parsePanSN(backbone.stable!.refName).sample
+    ? parsePanSN(backbone.stable.refName).sample
     : 'reference'
   return [reference, ...contributingSamples(graph)]
 }

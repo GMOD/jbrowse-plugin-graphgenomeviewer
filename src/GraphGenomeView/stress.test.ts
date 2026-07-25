@@ -1,6 +1,8 @@
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
+import { Canvas2DRenderer } from './renderer/Canvas2DRenderer'
 import { buildGeometry } from './renderer/GeometryBuilder'
+import { recordingCanvas } from './renderer/recordingCanvas'
 import { INSTANCE_STRIDE_F32 } from './renderer/shaders/graph.generated'
 
 import type { GraphNode, NodeSegment } from './types'
@@ -166,4 +168,59 @@ test('viewport culling drops the vast majority of off-screen nodes', () => {
 
   expect(batch.nodeVertexRanges.size).toBeGreaterThan(0)
   expect(batch.nodeVertexRanges.size).toBeLessThan(graph.nodes.length / 2)
+})
+
+// Draw calls per frame, which is what the Canvas2D renderer's cost actually
+// tracks -- and unlike wall-clock they are deterministic, so they can be asserted
+// exactly instead of bounded so loosely that a 3x regression slips through. The
+// timing assertions above only catch an accidental O(n^2).
+//
+// The arithmetic for a 2-point node polyline is exact: two 4-segment round caps
+// (8 triangles) plus a 2-triangle quad = 10 fills per node, one stroke per edge
+// stroke, one fill per arrowhead. Measured baseline: 12.6 calls per node, of
+// which nodes are 79%. See agent-docs/GRAPH_SCALE_AND_LOD.md.
+const FILLS_PER_2POINT_NODE = 10
+
+function countDrawCalls(batch: ReturnType<typeof buildGeometry>) {
+  const { canvas, strokes, fills } = recordingCanvas()
+  const renderer = new Canvas2DRenderer(canvas)
+  renderer.uploadGeometry(batch)
+  renderer.updateTransform({
+    scaleX: 1,
+    scaleY: 1,
+    translateX: 0,
+    translateY: 0,
+    viewportWidth: 800,
+    viewportHeight: 600,
+  })
+  renderer.render([1, 1, 1, 1])
+  return { strokes: strokes.length, fills: fills.length }
+}
+
+test('draw calls per frame stay within the measured budget', () => {
+  const { gfa } = generateBubbleGFA(500)
+  const graph = convertGFAToGraph(parseGFA(gfa), 'stress')
+  const nodePositions = syntheticPositions(graph.nodes)
+  const batch = buildGeometry({
+    nodePositions,
+    graph,
+    nodeById: new Map(graph.nodes.map(n => [n.id, n])),
+    colorScheme: 'uniform',
+    contigThickness: 10,
+    connectorThickness: 4,
+    drawPaths: false,
+    scale: 1,
+  })
+
+  const { strokes, fills } = countDrawCalls(batch)
+  const nodeCount = batch.nodeVertexRanges.size
+  const arrowheads = batch.arrows.indices.length / 3
+
+  // one stroke per edge stroke: edges are native beziers, never a vertex mesh.
+  // If a mesh path for edges came back, this would no longer hold.
+  expect(strokes).toBe(batch.edgeCurves.length)
+  // exact, so growth in per-node cost cannot pass unnoticed
+  expect(fills).toBe(nodeCount * FILLS_PER_2POINT_NODE + arrowheads)
+  // and the headline budget the doc quotes
+  expect((strokes + fills) / nodeCount).toBeLessThanOrEqual(13)
 })

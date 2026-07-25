@@ -1,45 +1,11 @@
 import { Canvas2DRenderer } from './Canvas2DRenderer'
 import { buildGeometry } from './GeometryBuilder'
+import { recordingCanvas } from './recordingCanvas'
 
 import type { TransformUniform } from './types'
 
-// A 2D context that records the stroke colour of each path it is asked to draw.
-// jsdom implements no canvas backend, so there is no real context to use and no
-// pixels to read; recording the draw calls is what is available, and it is also
-// exactly the level the bug lived at — edge highlighting used to write into a
-// vertex buffer that nothing ever drew from.
-function recordingContext() {
-  const strokes: string[] = []
-  const fills: string[] = []
-  const ctx = {
-    canvas: { width: 800, height: 600, style: {} },
-    fillStyle: '',
-    strokeStyle: '',
-    lineWidth: 0,
-    lineCap: '',
-    lineJoin: '',
-    beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
-    closePath: () => {},
-    bezierCurveTo: () => {},
-    fillRect: () => {},
-    stroke: () => {
-      strokes.push(ctx.strokeStyle)
-    },
-    fill: () => {
-      fills.push(ctx.fillStyle)
-    },
-  }
-  return { ctx, strokes, fills }
-}
-
-// The renderer only reaches for getContext('2d'); the element itself is real, so
-// the single assertion the fake has to make is that it stands in for a context.
 function makeRenderer() {
-  const { ctx, strokes, fills } = recordingContext()
-  const canvas = document.createElement('canvas')
-  canvas.getContext = () => ctx as unknown as CanvasRenderingContext2D
+  const { canvas, strokes, fills } = recordingCanvas()
   return { renderer: new Canvas2DRenderer(canvas), strokes, fills }
 }
 

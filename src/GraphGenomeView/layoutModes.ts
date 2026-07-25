@@ -1,3 +1,4 @@
+import { isBackbone, isOffReference } from './anchoredNodes'
 import { anchoredLayout } from './layout/anchoredLayout'
 import { sampleRowLayout } from './layout/sampleRowLayout'
 
@@ -35,7 +36,7 @@ export const LAYOUT_MODES = [
     label: 'Anchored',
     description: 'x is reference bp, one row per stable rank. rGFA only.',
     run: anchoredLayout,
-    available: graph => graph.nodes.some(n => n.stable?.rank === 0),
+    available: graph => graph.nodes.some(isBackbone),
   },
   {
     value: 'samplerows',
@@ -44,8 +45,7 @@ export const LAYOUT_MODES = [
       'x is reference bp, one row per contributing assembly. rGFA only.',
     run: sampleRowLayout,
     available: graph =>
-      graph.nodes.some(n => n.stable?.rank === 0) &&
-      graph.nodes.some(n => n.stable && n.stable.rank > 0),
+      graph.nodes.some(isBackbone) && graph.nodes.some(isOffReference),
   },
   {
     value: 'force',
