@@ -12,14 +12,14 @@ importers:
         specifier: ^3.4.2
         version: 3.4.2
       '@jbrowse/core':
-        specifier: link:../../jbrowse-components2/packages/core
-        version: link:../../jbrowse-components2/packages/core
+        specifier: link:../../jbrowse-components/packages/core
+        version: link:../../jbrowse-components/packages/core
       '@jbrowse/mobx-state-tree':
         specifier: ^5.6.0
         version: 5.13.0(mobx@6.16.1)
       '@jbrowse/render-core':
-        specifier: link:../../jbrowse-components2/packages/render-core
-        version: link:../../jbrowse-components2/packages/render-core
+        specifier: link:../../jbrowse-components/packages/render-core
+        version: link:../../jbrowse-components/packages/render-core
     devDependencies:
       '@emotion/react':
         specifier: ^11.14.0
@@ -37,11 +37,11 @@ importers:
         specifier: ^4.2.1
         version: 4.3.0
       '@jbrowse/plugin-canvas':
-        specifier: link:../../jbrowse-components2/plugins/canvas
-        version: link:../../jbrowse-components2/plugins/canvas
+        specifier: link:../../jbrowse-components/plugins/canvas
+        version: link:../../jbrowse-components/plugins/canvas
       '@jbrowse/plugin-linear-genome-view':
-        specifier: link:../../jbrowse-components2/plugins/linear-genome-view
-        version: link:../../jbrowse-components2/plugins/linear-genome-view
+        specifier: link:../../jbrowse-components/plugins/linear-genome-view
+        version: link:../../jbrowse-components/plugins/linear-genome-view
       '@mui/icons-material':
         specifier: ^9.2.0
         version: 9.2.0(@mui/material@9.2.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.2.7))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.2.7))(@types/react@19.2.17)(react@19.2.7))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@types/react@19.2.17)(react@19.2.7)
