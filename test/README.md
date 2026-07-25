@@ -12,18 +12,33 @@ the engine URL from its own URL, downloaded the chunk, and drew a graph.
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in because it can't pass yet. The plugin is built against the unreleased
-`graph_viz` branch of jbrowse-components (MUI 9, `@jbrowse/render-core`), so it
-throws on `createSvgIcon` inside a stock `jbrowse create --nightly`, which is
-built from `main`. This is the same blocker as the `build-and-test` CI job.
+Opt-in only because it needs a jbrowse-web static build to serve. **The suite
+passes as of 2026-07-24**; the old `createSvgIcon` blocker is gone now that
+`graph_viz` has merged to `main`.
 
-Once `graph_viz` is released (or you build a jbrowse-web from a compatible
-checkout), point the harness at it and run:
+Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 
 ```console
-jbrowse create .test-jbrowse-nightly --nightly   # or a graph_viz build
-JBROWSE_TEST_DIR=/path/to/jbrowse-web RUN_E2E=1 pnpm test:e2e
+JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 ```
+
+A build from the same checkout the plugin links against is the most faithful
+option, since that is what it compiles against. A stock
+`jbrowse create .test-jbrowse-nightly --nightly` should also work now, but has
+not been verified to carry the merge -- that is the one thing still keeping the
+`e2e-tests` CI job disabled.
+
+> **The harness writes into `JBROWSE_TEST_DIR`** -- `config.json`, `test.gfa`
+> and `plugin/`. Give it a copy, not a build you care about.
+
+Two things that cost time when this was first run, both of which look like
+plugin bugs and are not:
+
+- copying a jbrowse-web build **while something is rebuilding it** yields a tree
+  with no `index.html`, so `serve` shows a directory listing and React never
+  mounts. Check `index.html` and `static/js` exist in the copy.
+- running with `SKIP_BUILD=1` tests whatever is already in `dist/`. That is how
+  a fixed import kept appearing broken.
 
 Without `RUN_E2E=1` the suite skips and exits clean, so it never blocks a run.
 

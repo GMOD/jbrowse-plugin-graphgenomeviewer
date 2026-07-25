@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { ErrorBanner } from '@jbrowse/core/ui'
-import { useRenderingBackend } from '@jbrowse/core/util'
+import { useRenderingBackend } from '@jbrowse/render-core'
 import { LinearProgress, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 

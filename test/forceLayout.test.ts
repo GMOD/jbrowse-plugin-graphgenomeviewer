@@ -11,13 +11,19 @@ import {
 
 import type { Browser, Page } from 'puppeteer'
 
-// Opt-in: set RUN_E2E=1. The plugin is built against the unreleased graph_viz
-// branch of jbrowse-components (MUI 9, render-core), so it cannot load in a
-// stock `jbrowse create --nightly`, which is built from main — the bundle
-// throws on `createSvgIcon` from a mismatched MUI. Point JBROWSE_TEST_DIR at a
-// jbrowse-web built from a graph_viz-compatible checkout, then RUN_E2E=1. Same
-// blocker as the build-and-test CI job; lift both when graph_viz is released.
+// Opt-in: set RUN_E2E=1, because it needs a jbrowse-web static build to serve.
+// graph_viz has merged to main, so a stock nightly is compatible again; the old
+// `createSvgIcon` blocker is gone. Point JBROWSE_TEST_DIR at a build and go:
+//
+//   JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
+//
+// Note the harness writes config.json, test.gfa and plugin/ into that directory,
+// so give it a copy rather than a build you care about.
 const runE2E = process.env.RUN_E2E === '1'
+
+// esbuild emits `chunks/[name]-[hash]`; the hash alphabet is upper-case
+// alphanumeric, e.g. bandage-layout-6I4WKPOE.js.
+const ENGINE_CHUNK = /bandage-layout-[A-Z0-9]{8}\.js/
 
 // End-to-end coverage of the one path unit tests can't reach: the force layout
 // running the Bandage WASM engine, fetched at runtime as the hashed sibling
@@ -41,10 +47,12 @@ describe.skipIf(!runE2E)('force-directed layout in a real JBrowse', () => {
   })
 
   it('fetches the hashed engine chunk, not a fixed name', async () => {
+    // Broad enough to record a wrongly-named fetch too: a filter that only
+    // matched the good spelling would pass vacuously when the name regresses.
     const chunkRequests: string[] = []
     page.on('request', req => {
       const url = req.url()
-      if (/bandage-layout\..*\.js/.test(url)) {
+      if (/bandage-layout[^/]*\.js(\?|$)/.test(url)) {
         chunkRequests.push(url)
       }
     })
@@ -58,15 +66,18 @@ describe.skipIf(!runE2E)('force-directed layout in a real JBrowse', () => {
       { timeout: 120_000 },
     )
     expect(chunkRequests.length).toBeGreaterThan(0)
-    // content-hashed: bandage-layout.<hash>.js, never the bare fallback
-    expect(chunkRequests.every(u => /bandage-layout\.[a-f0-9]{8}\.js/.test(u)))
-      .toBe(true)
+    // esbuild's chunkNames is `chunks/[name]-[hash]`, so the engine arrives as
+    // bandage-layout-<hash>.js. What matters is that the name is content-hashed
+    // rather than a fixed bandage-layout.js resolved by hand.
+    expect(chunkRequests.every(u => ENGINE_CHUNK.test(u))).toBe(true)
   }, 180_000)
 
   it('lays out the graph and paints a non-empty canvas', async () => {
     const stats = await page.evaluate(() => {
+      // GraphStats appends ", N paths" when the graph has any, which the
+      // fixture does -- so this must not be anchored at the edge count.
       const el = [...document.querySelectorAll('*')].find(e =>
-        /^\s*\d+ nodes, \d+ edges\s*$/.test(e.textContent),
+        /^\s*\d+ nodes, \d+ edges(, \d+ paths)?\s*$/.test(e.textContent),
       )
       return el?.textContent.trim()
     })

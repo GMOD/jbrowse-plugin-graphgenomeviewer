@@ -27,29 +27,27 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: crate-ci/typos@master
 
-  # BLOCKED until the jbrowse-components `graph_viz` branch is pushed and this
-  # plugin's `link:` deps point at something a runner can fetch. @jbrowse/core,
-  # render-core, canvas and linear-genome-view are consumed as link:../../
-  # siblings, so a fresh clone cannot install or build them. Set
-  # JBROWSE_COMPONENTS_REF once that branch exists (or switch the deps to
-  # published versions) and drop the `if: false`.
+  # Enabled 2026-07-24: graph_viz merged to main, so the link: siblings resolve
+  # against an ordinary main checkout. @jbrowse/core, render-core, canvas and
+  # linear-genome-view are still consumed as link:../../ siblings, so the two
+  # checkouts below have to mirror a local dev tree -- the sibling directory name
+  # must match the link: specifiers in package.json.
   build-and-test:
     name: Build, lint, typecheck, unit tests
     runs-on: ubuntu-latest
-    if: false
     env:
       JBROWSE_COMPONENTS_REF: main
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: jb2plugins/jbrowse-plugin-graphgenomeviewer
-      # the link: specifiers resolve to ../../jbrowse-components2 relative to
+      # the link: specifiers resolve to ../../jbrowse-components relative to
       # the plugin, so the checkout layout has to mirror a local dev tree
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: GMOD/jbrowse-components
           ref: ${{ env.JBROWSE_COMPONENTS_REF }}
-          path: jbrowse-components2
+          path: jbrowse-components
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
         with:
           version: latest
@@ -59,7 +57,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: jb2plugins/jbrowse-plugin-graphgenomeviewer/pnpm-lock.yaml
       - name: Install jbrowse-components deps
-        working-directory: jbrowse-components2
+        working-directory: jbrowse-components
         run: pnpm install --frozen-lockfile
       - name: Install
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
@@ -80,11 +78,13 @@ jobs:
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: pnpm test:wasm
 
-  # Also BLOCKED, and additionally needs a jbrowse-web built from the same
-  # graph_viz sources: the plugin uses MUI 9 / render-core from that branch, so
-  # it throws (createSvgIcon) in a stock `jbrowse create --nightly` built from
-  # main. Once graph_viz ships, build jbrowse-web from it, point JBROWSE_TEST_DIR
-  # at the output, and set RUN_E2E=1 (drop the `if: false`).
+  # The suite itself passes as of 2026-07-24, verified locally against a
+  # jbrowse-web built from the linked checkout. Still `if: false` for one
+  # unverified step: this job creates its instance with `@jbrowse/cli create
+  # --nightly`, and whether the published nightly yet carries the merged
+  # graph_viz work has not been checked. Confirm that a nightly boots the plugin
+  # (or build jbrowse-web here and point JBROWSE_TEST_DIR at it), then drop the
+  # `if: false`. Note the harness writes into JBROWSE_TEST_DIR.
   e2e-tests:
     name: E2E (force layout in a real JBrowse)
     runs-on: ubuntu-latest
@@ -98,7 +98,7 @@ jobs:
         with:
           repository: GMOD/jbrowse-components
           ref: main
-          path: jbrowse-components2
+          path: jbrowse-components
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
         with:
           version: latest
@@ -108,7 +108,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: jb2plugins/jbrowse-plugin-graphgenomeviewer/pnpm-lock.yaml
       - name: Install jbrowse-components deps
-        working-directory: jbrowse-components2
+        working-directory: jbrowse-components
         run: pnpm install --frozen-lockfile
       - name: Install
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
