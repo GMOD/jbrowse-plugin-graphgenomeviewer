@@ -29,6 +29,7 @@
     "build:wasm": "./scripts/build-wasm.sh",
     "test:wasm": "node scripts/smoke-wasm.mjs",
     "build:bundle": "NODE_ENV=production node esbuild.mjs",
+    "betabuild": "bash scripts/betabuild.sh",
     "typecheck": "node scripts/typecheck.mjs",
     "typecheck:all": "tsc",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
