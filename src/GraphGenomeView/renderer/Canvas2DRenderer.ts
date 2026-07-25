@@ -1,5 +1,6 @@
 import {
   abgrToCssRgba,
+  brightenAbgr,
   normalizedRgbToCssRgba,
 } from './colorBits'
 import * as graphShader from './shaders/graph.generated'
@@ -12,6 +13,7 @@ import type {
   SubBatch,
   SubBatchKey,
   TransformUniform,
+  VertexRange,
 } from './types'
 
 const STRIDE_F32 = graphShader.INSTANCE_STRIDE_F32
@@ -24,14 +26,15 @@ export class Canvas2DRenderer implements Renderer {
   private ctx: CanvasRenderingContext2D
   private transform: TransformUniform | null = null
   private subBatches: Record<SubBatchKey, SubBatch | null> = {
-    edges: null,
     nodes: null,
     arrows: null,
   }
-  // Native bezier path for the edge sub-batch — bypasses the tessellated
-  // triangle mesh in `subBatches.edges` for crisp curves and a single
-  // ctx.stroke() per edge.
+  // Edges are stroked as native beziers, one ctx.stroke() per edge, so they
+  // stay crisp at any zoom and never enter a vertex buffer.
   private edgeCurves: EdgeCurveBatch[] = []
+  private edgeCurveRanges = new Map<number, VertexRange>()
+  private highlightedEdge: VertexRange | null = null
+  private highlightFactor = 1
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
@@ -54,6 +57,18 @@ export class Canvas2DRenderer implements Renderer {
       this.subBatches[key] = batch[key].indices.length > 0 ? batch[key] : null
     }
     this.edgeCurves = batch.edgeCurves
+    this.edgeCurveRanges = batch.edgeCurveRanges
+    // A rebuild renumbers the strokes, so the old range no longer addresses the
+    // same edge; the model re-applies the current hover against the new batch.
+    this.highlightedEdge = null
+  }
+
+  setEdgeHighlight(edgeIndex: number | null, factor: number) {
+    this.highlightedEdge =
+      edgeIndex === null
+        ? null
+        : (this.edgeCurveRanges.get(edgeIndex) ?? null)
+    this.highlightFactor = factor
   }
 
   updateSubBatchColors(
@@ -107,12 +122,17 @@ export class Canvas2DRenderer implements Renderer {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
 
+    const hl = this.highlightedEdge
     let lastColor = -1
     for (let i = 0, edgesLen = this.edgeCurves.length; i < edgesLen; i++) {
       const e = this.edgeCurves[i]!
-      if (e.color !== lastColor) {
-        ctx.strokeStyle = abgrToCssRgba(e.color)
-        lastColor = e.color
+      const color =
+        hl && i >= hl.start && i < hl.start + hl.count
+          ? brightenAbgr(e.color, this.highlightFactor)
+          : e.color
+      if (color !== lastColor) {
+        ctx.strokeStyle = abgrToCssRgba(color)
+        lastColor = color
       }
       // thickness is the half-width in backing-store pixels (mesh path
       // expands by `normal * thickness` after `position * scaleX`, with no
@@ -190,7 +210,9 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   dispose() {
-    this.subBatches = { edges: null, nodes: null, arrows: null }
+    this.subBatches = { nodes: null, arrows: null }
     this.edgeCurves = []
+    this.edgeCurveRanges = new Map()
+    this.highlightedEdge = null
   }
 }

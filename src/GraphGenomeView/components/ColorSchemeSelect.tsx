@@ -2,7 +2,7 @@ import { makeStyles } from '@jbrowse/core/util/tss-react'
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material'
 import { observer } from 'mobx-react'
 
-import { COLOR_SCHEME_OPTIONS } from './colorSchemes'
+import { COLOR_SCHEMES } from '../colorSchemes'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -28,7 +28,7 @@ const ColorSchemeSelect = observer(function ColorSchemeSelect({
           model.setColorScheme(e.target.value)
         }}
       >
-        {COLOR_SCHEME_OPTIONS.map(({ value, label }) => (
+        {COLOR_SCHEMES.map(({ value, label }) => (
           <MenuItem key={value} value={value}>
             {label}
           </MenuItem>

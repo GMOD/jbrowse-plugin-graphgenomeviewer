@@ -26,7 +26,10 @@ export interface LayoutMode {
   available: (graph: Graph) => boolean
 }
 
-export const LAYOUT_MODES: LayoutMode[] = [
+// `satisfies` rather than a `: LayoutMode[]` annotation: the annotation widened
+// every `value` to string, which collapsed LayoutModeValue to string and left the
+// persisted enum unable to state which values it accepts.
+export const LAYOUT_MODES = [
   {
     value: 'auto',
     label: 'Anchored',
@@ -51,14 +54,14 @@ export const LAYOUT_MODES: LayoutMode[] = [
     run: () => undefined,
     available: () => true,
   },
-]
-
-export const LAYOUT_MODE_VALUES = LAYOUT_MODES.map(m => m.value)
+] as const satisfies readonly LayoutMode[]
 
 export type LayoutModeValue = (typeof LAYOUT_MODES)[number]['value']
+
+export const LAYOUT_MODE_VALUES = LAYOUT_MODES.map(m => m.value)
 
 export function layoutModeByValue(value: string) {
   // An unknown value can only come from a snapshot written by a build that had
   // a mode this one doesn't; falling back to the default beats failing to draw
-  return LAYOUT_MODES.find(m => m.value === value) ?? LAYOUT_MODES[0]!
+  return LAYOUT_MODES.find(m => m.value === value) ?? LAYOUT_MODES[0]
 }

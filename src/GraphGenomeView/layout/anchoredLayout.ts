@@ -1,3 +1,5 @@
+import { backboneNodes, backboneSpan } from '../anchoredNodes'
+
 import type { Graph, LayoutResult, NodeSegment } from '../types'
 
 // Layout for rGFA, where the graph states its own backbone instead of leaving a
@@ -45,15 +47,12 @@ function rankRows(graph: Graph) {
 }
 
 export function anchoredLayout(graph: Graph): LayoutResult | undefined {
-  const backbone = graph.nodes.filter(n => n.stable?.rank === 0)
+  const backbone = backboneNodes(graph)
   if (backbone.length === 0) {
     return undefined
   }
 
-  const starts = backbone.map(n => n.stable!.start)
-  const span =
-    Math.max(...backbone.map(n => n.stable!.start + n.length)) -
-    Math.min(...starts)
+  const span = backboneSpan(backbone)
   const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
   const rows = rankRows(graph)
 
@@ -84,16 +83,21 @@ export function anchoredLayout(graph: Graph): LayoutResult | undefined {
   }
 
   for (const node of backbone) {
-    place(node.id, node.stable!.start, 0, node.length)
+    place(node.id, node.stable.start, 0, node.length)
   }
 
   // Walk out from the backbone, each new segment starting where the one it
   // branched from ends, so an insertion occupies its own length in bp (or the
   // floor above, whichever is larger).
+  //
+  // The queue is read forward and appended to as the walk discovers nodes — an
+  // array iterator picks up entries pushed after it started, so this is a BFS
+  // with an O(1) dequeue. It is not shift()ed: the queue ends up holding every
+  // node in the subgraph, and shift() is O(n) each time, which made the walk
+  // quadratic in exactly the whole-file-import case that has the most nodes.
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const queue = backbone.map(n => n.id)
-  while (queue.length > 0) {
-    const fromId = queue.shift()!
+  for (const fromId of queue) {
     const fromEnd = nodePositions[fromId]!.at(-1)!.x
     for (const nextId of neighbors.get(fromId) ?? []) {
       const next = byId.get(nextId)

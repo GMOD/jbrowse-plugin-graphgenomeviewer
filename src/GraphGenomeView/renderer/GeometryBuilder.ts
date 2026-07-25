@@ -1,10 +1,4 @@
-import {
-  abgrAlpha,
-  abgrBlue,
-  abgrGreen,
-  abgrRed,
-  packAbgr,
-} from './colorBits'
+import { brightenAbgr, packAbgr } from './colorBits'
 import { computeEdgeCurves } from '../util/geometry'
 import {
   FIELD_OFFSET_F32,
@@ -12,7 +6,8 @@ import {
   INSTANCE_STRIDE_F32,
 } from './shaders/graph.generated'
 
-import type { ColorScheme, Graph, GraphNode, NodeSegment } from '../types'
+import type { ColorScheme } from '../colorSchemes'
+import type { Graph, GraphNode, NodeSegment } from '../types'
 import type {
   EdgeCurveBatch,
   RenderBatch,
@@ -27,6 +22,9 @@ import type { BezierCurve } from '../util/geometry'
 // u32 values.
 const EDGE_DEFAULT_COLOR = packAbgr(119, 119, 119, 217) // rgb(119,119,119) ~ 0.467, alpha 0.85
 const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0.85
+
+// Half-extent of an arrowhead, in world units before the view transform.
+const ARROWHEAD_SIZE = 12
 
 function packNorm(r: number, g: number, b: number, a: number) {
   return packAbgr(
@@ -229,105 +227,45 @@ export function getNodeColor(
   }
 }
 
-function tessellateCubicBezier(
-  x0: number,
-  y0: number,
-  cx0: number,
-  cy0: number,
-  cx1: number,
-  cy1: number,
-  x1: number,
-  y1: number,
-  flatness = 0.5,
-) {
-  const points: { x: number; y: number }[] = [{ x: x0, y: y0 }]
-
-  function subdivide(
-    ax: number,
-    ay: number,
-    bx: number,
-    by: number,
-    cx: number,
-    cy: number,
-    dx: number,
-    dy: number,
-    depth: number,
-  ) {
-    if (depth > 8) {
-      points.push({ x: dx, y: dy })
-      return
-    }
-
-    const mx = (ax + 3 * bx + 3 * cx + dx) / 8
-    const my = (ay + 3 * by + 3 * cy + dy) / 8
-    const linearMx = (ax + dx) / 2
-    const linearMy = (ay + dy) / 2
-    const dist = Math.hypot(mx - linearMx, my - linearMy)
-
-    if (dist < flatness) {
-      points.push({ x: dx, y: dy })
-      return
-    }
-
-    const abx = (ax + bx) / 2
-    const aby = (ay + by) / 2
-    const bcx = (bx + cx) / 2
-    const bcy = (by + cy) / 2
-    const cdx = (cx + dx) / 2
-    const cdy = (cy + dy) / 2
-    const abcx = (abx + bcx) / 2
-    const abcy = (aby + bcy) / 2
-    const bcdx = (bcx + cdx) / 2
-    const bcdy = (bcy + cdy) / 2
-    const abcdx = (abcx + bcdx) / 2
-    const abcdy = (abcy + bcdy) / 2
-
-    subdivide(ax, ay, abx, aby, abcx, abcy, abcdx, abcdy, depth + 1)
-    subdivide(abcdx, abcdy, bcdx, bcdy, cdx, cdy, dx, dy, depth + 1)
-  }
-
-  subdivide(x0, y0, cx0, cy0, cx1, cy1, x1, y1, 0)
-  return points
+// A cubic's tangent at t=1 runs from its last control point to its endpoint, so
+// an arrowhead's angle needs no tessellation. A control point sitting exactly on
+// the endpoint states no direction there; the chord is the only thing left.
+//
+// Exported for the test that checks it against a numerically differentiated
+// curve: arrow angles previously came from the last two tessellated points, and
+// this has to reproduce that direction to keep arrowheads pointing along the edge.
+export function endTangent(c: BezierCurve) {
+  const dx = c.x1 - c.cx1
+  const dy = c.y1 - c.cy1
+  return Math.hypot(dx, dy) > 0
+    ? Math.atan2(dy, dx)
+    : Math.atan2(c.y1 - c.y0, c.x1 - c.x0)
 }
 
-function tessellateBezierCurves(curves: BezierCurve[], flatness: number) {
-  const allPoints: { x: number; y: number }[] = []
-  for (let i = 0; i < curves.length; i++) {
-    const c = curves[i]!
-    const pts = tessellateCubicBezier(
-      c.x0,
-      c.y0,
-      c.cx0,
-      c.cy0,
-      c.cx1,
-      c.cy1,
-      c.x1,
-      c.y1,
-      flatness,
-    )
-    const start = i === 0 ? 0 : 1
-    for (let j = start; j < pts.length; j++) {
-      allPoints.push(pts[j]!)
-    }
-  }
-  return allPoints
-}
-
-function isSegmentInBounds(
+// Whether any part of a node's polyline falls inside the viewport. Testing the
+// *segments* rather than their endpoints is what makes a node wider than the
+// window visible: in the reference-anchored layouts x is in bp, so a backbone
+// segment routinely spans the whole viewport with both ends outside it, and
+// point containment culled exactly the segment the view exists to show.
+//
+// Segment bounding boxes, not exact line-rect intersection: culling only has to
+// avoid dropping something visible, and a diagonal kept by its bbox costs one
+// polyline.
+function isPolylineInBounds(
   segments: NodeSegment[],
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
 ) {
-  for (const seg of segments) {
-    if (
-      seg.x >= bounds.minX &&
-      seg.x <= bounds.maxX &&
-      seg.y >= bounds.minY &&
-      seg.y <= bounds.maxY
-    ) {
-      return true
-    }
+  let hit = false
+  for (let i = 0; i < segments.length - 1 && !hit; i++) {
+    const a = segments[i]!
+    const b = segments[i + 1]!
+    hit =
+      Math.max(a.x, b.x) >= bounds.minX &&
+      Math.min(a.x, b.x) <= bounds.maxX &&
+      Math.max(a.y, b.y) >= bounds.minY &&
+      Math.min(a.y, b.y) <= bounds.maxY
   }
-  return false
+  return hit
 }
 
 function isBezierInBounds(
@@ -359,23 +297,45 @@ class MeshBuilder {
   private vertexF32 = new Float32Array(0)
   private vertexU32 = new Uint32Array(0)
   private colorsU32 = new Uint32Array(0)
-  indices: number[] = []
+  // Indices are a typed buffer rather than a number[] for the same reason as the
+  // vertices: a mesh runs to hundreds of thousands of indices, and a JS array
+  // pays for growth reallocation twice — once while filling, once converting to
+  // the Uint32Array the batch has to expose.
+  private indexCapacity = 0
+  private indexData = new Uint32Array(0)
+  indexCount = 0
   vertexCount = 0
 
   private grow(needed: number) {
-    if (needed <= this.capacity) {
-      return
+    if (needed > this.capacity) {
+      const next = Math.max(this.capacity === 0 ? 64 : this.capacity * 2, needed)
+      const buffer = new ArrayBuffer(next * INSTANCE_STRIDE_BYTES)
+      const f32 = new Float32Array(buffer)
+      f32.set(this.vertexF32.subarray(0, this.vertexCount * INSTANCE_STRIDE_F32))
+      this.vertexF32 = f32
+      this.vertexU32 = new Uint32Array(buffer)
+      const colors = new Uint32Array(next)
+      colors.set(this.colorsU32.subarray(0, this.vertexCount))
+      this.colorsU32 = colors
+      this.capacity = next
     }
-    const next = Math.max(this.capacity === 0 ? 64 : this.capacity * 2, needed)
-    const buffer = new ArrayBuffer(next * INSTANCE_STRIDE_BYTES)
-    const f32 = new Float32Array(buffer)
-    f32.set(this.vertexF32)
-    this.vertexF32 = f32
-    this.vertexU32 = new Uint32Array(buffer)
-    const colors = new Uint32Array(next)
-    colors.set(this.colorsU32)
-    this.colorsU32 = colors
-    this.capacity = next
+  }
+
+  private pushTriangle(a: number, b: number, c: number) {
+    if (this.indexCount + 3 > this.indexCapacity) {
+      const next = Math.max(
+        this.indexCapacity === 0 ? 192 : this.indexCapacity * 2,
+        this.indexCount + 3,
+      )
+      const data = new Uint32Array(next)
+      data.set(this.indexData.subarray(0, this.indexCount))
+      this.indexData = data
+      this.indexCapacity = next
+    }
+    this.indexData[this.indexCount] = a
+    this.indexData[this.indexCount + 1] = b
+    this.indexData[this.indexCount + 2] = c
+    this.indexCount += 3
   }
 
   pushVertex(
@@ -425,7 +385,7 @@ class MeshBuilder {
       const a = angle + startAngleOffset + (Math.PI * i) / capSegments
       this.pushVertex(x, y, Math.cos(a), Math.sin(a), thickness, color, 1)
       if (i > 0) {
-        this.indices.push(centerIdx, this.vertexCount - 2, this.vertexCount - 1)
+        this.pushTriangle(centerIdx, this.vertexCount - 2, this.vertexCount - 1)
       }
     }
   }
@@ -513,7 +473,8 @@ class MeshBuilder {
 
     for (let i = 0; i < points.length - 1; i++) {
       const vi = stripStart + i * 2
-      this.indices.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2)
+      this.pushTriangle(vi, vi + 1, vi + 2)
+      this.pushTriangle(vi + 1, vi + 3, vi + 2)
     }
 
     const lastIdx = points.length - 1
@@ -557,7 +518,7 @@ class MeshBuilder {
       1,
     )
 
-    this.indices.push(
+    this.pushTriangle(
       this.vertexCount - 3,
       this.vertexCount - 2,
       this.vertexCount - 1,
@@ -576,7 +537,7 @@ class MeshBuilder {
       vertexData,
       vertexDataU32: new Uint32Array(vertexData.buffer),
       colors: this.colorsU32.slice(0, this.vertexCount),
-      indices: new Uint32Array(this.indices),
+      indices: this.indexData.slice(0, this.indexCount),
       vertexCount: this.vertexCount,
     }
   }
@@ -596,14 +557,13 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     viewportBounds,
   } = options
 
-  const edgeMesh = new MeshBuilder()
   const nodeMesh = new MeshBuilder()
   const arrowMesh = new MeshBuilder()
 
   const nodeVertexRanges = new Map<string, VertexRange>()
-  const edgeVertexRanges = new Map<number, VertexRange>()
   const arrowVertexRanges = new Map<number, VertexRange>()
   const edgeCurves: EdgeCurveBatch[] = []
+  const edgeCurveRanges = new Map<number, VertexRange>()
 
   const colorRange = computeColorSchemeRange(graph)
 
@@ -621,12 +581,6 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     }
   }
 
-  // Adaptive flatness: tessellation is in world units, but `scale` maps
-  // world → screen, so this keeps the chord error roughly constant in
-  // screen pixels. Smaller flatness when zoomed in (no visible polygon
-  // corners); larger when zoomed out (fewer overlapping triangles in the
-  // pixel cluster that produces the moiré/artifact pattern).
-  const flatness = Math.max(0.05, 0.15 / Math.max(0.1, scale))
   const showArrows = scale > (linearLayout ? 1 : 0.1)
 
   for (let ei = 0; ei < graph.edges.length; ei++) {
@@ -663,23 +617,19 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
 
       edgeCurves.push({ curves, thickness: edgeThickness, color })
 
-      const allPoints = tessellateBezierCurves(curves, flatness)
-      edgeMesh.addPolyline(allPoints, edgeThickness, color)
-
       if (showArrows) {
-        const lastPt = allPoints[allPoints.length - 1]!
-        const prevPt = allPoints[allPoints.length - 2]!
+        const last = curves[curves.length - 1]!
         arrowMesh.addArrowhead(
-          lastPt.x,
-          lastPt.y,
-          Math.atan2(lastPt.y - prevPt.y, lastPt.x - prevPt.x),
-          12,
+          last.x1,
+          last.y1,
+          endTangent(last),
+          ARROWHEAD_SIZE,
           color,
         )
       }
     }
 
-    const edgeStart = edgeMesh.vertexCount
+    const edgeCurveStart = edgeCurves.length
     const arrowStart = arrowMesh.vertexCount
 
     if (!drawPaths || numPaths === 0) {
@@ -702,9 +652,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       }
     }
 
-    const edgeCount = edgeMesh.vertexCount - edgeStart
-    if (edgeCount > 0) {
-      edgeVertexRanges.set(ei, { start: edgeStart, count: edgeCount })
+    const edgeCurveCount = edgeCurves.length - edgeCurveStart
+    if (edgeCurveCount > 0) {
+      edgeCurveRanges.set(ei, {
+        start: edgeCurveStart,
+        count: edgeCurveCount,
+      })
     }
     const arrowCount = arrowMesh.vertexCount - arrowStart
     if (arrowCount > 0) {
@@ -718,7 +671,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       continue
     }
 
-    if (viewportBounds && !isSegmentInBounds(segments, viewportBounds)) {
+    if (viewportBounds && !isPolylineInBounds(segments, viewportBounds)) {
       continue
     }
 
@@ -739,13 +692,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
   }
 
   return {
-    edges: edgeMesh.toSubBatch(),
     nodes: nodeMesh.toSubBatch(),
     arrows: arrowMesh.toSubBatch(),
     nodeVertexRanges,
-    edgeVertexRanges,
     arrowVertexRanges,
     edgeCurves,
+    edgeCurveRanges,
   }
 }
 
@@ -756,11 +708,7 @@ export function brightenColors(
 ) {
   const slice = new Uint32Array(range.count)
   for (let v = 0; v < range.count; v++) {
-    const c = baseColors[range.start + v]!
-    const r = Math.min(255, Math.round(abgrRed(c) * factor))
-    const g = Math.min(255, Math.round(abgrGreen(c) * factor))
-    const b = Math.min(255, Math.round(abgrBlue(c) * factor))
-    slice[v] = packAbgr(r, g, b, abgrAlpha(c))
+    slice[v] = brightenAbgr(baseColors[range.start + v]!, factor)
   }
   return slice
 }

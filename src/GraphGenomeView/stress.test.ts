@@ -105,7 +105,7 @@ test('buildGeometry scales to a few thousand nodes', () => {
 
   expect(batch.nodeVertexRanges.size).toBe(totalNodes)
   expect(batch.nodes.vertexCount).toBeGreaterThan(totalNodes)
-  expect(batch.edges.vertexCount).toBeGreaterThan(0)
+  expect(batch.edgeCurves.length).toBeGreaterThan(0)
   // interleaved buffer stays consistent at scale
   expect(batch.nodes.vertexData.length).toBe(
     batch.nodes.vertexCount * INSTANCE_STRIDE_F32,

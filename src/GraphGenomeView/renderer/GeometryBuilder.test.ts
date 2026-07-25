@@ -1,6 +1,7 @@
 import {
   brightenColors,
   buildGeometry,
+  endTangent,
   extractColorSlice,
 } from './GeometryBuilder'
 import {
@@ -21,7 +22,7 @@ const simpleGraph = {
     { id: 'A+', name: 'A', length: 100, depth: 1 },
     { id: 'B+', name: 'B', length: 200, depth: 2 },
   ],
-  edges: [{ from: 'A+', to: 'B+', overlap: 0 }],
+  edges: [{ from: 'A+', to: 'B+' }],
 }
 
 const simpleNodeById = new Map(simpleGraph.nodes.map(n => [n.id, n]))
@@ -52,7 +53,7 @@ test('produces non-empty geometry for simple graph', () => {
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
   expect(batch.nodes.colors.length).toBeGreaterThan(0)
   expect(batch.nodes.indices.length).toBeGreaterThan(0)
-  expect(batch.edges.vertexCount).toBeGreaterThan(0)
+  expect(batch.edgeCurves.length).toBeGreaterThan(0)
   expect(batch.nodes.vertexCount).toBe(batch.nodes.colors.length)
   expect(batch.nodes.vertexData.length).toBe(
     batch.nodes.vertexCount * INSTANCE_STRIDE_F32,
@@ -105,8 +106,8 @@ test('tracks vertex ranges for nodes and edges', () => {
   expect(batch.nodeVertexRanges.size).toBe(2)
   expect(batch.nodeVertexRanges.has('A+')).toBe(true)
   expect(batch.nodeVertexRanges.has('B+')).toBe(true)
-  expect(batch.edgeVertexRanges.size).toBe(1)
-  expect(batch.edgeVertexRanges.has(0)).toBe(true)
+  expect(batch.edgeCurveRanges.size).toBe(1)
+  expect(batch.edgeCurveRanges.has(0)).toBe(true)
 
   const rangeA = batch.nodeVertexRanges.get('A+')!
   expect(rangeA.start).toBeDefined()
@@ -127,13 +128,13 @@ test('handles empty node positions gracefully', () => {
 
   expect(batch.nodes.vertexCount).toBe(0)
   expect(batch.nodes.indices.length).toBe(0)
-  expect(batch.edges.vertexCount).toBe(0)
+  expect(batch.edgeCurves.length).toBe(0)
 })
 
 test('handles graph with paths and drawPaths', () => {
   const graphWithPaths = {
     ...simpleGraph,
-    edges: [{ from: 'A+', to: 'B+', overlap: 0, pathIds: ['p1'] }],
+    edges: [{ from: 'A+', to: 'B+', pathIds: ['p1'] }],
     paths: [{ name: 'p1', nodeIds: ['A+', 'B+'] }],
   }
 
@@ -149,7 +150,9 @@ test('handles graph with paths and drawPaths', () => {
   })
 
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
-  expect(batch.edges.vertexCount).toBeGreaterThan(0)
+  // one stroke per path crossing the edge, not one for the edge
+  expect(batch.edgeCurves).toHaveLength(1)
+  expect(batch.edgeCurveRanges.get(0)).toEqual({ start: 0, count: 1 })
 })
 
 test('stores normals and thicknesses for shader-based expansion', () => {
@@ -226,6 +229,31 @@ test('viewport culling skips off-screen nodes', () => {
 
   expect(batch.nodeVertexRanges.has('A+')).toBe(true)
   expect(batch.nodeVertexRanges.has('B+')).toBe(false)
+})
+
+// The reference-anchored layouts put x in bp, so a backbone segment is routinely
+// wider than the window with both of its endpoints outside it. Culling on
+// endpoint containment dropped exactly the segment those layouts exist to show.
+test('viewport culling keeps a node spanning the whole viewport', () => {
+  const nodes = [{ id: 'backbone+', name: 'backbone', length: 50_000, depth: 1 }]
+  const batch = buildGeometry({
+    nodePositions: {
+      'backbone+': [
+        { x: 0, y: 0 },
+        { x: 50_000, y: 0 },
+      ],
+    },
+    graph: { name: 'test', nodes, edges: [] },
+    nodeById: new Map(nodes.map(n => [n.id, n])),
+    colorScheme: 'uniform',
+    scale: 1,
+    contigThickness: 5,
+    connectorThickness: 1.5,
+    drawPaths: false,
+    viewportBounds: { minX: 20_000, minY: -100, maxX: 21_000, maxY: 100 },
+  })
+
+  expect(batch.nodeVertexRanges.has('backbone+')).toBe(true)
 })
 
 test('node-length color scheme produces distinct colors for different lengths', () => {
@@ -321,7 +349,7 @@ test('builds geometry for a self-loop edge', () => {
   const graph = {
     name: 'test',
     nodes: [{ id: 'A+', name: 'A', length: 100, depth: 1 }],
-    edges: [{ from: 'A+', to: 'A+', overlap: 0 }],
+    edges: [{ from: 'A+', to: 'A+' }],
   }
   const batch = buildGeometry({
     nodePositions: {
@@ -339,15 +367,16 @@ test('builds geometry for a self-loop edge', () => {
     scale: 1,
   })
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
-  expect(batch.edges.vertexCount).toBeGreaterThan(0)
-  expect(batch.edgeVertexRanges.has(0)).toBe(true)
+  // a self loop is two curves, so it strokes as one two-segment path
+  expect(batch.edgeCurves[0]!.curves).toHaveLength(2)
+  expect(batch.edgeCurveRanges.has(0)).toBe(true)
 })
 
 test('skips edges that reference missing node positions', () => {
   const graph = {
     name: 'test',
     nodes: [{ id: 'A+', name: 'A', length: 100, depth: 1 }],
-    edges: [{ from: 'A+', to: 'missing+', overlap: 0 }],
+    edges: [{ from: 'A+', to: 'missing+' }],
   }
   const batch = buildGeometry({
     nodePositions: {
@@ -366,8 +395,8 @@ test('skips edges that reference missing node positions', () => {
   })
   // node still builds; the dangling edge is silently dropped
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
-  expect(batch.edges.vertexCount).toBe(0)
-  expect(batch.edgeVertexRanges.size).toBe(0)
+  expect(batch.edgeCurves).toHaveLength(0)
+  expect(batch.edgeCurveRanges.size).toBe(0)
 })
 
 test('brightenColors clamps channels at 255', () => {
@@ -393,4 +422,62 @@ test('extractColorSlice shares the underlying buffer', () => {
   const slice = extractColorSlice(colors, range)
   expect(slice.buffer).toBe(colors.buffer)
   expect(Array.from(slice)).toEqual([20, 30, 40])
+})
+
+// Arrowheads used to take their angle from the last two points of the
+// tessellated edge mesh. The mesh is gone, so the angle comes from the curve's
+// analytic end tangent instead — which has to agree with the direction the
+// tessellation was reporting, or every arrowhead points somewhere else.
+describe('endTangent', () => {
+  // direction of a cubic just short of its endpoint, i.e. what walking the
+  // tessellated points to the end and taking the last step measured
+  function numericEndAngle(c: {
+    x0: number
+    y0: number
+    cx0: number
+    cy0: number
+    cx1: number
+    cy1: number
+    x1: number
+    y1: number
+  }) {
+    const at = (t: number) => {
+      const u = 1 - t
+      return {
+        x:
+          u ** 3 * c.x0 +
+          3 * u * u * t * c.cx0 +
+          3 * u * t * t * c.cx1 +
+          t ** 3 * c.x1,
+        y:
+          u ** 3 * c.y0 +
+          3 * u * u * t * c.cy0 +
+          3 * u * t * t * c.cy1 +
+          t ** 3 * c.y1,
+      }
+    }
+    // a short secant, which is what the last tessellated step was; small enough
+    // that its own error stays well under the tolerance below
+    const a = at(1 - 1e-6)
+    const b = at(1)
+    return Math.atan2(b.y - a.y, b.x - a.x)
+  }
+
+  const curves = [
+    { x0: 0, y0: 0, cx0: 30, cy0: 0, cx1: 70, cy1: 40, x1: 100, y1: 40 },
+    { x0: 0, y0: 0, cx0: 0, cy0: 80, cx1: 100, cy1: 80, x1: 100, y1: 0 },
+    { x0: 5, y0: 5, cx0: -20, cy0: 60, cx1: -60, cy1: -30, x1: -100, y1: 10 },
+  ]
+
+  test.each(curves)('matches the numeric tangent of %j', curve => {
+    expect(endTangent(curve)).toBeCloseTo(numericEndAngle(curve), 4)
+  })
+
+  // Degenerate control point: the derivative at t=1 vanishes, so there is no
+  // tangent to read and the chord is the only direction available.
+  test('falls back to the chord when the control point is on the endpoint', () => {
+    expect(
+      endTangent({ x0: 0, y0: 0, cx0: 0, cy0: 0, cx1: 10, cy1: 10, x1: 10, y1: 10 }),
+    ).toBeCloseTo(Math.atan2(10, 10), 6)
+  })
 })

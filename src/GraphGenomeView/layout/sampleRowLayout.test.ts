@@ -85,3 +85,26 @@ test('alleles sit at their reference anchor, not at their SO on another contig',
 test('declines a graph with no rank-0 backbone rather than inventing one', () => {
   expect(sampleRowLayout(pggbGraph())).toBeUndefined()
 })
+
+// The drawn width of an allele's segments is apportioned by their share of the
+// run's total length, so a run that is all zero-length segments divided 0 by 0
+// and wrote NaN into every position downstream of it.
+test('a zero-length allele gets finite positions', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:100\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:100\tSN:Z:K12#1#chr\tSO:i:100\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:0\tSN:Z:Sakai#1#chr\tSO:i:0\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts2\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'zero')
+
+  const { nodePositions } = sampleRowLayout(graph)!
+
+  for (const segments of Object.values(nodePositions)) {
+    for (const { x, y } of segments) {
+      expect(Number.isFinite(x)).toBe(true)
+      expect(Number.isFinite(y)).toBe(true)
+    }
+  }
+})

@@ -39,11 +39,13 @@ const ImportForm = observer(function ImportForm({
 }) {
   const { classes } = useStyles()
   const [url, setUrl] = useState('')
-  const [error, setError] = useState<unknown>()
 
+  // Fetch failures go to the model's error slot rather than a second local one,
+  // so the form has one error to show in one banner: two banners meant a failed
+  // URL load could sit next to a stale error from a previous attempt.
   async function handleUrlLoad() {
     if (url.trim()) {
-      setError(undefined)
+      model.setError(undefined)
       try {
         const text = await openLocation({
           uri: url,
@@ -51,7 +53,7 @@ const ImportForm = observer(function ImportForm({
         }).readFile('utf8')
         await model.loadGFA(text, url.split('/').pop() ?? 'GFA')
       } catch (e) {
-        setError(e)
+        model.setError(e)
       }
     }
   }
@@ -138,7 +140,6 @@ const ImportForm = observer(function ImportForm({
         />
       ) : null}
 
-      {error ? <ErrorBanner error={error} /> : null}
       {model.error ? <ErrorBanner error={model.error} /> : null}
     </Paper>
   )

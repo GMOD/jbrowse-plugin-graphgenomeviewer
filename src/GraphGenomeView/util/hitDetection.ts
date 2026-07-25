@@ -83,38 +83,42 @@ function distanceToEdgeCurves(px: number, py: number, curves: BezierCurve[]) {
   return minDist
 }
 
-let nodeCache:
-  | {
-      positions: Record<string, NodeSegment[]>
-      version: number
-      index: SpatialIndex
-    }
-  | undefined
+// Indexes are cached against the layout they were built from, in a WeakMap
+// rather than a module-level slot. A single slot meant two graph views in one
+// session evicted each other's index on alternating mousemoves, and held the last
+// graph's positions alive for as long as the tab lived. Keyed this way each view
+// keeps its own, and an entry becomes collectable when its layout is replaced.
+//
+// `version` still has to be compared: a node drag mutates the position objects in
+// place, so the identity of `nodePositions` cannot report that it changed.
+const nodeCache = new WeakMap<
+  Record<string, NodeSegment[]>,
+  { version: number; index: SpatialIndex }
+>()
 
 function getSpatialIndex(
   nodePositions: Record<string, NodeSegment[]>,
   version: number,
 ) {
-  if (nodeCache?.positions !== nodePositions || nodeCache.version !== version) {
-    nodeCache = {
-      positions: nodePositions,
-      version,
-      index: new SpatialIndex(nodePositions),
-    }
+  const cached = nodeCache.get(nodePositions)
+  if (cached?.version === version) {
+    return cached.index
   }
-  return nodeCache.index
+  const index = new SpatialIndex(nodePositions)
+  nodeCache.set(nodePositions, { version, index })
+  return index
 }
 
-let edgeCache:
-  | {
-      positions: Record<string, NodeSegment[]>
-      graph: Graph
-      drawPaths: boolean
-      scale: number
-      version: number
-      index: EdgeSpatialIndex
-    }
-  | undefined
+const edgeCache = new WeakMap<
+  Record<string, NodeSegment[]>,
+  {
+    graph: Graph
+    drawPaths: boolean
+    scale: number
+    version: number
+    index: EdgeSpatialIndex
+  }
+>()
 
 function getEdgeSpatialIndex(
   nodePositions: Record<string, NodeSegment[]>,
@@ -123,23 +127,18 @@ function getEdgeSpatialIndex(
   scale: number,
   version: number,
 ) {
+  const cached = edgeCache.get(nodePositions)
   if (
-    edgeCache?.positions !== nodePositions ||
-    edgeCache.graph !== graph ||
-    edgeCache.drawPaths !== drawPaths ||
-    edgeCache.scale !== scale ||
-    edgeCache.version !== version
+    cached?.graph === graph &&
+    cached.drawPaths === drawPaths &&
+    cached.scale === scale &&
+    cached.version === version
   ) {
-    edgeCache = {
-      positions: nodePositions,
-      graph,
-      drawPaths,
-      scale,
-      version,
-      index: new EdgeSpatialIndex(nodePositions, graph, drawPaths, scale),
-    }
+    return cached.index
   }
-  return edgeCache.index
+  const index = new EdgeSpatialIndex(nodePositions, graph, drawPaths, scale)
+  edgeCache.set(nodePositions, { graph, drawPaths, scale, version, index })
+  return index
 }
 
 export function findHoveredNode(
@@ -153,6 +152,12 @@ export function findHoveredNode(
   const index = getSpatialIndex(nodePositions, version)
   const candidates = index.query(graphX, graphY, nodeThreshold)
 
+  // The nearest candidate, not the first one inside the threshold. The threshold
+  // is in world units (5 screen px), so when zoomed out it covers several nodes
+  // at once and "first" meant whichever the grid happened to visit first — the
+  // cursor could sit on one node and highlight its neighbour.
+  let hovered: string | null = null
+  let best = nodeThreshold
   for (const { nodeId, segmentIdx } of candidates) {
     const segments = nodePositions[nodeId]!
     const dist = distanceToSegment(
@@ -163,11 +168,12 @@ export function findHoveredNode(
       segments[segmentIdx + 1]!.x,
       segments[segmentIdx + 1]!.y,
     )
-    if (dist < nodeThreshold) {
-      return nodeId
+    if (dist < best) {
+      best = dist
+      hovered = nodeId
     }
   }
-  return null
+  return hovered
 }
 
 export function findHoveredEdge(
@@ -189,6 +195,9 @@ export function findHoveredEdge(
   )
   const candidates = edgeIndex.query(graphX, graphY, edgeThreshold)
 
+  // Nearest, not first — same reason as findHoveredNode.
+  let hovered: number | null = null
+  let best = edgeThreshold
   for (const edgeIdx of candidates) {
     const edge = graph.edges[edgeIdx]!
     const fromSegments = nodePositions[edge.from]
@@ -239,9 +248,10 @@ export function findHoveredEdge(
       dist = minDist
     }
 
-    if (dist < edgeThreshold) {
-      return edgeIdx
+    if (dist < best) {
+      best = dist
+      hovered = edgeIdx
     }
   }
-  return null
+  return hovered
 }

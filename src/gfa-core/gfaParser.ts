@@ -2,12 +2,22 @@
 // pangenome plugins (GraphGenomeView, TubeMapView). Handles GFA1/GFA2 segment,
 // link, edge, path and walk records plus header tags.
 
+// Only the first two colons delimit a tag; everything after them is the value.
+// A Z value may contain colons of its own, and rGFA stable names routinely do
+// (`SN:Z:chr1:1-1000` from a sliced reference), where splitting on every colon
+// silently truncates the name to `chr1` and mis-anchors the whole layout.
 function parseTag(tag: string, tags: Record<string, string | number>) {
-  const [name, type, val] = tag.split(':')
-  if (type === 'i' || type === 'f') {
-    tags[name!] = +val!
-  } else if (type === 'Z') {
-    tags[name!] = val!
+  const nameEnd = tag.indexOf(':')
+  const typeEnd = tag.indexOf(':', nameEnd + 1)
+  if (nameEnd !== -1 && typeEnd !== -1) {
+    const name = tag.slice(0, nameEnd)
+    const type = tag.slice(nameEnd + 1, typeEnd)
+    const val = tag.slice(typeEnd + 1)
+    if (type === 'i' || type === 'f') {
+      tags[name] = +val
+    } else if (type === 'Z') {
+      tags[name] = val
+    }
   }
 }
 
@@ -116,7 +126,14 @@ export function parseGFA(file: string) {
     id: '',
   }
 
-  for (const line of file.split('\n')) {
+  // \r is stripped rather than split on, so a CRLF file does not leave it on
+  // whichever field happens to be last: a trailing Z tag would carry it into a
+  // stable name and a trailing cigar into the CIGAR string.
+  //
+  // Stripped per line inside the loop rather than with a .map() over the split,
+  // which would hold a second copy of every line in the file at once.
+  for (const rawLine of file.split('\n')) {
+    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine
     if (line.startsWith('H')) {
       const [, ...rest] = line.split('\t')
       graph.header.push(parseTags(rest))
@@ -126,14 +143,24 @@ export function parseGFA(file: string) {
       let seq: string
       let tagfields: string[]
       let gfa1 = false
-      if (+rest[0]!) {
-        len = +rest[0]!
-        seq = rest[1]!
+      // A truncated record has no field to read; `*` is what the spec writes for
+      // a segment whose sequence is absent, so treating a missing one the same
+      // way yields a 0 bp segment instead of throwing partway through the file.
+      const first = rest[0] ?? '*'
+      // GFA2 puts an integer length in this field, GFA1 the sequence. Testing
+      // the digits rather than the coerced number keeps a GFA2 `S sid 0 *` from
+      // being read as a GFA1 sequence of "0".
+      if (/^\d+$/.test(first)) {
+        len = +first
+        seq = rest[1] ?? '*'
         tagfields = rest.slice(2)
       } else {
         gfa1 = true
-        seq = rest[0]!
-        len = seq.length
+        seq = first
+        // `*` is GFA1's "no sequence here"; its length is whatever LN says
+        // below, and 0 if the file states none. Counting the placeholder's own
+        // character instead reports every such segment as 1 bp.
+        len = seq === '*' ? 0 : seq.length
         tagfields = rest.slice(1)
       }
       const tags = parseTags(tagfields)

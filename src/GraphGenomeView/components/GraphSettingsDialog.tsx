@@ -17,7 +17,7 @@ import {
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 
-import { COLOR_SCHEME_OPTIONS } from './colorSchemes'
+import { COLOR_SCHEMES } from '../colorSchemes'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -93,7 +93,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 model.setColorScheme(e.target.value)
               }}
             >
-              {COLOR_SCHEME_OPTIONS.map(({ value, label }) => (
+              {COLOR_SCHEMES.map(({ value, label }) => (
                 <MenuItem key={value} value={value}>
                   {label}
                 </MenuItem>

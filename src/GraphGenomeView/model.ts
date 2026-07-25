@@ -6,6 +6,7 @@ import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
+import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
@@ -15,16 +16,17 @@ import {
   buildGeometry,
   extractColorSlice,
 } from './renderer/GeometryBuilder'
-import { COLOR_SCHEMES } from './types'
 
+import type { ColorScheme } from './colorSchemes'
 import type { BandageScaleOpts } from './layout/drawnScale'
+import type { LayoutModeValue } from './layoutModes'
 import type {
   RenderBatch,
   Renderer,
   SubBatchKey,
   VertexRange,
 } from './renderer/types'
-import type { ColorScheme, Graph, GraphNode, LayoutResult } from './types'
+import type { Graph, GraphNode, LayoutResult } from './types'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 const DEFAULT_CANVAS_HEIGHT = 600
@@ -38,9 +40,31 @@ const VIEWPORT_DEBOUNCE_MS = 150
 // since the large-region case is a linear synteny view, not a graph.
 // (The old `adr-027` citation here was stale: that number was reused for
 // wheel-input semantics after the large-mode ADR was removed in 9d8102f0b5.)
+//
+// This bounds the *fetch*, and it is the only cap that can be applied before one
+// happens. It is a poor proxy for cost, because cost tracks node count and bp per
+// node varies by orders of magnitude between graph types — measured on the
+// fixtures, HPRC minigraph chr6 runs ~7,000 bp/node while a base-level pggb graph
+// runs ~17 bp/node. The same 100 kb is 12 nodes of the first and thousands of the
+// second, hence the node budget below.
 export const MAX_GRAPH_REGION_BP = 100_000
 
-const MIN_ZOOM = 0.001
+// What the view will actually draw, checked once the graph is parsed and so
+// applying to a whole-file import as much as to a subgraph fetch. Measured on
+// bubble-chain graphs: ~1-2k nodes redraws in under 10 ms, 10k takes ~43 ms of
+// geometry and ~125k canvas draw calls per frame (single-digit fps while
+// panning), and 100k needs 632 ms and 75 MB of vertex buffers. So this is set
+// where the tab stops being usable rather than where it stops being smooth, and
+// it is a view prop rather than a constant so a session can raise it — the same
+// escape hatch strangepg gives with `-T N`.
+export const DEFAULT_MAX_GRAPH_NODES = 20_000
+
+// The floor exists to keep a scale positive and finite, not to express a useful
+// zoom level, so it has to clear the smallest scale a real layout asks for. In
+// the reference-anchored layouts world units are bp: fitting a chromosome-scale
+// rGFA (250 Mbp) into ~720 px needs ~3e-6, and the old 0.001 floor clamped that
+// to 7x too wide — zoomToFit could not fit a whole-file import at all.
+const MIN_ZOOM = 1e-6
 const MAX_ZOOM = 100
 
 function clampZoom(zoom: number) {
@@ -110,7 +134,7 @@ export default function stateModelFactory() {
           'auto',
         ),
         colorScheme: types.optional(
-          types.enumeration([...COLOR_SCHEMES]),
+          types.enumeration(COLOR_SCHEME_VALUES),
           'uniform',
         ),
         contigThickness: types.optional(types.number, 10),
@@ -121,6 +145,9 @@ export default function stateModelFactory() {
         translateY: types.optional(types.number, 0),
         drawPaths: types.optional(types.boolean, false),
         canvasHeight: types.optional(types.number, DEFAULT_CANVAS_HEIGHT),
+        // Raise to draw a bigger graph than the default budget allows; see
+        // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
+        maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
         loadedTrackId: types.optional(types.string, ''),
         loadedRegion: types.maybe(
           types.frozen<{
@@ -148,12 +175,14 @@ export default function stateModelFactory() {
       selectedNode: null as string | null,
       viewportDirty: 0,
       nodeVertexRanges: undefined as Map<string, VertexRange> | undefined,
-      edgeVertexRanges: undefined as Map<number, VertexRange> | undefined,
       arrowVertexRanges: undefined as Map<number, VertexRange> | undefined,
       baseNodeColors: undefined as Uint32Array | undefined,
-      baseEdgeColors: undefined as Uint32Array | undefined,
       baseArrowColors: undefined as Uint32Array | undefined,
       draggingNode: null as string | null,
+      // Dragging the background rather than a node. Lives here beside
+      // draggingNode instead of in a component ref+state pair, so the two
+      // mutually exclusive drag modes are one piece of state read from one place.
+      isPanning: false,
       // Set once the user pans/zooms (or a restored session carries a
       // transform). While false the view keeps auto-fitting as the layout and
       // canvas dimensions settle; a manual move opts out so we never fight the
@@ -163,6 +192,8 @@ export default function stateModelFactory() {
       userMovedViewport: false,
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
+      // 0 is never a live rAF handle, so it doubles as "nothing pending"
+      viewportDirtyFrame: 0,
       // Performance instrumentation, surfaced in GraphStats for browser tests
       // to assert against budgets. `fetchMs` is the GetSubgraph RPC round-trip,
       // `layoutMs` is the Bandage FMMM compute time reported by the
@@ -241,7 +272,7 @@ export default function stateModelFactory() {
       setLinearLayout(linear: boolean) {
         self.linearLayout = linear
       },
-      setLayoutMode(mode: string) {
+      setLayoutMode(mode: LayoutModeValue) {
         self.layoutMode = mode
       },
       setDrawPaths(draw: boolean) {
@@ -261,6 +292,22 @@ export default function stateModelFactory() {
       },
       setDraggingNode(nodeId: string | null) {
         self.draggingNode = nodeId
+      },
+      setPanning(panning: boolean) {
+        self.isPanning = panning
+      },
+      stopDragging() {
+        self.draggingNode = null
+        self.isPanning = false
+      },
+      // Everything that names a part of the current graph. Reset when the graph
+      // is replaced, and by clearGraph.
+      clearInteractionState() {
+        self.hoveredNode = null
+        self.hoveredEdge = null
+        self.selectedNode = null
+        self.draggingNode = null
+        self.isPanning = false
       },
       showNodeDetails(nodeId: string) {
         const node = self.nodeById?.get(nodeId)
@@ -303,10 +350,8 @@ export default function stateModelFactory() {
       },
       storeRenderBatchMeta(batch: RenderBatch) {
         self.nodeVertexRanges = batch.nodeVertexRanges
-        self.edgeVertexRanges = batch.edgeVertexRanges
         self.arrowVertexRanges = batch.arrowVertexRanges
         self.baseNodeColors = batch.nodes.colors
-        self.baseEdgeColors = batch.edges.colors
         self.baseArrowColors = batch.arrows.colors
       },
       zoomToFit() {
@@ -327,67 +372,108 @@ export default function stateModelFactory() {
             maxY = Math.max(maxY, seg.y)
           }
         }
+        // A layout is routinely degenerate on one axis: an anchored window
+        // holding only backbone segments puts every node on row 0. So each axis
+        // constrains the scale only when it has extent, and only a layout with
+        // no extent at all is unfittable. Requiring extent on both axes left
+        // that window at scale 1 with the graph off-screen entirely, since x
+        // there is reference bp.
         const graphWidth = maxX - minX
         const graphHeight = maxY - minY
-        if (graphWidth <= 0 || graphHeight <= 0) {
-          return
-        }
         const padding = 40
-        const scaleX = (self.width - padding * 2) / graphWidth
-        const scaleY = (self.canvasHeight - padding * 2) / graphHeight
-        const newScale = clampZoom(Math.min(scaleX, scaleY))
-        self.scale = newScale
-        self.translateX =
-          padding -
-          minX * newScale +
-          (self.width - padding * 2 - graphWidth * newScale) / 2
-        self.translateY =
-          padding -
-          minY * newScale +
-          (self.canvasHeight - padding * 2 - graphHeight * newScale) / 2
+        const usableWidth = self.width - padding * 2
+        const usableHeight = self.canvasHeight - padding * 2
+        // Nothing to fit into before the canvas is measured. The autorun re-runs
+        // once width lands, so skipping here beats computing a negative scale
+        // and persisting that transform into the session snapshot.
+        if (
+          (graphWidth > 0 || graphHeight > 0) &&
+          usableWidth > 0 &&
+          usableHeight > 0
+        ) {
+          const newScale = clampZoom(
+            Math.min(
+              graphWidth > 0 ? usableWidth / graphWidth : Infinity,
+              graphHeight > 0 ? usableHeight / graphHeight : Infinity,
+            ),
+          )
+          self.scale = newScale
+          self.translateX =
+            padding - minX * newScale + (usableWidth - graphWidth * newScale) / 2
+          self.translateY =
+            padding -
+            minY * newScale +
+            (usableHeight - graphHeight * newScale) / 2
+        }
       },
-      clearGraph() {
-        self.graph = undefined
-        self.layoutResult = undefined
-        self.error = undefined
-        self.isLoading = false
-        self.statusMessage = ''
-        self.hoveredNode = null
-        self.hoveredEdge = null
-        self.selectedNode = null
-        self.draggingNode = null
+      clearRenderBatchMeta() {
         self.nodeVertexRanges = undefined
-        self.edgeVertexRanges = undefined
         self.arrowVertexRanges = undefined
         self.baseNodeColors = undefined
-        self.baseEdgeColors = undefined
         self.baseArrowColors = undefined
+      },
+      clearPerfMetrics() {
         self.lastFetchMs = undefined
         self.lastLayoutMs = undefined
         self.lastGeometryMs = undefined
         self.lastGeometryVertexCount = undefined
       },
     }))
-    .actions(self => ({
-      moveNode(nodeId: string, dx: number, dy: number) {
-        const positions = self.layoutResult?.nodePositions
-        if (positions?.[nodeId]) {
-          for (const seg of positions[nodeId]) {
-            seg.x += dx
-            seg.y += dy
-          }
-          self.setViewportDirty()
-        }
-      },
-      scheduleViewportDirty() {
+    .actions(self => {
+      // Pan/zoom can wait: the geometry on screen is still correct while the
+      // gesture runs (the viewport bounds carry 20% overscan), so rebuilding is
+      // deferred until the user settles.
+      function scheduleViewportDirty() {
         clearTimeout(self.viewportDirtyTimer)
         self.viewportDirtyTimer = setTimeout(() => {
           if (isAlive(self)) {
             self.setViewportDirty()
           }
         }, VIEWPORT_DEBOUNCE_MS)
-      },
-    }))
+      }
+
+      // A node drag cannot wait — the node only moves on screen when its
+      // geometry is rebuilt — but a bump costs a full geometry rebuild plus
+      // invalidation of both hit-detection indexes, and mousemove fires in
+      // bursts well above the frame rate. Coalescing to the next frame keeps the
+      // drag live while bounding that work to once per frame instead of once
+      // per event.
+      function requestViewportDirtyFrame() {
+        cancelAnimationFrame(self.viewportDirtyFrame)
+        self.viewportDirtyFrame = requestAnimationFrame(() => {
+          if (isAlive(self)) {
+            self.setViewportDirty()
+          }
+        })
+      }
+
+      return {
+        // Back to the import form: drop the graph and everything derived from
+        // it. Composed from the same resets the load path uses, so a field added
+        // to one of them cannot be forgotten here.
+        clearGraph() {
+          self.graph = undefined
+          self.layoutResult = undefined
+          self.error = undefined
+          self.isLoading = false
+          self.statusMessage = ''
+          self.clearInteractionState()
+          self.clearRenderBatchMeta()
+          self.clearPerfMetrics()
+        },
+        moveNode(nodeId: string, dx: number, dy: number) {
+          const positions = self.layoutResult?.nodePositions
+          if (positions?.[nodeId]) {
+            for (const seg of positions[nodeId]) {
+              seg.x += dx
+              seg.y += dy
+            }
+            requestViewportDirtyFrame()
+          }
+        },
+        scheduleViewportDirty,
+      }
+    })
     .actions(self => {
       function callLayout(graph: Graph, extraOpts?: BandageScaleOpts) {
         const session = getSession(self)
@@ -437,7 +523,22 @@ export default function stateModelFactory() {
         self.setStatusMessage('Parsing GFA')
         const gfaGraph = parseGFA(text)
         const graph = convertGFAToGraph(gfaGraph, name)
+        // Checked here, between parsing and laying out, because this is the one
+        // point both load paths pass through and it is upstream of everything
+        // expensive: the layout, the geometry and the per-frame draw calls all
+        // scale with this number. The whole-file import path had no cap at all,
+        // so a chromosome-scale GFA would parse and then freeze the tab.
+        if (graph.nodes.length > self.maxGraphNodes) {
+          throw new Error(
+            `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Zoom in to a smaller region, or raise maxGraphNodes on this view.`,
+          )
+        }
         self.graph = graph
+        // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
+        // are ids, so all three address the graph being replaced here. Carrying
+        // them over points the tooltip and the highlight at whatever now happens
+        // to sit at that index.
+        self.clearInteractionState()
         self.setStatusMessage('Computing layout')
         yield* layoutInto(graph)
       }
@@ -539,20 +640,13 @@ export default function stateModelFactory() {
           if (!track) {
             return
           }
-          // Save pan/zoom — the fit autorun fires when layoutResult is set. If
-          // the restored session carried a real transform (userMovedViewport),
-          // restore it afterward; otherwise let the fresh view auto-fit.
-          const savedScale = self.scale
-          const savedTx = self.translateX
-          const savedTy = self.translateY
-          const restore = self.userMovedViewport
+          // Nothing here saves and restores the transform: `userMovedViewport`
+          // is what protects a restored session's pan/zoom, and it gates the fit
+          // autorun — the only thing in this flow that would otherwise move the
+          // view. A save/restore pair around the load wrote back the values it
+          // had just read.
           const adapterConfig = readConfObject(track, 'adapter')
           yield* doSubgraphLoad(adapterConfig, self.loadedRegion, {})
-          if (restore) {
-            self.scale = savedScale
-            self.translateX = savedTx
-            self.translateY = savedTy
-          }
         }),
         recomputeLayout: flow(function* () {
           const graph = self.graph
@@ -610,7 +704,11 @@ export default function stateModelFactory() {
             }),
           )
 
-          // Autorun: hover/select color-only updates — no geometry rebuild
+          // Autorun: hover/select color-only updates — no geometry rebuild.
+          //
+          // Also tracks nodeVertexRanges, which a geometry rebuild replaces:
+          // the fresh buffers carry base colors, so without re-running here a
+          // selected node lost its highlight on every pan and zoom.
           let prevHoveredNode: string | null = null
           let prevHoveredEdge: number | null = null
           let prevSelectedNode: string | null = null
@@ -621,26 +719,19 @@ export default function stateModelFactory() {
               const hoveredNode = self.hoveredNode
               const hoveredEdge = self.hoveredEdge
               const selectedNode = self.selectedNode
+              const ranges = self.nodeVertexRanges
               if (b) {
                 const node = (key: string | null, factor: number) => {
                   applyHighlight(
                     b,
                     'nodes',
-                    self.nodeVertexRanges,
+                    ranges,
                     self.baseNodeColors,
                     key,
                     factor,
                   )
                 }
-                const edge = (key: number | null, factor: number) => {
-                  applyHighlight(
-                    b,
-                    'edges',
-                    self.edgeVertexRanges,
-                    self.baseEdgeColors,
-                    key,
-                    factor,
-                  )
+                const arrow = (key: number | null, factor: number) => {
                   applyHighlight(
                     b,
                     'arrows',
@@ -651,19 +742,26 @@ export default function stateModelFactory() {
                   )
                 }
 
-                // restore the previous frame's highlights to base colors
+                // Nodes and arrowheads live in vertex buffers, so the previous
+                // frame's brightening has to be written back to base colors
+                // before the new frame's goes on.
                 node(prevHoveredNode, 1)
                 if (prevSelectedNode !== prevHoveredNode) {
                   node(prevSelectedNode, 1)
                 }
-                edge(prevHoveredEdge, 1)
+                arrow(prevHoveredEdge, 1)
 
                 // brighten the current selection, then hover on top of it
                 node(selectedNode, SELECT_BRIGHTEN)
                 if (hoveredNode !== selectedNode) {
                   node(hoveredNode, HOVER_BRIGHTEN)
                 }
-                edge(hoveredEdge, HOVER_BRIGHTEN)
+                arrow(hoveredEdge, HOVER_BRIGHTEN)
+
+                // An edge is a stroke, not vertices: the renderer overrides its
+                // color at draw time, so stating the current one is enough — no
+                // restore pass, and no buffer to go stale on a rebuild.
+                b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
 
                 prevHoveredNode = hoveredNode
                 prevHoveredEdge = hoveredEdge

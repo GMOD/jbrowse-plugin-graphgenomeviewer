@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { ErrorBanner } from '@jbrowse/core/ui'
 import { useRenderingBackend } from '@jbrowse/core/util'
@@ -77,10 +77,11 @@ const GraphCanvas = observer(function GraphCanvas({
   model: GraphGenomeViewModel
 }) {
   const { canvasRef, canvas } = useRenderingBackend(createGraphRenderer, model)
-  const isDraggingRef = useRef(false)
-  const [isDragging, setIsDragging] = useState(false)
+  // Where the pointer was last, and whether it has travelled since mousedown —
+  // per-gesture scratch that nothing renders from, which is what a ref is for.
+  // Whether a drag is in progress is model state (`isPanning`/`draggingNode`),
+  // because the cursor renders from it.
   const lastMouseRef = useRef({ x: 0, y: 0 })
-
   const hasMovedRef = useRef(false)
 
   // wheel events need passive:false to call preventDefault — React registers
@@ -117,27 +118,25 @@ const GraphCanvas = observer(function GraphCanvas({
     return screenToGraph(e.clientX - rect.left, e.clientY - rect.top)
   }
 
+  // The node at a graph coordinate, which mousedown, mousemove and click all
+  // need. Takes the coordinate rather than the event so a caller that already
+  // has one does not pay for a second getBoundingClientRect.
+  function nodeAt(x: number, y: number) {
+    const { nodePositions } = model
+    return nodePositions
+      ? findHoveredNode(nodePositions, x, y, model.scale, model.viewportDirty)
+      : null
+  }
+
   function handleMouseDown(e: React.MouseEvent) {
     if (e.button === 0) {
       hasMovedRef.current = false
-      if (model.nodePositions) {
-        const { x, y } = getMouseCoord(e)
-        const node = findHoveredNode(
-          model.nodePositions,
-          x,
-          y,
-          model.scale,
-          model.viewportDirty,
-        )
-        if (node) {
-          model.setDraggingNode(node)
-        } else {
-          isDraggingRef.current = true
-          setIsDragging(true)
-        }
+      const { x, y } = getMouseCoord(e)
+      const node = nodeAt(x, y)
+      if (node) {
+        model.setDraggingNode(node)
       } else {
-        isDraggingRef.current = true
-        setIsDragging(true)
+        model.setPanning(true)
       }
       lastMouseRef.current = { x: e.clientX, y: e.clientY }
     }
@@ -154,7 +153,7 @@ const GraphCanvas = observer(function GraphCanvas({
 
     if (model.draggingNode) {
       model.moveNode(model.draggingNode, dx / model.scale, dy / model.scale)
-    } else if (isDraggingRef.current) {
+    } else if (model.isPanning) {
       model.setTransform(
         model.scale,
         model.translateX + dx,
@@ -162,13 +161,7 @@ const GraphCanvas = observer(function GraphCanvas({
       )
     } else if (model.nodePositions && model.graph) {
       const { x, y } = getMouseCoord(e)
-      const node = findHoveredNode(
-        model.nodePositions,
-        x,
-        y,
-        model.scale,
-        model.viewportDirty,
-      )
+      const node = nodeAt(x, y)
       model.setHoveredNode(node)
       model.setHoveredEdge(
         node
@@ -186,35 +179,21 @@ const GraphCanvas = observer(function GraphCanvas({
     }
   }
 
-  function stopDragging() {
-    isDraggingRef.current = false
-    setIsDragging(false)
-    model.setDraggingNode(null)
-  }
-
   function handleMouseUp() {
-    stopDragging()
+    model.stopDragging()
   }
 
   function handleMouseLeave() {
-    stopDragging()
+    model.stopDragging()
     model.setHoveredNode(null)
     model.setHoveredEdge(null)
   }
 
   function handleClick(e: React.MouseEvent) {
-    if (hasMovedRef.current) {
-      return
-    }
-    if (model.nodePositions) {
+    // a click that ended a drag selects nothing
+    if (!hasMovedRef.current) {
       const { x, y } = getMouseCoord(e)
-      const node = findHoveredNode(
-        model.nodePositions,
-        x,
-        y,
-        model.scale,
-        model.viewportDirty,
-      )
+      const node = nodeAt(x, y)
       model.setSelectedNode(node)
       if (node) {
         model.showNodeDetails(node)
@@ -239,7 +218,7 @@ const GraphCanvas = observer(function GraphCanvas({
         style={{
           width: model.width,
           height: model.canvasHeight,
-          cursor: isDragging || model.draggingNode ? 'grabbing' : 'grab',
+          cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
           display: 'block',
         }}
         onMouseDown={handleMouseDown}

@@ -91,7 +91,7 @@ describe('findHoveredEdge', () => {
       { id: 'A+', name: 'A', length: 50, depth: 1 },
       { id: 'B+', name: 'B', length: 50, depth: 1 },
     ],
-    edges: [{ from: 'A+', to: 'B+', overlap: 0, pathIds: ['p1', 'p2', 'p3'] }],
+    edges: [{ from: 'A+', to: 'B+', pathIds: ['p1', 'p2', 'p3'] }],
   }
 
   test('hits edge on center lane', () => {
@@ -110,4 +110,24 @@ describe('findHoveredEdge', () => {
   test('drawPaths=false still hits on centerline', () => {
     expect(findHoveredEdge(nodePositions, graph, 100, 0, 1, false)).toBe(0)
   })
+})
+
+// The hover threshold is 5 screen px converted to world units, so zoomed out it
+// spans several nodes at once. Returning the first candidate inside it meant the
+// grid's visit order decided the answer: the cursor sat on one node and a
+// neighbour lit up.
+test('picks the nearest node when several are inside the threshold', () => {
+  const positions = {
+    'near+': [
+      { x: 1000, y: 0 },
+      { x: 1100, y: 0 },
+    ],
+    'far+': [
+      { x: 500, y: 0 },
+      { x: 600, y: 0 },
+    ],
+  }
+  // scale 0.008 -> a 625 unit threshold, wide enough to reach both
+  expect(findHoveredNode(positions, 1050, 0, 0.008)).toBe('near+')
+  expect(findHoveredNode(positions, 550, 0, 0.008)).toBe('far+')
 })

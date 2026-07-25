@@ -1,15 +1,14 @@
 import type { BezierCurve } from '../util/geometry'
 
-export type SubBatchKey = 'edges' | 'nodes' | 'arrows'
-export const SUB_BATCH_KEYS: readonly SubBatchKey[] = [
-  'edges',
-  'nodes',
-  'arrows',
-]
+export type SubBatchKey = 'nodes' | 'arrows'
+export const SUB_BATCH_KEYS: readonly SubBatchKey[] = ['nodes', 'arrows']
 
-// Raw bezier data for an edge — used by Canvas2DRenderer to draw native bezier
-// strokes instead of rasterising the tessellated triangle mesh. GPU backends
-// keep using the tessellated `edges` sub-batch for now.
+// Edges are carried as bezier control points, not as a triangle mesh: the
+// renderer strokes them natively, one path per edge. A tessellated `edges`
+// sub-batch was built alongside these until it was found to be dead — nothing
+// ever drew it, and it cost half of every geometry build and more buffer memory
+// than the node mesh. A GPU backend can tessellate from these curves at upload
+// time instead.
 export interface EdgeCurveBatch {
   curves: BezierCurve[]
   thickness: number
@@ -37,11 +36,12 @@ export interface VertexRange {
 
 export type RenderBatch = Record<SubBatchKey, SubBatch> & {
   nodeVertexRanges: Map<string, VertexRange>
-  edgeVertexRanges: Map<number, VertexRange>
   arrowVertexRanges: Map<number, VertexRange>
-  // Parallel curve data per edge sub-stroke. Canvas2DRenderer iterates this
-  // for native bezier rendering; GPU backends ignore it.
+  // One stroke per edge, or one per path crossing it when drawPaths is on.
   edgeCurves: EdgeCurveBatch[]
+  // Graph edge index -> its run of `edgeCurves` entries, so a renderer can find
+  // the strokes belonging to one edge without re-deriving the path fan-out.
+  edgeCurveRanges: Map<number, VertexRange>
 }
 
 export interface TransformUniform {
@@ -61,6 +61,10 @@ export interface Renderer {
     colors: Uint32Array,
     vertexStart: number,
   ): void
+  // Edges have no vertex buffer to recolor, so highlighting one is a draw-time
+  // override of its strokes' colors rather than an updateSubBatchColors write.
+  // null clears it; the override is absolute, so no restore pass is needed.
+  setEdgeHighlight(edgeIndex: number | null, factor: number): void
   updateTransform(transform: TransformUniform): void
   render(clearColor: [number, number, number, number]): void
   dispose(): void

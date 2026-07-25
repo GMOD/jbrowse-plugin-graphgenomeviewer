@@ -65,9 +65,16 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
   private refNameLookupCache: Promise<Map<string, string>> | undefined
 
   private refNameLookup(opts?: BaseOptions) {
+    // The failure is cleared from the cache so a later query retries. Caching the
+    // rejected promise made one network blip permanently empty the track — every
+    // subsequent region resolved against the same failed lookup.
     this.refNameLookupCache ??= this.bubbles
       .getReferenceSequenceNames(opts)
       .then(names => buildRefNameLookup(names))
+      .catch((e: unknown) => {
+        this.refNameLookupCache = undefined
+        throw e
+      })
     return this.refNameLookupCache
   }
 

@@ -24,6 +24,17 @@ export function abgrAlpha(c: number) {
   return (c >>> 24) & 0xff
 }
 
+// Scale a packed color's channels, clamped at full brightness and leaving alpha
+// alone. factor === 1 returns the color unchanged.
+export function brightenAbgr(c: number, factor: number) {
+  return packAbgr(
+    Math.min(255, Math.round(abgrRed(c) * factor)),
+    Math.min(255, Math.round(abgrGreen(c) * factor)),
+    Math.min(255, Math.round(abgrBlue(c) * factor)),
+    abgrAlpha(c),
+  )
+}
+
 // Format an ABGR-packed u32 as a CSS rgba() string.
 export function abgrToCssRgba(c: number) {
   return `rgba(${abgrRed(c)},${abgrGreen(c)},${abgrBlue(c)},${abgrAlpha(c) / 255})`

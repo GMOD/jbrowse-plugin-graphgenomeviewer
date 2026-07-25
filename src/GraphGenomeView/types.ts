@@ -12,17 +12,13 @@ export interface GraphNode {
 export interface GraphEdge {
   from: string
   to: string
-  overlap: number
   pathIds?: string[]
 }
 
 export interface GraphPath {
   name: string
   nodeIds: string[]
-  // parallel to nodeIds: whether the path reads that segment reverse-strand.
-  // Only PG-SGD needs it, to keep a node from being drawn backwards relative to
-  // the path walking through it.
-  reverse?: boolean[]
+  // set for W records, which state the assembly they walk; P records do not
   sample?: string
   haplotype?: number
   contig?: string
@@ -43,15 +39,3 @@ export interface NodeSegment {
 export interface LayoutResult {
   nodePositions: Record<string, NodeSegment[]>
 }
-
-export const COLOR_SCHEMES = [
-  'uniform',
-  'random',
-  'rainbow',
-  'depth',
-  'node-length',
-  'stable-rank',
-  'grey',
-] as const
-
-export type ColorScheme = (typeof COLOR_SCHEMES)[number]

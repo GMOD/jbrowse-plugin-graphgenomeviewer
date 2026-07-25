@@ -443,6 +443,125 @@ describe('layoutMode', () => {
   })
 })
 
+// A window with no bubbles in it lays every segment out on row 0, and x there is
+// reference bp — so a layout at offset 1 kb sat entirely off an 800 px canvas
+// while zoomToFit declined to act on it for having no height.
+describe('zoomToFit on a layout that is flat in y', () => {
+  const RGFA_BACKBONE_ONLY =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\tACGT\tSN:Z:chr\tSO:i:1000\tSR:i:0\n' +
+    'S\t2\tGGCC\tSN:Z:chr\tSO:i:1004\tSR:i:0\n' +
+    'L\t1\t+\t2\t+\t0M\n'
+
+  test('fits on x and centers on y', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_BACKBONE_ONLY, 'backbone only')
+
+    const ys = Object.values(model.nodePositions!)
+      .flat()
+      .map(p => p.y)
+    expect(new Set(ys).size).toBe(1)
+
+    model.zoomToFit()
+
+    // both ends of the backbone land inside the canvas
+    const screenX = (x: number) => x * model.scale + model.translateX
+    expect(screenX(1000)).toBeGreaterThanOrEqual(0)
+    expect(screenX(1008)).toBeLessThanOrEqual(model.width)
+    // and the one row it has sits vertically centered
+    expect(model.translateY).toBeCloseTo(model.canvasHeight / 2, 5)
+  })
+})
+
+// The bp cap bounds the fetch, but cost tracks node count and bp-per-node varies
+// by orders of magnitude between graph types, so a dense graph clears the bp cap
+// and still swamps the renderer. The import path had no cap of any kind.
+describe('node budget', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  function withLimit(limit: number) {
+    const model = createModel()
+    applySnapshot(model, { ...getSnapshot(model), maxGraphNodes: limit })
+    return model
+  }
+
+  test('declines a graph over the budget without laying it out', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const model = withLimit(1)
+
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+
+    expect(model.graph).toBeUndefined()
+    expect(String(model.error)).toMatch(/too large to draw/i)
+    expect(String(model.error)).toMatch(/2 nodes/)
+    // the layout is downstream of the check, so it must not have run
+    expect(
+      mockRpcCall.mock.calls.filter(c => c[1] === 'GraphComputeLayout'),
+    ).toHaveLength(0)
+    expect(model.isLoading).toBe(false)
+    consoleSpy.mockRestore()
+  })
+
+  test('draws the same graph once the budget is raised', async () => {
+    rpcRespond()
+    const model = withLimit(10)
+
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+
+    expect(model.graph).toBeDefined()
+    expect(model.error).toBeUndefined()
+  })
+})
+
+// The zoom floor exists to keep the scale positive, but in a reference-anchored
+// layout world units are bp, so fitting a megabase-scale import needs a scale far
+// below what reads as a sensible interactive minimum. A 0.001 floor clamped it
+// and the graph stayed several screens wide with no way to fit it.
+describe('zoomToFit on a megabase-scale layout', () => {
+  const WIDE_RGFA =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\t*\tLN:i:1000000\tSN:Z:chr\tSO:i:0\tSR:i:0\n' +
+    'S\t2\t*\tLN:i:1000000\tSN:Z:chr\tSO:i:4000000\tSR:i:0\n' +
+    'L\t1\t+\t2\t+\t0M\n'
+
+  test('fits a 5 Mbp span inside the canvas', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(WIDE_RGFA, 'wide')
+
+    model.zoomToFit()
+
+    const screenX = (x: number) => x * model.scale + model.translateX
+    expect(screenX(0)).toBeGreaterThanOrEqual(0)
+    expect(screenX(5_000_000)).toBeLessThanOrEqual(model.width)
+  })
+})
+
+// hoveredEdge is an index into graph.edges, so it addresses the graph it was set
+// against; carrying it across a load pointed the tooltip and the highlight at
+// whatever ended up at that index in the new graph.
+describe('interaction state across a graph swap', () => {
+  test('loading a graph clears hover and selection', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'first')
+    model.setHoveredEdge(0)
+    model.setHoveredNode('1+')
+    model.setSelectedNode('1+')
+
+    await model.loadGFA(SIMPLE_GFA, 'second')
+
+    expect(model.hoveredEdge).toBeNull()
+    expect(model.hoveredNode).toBeNull()
+    expect(model.selectedNode).toBeNull()
+  })
+})
+
 // The pggb figure drew as a chain of same-sized bubbles because every node in a
 // 400 bp window fell below the engine's minimumNodeLength and clamped to one
 // drawn length. Guard the property that actually broke — that node lengths stay

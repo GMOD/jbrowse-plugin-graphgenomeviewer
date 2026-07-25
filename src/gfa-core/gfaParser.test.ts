@@ -116,3 +116,35 @@ W\tsample2\t0\tchr1\t0\t12000\t>GENE1>GENE2>GENE3`)
   expect(gfa.walks).toHaveLength(3)
   expect(gfa.walks[1]!.segments).toHaveLength(2)
 })
+
+test('keeps colons inside a Z tag value', () => {
+  const gfa = parseGFA('S\ts1\t*\tLN:i:10\tSN:Z:chr1:1-1000\tSO:i:5\tSR:i:0')
+  expect(gfa.nodes[0]!.tags.SN).toBe('chr1:1-1000')
+})
+
+test('reads a CRLF file without trailing carriage returns', () => {
+  const gfa = parseGFA(
+    'S\ts1\t*\tLN:i:10\tSO:i:5\tSN:Z:K12#1#chr\r\nL\ts1\t+\ts2\t+\t120M\r\n',
+  )
+  expect(gfa.nodes[0]!.tags.SN).toBe('K12#1#chr')
+  expect(gfa.links[0]!.cigar).toBe('120M')
+})
+
+test('a GFA1 segment with no sequence takes its length from LN, else 0', () => {
+  expect(parseGFA('S\ts1\t*\tLN:i:74').nodes[0]!.length).toBe(74)
+  expect(parseGFA('S\ts1\t*\tSN:Z:chr').nodes[0]!.length).toBe(0)
+})
+
+test('a truncated S line yields a 0 bp segment rather than throwing', () => {
+  const gfa = parseGFA('S\ts1\nS\ts2\t*\tLN:i:10')
+  expect(gfa.nodes.map(n => [n.id, n.length])).toEqual([
+    ['s1', 0],
+    ['s2', 10],
+  ])
+})
+
+test('a zero-length GFA2 segment is not mistaken for a GFA1 sequence', () => {
+  const node = parseGFA('S\ts1\t0\t*').nodes[0]!
+  expect(node.length).toBe(0)
+  expect(node.sequence).toBe('*')
+})

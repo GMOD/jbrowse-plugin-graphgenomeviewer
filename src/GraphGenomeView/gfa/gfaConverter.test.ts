@@ -26,14 +26,6 @@ L\t1\t+\t2\t-\t0M`)
   expect(ids).toEqual(['1+', '2-'])
 })
 
-test('parses CIGAR overlap', () => {
-  const gfa = parseGFA(`S\t1\tACGT
-S\t2\tGGCC
-L\t1\t+\t2\t+\t10M`)
-  const graph = convertGFAToGraph(gfa)
-  expect(graph.edges[0]!.overlap).toBe(10)
-})
-
 test('extracts depth from dp tag', () => {
   const gfa = parseGFA(`S\t1\tACGT\tdp:i:42
 S\t2\tGGCC
@@ -66,14 +58,6 @@ S\t2\tGGCC
 L\t1\t+\t2\t+\t0M`)
   const graph = convertGFAToGraph(gfa)
   expect(graph.paths).toBeUndefined()
-})
-
-test('handles wildcard CIGAR', () => {
-  const gfa = parseGFA(`S\t1\tACGT
-S\t2\tGGCC
-L\t1\t+\t2\t+\t*`)
-  const graph = convertGFAToGraph(gfa)
-  expect(graph.edges[0]!.overlap).toBe(0)
 })
 
 test('preserves node length from sequence', () => {
@@ -279,14 +263,6 @@ P\tsampleA\t1+\t*
 P\tsampleB\t1+\t*`),
   )
   expect(graph.nodes[0]!.depth).toBe(42)
-})
-
-test('sums multiple M operations in CIGAR overlap', () => {
-  const gfa = parseGFA(`S\t1\tACGT
-S\t2\tGGCC
-L\t1\t+\t2\t+\t10M5I3M`)
-  const graph = convertGFAToGraph(gfa)
-  expect(graph.edges[0]!.overlap).toBe(13)
 })
 
 test('handles empty GFA text', () => {

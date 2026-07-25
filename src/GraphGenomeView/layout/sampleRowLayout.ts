@@ -1,4 +1,5 @@
 import { parsePanSN, projectAlleles } from '../../alleleProjection/projectAlleles'
+import { backboneNodes, backboneSpan } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment } from '../types'
 
@@ -41,17 +42,14 @@ function contributingSamples(graph: Graph) {
 }
 
 export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
-  const backbone = graph.nodes.filter(n => n.stable?.rank === 0)
+  const backbone = backboneNodes(graph)
   const samples = contributingSamples(graph)
   if (backbone.length === 0 || samples.length === 0) {
     return undefined
   }
   const { alleles } = projectAlleles(graph)
 
-  const starts = backbone.map(n => n.stable!.start)
-  const span =
-    Math.max(...backbone.map(n => n.stable!.start + n.length)) -
-    Math.min(...starts)
+  const span = backboneSpan(backbone)
   const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
   const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION
 
@@ -62,7 +60,7 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
 
   for (const node of backbone) {
-    const { start } = node.stable!
+    const { start } = node.stable
     nodePositions[node.id] = [
       { x: start, y: 0 },
       { x: start + node.length, y: 0 },
@@ -80,7 +78,13 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
       if (node?.stable) {
         const sample = parsePanSN(node.stable.refName).sample
         const y = (rowOf.get(sample) ?? samples.length + 1) * rowSpacing
-        const width = (node.length / allele.altLength) * drawn
+        // A run whose segments are all zero-length has no lengths to apportion
+        // the drawn width by; splitting it evenly beats 0/0, which put NaN in
+        // nodePositions and took the whole layout with it.
+        const width =
+          allele.altLength > 0
+            ? (node.length / allele.altLength) * drawn
+            : drawn / allele.nodeIds.length
         nodePositions[nodeId] = [
           { x: cursor, y },
           { x: cursor + width, y },

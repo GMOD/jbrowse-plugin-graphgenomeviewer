@@ -3,14 +3,6 @@ import { stableCoordinate } from '../../gfa-core/index'
 import type { GFAGraph, GFANode } from '../../gfa-core/index'
 import type { Graph, GraphEdge, GraphNode, GraphPath } from '../types'
 
-function parseCigarOverlap(cigar: string) {
-  let sum = 0
-  for (const m of cigar.matchAll(/(\d+)M/g)) {
-    sum += +m[1]!
-  }
-  return sum
-}
-
 // Single pass over every reference a GFA makes to a segment, collecting the two
 // things the drawn graph needs from them.
 //
@@ -90,11 +82,7 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
   }
 
   for (const link of gfaGraph.links) {
-    edges.push({
-      from: nodeId(link.source),
-      to: nodeId(link.target),
-      overlap: parseCigarOverlap(link.cigar),
-    })
+    edges.push({ from: nodeId(link.source), to: nodeId(link.target) })
   }
 
   const paths: GraphPath[] = []
@@ -117,10 +105,10 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
   for (const gfaPath of gfaGraph.paths) {
     // path segments arrive as `<id><strand>`; the node they land on is the
     // segment's canonical orientation, whichever way this path reads it
-    const segments = gfaPath.path.split(',')
-    const nodeIds = segments.map(segment => nodeId(segment.slice(0, -1)))
-    const reverse = segments.map(segment => segment.endsWith('-'))
-    paths.push({ name: gfaPath.name, nodeIds, reverse } satisfies GraphPath)
+    const nodeIds = gfaPath.path
+      .split(',')
+      .map(segment => nodeId(segment.slice(0, -1)))
+    paths.push({ name: gfaPath.name, nodeIds } satisfies GraphPath)
     recordPathEdges(nodeIds, gfaPath.name)
   }
 
@@ -130,7 +118,6 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
     paths.push({
       name,
       nodeIds,
-      reverse: walk.segments.map(seg => seg.strand === '-'),
       sample: walk.sample,
       haplotype: walk.haplotype,
       contig: walk.contig,

@@ -178,17 +178,17 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       })
       let frontier = await addLinksOver(tabixRefName, region.start, region.end)
       for (let hop = 0; hop < context; hop++) {
-        const next: RgfaSegment[] = []
-        for (const segment of frontier) {
-          next.push(
-            ...(await addLinksOver(
-              segment.refName,
-              segment.start,
-              segment.end,
-            )),
-          )
-        }
-        frontier = next
+        // One hop's queries are independent of each other, so they go out
+        // together rather than one round-trip at a time. Their callbacks share
+        // the segment and link maps, which is safe because only one of them runs
+        // at a time, and the output is sorted at the end regardless of the order
+        // they arrive in.
+        const reached = await Promise.all(
+          frontier.map(segment =>
+            addLinksOver(segment.refName, segment.start, segment.end),
+          ),
+        )
+        frontier = reached.flat()
       }
     }
 
