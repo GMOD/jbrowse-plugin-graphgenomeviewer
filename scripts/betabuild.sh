@@ -31,6 +31,14 @@ echo "==> publishing to s3://${BUCKET}/${PREFIX}/"
 if [ "${SKIP_CHECKS:-0}" != "1" ]; then
   echo "==> lint"
   pnpm lint
+  # Not optional, and not covered by the unit tests: a bundle that imports a name
+  # a host global does not actually export builds and unit-tests clean, then
+  # throws the moment the view mounts. That shipped once (useRenderingBackend from
+  # @jbrowse/core/util) while typecheck had been reporting it the whole time.
+  # scripts/typecheck.mjs fails only on errors under src/, so linked-package noise
+  # cannot make this advisory.
+  echo "==> typecheck"
+  pnpm typecheck
   echo "==> tests"
   pnpm test
 fi
