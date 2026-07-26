@@ -77,10 +77,12 @@ export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
                     ...superRubberBandMenuItems(),
                     ...subgraphMenuItems({
                       label: SELECTION_LABEL,
-                      region: self.getSelectedRegions(
-                        self.leftOffset,
-                        self.rightOffset,
-                      )[0],
+                      region: regionFromViewport(
+                        self.getSelectedRegions(
+                          self.leftOffset,
+                          self.rightOffset,
+                        ),
+                      ),
                       tracks: tracks(),
                       session: getSession(self),
                       connectedViewId: self.id,

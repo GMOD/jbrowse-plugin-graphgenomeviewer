@@ -32,11 +32,30 @@ export function regionAroundSegment(region: SubgraphRegion): SubgraphRegion {
   }
 }
 
-// The visible span of a linear view. A view scrolled across a region boundary
-// has more than one content block; the graph is cut from the first, since a
-// subgraph spans one stable sequence.
+// The one block a launch runs on, out of however many the view or the selection
+// covers. A subgraph spans one stable sequence, so a span crossing a region
+// boundary has to pick: the widest, which is the sequence the user is mostly
+// looking at. Taking the first is worse here than anywhere, because the size cap
+// then reads the wrong block — a view scrolled 3 bp past a boundary offers an
+// enabled menu item that cuts a 3 bp graph, where the widest block would have
+// said "zoom in".
+//
+// Widest in bp rather than in pixels: a dynamic block carries widthPx and a
+// selected region does not, and within one view bpPerPx is uniform, so the two
+// orders agree.
+export function widestBlock<T extends { start: number; end: number }>(
+  blocks: T[],
+) {
+  return blocks.reduce<T | undefined>(
+    (best, block) =>
+      best && best.end - best.start >= block.end - block.start ? best : block,
+    undefined,
+  )
+}
+
+// The span of a linear view or of a selection in one, as a region to cut from.
 export function regionFromViewport(blocks: Region[]) {
-  const block = blocks[0]
+  const block = widestBlock(blocks)
   return block
     ? {
         refName: block.refName,

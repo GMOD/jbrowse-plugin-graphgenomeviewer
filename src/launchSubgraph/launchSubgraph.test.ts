@@ -2,6 +2,7 @@ import {
   launchSubgraphView,
   regionAroundSegment,
   regionFromViewport,
+  subgraphRegionProblem,
 } from './launchSubgraphView'
 import { createTestEnvironment } from './testEnv'
 import { MAX_GRAPH_REGION_BP } from '../GraphGenomeView/model'
@@ -154,4 +155,36 @@ test('regionAroundSegment never pads past the start of the sequence', () => {
 
 test('regionFromViewport is undefined with nothing displayed', () => {
   expect(regionFromViewport([])).toBeUndefined()
+})
+
+// Both launch entries cross region boundaries routinely — a view scrolled past
+// one, a rubberband dragged across one. The leading block is then a sliver, and
+// cutting a graph from it is both wrong and under the size cap, so the menu
+// offers it as enabled rather than saying "zoom in".
+test('a boundary-crossing span is cut from its widest block, not its first', () => {
+  expect(
+    regionFromViewport([
+      { refName: 'ctgA', assemblyName: 'volvox', start: 49998, end: 50001 },
+      { refName: 'ctgB', assemblyName: 'volvox', start: 0, end: 9000 },
+    ]),
+  ).toEqual({
+    refName: 'ctgB',
+    assemblyName: 'volvox',
+    start: 0,
+    end: 9000,
+  })
+})
+
+test('the widest block wins on bp, so an oversized straddle still trips the cap', () => {
+  const region = regionFromViewport([
+    { refName: 'ctgA', assemblyName: 'volvox', start: 0, end: 10 },
+    {
+      refName: 'ctgB',
+      assemblyName: 'volvox',
+      start: 0,
+      end: MAX_GRAPH_REGION_BP + 1000,
+    },
+  ])
+  expect(region?.refName).toBe('ctgB')
+  expect(subgraphRegionProblem(region!)).toMatch(/zoom in/)
 })
