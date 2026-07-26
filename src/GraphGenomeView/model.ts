@@ -11,11 +11,17 @@ import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
 import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
+import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
   extractColorSlice,
 } from './renderer/GeometryBuilder'
+import {
+  hoverInRegion,
+  nodeForLgvHover,
+  readLgvHover,
+} from '../hoverSync/lgvHover'
 
 import type { ColorScheme } from './colorSchemes'
 import type { BandageScaleOpts } from './layout/drawnScale'
@@ -160,6 +166,10 @@ export default function stateModelFactory() {
         // Whole-GFA source loaded on attach — lets a GraphGenomeView be
         // instantiated declaratively from a session/config snapshot.
         gfaLocation: types.maybe(types.frozen<FileLocation>()),
+        // The linear view this graph was launched from, so a hovered node can
+        // draw its reference span there and vice versa. Written by the launch
+        // menu; see hoverSync/.
+        connectedViewId: types.maybe(types.string),
       }),
     )
     .volatile(() => ({
@@ -236,6 +246,11 @@ export default function stateModelFactory() {
       get nodePositions() {
         return self.layoutResult?.nodePositions
       },
+      // Empty rather than undefined: every consumer maps over it, and a layout
+      // with no row structure (FMMM) is a normal state, not a missing one.
+      get rowLabels() {
+        return self.layoutResult?.rowLabels ?? []
+      },
       get zoomPercent() {
         return `${(self.scale * 100).toFixed(1)}%`
       },
@@ -246,6 +261,42 @@ export default function stateModelFactory() {
         return (
           self.scale === 1 && self.translateX === 0 && self.translateY === 0
         )
+      },
+    }))
+    .views(self => ({
+      get nodeNeighbors() {
+        return self.graph ? buildNeighbors(self.graph) : undefined
+      },
+    }))
+    .views(self => ({
+      // The reference interval of the hovered node, for a connected linear view
+      // to highlight. Only a graph cut from a track has one: a whole-file import
+      // has no region, and its stable names need not name anything in a loaded
+      // assembly.
+      get hoverHighlight() {
+        let result:
+          | {
+              refName: string
+              assemblyName: string
+              start: number
+              end: number
+            }
+          | undefined
+        const region = self.loadedRegion
+        const nodeId = self.hoveredNode
+        const nodeById = self.nodeById
+        const neighbors = self.nodeNeighbors
+        if (region && nodeId !== null && nodeById && neighbors) {
+          const span = nodeReferenceSpan({ nodeId, nodeById, neighbors })
+          if (span) {
+            result = {
+              refName: region.refName,
+              assemblyName: region.assemblyName,
+              ...span,
+            }
+          }
+        }
+        return result
       },
     }))
     .actions(self => ({
@@ -311,8 +362,17 @@ export default function stateModelFactory() {
       },
       showNodeDetails(nodeId: string) {
         const node = self.nodeById?.get(nodeId)
-        if (node) {
+        const nodeById = self.nodeById
+        const neighbors = self.nodeNeighbors
+        if (node && nodeById && neighbors) {
           const session = getSession(self)
+          const region = self.loadedRegion
+          // refName/start/end are what makes the widget show a location rather
+          // than a bare id, and they are the same span the linear view
+          // highlights on hover.
+          const span = region
+            ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+            : undefined
           if (isSessionModelWithWidgets(session)) {
             session.showWidget(
               session.addWidget('BaseFeatureWidget', 'baseFeature', {
@@ -321,6 +381,16 @@ export default function stateModelFactory() {
                   name: node.name,
                   length: node.length,
                   depth: node.depth,
+                  rank: node.stable?.rank,
+                  stableName: node.stable?.refName,
+                  ...(region && span
+                    ? {
+                        refName: region.refName,
+                        assemblyName: region.assemblyName,
+                        start: span.start,
+                        end: span.end,
+                      }
+                    : {}),
                 },
               }),
             )
@@ -399,7 +469,9 @@ export default function stateModelFactory() {
           )
           self.scale = newScale
           self.translateX =
-            padding - minX * newScale + (usableWidth - graphWidth * newScale) / 2
+            padding -
+            minX * newScale +
+            (usableWidth - graphWidth * newScale) / 2
           self.translateY =
             padding -
             minY * newScale +
@@ -685,6 +757,33 @@ export default function stateModelFactory() {
               ) {
                 self.zoomToFit()
               }
+            }),
+          )
+
+          // Autorun: mirror a connected linear view's hover onto the graph. An
+          // LGV writes `{hoverPosition, hoverFeature}` to session.hovered on
+          // every mousemove; neither field names the source view, so the guard
+          // is that the position lies in the region this graph was cut from.
+          //
+          // Only `hovered` is tracked — the graph reads are untracked, so a
+          // geometry rebuild can't re-fire this and clobber a hover the canvas
+          // itself set. Assigning an unchanged id doesn't notify, so a hover
+          // that travels within one segment costs nothing downstream.
+          addDisposer(
+            self,
+            autorun(() => {
+              const hover = readLgvHover(getSession(self).hovered)
+              untracked(() => {
+                const region = self.loadedRegion
+                const graph = self.graph
+                if (region && graph) {
+                  self.setHoveredNode(
+                    hover && hoverInRegion(hover, region)
+                      ? nodeForLgvHover({ hover, nodes: graph.nodes })
+                      : null,
+                  )
+                }
+              })
             }),
           )
 

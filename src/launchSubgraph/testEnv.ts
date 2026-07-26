@@ -1,8 +1,12 @@
 import PluginManager from '@jbrowse/core/PluginManager'
-import { ConfigurationSchema } from '@jbrowse/core/configuration'
+import {
+  ConfigurationSchema,
+  readConfObject,
+} from '@jbrowse/core/configuration'
 import AdapterType from '@jbrowse/core/pluggableElementTypes/AdapterType'
 import DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 import TrackType from '@jbrowse/core/pluggableElementTypes/TrackType'
+import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import {
   createBaseTrackConfig,
   createBaseTrackModel,
@@ -18,6 +22,7 @@ import {
 } from '@jbrowse/plugin-linear-genome-view'
 
 import LaunchSubgraphMenuItemF from './index'
+import LinearViewMenuItemsF from './linearViewMenuItems'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -46,6 +51,24 @@ export function createTestEnvironment({
         adapterCapabilities: subgraphCapable ? ['getSubgraph'] : [],
         getAdapterClass: () => {
           throw new Error('TestGraphAdapter is config-only in tests')
+        },
+      }),
+  )
+
+  // Stands in for MinigraphBubbleAdapter: a real track on the same assembly that
+  // marks where variation is but cannot cut a graph itself.
+  pluginManager.addAdapterType(
+    () =>
+      new AdapterType({
+        name: 'TestBubbleAdapter',
+        configSchema: ConfigurationSchema(
+          'TestBubbleAdapter',
+          {},
+          { explicitlyTyped: true },
+        ),
+        adapterCapabilities: [],
+        getAdapterClass: () => {
+          throw new Error('TestBubbleAdapter is config-only in tests')
         },
       }),
   )
@@ -83,22 +106,51 @@ export function createTestEnvironment({
       }),
   )
 
+  // The view type has to be *registered*, not just instantiated from its
+  // factory: the view-level menu items are added by extending the registered
+  // ViewType's state model, so a view built straight from the factory would
+  // silently exercise an unextended model and the items would never appear.
+  pluginManager.addViewType(
+    () =>
+      new ViewType({
+        name: 'LinearGenomeView',
+        stateModel: linearGenomeViewStateModelFactory(pluginManager),
+        // never rendered here; the state model is what's under test
+        ReactComponent: () => null,
+      }),
+  )
+
   // registered before createPluggableElements, which is when
   // Core-extendPluggableElement runs over each element
   LaunchSubgraphMenuItemF(pluginManager)
+  LinearViewMenuItemsF(pluginManager)
   pluginManager.createPluggableElements()
   pluginManager.configure()
 
-  const LinearGenomeModel = linearGenomeViewStateModelFactory(pluginManager)
-  const trackConfig = pluginManager.pluggableConfigSchemaType('track').create(
+  const LinearGenomeModel =
+    pluginManager.getViewType('LinearGenomeView').stateModel
+  const trackSchema = pluginManager.pluggableConfigSchemaType('track')
+  const trackConfig = trackSchema.create(
     {
       type: 'FeatureTrack',
       trackId: 'graph_track',
+      name: 'rGFA segments',
       assemblyNames: ['volvox'],
       adapter: { type: 'TestGraphAdapter' },
     },
     { pluginManager },
   )
+  const bubbleTrackConfig = trackSchema.create(
+    {
+      type: 'FeatureTrack',
+      trackId: 'bubble_track',
+      name: 'bubbles',
+      assemblyNames: ['volvox'],
+      adapter: { type: 'TestBubbleAdapter' },
+    },
+    { pluginManager },
+  )
+  const trackConfigs = [trackConfig, bubbleTrackConfig]
 
   const assembly = {
     initialized: true,
@@ -133,7 +185,15 @@ export function createTestEnvironment({
     }))
     .views(self => ({
       getTrackById(id: string) {
-        return id === 'graph_track' ? trackConfig : undefined
+        return trackConfigs.find(t => readConfObject(t, 'trackId') === id)
+      },
+      // What the session-wide scan reads: every graph track, whether or not it
+      // is open in a view.
+      get tracks() {
+        return trackConfigs
+      },
+      get assemblies() {
+        return []
       },
       getDisplayTypeDefault(displayType: string, slot: string): unknown {
         return self.displayTypeDefaults[displayType]?.[slot]
@@ -155,7 +215,12 @@ export function createTestEnvironment({
       queueDialog() {},
     }))
 
-  function createDisplay() {
+  // `trackId` picks which track the display is on: 'graph_track' is the graph
+  // itself, 'bubble_track' a track that can't cut a subgraph, which is how the
+  // cross-track launch is exercised.
+  function createDisplay({
+    trackId = 'graph_track',
+  }: { trackId?: string } = {}) {
     const session = Session.create({ configuration: {} }, { pluginManager })
     const view = session.setView(
       LinearGenomeModel.create({
@@ -163,7 +228,7 @@ export function createTestEnvironment({
         tracks: [
           {
             type: 'FeatureTrack',
-            configuration: 'graph_track',
+            configuration: trackId,
             displays: [{ type: 'LinearBasicDisplay' }],
           },
         ],

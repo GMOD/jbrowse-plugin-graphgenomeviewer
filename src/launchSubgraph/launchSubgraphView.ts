@@ -47,6 +47,16 @@ export function regionFromViewport(blocks: Region[]) {
     : undefined
 }
 
+// Why a region can't be cut, or undefined if it can. A menu item shows this as
+// the reason it is greyed out, so the cap is something the user reads before
+// clicking rather than a notification afterwards.
+export function subgraphRegionProblem(region: SubgraphRegion) {
+  const kb = Math.round((region.end - region.start) / 1000)
+  return region.end - region.start > MAX_GRAPH_REGION_BP
+    ? `Region is ${kb} kb — zoom in or select a smaller range (max ${MAX_GRAPH_REGION_BP / 1000} kb)`
+    : undefined
+}
+
 // The launch is a plain snapshot: `loadedTrackId`/`loadedRegion` are persisted
 // view props, and the view fetches them when its canvas mounts — the same path
 // a reloaded session takes, so a launched view is restorable for free and the
@@ -58,10 +68,14 @@ export function launchSubgraphView({
   session,
   region,
   trackId,
+  connectedViewId,
 }: {
   session: SubgraphLaunchSession
   region: SubgraphRegion
   trackId: string
+  // The linear view being launched from. Pairs the two views for the hover
+  // sync — see hoverSync/graphViewHighlights.
+  connectedViewId?: string
 }) {
   const regionSize = region.end - region.start
   if (regionSize > MAX_GRAPH_REGION_BP) {
@@ -74,6 +88,7 @@ export function launchSubgraphView({
       displayName: `Graph — ${regionLabel(region)}`,
       loadedTrackId: trackId,
       loadedRegion: region,
+      connectedViewId,
     })
   }
 }

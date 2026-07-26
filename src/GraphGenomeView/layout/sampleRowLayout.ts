@@ -1,15 +1,12 @@
-import {
-  parsePanSN,
-  projectAlleles,
-} from '../../alleleProjection/projectAlleles'
+import { placeOffReference } from './placeOffReference'
+import { parsePanSN } from '../../alleleProjection/projectAlleles'
 import {
   backboneNodes,
   backboneSpan,
-  isBackbone,
   isOffReference,
 } from '../anchoredNodes'
 
-import type { Graph, LayoutResult, NodeSegment } from '../types'
+import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 
 // One row per contributing assembly, x on the reference.
 //
@@ -18,8 +15,9 @@ import type { Graph, LayoutResult, NodeSegment } from '../types'
 // alleles from dozens of different haplotypes, so a row there means nothing
 // biological. This layout rows by the assembly each allele came from, so a row
 // is one sample and reading across it says what that sample does to the
-// reference — an insertion bulges past the span it replaces, a deletion leaves
-// the row empty across it.
+// reference: a deletion leaves the row empty across the span it removes, and an
+// insertion is a mark at the point it attaches. Insertion *size* is deliberately
+// not on this axis — see placeOffReference.
 //
 // Positions come from `projectAlleles`, which derives them from SN/SO/SR and
 // the L-lines alone. rGFA has no W/P records to consult, so anything requiring
@@ -27,11 +25,11 @@ import type { Graph, LayoutResult, NodeSegment } from '../types'
 
 const ROW_SPACING_SPAN_FRACTION = 0.05
 
-// Same floor and same reasoning as the anchored layout: node thickness is a
-// constant number of screen pixels, so a sub-percent allele draws wider than it
-// is long and reads as a dot rather than a bar. Applied only to alleles, whose
-// x is synthesized here; backbone segments keep their declared offsets so the
-// reference axis stays exact.
+// Visibility floor, in window-span fraction. Node thickness is a constant
+// number of screen pixels, so an allele occupying a sub-percent slice of the
+// window draws wider than it is long and reads as a dot rather than a bar. A
+// pure insertion occupies exactly zero, so without this it would not draw at
+// all.
 const MIN_ALLELE_SPAN_FRACTION = 0.015
 
 // Every assembly with a segment in this subgraph, sorted so rows keep their
@@ -55,8 +53,6 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
   if (backbone.length === 0 || samples.length === 0) {
     return undefined
   }
-  const { alleles } = projectAlleles(graph)
-
   const span = backboneSpan(backbone)
   const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
   const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION
@@ -65,7 +61,6 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
   // order projectAlleles reports (sorted), so rows don't reshuffle on pan.
   const rowOf = new Map(samples.map((s, i) => [s, i + 1]))
   const nodePositions: Record<string, NodeSegment[]> = {}
-  const byId = new Map(graph.nodes.map(n => [n.id, n]))
 
   for (const node of backbone) {
     const { start } = node.stable
@@ -75,42 +70,27 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
     ]
   }
 
-  for (const allele of alleles) {
-    const drawn = Math.max(allele.altLength, minAlleleSpan)
-    // Segments of a multi-segment allele share the run's reference anchor and
-    // are laid end to end across it in proportion to their lengths, so the run
-    // occupies exactly the width the allele's own sequence justifies.
-    let cursor = allele.start
-    for (const nodeId of allele.nodeIds) {
-      const node = byId.get(nodeId)
-      if (node?.stable) {
-        const sample = parsePanSN(node.stable.refName).sample
-        const y = (rowOf.get(sample) ?? samples.length + 1) * rowSpacing
-        // A run whose segments are all zero-length has no lengths to apportion
-        // the drawn width by; splitting it evenly beats 0/0, which put NaN in
-        // nodePositions and took the whole layout with it.
-        const width =
-          allele.altLength > 0
-            ? (node.length / allele.altLength) * drawn
-            : drawn / allele.nodeIds.length
-        nodePositions[nodeId] = [
-          { x: cursor, y },
-          { x: cursor + width, y },
-        ]
-        cursor += width
-      }
-    }
-  }
+  placeOffReference({
+    graph,
+    minSpan: minAlleleSpan,
+    rowY: node =>
+      (rowOf.get(parsePanSN(node.stable!.refName).sample) ?? samples.length + 1) *
+      rowSpacing,
+    positions: nodePositions,
+  })
 
-  return { nodePositions }
-}
+  // Built from the same `rowOf` map that placed the alleles, so a label cannot
+  // name a row the layout put somewhere else. Row 0 is the backbone, named for
+  // the assembly it comes from rather than "reference", because on this layout
+  // that name is one of the samples and reads as a peer of the rows below it.
+  const referenceSample = parsePanSN(backbone[0]!.stable.refName).sample
+  const rowLabels: RowLabel[] = [
+    { label: referenceSample, y: 0 },
+    ...samples.map(sample => ({
+      label: sample,
+      y: rowOf.get(sample)! * rowSpacing,
+    })),
+  ]
 
-// Rows this layout will draw, for a legend or an axis. Exported so a caller
-// labels rows from the same source that positions them.
-export function sampleRows(graph: Graph) {
-  const backbone = graph.nodes.find(isBackbone)
-  const reference = backbone
-    ? parsePanSN(backbone.stable.refName).sample
-    : 'reference'
-  return [reference, ...contributingSamples(graph)]
+  return { nodePositions, rowLabels }
 }

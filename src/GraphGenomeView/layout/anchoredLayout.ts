@@ -1,15 +1,16 @@
+import { placeOffReference } from './placeOffReference'
 import { backboneNodes, backboneSpan } from '../anchoredNodes'
 
-import type { Graph, LayoutResult, NodeSegment } from '../types'
+import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 
 // Layout for rGFA, where the graph states its own backbone instead of leaving a
 // force simulation to find one. Every segment carries SN/SO/SR (gfatools
 // doc/rGFA.md), so both axes come from the file:
 //
-//   x  reference bp. Rank-0 segments sit at the offset they declare; segments
-//      off the reference are laid end to end from wherever they branch, at
-//      their own bp length, because their SO is an offset on a different stable
-//      sequence and is not comparable to the reference axis.
+//   x  reference bp, for every segment. Rank-0 segments sit at the offset they
+//      declare; an off-reference segment cannot use its own SO, which is an
+//      offset on a different stable sequence, so it takes the slice of the
+//      reference its allele replaces (placeOffReference).
 //   y  one row per stable rank *present in this subgraph*, the way lh3's own
 //      rGFA viewer (VRPG) does it: rank 0 is the reference line, higher ranks
 //      below it in order.
@@ -17,17 +18,14 @@ import type { Graph, LayoutResult, NodeSegment } from '../types'
 // Row spacing is the one free parameter, in bp so it tracks the x axis.
 const ROW_SPACING_SPAN_FRACTION = 0.05
 
-// Floor on the drawn length of an *off-reference* node, as a fraction of the
-// window span. Node length here is bp and node thickness is a constant number
-// of screen pixels, so at a 50 kb window the median 349 bp allele came out
-// ~9 px long against a ~12 px thick tube — wider than it was long, drawing as a
-// dot on a stalk rather than the second arc of a bubble.
+// Floor on the drawn span of an *off-reference* node, as a fraction of the
+// window. Node thickness is a constant number of screen pixels, so at a 50 kb
+// window the median 349 bp allele came out ~9 px long against a ~12 px thick
+// tube — wider than it was long, drawing as a dot on a stalk rather than the
+// second arc of a bubble.
 //
-// This applies only to rank>0 nodes, and that is what makes it safe: their x is
-// synthesized here (laid end to end from wherever they branch) because their SO
-// is an offset on a different stable sequence. Rank-0 nodes keep the exact
-// offsets they declare, so the reference axis — the whole reason to prefer this
-// layout over FMMM — is untouched.
+// Rank-0 nodes keep the exact offsets they declare, so the reference axis — the
+// whole reason to prefer this layout over FMMM — is untouched by the floor.
 const MIN_OFF_REFERENCE_SPAN_FRACTION = 0.015
 
 // Rank is a property of the whole graph, not of the window being drawn: HPRC's
@@ -56,57 +54,29 @@ export function anchoredLayout(graph: Graph): LayoutResult | undefined {
   const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
   const rows = rankRows(graph)
 
-  const neighbors = new Map<string, string[]>()
-  function link(a: string, b: string) {
-    const existing = neighbors.get(a)
-    if (existing) {
-      existing.push(b)
-    } else {
-      neighbors.set(a, [b])
-    }
-  }
-  for (const edge of graph.edges) {
-    link(edge.from, edge.to)
-    link(edge.to, edge.from)
-  }
-
-  const minOffReferenceLength = span * MIN_OFF_REFERENCE_SPAN_FRACTION
-
   const nodePositions: Record<string, NodeSegment[]> = {}
-  function place(id: string, x: number, rank: number, length: number) {
-    const y = (rows.get(rank) ?? rows.size) * rowSpacing
-    const drawn = rank === 0 ? length : Math.max(length, minOffReferenceLength)
-    nodePositions[id] = [
-      { x, y },
-      { x: x + drawn, y },
+  for (const node of backbone) {
+    const y = (rows.get(0) ?? 0) * rowSpacing
+    nodePositions[node.id] = [
+      { x: node.stable.start, y },
+      { x: node.stable.start + node.length, y },
     ]
   }
 
-  for (const node of backbone) {
-    place(node.id, node.stable.start, 0, node.length)
-  }
+  placeOffReference({
+    graph,
+    minSpan: span * MIN_OFF_REFERENCE_SPAN_FRACTION,
+    rowY: node => (rows.get(node.stable?.rank ?? 1) ?? rows.size) * rowSpacing,
+    positions: nodePositions,
+  })
 
-  // Walk out from the backbone, each new segment starting where the one it
-  // branched from ends, so an insertion occupies its own length in bp (or the
-  // floor above, whichever is larger).
-  //
-  // The queue is read forward and appended to as the walk discovers nodes — an
-  // array iterator picks up entries pushed after it started, so this is a BFS
-  // with an O(1) dequeue. It is not shift()ed: the queue ends up holding every
-  // node in the subgraph, and shift() is O(n) each time, which made the walk
-  // quadratic in exactly the whole-file-import case that has the most nodes.
-  const byId = new Map(graph.nodes.map(n => [n.id, n]))
-  const queue = backbone.map(n => n.id)
-  for (const fromId of queue) {
-    const fromEnd = nodePositions[fromId]!.at(-1)!.x
-    for (const nextId of neighbors.get(fromId) ?? []) {
-      const next = byId.get(nextId)
-      if (next && !(nextId in nodePositions)) {
-        place(nextId, fromEnd, next.stable?.rank ?? 1, next.length)
-        queue.push(nextId)
-      }
-    }
-  }
+  // Named from the same `rows` map that placed every node, so the axis and the
+  // drawing cannot disagree. Rank 0 is spelled out: "the reference" is what a
+  // reader needs, and "Rank 0" alone reads as an ordinal with no meaning.
+  const rowLabels: RowLabel[] = [...rows].map(([rank, row]) => ({
+    label: rank === 0 ? 'Reference (rank 0)' : `Rank ${rank}`,
+    y: row * rowSpacing,
+  }))
 
-  return { nodePositions }
+  return { nodePositions, rowLabels }
 }

@@ -162,8 +162,12 @@ export async function startJBrowseServer() {
     ],
     { stdio: ['ignore', 'pipe', 'pipe'] },
   )
-  proc.stdout.on('data', d => { console.log(`[serve] ${d}`.trimEnd()) })
-  proc.stderr.on('data', d => { console.log(`[serve] ${d}`.trimEnd()) })
+  proc.stdout.on('data', d => {
+    console.log(`[serve] ${d}`.trimEnd())
+  })
+  proc.stderr.on('data', d => {
+    console.log(`[serve] ${d}`.trimEnd())
+  })
   jbrowseServer = proc
   await waitForServer(JBROWSE_PORT)
   return proc
@@ -173,7 +177,9 @@ export async function cleanupJBrowse() {
   const proc = jbrowseServer
   if (proc && !proc.killed) {
     await new Promise<void>(resolve => {
-      proc.on('close', () => { resolve() })
+      proc.on('close', () => {
+        resolve()
+      })
       proc.kill('SIGTERM')
       setTimeout(() => {
         if (!proc.killed) {
@@ -195,7 +201,9 @@ export async function launchBrowser() {
 export async function createJBrowsePage(browser: Browser): Promise<Page> {
   const page = await browser.newPage()
   await page.setViewport({ width: 1280, height: 900 })
-  page.on('console', msg => { console.log(`[browser ${msg.type()}] ${msg.text()}`) })
+  page.on('console', msg => {
+    console.log(`[browser ${msg.type()}] ${msg.text()}`)
+  })
   page.on('pageerror', err => {
     const message = err instanceof Error ? err.message : String(err)
     console.log(`[browser error] ${message}`)

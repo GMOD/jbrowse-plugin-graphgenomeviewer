@@ -127,7 +127,11 @@ describe('off-reference minimum length', () => {
     expect(result.nodePositions['b+']![0]!.x).toBe(5000)
   })
 
-  test('an off-reference node longer than the floor is left alone', () => {
+  // This allele branches off the backbone and never rejoins, so no reference
+  // span can be stated for it and the floor is the only honest width. It used
+  // to be drawn at its sequence length, which is a claim about reference
+  // coordinates the graph does not support.
+  test('a single-anchored run takes the floor whatever its sequence length', () => {
     const big = {
       ...graph,
       nodes: [
@@ -136,6 +140,42 @@ describe('off-reference minimum length', () => {
         { ...graph.nodes[2]!, length: 4000 },
       ],
     }
-    expect(width(anchoredLayout(big)!, 'alt+')).toBe(4000)
+    expect(width(anchoredLayout(big)!, 'alt+')).toBeCloseTo(150, 5)
+  })
+
+  // ...whereas an allele that does rejoin has a span, and takes exactly it. The
+  // two backbone segments leave 2000 bp between them; the allele carries 40000
+  // bp of sequence and still occupies only those 2000.
+  test('an allele that rejoins the backbone occupies the reference it replaces', () => {
+    const spanning = {
+      nodes: [
+        {
+          id: 'a+',
+          name: 'a',
+          length: 4000,
+          stable: { refName: 'chr', start: 0, rank: 0 },
+        },
+        {
+          id: 'b+',
+          name: 'b',
+          length: 4000,
+          stable: { refName: 'chr', start: 6000, rank: 0 },
+        },
+        {
+          id: 'alt+',
+          name: 'alt',
+          length: 40000,
+          stable: { refName: 'other', start: 0, rank: 1 },
+        },
+      ],
+      edges: [
+        { from: 'a+', to: 'alt+' },
+        { from: 'alt+', to: 'b+' },
+      ],
+    } as unknown as Parameters<typeof anchoredLayout>[0]
+
+    const result = anchoredLayout(spanning)!
+    expect(width(result, 'alt+')).toBe(2000)
+    expect(result.nodePositions['alt+']![0]!.x).toBe(4000)
   })
 })

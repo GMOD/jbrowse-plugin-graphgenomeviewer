@@ -562,6 +562,66 @@ describe('interaction state across a graph swap', () => {
   })
 })
 
+// What a connected linear view draws a band over. The reverse direction (an LGV
+// hover selecting a node) is the pure functions in hoverSync/lgvHover.
+describe('hoverHighlight', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  async function loadedFromTrack() {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(RGFA)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      TEST_REGION,
+      {
+        trackId: 'rgfa-track',
+      },
+    )
+    return model
+  }
+
+  test('nothing hovered highlights nothing', async () => {
+    const model = await loadedFromTrack()
+    expect(model.hoverHighlight).toBeUndefined()
+  })
+
+  test('a hovered backbone node highlights its own span', async () => {
+    const model = await loadedFromTrack()
+    model.setHoveredNode('2+')
+    expect(model.hoverHighlight).toEqual({
+      refName: TEST_REGION.refName,
+      assemblyName: TEST_REGION.assemblyName,
+      start: 4,
+      end: 8,
+    })
+  })
+
+  // Node 3 is rank 1 on stable sequence `alt`, so its own offset means nothing on
+  // chr. It resolves through the backbone it hangs off.
+  test('a hovered off-reference allele highlights where it branches', async () => {
+    const model = await loadedFromTrack()
+    model.setHoveredNode('3+')
+    expect(model.hoverHighlight).toMatchObject({ start: 0, end: 4 })
+  })
+
+  // A whole-file import has no region, so its stable names need not name anything
+  // in a loaded assembly and there is nothing to project onto.
+  test('a whole-file import publishes no highlight', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'imported')
+    model.setHoveredNode('2+')
+    expect(model.hoverHighlight).toBeUndefined()
+  })
+})
+
 // The pggb figure drew as a chain of same-sized bubbles because every node in a
 // 400 bp window fell below the engine's minimumNodeLength and clamped to one
 // drawn length. Guard the property that actually broke — that node lengths stay

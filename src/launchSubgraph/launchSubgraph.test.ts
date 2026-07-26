@@ -53,6 +53,16 @@ test('the track menu launches the current region', () => {
   })
 })
 
+// The launched view records which linear view it came from, which is what pairs
+// the two for the hover sync (see hoverSync/graphViewHighlights).
+test('the launch records the linear view it came from', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session, view, display } = createDisplay()
+
+  clickItem(display.trackMenuItems(), LABEL_REGION)
+  expect(session.addedViews[0]![1].connectedViewId).toBe(view.id)
+})
+
 // The gate is the declared capability, not the adapter's name — the old
 // launcher named GfaTabixAdapter/GfaServerAdapter and went dead when they were
 // removed.

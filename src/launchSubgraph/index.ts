@@ -12,7 +12,10 @@ import {
   regionAroundSegment,
   regionFromViewport,
 } from './launchSubgraphView'
+import { subgraphMenuItems } from './subgraphMenuItems'
+import { adapterCanCutSubgraph, subgraphTracks } from './subgraphTracks'
 
+import type { SubgraphTrack } from './subgraphTracks'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { PluggableElementType } from '@jbrowse/core/pluggableElementTypes'
 import type DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
@@ -26,18 +29,17 @@ function isTargetDisplay(elt: { name: string }): elt is DisplayType {
   return elt.name === 'LinearBasicDisplay'
 }
 
-// Discovery is by declared capability, not adapter name. The old launcher
-// hardcoded `GfaTabixAdapter`/`GfaServerAdapter`, which is exactly what left it
-// dead when those were removed; any adapter implementing getSubgraph joins by
-// declaring the capability.
 function canCutSubgraph(
   pluginManager: PluginManager,
   track: AbstractTrackModel,
 ) {
-  const adapterConfig = getConf(track, ['adapter'])
-  return pluginManager
-    .getAdapterType(adapterConfig.type)
-    .adapterCapabilities.includes('getSubgraph')
+  return adapterCanCutSubgraph(pluginManager, getConf(track, ['adapter']).type)
+}
+
+// The graph track a launch from this display draws from, when the display's own
+// track is the graph. One entry, so the menu offers no choice that isn't one.
+function ownTrack(track: AbstractTrackModel): SubgraphTrack[] {
+  return [{ trackId: getConf(track, 'trackId'), name: getConf(track, 'name') }]
 }
 
 export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
@@ -69,6 +71,7 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                         session: getSession(self),
                         region,
                         trackId: getConf(track, 'trackId'),
+                        connectedViewId: view.id,
                       })
                     }
                   },
@@ -76,33 +79,49 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
               }
               return items
             },
-            // The right-clicked segment. `contextMenuInfo.item` already carries
-            // the feature's bp span, so this needs no feature fetch.
+            // The right-clicked feature. `contextMenuInfo.item` already carries
+            // its bp span, so this needs no feature fetch.
+            //
+            // The graph the subgraph comes from need not be this track. A bubble
+            // marks exactly where haplotypes diverge and is the most natural
+            // thing to right-click, but MinigraphBubbleAdapter reads a summary
+            // index and cannot cut a graph; a gene is worth asking the same
+            // question of. So a track that can't cut one falls back to the
+            // session's graph tracks, and the item appears only when there is
+            // one to draw from.
             contextMenuItems() {
               const items = superContextMenuItems()
               const info = self.contextMenuInfo
               const track = getContainingTrack(self)
-              if (info && canCutSubgraph(pluginManager, track)) {
+              if (info) {
                 const view = getContainingView(self) as LinearGenomeViewModel
                 const displayedRegion =
                   view.displayedRegions[info.displayedRegionIndex]
+                const own = canCutSubgraph(pluginManager, track)
                 if (displayedRegion) {
-                  pushLaunchViewMenuItem(items, {
-                    label: 'Graph genome view (this segment)',
-                    icon: BubbleChartIcon,
-                    onClick: () => {
-                      launchSubgraphView({
-                        session: getSession(self),
-                        region: regionAroundSegment({
-                          refName: displayedRegion.refName,
-                          assemblyName: displayedRegion.assemblyName,
-                          start: info.item.startBp,
-                          end: info.item.endBp,
-                        }),
-                        trackId: getConf(track, 'trackId'),
-                      })
-                    },
+                  const launchItems = subgraphMenuItems({
+                    label: own
+                      ? 'Graph genome view (this segment)'
+                      : 'Graph genome view (this feature)',
+                    region: regionAroundSegment({
+                      refName: displayedRegion.refName,
+                      assemblyName: displayedRegion.assemblyName,
+                      start: info.item.startBp,
+                      end: info.item.endBp,
+                    }),
+                    tracks: own
+                      ? ownTrack(track)
+                      : subgraphTracks(
+                          pluginManager,
+                          getSession(self),
+                          displayedRegion.assemblyName,
+                        ),
+                    session: getSession(self),
+                    connectedViewId: view.id,
                   })
+                  for (const item of launchItems) {
+                    pushLaunchViewMenuItem(items, item)
+                  }
                 }
               }
               return items

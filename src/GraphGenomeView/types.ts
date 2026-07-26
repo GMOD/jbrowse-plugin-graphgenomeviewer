@@ -36,6 +36,16 @@ export interface NodeSegment {
   y: number
 }
 
+// A row a layout drew, named, in the same graph y coordinates as
+// `nodePositions`. Emitted by the layout that positioned the rows rather than
+// recomputed by the renderer, so a label cannot end up naming a row the layout
+// put somewhere else. Absent for layouts with no row structure (FMMM).
+export interface RowLabel {
+  label: string
+  y: number
+}
+
 export interface LayoutResult {
   nodePositions: Record<string, NodeSegment[]>
+  rowLabels?: RowLabel[]
 }

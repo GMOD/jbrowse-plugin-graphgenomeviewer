@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 
-import { sampleRowLayout, sampleRows } from './sampleRowLayout'
+import { sampleRowLayout } from './sampleRowLayout'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
 
@@ -21,7 +21,8 @@ function pggbGraph() {
 }
 
 test('rows are the backbone plus one per contributing assembly', () => {
-  expect(sampleRows(ecoliGraph())).toEqual([
+  const { rowLabels } = sampleRowLayout(ecoliGraph())!
+  expect(rowLabels!.map(r => r.label)).toEqual([
     'K12',
     'CFT073',
     'NCTC86',
@@ -29,57 +30,68 @@ test('rows are the backbone plus one per contributing assembly', () => {
   ])
 })
 
-test('backbone keeps its declared reference offsets', () => {
+// A label that names a row the layout put elsewhere is worse than no label, so
+// this checks the two against each other rather than against a fixed number.
+test('each row label sits at the y its own samples were drawn at', () => {
   const graph = ecoliGraph()
-  const { nodePositions } = sampleRowLayout(graph)!
-  for (const node of graph.nodes.filter(n => n.stable?.rank === 0)) {
-    const [left, right] = nodePositions[node.id]!
-    expect(left!.x).toBe(node.stable!.start)
-    expect(right!.x).toBe(node.stable!.start + node.length)
-    expect(left!.y).toBe(0)
-  }
-})
-
-test('every allele of one sample lands on that sample row', () => {
-  const graph = ecoliGraph()
-  const { nodePositions } = sampleRowLayout(graph)!
-  const rows = new Map<string, Set<number>>()
+  const { nodePositions, rowLabels } = sampleRowLayout(graph)!
+  const labelY = new Map(rowLabels!.map(r => [r.label, r.y]))
   for (const node of graph.nodes) {
     const position = nodePositions[node.id]
-    if (position && node.stable && node.stable.rank > 0) {
+    if (position && node.stable) {
       const sample = node.stable.refName.split('#')[0]!
-      const set = rows.get(sample) ?? new Set()
-      set.add(position[0]!.y)
-      rows.set(sample, set)
+      expect(labelY.get(sample)).toBe(position[0]!.y)
     }
   }
-  expect(rows.size).toBeGreaterThan(1)
-  for (const ys of rows.values()) {
-    expect(ys.size).toBe(1)
-  }
-  // and distinct samples occupy distinct rows
-  const allY = [...rows.values()].map(s => [...s][0]!)
-  expect(new Set(allY).size).toBe(allY.length)
 })
 
-test('alleles sit at their reference anchor, not at their SO on another contig', () => {
-  const graph = ecoliGraph()
+// x on this layout is reference bp, so an allele may only occupy the reference
+// it replaces. An insertion replaces none, and drawing it at its own sequence
+// length put a 113 kb E. coli allele across coordinates it does not own and
+// collapsed zoom-to-fit to 1%.
+test('a pure insertion does not advance along the reference axis', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:500\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:100000\tSN:Z:Sakai#1#chr\tSO:i:0\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts2\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'insertion')
+
   const { nodePositions } = sampleRowLayout(graph)!
-  const backboneStart = Math.min(
-    ...graph.nodes.filter(n => n.stable?.rank === 0).map(n => n.stable!.start),
-  )
-  const backboneEnd = Math.max(
-    ...graph.nodes
-      .filter(n => n.stable?.rank === 0)
-      .map(n => n.stable!.start + n.length),
-  )
-  for (const node of graph.nodes.filter(n => n.stable && n.stable.rank > 0)) {
-    const position = nodePositions[node.id]
-    if (position) {
-      expect(position[0]!.x).toBeGreaterThanOrEqual(backboneStart)
-      expect(position[0]!.x).toBeLessThanOrEqual(backboneEnd)
-    }
-  }
+
+  // the 100 kb allele draws as a marker at its anchor, at the 1.5% visibility
+  // floor of the 1000 bp window, not at 100000
+  // node ids carry a strand suffix; the segment is a1
+  const [left, right] = nodePositions['a1+']!
+  expect(right!.x - left!.x).toBe(15)
+
+  // so nothing is drawn outside the window the backbone defines, give or take
+  // that marker
+  const xs = Object.values(nodePositions).flatMap(segs => segs.map(s => s.x))
+  expect(Math.max(...xs)).toBeLessThanOrEqual(1015)
+})
+
+// The other side of the same rule: a deletion does consume reference, so it
+// keeps its true width and the row reads as empty across exactly that span.
+test('a deletion draws at its true reference width', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:500\tSR:i:0\n' +
+    'S\ts3\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:1000\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:100\tSN:Z:Sakai#1#chr\tSO:i:0\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts3\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'deletion')
+
+  const { nodePositions } = sampleRowLayout(graph)!
+
+  // 100 bp of sequence replacing s2's 500 bp of reference: it spans the
+  // reference it replaces, not the sequence it carries
+  const [left, right] = nodePositions['a1+']!
+  expect(right!.x - left!.x).toBe(500)
 })
 
 test('declines a graph with no rank-0 backbone rather than inventing one', () => {

@@ -39,6 +39,67 @@ const progressStyle = { marginTop: 8 }
 
 const wrapperStyle = { position: 'relative' as const }
 
+// The overlay origin has to be the canvas, not the wrapper: the wrapper also
+// holds the toolbar, so anything positioned against it is offset by the
+// toolbar's height, and a row label lands a whole row off the row it names.
+const canvasAreaStyle = { position: 'relative' as const, lineHeight: 0 }
+
+const rowLabelStyle = {
+  position: 'absolute' as const,
+  left: 6,
+  transform: 'translateY(-50%)',
+  background: 'rgba(255,255,255,0.82)',
+  padding: '0 4px',
+  borderRadius: 3,
+  fontSize: 11,
+  // explicit, because the canvas container zeroes line-height to kill the
+  // inline-block gap under the canvas. Inherited, that collapses the label to a
+  // zero-height box: it still paints, but it has no layout, so anything asking
+  // whether it is visible (a screenshot spec's waitForVisible, a11y tooling)
+  // is told no.
+  lineHeight: '16px',
+  whiteSpace: 'nowrap' as const,
+  pointerEvents: 'none' as const,
+  zIndex: 4,
+}
+
+// Names the rows of a row-structured layout (anchored, sample rows). Without
+// them the layout draws real structure that cannot be read: a stack of bars
+// where every row means something and nothing says what.
+//
+// Positioned from the layout's own `rowLabels` through the same transform the
+// canvas draws with, so a label tracks its row across pan and zoom instead of
+// sitting at a measured pixel. It therefore has to be mounted in the canvas's
+// own positioning context (canvasAreaStyle) — against the wrapper it picks up
+// the toolbar's height and names the wrong row. Pinned to the left edge rather
+// than to the row's own x, because a row's leftmost node is wherever its first
+// allele happens to branch. Rows scrolled out of the canvas are dropped rather
+// than clamped to the edge, so a label never points at a row that is not
+// there.
+const RowLabels = observer(function RowLabels({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const { rowLabels } = model
+  return (
+    <>
+      {rowLabels.map(({ label, y }) => {
+        const screenY = y * model.scale + model.translateY
+        return screenY >= 0 && screenY <= model.canvasHeight ? (
+          <div
+            key={label}
+            data-testid="graph-row-label"
+            style={{ ...rowLabelStyle, top: screenY }}
+          >
+            {label}
+          </div>
+        ) : null
+      })}
+    </>
+  )
+})
+
 const HoverTooltips = observer(function HoverTooltips({
   model,
 }: {
@@ -212,21 +273,25 @@ const GraphCanvas = observer(function GraphCanvas({
         </div>
       ) : null}
 
-      <canvas
-        ref={canvasRef}
-        data-testid="graph-genome-canvas"
-        style={{
-          width: model.width,
-          height: model.canvasHeight,
-          cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
-          display: 'block',
-        }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
-      />
+      <div style={canvasAreaStyle}>
+        <canvas
+          ref={canvasRef}
+          data-testid="graph-genome-canvas"
+          style={{
+            width: model.width,
+            height: model.canvasHeight,
+            cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+            display: 'block',
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
+        />
+
+        <RowLabels model={model} />
+      </div>
 
       <HoverTooltips model={model} />
 
