@@ -1,5 +1,5 @@
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
-import RpcMethodType from '@jbrowse/core/pluggableElementTypes/RpcMethodType'
+import RpcMethodTypeWithRenameRegion from '@jbrowse/core/pluggableElementTypes/RpcMethodTypeWithRenameRegion'
 
 import type { Region } from '@jbrowse/core/util'
 
@@ -32,7 +32,17 @@ function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {
   )
 }
 
-export default class GetSubgraph extends RpcMethodType {
+// RpcMethodTypeWithRenameRegion, not the plain RpcMethodType: the base class is
+// what maps `region.refName` from the assembly's spelling onto the adapter's own
+// before the call crosses to the worker. Without it a launch on an hg38 whose
+// contigs are bare (`6`, which is what every GRCh38 FASTA on jbrowse.org uses)
+// asked RgfaTabixAdapter for `GRCh38#0#6`, matched nothing, and opened a view
+// reading "0 nodes, 0 edges" with no error. The segments track drew the whole
+// time, because CoreGetFeatures renames and this did not, so the graph looked
+// broken while its own track looked fine. `assemblyNameToPanSN` covers the
+// sample half of a PanSN name only; the contig half is refName aliasing, which
+// the assembly already knows and this now consults.
+export default class GetSubgraph extends RpcMethodTypeWithRenameRegion {
   name = 'GetSubgraph'
 
   async execute(args: GetSubgraphArgs, rpcDriverClassName: string) {

@@ -8,6 +8,8 @@ import { anchoredLayout } from './GraphGenomeView/layout/anchoredLayout'
 import { parseGFA, stableCoordinate } from './gfa-core/index'
 import GraphPlugin from './index'
 
+import type { AbstractRootModel } from '@jbrowse/core/util'
+
 vi.mock('@jbrowse/core/data_adapters/dataAdapterCache')
 
 const mockGetAdapter = vi.mocked(getAdapter)
@@ -56,6 +58,38 @@ test('forwards the region and context to the adapter', async () => {
   )
   expect(getSubgraph).toHaveBeenCalledWith(region, { context: 2 })
   expect(result).toBe('H\tVN:Z:1.0')
+})
+
+// The bug this pins: a launch passes the region in the *assembly's* spelling,
+// and hg38 on every GRCh38 FASTA jbrowse.org hosts calls chr6 `6`, while an HPRC
+// graph's stable names are `GRCh38#0#chr6`. Renaming is what closes that gap, and
+// it happens in the base class's serializeArguments, so a GetSubgraph extending
+// the plain RpcMethodType asked the adapter for `GRCh38#0#6`, matched nothing,
+// and opened an empty graph view with no error at all.
+//
+// The fake root model carries only what renameRegionsIfNeeded reaches for. Its
+// one cast is the price of not building an entire session to assert a refName.
+test('renames the region onto the adapter spelling before the call', async () => {
+  const assemblyManager = {
+    waitForAssembly: async () => ({
+      getRefNameMapForAdapter: async () => ({ '6': 'chr6' }),
+      getSeqAdapterRefName: (refName: string) => refName,
+    }),
+  }
+  const method = makeMethod()
+  method.pluginManager.rootModel = {
+    session: { assemblyManager },
+  } as unknown as AbstractRootModel
+
+  const serialized = await method.serializeArguments(
+    {
+      adapterConfig: { type: 'RgfaTabixAdapter' },
+      region: { refName: '6', assemblyName: 'hg38', start: 0, end: 100 },
+      sessionId: 'graph',
+    },
+    'MainThreadRpcDriver',
+  )
+  expect(serialized.region).toMatchObject({ refName: 'chr6' })
 })
 
 // An adapter without getSubgraph is the normal case for a PAF-backed synteny
