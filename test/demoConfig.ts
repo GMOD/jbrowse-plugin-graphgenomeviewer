@@ -53,13 +53,53 @@ export function demoDataFiles(): [string, string][] {
 
 export const GRAPH_ID = 'demo_graph'
 
-// The same config with a graph view already open beside the linear view, cut
-// from the graph track and paired with it — the state every "out of the graph"
-// entry point starts from, and the shape the pangenome sessions ship in.
+// The strains the graph draws sequence from, besides the reference. Their
+// lengths come from the index itself (the furthest coordinate each stable
+// sequence reaches), so an assembly cannot be shorter than the segments the
+// graph will ask it to show.
+function contributingStrains() {
+  const segs = path.join(process.cwd(), RGFA_FIXTURE, 'rgfa_ecoli.segs.bed.gz')
+  const text = zlib.gunzipSync(fs.readFileSync(segs)).toString('utf8')
+  const lengths = new Map<string, number>()
+  for (const line of text.split('\n').filter(Boolean)) {
+    const [stableName, , end] = line.split('\t')
+    const sample = stableName!.split('#')[0]!
+    lengths.set(sample, Math.max(lengths.get(sample) ?? 0, Number(end)))
+  }
+  lengths.delete(ASSEMBLY)
+  return [...lengths].sort(([a], [b]) => a.localeCompare(b))
+}
+
+// One ChromSizesAdapter assembly per contributing strain. Nothing but the name
+// and the length is needed: the point is that the assembly *exists*, since that
+// is what decides whether the graph can offer to open a node on the strain that
+// contributed it.
+function strainAssemblies() {
+  return contributingStrains().map(([sample, length]) => {
+    const file = `rgfa/${sample}.chrom.sizes`
+    writeServedFile(file, `${REF_NAME}\t${length}\n`)
+    return {
+      name: sample,
+      sequence: {
+        type: 'ReferenceSequenceTrack',
+        trackId: `${sample}-ReferenceSequenceTrack`,
+        adapter: { type: 'ChromSizesAdapter', uri: `${BASE_URL}/${file}` },
+      },
+    }
+  })
+}
+
+// The same config with every contributing strain loaded as an assembly, and a
+// graph view already open beside the linear view, cut from the graph track and
+// paired with it. That is the state every "out of the graph" entry point starts
+// from, and the five-strain shape is what makes the per-strain and synteny
+// launches reachable at all — with only the reference loaded there is nowhere
+// else to go.
 export function createLaunchOutConfig() {
   const config = createDemoConfig()
   return {
     ...config,
+    assemblies: [...config.assemblies, ...strainAssemblies()],
     defaultSession: {
       ...config.defaultSession,
       views: [

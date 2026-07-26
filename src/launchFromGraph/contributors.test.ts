@@ -56,7 +56,8 @@ test('contributors are the assemblies named on the segments, reference first', (
       node('s4', 'CFT073#1#chr', 5000, 100, 2),
     ]),
   )
-  expect(contributors.map(c => c.sample)).toEqual(['K12', 'Sakai', 'CFT073'])
+  // reference first, then by name, matching the sample-rows layout's rows
+  expect(contributors.map(c => c.sample)).toEqual(['K12', 'CFT073', 'Sakai'])
   expect(contributors[0]).toEqual({
     sample: 'K12',
     refName: 'chr',

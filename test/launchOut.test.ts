@@ -117,22 +117,61 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     expect(clicked).toBe(true)
   }
 
-  // The graph names four E. coli strains in its segment tags, of which this
-  // session loads one as an assembly. That split is the whole design: the graph
-  // knows all four, and can only open the one — the same shape as an HPRC graph
-  // whose contributing haplotypes are not assemblies.
-  it('the graph names every contributor and offers the loaded one', async () => {
+  // The graph reads its contributors out of the segment tags, and every one of
+  // them is a loaded assembly here, so all of them are openable. Reference
+  // first, then by name, matching the row order of the sample-rows layout.
+  it('the graph offers a linear view of every contributing strain', async () => {
     const view = await graphView()
-    expect(view.contributingAssemblies.length).toBeGreaterThan(1)
-    expect(view.launchable).toEqual([ASSEMBLY])
+    expect(view.contributingAssemblies).toEqual([
+      'K12',
+      'CFT073',
+      'NCTC86',
+      'Sakai',
+    ])
+    expect(view.launchable).toEqual(view.contributingAssemblies)
 
     const labels = await menuLabels(GRAPH_ID)
     expect(labels).toContain(LAUNCH_SUBMENU)
-    expect(labels.some(l => l.startsWith('Linear genome view — K12 chr:'))).toBe(
-      true,
-    )
-    // one openable assembly: nothing to compare, so no synteny item at all
-    expect(labels.some(l => l.includes('Linear synteny view'))).toBe(false)
+    expect(labels).toContain('Linear genome view')
+    // each entry names the strain and the locus it contributes here
+    expect(labels.some(l => /^CFT073 chr:[\d,]+-[\d,]+$/.test(l))).toBe(true)
+  }, 120_000)
+
+  // Every contributor is loaded, so a synteny view of all four is meaningful —
+  // but this fixture has no alignment between them, so the item is offered
+  // greyed out with the reason, rather than vanishing.
+  it('the synteny item names its missing ingredient rather than disappearing', async () => {
+    const item = await page.evaluate((viewId: string) => {
+      const view = window.JBrowseSession.views.find(v => v.id === viewId)
+      const find = (items: unknown[]): Record<string, unknown> | undefined => {
+        for (const raw of items) {
+          const i = raw as {
+            label?: unknown
+            subMenu?: unknown[]
+            disabled?: unknown
+            disabledHelpText?: unknown
+          }
+          if (
+            typeof i.label === 'string' &&
+            i.label.includes('Linear synteny view')
+          ) {
+            return { label: i.label, disabled: i.disabled, help: i.disabledHelpText }
+          }
+          const nested = i.subMenu ? find(i.subMenu) : undefined
+          if (nested) {
+            return nested
+          }
+        }
+        return undefined
+      }
+      return find(view.menuItems())
+    }, GRAPH_ID)
+
+    expect(item).toMatchObject({
+      label: 'Linear synteny view (4 assemblies)',
+      disabled: true,
+    })
+    expect(item!.help).toMatch(/no synteny track/i)
   }, 120_000)
 
   // The gesture that had no answer before: right-click a node and ask where it
@@ -187,11 +226,10 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     expect(await viewTypes()).toEqual(before)
   }, 240_000)
 
-  // An allele from a strain this session has not loaded: its own coordinates
-  // exist and are exact, but nothing can open them, so the only way back to a
-  // coordinate is the reference projection. This is the HPRC case, where none of
-  // the contributing haplotypes is ever a loaded assembly.
-  it('an off-reference node offers only the reference projection', async () => {
+  // An allele opens the strain it came from, at the offset its own SO states,
+  // rather than at a projection onto the reference. The reference projection is
+  // offered too, since it answers the other question.
+  it('an allele opens the strain that contributed it', async () => {
     const targets = await page.evaluate((viewId: string) => {
       const view = window.JBrowseSession.views.find(v => v.id === viewId)
       const node = view.graph.nodes.find(
@@ -200,15 +238,48 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
       const { own, reference } = view.nodeLaunchTargets(node.id)
       return {
         stableName: node.stable.refName as string,
+        stableStart: node.stable.start as number,
         own,
         referenceAssembly: reference?.assembly as string | undefined,
       }
     }, GRAPH_ID)
 
-    expect(targets.stableName).not.toContain(`${ASSEMBLY}#`)
-    expect(targets.own).toBeUndefined()
+    const strain = targets.stableName.split('#')[0]!
+    expect(strain).not.toBe(ASSEMBLY)
+    expect(targets.own).toMatchObject({ assembly: strain })
+    // its own coordinate, not a reference projection: the padded window is
+    // centered on the offset the segment's SO declares
+    const { start, end } = targets.own!.location
+    expect(start).toBeLessThanOrEqual(targets.stableStart)
+    expect(end).toBeGreaterThan(targets.stableStart)
     expect(targets.referenceAssembly).toBe(ASSEMBLY)
-  }, 120_000)
+
+    const before = await viewTypes()
+    await page.evaluate(
+      ([viewId, sample]: string[]) => {
+        const view = window.JBrowseSession.views.find(v => v.id === viewId)
+        const node = view.graph.nodes.find(
+          (n: { stable?: { refName: string } }) =>
+            n.stable?.refName.startsWith(`${sample}#`),
+        )
+        view.showInLinearView(view.nodeLaunchTargets(node.id).own)
+      },
+      [GRAPH_ID, strain],
+    )
+
+    // no linear view on that strain existed, so one opens on it
+    await page.waitForFunction(
+      (sample: string) =>
+        window.JBrowseSession.views.some(
+          (v: { type: string; assemblyNames?: string[] }) =>
+            v.type === 'LinearGenomeView' && v.assemblyNames?.[0] === sample,
+        ),
+      { timeout: 60_000 },
+      strain,
+    )
+    expect((await viewTypes()).length).toBe(before.length + 1)
+    await screenshot(page, 'out-04-allele-opens-its-own-strain')
+  }, 240_000)
 
   // Same from the view menu, on the whole cut region rather than one node, and
   // the pairing that drives the hover sync survives it.
@@ -223,8 +294,10 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
       [LGV_ID, `${REF_NAME}:500,000-510,000`],
     )
 
+    // four contributors, so the linear entries are a submenu and the reference
+    // is one of its rows rather than a flat item
     const label = (await menuLabels(GRAPH_ID)).find(l =>
-      l.startsWith('Linear genome view — K12 chr:'),
+      l.startsWith(`${ASSEMBLY} ${REF_NAME}:`),
     )!
     await page.evaluate(
       ([viewId, text]: string[]) => {
