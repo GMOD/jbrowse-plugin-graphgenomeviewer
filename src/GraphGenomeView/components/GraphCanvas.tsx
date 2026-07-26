@@ -1,11 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { ErrorBanner } from '@jbrowse/core/ui'
+import { ErrorBanner, Menu } from '@jbrowse/core/ui'
 import { useRenderingBackend } from '@jbrowse/render-core'
+import InfoIcon from '@mui/icons-material/Info'
 import { LinearProgress, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 
 import GraphToolbar from './GraphToolbar'
+import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
+import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
 
@@ -114,6 +117,10 @@ const HoverTooltips = observer(function HoverTooltips({
       ? model.graph.edges[model.hoveredEdge]
       : null
 
+  const ownLocation = hoveredNodeData
+    ? nodeOwnLocation(hoveredNodeData)
+    : undefined
+
   return (
     <>
       {hoveredNodeData ? (
@@ -121,6 +128,16 @@ const HoverTooltips = observer(function HoverTooltips({
           <strong>{hoveredNodeData.name}</strong> — length:{' '}
           {hoveredNodeData.length.toLocaleString()}, depth:{' '}
           {hoveredNodeData.depth.toFixed(1)}
+          {/* Which assembly contributed this segment, and where it sits on it.
+              rGFA states both, and until now neither reached the screen: the
+              node was a bare id in a picture. */}
+          {ownLocation ? (
+            <>
+              <br />
+              {ownLocation.sample} {locLabel(ownLocation)} (rank{' '}
+              {hoveredNodeData.stable?.rank})
+            </>
+          ) : null}
         </div>
       ) : null}
       {hoveredEdgeData ? (
@@ -129,6 +146,54 @@ const HoverTooltips = observer(function HoverTooltips({
         </div>
       ) : null}
     </>
+  )
+})
+
+// Flat rather than under a "Launch view" submenu: this menu is two or three
+// items long and every one of them is contextual to the node just clicked. The
+// submenu grouping earns its keep in the long view and track menus.
+const NodeContextMenu = observer(function NodeContextMenu({
+  model,
+  nodeId,
+  top,
+  left,
+  onClose,
+}: {
+  model: GraphGenomeViewModel
+  nodeId: string
+  top: number
+  left: number
+  onClose: () => void
+}) {
+  const { own, reference } = model.nodeLaunchTargets(nodeId)
+  return (
+    <Menu
+      open
+      anchorReference="anchorPosition"
+      anchorPosition={{ top, left }}
+      onClose={() => {
+        onClose()
+      }}
+      onMenuItemClick={callback => {
+        callback()
+      }}
+      menuItems={[
+        {
+          label: 'Node details',
+          icon: InfoIcon,
+          onClick: () => {
+            model.showNodeDetails(nodeId)
+          },
+        },
+        ...nodeLaunchMenuItems({
+          own,
+          reference,
+          onShowLinear: target => {
+            model.showInLinearView(target)
+          },
+        }),
+      ]}
+    />
   )
 })
 
@@ -144,6 +209,9 @@ const GraphCanvas = observer(function GraphCanvas({
   // because the cursor renders from it.
   const lastMouseRef = useRef({ x: 0, y: 0 })
   const hasMovedRef = useRef(false)
+  const [contextNode, setContextNode] = useState<
+    { nodeId: string; top: number; left: number } | undefined
+  >(undefined)
 
   // wheel events need passive:false to call preventDefault — React registers
   // wheel listeners as passive, so we must add this imperatively
@@ -250,6 +318,19 @@ const GraphCanvas = observer(function GraphCanvas({
     model.setHoveredEdge(null)
   }
 
+  // Right-clicking a node is the gesture that asks "where is this?", and until
+  // now the graph had no answer: a node named an assembly and an offset in its
+  // tags that nothing surfaced. The items come from the model's launch targets,
+  // so what is offered is what can actually be opened.
+  function handleContextMenu(e: React.MouseEvent) {
+    const { x, y } = getMouseCoord(e)
+    const node = nodeAt(x, y)
+    if (node) {
+      e.preventDefault()
+      setContextNode({ nodeId: node, top: e.clientY, left: e.clientX })
+    }
+  }
+
   function handleClick(e: React.MouseEvent) {
     // a click that ended a drag selects nothing
     if (!hasMovedRef.current) {
@@ -288,12 +369,25 @@ const GraphCanvas = observer(function GraphCanvas({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          onContextMenu={handleContextMenu}
         />
 
         <RowLabels model={model} />
       </div>
 
       <HoverTooltips model={model} />
+
+      {contextNode ? (
+        <NodeContextMenu
+          model={model}
+          nodeId={contextNode.nodeId}
+          top={contextNode.top}
+          left={contextNode.left}
+          onClose={() => {
+            setContextNode(undefined)
+          }}
+        />
+      ) : null}
 
       {model.error ? <ErrorBanner error={model.error} /> : null}
     </div>

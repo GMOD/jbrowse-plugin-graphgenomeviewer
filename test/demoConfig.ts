@@ -51,6 +51,36 @@ export function demoDataFiles(): [string, string][] {
   ].map(name => [`${RGFA_FIXTURE}/${name}`, `rgfa/${name}`])
 }
 
+export const GRAPH_ID = 'demo_graph'
+
+// The same config with a graph view already open beside the linear view, cut
+// from the graph track and paired with it — the state every "out of the graph"
+// entry point starts from, and the shape the pangenome sessions ship in.
+export function createLaunchOutConfig() {
+  const config = createDemoConfig()
+  return {
+    ...config,
+    defaultSession: {
+      ...config.defaultSession,
+      views: [
+        ...config.defaultSession.views,
+        {
+          id: GRAPH_ID,
+          type: 'GraphGenomeView',
+          loadedTrackId: RGFA_TRACK_ID,
+          loadedRegion: {
+            refName: REF_NAME,
+            assemblyName: ASSEMBLY,
+            start: DEMO_START,
+            end: DEMO_END,
+          },
+          connectedViewId: LGV_ID,
+        },
+      ],
+    },
+  }
+}
+
 // A linear view on the reference with both tracks open: the graph track whose
 // adapter can cut a subgraph, and the plain track that can't. That pair is what
 // every launch entry point under test discriminates on.

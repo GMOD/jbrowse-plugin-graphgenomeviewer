@@ -1,11 +1,13 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import BaseViewModel from '@jbrowse/core/pluggableElementTypes/models/BaseViewModel'
+import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
+import { backboneNodes, backboneSpan } from './anchoredNodes'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
@@ -22,6 +24,19 @@ import {
   nodeForLgvHover,
   readLgvHover,
 } from '../hoverSync/lgvHover'
+import {
+  contributingAssemblies,
+  nodeOwnLocation,
+  resolveContributors,
+} from '../launchFromGraph/contributors'
+import { graphLaunchMenuItems } from '../launchFromGraph/graphMenuItems'
+import {
+  launchSyntenyView,
+  paddedLocation,
+  showInLinearView,
+  withReferenceRegion,
+} from '../launchFromGraph/launchFromGraph'
+import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
 import type { ColorScheme } from './colorSchemes'
 import type { BandageScaleOpts } from './layout/drawnScale'
@@ -33,6 +48,8 @@ import type {
   VertexRange,
 } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
+import type { GraphLocation } from '../launchFromGraph/contributors'
+import type { MenuItem } from '@jbrowse/core/ui'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
@@ -48,20 +65,42 @@ const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
 
-// Hard size cap for the single-mode graph view. Subgraph extraction is
-// sub-second up to ~100 kb; past this the view declines with a "zoom in"
-// message rather than switching to a degraded rendering mode — one mode only,
-// since the large-region case is a linear synteny view, not a graph.
-// (The old `adr-027` citation here was stale: that number was reused for
-// wheel-input semantics after the large-mode ADR was removed in 9d8102f0b5.)
+// Hard size cap for the single-mode graph view. Past it the view declines with a
+// "zoom in" message rather than switching to a degraded rendering mode — one mode
+// only, since the large-region case is a linear synteny view, not a graph.
+// (The `adr-027` citation this used to carry was stale: that number was reused
+// for wheel-input semantics after the large-mode ADR was removed in 9d8102f0b5.)
 //
 // This bounds the *fetch*, and it is the only cap that can be applied before one
-// happens. It is a poor proxy for cost, because cost tracks node count and bp per
-// node varies by orders of magnitude between graph types — measured on the
-// fixtures, HPRC minigraph chr6 runs ~7,000 bp/node while a base-level pggb graph
-// runs ~17 bp/node. The same 100 kb is 12 nodes of the first and thousands of the
-// second, hence the node budget below.
-export const MAX_GRAPH_REGION_BP = 100_000
+// happens. It is a poor proxy for cost, because cost tracks node count, so the
+// number is chosen against the density of the graphs it can actually guard: a
+// region is only ever fetched through `getSubgraph`, which only RgfaTabixAdapter
+// implements, so every graph reaching this check is an rGFA. Both measured rGFAs
+// are sparse, and at 5 Mb both land at or under the ~2k nodes that redraw in
+// under 10 ms (see agent-docs/GRAPH_SCALE_AND_LOD.md):
+//
+//   HPRC MC GRCh38   ~7,000 bp/segment   whole 4.9 Mb MHC   1,173 nodes
+//   ecoli minigraph   3,078 bp/segment   whole 4.6 Mb genome 2,415 nodes
+//
+// Fetch cost does not scale with the window either: against the hosted HPRC
+// index a 4.9 Mb links query and a 100 kb one both cost ~1.3 s, being dominated
+// by HTTP setup. FMMM is the slowest consumer at this size and stays tolerable,
+// ~0.1-3 s for ~1k nodes depending on layout quality (bandage-layout-js), and it
+// runs off the main thread.
+//
+// A dense graph is what this cannot protect against, because bp per node varies
+// by orders of magnitude between graph types — a base-level pggb graph runs ~17
+// bp/node, where 5 Mb would be hundreds of thousands. Such a graph has no region
+// query to reach this check with today, and the node budget below is the cap that
+// catches it if one ever does.
+export const MAX_GRAPH_REGION_BP = 5_000_000
+
+// The cap in a message, in the unit that reads: `5 Mb`, not `5000 kb`.
+export function formatSpanBp(bp: number) {
+  return bp >= 1_000_000
+    ? `${+(bp / 1_000_000).toFixed(1)} Mb`
+    : `${Math.round(bp / 1000)} kb`
+}
 
 // What the view will actually draw, checked once the graph is parsed and so
 // applying to a whole-file import as much as to a subgraph fetch. Measured on
@@ -355,6 +394,75 @@ export default function stateModelFactory() {
         return result
       },
     }))
+    .views(self => ({
+      // Every assembly this graph names a segment from, with the locus each one
+      // contributes here. rGFA's SN tag is what makes this knowable: the graph
+      // states its own contributors, so the view can offer a way out to each of
+      // them without consulting an alignment.
+      //
+      // Gaps larger than the backbone span split a contributor's segments into
+      // separate loci and the widest wins, so a sample that also contributes
+      // sequence from a distant duplication is launched at the locus on screen
+      // rather than at the union of the two.
+      get contributingAssemblies() {
+        const graph = self.graph
+        const backbone = graph ? backboneNodes(graph) : []
+        return graph
+          ? contributingAssemblies(graph, {
+              maxGap: backbone.length > 0 ? backboneSpan(backbone) : Infinity,
+            })
+          : []
+      },
+    }))
+    .views(self => ({
+      // The contributors a view can actually be opened on: those naming an
+      // assembly this session has loaded. Every strain of an E. coli pangenome
+      // demo is its own assembly, so all of them resolve; an HPRC graph names
+      // hundreds of haplotypes that no session loads, so only the reference
+      // does.
+      get launchableAssemblies() {
+        return resolveContributors(
+          withReferenceRegion(
+            self.contributingAssemblies,
+            self.loadedRegion,
+          ),
+          getSession(self).assemblyNames,
+        )
+      },
+      // Where one node can be opened: on its own assembly, and on the reference
+      // the graph was cut against. Both are padded to a readable window — a
+      // base-level allele is a few bp, and a linear view framed on exactly that
+      // shows no context at all.
+      nodeLaunchTargets(nodeId: string) {
+        const node = self.nodeById?.get(nodeId)
+        const own = node ? nodeOwnLocation(node) : undefined
+        const loaded = new Set(getSession(self).assemblyNames)
+        const region = self.loadedRegion
+        const nodeById = self.nodeById
+        const neighbors = self.nodeNeighbors
+        const span =
+          region && nodeById && neighbors
+            ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+            : undefined
+        return {
+          own:
+            own && loaded.has(own.sample)
+              ? { location: paddedLocation(own), assembly: own.sample }
+              : undefined,
+          reference:
+            region && span
+              ? {
+                  location: paddedLocation({
+                    sample: region.assemblyName,
+                    refName: region.refName,
+                    ...span,
+                  }),
+                  assembly: region.assemblyName,
+                }
+              : undefined,
+        }
+      },
+    }))
     .actions(self => ({
       setError(error: unknown) {
         self.error = error
@@ -387,6 +495,15 @@ export default function stateModelFactory() {
       },
       setColorScheme(scheme: ColorScheme) {
         self.colorScheme = scheme
+      },
+      // Pair with a linear view for the hover sync, without ever repointing an
+      // existing pairing: a graph launched *from* an LGV is already paired with
+      // it, and stealing that would break the sync the user came in on. So a
+      // launch out of the graph only claims the slot when it is empty.
+      pairWithLinearView(viewId: string) {
+        if (!self.connectedViewId) {
+          self.connectedViewId = viewId
+        }
       },
       setHoveredNode(nodeId: string | null) {
         self.hoveredNode = nodeId
@@ -439,6 +556,10 @@ export default function stateModelFactory() {
                   depth: node.depth,
                   rank: node.stable?.rank,
                   stableName: node.stable?.refName,
+                  // The assembly that contributed this segment, split off the
+                  // stable name. On an HPRC graph this is the only thing that
+                  // says which of 400-odd haplotypes an allele came from.
+                  contributingAssembly: nodeOwnLocation(node)?.sample,
                   ...(region && span
                     ? {
                         refName: region.refName,
@@ -674,7 +795,7 @@ export default function stateModelFactory() {
           self.graph = undefined
           self.layoutResult = undefined
           self.error = new Error(
-            `Region too large (${Math.round(regionSize / 1000)} kb) — zoom in to view graph (max ${MAX_GRAPH_REGION_BP / 1000} kb)`,
+            `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(MAX_GRAPH_REGION_BP)})`,
           )
           return
         }
@@ -1002,6 +1123,67 @@ export default function stateModelFactory() {
           void self.loadFromLocation()
         }
         void self.refetchIfNeeded()
+      },
+    }))
+    .actions(self => ({
+      // Move the linear view already on screen, or open one if there is none,
+      // and pair with whichever it was. The graph's own track goes on a view
+      // being created so the segments are visible linearly beside the graph;
+      // that only applies on the reference, the one assembly the track is
+      // configured for.
+      showInLinearView(target: { location: GraphLocation; assembly: string }) {
+        const viewId = showInLinearView({
+          session: getSession(self),
+          location: target.location,
+          assembly: target.assembly,
+          connectedViewId: self.connectedViewId,
+          tracks:
+            self.loadedTrackId &&
+            target.assembly === self.loadedRegion?.assemblyName
+              ? [self.loadedTrackId]
+              : [],
+        })
+        self.pairWithLinearView(viewId)
+      },
+      showSyntenyView(trackId: string) {
+        launchSyntenyView({
+          session: getSession(self),
+          contributors: self.launchableAssemblies,
+          trackId,
+        })
+      },
+    }))
+    .views(self => ({
+      // Synteny datasets that could fill the panels of a multi-genome launch.
+      // Below two openable contributors there is nothing to compare, so the scan
+      // is skipped rather than run and discarded.
+      get syntenyLaunchTracks() {
+        const samples = self.launchableAssemblies.map(c => c.sample)
+        return samples.length >= 2
+          ? launchableSyntenyTracks(getSession(self), samples)
+          : []
+      },
+    }))
+    .views(self => ({
+      // The graph's way out, in the same shared "Launch view" submenu every
+      // other view contributes to. Until this existed the triangle had two edges:
+      // a linear view could open a graph or a synteny view of a locus, and the
+      // graph could open nothing at all.
+      menuItems(): MenuItem[] {
+        const items: MenuItem[] = []
+        for (const item of graphLaunchMenuItems({
+          contributors: self.launchableAssemblies,
+          syntenyTracks: self.syntenyLaunchTracks,
+          onShowLinear: target => {
+            self.showInLinearView(target)
+          },
+          onShowSynteny: trackId => {
+            self.showSyntenyView(trackId)
+          },
+        })) {
+          pushLaunchViewMenuItem(items, item)
+        }
+        return items
       },
     }))
 }

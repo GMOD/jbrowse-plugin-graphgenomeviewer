@@ -1,12 +1,22 @@
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { bandageAutoScale } from './layout/drawnScale'
-import stateModelFactory from './model'
+import stateModelFactory, {
+  MAX_GRAPH_REGION_BP,
+  formatSpanBp,
+} from './model'
 
 const mockRpcCall = vi.fn()
 const mockSession = {
   tracks: [] as { trackId: string; [key: string]: unknown }[],
   rpcManager: { call: mockRpcCall },
+  assemblyNames: [] as string[],
+  views: [] as unknown[],
+  addedViews: [] as [string, Record<string, unknown> | undefined][],
+  addView(type: string, snapshot?: Record<string, unknown>) {
+    mockSession.addedViews.push([type, snapshot])
+    return { id: `view-${mockSession.addedViews.length}` }
+  },
 }
 
 // Don't use vi.importActual due to circular dependencies
@@ -276,18 +286,28 @@ describe('performance instrumentation', () => {
   })
 })
 
+describe('formatSpanBp', () => {
+  test('reports Mb at and above a megabase, kb below it', () => {
+    expect(formatSpanBp(MAX_GRAPH_REGION_BP)).toBe('5 Mb')
+    expect(formatSpanBp(4_900_000)).toBe('4.9 Mb')
+    expect(formatSpanBp(1_000_000)).toBe('1 Mb')
+    expect(formatSpanBp(999_999)).toBe('1000 kb')
+    expect(formatSpanBp(60_000)).toBe('60 kb')
+  })
+})
+
 describe('region size cap', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
     mockSession.tracks = []
   })
 
-  test('declines regions over the 100kb cap without an RPC call', async () => {
+  test('declines regions over the cap without an RPC call', async () => {
     rpcRespond()
     const model = createModel()
     await model.loadFromTabixSubgraph(
       { type: 'GfaTabixAdapter' },
-      { ...TEST_REGION, start: 0, end: 200_000 },
+      { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP + 1 },
       { trackId: 'rgfa-track' },
     )
     expect(model.graph).toBeUndefined()
@@ -301,7 +321,7 @@ describe('region size cap', () => {
     const model = createModel()
     await model.loadFromTabixSubgraph(
       { type: 'GfaTabixAdapter' },
-      { ...TEST_REGION, start: 0, end: 100_000 },
+      { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP },
       { trackId: 'rgfa-track' },
     )
     expect(model.graph).toBeDefined()
@@ -777,5 +797,182 @@ describe('bandageAutoScale', () => {
 
   test('an empty graph cannot divide by zero', () => {
     expect(bandageAutoScale(graphOf([])).nodeLengthPerMegabase).toBe(10_000)
+  })
+})
+
+// The graph's own way out. Shaped after the two graphs this view actually ships
+// with, because they behave completely differently: every E. coli strain is a
+// loaded assembly, and none of HPRC's contributing haplotypes is.
+describe('launching out of the graph', () => {
+  // An HPRC-shaped graph: the reference backbone is spelled GRCh38 in the graph
+  // and loaded as hg38 in the session, and the alleles come from haplotypes that
+  // are not assemblies at all.
+  const HPRC_RGFA =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\tACGTACGTAC\tSN:Z:GRCh38#0#chr6\tSO:i:31000000\tSR:i:0\n' +
+    'S\t2\tACGTACGTAC\tSN:Z:GRCh38#0#chr6\tSO:i:31000010\tSR:i:0\n' +
+    'S\t3\tTTTT\tSN:Z:HG02717#1#chr6\tSO:i:9000\tSR:i:1\n' +
+    'L\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\nL\t3\t+\t2\t+\t0M\n'
+
+  // An E. coli-shaped graph: two strains, both loaded as assemblies.
+  const ECOLI_RGFA =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\tACGTACGTAC\tSN:Z:K12#1#chr\tSO:i:1000\tSR:i:0\n' +
+    'S\t2\tACGTACGTAC\tSN:Z:K12#1#chr\tSO:i:1010\tSR:i:0\n' +
+    'S\t3\tTTTT\tSN:Z:Sakai#1#chr\tSO:i:90000\tSR:i:1\n' +
+    'L\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\nL\t3\t+\t2\t+\t0M\n'
+
+  const HPRC_REGION = {
+    refName: 'chr6',
+    assemblyName: 'hg38',
+    start: 31000000,
+    end: 31000020,
+  }
+
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+    mockSession.assemblyNames = []
+    mockSession.views = []
+    mockSession.addedViews = []
+  })
+
+  function launchLabels(model: { menuItems: () => unknown[] }) {
+    const items = model.menuItems() as {
+      label?: string
+      subMenu?: { label?: string }[]
+    }[]
+    const launch = items.find(i => i.label === 'Launch view')
+    return (launch?.subMenu ?? []).map(i => i.label)
+  }
+
+  async function loadedGraph(gfa: string, region = HPRC_REGION) {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(gfa)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadFromTabixSubgraph({ type: 'RgfaTabixAdapter' }, region, {
+      trackId: 'rgfa-track',
+    })
+    return model
+  }
+
+  // The graph spells the reference GRCh38 and the session calls it hg38, so
+  // resolving the backbone by its PanSN name would leave the graph with no way
+  // out at all. The cut region names the assembly instead.
+  test('the reference resolves through the cut region, not its stable name', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+
+    expect(model.contributingAssemblies.map(c => c.sample)).toEqual([
+      'GRCh38',
+      'HG02717',
+    ])
+    expect(model.launchableAssemblies).toEqual([
+      expect.objectContaining({
+        sample: 'hg38',
+        refName: 'chr6',
+        start: 31000000,
+        end: 31000020,
+        rank: 0,
+      }),
+    ])
+    expect(launchLabels(model)).toEqual([
+      'Linear genome view — hg38 chr6:31,000,001-31,000,020',
+    ])
+  })
+
+  // 400-odd contributing haplotypes, one loaded assembly: a per-assembly menu
+  // would be all dead items, and there is nothing to compare in a synteny view.
+  test('unloaded haplotypes offer no synteny item', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+    expect(launchLabels(model)).not.toContain(
+      'Linear synteny view (2 assemblies)',
+    )
+  })
+
+  // A haplotype allele has an exact coordinate on a sequence nothing has loaded,
+  // so the way back to a coordinate is the reference projection.
+  test('an unloaded haplotype node still locates on the reference', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+    const { own, reference } = model.nodeLaunchTargets('3+')
+
+    expect(own).toBeUndefined()
+    expect(reference).toEqual({
+      assembly: 'hg38',
+      location: expect.objectContaining({ refName: 'chr6' }),
+    })
+  })
+
+  // Where every contributor is a loaded assembly the graph offers one panel per
+  // strain, and a synteny view of all of them — the item is disabled while no
+  // synteny track aligns them, rather than absent.
+  test('loaded strains offer a per-strain linear view and a synteny item', async () => {
+    mockSession.assemblyNames = ['K12', 'Sakai']
+    const model = await loadedGraph(ECOLI_RGFA, {
+      refName: 'chr',
+      assemblyName: 'K12',
+      start: 1000,
+      end: 1020,
+    })
+
+    expect(model.launchableAssemblies.map(c => c.sample)).toEqual([
+      'K12',
+      'Sakai',
+    ])
+    expect(launchLabels(model)).toEqual([
+      'Linear genome view',
+      'Linear synteny view (2 assemblies)',
+    ])
+  })
+
+  // The gesture is "show me this", not "give me another pane": a linear view
+  // already on the assembly is the one that moves.
+  test('showing a node moves the linear view beside the graph', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const navToLocString = vi.fn()
+    mockSession.views = [
+      {
+        id: 'lgv1',
+        type: 'LinearGenomeView',
+        assemblyNames: ['hg38'],
+        navToLocString,
+      },
+    ]
+    const model = await loadedGraph(HPRC_RGFA)
+    const { reference } = model.nodeLaunchTargets('1+')
+    model.showInLinearView(reference!)
+
+    expect(navToLocString).toHaveBeenCalledWith(
+      expect.stringContaining('chr6:'),
+      'hg38',
+    )
+    expect(mockSession.addedViews).toEqual([])
+    // and pairs with it, so the hover sync works both ways from here on
+    expect(model.connectedViewId).toBe('lgv1')
+  })
+
+  test('with no linear view to move, one is opened carrying the graph track', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+    const { reference } = model.nodeLaunchTargets('1+')
+    model.showInLinearView(reference!)
+
+    expect(mockSession.addedViews).toEqual([
+      [
+        'LinearGenomeView',
+        expect.objectContaining({
+          init: expect.objectContaining({
+            assembly: 'hg38',
+            tracks: ['rgfa-track'],
+          }),
+        }),
+      ],
+    ])
+    expect(model.connectedViewId).toBe('view-1')
   })
 })
