@@ -542,6 +542,108 @@ describe('zoomToFit on a megabase-scale layout', () => {
   })
 })
 
+// The pane was a fixed 600 px box that the drawing floated in the middle of.
+// Row spacing on a reference-anchored layout is a fraction of the reference
+// span, so such a layout is wide and flat at every pane width and can never
+// fill 600 px: measured on the ecoli slice, 178 px of rows with 211 px of dead
+// space above and below, worsening as the pane narrowed.
+describe('canvas height follows the drawing', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  // Four ranks over a 3 kb span, so the rows have enough extent to ask for a
+  // pane between the floor and the cap — the ordinary case, and the one the
+  // ecoli slice is.
+  const RGFA_FOUR_RANKS =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\t*\tLN:i:1000\tSN:Z:chr\tSO:i:0\tSR:i:0\n' +
+    'S\t2\t*\tLN:i:1000\tSN:Z:chr\tSO:i:2000\tSR:i:0\n' +
+    'S\ta\t*\tLN:i:100\tSN:Z:alt1\tSO:i:0\tSR:i:1\n' +
+    'S\tb\t*\tLN:i:100\tSN:Z:alt2\tSO:i:0\tSR:i:2\n' +
+    'S\tc\t*\tLN:i:100\tSN:Z:alt3\tSO:i:0\tSR:i:3\n' +
+    'L\t1\t+\ta\t+\t0M\nL\ta\t+\t2\t+\t0M\n' +
+    'L\t1\t+\tb\t+\t0M\nL\tb\t+\t2\t+\t0M\n' +
+    'L\t1\t+\tc\t+\t0M\nL\tc\t+\t2\t+\t0M\n'
+
+  function extent(model: ReturnType<typeof createModel>) {
+    const points = Object.values(model.nodePositions!).flat()
+    const ys = points.map(p => p.y)
+    const xs = points.map(p => p.x)
+    return {
+      w: Math.max(...xs) - Math.min(...xs),
+      h: Math.max(...ys) - Math.min(...ys),
+    }
+  }
+
+  test('a wide flat layout gets a pane just tall enough for its rows', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.zoomToFit()
+
+    expect(model.canvasHeight).toBeLessThan(600)
+    // the rows plus one padding gap top and bottom, and nothing else
+    expect(extent(model).h * model.scale).toBeCloseTo(
+      model.canvasHeight - 80,
+      5,
+    )
+    // which is to say the drawing is not floating in the middle of the pane:
+    // the top row sits one padding gap down, not 211 px down
+    expect(model.translateY).toBeCloseTo(40, 5)
+  })
+
+  // The point is to remove dead space, not to draw the graph smaller: x is what
+  // limits the fit either way, so the scale is the one the 600 px pane produced.
+  test('the tighter pane draws the graph at the same scale', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.zoomToFit()
+
+    expect(model.scale).toBeCloseTo((model.width - 80) / extent(model).w, 10)
+  })
+
+  // Shrink-to-fit has to stop somewhere: a two-row window over a few bases wants
+  // a ~116 px pane, which leaves nothing to hover in.
+  test('a nearly flat layout stops shrinking at the floor', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'two rows over 8 bp')
+
+    expect(model.canvasHeight).toBe(160)
+  })
+
+  // A force-directed layout is roughly as tall as it is wide, so it still wants
+  // the whole pane and keeps the one it always had.
+  test('a layout as tall as it is wide keeps the full pane', async () => {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? Promise.resolve({
+            result: {
+              nodePositions: {
+                '1+': [
+                  { x: 0, y: 0 },
+                  { x: 100, y: 100 },
+                ],
+              },
+            },
+            duration: 5,
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'square')
+
+    expect(model.canvasHeight).toBe(600)
+  })
+
+  test('a pane with no layout in it yet is full height', () => {
+    expect(createModel().canvasHeight).toBe(600)
+  })
+})
+
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set
 // against; carrying it across a load pointed the tooltip and the highlight at
 // whatever ended up at that index in the new graph.

@@ -35,7 +35,15 @@ import type {
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
-const DEFAULT_CANVAS_HEIGHT = 600
+// Ceiling on the pane, and what it falls back to before there is a layout to
+// size against. A roughly square drawing (FMMM) hits this and keeps the
+// scrollable pane it has always had.
+const MAX_CANVAS_HEIGHT = 600
+// Floor, so a window holding only backbone — one row, no height at all — still
+// leaves room to hover a node and read its tooltip.
+const MIN_CANVAS_HEIGHT = 160
+// Gap between the drawing and the edge of the pane, on all four sides.
+const FIT_PADDING = 40
 const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
@@ -150,7 +158,6 @@ export default function stateModelFactory() {
         translateX: types.optional(types.number, 0),
         translateY: types.optional(types.number, 0),
         drawPaths: types.optional(types.boolean, false),
-        canvasHeight: types.optional(types.number, DEFAULT_CANVAS_HEIGHT),
         // Raise to draw a bigger graph than the default budget allows; see
         // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
         maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
@@ -251,6 +258,31 @@ export default function stateModelFactory() {
       get rowLabels() {
         return self.layoutResult?.rowLabels ?? []
       },
+      // Extent of the drawing in layout units, or undefined before there is
+      // one. Shared by the pane height and by zoomToFit so the two cannot
+      // measure the same graph differently.
+      get layoutBounds() {
+        let bounds:
+          { minX: number; minY: number; w: number; h: number } | undefined
+        if (self.layoutResult) {
+          let minX = Infinity
+          let minY = Infinity
+          let maxX = -Infinity
+          let maxY = -Infinity
+          for (const segments of Object.values(
+            self.layoutResult.nodePositions,
+          )) {
+            for (const seg of segments) {
+              minX = Math.min(minX, seg.x)
+              minY = Math.min(minY, seg.y)
+              maxX = Math.max(maxX, seg.x)
+              maxY = Math.max(maxY, seg.y)
+            }
+          }
+          bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
+        }
+        return bounds
+      },
       get zoomPercent() {
         return `${(self.scale * 100).toFixed(1)}%`
       },
@@ -266,6 +298,30 @@ export default function stateModelFactory() {
     .views(self => ({
       get nodeNeighbors() {
         return self.graph ? buildNeighbors(self.graph) : undefined
+      },
+      // The pane is as tall as the drawing, rather than a fixed box the drawing
+      // floats in the middle of. Row spacing on the reference-anchored layouts
+      // is a fraction of the reference span, so those layouts have a pinned
+      // aspect ratio and can never fill a tall pane: measured on the ecoli
+      // slice, 178 px of rows sat in the old 600 px pane with 211 px of dead
+      // space above and below, and narrowing the pane made it worse.
+      //
+      // x is therefore what limits the fit, so the height follows from the
+      // x-fit scale — a function of `width` alone. It reads neither `scale` nor
+      // the height it is replacing, so zoomToFit consumes this without feeding
+      // back into it, and the pane does not resize as the user zooms.
+      get canvasHeight() {
+        const bounds = self.layoutBounds
+        const usableWidth = self.width - FIT_PADDING * 2
+        return bounds && bounds.w > 0 && usableWidth > 0
+          ? Math.min(
+              MAX_CANVAS_HEIGHT,
+              Math.max(
+                MIN_CANVAS_HEIGHT,
+                (bounds.h * usableWidth) / bounds.w + FIT_PADDING * 2,
+              ),
+            )
+          : MAX_CANVAS_HEIGHT
       },
     }))
     .views(self => ({
@@ -412,9 +468,6 @@ export default function stateModelFactory() {
         self.translateX = centerX - (centerX - self.translateX) * ratio
         self.translateY = centerY - (centerY - self.translateY) * ratio
       },
-      setCanvasHeight(height: number) {
-        self.canvasHeight = height
-      },
       setViewportDirty() {
         self.viewportDirty++
       },
@@ -425,57 +478,42 @@ export default function stateModelFactory() {
         self.baseArrowColors = batch.arrows.colors
       },
       zoomToFit() {
-        if (!self.layoutResult) {
-          return
-        }
-        const positions: Record<string, { x: number; y: number }[]> =
-          self.layoutResult.nodePositions
-        let minX = Infinity
-        let minY = Infinity
-        let maxX = -Infinity
-        let maxY = -Infinity
-        for (const segments of Object.values(positions)) {
-          for (const seg of segments) {
-            minX = Math.min(minX, seg.x)
-            minY = Math.min(minY, seg.y)
-            maxX = Math.max(maxX, seg.x)
-            maxY = Math.max(maxY, seg.y)
-          }
-        }
         // A layout is routinely degenerate on one axis: an anchored window
         // holding only backbone segments puts every node on row 0. So each axis
         // constrains the scale only when it has extent, and only a layout with
         // no extent at all is unfittable. Requiring extent on both axes left
         // that window at scale 1 with the graph off-screen entirely, since x
         // there is reference bp.
-        const graphWidth = maxX - minX
-        const graphHeight = maxY - minY
-        const padding = 40
-        const usableWidth = self.width - padding * 2
-        const usableHeight = self.canvasHeight - padding * 2
+        const bounds = self.layoutBounds
+        const usableWidth = self.width - FIT_PADDING * 2
+        const usableHeight = self.canvasHeight - FIT_PADDING * 2
         // Nothing to fit into before the canvas is measured. The autorun re-runs
         // once width lands, so skipping here beats computing a negative scale
         // and persisting that transform into the session snapshot.
         if (
-          (graphWidth > 0 || graphHeight > 0) &&
+          bounds &&
+          (bounds.w > 0 || bounds.h > 0) &&
           usableWidth > 0 &&
           usableHeight > 0
         ) {
+          // Whichever axis binds, the leftover on the other is split evenly.
+          // For a row layout that is x, and canvasHeight is derived from the
+          // same x-fit, so the vertical leftover it centers is ~0.
           const newScale = clampZoom(
             Math.min(
-              graphWidth > 0 ? usableWidth / graphWidth : Infinity,
-              graphHeight > 0 ? usableHeight / graphHeight : Infinity,
+              bounds.w > 0 ? usableWidth / bounds.w : Infinity,
+              bounds.h > 0 ? usableHeight / bounds.h : Infinity,
             ),
           )
           self.scale = newScale
           self.translateX =
-            padding -
-            minX * newScale +
-            (usableWidth - graphWidth * newScale) / 2
+            FIT_PADDING -
+            bounds.minX * newScale +
+            (usableWidth - bounds.w * newScale) / 2
           self.translateY =
-            padding -
-            minY * newScale +
-            (usableHeight - graphHeight * newScale) / 2
+            FIT_PADDING -
+            bounds.minY * newScale +
+            (usableHeight - bounds.h * newScale) / 2
         }
       },
       clearRenderBatchMeta() {
