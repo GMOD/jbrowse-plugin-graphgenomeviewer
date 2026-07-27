@@ -38,6 +38,7 @@ import {
   showInLinearView,
   withReferenceRegion,
 } from '../launchFromGraph/launchFromGraph'
+import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
@@ -1198,21 +1199,26 @@ export default function stateModelFactory() {
     }))
     .actions(self => ({
       // Move the linear view already on screen, or open one if there is none,
-      // and pair with whichever it was. The graph's own track goes on a view
-      // being created so the segments are visible linearly beside the graph;
-      // that only applies on the reference, the one assembly the track is
-      // configured for.
+      // and pair with whichever it was. A view being created gets the session's
+      // annotation for the assembly it opens on (see launchTracks), led by the
+      // graph's own segments track when the launch is on the reference — the one
+      // assembly that track is configured for.
       showInLinearView(target: { location: GraphLocation; assembly: string }) {
+        const session = getSession(self)
         const viewId = showInLinearView({
-          session: getSession(self),
+          session,
           location: target.location,
           assembly: target.assembly,
           connectedViewId: self.connectedViewId,
-          tracks:
-            self.loadedTrackId &&
-            target.assembly === self.loadedRegion?.assemblyName
-              ? [self.loadedTrackId]
-              : [],
+          tracks: launchTracks({
+            session,
+            assemblyName: target.assembly,
+            first:
+              self.loadedTrackId &&
+              target.assembly === self.loadedRegion?.assemblyName
+                ? self.loadedTrackId
+                : undefined,
+          }),
         })
         self.pairWithLinearView(viewId)
       },

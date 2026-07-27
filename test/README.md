@@ -19,7 +19,7 @@ writes to `test-screenshots/` is a real browser frame:
 | screenshot                                   | shows                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------- |
 | `demo-00-linear-view-with-graph-track`       | the rGFA segments drawn as features, PanSN names resolved             |
-| `demo-01-rubberband-menu`                    | a real shift-drag selection offering "Graph genome view of selection" |
+| `demo-01-rubberband-menu`                    | a real shift-drag selection offering "Graph genome view (this selection)" |
 | `demo-02-subgraph-launched-from-selection`   | the subgraph fetched and drawn, paired to the linear view             |
 | `demo-03-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span         |
 | `demo-04-linear-hover-selects-graph-node`    | hovering the linear view selects the covering graph node              |

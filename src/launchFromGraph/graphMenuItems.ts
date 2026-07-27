@@ -9,7 +9,6 @@ import type { LaunchableSyntenyTrack } from './syntenyTracks'
 import type { MenuItem } from '@jbrowse/core/ui'
 
 const LINEAR_LABEL = 'Linear genome view'
-const OPEN_LABEL = 'Open in linear view'
 const SYNTENY_LABEL = 'Linear synteny view'
 const NO_SYNTENY_TRACK =
   'No synteny track in this session aligns these assemblies'
@@ -29,6 +28,7 @@ function oneOrMany<T>({
   entryLabel,
   onSelect,
   disabledHelpText,
+  nameTheOnlyEntry = true,
 }: {
   label: string
   icon: React.ElementType
@@ -36,6 +36,12 @@ function oneOrMany<T>({
   entryLabel: (entry: T) => string
   onSelect: (entry: T) => () => void
   disabledHelpText?: string
+  // Whether a lone entry's name is worth appending to the item. It is when the
+  // entry is where you land (`GRCh38 chr6:31,980,000-32,050,000`) and not when
+  // it is the ingredient used to get there — a synteny track's name says
+  // nothing the item does not already say, and reading it costs the width of
+  // `pggb graph: all-vs-all synteny (wfmash)`.
+  nameTheOnlyEntry?: boolean
 }): MenuItem[] {
   const [first] = entries
   // Nothing to open: a *disabled* item with the reason in its tooltip, when
@@ -49,7 +55,7 @@ function oneOrMany<T>({
     : entries.length === 1 && first
       ? [
           {
-            label: `${label} — ${entryLabel(first)}`,
+            label: nameTheOnlyEntry ? `${label} — ${entryLabel(first)}` : label,
             icon,
             onClick: onSelect(first),
           },
@@ -104,6 +110,7 @@ export function graphLaunchMenuItems({
           icon: CompareArrowsIcon,
           entries: syntenyTracks,
           entryLabel: track => track.name,
+          nameTheOnlyEntry: false,
           disabledHelpText: NO_SYNTENY_TRACK,
           onSelect: track => () => {
             onShowSynteny(track.trackId)
@@ -130,6 +137,11 @@ export function graphLaunchMenuItems({
 // the graph or opens a new one. It does the first when there is one to scroll
 // (see showInLinearView), so "Open in" covers both without claiming a launch.
 //
+// Verb, assembly, and where — nothing else. Every word here is read inside a
+// menu opened on a node, so "this node in the hg38 view" and "in linear view"
+// restate the context they are already in; what a coordinate opens in is not in
+// question, and the assembly name is.
+//
 // Flat, not under a "Launch view" submenu: this menu is a handful of items and
 // every one is contextual to the node just clicked.
 export function nodeLaunchMenuItems({
@@ -147,7 +159,7 @@ export function nodeLaunchMenuItems({
   const entries = [
     own
       ? {
-          label: `${OPEN_LABEL} — ${own.assembly} ${locLabel(own.location)}`,
+          label: `Open in ${own.assembly} — ${locLabel(own.location)}`,
           target: own,
         }
       : undefined,
@@ -157,7 +169,7 @@ export function nodeLaunchMenuItems({
     // places to go.
     reference && reference.assembly !== own?.assembly
       ? {
-          label: `${OPEN_LABEL} — around this node on ${reference.assembly}`,
+          label: `Open in ${reference.assembly} — around this node`,
           target: reference,
         }
       : undefined,
@@ -171,7 +183,7 @@ export function nodeLaunchMenuItems({
     ...(highlightable
       ? [
           {
-            label: `Highlight this node in the ${reference.assembly} view`,
+            label: `Highlight in ${reference.assembly}`,
             icon: HighlightAltIcon,
             onClick: () => {
               onHighlight(reference)

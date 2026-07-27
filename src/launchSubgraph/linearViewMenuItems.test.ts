@@ -3,8 +3,8 @@ import { MAX_GRAPH_REGION_BP } from '../GraphGenomeView/model'
 
 import type { MenuItem } from '@jbrowse/core/ui'
 
-const LABEL_VISIBLE = 'Graph genome view (visible region)'
-const LABEL_SELECTION = 'Graph genome view of selection'
+const LABEL_VISIBLE = 'Graph genome view (this region)'
+const LABEL_SELECTION = 'Graph genome view (this selection)'
 const LABEL_FEATURE = 'Graph genome view (this feature)'
 
 function launchItems(items: MenuItem[]) {

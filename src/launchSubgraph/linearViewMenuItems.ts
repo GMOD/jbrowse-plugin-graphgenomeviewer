@@ -10,8 +10,11 @@ import type { PluggableElementType } from '@jbrowse/core/pluggableElementTypes'
 import type ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import type { LinearGenomeViewModel } from '@jbrowse/plugin-linear-genome-view'
 
-const VISIBLE_LABEL = 'Graph genome view (visible region)'
-const SELECTION_LABEL = 'Graph genome view of selection'
+// Same phrasing as the track menu's item for the same extent, which said
+// "(this region)" while this one said "(visible region)" — one thing, two
+// names, and the tutorials only ever documented the first.
+const VISIBLE_LABEL = 'Graph genome view (this region)'
+const SELECTION_LABEL = 'Graph genome view (this selection)'
 
 function isLinearGenomeView(elt: { name: string }): elt is ViewType {
   return elt.name === 'LinearGenomeView'
@@ -24,10 +27,8 @@ function isLinearGenomeView(elt: { name: string }): elt is ViewType {
 //     session for a subgraph-capable track gives a user browsing genes a way in;
 //     before, the only entry point was the menu of a track they might never have
 //     opened.
-//   - The visible region is routinely wider than the 100 kb cap, so the
-//     region-based item is unusable at the zoom people actually browse at. A
-//     rubberband selection is the fix: it picks a legal window directly, with no
-//     navigating first.
+//   - A rubberband selection picks a window directly, with no navigating first,
+//     and is the only way to ask about a range narrower than what is on screen.
 export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
   pluginManager.addToExtensionPoint(
     'Core-extendPluggableElement',

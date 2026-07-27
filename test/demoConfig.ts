@@ -28,17 +28,29 @@ export const PLAIN_BED = 'rgfa/backbone_regions.bed'
 // its features sit exactly on the segments the graph view will draw, and it can't
 // drift from the graph it describes.
 export function writePlainBedTrack() {
-  const segs = path.join(process.cwd(), RGFA_FIXTURE, 'rgfa_ecoli.segs.bed.gz')
-  const text = zlib.gunzipSync(fs.readFileSync(segs)).toString('utf8')
-  const rows = text
-    .split('\n')
-    .filter(line => line.startsWith(`${ASSEMBLY}#1#${REF_NAME}\t`))
-    .map(line => {
-      const [, start, end, name] = line.split('\t')
-      return `${REF_NAME}\t${start}\t${end}\t${name}`
-    })
+  const rows = segmentRows()
+    .filter(({ sample }) => sample === ASSEMBLY)
+    .map(({ bed }) => bed)
   writeServedFile(PLAIN_BED, `${rows.join('\n')}\n`)
   return rows.length
+}
+
+// Every segment in the fixture, as the sample that contributed it and a BED row
+// on that sample's own coordinates.
+function segmentRows() {
+  const segs = path.join(process.cwd(), RGFA_FIXTURE, 'rgfa_ecoli.segs.bed.gz')
+  const text = zlib.gunzipSync(fs.readFileSync(segs)).toString('utf8')
+  return text
+    .split('\n')
+    .filter(Boolean)
+    .map(line => {
+      const [stableName, start, end, name] = line.split('\t')
+      return {
+        sample: stableName!.split('#')[0]!,
+        end: Number(end),
+        bed: `${REF_NAME}\t${start}\t${end}\t${name}`,
+      }
+    })
 }
 
 export function demoDataFiles(): [string, string][] {
@@ -58,13 +70,9 @@ export const GRAPH_ID = 'demo_graph'
 // sequence reaches), so an assembly cannot be shorter than the segments the
 // graph will ask it to show.
 function contributingStrains() {
-  const segs = path.join(process.cwd(), RGFA_FIXTURE, 'rgfa_ecoli.segs.bed.gz')
-  const text = zlib.gunzipSync(fs.readFileSync(segs)).toString('utf8')
   const lengths = new Map<string, number>()
-  for (const line of text.split('\n').filter(Boolean)) {
-    const [stableName, , end] = line.split('\t')
-    const sample = stableName!.split('#')[0]!
-    lengths.set(sample, Math.max(lengths.get(sample) ?? 0, Number(end)))
+  for (const { sample, end } of segmentRows()) {
+    lengths.set(sample, Math.max(lengths.get(sample) ?? 0, end))
   }
   lengths.delete(ASSEMBLY)
   return [...lengths].sort(([a], [b]) => a.localeCompare(b))
@@ -89,6 +97,35 @@ function strainAssemblies() {
   })
 }
 
+export function strainTrackId(sample: string) {
+  return `${sample}_segments`
+}
+
+// One annotation track per contributing strain, on that strain's own
+// coordinates. Stands in for the per-strain gene track a real pangenome config
+// carries, and is what a per-strain launch has to find: the graph's own track is
+// configured for the reference alone, so without these the launched view opens
+// on `No tracks active`.
+function strainTracks() {
+  const bySample = new Map<string, string[]>()
+  for (const { sample, bed } of segmentRows()) {
+    if (sample !== ASSEMBLY) {
+      bySample.set(sample, [...(bySample.get(sample) ?? []), bed])
+    }
+  }
+  return [...bySample].map(([sample, rows]) => {
+    const file = `rgfa/${sample}_segments.bed`
+    writeServedFile(file, `${rows.join('\n')}\n`)
+    return {
+      type: 'FeatureTrack',
+      trackId: strainTrackId(sample),
+      name: `${sample} segments`,
+      assemblyNames: [sample],
+      adapter: { type: 'BedAdapter', uri: `${BASE_URL}/${file}` },
+    }
+  })
+}
+
 // The same config with every contributing strain loaded as an assembly, and a
 // graph view already open beside the linear view, cut from the graph track and
 // paired with it. That is the state every "out of the graph" entry point starts
@@ -100,6 +137,7 @@ export function createLaunchOutConfig() {
   return {
     ...config,
     assemblies: [...config.assemblies, ...strainAssemblies()],
+    tracks: [...config.tracks, ...strainTracks()],
     defaultSession: {
       ...config.defaultSession,
       views: [

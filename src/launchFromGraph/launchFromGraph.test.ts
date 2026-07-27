@@ -22,10 +22,20 @@ function contributor(sample: string, rank: number, start = 1000): Contributor {
   }
 }
 
-function testSession(views: unknown[] = []) {
+// Plain objects rather than config models: readConfObject returns a non-MST
+// object's own fields unchanged, so this exercises the same read path.
+function geneTrack(assemblyName: string) {
+  return {
+    type: 'FeatureTrack',
+    trackId: `${assemblyName}_genes`,
+    assemblyNames: [assemblyName],
+  } as never
+}
+
+function testSession(views: unknown[] = [], tracks: never[] = []) {
   const added: [string, Record<string, unknown> | undefined][] = []
   const session = {
-    tracks: [],
+    tracks,
     assemblies: [],
     assemblyNames: ['K12', 'Sakai'],
     views,
@@ -134,7 +144,10 @@ test('a linear view on another assembly is not navigated', () => {
 // The panel loci come from the graph itself, so no mate discovery, no PAF
 // lookup and no dialog stand between the graph and a multi-genome view.
 test('a synteny launch frames each panel on its own assembly coordinates', () => {
-  const { session, added } = testSession()
+  const { session, added } = testSession(
+    [],
+    [geneTrack('K12'), geneTrack('Sakai')],
+  )
 
   launchSyntenyView({
     session,
@@ -147,10 +160,48 @@ test('a synteny launch frames each panel on its own assembly coordinates', () =>
     {
       init: {
         views: [
-          { assembly: 'K12', loc: 'chr:1001-6000' },
-          { assembly: 'Sakai', loc: 'chr:90001-95000' },
+          { assembly: 'K12', loc: 'chr:1001-6000', tracks: ['K12_genes'] },
+          {
+            assembly: 'Sakai',
+            loc: 'chr:90001-95000',
+            tracks: ['Sakai_genes'],
+          },
         ],
-        tracks: ['ecoli_ava'],
+        tracks: [['ecoli_ava']],
+        collapseEmptyRows: true,
+      },
+    },
+  ])
+})
+
+// `init.tracks` is per LEVEL, and a flat list is read as the level-0 shorthand,
+// so this is what a launch with more than two panels used to get wrong: the top
+// band drew ribbons and every band under it opened as a bare ruler.
+test('a synteny launch puts the alignment on every level, not just the first', () => {
+  const { session, added } = testSession()
+
+  launchSyntenyView({
+    session,
+    contributors: [
+      contributor('K12', 0),
+      contributor('Sakai', 1, 90000),
+      contributor('CFT073', 2, 40000),
+      contributor('IAI39', 3, 20000),
+    ],
+    trackId: 'ecoli_ava',
+  })
+
+  expect(added[0]).toEqual([
+    'LinearSyntenyView',
+    {
+      init: {
+        views: [
+          { assembly: 'K12', loc: 'chr:1001-6000', tracks: [] },
+          { assembly: 'Sakai', loc: 'chr:90001-95000', tracks: [] },
+          { assembly: 'CFT073', loc: 'chr:40001-45000', tracks: [] },
+          { assembly: 'IAI39', loc: 'chr:20001-25000', tracks: [] },
+        ],
+        tracks: [['ecoli_ava'], ['ecoli_ava'], ['ecoli_ava']],
         collapseEmptyRows: true,
       },
     },
@@ -186,6 +237,10 @@ test('several contributors with no synteny track offer a disabled item', () => {
   expect(synteny).toMatchObject({ disabled: true })
 })
 
+// The lone track's name is left off: it is the ingredient, not the
+// destination, and `pggb graph: all-vs-all synteny (wfmash)` is most of a menu
+// wide. Several tracks do become a submenu naming each, since which alignment
+// the ribbons come from is then a real choice.
 test('several contributors and a synteny track launch it', () => {
   const onShowSynteny = vi.fn()
   const items = graphLaunchMenuItems({
@@ -195,9 +250,7 @@ test('several contributors and a synteny track launch it', () => {
     onShowSynteny,
   })
   const item = items.find(
-    i =>
-      'label' in i &&
-      i.label === 'Linear synteny view (2 assemblies) — All vs all',
+    i => 'label' in i && i.label === 'Linear synteny view (2 assemblies)',
   )
   if (item && 'onClick' in item) {
     item.onClick(undefined)

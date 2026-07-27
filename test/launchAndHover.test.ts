@@ -214,7 +214,7 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
   // check against a hand-built plugin manager.
   it('the linear view offers the graph launch items', async () => {
     expect(await menuLabels('menuItems')).toContain(
-      'Graph genome view (visible region)',
+      'Graph genome view (this region)',
     )
   })
 
@@ -234,7 +234,7 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
     await page.keyboard.up('Shift')
 
     await screenshot(page, 'demo-01-rubberband-menu')
-    await clickMenuText('Graph genome view of selection')
+    await clickMenuText('Graph genome view (this selection)')
     await waitForGraphDrawn()
     await screenshot(page, 'demo-02-subgraph-launched-from-selection')
 
@@ -410,21 +410,24 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
     await screenshot(page, 'demo-06-cross-track-launched')
   }, 300_000)
 
-  // Past the cap the item is greyed out with the size in its tooltip, rather than
-  // launching a view that opens only to show its own error.
-  it('an over-cap visible region disables the item', async () => {
+  // The item is live at a browsing zoom, which is what it exists for. It used
+  // to assert the opposite here — greyed out at 1 Mb — written when the cap was
+  // 100 kb; at 5 Mb no window of this 4.6 Mb genome can exceed it, so the
+  // over-cap branch is pinned where it can be reached, in
+  // launchSubgraph.test.ts against MAX_GRAPH_REGION_BP rather than a literal.
+  it('a whole-chromosome region still offers the item', async () => {
     await page.evaluate(
       ([viewId, loc]: string[]) => {
         window.JBrowseSession.views
           .find(v => v.id === viewId)
           .navToLocString(loc)
       },
-      [LGV_ID, `${REF_NAME}:1-1,000,000`],
+      [LGV_ID, `${REF_NAME}:1-4,000,000`],
     )
     await page.waitForFunction(
       (viewId: string) =>
         window.JBrowseSession.views.find(v => v.id === viewId).dynamicBlocks
-          .totalBp > 100_000,
+          .totalBp > 1_000_000,
       { timeout: 30_000 },
       LGV_ID,
     )
@@ -439,7 +442,7 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
             disabled?: unknown
             disabledHelpText?: unknown
           }
-          if (i.label === 'Graph genome view (visible region)') {
+          if (i.label === 'Graph genome view (this region)') {
             return {
               disabled: i.disabled,
               disabledHelpText: i.disabledHelpText,
@@ -455,8 +458,7 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
       return find(view.menuItems())
     }, LGV_ID)
 
-    expect(item).toMatchObject({ disabled: true })
-    expect(item!.disabledHelpText).toMatch(/zoom in or select a smaller range/i)
-    await screenshot(page, 'demo-07-over-cap-region')
+    expect(item).toMatchObject({ disabled: false })
+    await screenshot(page, 'demo-07-whole-chromosome-region')
   }, 120_000)
 })

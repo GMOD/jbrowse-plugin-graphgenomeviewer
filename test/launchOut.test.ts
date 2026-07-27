@@ -7,6 +7,7 @@ import {
   REF_NAME,
   createLaunchOutConfig,
   demoDataFiles,
+  strainTrackId,
   writePlainBedTrack,
 } from './demoConfig'
 import {
@@ -210,7 +211,7 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     await page.mouse.click(target.x, target.y, { button: 'right' })
     await screenshot(page, 'out-01-node-context-menu')
 
-    await clickMenuText(`Linear genome view — ${ASSEMBLY} ${REF_NAME}:`)
+    await clickMenuText(`Open in ${ASSEMBLY} — ${REF_NAME}:`)
     await page.waitForFunction(
       ([viewId, start]: [string, number]) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
@@ -278,6 +279,24 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
       strain,
     )
     expect((await viewTypes()).length).toBe(before.length + 1)
+
+    // and it lands on that strain's own annotation rather than on
+    // `No tracks active`: the graph's track is configured for the reference
+    // alone, so carrying only that across left every per-strain launch empty.
+    await page.waitForFunction(
+      ([sample, trackId]: string[]) =>
+        window.JBrowseSession.views
+          .find(
+            (v: { type: string; assemblyNames?: string[] }) =>
+              v.type === 'LinearGenomeView' && v.assemblyNames?.[0] === sample,
+          )
+          ?.tracks.some(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ),
+      { timeout: 60_000 },
+      [strain, strainTrackId(strain)],
+    )
     await screenshot(page, 'out-04-allele-opens-its-own-strain')
   }, 240_000)
 
