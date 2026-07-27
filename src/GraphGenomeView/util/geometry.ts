@@ -129,20 +129,43 @@ export function computeEdgeCurves(
           }
 
     const dist = Math.hypot(p2x - p1x, p2y - p1y)
-    const projDist = Math.min(dist * 0.5, 80)
+    // Each control point leaves along its OWN node's direction, so the tangent
+    // extension may only run as far as the other endpoint actually lies in that
+    // direction. A flat `dist * 0.5` sized it by the whole separation, which on
+    // a reference-anchored layout is mostly the row drop: an edge from the
+    // backbone down to an off-reference node swung sideways past both of its
+    // endpoints and came back, and the entry and exit edges of one node drew as
+    // a crossed bowtie rather than as a bubble. Projecting the separation onto
+    // the tangent is rotation invariant, so a force-directed layout, whose
+    // edges do run along their nodes, is unchanged; and it is clamped at 0, so
+    // an edge that doubles back gets a straight leader instead of a loop.
+    const tangentProj = (
+      prev: { x: number; y: number },
+      at: { x: number; y: number },
+      towardX: number,
+      towardY: number,
+    ) => {
+      const dx = at.x - prev.x
+      const dy = at.y - prev.y
+      const len = Math.hypot(dx, dy)
+      const along = len === 0 ? 0 : (towardX * dx + towardY * dy) / len
+      return Math.max(0, Math.min(dist * 0.5, 80, along * 0.5))
+    }
+    const towardToX = toStart.x - fromEnd.x
+    const towardToY = toStart.y - fromEnd.y
     const [cx1, cy1] = projectLine(
       fromPrev.x,
       fromPrev.y,
       fromEnd.x,
       fromEnd.y,
-      projDist,
+      tangentProj(fromPrev, fromEnd, towardToX, towardToY),
     )
     const [cx2, cy2] = projectLine(
       toNext.x,
       toNext.y,
       toStart.x,
       toStart.y,
-      projDist,
+      tangentProj(toNext, toStart, -towardToX, -towardToY),
     )
 
     return [

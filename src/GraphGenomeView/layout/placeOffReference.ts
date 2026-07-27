@@ -50,6 +50,13 @@ export function placeOffReference({
     // occupies the reference exactly once however many segments it is built
     // from. A run of all zero-length segments has no lengths to apportion by;
     // splitting evenly beats 0/0, which wrote NaN into every position after it.
+    //
+    // Where the floor widens a run past the reference it replaces, the overhang
+    // hangs off the right, so the run can end past the rank-0 segment it
+    // rejoins and its exit edge runs backwards. That is handled where it shows,
+    // in computeEdgeCurves, which sizes each control point by how far the other
+    // endpoint lies along its own tangent — a backwards edge gets a straight
+    // leader rather than the loop that read as a crossed bowtie.
     let cursor = allele.start
     for (const nodeId of allele.nodeIds) {
       const node = byId.get(nodeId)
