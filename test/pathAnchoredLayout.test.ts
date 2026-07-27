@@ -61,12 +61,17 @@ function config() {
 // Row labels are emitted by the layout that placed the rows, so reading them
 // back is reading which layout ran — an FMMM fallback emits none at all.
 function rowLabels(page: Page, viewId: string) {
-  return page.evaluate(id => {
-    const view = document.querySelector(`[data-testid="view-container-${id}"]`)
-    return [...(view?.querySelectorAll('[data-testid="graph-row-label"]') ?? [])]
-      .map(el => el.textContent?.trim())
-      .filter((t): t is string => !!t)
-  }, viewId)
+  return page.evaluate(
+    id =>
+      [
+        ...document.querySelectorAll(
+          `[data-testid="view-container-${id}"] [data-testid="graph-row-label"]`,
+        ),
+      ]
+        .map(el => el.textContent.trim())
+        .filter(t => !!t),
+    viewId,
+  )
 }
 
 describe.skipIf(!runE2E)('a pggb GFA anchored from its paths', () => {
