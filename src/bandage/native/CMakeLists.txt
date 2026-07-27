@@ -18,9 +18,11 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s MODULARIZE=1 -s EXPORT_ES6=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORT_NAME='createBandageLayoutModule'")
-# node is in the list so the determinism test can drive the engine outside a
-# browser; web and worker are how the plugin actually loads it.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='web,worker,node'")
+# Not 'node', even though scripts/smoke-wasm.mjs drives the engine under node:
+# adding it makes Emscripten emit a top-level `import("node:module")`, which
+# esbuild cannot resolve for the browser and fails the plugin build on. The
+# web path runs under node anyway once the wasm is inlined.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT='web,worker'")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --bind")
 # The wasm rides inlined as base64, so the engine is one self-contained ES
 # module that esbuild can emit as a lazy chunk with no sibling .wasm to host.
