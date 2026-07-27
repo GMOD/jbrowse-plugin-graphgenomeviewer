@@ -14,6 +14,14 @@
 # is content-hashed, so it can be immutable forever, while the entry point has a
 # fixed name and must go live promptly.
 #
+# Every build also lands under a content-addressed prefix, <PREFIX>/<hash>/, so a
+# config can pin the exact bundle it was written against. The plugin is not in
+# the jbrowse-components repo, so without a pin a deploy silently changes every
+# graph figure with no commit over there to attribute it to: that is how a
+# renamed dropdown label broke pangenome/rgfa_segment_neighbourhood, whose spec
+# clicked the old text. The unversioned entry point stays, and stays current —
+# the published figures' live links point at it.
+#
 # Finishes by downloading what the CDN actually serves and comparing it to what
 # was just built. That comparison is the whole point — it is what caught trap 2.
 #
@@ -51,11 +59,21 @@ if [ ! -f "dist/${ENTRY}" ]; then
   exit 1
 fi
 
+# The entry point already names every chunk it can load by content hash, so its
+# own digest identifies the whole bundle.
+VERSION=$(md5sum "dist/${ENTRY}" | cut -d' ' -f1 | cut -c1-12)
+
 # Hashed chunks first, so the entry point never references something not yet
 # uploaded. No --delete: old hashes stay reachable for anyone still holding a
 # cached entry point.
 echo "==> upload chunks (immutable)"
 aws s3 cp dist/chunks/ "s3://${BUCKET}/${PREFIX}/chunks/" --recursive \
+  --cache-control "public, max-age=31536000, immutable"
+
+# A whole immutable copy, entry point included. Nothing under here is ever
+# rewritten, so a config pinned to it draws the same picture next year.
+echo "==> upload pinnable copy at ${VERSION}/ (immutable)"
+aws s3 cp dist/ "s3://${BUCKET}/${PREFIX}/${VERSION}/" --recursive \
   --cache-control "public, max-age=31536000, immutable"
 
 echo "==> upload entry point (short ttl)"
@@ -92,13 +110,26 @@ echo "    ok, $local_md5"
 # user opens the view, which is far worse than failing to load at all.
 echo "==> verify referenced chunks resolve"
 missing=0
-for chunk in $(grep -o '\./chunks/[A-Za-z0-9_-]*\.js' "dist/${ENTRY}" | sort -u | sed 's|^\./||'); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/${chunk}")
-  if [ "$code" != "200" ]; then
-    echo "    $chunk -> $code" >&2
-    missing=1
-  fi
+for base in "${BASE_URL}" "${BASE_URL}/${VERSION}"; do
+  for chunk in $(grep -o '\./chunks/[A-Za-z0-9_-]*\.js' "dist/${ENTRY}" | sort -u | sed 's|^\./||'); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' "${base}/${chunk}")
+    if [ "$code" != "200" ]; then
+      echo "    ${base}/${chunk} -> $code" >&2
+      missing=1
+    fi
+  done
 done
 [ "$missing" = "0" ] || { echo "some chunks are not reachable" >&2; exit 1; }
 
+# The pinnable copy is served from a path the edge has never seen, so it needs
+# no invalidation — but it does need to exist before a config points at it.
+echo "==> verify the pinnable entry point"
+curl -fsS -o "$served" "${BASE_URL}/${VERSION}/${ENTRY}"
+pinned_md5=$(md5sum "$served" | cut -d' ' -f1)
+if [ "$local_md5" != "$pinned_md5" ]; then
+  echo "MISMATCH: ${BASE_URL}/${VERSION}/${ENTRY} serves $pinned_md5" >&2
+  exit 1
+fi
+
 echo "==> done: ${BASE_URL}/${ENTRY}"
+echo "    pin configs at ${BASE_URL}/${VERSION}/${ENTRY}"
