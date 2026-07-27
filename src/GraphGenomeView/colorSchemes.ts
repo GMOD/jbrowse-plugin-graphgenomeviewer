@@ -11,6 +11,7 @@ export const COLOR_SCHEMES = [
   { value: 'depth', label: 'Depth' },
   { value: 'node-length', label: 'Node Length' },
   { value: 'stable-rank', label: 'Stable rank' },
+  { value: 'reference-position', label: 'Reference position' },
   { value: 'grey', label: 'Grey' },
 ] as const
 

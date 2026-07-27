@@ -1,7 +1,11 @@
 import { expect, test, vi } from 'vitest'
 
 import { graphLaunchMenuItems } from './graphMenuItems'
-import { launchSyntenyView, showInLinearView } from './launchFromGraph'
+import {
+  highlightInLinearView,
+  launchSyntenyView,
+  showInLinearView,
+} from './launchFromGraph'
 
 import type { Contributor } from './contributors'
 import type { GraphLaunchSession } from './launchFromGraph'
@@ -41,6 +45,7 @@ function linearView(id: string, assemblyNames: string[]) {
     type: 'LinearGenomeView',
     assemblyNames,
     navToLocString: vi.fn(),
+    addToHighlights: vi.fn(),
   }
 }
 
@@ -198,4 +203,44 @@ test('several contributors and a synteny track launch it', () => {
     item.onClick(undefined)
   }
   expect(onShowSynteny).toHaveBeenCalledWith('ecoli_ava')
+})
+
+// The other direction of "where is this node": mark it in place rather than
+// scroll to it, which is the half that survives a screenshot.
+test('highlighting marks the view beside the graph and moves nothing', () => {
+  const view = linearView('lgv1', ['K12'])
+  const { session, added } = testSession([view])
+
+  const marked = highlightInLinearView({
+    session,
+    location: K12_LOCATION,
+    assembly: 'K12',
+    connectedViewId: undefined,
+  })
+
+  expect(marked).toBe(true)
+  expect(view.addToHighlights).toHaveBeenCalledWith({
+    refName: 'chr',
+    start: 1000,
+    end: 6000,
+    assemblyName: 'K12',
+  })
+  expect(view.navToLocString).not.toHaveBeenCalled()
+  expect(added).toEqual([])
+})
+
+// Nothing to mark opens nothing: a highlight with no view to draw it in is the
+// one case where the menu item should not have been offered at all.
+test('highlighting with no linear view on the assembly does nothing', () => {
+  const { session, added } = testSession([linearView('lgv1', ['Sakai'])])
+
+  expect(
+    highlightInLinearView({
+      session,
+      location: K12_LOCATION,
+      assembly: 'K12',
+      connectedViewId: undefined,
+    }),
+  ).toBe(false)
+  expect(added).toEqual([])
 })

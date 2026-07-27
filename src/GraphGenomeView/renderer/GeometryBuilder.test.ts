@@ -1,8 +1,10 @@
 import {
+  REFERENCE_RAMP_MAX_HUE,
   brightenColors,
   buildGeometry,
   endTangent,
   extractColorSlice,
+  hslToRgb,
 } from './GeometryBuilder'
 import {
   abgrAlpha,
@@ -479,5 +481,114 @@ describe('endTangent', () => {
     expect(
       endTangent({ x0: 0, y0: 0, cx0: 0, cy0: 0, cx1: 10, cy1: 10, x1: 10, y1: 10 }),
     ).toBeCloseTo(Math.atan2(10, 10), 6)
+  })
+})
+
+describe('the reference-position ramp', () => {
+  // Two backbone segments at either end of a 1000 bp window and one allele
+  // bridging them, which is the shape every graph-over-linear figure has.
+  const nodes = [
+    {
+      id: 'left+',
+      name: 'left',
+      length: 100,
+      depth: 2,
+      stable: { refName: 'chr', start: 0, rank: 0 },
+    },
+    {
+      id: 'right+',
+      name: 'right',
+      length: 100,
+      depth: 2,
+      stable: { refName: 'chr', start: 900, rank: 0 },
+    },
+    {
+      id: 'alt+',
+      name: 'alt',
+      length: 5000,
+      depth: 1,
+      stable: { refName: 'other', start: 7, rank: 1 },
+    },
+    { id: 'loose+', name: 'loose', length: 10, depth: 1 },
+  ]
+  const graph = {
+    name: 'test',
+    nodes,
+    edges: [
+      { from: 'left+', to: 'alt+' },
+      { from: 'alt+', to: 'right+' },
+    ],
+  }
+  const positions = Object.fromEntries(
+    nodes.map((n, i) => [
+      n.id,
+      [
+        { x: i * 20, y: 0 },
+        { x: i * 20 + 10, y: 0 },
+      ],
+    ]),
+  )
+
+  function colorsFor(colorDomain?: { start: number; end: number }) {
+    const batch = buildGeometry({
+      nodePositions: positions,
+      graph,
+      nodeById: new Map(nodes.map(n => [n.id, n])),
+      colorScheme: 'reference-position',
+      colorDomain,
+      scale: 1,
+      contigThickness: 5,
+      connectorThickness: 1.5,
+      drawPaths: false,
+    })
+    return Object.fromEntries(
+      nodes.map(n => [
+        n.id,
+        batch.nodes.colors[batch.nodeVertexRanges.get(n.id)!.start],
+      ]),
+    )
+  }
+
+  // The contract a linear track's `color` jexl reproduces. Written out as the
+  // arithmetic rather than as a captured constant, so an edit to the ramp fails
+  // here instead of silently desynchronising the two panels.
+  function expectedColor(mid: number, start: number, span: number) {
+    const frac = Math.max(0, Math.min(1, (mid - start) / span))
+    const [r, g, b] = hslToRgb(frac * REFERENCE_RAMP_MAX_HUE, 0.7, 0.5)
+    return packAbgr(
+      Math.round(r * 255),
+      Math.round(g * 255),
+      Math.round(b * 255),
+      255,
+    )
+  }
+
+  test('paints a backbone segment the hue of its own midpoint', () => {
+    const colors = colorsFor({ start: 0, end: 1000 })
+    expect(colors['left+']).toBe(expectedColor(50, 0, 1000))
+    expect(colors['right+']).toBe(expectedColor(950, 0, 1000))
+  })
+
+  // The point of the scheme: an allele has no reference coordinate of its own,
+  // so it takes the colour of the interval it branches from — between the end
+  // of the left flank and the start of the right one.
+  test('paints an allele the hue of the interval it branches from', () => {
+    const colors = colorsFor({ start: 0, end: 1000 })
+    expect(colors['alt+']).toBe(expectedColor((100 + 900) / 2, 0, 1000))
+  })
+
+  test('greys a node with no reference position at all', () => {
+    expect(colorsFor({ start: 0, end: 1000 })['loose+']).toBe(
+      packAbgr(160, 160, 160, 255),
+    )
+  })
+
+  // A whole-file import states no region, so the ramp spans what it drew. The
+  // two backbone segments then take the ends of the ramp rather than sitting in
+  // the middle of a window nothing declared.
+  test('falls back to the drawn extent with no region', () => {
+    const colors = colorsFor()
+    expect(colors['left+']).toBe(expectedColor(50, 50, 900))
+    expect(colors['right+']).toBe(expectedColor(950, 50, 900))
   })
 })

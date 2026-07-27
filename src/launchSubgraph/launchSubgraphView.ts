@@ -1,4 +1,4 @@
-import { MAX_GRAPH_REGION_BP } from '../GraphGenomeView/model'
+import { MAX_GRAPH_REGION_BP, formatSpanBp } from '../GraphGenomeView/model'
 
 import type { NotificationLevel, Region } from '@jbrowse/core/util'
 
@@ -70,9 +70,9 @@ export function regionFromViewport(blocks: Region[]) {
 // the reason it is greyed out, so the cap is something the user reads before
 // clicking rather than a notification afterwards.
 export function subgraphRegionProblem(region: SubgraphRegion) {
-  const kb = Math.round((region.end - region.start) / 1000)
-  return region.end - region.start > MAX_GRAPH_REGION_BP
-    ? `Region is ${kb} kb — zoom in or select a smaller range (max ${MAX_GRAPH_REGION_BP / 1000} kb)`
+  const span = region.end - region.start
+  return span > MAX_GRAPH_REGION_BP
+    ? `Region is ${formatSpanBp(span)} — zoom in or select a smaller range (max ${formatSpanBp(MAX_GRAPH_REGION_BP)})`
     : undefined
 }
 
@@ -99,7 +99,7 @@ export function launchSubgraphView({
   const regionSize = region.end - region.start
   if (regionSize > MAX_GRAPH_REGION_BP) {
     session.notify(
-      `Region too large (${Math.round(regionSize / 1000)} kb) — zoom in to open a graph view (max ${MAX_GRAPH_REGION_BP / 1000} kb)`,
+      `Region too large (${formatSpanBp(regionSize)}) — zoom in to open a graph view (max ${formatSpanBp(MAX_GRAPH_REGION_BP)})`,
       'warning',
     )
   } else {

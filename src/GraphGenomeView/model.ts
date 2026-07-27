@@ -32,11 +32,13 @@ import {
 } from '../launchFromGraph/contributors'
 import { graphLaunchMenuItems } from '../launchFromGraph/graphMenuItems'
 import {
+  highlightInLinearView,
   launchSyntenyView,
   paddedLocation,
   showInLinearView,
   withReferenceRegion,
 } from '../launchFromGraph/launchFromGraph'
+import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
 import type { ColorScheme } from './colorSchemes'
@@ -454,6 +456,21 @@ export default function stateModelFactory() {
             self.loadedRegion,
           ),
           getSession(self).assemblyNames,
+        )
+      },
+      // Whether there is a linear view this graph may draw a highlight into —
+      // the paired one, or the session's only one on the reference assembly.
+      // Read by the node menu, which offers the item only when it would land
+      // somewhere.
+      get canHighlightInLinearView() {
+        const region = self.loadedRegion
+        return (
+          region !== undefined &&
+          linearViewTarget({
+            views: [...getSession(self).views],
+            connectedViewId: self.connectedViewId,
+            assemblyName: region.assemblyName,
+          }) !== undefined
         )
       },
       // Where one node can be opened: on its own assembly, and on the reference
@@ -1106,6 +1123,10 @@ export default function stateModelFactory() {
                 scale: untracked(() => self.scale),
                 linearLayout: self.linearLayout,
                 viewportBounds: untracked(() => computeViewportBounds(self)),
+                // the region the subgraph was cut from, which is what the
+                // reference-position ramp spans. A whole-file import has none
+                // and the ramp falls back to the drawn extent.
+                colorDomain: self.loadedRegion,
               })
               b.uploadGeometry(batch)
               self.storeRenderBatchMeta(batch)
@@ -1194,6 +1215,20 @@ export default function stateModelFactory() {
               : [],
         })
         self.pairWithLinearView(viewId)
+      },
+      // Mark the node's reference interval in the linear view beside the graph.
+      // Not an action that opens anything: with no view to mark, the menu does
+      // not offer it (see nodeLaunchMenuItems).
+      highlightInLinearView(target: {
+        location: GraphLocation
+        assembly: string
+      }) {
+        highlightInLinearView({
+          session: getSession(self),
+          location: target.location,
+          assembly: target.assembly,
+          connectedViewId: self.connectedViewId,
+        })
       },
       showSyntenyView(trackId: string) {
         launchSyntenyView({

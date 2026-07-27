@@ -1,4 +1,5 @@
 import { brightenAbgr, packAbgr } from './colorBits'
+import { referenceMidpoints } from '../referenceSpan'
 import { computeEdgeCurves } from '../util/geometry'
 import {
   FIELD_OFFSET_F32,
@@ -46,6 +47,9 @@ export interface BuildOptions {
   scale: number
   linearLayout?: boolean
   viewportBounds?: { minX: number; minY: number; maxX: number; maxY: number }
+  // the reference interval the 'reference-position' ramp spans, i.e. the region
+  // this subgraph was cut from. Unused by every other scheme.
+  colorDomain?: { start: number; end: number }
 }
 
 export function hslToRgb(
@@ -129,6 +133,22 @@ function hashColor(str: string, alpha: number) {
   return packNorm(r, g, b, alpha)
 }
 
+// A hue ramp over reference coordinates, which is the one colouring a linear
+// track can reproduce exactly: it is a function of two stated numbers and a
+// node's reference midpoint, so `hsl(min(300,max(0,(mid-start)/span*300)),70%,50%)`
+// in a track's `color` slot paints a segment the colour the graph paints its
+// node. Stops at 300 rather than wrapping to 360, so the two ends of the window
+// are red and magenta rather than both red.
+export const REFERENCE_RAMP_MAX_HUE = 300
+const REFERENCE_RAMP_SATURATION = 0.7
+const REFERENCE_RAMP_LIGHTNESS = 0.5
+
+export interface ReferenceRamp {
+  start: number
+  span: number
+  midpoints: Map<string, number>
+}
+
 export interface ColorSchemeRange {
   minDepth: number
   maxDepth: number
@@ -136,6 +156,38 @@ export interface ColorSchemeRange {
   maxLength: number
   maxRank: number
   nodeCount: number
+  referenceRamp?: ReferenceRamp
+}
+
+// The domain is stated by the caller — the region the subgraph was cut from —
+// rather than measured off the nodes, because a linear view has no way to know
+// what the cut reached: segments overrun the region at both edges, so a
+// measured domain would shift the hue of every node by an amount the other
+// panel cannot compute. With no region (a whole-file import) the drawn extent
+// is all there is, and the ramp is then only comparable to itself.
+export function computeReferenceRamp(
+  graph: Graph,
+  domain: { start: number; end: number } | undefined,
+): ReferenceRamp {
+  const midpoints = referenceMidpoints(graph)
+  if (domain && domain.end > domain.start) {
+    return {
+      start: domain.start,
+      span: domain.end - domain.start,
+      midpoints,
+    }
+  }
+  let min = Infinity
+  let max = -Infinity
+  for (const mid of midpoints.values()) {
+    min = Math.min(min, mid)
+    max = Math.max(max, mid)
+  }
+  return {
+    start: min === Infinity ? 0 : min,
+    span: max > min ? max - min : 1,
+    midpoints,
+  }
 }
 
 export function computeColorSchemeRange(graph: Graph) {
@@ -212,6 +264,25 @@ export function getNodeColor(
                 ? (node.stable.rank - 1) / (range.maxRank - 1)
                 : 0,
             )
+
+    // Position on the reference, the one quantity both panels of a
+    // graph-over-linear figure can state. A node with no reference position at
+    // all — nothing anchored, or an allele whose flanks fell outside the cut —
+    // is grey rather than a hue it has not earned.
+    case 'reference-position': {
+      const ramp = range.referenceRamp
+      const mid = ramp?.midpoints.get(node.id)
+      if (ramp === undefined || mid === undefined) {
+        return packAbgr(160, 160, 160, 255)
+      }
+      const frac = Math.max(0, Math.min(1, (mid - ramp.start) / ramp.span))
+      const [r, g, b] = hslToRgb(
+        frac * REFERENCE_RAMP_MAX_HUE,
+        REFERENCE_RAMP_SATURATION,
+        REFERENCE_RAMP_LIGHTNESS,
+      )
+      return packNorm(r, g, b, 1)
+    }
 
     case 'grey':
       return packAbgr(160, 160, 160, 255)
@@ -555,6 +626,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     scale,
     linearLayout,
     viewportBounds,
+    colorDomain,
   } = options
 
   const nodeMesh = new MeshBuilder()
@@ -565,7 +637,15 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
   const edgeCurves: EdgeCurveBatch[] = []
   const edgeCurveRanges = new Map<number, VertexRange>()
 
-  const colorRange = computeColorSchemeRange(graph)
+  // the ramp costs a neighbour walk per node, so it is built only for the
+  // scheme that reads it
+  const colorRange = {
+    ...computeColorSchemeRange(graph),
+    referenceRamp:
+      colorScheme === 'reference-position'
+        ? computeReferenceRamp(graph, colorDomain)
+        : undefined,
+  }
 
   const nodeIndexMap = new Map<string, number>()
   if (colorScheme === 'rainbow') {

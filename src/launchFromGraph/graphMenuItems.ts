@@ -1,4 +1,5 @@
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
+import HighlightAltIcon from '@mui/icons-material/HighlightAlt'
 import LineStyleIcon from '@mui/icons-material/LineStyle'
 
 import { locLabel } from './contributors'
@@ -8,6 +9,7 @@ import type { LaunchableSyntenyTrack } from './syntenyTracks'
 import type { MenuItem } from '@jbrowse/core/ui'
 
 const LINEAR_LABEL = 'Linear genome view'
+const OPEN_LABEL = 'Open in linear view'
 const SYNTENY_LABEL = 'Linear synteny view'
 const NO_SYNTENY_TRACK =
   'No synteny track in this session aligns these assemblies'
@@ -122,21 +124,30 @@ export function graphLaunchMenuItems({
 //     an exact span (see nodeReferenceSpan), so it is labelled as the region
 //     around the node rather than as the node.
 //
-// Flat, not under a "Launch view" submenu: this menu is three items long and
+// Labels are verbs. Review: "the lineargenomeview menu item should say launch
+// if that is what it does" — a bare `Linear genome view — hg38 chr6:…` names a
+// place and leaves the reader to guess whether clicking scrolls the view beside
+// the graph or opens a new one. It does the first when there is one to scroll
+// (see showInLinearView), so "Open in" covers both without claiming a launch.
+//
+// Flat, not under a "Launch view" submenu: this menu is a handful of items and
 // every one is contextual to the node just clicked.
 export function nodeLaunchMenuItems({
   own,
   reference,
   onShowLinear,
+  onHighlight,
 }: {
   own: LinearTarget | undefined
   reference: LinearTarget | undefined
   onShowLinear: (target: LinearTarget) => void
+  // absent when no linear view in the session is this graph's to mark
+  onHighlight?: (target: LinearTarget) => void
 }): MenuItem[] {
   const entries = [
     own
       ? {
-          label: `${LINEAR_LABEL} — ${own.assembly} ${locLabel(own.location)}`,
+          label: `${OPEN_LABEL} — ${own.assembly} ${locLabel(own.location)}`,
           target: own,
         }
       : undefined,
@@ -146,17 +157,34 @@ export function nodeLaunchMenuItems({
     // places to go.
     reference && reference.assembly !== own?.assembly
       ? {
-          label: `${LINEAR_LABEL} — around this node on ${reference.assembly}`,
+          label: `${OPEN_LABEL} — around this node on ${reference.assembly}`,
           target: reference,
         }
       : undefined,
   ].filter(entry => entry !== undefined)
 
-  return entries.map(({ label, target }) => ({
-    label,
-    icon: LineStyleIcon,
-    onClick: () => {
-      onShowLinear(target)
-    },
-  }))
+  // The reference projection, not the node's own coordinates: a highlight is
+  // drawn in the linear view already on screen, and that view is on the
+  // reference the subgraph was cut from.
+  const highlightable = onHighlight && reference
+  return [
+    ...(highlightable
+      ? [
+          {
+            label: `Highlight this node in the ${reference.assembly} view`,
+            icon: HighlightAltIcon,
+            onClick: () => {
+              onHighlight(reference)
+            },
+          },
+        ]
+      : []),
+    ...entries.map(({ label, target }) => ({
+      label,
+      icon: LineStyleIcon,
+      onClick: () => {
+        onShowLinear(target)
+      },
+    })),
+  ]
 }

@@ -2,6 +2,16 @@ export interface NavigableLinearView {
   id: string
   assemblyNames: string[]
   navToLocString: (locString: string, assemblyName?: string) => unknown
+  // The other way of answering "where is this node": mark it rather than scroll
+  // to it. Optional, and not part of isLinearView's test — navigating is what
+  // makes a view a target here, and a view that cannot be marked can still be
+  // moved.
+  addToHighlights?: (highlight: {
+    refName: string
+    start: number
+    end: number
+    assemblyName: string
+  }) => unknown
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

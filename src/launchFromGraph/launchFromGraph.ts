@@ -104,6 +104,43 @@ export function showInLinearView({
   return viewId
 }
 
+// Mark where a node sits on the reference, in the linear view already on
+// screen, instead of scrolling that view to it. Review: "need to be able to
+// just highlight lineargenomeview coords".
+//
+// The other half of the pair above, and the half that survives being let go of:
+// hover sync draws a band for as long as the pointer is over the node, where a
+// highlight is written into the view's own list and stays until it is removed.
+// It also keeps the reader's frame — the interesting comparison at a pangenome
+// locus is usually the whole window, not the 200 bp the node occupies.
+//
+// Nothing to mark when no linear view on that assembly is ours to move (see
+// linearViewTarget); the caller offers the item only when there is.
+export function highlightInLinearView({
+  session,
+  location,
+  assembly,
+  connectedViewId,
+}: {
+  session: GraphLaunchSession
+  location: GraphLocation
+  assembly: string
+  connectedViewId?: string
+}) {
+  const target = linearViewTarget({
+    views: session.views,
+    connectedViewId,
+    assemblyName: assembly,
+  })
+  target?.addToHighlights?.({
+    refName: location.refName,
+    start: location.start,
+    end: location.end,
+    assemblyName: assembly,
+  })
+  return target !== undefined
+}
+
 // One panel per contributing assembly, each framed on the locus that assembly
 // contributes here, with the graph's own reference panel on top.
 //

@@ -191,6 +191,11 @@ const NodeContextMenu = observer(function NodeContextMenu({
           onShowLinear: target => {
             model.showInLinearView(target)
           },
+          onHighlight: model.canHighlightInLinearView
+            ? target => {
+                model.highlightInLinearView(target)
+              }
+            : undefined,
         }),
       ]}
     />
