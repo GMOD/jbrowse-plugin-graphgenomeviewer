@@ -14,8 +14,9 @@ export const FORCE_LAYOUT_LABEL = 'Force-directed layout'
 // disagree.
 //
 // `run` returning undefined means "this mode can't draw this graph" and hands
-// off to the remote Bandage FMMM engine. 'auto' uses it when a GFA declares no
-// rank-0 backbone, and 'force' is simply the mode that always takes it.
+// off to the remote Bandage FMMM engine. 'auto' uses it when a GFA has no
+// rank-0 backbone — neither declared in rGFA tags nor derivable from P/W lines
+// (pathAnchoring.ts) — and 'force' is simply the mode that always takes it.
 export interface LayoutMode {
   value: string
   label: string
@@ -34,7 +35,8 @@ export const LAYOUT_MODES = [
   {
     value: 'auto',
     label: 'Anchored',
-    description: 'x is reference bp, one row per stable rank. rGFA only.',
+    description:
+      'x is reference bp, one row per stable rank. Needs rGFA tags or a reference path.',
     run: anchoredLayout,
     available: graph => graph.nodes.some(isBackbone),
   },
@@ -42,7 +44,7 @@ export const LAYOUT_MODES = [
     value: 'samplerows',
     label: 'Sample rows',
     description:
-      'x is reference bp, one row per contributing assembly. rGFA only.',
+      'x is reference bp, one row per contributing assembly. Needs rGFA tags or a reference path.',
     run: sampleRowLayout,
     available: graph =>
       graph.nodes.some(isBackbone) && graph.nodes.some(isOffReference),

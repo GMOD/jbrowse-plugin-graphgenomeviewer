@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { sampleRowLayout } from './sampleRowLayout'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
+import { anchorGraph } from '../pathAnchoring'
 
 function ecoliGraph() {
   const gfa = readFileSync(
@@ -94,8 +95,35 @@ test('a deletion draws at its true reference width', () => {
   expect(right!.x - left!.x).toBe(500)
 })
 
+// A pggb GFA tags no segment with a coordinate, so until its paths are walked
+// there is no backbone to row against and inventing one would be inventing an
+// axis.
 test('declines a graph with no rank-0 backbone rather than inventing one', () => {
   expect(sampleRowLayout(pggbGraph())).toBeUndefined()
+})
+
+// Walked, the same graph rows exactly like the rGFA one — and better: a row
+// here is a strain that carries the allele, where rGFA's is the strain that
+// first contributed it.
+test('a pggb graph rows once its paths are walked', () => {
+  const graph = anchorGraph(pggbGraph(), 'K12')
+  const { nodePositions, rowLabels } = sampleRowLayout(graph)!
+
+  expect(rowLabels!.map(r => r.label)).toEqual([
+    'K12',
+    'CFT073',
+    'IAI39',
+    'NCTC86',
+    'Sakai',
+  ])
+  // every node drawn, and every one of them on the row its own stable name
+  // names — no node stranded off the rows the labels claim
+  expect(Object.keys(nodePositions)).toHaveLength(graph.nodes.length)
+  const labelY = new Map(rowLabels!.map(r => [r.label, r.y]))
+  for (const node of graph.nodes) {
+    const sample = node.stable!.refName.split('#')[0]!
+    expect(nodePositions[node.id]![0]!.y).toBe(labelY.get(sample))
+  }
 })
 
 // The drawn width of an allele's segments is apportioned by their share of the

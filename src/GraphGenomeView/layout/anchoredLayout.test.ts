@@ -1,6 +1,7 @@
 import { anchoredLayout } from './anchoredLayout'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
+import { anchorGraph } from '../pathAnchoring'
 
 // The worked example from gfatools/doc/rGFA.md: chr1 runs v1->v2->v3->v4, and
 // foo carries an alternate allele (v5,v6) that leaves and rejoins it.
@@ -50,6 +51,27 @@ test('a plain GFA with no stable tags gets no anchored layout', () => {
 S\t2\tGGCC
 L\t1\t+\t2\t+\t0M`)
   expect(anchoredLayout(convertGFAToGraph(plain))).toBeUndefined()
+})
+
+// The same graph with a path is anchorable: the path states in step order what
+// rGFA states in SN/SO tags, and once walked the reference axis is the same
+// axis. This is the whole of what pathAnchoring buys the layout.
+test('a path GFA lays out on the axis its reference path declares', () => {
+  const withPath = parseGFA(`S\t1\tAAAAA
+S\t2\tCCC
+S\t3\tGG
+L\t1\t+\t2\t+\t0M
+L\t2\t+\t3\t+\t0M
+P\tK12#1#chr:100-110\t1+,2+,3+\t*`)
+  const pos = anchoredLayout(
+    anchorGraph(convertGFAToGraph(withPath), 'K12'),
+  )!.nodePositions
+
+  expect(pos['1+']).toEqual([
+    { x: 100, y: 0 },
+    { x: 105, y: 0 },
+  ])
+  expect(pos['3+']![0]).toEqual({ x: 108, y: 0 })
 })
 
 // Rank is a whole-graph property: HPRC's minigraph graph ranks up to 89 while

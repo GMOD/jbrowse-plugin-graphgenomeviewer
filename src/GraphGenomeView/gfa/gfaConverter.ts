@@ -1,6 +1,8 @@
 import { stableCoordinate } from '../../gfa-core/index'
+import { pathOrigin, surveyPaths } from '../pathAnchoring'
 
 import type { GFAGraph, GFANode } from '../../gfa-core/index'
+import type { PathSteps } from '../pathAnchoring'
 import type { Graph, GraphEdge, GraphNode, GraphPath } from '../types'
 
 // Single pass over every reference a GFA makes to a segment, collecting the two
@@ -45,6 +47,33 @@ function surveySegments(gfaGraph: GFAGraph) {
     }
   }
   return { canonical, traversals }
+}
+
+// P and W state the same thing in different shapes: a P body is a comma-joined
+// `<id><strand>` list whose start offset lives in the record's *name*, a W
+// record arrives already split into steps and states its start as a field.
+// Normalized here so the coordinate walk sees one kind of path.
+function anchorablePaths(gfaGraph: GFAGraph): PathSteps[] {
+  return [
+    ...gfaGraph.paths.map(p => ({
+      ...pathOrigin(p.name),
+      steps: p.path.split(',').map(segment => ({
+        id: segment.slice(0, -1),
+        strand: segment.endsWith('-') ? ('-' as const) : ('+' as const),
+      })),
+    })),
+    ...gfaGraph.walks.map(w => ({
+      name: `${w.sample}#${w.haplotype}#${w.contig}`,
+      // `*` parses to -1, meaning the record declines to say; 0 is then the
+      // only offset that can be assumed, and it makes the walk self-relative
+      // rather than wrong
+      start: w.start === -1 ? 0 : w.start,
+      steps: w.segments.map(s => ({
+        id: s.id,
+        strand: s.strand === '-' ? ('-' as const) : ('+' as const),
+      })),
+    })),
+  ]
 }
 
 function makeNode(
@@ -132,10 +161,24 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
     }
   }
 
+  // Only walked when the file has paths to walk, so an rGFA — which has none at
+  // all — pays nothing for it. `lengthOf` reads the segment table rather than
+  // the nodes just built, because a path may name a segment no S line declared.
+  const lengths = new Map(gfaGraph.nodes.map(n => [n.id, n.length]))
+  const anchoring =
+    gfaGraph.paths.length > 0 || gfaGraph.walks.length > 0
+      ? surveyPaths(anchorablePaths(gfaGraph), id => lengths.get(id) ?? 0)
+      : undefined
+
   return {
     name,
     nodes,
     edges,
     paths: paths.length > 0 ? paths : undefined,
+    anchorPaths: anchoring?.anchorPaths,
+    pathVisits: anchoring?.pathVisits,
+    // rGFA's own tags win wherever they are present; pathAnchoring only ever
+    // fills in for a graph that carries none.
+    anchoredBy: nodes.some(n => n.stable) ? 'tags' : undefined,
   } satisfies Graph
 }

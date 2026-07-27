@@ -83,6 +83,34 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           </Typography>
         </div>
 
+        {model.anchorPaths.length > 1 ? (
+          <div className={classes.section}>
+            <FormControl className={classes.formControl}>
+              <InputLabel>Reference path</InputLabel>
+              <Select
+                value={model.activeReferencePath ?? ''}
+                label="Reference path"
+                data-testid="graph-reference-path-select"
+                onChange={e => {
+                  model.setReferencePath(e.target.value)
+                  void model.recomputeLayout()
+                }}
+              >
+                {model.anchorPaths.map(({ name }) => (
+                  <MenuItem key={name} value={name}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary">
+              Which path the anchored layouts draw x against. A GFA with no rGFA
+              tags states its coordinates only in its paths, and marks none of
+              them as the reference.
+            </Typography>
+          </div>
+        ) : null}
+
         <div className={classes.section}>
           <FormControl className={classes.formControl}>
             <InputLabel>Color scheme</InputLabel>

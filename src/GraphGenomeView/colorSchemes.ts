@@ -10,7 +10,7 @@ export const COLOR_SCHEMES = [
   { value: 'rainbow', label: 'Rainbow' },
   { value: 'depth', label: 'Depth' },
   { value: 'node-length', label: 'Node Length' },
-  { value: 'stable-rank', label: 'Stable rank (rGFA)' },
+  { value: 'stable-rank', label: 'Stable rank' },
   { value: 'grey', label: 'Grey' },
 ] as const
 

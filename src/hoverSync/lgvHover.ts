@@ -61,8 +61,9 @@ export function hoverInRegion(
 // track is what's hovered: an RgfaTabixAdapter feature's name is the segment id,
 // which is `GraphNode.name` (`GraphNode.id` carries a strand suffix, so the
 // match has to be on name). Any other track — genes, bubbles — supplies only a
-// coordinate, which still identifies the backbone segment covering it because
-// rGFA segments do not overlap on a stable sequence.
+// coordinate, which still identifies the backbone segment covering it: the
+// backbone tiles the reference exactly once, whether rGFA's rank 0 declared it
+// or a reference path's own steps did.
 export function nodeForLgvHover({
   hover,
   nodes,

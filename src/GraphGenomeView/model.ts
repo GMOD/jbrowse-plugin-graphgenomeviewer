@@ -13,6 +13,7 @@ import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
 import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
+import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
@@ -190,6 +191,13 @@ export default function stateModelFactory() {
           types.enumeration(COLOR_SCHEME_VALUES),
           'uniform',
         ),
+        // Which of a general GFA's paths the anchored layouts put on x. A path
+        // GFA's names are arbitrary and none of them is marked as the
+        // reference, so this is a choice; empty means "infer", which is the
+        // assembly a subgraph was cut against, and the first path in the file
+        // for a whole-file import. No effect on an rGFA, whose segments carry
+        // their own coordinates. See pathAnchoring.ts.
+        referencePath: types.optional(types.string, ''),
         contigThickness: types.optional(types.number, 10),
         connectorThickness: types.optional(types.number, 4),
         darkMode: types.optional(types.boolean, false),
@@ -283,11 +291,30 @@ export default function stateModelFactory() {
       get hasGraph() {
         return self.graph !== undefined
       },
-      // rGFA declares a rank-0 backbone, so it can be drawn on the reference
-      // axis; a plain GFA can only ever be force-laid-out, and offering the
-      // choice there would be offering one option twice.
+      // A rank-0 backbone to draw x against, whether the segments declared it
+      // (rGFA) or a path walk derived it. Only a GFA with neither tags nor
+      // paths has no backbone at all, and there force is the one honest layout.
       get canAnchorLayout() {
         return self.graph?.nodes.some(n => n.stable?.rank === 0) ?? false
+      },
+      // The paths this graph could be anchored on, for the picker. Empty for an
+      // rGFA, which has no P/W records and needs none.
+      get anchorPaths() {
+        return self.graph?.anchorPaths ?? []
+      },
+      // The path x is currently drawn on, which is not necessarily the one
+      // `referencePath` asked for: an unmatched name falls back rather than
+      // leaving the graph unanchored, and the picker has to show what happened.
+      get activeReferencePath() {
+        return self.graph?.referencePath
+      },
+      // What to anchor on. An explicit choice wins; otherwise a graph cut from
+      // a track is anchored on the assembly it was cut against, which is the
+      // one the linear view beside it is showing.
+      get preferredReferencePath() {
+        return self.referencePath === ''
+          ? self.loadedRegion?.assemblyName
+          : self.referencePath
       },
       get nodePositions() {
         return self.layoutResult?.nodePositions
@@ -490,6 +517,16 @@ export default function stateModelFactory() {
       setLayoutMode(mode: LayoutModeValue) {
         self.layoutMode = mode
       },
+      // Re-anchor in place rather than re-parsing: the coordinate walk is
+      // already recorded on the graph, and only which path counts as rank 0
+      // changes. The caller recomputes the layout, the same way it does after
+      // setLayoutMode. An rGFA is left alone — its coordinates are not derived.
+      setReferencePath(name: string) {
+        self.referencePath = name
+        if (self.graph?.anchoredBy === 'paths') {
+          self.graph = anchorFromPaths(self.graph, name)
+        }
+      },
       setDrawPaths(draw: boolean) {
         self.drawPaths = draw
       },
@@ -560,6 +597,12 @@ export default function stateModelFactory() {
                   // stable name. On an HPRC graph this is the only thing that
                   // says which of 400-odd haplotypes an allele came from.
                   contributingAssembly: nodeOwnLocation(node)?.sample,
+                  // Every assembly that traverses it, which is a different
+                  // question and one only a path GFA can answer. Absent on an
+                  // rGFA rather than approximated, so the two are never
+                  // confused: there `contributingAssembly` is first-seen, not
+                  // carriage.
+                  carriedBy: node.samples?.join(', '),
                   ...(region && span
                     ? {
                         refName: region.refName,
@@ -753,7 +796,14 @@ export default function stateModelFactory() {
       function* parseAndLayout(text: string, name: string) {
         self.setStatusMessage('Parsing GFA')
         const gfaGraph = parseGFA(text)
-        const graph = convertGFAToGraph(gfaGraph, name)
+        // A general GFA states its coordinates only in its P/W lines, so the
+        // walk that recovers them happens before anything reads `stable` —
+        // otherwise the anchored layouts see an unanchored graph and hand off
+        // to force.
+        const graph = anchorGraph(
+          convertGFAToGraph(gfaGraph, name),
+          self.preferredReferencePath,
+        )
         // Checked here, between parsing and laying out, because this is the one
         // point both load paths pass through and it is upstream of everything
         // expensive: the layout, the geometry and the per-frame draw calls all

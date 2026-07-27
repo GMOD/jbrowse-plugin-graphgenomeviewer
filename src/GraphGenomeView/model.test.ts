@@ -463,6 +463,107 @@ describe('layoutMode', () => {
   })
 })
 
+// pggb/odgi: no segment carries a coordinate, so the only ones in the file are
+// in the P line names. One bubble, K12 taking `2` and Sakai taking `3`.
+const PGGB_GFA =
+  'H\tVN:Z:1.0\n' +
+  'S\t1\tAAAAA\n' +
+  'S\t2\tC\n' +
+  'S\t3\tG\n' +
+  'S\t4\tTTTTT\n' +
+  'L\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\n' +
+  'L\t2\t+\t4\t+\t0M\nL\t3\t+\t4\t+\t0M\n' +
+  'P\tK12#1#chr:100-111\t1+,2+,4+\t*\n' +
+  'P\tSakai#1#chr:200-211\t1+,3+,4+\t*\n'
+
+describe('reference path', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  function layoutCalls() {
+    return mockRpcCall.mock.calls.filter(c => c[1] === 'GraphComputeLayout')
+  }
+
+  function backboneStarts(model: ReturnType<typeof createModel>) {
+    return model
+      .graph!.nodes.filter(n => n.stable?.rank === 0)
+      .map(n => `${n.name}@${n.stable!.start}`)
+      .sort()
+  }
+
+  test('a whole-file pggb import anchors on the first path in the file', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(PGGB_GFA, 'pggb')
+
+    expect(model.activeReferencePath).toBe('K12#1#chr')
+    expect(model.canAnchorLayout).toBe(true)
+    // laid out from the walk, so the force engine is never reached
+    expect(layoutCalls()).toHaveLength(0)
+    expect(backboneStarts(model)).toEqual(['1@100', '2@105', '4@106'])
+  })
+
+  test('the picker moves the backbone onto another path', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(PGGB_GFA, 'pggb')
+
+    model.setReferencePath('Sakai#1#chr')
+    await model.recomputeLayout()
+
+    expect(model.activeReferencePath).toBe('Sakai#1#chr')
+    expect(backboneStarts(model)).toEqual(['1@200', '3@205', '4@206'])
+    // re-anchored from the recorded walk, not re-parsed and not re-laid-out
+    // by the engine
+    expect(layoutCalls()).toHaveLength(0)
+  })
+
+  // A subgraph cut from a track was cut against one assembly, and that is the
+  // one the linear view beside it is showing — so it is the axis to draw,
+  // without the user having to say so.
+  test('a subgraph anchors on the assembly it was cut against', async () => {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(PGGB_GFA)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadFromTabixSubgraph(
+      {},
+      { refName: 'chr', assemblyName: 'Sakai', start: 200, end: 211 },
+      { trackId: 'pggb' },
+    )
+
+    expect(model.activeReferencePath).toBe('Sakai#1#chr')
+  })
+
+  // An explicit choice outranks the inference, and survives a session reload —
+  // otherwise a restored view silently redraws against a different axis.
+  test('an explicit choice outranks the region and round-trips', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setReferencePath('Sakai')
+    expect(getSnapshot(model).referencePath).toBe('Sakai')
+
+    await model.loadGFA(PGGB_GFA, 'pggb')
+    expect(model.activeReferencePath).toBe('Sakai#1#chr')
+  })
+
+  // rGFA states its own coordinates, so a stale or wrong path name must not
+  // reach them.
+  test('rGFA ignores the setting', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setReferencePath('alt')
+    await model.loadGFA(RGFA, 'rgfa')
+
+    expect(model.activeReferencePath).toBeUndefined()
+    expect(backboneStarts(model)).toEqual(['1@0', '2@4'])
+  })
+})
+
 // A window with no bubbles in it lays every segment out on row 0, and x there is
 // reference bp — so a layout at offset 1 kb sat entirely off an 800 px canvas
 // while zoomToFit declined to act on it for having no height.

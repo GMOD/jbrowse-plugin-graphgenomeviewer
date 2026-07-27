@@ -19,9 +19,19 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // insertion is a mark at the point it attaches. Insertion *size* is deliberately
 // not on this axis — see placeOffReference.
 //
-// Positions come from `projectAlleles`, which derives them from SN/SO/SR and
-// the L-lines alone. rGFA has no W/P records to consult, so anything requiring
-// walks could not run on the format the graph tracks read.
+// Positions come from `projectAlleles`, which derives them from the stable
+// coordinates and the L-lines alone. rGFA has no W/P records to consult, so
+// anything requiring walks could not run on the format the graph tracks read.
+//
+// What a row means differs with where the coordinates came from, and the
+// difference is not cosmetic. On rGFA a segment's SN names the assembly that
+// *first contributed* it (SR is build order), so a row is first-seen
+// attribution. On a path-anchored graph it names an assembly that actually
+// carries the segment. Carriage is a set, though, and a row here is one node's
+// one position: where several assemblies carry a segment, it draws on the row
+// of the first path in the file that visits it, and `GraphNode.samples` holds
+// the rest. Drawing a segment once per carrier needs the layout to emit more
+// nodes than the graph has, which the renderer keys by node id and cannot do.
 
 const ROW_SPACING_SPAN_FRACTION = 0.05
 
@@ -35,8 +45,11 @@ const MIN_ALLELE_SPAN_FRACTION = 0.015
 // Every assembly with a segment in this subgraph, sorted so rows keep their
 // order across pans. Taken from the nodes rather than from the projection's
 // per-allele attribution: a bubble path can mix assemblies, and a segment
-// belongs on the row of the assembly its own SN names, not on the row of
-// whichever contributor happens to dominate the run it sits in.
+// belongs on the row of the assembly its own stable name gives it, not on the
+// row of whichever contributor happens to dominate the run it sits in.
+//
+// Read off the same field `rowY` places by, so every row that exists has nodes
+// on it and every node lands on a row that exists.
 function contributingSamples(graph: Graph) {
   const samples = new Set<string>()
   for (const node of graph.nodes) {

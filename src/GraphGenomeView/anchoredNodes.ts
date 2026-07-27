@@ -1,14 +1,16 @@
 import type { Graph, GraphNode } from './types'
 import type { StableCoordinate } from '../gfa-core/index'
 
-// A node whose stable coordinate is known to be present. rGFA states SN/SO/SR on
-// every segment, so the anchored layouts and the allele projection all work with
-// nodes whose `stable` is a fact rather than an optional — narrowing once here
-// keeps them from asserting it at every use.
+// A node whose stable coordinate is known to be present. rGFA states SN/SO/SR
+// on every segment and a path walk derives the same for every segment a path
+// visits (pathAnchoring.ts), so the anchored layouts and the allele projection
+// all work with nodes whose `stable` is a fact rather than an optional —
+// narrowing once here keeps them from asserting it at every use.
 export type AnchoredNode = GraphNode & { stable: StableCoordinate }
 
-// rGFA's stable rank: 0 is the reference backbone, higher ranks are the sequence
-// that diverges from it.
+// Stable rank: 0 is the reference backbone, higher ranks are the sequence that
+// diverges from it. rGFA counts those up in build order; a path-derived graph
+// has only the one distinction its paths support, on the reference or off it.
 export const REFERENCE_RANK = 0
 
 export function isAnchored(node: GraphNode): node is AnchoredNode {
