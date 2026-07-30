@@ -4,6 +4,7 @@ import { join } from 'path'
 import { deletionEdges } from './deletionEdges'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { parseGFA } from '../gfa-core/index'
+import { computeEdgeCurves } from './util/geometry'
 
 function graphOf(gfa: string) {
   return convertGFAToGraph(parseGFA(gfa))
@@ -80,4 +81,40 @@ test('finds deletions on the E. coli rGFA slice', () => {
     expect(d.bp).toBeGreaterThan(0)
     expect(d.end).toBeGreaterThan(d.start)
   }
+})
+
+test('names the backbone the deletion skips', () => {
+  // segment 2 ends at 1020 and 3 starts at 7020, so nothing lies between them
+  // here; add one that does and it must be reported
+  const withMiddle = RGFA.replace(
+    'S\t3\tACGTACGTAC\tSN:Z:GRCh38#0#chr6\tSO:i:7020\tSR:i:0\n',
+    'S\t5\tACGTACGTAC\tSN:Z:GRCh38#0#chr6\tSO:i:3000\tSR:i:0\n' +
+      'S\t3\tACGTACGTAC\tSN:Z:GRCh38#0#chr6\tSO:i:7020\tSR:i:0\n',
+  )
+  const [deletion] = deletionEdges(graphOf(withMiddle))
+  // both orientations of the bypassed segment, which is what the layout keys by
+  expect(deletion!.bypassed.map(id => id.replace(/[+-]$/, ''))).toContain('5')
+})
+
+// The arc has to bow without detaching: a deletion is drawn as an alternative
+// route to the backbone it skips, so its endpoints stay on the two nodes it
+// joins while its middle leaves the straight line between them.
+test('a bulge moves the curve off the chord but not its endpoints', () => {
+  const from = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ]
+  const to = [
+    { x: 110, y: 0 },
+    { x: 210, y: 0 },
+  ]
+  const flat = computeEdgeCurves(from, to, false, 0, 0, 1)[0]!
+  const bowed = computeEdgeCurves(from, to, false, 0, 0, 1, 60)[0]!
+  expect([bowed.x0, bowed.y0, bowed.x1, bowed.y1]).toEqual([
+    flat.x0,
+    flat.y0,
+    flat.x1,
+    flat.y1,
+  ])
+  expect(Math.abs(bowed.cy0)).toBeGreaterThan(Math.abs(flat.cy0) + 10)
 })

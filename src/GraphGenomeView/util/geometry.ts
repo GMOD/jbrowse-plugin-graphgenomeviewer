@@ -56,6 +56,16 @@ export function computeEdgeCurves(
   offsetX: number,
   offsetY: number,
   scale: number,
+  // Perpendicular displacement of the CONTROL points only, in layout units, so
+  // the curve bows away from the straight line between its endpoints while
+  // staying attached to both. Used to draw a deletion as an arc with real
+  // extent: topologically a deletion is a bubble whose reference arm is a long
+  // node and whose own arm is a bare link, so at the engine's 5-unit edge length
+  // it collapses into a stub at a joint and the one event a graph shows better
+  // than a linear view is invisible. Bowing it by the drawn length of the
+  // backbone it bypasses makes the two arms comparable, which is what a reader
+  // has to see to read it as an alternative route.
+  bulge = 0,
 ): BezierCurve[] {
   const fromEnd = fromSegments[fromSegments.length - 1]!
   const toStart = toSegments[0]!
@@ -168,14 +178,19 @@ export function computeEdgeCurves(
       tangentProj(toNext, toStart, -towardToX, -towardToY),
     )
 
+    // perpendicular to the chord, so the bow is symmetric about it
+    const chordLen = dist === 0 ? 1 : dist
+    const bulgeX = (-(p2y - p1y) / chordLen) * bulge
+    const bulgeY = ((p2x - p1x) / chordLen) * bulge
+
     return [
       {
         x0: p1x,
         y0: p1y,
-        cx0: cx1 + offsetX,
-        cy0: cy1 + offsetY,
-        cx1: cx2 + offsetX,
-        cy1: cy2 + offsetY,
+        cx0: cx1 + offsetX + bulgeX,
+        cy0: cy1 + offsetY + bulgeY,
+        cx1: cx2 + offsetX + bulgeX,
+        cy1: cy2 + offsetY + bulgeY,
         x1: p2x,
         y1: p2y,
       },

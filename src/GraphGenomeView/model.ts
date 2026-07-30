@@ -416,7 +416,7 @@ export default function stateModelFactory() {
       // has no region, and its stable names need not name anything in a loaded
       // assembly.
       get deletionEdgeIndexes() {
-        return new Set(self.deletions.map(d => d.edgeIndex))
+        return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
       },
       get hoverHighlight() {
         let result:

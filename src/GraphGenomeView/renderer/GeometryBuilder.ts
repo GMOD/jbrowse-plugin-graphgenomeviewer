@@ -30,6 +30,10 @@ const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0
 // there is no scheme it could disagree with. See deletionEdges.ts.
 const EDGE_DELETION_COLOR = packAbgr(214, 39, 40, 235)
 const DELETION_THICKNESS_FACTOR = 2.2
+// How far the arc bows out, as a fraction of the drawn length it bypasses. A
+// half would make the arc as tall as the reference stretch is long, which reads
+// as a circle rather than as a detour.
+const DELETION_BULGE_FRACTION = 0.35
 
 // Half-extent of an arrowhead, in world units before the view transform.
 const ARROWHEAD_SIZE = 12
@@ -57,10 +61,11 @@ export interface BuildOptions {
   // the reference interval the 'reference-position' ramp spans, i.e. the region
   // this subgraph was cut from. Unused by every other scheme.
   colorDomain?: { start: number; end: number }
-  // indexes into graph.edges of the links that skip reference sequence, from
-  // deletionEdges(). Passed in rather than derived here because the model can
-  // hold it against the graph, and because the same set names the hover text.
-  deletions?: Set<number>
+  // links that skip reference sequence (deletionEdges()), keyed by their index
+  // into graph.edges and carrying the backbone node ids they bypass. Passed in
+  // rather than derived here because the model can hold it against the graph,
+  // and because the same set names the hover text.
+  deletions?: Map<number, string[]>
 }
 
 export function hslToRgb(
@@ -703,9 +708,25 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const toStart = toSegments[0]!
     const numPaths = edge.pathIds?.length ?? 0
     const isSelfLoop = edge.from === edge.to
-    const isDeletion = deletions?.has(ei) ?? false
+    const bypassed = deletions?.get(ei)
+    const isDeletion = bypassed !== undefined
     const edgeThickness =
       (connectorThickness / 2) * (isDeletion ? DELETION_THICKNESS_FACTOR : 1)
+    // Bow the arc out by the drawn extent of the reference it skips, so the two
+    // arms of the bubble are comparable instead of one being a stub at a joint.
+    // Measured off the layout rather than converted from bp, because that is the
+    // only thing that is in the same units as the drawing whichever layout ran.
+    const bulge = bypassed
+      ? DELETION_BULGE_FRACTION *
+        bypassed.reduce((total, id) => {
+          const segs = nodePositions[id]
+          const first = segs?.[0]
+          const last = segs?.[segs.length - 1]
+          return first && last
+            ? total + Math.hypot(last.x - first.x, last.y - first.y)
+            : total
+        }, 0)
+      : 0
 
     const buildSingleEdge = (
       offsetX: number,
@@ -719,6 +740,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         offsetX,
         offsetY,
         scale,
+        bulge,
       )
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {

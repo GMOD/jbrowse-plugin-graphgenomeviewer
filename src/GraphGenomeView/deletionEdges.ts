@@ -40,11 +40,18 @@ export interface DeletionEdge {
   start: number
   end: number
   bp: number
+  // Backbone node ids whose reference interval lies inside the skipped span:
+  // the route a haplotype taking this edge does NOT take. A drawing sizes the
+  // deletion's arc off their drawn length so the two arms of the bubble are
+  // comparable; nothing else can supply that, because in a force layout the
+  // edge's own endpoints are wherever the simulation put them.
+  bypassed: string[]
 }
 
 // Every edge that skips reference sequence, in graph.edges order.
 export function deletionEdges(graph: Graph): DeletionEdge[] {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  const backbone = graph.nodes.filter(isBackbone)
   const found: DeletionEdge[] = []
   for (let edgeIndex = 0; edgeIndex < graph.edges.length; edgeIndex++) {
     const edge = graph.edges[edgeIndex]!
@@ -66,12 +73,21 @@ export function deletionEdges(graph: Graph): DeletionEdge[] {
       const end = right.stable.start
       const bp = end - start
       if (bp >= MIN_DELETION_BP) {
+        const refName = left.stable.refName
         found.push({
           edgeIndex,
-          refName: left.stable.refName,
+          refName,
           start,
           end,
           bp,
+          bypassed: backbone
+            .filter(
+              n =>
+                n.stable.refName === refName &&
+                n.stable.start >= start &&
+                n.stable.start + n.length <= end,
+            )
+            .map(n => n.id),
         })
       }
     }
