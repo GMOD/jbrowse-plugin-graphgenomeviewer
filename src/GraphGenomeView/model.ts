@@ -231,9 +231,36 @@ export default function stateModelFactory() {
             end: number
           }>(),
         ),
+        // How far the cut follows links past the segments the region's own
+        // links name. It has to be reachable, because at 0 a detour that leaves
+        // the backbone before the window and rejoins after it draws as two
+        // stubs: its interior segments are indexed only under their own stable
+        // sequence, which no query on the reference reaches, so an arm that
+        // bypasses 21 kb of reference arrives as a 43 bp fragment that reads as
+        // a small insertion. One hop closes those. Measured on the two hosted
+        // indexes: the E. coli paa locus goes 14 segments / 2 queries at 0 to
+        // 22 / 10 at 1, closing all four detours; a 100 kb HPRC window in
+        // chr6's densest stretch goes 352 / 2 to 363 / 140, so the cost is
+        // queries (one per off-reference segment reached) rather than nodes.
+        //
+        // Not the same operation as a graph-aware cut, and it does not converge
+        // to one: the frontier is a coordinate interval per reached segment, so
+        // each hop also pulls in flanking backbone outside the window while
+        // still stopping somewhere. `gfatools view -R <region> -r 1` walks the
+        // graph itself and is what to cut a file with; this is what the
+        // right-click launch has.
+        subgraphContext: types.optional(types.number, 0),
         // Whole-GFA source loaded on attach — lets a GraphGenomeView be
         // instantiated declaratively from a session/config snapshot.
         gfaLocation: types.maybe(types.frozen<FileLocation>()),
+        // The reference span the reference-position ramp runs over. A graph cut
+        // from a track already states one as `loadedRegion`; a file-loaded graph
+        // has no region at all, and this is how its snapshot can still put a
+        // linear track beside it on the same ramp — both painted from one pair
+        // of numbers rather than from the file's own measured extent.
+        colorDomain: types.maybe(
+          types.frozen<{ start: number; end: number }>(),
+        ),
         // The linear view this graph was launched from, so a hovered node can
         // draw its reference span there and vice versa. Written by the launch
         // menu; see hoverSync/.
@@ -329,6 +356,13 @@ export default function stateModelFactory() {
         return self.referencePath === ''
           ? self.loadedRegion?.assemblyName
           : self.referencePath
+      },
+      // The span the reference-position ramp runs over: what the snapshot
+      // stated, else the region the graph was cut from. Undefined only for a
+      // file-loaded graph that states neither, where the ramp falls back to the
+      // drawn extent (computeReferenceRamp).
+      get rampDomain() {
+        return self.colorDomain ?? self.loadedRegion
       },
       get nodePositions() {
         return self.layoutResult?.nodePositions
@@ -570,6 +604,11 @@ export default function stateModelFactory() {
       },
       setBubbleSpread(spread: BubbleSpread) {
         self.bubbleSpread = spread
+      },
+      // The caller refetches — the number only describes how the next cut is
+      // made, and the graph on screen was cut with the old one.
+      setSubgraphContext(hops: number) {
+        self.subgraphContext = hops
       },
       // Pair with a linear view for the hover sync, without ever repointing an
       // existing pairing: a graph launched *from* an LGV is already paired with
@@ -919,6 +958,28 @@ export default function stateModelFactory() {
         }
       }
 
+      // The cut behind a graph whose source is a track in this session, which is
+      // what both a launch snapshot and a restored session carry. Silent when
+      // there is no such pair, or when the track it names has since gone: those
+      // are the whole-file and stale cases, not errors.
+      //
+      // Nothing here saves and restores the transform: `userMovedViewport` is
+      // what protects a restored session's pan/zoom, and it gates the fit
+      // autorun — the only thing in this flow that would otherwise move the
+      // view. A save/restore pair around the load wrote back the values it had
+      // just read.
+      function* cutFromLoadedTrack() {
+        const region = self.loadedRegion
+        const track = self.loadedTrackId
+          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
+          : undefined
+        if (track && region) {
+          yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
+            context: self.subgraphContext,
+          })
+        }
+      }
+
       return {
         loadGFA: flow(function* (text: string, name = 'Imported GFA') {
           self.loadedTrackId = ''
@@ -943,32 +1004,26 @@ export default function stateModelFactory() {
             end: number
           },
           opts: {
-            context?: number
             trackId?: string
           } = {},
         ) {
           self.loadedTrackId = opts.trackId ?? ''
           self.loadedRegion = opts.trackId ? region : undefined
-          yield* doSubgraphLoad(adapterConfig, region, opts)
+          yield* doSubgraphLoad(adapterConfig, region, {
+            context: self.subgraphContext,
+          })
         }),
+        // Cut on attach only — a graph already on screen is either the user's
+        // own or one this just drew.
         refetchIfNeeded: flow(function* () {
-          if (!self.loadedTrackId || !self.loadedRegion || self.graph) {
-            return
+          if (!self.graph) {
+            yield* cutFromLoadedTrack()
           }
-          const session = getSession(self)
-          const track = session.tracks.find(
-            t => t.trackId === self.loadedTrackId,
-          )
-          if (!track) {
-            return
-          }
-          // Nothing here saves and restores the transform: `userMovedViewport`
-          // is what protects a restored session's pan/zoom, and it gates the fit
-          // autorun — the only thing in this flow that would otherwise move the
-          // view. A save/restore pair around the load wrote back the values it
-          // had just read.
-          const adapterConfig = readConfObject(track, 'adapter')
-          yield* doSubgraphLoad(adapterConfig, self.loadedRegion, {})
+        }),
+        // Cut the same region again, for a change to what the cut returns
+        // rather than to how it is drawn (subgraphContext).
+        reloadSubgraph: flow(function* () {
+          yield* cutFromLoadedTrack()
         }),
         recomputeLayout: flow(function* () {
           const graph = self.graph
@@ -1147,10 +1202,11 @@ export default function stateModelFactory() {
                 scale: untracked(() => self.scale),
                 linearLayout: self.linearLayout,
                 viewportBounds: untracked(() => computeViewportBounds(self)),
-                // the region the subgraph was cut from, which is what the
-                // reference-position ramp spans. A whole-file import has none
-                // and the ramp falls back to the drawn extent.
-                colorDomain: self.loadedRegion,
+                // What the reference-position ramp spans — the cut region, or
+                // whatever the snapshot stated instead. A whole-file import that
+                // states neither has none, and the ramp falls back to the drawn
+                // extent.
+                colorDomain: self.rampDomain,
                 deletions: self.deletionEdgeIndexes,
               })
               b.uploadGeometry(batch)

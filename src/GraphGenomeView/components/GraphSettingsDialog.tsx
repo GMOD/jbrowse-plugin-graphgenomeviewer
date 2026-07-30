@@ -18,6 +18,7 @@ import {
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 
+import SubgraphContextSelect from './SubgraphContextSelect'
 import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
 
@@ -140,6 +141,8 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             thickness and the graph draws as a rope.
           </Typography>
         </div>
+
+        <SubgraphContextSelect model={model} />
 
         <div className={classes.section}>
           <FormControl className={classes.formControl}>

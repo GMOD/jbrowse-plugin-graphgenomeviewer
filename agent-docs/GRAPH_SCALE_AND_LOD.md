@@ -282,11 +282,6 @@ pangenome reader wants), the colour modes, the layout quality, and a floor on
 drawn node length that Bandage exposes as `nodeWidthSpinBox`'s neighbours. What
 it has and we do not, in the order I would take it:
 
-- **`graphScopeComboBox` + `nodeDistanceSpinBox`** — draw the whole graph, or
-  everything within N steps of a named node. `RgfaTabixAdapter.getSubgraph`
-  already takes `context` for exactly this and **nothing in the UI ever sets
-  it**, so the expensive half is built. This is the one that changes what the
-  view is for: it turns a fixed window into somewhere you can walk outward from.
 - **`selectNodesButton` + exact/partial match** — find a segment by name and
   centre on it. A graph with no search is a graph you can only browse.
 - **node width by depth.** Bandage's signature look, and the reason a collapsed
@@ -305,3 +300,45 @@ Two Bandage features that deliberately do not port: BLAST search
 (`blastSearchButton` and friends), because a JBrowse session has real annotation
 tracks to launch out to instead, and `csvCheckBox` custom labels, which is a
 config slot's job here.
+
+## Graph context: what the cut reaches, and what it can't (2026-07-30)
+
+`graphScopeComboBox`/`nodeDistanceSpinBox` above is now the **Graph context**
+select in Graph settings (`SubgraphContextSelect`), the `subgraphContext` view
+prop, and `getSubgraph`'s long-unused `context` argument. It exists for
+correctness before reach: at context 0 the cut stops at the segments the
+region's own links name, and a detour that leaves the backbone _before_ the
+window and rejoins _after_ it is indexed only under its own stable sequence, so
+its interior never arrives. What draws is the entry and exit fragments — two
+stubs. A reader seeing CFT073's 43 bp fragment at the E. coli paa locus would
+conclude it carries a small insertion, where the truth is it bypasses 21 kb of
+reference.
+
+Measured with `tabix` directly against the two hosted indexes, not estimated:
+
+| cut                                 | context 0     | context 1       |
+| ----------------------------------- | ------------- | --------------- |
+| E. coli `K12#1#chr:1445000-1474500` | 14 segs, 2 q  | 22 segs, 10 q   |
+| HPRC chr6 100 kb, densest window    | 352 segs, 2 q | 363 segs, 140 q |
+
+So the cost is **queries, not nodes** — one per off-reference segment already
+reached, all fired together by the `Promise.all` in `getSubgraph`, and +3% nodes
+on the HPRC window. Merging each hop's frontier intervals per stable sequence
+was tried and dropped: it only reached 128 queries from 140, because every arm
+sits on its own contig and there is nothing to merge.
+
+The limitation to state plainly, because it is why a doc figure still ships a
+`gfatools`-cut file rather than a launch: **hops on a coordinate index do not
+converge to a graph-aware cut**. Each hop's frontier is an interval per reached
+segment, so it also drags in flanking backbone outside the window, and it still
+stops somewhere. At the paa locus context 1 closes all four detours but misses
+`s1614`/`s509` while adding five segments `gfatools view -R … -r 1` leaves out.
+Both are legitimate answers to different questions; a figure that has to be an
+exact hop radius on the graph should be cut with the graph tool and loaded as a
+file (`gfaLocation`), which is what `pangenome/rgfa_paa_bubble` does.
+
+A file-loaded graph has no `loadedRegion`, so the reference-position ramp had
+nothing to span and fell back to the file's own first/last backbone midpoints.
+`colorDomain` is how such a snapshot states the span instead, resolved with
+`loadedRegion` by the `rampDomain` getter — that is what lets a linear track
+above a file-loaded graph be painted the same ramp from the same two numbers.

@@ -163,6 +163,43 @@ describe('loadGFA clears restore params', () => {
   })
 })
 
+// What the reference-position ramp spans. A file-loaded graph has no
+// loadedRegion at all, so without a stated domain the ramp is whatever the file
+// happens to contain — which is why a figure pairing a linear track with a
+// file-loaded graph states the window instead of measuring it.
+describe('rampDomain', () => {
+  test('is the cut region when the graph came from a track', async () => {
+    rpcRespond()
+    mockSession.tracks = [TEST_TRACK]
+    const model = createModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      TEST_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    expect(model.rampDomain).toEqual(TEST_REGION)
+  })
+
+  test('is undefined for a file-loaded graph that states nothing', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA)
+    expect(model.rampDomain).toBeUndefined()
+  })
+
+  test('a stated colorDomain survives loading a GFA file, and wins', async () => {
+    rpcRespond()
+    const model = createModel()
+    applySnapshot(model, {
+      ...getSnapshot(model),
+      colorDomain: { start: 1445000, end: 1474500 },
+      loadedRegion: TEST_REGION,
+    })
+    await model.loadGFA(SIMPLE_GFA)
+    expect(model.rampDomain).toEqual({ start: 1445000, end: 1474500 })
+  })
+})
+
 describe('refetchIfNeeded guard conditions', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
@@ -224,6 +261,53 @@ describe('refetchIfNeeded guard conditions', () => {
       }),
     )
     expect(model.graph).toBeDefined()
+  })
+
+  // subgraphContext rides on the same snapshot as the region, so a session
+  // saved with the cut widened restores the graph it was showing rather than
+  // the default cut.
+  test('passes the stored subgraphContext to the cut', async () => {
+    rpcRespond()
+    const model = createModel()
+    applySnapshot(model, {
+      ...getSnapshot(model),
+      loadedTrackId: 'rgfa-track',
+      loadedRegion: TEST_REGION,
+      subgraphContext: 2,
+    })
+    mockSession.tracks = [TEST_TRACK]
+
+    await model.refetchIfNeeded()
+
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({ opts: { context: 2 } }),
+    )
+  })
+
+  // The one difference between the two entry points: widening the cut has to
+  // re-cut a graph that is already on screen, which is exactly what
+  // refetchIfNeeded declines to do.
+  test('reloadSubgraph re-cuts a graph that is already drawn', async () => {
+    rpcRespond()
+    const model = createModel()
+    mockSession.tracks = [TEST_TRACK]
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      TEST_REGION,
+      { trackId: 'rgfa-track' },
+    )
+
+    mockRpcCall.mockClear()
+    model.setSubgraphContext(1)
+    await model.reloadSubgraph()
+
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({ opts: { context: 1 } }),
+    )
   })
 
   test('does nothing when stored trackId is not in session tracks', async () => {
