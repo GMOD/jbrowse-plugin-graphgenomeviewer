@@ -1,11 +1,13 @@
 import { readFileSync } from 'fs'
 
 import { anchoredLayout } from './anchoredLayout'
+import { projectAlleles } from '../../alleleProjection/projectAlleles'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
 import { anchorGraph } from '../pathAnchoring'
 import { computeEdgeCurves } from '../util/geometry'
 
+import type { ProjectedAllele } from '../../alleleProjection/projectAlleles'
 import type { Graph, NodeSegment } from '../types'
 import type { BezierCurve } from '../util/geometry'
 
@@ -122,9 +124,71 @@ test('no bubble crosses itself on the pggb subgraph', () => {
   expect(crossing).toEqual([])
 })
 
-// Deliberately only the pggb subgraph. The rGFA slice fails the same check, for
-// an unrelated reason this change does not touch: projectAlleles splits a
-// multi-rank run into separate alleles, so a rank-2 segment can be placed
-// megabases from the rank-1 segments it attaches to, and the two edges spanning
-// that gap cross whatever shape they are drawn in. Visible as the single long X
-// in the pangenome/rgfa_subgraph_launch figure.
+// The rGFA slice, whose runs are deep multi-rank bubble chains rather than the
+// pggb subgraph's mostly-single-segment alleles, so it is the fixture that
+// exercises where a member sits *within* its run. It used to fail this check
+// because placeOffReference concatenated a run in collectRun's DFS pop order:
+// on the 21-node allele at K12#1#chr:1,196,361-1,223,579 that put graph
+// neighbours 26 kb apart, and the edges spanning those gaps drew the long X in
+// the pangenome/rgfa_subgraph_launch figure.
+//
+// Bubbles a reverse-complement link attaches to are excluded, and that is the
+// only remaining cause of a crossing here — a defect in how an edge is drawn,
+// not in where its nodes are placed. `L s381 - s2087 +` and `L s2087 + s378 -`
+// say NCTC86 crosses that locus right to left: the first link touches s381's
+// LEFT end and the second s378's RIGHT end, but computeEdgeCurves always leaves
+// the from-node's last point for the to-node's first, so the exit edge is drawn
+// 7 kb backwards past the segment it rejoins. Re-running the same check with
+// each edge attached to whichever pair of ends face each other drops all three.
+// Fixing it for real needs the link strands carried onto GraphEdge plus each
+// node's drawn orientation, neither of which exists yet.
+test('no bubble crosses itself on the rGFA slice', () => {
+  const gfaGraph = parseGFA(gfa('ecoli_rgfa_slice.gfa'))
+  const graph = convertGFAToGraph(gfaGraph)
+  const reverseAttached = new Set(
+    gfaGraph.links
+      .filter(l => l.strand1 === '-' || l.strand2 === '-')
+      .flatMap(l => [l.source, l.target]),
+  )
+  const { crossing, checked } = crossingBubbles(
+    graph,
+    anchoredLayout(graph)!.nodePositions,
+  )
+  const placed = crossing.filter(
+    id => !reverseAttached.has(graph.nodes.find(n => n.id === id)!.name),
+  )
+  expect(checked).toBeGreaterThan(5)
+  expect(placed).toEqual([])
+})
+
+// The placement property the crossing check rests on, stated on its own so a
+// regression says which of the two broke: two members joined by an edge occupy
+// disjoint x, so the edge spans the gap between them rather than doubling back
+// over one of them. Which of the two is on the left is deliberately not
+// asserted — a GFA states a reverse-complement link backwards (`L s1751 -
+// s1292 -` is the forward edge s1292 -> s1751), so from/to carries no direction
+// to sort on, and the sweep orders a run by distance from its entry anchor.
+test('two members joined by an edge do not overlap in x', () => {
+  const graph = convertGFAToGraph(parseGFA(gfa('ecoli_rgfa_slice.gfa')))
+  const positions = anchoredLayout(graph)!.nodePositions
+  const runOf = new Map<string, ProjectedAllele>()
+  for (const allele of projectAlleles(graph).alleles) {
+    for (const id of allele.nodeIds) {
+      runOf.set(id, allele)
+    }
+  }
+  const overlapping = graph.edges.filter(e => {
+    const run = runOf.get(e.from)
+    const from = positions[e.from]
+    const to = positions[e.to]
+    return (
+      run !== undefined &&
+      runOf.get(e.to) === run &&
+      from !== undefined &&
+      to !== undefined &&
+      to[0]!.x < from[1]!.x &&
+      from[0]!.x < to[1]!.x
+    )
+  })
+  expect(overlapping).toEqual([])
+})

@@ -22,20 +22,10 @@ function contributor(sample: string, rank: number, start = 1000): Contributor {
   }
 }
 
-// Plain objects rather than config models: readConfObject returns a non-MST
-// object's own fields unchanged, so this exercises the same read path.
-function geneTrack(assemblyName: string) {
-  return {
-    type: 'FeatureTrack',
-    trackId: `${assemblyName}_genes`,
-    assemblyNames: [assemblyName],
-  } as never
-}
-
-function testSession(views: unknown[] = [], tracks: never[] = []) {
+function testSession(views: unknown[] = []) {
   const added: [string, Record<string, unknown> | undefined][] = []
   const session = {
-    tracks,
+    tracks: [],
     assemblies: [],
     assemblyNames: ['K12', 'Sakai'],
     views,
@@ -144,10 +134,7 @@ test('a linear view on another assembly is not navigated', () => {
 // The panel loci come from the graph itself, so no mate discovery, no PAF
 // lookup and no dialog stand between the graph and a multi-genome view.
 test('a synteny launch frames each panel on its own assembly coordinates', () => {
-  const { session, added } = testSession(
-    [],
-    [geneTrack('K12'), geneTrack('Sakai')],
-  )
+  const { session, added } = testSession()
 
   launchSyntenyView({
     session,
@@ -160,12 +147,8 @@ test('a synteny launch frames each panel on its own assembly coordinates', () =>
     {
       init: {
         views: [
-          { assembly: 'K12', loc: 'chr:1001-6000', tracks: ['K12_genes'] },
-          {
-            assembly: 'Sakai',
-            loc: 'chr:90001-95000',
-            tracks: ['Sakai_genes'],
-          },
+          { assembly: 'K12', loc: 'chr:1001-6000' },
+          { assembly: 'Sakai', loc: 'chr:90001-95000' },
         ],
         tracks: [['ecoli_ava']],
         collapseEmptyRows: true,
@@ -196,10 +179,10 @@ test('a synteny launch puts the alignment on every level, not just the first', (
     {
       init: {
         views: [
-          { assembly: 'K12', loc: 'chr:1001-6000', tracks: [] },
-          { assembly: 'Sakai', loc: 'chr:90001-95000', tracks: [] },
-          { assembly: 'CFT073', loc: 'chr:40001-45000', tracks: [] },
-          { assembly: 'IAI39', loc: 'chr:20001-25000', tracks: [] },
+          { assembly: 'K12', loc: 'chr:1001-6000' },
+          { assembly: 'Sakai', loc: 'chr:90001-95000' },
+          { assembly: 'CFT073', loc: 'chr:40001-45000' },
+          { assembly: 'IAI39', loc: 'chr:20001-25000' },
         ],
         tracks: [['ecoli_ava'], ['ecoli_ava'], ['ecoli_ava']],
         collapseEmptyRows: true,

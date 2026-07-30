@@ -45,10 +45,17 @@ export function placeOffReference({
 
   for (const allele of alleles) {
     const drawn = Math.max(allele.refSpan, minSpan)
-    // Segments of a multi-segment allele are laid end to end across that span,
-    // apportioned by their share of the run's sequence, so a bubble path
-    // occupies the reference exactly once however many segments it is built
-    // from. A run of all zero-length segments has no lengths to apportion by;
+    // A node sits where it sits *within* the allele: its bp offset from the
+    // entry, scaled so the run's longest path fills the reference the allele
+    // replaces. So a bubble path occupies the reference exactly once however
+    // many segments it is built from, and two parallel branches share the x
+    // range rather than queue up after each other — they are alternatives over
+    // the same interval, not consecutive sequence.
+    //
+    // Offsets are measured over the graph rather than over nodeIds' order (see
+    // runOffsets). Concatenating in traversal order put graph neighbours 26 kb
+    // apart on a 27 kb allele, and the edges spanning those gaps crossed as a
+    // long X. A run of all zero-length segments has no distances to scale by;
     // splitting evenly beats 0/0, which wrote NaN into every position after it.
     //
     // Where the floor widens a run past the reference it replaces, the overhang
@@ -57,22 +64,28 @@ export function placeOffReference({
     // in computeEdgeCurves, which sizes each control point by how far the other
     // endpoint lies along its own tangent — a backwards edge gets a straight
     // leader rather than the loop that read as a crossed bowtie.
-    let cursor = allele.start
-    for (const nodeId of allele.nodeIds) {
+    const scale = allele.pathLength > 0 ? drawn / allele.pathLength : 0
+    allele.nodeIds.forEach((nodeId, i) => {
       const node = byId.get(nodeId)
       if (node) {
-        const width =
-          allele.altLength > 0
-            ? (node.length / allele.altLength) * drawn
-            : drawn / allele.nodeIds.length
+        const offset = allele.nodeOffsets[i]!
+        const even = drawn / allele.nodeIds.length
+        // both ends from the offset rather than start-plus-width, so two nodes
+        // the sweep placed end to end land on exactly the same x instead of on
+        // two roundings of it
+        const at = (bp: number) => allele.start + bp * scale
         const y = rowY(node)
-        positions[nodeId] = [
-          { x: cursor, y },
-          { x: cursor + width, y },
-        ]
-        cursor += width
+        positions[nodeId] = scale
+          ? [
+              { x: at(offset), y },
+              { x: at(offset + node.length), y },
+            ]
+          : [
+              { x: allele.start + i * even, y },
+              { x: allele.start + (i + 1) * even, y },
+            ]
       }
-    }
+    })
   }
 
   // A run that reaches the edge of the fetched subgraph has only one backbone

@@ -40,9 +40,17 @@ export interface ProjectedAllele {
   kind: 'insertion' | 'deletion' | 'substitution'
   // segment names for display, and the strand-suffixed graph node ids a layout
   // needs to position them; the two differ and conflating them silently
-  // produces an empty layout
+  // produces an empty layout. Both are ordered by `nodeOffsets`.
   segmentIds: string[]
   nodeIds: string[]
+  // bp from the allele's entry to the start of each node, measured along the
+  // run's own edges (parallel to nodeIds). This is what lets a layout put a node
+  // where it sits *within* the allele instead of where a traversal reached it.
+  nodeOffsets: number[]
+  // bp of the longest path through the run — the denominator for nodeOffsets.
+  // Not altLength: a bubble's two branches are alternatives, and summing them
+  // makes the allele twice as long as any assembly actually carries.
+  pathLength: number
   rank: number
 }
 
@@ -151,7 +159,100 @@ function anchorSpan(anchors: AnchoredNode[]) {
   const last = sorted.at(-1)!
   const start = first.stable.start + first.length
   const end = last.stable.start
-  return end >= start ? { refName: first.stable.refName, start, end } : undefined
+  return end >= start
+    ? { refName: first.stable.refName, start, end, entry: first }
+    : undefined
+}
+
+// Distance in bp from the upstream anchor to each member, over the run's own
+// edges. Used only to ORDER the run; the offsets that get drawn come from the
+// sweep below. Shortest-path because it always terminates: the edges here are
+// undirected, so there is no topological order to take and a longest-path
+// relaxation would not converge.
+//
+// A GFA states a reverse-complement link backwards (`L s1751 - s1292 -` is the
+// forward edge s1292 -> s1751) and single-node mode collapses both orientations
+// onto one node, so `from`/`to` carries no direction to sort on.
+function runDistances(
+  members: AnchoredNode[],
+  entry: AnchoredNode,
+  adj: Map<string, string[]>,
+) {
+  const byId = new Map(members.map(m => [m.id, m]))
+  const dist = new Map<string, number>()
+  const queue: string[] = []
+  for (const neighborId of adj.get(entry.id) ?? []) {
+    if (byId.has(neighborId)) {
+      dist.set(neighborId, 0)
+      queue.push(neighborId)
+    }
+  }
+  // A run whose upstream anchor adjoins none of its members still has to be
+  // placed, so seed from all of them and let relaxation order it from there.
+  if (queue.length === 0) {
+    for (const member of members) {
+      dist.set(member.id, 0)
+      queue.push(member.id)
+    }
+  }
+  // Read forward while appending: bounded because a node is only re-queued when
+  // its distance strictly decreases, and distances are bounded below by 0.
+  for (const id of queue) {
+    const reach = dist.get(id)! + byId.get(id)!.length
+    for (const neighborId of adj.get(id) ?? []) {
+      if (byId.has(neighborId)) {
+        const known = dist.get(neighborId)
+        if (known === undefined || reach < known) {
+          dist.set(neighborId, reach)
+          queue.push(neighborId)
+        }
+      }
+    }
+  }
+  return dist
+}
+
+// How far into the allele each member sits, ordered by distance from the entry
+// and then swept forward: a node starts where the last of its already-placed
+// neighbours ends. That makes offsets MONOTONE along every edge in the run —
+// each edge leaves a node's right end and arrives at a node's left end, never
+// backwards — which is exactly the condition under which a bubble's entry and
+// exit curves cannot cross.
+//
+// Distance alone is not enough, and this is where the layout used to break down
+// even after the traversal order was fixed. Where a bubble's two branches differ
+// in length, one node has predecessors at two different distances; taking the
+// nearer (which is what a shortest path gives) puts that node to the LEFT of the
+// long branch's end, so the long branch's exit edge runs backwards and crosses.
+// The sweep takes the farther, so the short branch gets slack instead — a gap
+// draws fine, a backwards edge does not.
+//
+// Parallel branches therefore share an x range rather than queue up after each
+// other, which is what they are: alternatives over one reference interval, one
+// per assembly.
+function runOffsets(
+  members: AnchoredNode[],
+  entry: AnchoredNode,
+  adj: Map<string, string[]>,
+) {
+  const dist = runDistances(members, entry, adj)
+  const ordered = [...members].sort(
+    (a, b) => dist.get(a.id)! - dist.get(b.id)!,
+  )
+  const rank = new Map(ordered.map((m, i) => [m.id, i]))
+  const byId = new Map(members.map(m => [m.id, m]))
+  const offsets = new Map<string, number>()
+  for (const [i, member] of ordered.entries()) {
+    let offset = 0
+    for (const neighborId of adj.get(member.id) ?? []) {
+      const neighbor = byId.get(neighborId)
+      if (neighbor && rank.get(neighborId)! < i) {
+        offset = Math.max(offset, offsets.get(neighborId)! + neighbor.length)
+      }
+    }
+    offsets.set(member.id, offset)
+  }
+  return { offsets, ordered }
 }
 
 function classify(delta: number) {
@@ -181,6 +282,7 @@ export function projectAlleles(graph: Graph): AlleleProjection {
         const { sample, haplotype } = parsePanSN(dominant.stable.refName)
         const altLength = members.reduce((sum, m) => sum + m.length, 0)
         const refSpan = span.end - span.start
+        const { offsets, ordered } = runOffsets(members, span.entry, adj)
         if (!seen.has(sample)) {
           seen.add(sample)
           samples.push(sample)
@@ -196,8 +298,13 @@ export function projectAlleles(graph: Graph): AlleleProjection {
           altLength,
           delta: altLength - refSpan,
           kind: classify(altLength - refSpan),
-          segmentIds: members.map(m => m.name),
-          nodeIds: members.map(m => m.id),
+          segmentIds: ordered.map(m => m.name),
+          nodeIds: ordered.map(m => m.id),
+          nodeOffsets: ordered.map(m => offsets.get(m.id)!),
+          pathLength: ordered.reduce(
+            (max, m) => Math.max(max, offsets.get(m.id)! + m.length),
+            0,
+          ),
           rank: dominant.stable.rank,
         })
       } else {

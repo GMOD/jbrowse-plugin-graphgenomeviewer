@@ -552,9 +552,18 @@ describe('the reference-position ramp', () => {
   // The contract a linear track's `color` jexl reproduces. Written out as the
   // arithmetic rather than as a captured constant, so an edit to the ramp fails
   // here instead of silently desynchronising the two panels.
-  function expectedColor(mid: number, start: number, span: number) {
+  function expectedColor(
+    mid: number,
+    start: number,
+    span: number,
+    offReference = false,
+  ) {
     const frac = Math.max(0, Math.min(1, (mid - start) / span))
-    const [r, g, b] = hslToRgb(frac * REFERENCE_RAMP_MAX_HUE, 0.7, 0.5)
+    const [r, g, b] = hslToRgb(
+      frac * REFERENCE_RAMP_MAX_HUE,
+      offReference ? 0.45 : 0.7,
+      offReference ? 0.72 : 0.5,
+    )
     return packAbgr(
       Math.round(r * 255),
       Math.round(g * 255),
@@ -574,7 +583,16 @@ describe('the reference-position ramp', () => {
   // of the left flank and the start of the right one.
   test('paints an allele the hue of the interval it branches from', () => {
     const colors = colorsFor({ start: 0, end: 1000 })
-    expect(colors['alt+']).toBe(expectedColor((100 + 900) / 2, 0, 1000))
+    expect(colors['alt+']).toBe(expectedColor((100 + 900) / 2, 0, 1000, true))
+  })
+
+  // Same hue, paler: the correspondence with the reference is the scheme, and
+  // rank is what a reader could not otherwise see under it. A backbone segment
+  // at the same midpoint has to come out a different colour, or the two rows of
+  // an anchored layout are painted identically.
+  test('paints an allele paler than the backbone at the same position', () => {
+    const colors = colorsFor({ start: 0, end: 1000 })
+    expect(colors['alt+']).not.toBe(expectedColor(500, 0, 1000))
   })
 
   test('greys a node with no reference position at all', () => {

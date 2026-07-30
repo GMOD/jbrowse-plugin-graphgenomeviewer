@@ -142,6 +142,14 @@ function hashColor(str: string, alpha: number) {
 export const REFERENCE_RAMP_MAX_HUE = 300
 const REFERENCE_RAMP_SATURATION = 0.7
 const REFERENCE_RAMP_LIGHTNESS = 0.5
+// Off-reference segments keep the hue of the reference they replace — that
+// correspondence is the whole scheme — but take a paler, softer version of it,
+// so a rank row is not painted the same swatch as the backbone above it
+// (review: "kind of weird to see the rank 1 having coloring the same as the
+// reference"). Rank goes on lightness rather than on a second hue range, which
+// would have to mean position and rank at once and could state neither.
+const REFERENCE_RAMP_ALT_SATURATION = 0.45
+const REFERENCE_RAMP_ALT_LIGHTNESS = 0.72
 
 export interface ReferenceRamp {
   start: number
@@ -276,10 +284,13 @@ export function getNodeColor(
         return packAbgr(160, 160, 160, 255)
       }
       const frac = Math.max(0, Math.min(1, (mid - ramp.start) / ramp.span))
+      const offReference = node.stable !== undefined && node.stable.rank > 0
       const [r, g, b] = hslToRgb(
         frac * REFERENCE_RAMP_MAX_HUE,
-        REFERENCE_RAMP_SATURATION,
-        REFERENCE_RAMP_LIGHTNESS,
+        offReference
+          ? REFERENCE_RAMP_ALT_SATURATION
+          : REFERENCE_RAMP_SATURATION,
+        offReference ? REFERENCE_RAMP_ALT_LIGHTNESS : REFERENCE_RAMP_LIGHTNESS,
       )
       return packNorm(r, g, b, 1)
     }

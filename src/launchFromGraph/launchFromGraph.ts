@@ -1,5 +1,4 @@
 import { locLabel, locString } from './contributors'
-import { launchTracks } from './launchTracks'
 import { linearViewTarget } from './linearViewTarget'
 
 import type { Contributor, GraphLocation } from './contributors'
@@ -150,10 +149,13 @@ export function highlightInLinearView({
 // launch needs no mate discovery, no PAF lookup and no dialog. That is the whole
 // point of launching from the graph instead of from a linear view.
 //
-// Each panel carries its own assembly's annotation (see launchTracks), so the
-// ribbons run between named genes rather than between bare rulers — on a
-// pangenome that is the difference between "these coordinates correspond" and
-// "this strain's insertion carries these genes".
+// Panels open with no tracks of their own, unlike the single-view launch, which
+// brings the assembly's annotation across (see launchTracks). Tried both: a gene
+// track per panel takes about 160px of a row that is otherwise a ruler, so on
+// five strains the annotation is most of the viewport and the ribbons — the
+// thing the launch exists to draw — are squeezed into the gaps. It is also what
+// `collapseEmptyRows` is here to prevent. Adding a track to one panel afterwards
+// is a click; unpicking five is not.
 export function launchSyntenyView({
   session,
   contributors,
@@ -168,7 +170,6 @@ export function launchSyntenyView({
       views: contributors.map(c => ({
         assembly: c.sample,
         loc: locString(c),
-        tracks: launchTracks({ session, assemblyName: c.sample }),
       })),
       // One entry per LEVEL, not one for the track. `init.tracks` is 2D — the
       // gap between views[i] and views[i+1] — and a flat `[trackId]` is read as
