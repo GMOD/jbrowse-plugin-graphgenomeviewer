@@ -9,6 +9,7 @@ import { observer } from 'mobx-react'
 import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
+import { graphLabels } from '../graphLabels'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
 
@@ -96,6 +97,71 @@ const RowLabels = observer(function RowLabels({
             style={{ ...rowLabelStyle, top: screenY }}
           >
             {label}
+          </div>
+        ) : null
+      })}
+    </>
+  )
+})
+
+const nodeLabelStyle = {
+  position: 'absolute' as const,
+  transform: 'translate(-50%, -50%)',
+  background: 'rgba(255,255,255,0.78)',
+  padding: '0 3px',
+  borderRadius: 3,
+  fontSize: 10,
+  lineHeight: '13px',
+  whiteSpace: 'nowrap' as const,
+  pointerEvents: 'none' as const,
+  zIndex: 3,
+}
+
+const deletionLabelStyle = {
+  ...nodeLabelStyle,
+  color: '#b3211f',
+  fontWeight: 600,
+}
+
+// Writes each drawn thing's size onto it, which is what Bandage's Length label
+// does and what the tooltip alone could not: a graph you have to hover to read
+// is a graph nobody reads. Positioned through the same transform the canvas
+// draws with, so a label tracks its node across pan and zoom, and mounted in the
+// canvas's own positioning context for the reason RowLabels is.
+const GraphSizeLabels = observer(function GraphSizeLabels({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const { nodePositions, graph } = model
+  if (!nodePositions || !graph) {
+    return null
+  }
+  const labels = graphLabels({
+    nodePositions,
+    nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
+    deletions: model.deletions,
+    scale: model.scale,
+  })
+  return (
+    <>
+      {labels.map(({ key, text, x, y, kind }) => {
+        const screenX = x * model.scale + model.translateX
+        const screenY = y * model.scale + model.translateY
+        return screenX >= 0 &&
+          screenX <= model.width &&
+          screenY >= 0 &&
+          screenY <= model.canvasHeight ? (
+          <div
+            key={key}
+            data-testid="graph-size-label"
+            style={{
+              ...(kind === 'deletion' ? deletionLabelStyle : nodeLabelStyle),
+              left: screenX,
+              top: screenY,
+            }}
+          >
+            {text}
           </div>
         ) : null
       })}
@@ -397,6 +463,7 @@ const GraphCanvas = observer(function GraphCanvas({
         />
 
         <RowLabels model={model} />
+        <GraphSizeLabels model={model} />
       </div>
 
       <HoverTooltips model={model} />

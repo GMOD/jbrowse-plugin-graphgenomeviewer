@@ -1,4 +1,5 @@
 import { brightenAbgr, packAbgr } from './colorBits'
+import { deletionBulge } from '../deletionEdges'
 import { referenceMidpoints } from '../referenceSpan'
 import { computeEdgeCurves } from '../util/geometry'
 import {
@@ -30,10 +31,6 @@ const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0
 // there is no scheme it could disagree with. See deletionEdges.ts.
 const EDGE_DELETION_COLOR = packAbgr(214, 39, 40, 235)
 const DELETION_THICKNESS_FACTOR = 2.2
-// How far the arc bows out, as a fraction of the drawn length it bypasses. A
-// half would make the arc as tall as the reference stretch is long, which reads
-// as a circle rather than as a detour.
-const DELETION_BULGE_FRACTION = 0.35
 
 // Half-extent of an arrowhead, in world units before the view transform.
 const ARROWHEAD_SIZE = 12
@@ -716,17 +713,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     // arms of the bubble are comparable instead of one being a stub at a joint.
     // Measured off the layout rather than converted from bp, because that is the
     // only thing that is in the same units as the drawing whichever layout ran.
-    const bulge = bypassed
-      ? DELETION_BULGE_FRACTION *
-        bypassed.reduce((total, id) => {
-          const segs = nodePositions[id]
-          const first = segs?.[0]
-          const last = segs?.[segs.length - 1]
-          return first && last
-            ? total + Math.hypot(last.x - first.x, last.y - first.y)
-            : total
-        }, 0)
-      : 0
+    const bulge = bypassed ? deletionBulge(nodePositions, bypassed) : 0
 
     const buildSingleEdge = (
       offsetX: number,

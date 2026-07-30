@@ -48,6 +48,28 @@ export interface DeletionEdge {
   bypassed: string[]
 }
 
+// How far a deletion's arc bows out, in layout units: a fraction of the drawn
+// length of the backbone it bypasses. Shared by the geometry that draws the arc
+// and the overlay that labels it, so the label cannot drift off the curve.
+export const DELETION_BULGE_FRACTION = 0.35
+
+export function deletionBulge(
+  nodePositions: Record<string, { x: number; y: number }[]>,
+  bypassed: string[],
+) {
+  return (
+    DELETION_BULGE_FRACTION *
+    bypassed.reduce((total, id) => {
+      const segs = nodePositions[id]
+      const first = segs?.[0]
+      const last = segs?.[segs.length - 1]
+      return first && last
+        ? total + Math.hypot(last.x - first.x, last.y - first.y)
+        : total
+    }, 0)
+  )
+}
+
 // Every edge that skips reference sequence, in graph.edges order.
 export function deletionEdges(graph: Graph): DeletionEdge[] {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
