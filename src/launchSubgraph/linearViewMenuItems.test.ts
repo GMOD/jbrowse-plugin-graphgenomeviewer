@@ -113,12 +113,12 @@ test('an over-cap region disables the item instead of hiding it', () => {
 test('right-clicking a feature on a non-graph track cuts from the graph track', () => {
   const { createDisplay } = createTestEnvironment()
   const { session, display, view } = createDisplay({ trackId: 'bubble_track' })
-  display.openContextMenu(
-    { featureId: 'bubble1', startBp: 2000, endBp: 2400, name: 'bubble1' },
-    0,
-    0,
-    0,
-  )
+  display.openContextMenu({
+    item: { featureId: 'bubble1', startBp: 2000, endBp: 2400, name: 'bubble1' },
+    displayedRegionIndex: 0,
+    clientX: 0,
+    clientY: 0,
+  })
 
   const item = find(launchItems(display.contextMenuItems()), LABEL_FEATURE)
   expect(item).toBeDefined()
@@ -140,12 +140,12 @@ test('right-clicking a feature on a non-graph track cuts from the graph track', 
 test('no graph track in the session adds no items', () => {
   const { createDisplay } = createTestEnvironment({ subgraphCapable: false })
   const { view, display } = createDisplay({ trackId: 'bubble_track' })
-  display.openContextMenu(
-    { featureId: 'bubble1', startBp: 2000, endBp: 2400, name: 'bubble1' },
-    0,
-    0,
-    0,
-  )
+  display.openContextMenu({
+    item: { featureId: 'bubble1', startBp: 2000, endBp: 2400, name: 'bubble1' },
+    displayedRegionIndex: 0,
+    clientX: 0,
+    clientY: 0,
+  })
 
   expect(find(launchItems(view.menuItems()), LABEL_VISIBLE)).toBeUndefined()
   expect(find(view.rubberBandMenuItems(), LABEL_SELECTION)).toBeUndefined()

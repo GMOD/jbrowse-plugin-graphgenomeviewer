@@ -76,18 +76,18 @@ test('no launch item for an adapter that cannot cut subgraphs', () => {
 test('the context menu launches around the right-clicked segment', () => {
   const { createDisplay } = createTestEnvironment()
   const { session, display } = createDisplay()
-  display.openContextMenu(
-    {
+  display.openContextMenu({
+    item: {
       featureId: 's322',
       startBp: 1000,
       endBp: 1100,
       name: 's322',
       type: 'segment',
     },
-    0,
-    0,
-    0,
-  )
+    displayedRegionIndex: 0,
+    clientX: 0,
+    clientY: 0,
+  })
 
   const items = display.contextMenuItems()
   expect(labels(items)).toContain(LABEL_SEGMENT)
