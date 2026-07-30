@@ -272,3 +272,36 @@ For the record, since the numbers justify the changes:
   units: bp-scale edge index **7.15 ms → 0.60 ms**.
 - `Math.max(...backbone)` replaced with folds — it throws `RangeError` between
   125k and 150k arguments, reachable on the uncapped import path.
+
+## Measured against Bandage's own UI (2026-07-30)
+
+Cross-referenced `~/src/vendor/BandageNG/ui/mainwindow.ui`, which is the control
+list of the tool this view's layout engine comes from. Ours now covers node
+labels (`graphLabels.ts` — Bandage's Length, and it picks the same fact a
+pangenome reader wants), the colour modes, the layout quality, and a floor on
+drawn node length that Bandage exposes as `nodeWidthSpinBox`'s neighbours. What
+it has and we do not, in the order I would take it:
+
+- **`graphScopeComboBox` + `nodeDistanceSpinBox`** — draw the whole graph, or
+  everything within N steps of a named node. `RgfaTabixAdapter.getSubgraph`
+  already takes `context` for exactly this and **nothing in the UI ever sets
+  it**, so the expensive half is built. This is the one that changes what the
+  view is for: it turns a fixed window into somewhere you can walk outward from.
+- **`selectNodesButton` + exact/partial match** — find a segment by name and
+  centre on it. A graph with no search is a graph you can only browse.
+- **node width by depth.** Bandage's signature look, and the reason a collapsed
+  repeat is obvious there: `GraphNode.depth` is parsed and only the `depth`
+  colour scheme reads it. Width is the stronger channel and it is free — the
+  mesh already takes a per-node thickness.
+- **`pathListButton` / `walkSelectButton`** — list the paths, select one, and
+  recolour or highlight the route it takes. `drawPaths` is the beginning of
+  this, but there is no way to pick _which_ path, and on a path-anchored pggb
+  graph (234 haplotypes through chrM) picking one is the whole question.
+- **`textOutlineCheckBox`** — labels over a busy drawing need a halo. Ours use a
+  translucent background, which is the cheap version and is worse where nodes
+  overlap.
+
+Two Bandage features that deliberately do not port: BLAST search
+(`blastSearchButton` and friends), because a JBrowse session has real annotation
+tracks to launch out to instead, and `csvCheckBox` custom labels, which is a
+config slot's job here.
