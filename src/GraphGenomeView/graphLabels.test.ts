@@ -1,4 +1,4 @@
-import { formatBp, graphLabels } from './graphLabels'
+import { formatBp, graphLabels, rowLabelBox } from './graphLabels'
 
 const NODES = {
   long: [
@@ -99,7 +99,7 @@ test('a deletion says what it skips, positively, on its arc', () => {
     scale: 1,
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(label!.text).toBe('skips 84.7 kb')
+  expect(label!.text).toBe('skips 84.7 kb of reference')
   // off the line the bypassed node lies on, which is what puts it on the curve
   expect(Math.abs(label!.y)).toBeGreaterThan(10)
 })
@@ -134,7 +134,10 @@ test('a deletion label wins the space over a node label', () => {
     scale: 1,
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toEqual(['skips 84.7 kb', '39 kb'])
+  expect(labels.map(l => l.text)).toEqual([
+    'skips 84.7 kb of reference',
+    '39 kb',
+  ])
 })
 
 // Two arcs over the same stretch of backbone put their labels in nearly the same
@@ -157,7 +160,7 @@ test('the bigger deletion keeps its label', () => {
     scale: 1,
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(labels.map(l => l.text)).toEqual(['skips 15.7 kb'])
+  expect(labels.map(l => l.text)).toEqual(['skips 15.7 kb of reference'])
 })
 
 test('formats bp at the scale a pangenome allele lives at', () => {
@@ -166,4 +169,27 @@ test('formats bp at the scale a pangenome allele lives at', () => {
     '1.2 kb',
     '2.5 Mb',
   ])
+})
+
+// The row labels of a row-structured layout paint over the same overlay and are
+// opaque, so a node label under one is gone rather than behind it: a "17 bp"
+// against the left edge of an anchored layout came out as a stray "bp" beside
+// `Reference (rank 0)`.
+test('a row label holds its space against a node label', () => {
+  const at = (reserved?: ReturnType<typeof rowLabelBox>[]) =>
+    graphLabels({
+      nodePositions: {
+        atEdge: [
+          { x: 10, y: 40 },
+          { x: 90, y: 40 },
+        ],
+      },
+      nodeLengths: new Map([['atEdge', 17]]),
+      deletions: [],
+      scale: 1,
+      ...VIEWPORT,
+      reserved,
+    }).map(l => l.text)
+  expect(at()).toEqual(['17 bp'])
+  expect(at([rowLabelBox('Reference (rank 0)', 40)])).toEqual([])
 })

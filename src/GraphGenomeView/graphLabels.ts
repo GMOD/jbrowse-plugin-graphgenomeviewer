@@ -9,11 +9,14 @@ import type { NodeSegment } from './types'
 // much sequence the alternative is worth. A node says its length, a deletion arc
 // says what it skips.
 //
-// **Every length written here is positive.** A deletion arc used to be labelled
-// "−94.2 kb", and a review read that as the node's sequence length being
-// negative, which is the only thing a bare signed number beside a graph can
-// mean. The arc removes reference sequence rather than carrying negative
-// sequence, so the label says the verb: `skips 94.2 kb`.
+// **Every length written here is positive, and a deletion names what it skips.**
+// A deletion arc used to be labelled "−94.2 kb", and a review read that as the
+// node's sequence length being negative, which is the only thing a bare signed
+// number beside a graph can mean. The arc removes reference sequence rather than
+// carrying negative sequence, so the label says the verb. It also says WHAT is
+// skipped: "skips 94.2 kb" left a reader asking 94.2 kb of what (second review,
+// "unclear to me what 'skips' refers to. is it something missing from
+// reference?"), and the answer is the reference, which the label now states.
 //
 // **Two rules decide which labels there are, and both are about the drawing
 // rather than about a threshold on the graph.**
@@ -59,7 +62,7 @@ const LABEL_GAP_PX = 3
 // being drawn rather than the node.
 const MAX_LABEL_OVERHANG = 2
 
-interface Box {
+export interface Box {
   left: number
   right: number
   top: number
@@ -75,6 +78,19 @@ function labelBox(text: string, screenX: number, screenY: number): Box {
     right: screenX + halfW,
     top: screenY - halfH,
     bottom: screenY + halfH,
+  }
+}
+
+// The box a row label occupies, from the same metrics RowLabels renders with
+// (11px text, 4px of horizontal padding, a 16px line, centred on its row). Lives
+// here rather than in the component so the two halves of the collision test
+// cannot drift apart.
+export function rowLabelBox(text: string, screenY: number): Box {
+  return {
+    left: 6,
+    right: 6 + text.length * 6.2 + 8 + LABEL_GAP_PX,
+    top: screenY - 8 - LABEL_GAP_PX / 2,
+    bottom: screenY + 8 + LABEL_GAP_PX / 2,
   }
 }
 
@@ -161,6 +177,7 @@ export function graphLabels({
   translateY,
   width,
   height,
+  reserved,
 }: {
   nodePositions: Record<string, NodeSegment[]>
   // bp per node id, so this module never has to know what a GraphNode is
@@ -171,6 +188,13 @@ export function graphLabels({
   translateY: number
   width: number
   height: number
+  // Screen-space boxes already occupied by something this module did not draw —
+  // the row labels of a row-structured layout. They sit in the same overlay and
+  // are opaque, so a node label under one is not "behind" it, it is gone: a
+  // label of "17 bp" against the left edge of an anchored layout came out as a
+  // stray "bp" beside `Reference (rank 0)`. Feeding them into the same collision
+  // pass moves that label instead of clipping it.
+  reserved?: Box[]
 }): GraphLabel[] {
   // Deletions first, so an arc keeps its label against the nodes around it: the
   // arc is the only thing in the drawing that represents sequence which is not
@@ -183,7 +207,7 @@ export function graphLabels({
       if (apex) {
         candidates.push({
           key: `del:${deletion.edgeIndex}`,
-          text: `skips ${formatBp(deletion.bp)}`,
+          text: `skips ${formatBp(deletion.bp)} of reference`,
           x: apex.x * scale + translateX,
           y: apex.y * scale + translateY,
           kind: 'deletion',
@@ -216,7 +240,7 @@ export function graphLabels({
     }
   }
 
-  const placed: Box[] = []
+  const placed: Box[] = [...(reserved ?? [])]
   const labels: GraphLabel[] = []
   for (const label of candidates) {
     const box = labelBox(label.text, label.x, label.y)

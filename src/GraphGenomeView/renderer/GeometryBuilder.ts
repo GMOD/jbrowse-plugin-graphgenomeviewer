@@ -25,11 +25,20 @@ import type { BezierCurve } from '../util/geometry'
 const EDGE_DEFAULT_COLOR = packAbgr(119, 119, 119, 217) // rgb(119,119,119) ~ 0.467, alpha 0.85
 const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0.85
 // An edge that skips reference sequence: the graph's own statement that some
-// haplotype does not carry what the backbone does. Drawn red and thicker than a
-// plain link, and unconditionally rather than under a colour scheme, because a
+// haplotype does not carry what the backbone does. Drawn thicker than a plain
+// link, and unconditionally rather than under a colour scheme, because a
 // deletion has no node to colour — nothing else in the drawing can carry it, so
 // there is no scheme it could disagree with. See deletionEdges.ts.
-const EDGE_DELETION_COLOR = packAbgr(214, 39, 40, 235)
+//
+// NEAR-BLACK, not red. The reference-position ramp runs hue 0 to 300 at 70%/50%,
+// and its hue-0 end is rgb(217,38,38) — the old rgb(214,39,40) was that colour
+// to within three points, so at the start of any region the deletion arc and the
+// backbone under it were the same red (review: "the 'red' coloring is too close
+// to the rainbow"). Nothing else in the drawing is near-black: nodes are ramp
+// hues or the off-reference charcoal, plain links are mid grey. Weight and
+// darkness carry it instead of a hue, which is what keeps hue meaning reference
+// position and only that.
+const EDGE_DELETION_COLOR = packAbgr(24, 24, 28, 240)
 const DELETION_THICKNESS_FACTOR = 2.2
 
 // Half-extent of an arrowhead, in world units before the view transform.

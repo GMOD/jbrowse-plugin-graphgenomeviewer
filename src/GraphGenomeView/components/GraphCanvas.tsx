@@ -9,16 +9,20 @@ import { observer } from 'mobx-react'
 import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { graphLabels } from '../graphLabels'
+import { graphLabels, rowLabelBox } from '../graphLabels'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
 
 import type { GraphGenomeViewModel } from '../model'
 
+// Bottom RIGHT, not bottom left: the row labels of a row-structured layout are
+// pinned to the left edge, so a bottom-left tooltip lands on top of them and
+// covers the one thing that says which haplotype a row is. Nothing is drawn
+// against the right edge.
 const tooltipStyle = {
   position: 'absolute' as const,
   bottom: 8,
-  left: 8,
+  right: 8,
   background: 'rgba(0,0,0,0.75)',
   color: 'white',
   padding: '4px 8px',
@@ -117,9 +121,10 @@ const nodeLabelStyle = {
   zIndex: 3,
 }
 
+// Matches EDGE_DELETION_COLOR, so the words and the arc they name are one thing.
 const deletionLabelStyle = {
   ...nodeLabelStyle,
-  color: '#b3211f',
+  color: '#18181c',
   fontWeight: 600,
 }
 
@@ -147,6 +152,10 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     translateY: model.translateY,
     width: model.width,
     height: model.canvasHeight,
+    // RowLabels paints over this overlay, so its boxes are occupied space
+    reserved: model.rowLabels.map(({ label, y }) =>
+      rowLabelBox(label, y * model.scale + model.translateY),
+    ),
   })
   return (
     <>
