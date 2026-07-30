@@ -148,3 +148,40 @@ test('a zero-length allele gets finite positions', () => {
     }
   }
 })
+
+// Row count grows with the data, the pane does not: canvasHeight is the
+// drawing's aspect ratio times the usable width, so a flat per-row spacing put
+// 17 HPRC haplotype rows past MAX_CANVAS_HEIGHT, where zoom-to-fit starts
+// binding on y and the backbone leaves the linear view's x axis. Asserted
+// against the span the same layout reports rather than a pixel figure, since
+// this layout never sees a width.
+test('many rows pack tighter rather than growing the drawing', () => {
+  const samples = Array.from({ length: 16 }, (_, i) => `HG${1000 + i}`)
+  const gfa = [
+    'H\tVN:Z:1.0',
+    'S\ts1\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:0\tSR:i:0',
+    'S\ts2\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:1000\tSR:i:0',
+    ...samples.flatMap((sample, i) => [
+      `S\ta${i}\t*\tLN:i:50\tSN:Z:${sample}#1#chr6\tSO:i:0\tSR:i:1`,
+      `L\ts1\t+\ta${i}\t+\t0M`,
+      `L\ta${i}\t+\ts2\t+\t0M`,
+    ]),
+  ].join('\n')
+  const graph = convertGFAToGraph(parseGFA(gfa), 'rows')
+
+  const { rowLabels } = sampleRowLayout(graph)!
+  const span = 2000
+
+  expect(rowLabels).toHaveLength(samples.length + 1)
+  expect(rowLabels!.at(-1)!.y).toBeCloseTo(span * 0.35)
+})
+
+// ...and a handful of rows keeps the spacing it always had, so every figure
+// under the ceiling is untouched.
+test('few rows keep the flat per-row spacing', () => {
+  const { rowLabels } = sampleRowLayout(ecoliGraph())!
+  const rows = rowLabels!.map(r => r.y)
+  const spacing = rows[1]! - rows[0]!
+  expect(rows[3]! - rows[2]!).toBeCloseTo(spacing)
+  expect(rows.at(-1)!).toBeCloseTo(spacing * 3)
+})

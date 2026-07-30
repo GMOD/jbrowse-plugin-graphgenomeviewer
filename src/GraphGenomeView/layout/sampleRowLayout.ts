@@ -1,4 +1,5 @@
 import { placeOffReference } from './placeOffReference'
+import { rowSpacing as rowSpacingFor } from './rowSpacing'
 import { parsePanSN } from '../../alleleProjection/projectAlleles'
 import {
   backboneNodes,
@@ -33,8 +34,6 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // the rest. Drawing a segment once per carrier needs the layout to emit more
 // nodes than the graph has, which the renderer keys by node id and cannot do.
 
-const ROW_SPACING_SPAN_FRACTION = 0.05
-
 // Visibility floor, in window-span fraction. Node thickness is a constant
 // number of screen pixels, so an allele occupying a sub-percent slice of the
 // window draws wider than it is long and reads as a dot rather than a bar. A
@@ -67,7 +66,8 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
     return undefined
   }
   const span = backboneSpan(backbone)
-  const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
+  // backbone row plus one per sample
+  const rowSpacing = rowSpacingFor(span, samples.length + 1)
   const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION
 
   // The backbone keeps row 0 and every sample gets a row below it, in the

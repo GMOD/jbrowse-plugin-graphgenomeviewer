@@ -1,4 +1,5 @@
 import { placeOffReference } from './placeOffReference'
+import { rowSpacing as rowSpacingFor } from './rowSpacing'
 import { backboneNodes, backboneSpan } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
@@ -13,10 +14,8 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 //      reference its allele replaces (placeOffReference).
 //   y  one row per stable rank *present in this subgraph*, the way lh3's own
 //      rGFA viewer (VRPG) does it: rank 0 is the reference line, higher ranks
-//      below it in order.
-//
-// Row spacing is the one free parameter, in bp so it tracks the x axis.
-const ROW_SPACING_SPAN_FRACTION = 0.05
+//      below it in order. Spacing comes from rowSpacing.ts, shared with the
+//      sample-row layout.
 
 // Floor on the drawn span of an *off-reference* node, as a fraction of the
 // window. Node thickness is a constant number of screen pixels, so at a 50 kb
@@ -51,8 +50,8 @@ export function anchoredLayout(graph: Graph): LayoutResult | undefined {
   }
 
   const span = backboneSpan(backbone)
-  const rowSpacing = span * ROW_SPACING_SPAN_FRACTION
   const rows = rankRows(graph)
+  const rowSpacing = rowSpacingFor(span, rows.size)
 
   const nodePositions: Record<string, NodeSegment[]> = {}
   for (const node of backbone) {
