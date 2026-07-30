@@ -178,19 +178,28 @@ export function computeEdgeCurves(
       tangentProj(toNext, toStart, -towardToX, -towardToY),
     )
 
-    // perpendicular to the chord, so the bow is symmetric about it
+    // Perpendicular to the chord, so the bow is symmetric about it, and spread
+    // the two control points APART along it by the same amount. Perpendicular
+    // alone draws a hairpin whenever the bulge exceeds the chord — which is the
+    // normal case for a deletion, whose endpoints the simulation leaves adjacent
+    // however much reference it skips — and a hairpin reads as a stray line
+    // rather than as a route. The along-chord spread opens it into an arch.
     const chordLen = dist === 0 ? 1 : dist
-    const bulgeX = (-(p2y - p1y) / chordLen) * bulge
-    const bulgeY = ((p2x - p1x) / chordLen) * bulge
+    const ux = (p2x - p1x) / chordLen
+    const uy = (p2y - p1y) / chordLen
+    const bulgeX = -uy * bulge
+    const bulgeY = ux * bulge
+    const spreadX = ux * bulge
+    const spreadY = uy * bulge
 
     return [
       {
         x0: p1x,
         y0: p1y,
-        cx0: cx1 + offsetX + bulgeX,
-        cy0: cy1 + offsetY + bulgeY,
-        cx1: cx2 + offsetX + bulgeX,
-        cy1: cy2 + offsetY + bulgeY,
+        cx0: cx1 + offsetX + bulgeX - spreadX,
+        cy0: cy1 + offsetY + bulgeY - spreadY,
+        cx1: cx2 + offsetX + bulgeX + spreadX,
+        cy1: cy2 + offsetY + bulgeY + spreadY,
         x1: p2x,
         y1: p2y,
       },
