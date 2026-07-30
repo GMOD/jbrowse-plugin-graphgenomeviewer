@@ -41,6 +41,59 @@ The FMMM layout does run off the main thread:
 runs in the model's `upload` callback, so it is the main-thread cost that
 matters.
 
+## The legibility ceiling is ~50x tighter than the node budget (2026-07-30)
+
+`maxGraphNodes` (20,000) is where the tab stops being usable. It says nothing
+about where a **force layout stops being readable**, and that limit is set by
+geometry rather than by cost:
+
+- node thickness is a constant in backing-store pixels (`Canvas2DRenderer`:
+  `position * scaleX + normal * thickness`), so it does not shrink with zoom;
+- zoom-to-fit puts the whole drawing in ~900 CSS px;
+- so **N nodes on a path get 900/N px each**, and once that is under the
+  thickness the drawing is a rope with the topology inside it.
+
+Measured on HPRC release 2's chrM pggb graph, whole-file import:
+
+| graph                                   | nodes | edges | FMMM    | px per node | reads as        |
+| --------------------------------------- | ----- | ----- | ------- | ----------- | --------------- |
+| whole chrM, 234 paths                   | 4,749 | 6,540 | 1.6 s   | 0.19        | a fat rope      |
+| 12 divergent haps, unchopped            | 1,426 | 1,985 | -       | 0.63        | a rope          |
+| `chrM:16,024-16,400` (HVS-I), 234 paths | 351   | 514   | 163 ms  | 2.6         | rope + speckles |
+| `chrM:8,200-8,400`, 234 paths           | 61    | 84    | <100 ms | 15          | **legible**     |
+
+So the force layout wants **tens of nodes, not thousands**, and the way to get
+there on a base-level graph is a _narrow window with many haplotypes_ — which is
+also why `pangenome/local_subgraph` (36 nodes over 561 bp) is the one existing
+force figure that reads well. Node count, not window size, is the axis.
+
+Two things follow, and both are now implemented or recorded:
+
+- **The floor on a node's drawn length is what hides the variation**, and it is
+  a view setting (`bubbleSpread`, `src/GraphGenomeView/bubbleSpreads.ts`) rather
+  than a retuned default. Bandage's 5 units suits assembly contigs; a 1-50 bp
+  allele clamps to a stub and both arms of a bubble land inside one node
+  thickness. At 2.5x the mean drawn node length every bubble on that 61-node
+  window is a legible lens; at 10x clearer; past that the drawing only grows
+  (1,980 -> 3,386 -> 7,452 -> 26,617 units wide, aspect flat at ~1.33). The
+  default stays Bandage's, because raising it flattens the length ratio among
+  the smallest nodes and `bandageAutoScale`'s proportionality test pins that at
+  `'auto'`.
+- **A drawing far larger than the pane can render blank.** Reproduced twice in a
+  real jbrowse-web capture of the 4,749-node graph: the toolbar reported the
+  graph, the layout and `geom 10ms`, and the canvas was white; changing the
+  colour scheme (which invalidates the upload autorun) painted it correctly.
+  `buildGeometry` culls against a viewport derived from the transform read
+  `untracked`, and a build that runs before zoom-to-fit lands sees a pane-sized
+  window of a 97,000-unit drawing and discards every node — offline, that build
+  is 0 vertices in 14 ms against 90,864 in 24 ms fitted, which matches the
+  reported 10 ms. **The recovery path is not identified yet**:
+  `src/GraphGenomeView/renderPipeline.test.ts` drives the real autoruns in both
+  mount orders and both recover, so something the model harness lacks (the
+  `useRenderingBackend` mount sequence, a resize that clears the canvas) is
+  involved. Do not "fix" this by guessing — it reproduces in a capture, so
+  instrument that.
+
 ## Why the region cap is the wrong knob
 
 `MAX_GRAPH_REGION_BP` bounds the _fetch_, and it is the only cap applicable

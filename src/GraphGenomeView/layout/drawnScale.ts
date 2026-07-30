@@ -34,7 +34,18 @@ export interface BandageScaleOpts {
 const MEAN_NODE_LENGTH = 40
 const MIN_TOTAL_GRAPH_LENGTH = 500
 
-export function bandageAutoScale(graph: Graph): BandageScaleOpts {
+// Bandage's own floor on a node's drawn length. Right for an assembly graph,
+// whose nodes are kb to Mb, and the reason a variation graph draws as a rope:
+// see BUBBLE_SPREADS, which is how a view asks for more.
+const BANDAGE_MINIMUM_NODE_LENGTH = 5
+
+export function bandageAutoScale(
+  graph: Graph,
+  // Floor on a node's drawn length, in the same FMMM units as the scale below.
+  // Anything at or under Bandage's own floor leaves the drawing exactly as it
+  // was, which is what keeps `'auto'` byte-identical to the shipped behaviour.
+  minNodeLength = BANDAGE_MINIMUM_NODE_LENGTH,
+): BandageScaleOpts {
   const totalLength = graph.nodes.reduce((sum, n) => sum + n.length, 0)
   const megabases = totalLength / 1_000_000
   const target = Math.max(
@@ -43,8 +54,13 @@ export function bandageAutoScale(graph: Graph): BandageScaleOpts {
   )
   return {
     nodeLengthPerMegabase: megabases > 0 ? target / megabases : 10_000,
-    minimumNodeLength: 5,
+    minimumNodeLength: Math.max(BANDAGE_MINIMUM_NODE_LENGTH, minNodeLength),
     edgeLength: 5,
     nodeSegmentLength: 20,
   }
 }
+
+// The mean drawn node length `bandageAutoScale` targets, exported so
+// BUBBLE_SPREADS can state its floors as multiples of it rather than as
+// unanchored constants.
+export { MEAN_NODE_LENGTH }

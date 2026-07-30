@@ -8,6 +8,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
+import { BUBBLE_SPREAD_VALUES, minNodeLengthFor } from './bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
@@ -42,6 +43,7 @@ import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
+import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme } from './colorSchemes'
 import type { BandageScaleOpts } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
@@ -193,6 +195,14 @@ export default function stateModelFactory() {
         colorScheme: types.optional(
           types.enumeration(COLOR_SCHEME_VALUES),
           'uniform',
+        ),
+        // How far the force layout opens a bubble, which on a variation graph is
+        // the difference between a legible drawing and a rope. See
+        // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
+        // place a node from its coordinates rather than from a force sim.
+        bubbleSpread: types.optional(
+          types.enumeration(BUBBLE_SPREAD_VALUES),
+          'auto',
         ),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
@@ -452,10 +462,7 @@ export default function stateModelFactory() {
       // does.
       get launchableAssemblies() {
         return resolveContributors(
-          withReferenceRegion(
-            self.contributingAssemblies,
-            self.loadedRegion,
-          ),
+          withReferenceRegion(self.contributingAssemblies, self.loadedRegion),
           getSession(self).assemblyNames,
         )
       },
@@ -550,6 +557,9 @@ export default function stateModelFactory() {
       },
       setColorScheme(scheme: ColorScheme) {
         self.colorScheme = scheme
+      },
+      setBubbleSpread(spread: BubbleSpread) {
+        self.bubbleSpread = spread
       },
       // Pair with a linear view for the hover sync, without ever repointing an
       // existing pairing: a graph launched *from* an LGV is already paired with
@@ -795,7 +805,10 @@ export default function stateModelFactory() {
         const local = layoutModeByValue(self.layoutMode).run(graph)
         return local
           ? { result: local, duration: performance.now() - start }
-          : ((yield callLayout(graph, bandageAutoScale(graph))) as {
+          : ((yield callLayout(
+              graph,
+              bandageAutoScale(graph, minNodeLengthFor(self.bubbleSpread)),
+            )) as {
               result: LayoutResult
               duration: number
             })

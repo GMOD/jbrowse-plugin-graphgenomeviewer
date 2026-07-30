@@ -1,10 +1,8 @@
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
-import { bandageAutoScale } from './layout/drawnScale'
-import stateModelFactory, {
-  MAX_GRAPH_REGION_BP,
-  formatSpanBp,
-} from './model'
+import { minNodeLengthFor } from './bubbleSpreads'
+import { MEAN_NODE_LENGTH, bandageAutoScale } from './layout/drawnScale'
+import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 
 const mockRpcCall = vi.fn()
 const mockSession = {
@@ -1075,5 +1073,43 @@ describe('launching out of the graph', () => {
       ],
     ])
     expect(model.connectedViewId).toBe('view-1')
+  })
+})
+
+// Bubble spread is the force layout's legibility knob, and 'auto' has to leave
+// the drawing exactly as it was — every existing force figure is committed
+// against it, and the proportionality test above is stated at that setting.
+describe('bubbleSpread', () => {
+  const graph = {
+    nodes: [
+      { id: '1', name: '1', length: 164 },
+      { id: '2', name: '2', length: 1 },
+    ],
+    edges: [],
+  } as unknown as Parameters<typeof bandageAutoScale>[0]
+
+  test("'auto' keeps Bandage's own floor", () => {
+    expect(
+      bandageAutoScale(graph, minNodeLengthFor('auto')).minimumNodeLength,
+    ).toBe(5)
+  })
+
+  test('opening bubbles raises the floor above the mean drawn node length', () => {
+    const open = bandageAutoScale(graph, minNodeLengthFor('open'))
+    const wide = bandageAutoScale(graph, minNodeLengthFor('wide'))
+    expect(open.minimumNodeLength).toBeGreaterThan(MEAN_NODE_LENGTH)
+    expect(wide.minimumNodeLength).toBeGreaterThan(open.minimumNodeLength)
+    // the scale itself is untouched, so a node above the floor keeps the length
+    // it had — only the smallest ones are lifted
+    expect(open.nodeLengthPerMegabase).toBe(
+      bandageAutoScale(graph, minNodeLengthFor('auto')).nodeLengthPerMegabase,
+    )
+  })
+
+  test('an unknown spread falls back to auto rather than to zero', () => {
+    expect(minNodeLengthFor('nonsense')).toBe(0)
+    expect(
+      bandageAutoScale(graph, minNodeLengthFor('nonsense')).minimumNodeLength,
+    ).toBe(5)
   })
 })

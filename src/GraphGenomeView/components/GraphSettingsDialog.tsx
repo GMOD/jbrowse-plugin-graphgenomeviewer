@@ -12,11 +12,13 @@ import {
   RadioGroup,
   Select,
   Switch,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 
+import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
 
 import type { GraphGenomeViewModel } from '../model'
@@ -110,6 +112,34 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             </Typography>
           </div>
         ) : null}
+
+        <div className={classes.section}>
+          <FormControl className={classes.formControl}>
+            <InputLabel>Bubble spread</InputLabel>
+            <Select
+              value={model.bubbleSpread}
+              label="Bubble spread"
+              data-testid="graph-bubble-spread-select"
+              onChange={e => {
+                model.setBubbleSpread(e.target.value)
+                void model.recomputeLayout()
+              }}
+            >
+              {BUBBLE_SPREADS.map(({ value, label, description }) => (
+                <MenuItem key={value} value={value}>
+                  <Tooltip title={description} placement="right">
+                    <span>{label}</span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Typography variant="caption" color="text.secondary">
+            How far the force layout opens a bubble. A pangenome allele is a few
+            bp, so at Bandage's own scale both arms land inside one node
+            thickness and the graph draws as a rope.
+          </Typography>
+        </div>
 
         <div className={classes.section}>
           <FormControl className={classes.formControl}>
