@@ -121,6 +121,11 @@ const HoverTooltips = observer(function HoverTooltips({
     ? nodeOwnLocation(hoveredNodeData)
     : undefined
 
+  const hoveredDeletion =
+    model.hoveredEdge === null
+      ? undefined
+      : model.deletions.find(d => d.edgeIndex === model.hoveredEdge)
+
   return (
     <>
       {hoveredNodeData ? (
@@ -142,7 +147,21 @@ const HoverTooltips = observer(function HoverTooltips({
       ) : null}
       {hoveredEdgeData ? (
         <div style={tooltipStyle}>
-          Edge: {hoveredEdgeData.from} → {hoveredEdgeData.to}
+          {/* A deletion edge is the one link that means something on its own —
+              the backbone it skips is sequence some haplotype does not carry —
+              so it says how much rather than just naming its endpoints. */}
+          {hoveredDeletion ? (
+            <>
+              <strong>Deletion</strong> {hoveredDeletion.bp.toLocaleString()} bp
+              <br />
+              {hoveredDeletion.refName}:{hoveredDeletion.start.toLocaleString()}
+              -{hoveredDeletion.end.toLocaleString()}
+            </>
+          ) : (
+            <>
+              Edge: {hoveredEdgeData.from} → {hoveredEdgeData.to}
+            </>
+          )}
         </div>
       ) : null}
     </>

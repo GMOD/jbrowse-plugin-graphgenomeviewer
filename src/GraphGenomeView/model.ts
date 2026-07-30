@@ -10,6 +10,7 @@ import { autorun, untracked } from 'mobx'
 import { backboneNodes, backboneSpan } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, minNodeLengthFor } from './bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
+import { deletionEdges } from './deletionEdges'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
@@ -378,6 +379,12 @@ export default function stateModelFactory() {
       get nodeNeighbors() {
         return self.graph ? buildNeighbors(self.graph) : undefined
       },
+      // Links that skip reference sequence, i.e. the deletions this graph
+      // holds. Computed once per graph rather than per geometry rebuild: it is
+      // a pass over the edges and the drawing rebuilds on every pan.
+      get deletions() {
+        return self.graph ? deletionEdges(self.graph) : []
+      },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in the middle of. Row spacing on the reference-anchored layouts
       // is a fraction of the reference span, so those layouts have a pinned
@@ -408,6 +415,9 @@ export default function stateModelFactory() {
       // to highlight. Only a graph cut from a track has one: a whole-file import
       // has no region, and its stable names need not name anything in a loaded
       // assembly.
+      get deletionEdgeIndexes() {
+        return new Set(self.deletions.map(d => d.edgeIndex))
+      },
       get hoverHighlight() {
         let result:
           | {
@@ -1141,6 +1151,7 @@ export default function stateModelFactory() {
                 // reference-position ramp spans. A whole-file import has none
                 // and the ramp falls back to the drawn extent.
                 colorDomain: self.loadedRegion,
+                deletions: self.deletionEdgeIndexes,
               })
               b.uploadGeometry(batch)
               self.storeRenderBatchMeta(batch)

@@ -23,6 +23,13 @@ import type { BezierCurve } from '../util/geometry'
 // u32 values.
 const EDGE_DEFAULT_COLOR = packAbgr(119, 119, 119, 217) // rgb(119,119,119) ~ 0.467, alpha 0.85
 const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0.85
+// An edge that skips reference sequence: the graph's own statement that some
+// haplotype does not carry what the backbone does. Drawn red and thicker than a
+// plain link, and unconditionally rather than under a colour scheme, because a
+// deletion has no node to colour — nothing else in the drawing can carry it, so
+// there is no scheme it could disagree with. See deletionEdges.ts.
+const EDGE_DELETION_COLOR = packAbgr(214, 39, 40, 235)
+const DELETION_THICKNESS_FACTOR = 2.2
 
 // Half-extent of an arrowhead, in world units before the view transform.
 const ARROWHEAD_SIZE = 12
@@ -50,6 +57,10 @@ export interface BuildOptions {
   // the reference interval the 'reference-position' ramp spans, i.e. the region
   // this subgraph was cut from. Unused by every other scheme.
   colorDomain?: { start: number; end: number }
+  // indexes into graph.edges of the links that skip reference sequence, from
+  // deletionEdges(). Passed in rather than derived here because the model can
+  // hold it against the graph, and because the same set names the hover text.
+  deletions?: Set<number>
 }
 
 export function hslToRgb(
@@ -390,10 +401,15 @@ class MeshBuilder {
 
   private grow(needed: number) {
     if (needed > this.capacity) {
-      const next = Math.max(this.capacity === 0 ? 64 : this.capacity * 2, needed)
+      const next = Math.max(
+        this.capacity === 0 ? 64 : this.capacity * 2,
+        needed,
+      )
       const buffer = new ArrayBuffer(next * INSTANCE_STRIDE_BYTES)
       const f32 = new Float32Array(buffer)
-      f32.set(this.vertexF32.subarray(0, this.vertexCount * INSTANCE_STRIDE_F32))
+      f32.set(
+        this.vertexF32.subarray(0, this.vertexCount * INSTANCE_STRIDE_F32),
+      )
       this.vertexF32 = f32
       this.vertexU32 = new Uint32Array(buffer)
       const colors = new Uint32Array(next)
@@ -638,6 +654,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     linearLayout,
     viewportBounds,
     colorDomain,
+    deletions,
   } = options
 
   const nodeMesh = new MeshBuilder()
@@ -686,7 +703,9 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const toStart = toSegments[0]!
     const numPaths = edge.pathIds?.length ?? 0
     const isSelfLoop = edge.from === edge.to
-    const edgeThickness = connectorThickness / 2
+    const isDeletion = deletions?.has(ei) ?? false
+    const edgeThickness =
+      (connectorThickness / 2) * (isDeletion ? DELETION_THICKNESS_FACTOR : 1)
 
     const buildSingleEdge = (
       offsetX: number,
@@ -724,7 +743,11 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const arrowStart = arrowMesh.vertexCount
 
     if (!drawPaths || numPaths === 0) {
-      buildSingleEdge(0, 0, EDGE_DEFAULT_COLOR)
+      buildSingleEdge(
+        0,
+        0,
+        isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR,
+      )
     } else {
       const dx = toStart.x - fromEnd.x
       const dy = toStart.y - fromEnd.y

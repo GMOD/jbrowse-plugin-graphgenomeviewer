@@ -1,0 +1,80 @@
+import { isBackbone } from './anchoredNodes'
+
+import type { Graph } from './types'
+
+// A deletion is the one kind of variation this view could not draw, and the
+// reason is structural rather than cosmetic: extra sequence is a *node*, so it
+// gets a tube, a colour and a hover. Missing sequence is an **edge** — a link
+// from one backbone segment to another that is not its neighbour — and every
+// edge in the drawing was painted the same grey, so the graph said nothing about
+// the events a linear view is worst at.
+//
+// It needs no new data. Both endpoints of such an edge carry rGFA coordinates on
+// the same stable sequence, so the bp the haplotype skips is the gap between
+// them, and the whole classification is arithmetic on SN/SO plus the segment
+// lengths already parsed. `agent-docs/reference/PANGENOME_GRAPHS.md` in
+// jbrowse-components measured what this finds on the hosted HPRC graph: 8
+// deletions in the 200 kb MHC class II window against 78 attributed alleles, 1
+// in the 70 kb C4 window.
+//
+// Two things this deliberately does not do:
+//
+//   - it does not attribute the deletion to a haplotype. A backbone-to-backbone
+//     skip has GRCh38 at both ends, so there is no `SN` naming a donor, and the
+//     same reference note records why: a deletion only carries a donor when it
+//     also carries novel sequence, and then it is not a clean deletion any more.
+//   - it does not treat a same-position link as a deletion. Adjacent backbone
+//     segments abut (gap 0) and a substitution's flanks can overlap by the
+//     aligned bases, so only a positive gap counts.
+
+// A skip has to clear this to be drawn as a deletion. minigraph's SV-resolution
+// graph does not record anything smaller than tens of bp, so this is not a
+// biological threshold but a guard against calling a rounding artifact a
+// deletion — abutting segments are the common case and they must not light up.
+const MIN_DELETION_BP = 1
+
+export interface DeletionEdge {
+  // index into graph.edges, which is what the renderer keys its curve ranges by
+  edgeIndex: number
+  refName: string
+  start: number
+  end: number
+  bp: number
+}
+
+// Every edge that skips reference sequence, in graph.edges order.
+export function deletionEdges(graph: Graph): DeletionEdge[] {
+  const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  const found: DeletionEdge[] = []
+  for (let edgeIndex = 0; edgeIndex < graph.edges.length; edgeIndex++) {
+    const edge = graph.edges[edgeIndex]!
+    const from = byId.get(edge.from)
+    const to = byId.get(edge.to)
+    if (
+      from !== undefined &&
+      to !== undefined &&
+      isBackbone(from) &&
+      isBackbone(to) &&
+      from.stable.refName === to.stable.refName
+    ) {
+      // A GFA states a link in either orientation and single-node mode collapses
+      // both onto one node, so which endpoint is upstream comes from the
+      // coordinates rather than from from/to.
+      const [left, right] =
+        from.stable.start <= to.stable.start ? [from, to] : [to, from]
+      const start = left.stable.start + left.length
+      const end = right.stable.start
+      const bp = end - start
+      if (bp >= MIN_DELETION_BP) {
+        found.push({
+          edgeIndex,
+          refName: left.stable.refName,
+          start,
+          end,
+          bp,
+        })
+      }
+    }
+  }
+  return found
+}
