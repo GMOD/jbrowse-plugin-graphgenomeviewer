@@ -125,9 +125,10 @@ const deletionLabelStyle = {
 
 // Writes each drawn thing's size onto it, which is what Bandage's Length label
 // does and what the tooltip alone could not: a graph you have to hover to read
-// is a graph nobody reads. Positioned through the same transform the canvas
-// draws with, so a label tracks its node across pan and zoom, and mounted in the
-// canvas's own positioning context for the reason RowLabels is.
+// is a graph nobody reads. graphLabels applies the same transform the canvas
+// draws with — so a label tracks its node across pan and zoom — and decides
+// which labels fit; this only paints them, mounted in the canvas's own
+// positioning context for the reason RowLabels is.
 const GraphSizeLabels = observer(function GraphSizeLabels({
   model,
 }: {
@@ -142,29 +143,26 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
     deletions: model.deletions,
     scale: model.scale,
+    translateX: model.translateX,
+    translateY: model.translateY,
+    width: model.width,
+    height: model.canvasHeight,
   })
   return (
     <>
-      {labels.map(({ key, text, x, y, kind }) => {
-        const screenX = x * model.scale + model.translateX
-        const screenY = y * model.scale + model.translateY
-        return screenX >= 0 &&
-          screenX <= model.width &&
-          screenY >= 0 &&
-          screenY <= model.canvasHeight ? (
-          <div
-            key={key}
-            data-testid="graph-size-label"
-            style={{
-              ...(kind === 'deletion' ? deletionLabelStyle : nodeLabelStyle),
-              left: screenX,
-              top: screenY,
-            }}
-          >
-            {text}
-          </div>
-        ) : null
-      })}
+      {labels.map(({ key, text, x, y, kind }) => (
+        <div
+          key={key}
+          data-testid="graph-size-label"
+          style={{
+            ...(kind === 'deletion' ? deletionLabelStyle : nodeLabelStyle),
+            left: x,
+            top: y,
+          }}
+        >
+          {text}
+        </div>
+      ))}
     </>
   )
 })

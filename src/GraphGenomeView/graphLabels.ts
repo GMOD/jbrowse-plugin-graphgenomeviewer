@@ -7,20 +7,82 @@ import type { NodeSegment } from './types'
 // its length or its depth; a segment id means nothing to a reader of a pangenome
 // ("s462766"), so the label here is the one fact that carries the story — how
 // much sequence the alternative is worth. A node says its length, a deletion arc
-// says what it removes.
+// says what it skips.
 //
-// Only what fits gets a label. The threshold is in SCREEN pixels rather than in
-// layout units, because whether a label is legible depends on the zoom and not
-// on the graph: at a wide view the same node is a speck, and a drawing carrying
-// one label per speck is less readable than one carrying none. This is why there
-// is no "show labels" toggle — the labels manage themselves, and a control whose
-// only job is to undo a bad default is a bad default.
+// **Every length written here is positive.** A deletion arc used to be labelled
+// "−94.2 kb", and a review read that as the node's sequence length being
+// negative, which is the only thing a bare signed number beside a graph can
+// mean. The arc removes reference sequence rather than carrying negative
+// sequence, so the label says the verb: `skips 94.2 kb`.
+//
+// **Two rules decide which labels there are, and both are about the drawing
+// rather than about a threshold on the graph.**
+//
+// A label has to fit the node it names, within a factor of two: past that it is
+// a label with a node attached rather than a node with a label. The rule used to
+// be a flat minimum drawn length (46 screen px) regardless of how long the text
+// was, which reads as arbitrary from the outside — review asked why some nodes
+// state a length and others do not, and nothing in the picture could answer it.
+// Measured against the text, the answer is in the picture: the node is shorter
+// than the words.
+//
+// And a label is dropped when its box would overlap one already placed. Labels
+// go biggest-sequence-first, so what survives a crowd is the allele that
+// matters; this is also what fixes labels printing on top of each other ("−10
+// kb3.2 kb" in the amylase figure).
+//
+// Between them they hold at both ends of the scale a pangenome graph spans: 63
+// kb-scale nodes at the amylase locus nearly all carry a length, and a 154-node
+// base-level pggb graph of 1-100 bp segments carries almost none — where every
+// label would have said "1 bp" and covered the segment it named.
+//
+// Collision is measured in SCREEN pixels, because that is where the text has its
+// size: the same two labels clear each other zoomed in and collide zoomed out,
+// so a wide view sheds labels on its own. This is why there is no "show labels"
+// toggle — a control whose only job is to undo a bad default is a bad default.
 
-// Below this, a node's own drawn length cannot hold its text.
-const MIN_NODE_LABEL_PX = 46
 // A deletion is worth saying even when its arc is small, because the arc is the
 // only thing on screen that represents it; but not when it is a dot.
 const MIN_DELETION_LABEL_PX = 26
+
+// The label's own box, for collision. Mirrors GraphCanvas's nodeLabelStyle:
+// 10px text in 3px of horizontal padding, on a 13px line. Character width is an
+// average rather than a measurement — placement runs on every pan and zoom, and
+// a canvas text metric per candidate costs more than the occasional
+// half-character of slack is worth.
+const LABEL_CHAR_PX = 5.7
+const LABEL_PAD_PX = 6
+const LABEL_HEIGHT_PX = 13
+// Breathing room, so two labels that merely touch still read as two.
+const LABEL_GAP_PX = 3
+// How much wider than its node a label may be before it is the label that is
+// being drawn rather than the node.
+const MAX_LABEL_OVERHANG = 2
+
+interface Box {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+function labelBox(text: string, screenX: number, screenY: number): Box {
+  // translate(-50%, -50%) in the style, so the anchor is the box's centre
+  const halfW = (text.length * LABEL_CHAR_PX + LABEL_PAD_PX + LABEL_GAP_PX) / 2
+  const halfH = (LABEL_HEIGHT_PX + LABEL_GAP_PX) / 2
+  return {
+    left: screenX - halfW,
+    right: screenX + halfW,
+    top: screenY - halfH,
+    bottom: screenY + halfH,
+  }
+}
+
+function overlaps(a: Box, b: Box) {
+  return (
+    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+  )
+}
 
 // Where the cubic drawn by computeEdgeCurves reaches at its furthest from the
 // chord. Both control points sit `bulge` off it, so the curve peaks at 3/4 of
@@ -30,7 +92,9 @@ const BEZIER_APEX_FRACTION = 0.75
 export interface GraphLabel {
   key: string
   text: string
-  // layout units; the caller applies the same transform the canvas draws with
+  // screen pixels, already through the transform the canvas draws with: the
+  // collision test needs them anyway, and returning layout units would have the
+  // caller redo the arithmetic that decided which labels there are
   x: number
   y: number
   kind: 'node' | 'deletion'
@@ -46,6 +110,13 @@ export function formatBp(bp: number) {
   return bp >= 1000 ? `${+(bp / 1000).toFixed(1)} kb` : `${bp} bp`
 }
 
+function midpoint(segments: NodeSegment[]) {
+  const mid = segments[Math.floor(segments.length / 2)]!
+  return { x: mid.x, y: mid.y }
+}
+
+// The node's own extent along its polyline, in layout units — what the label has
+// to fit inside, and what the caller scales into screen px.
 function drawnLength(segments: NodeSegment[]) {
   let total = 0
   for (let i = 1; i < segments.length; i++) {
@@ -56,9 +127,29 @@ function drawnLength(segments: NodeSegment[]) {
   return total
 }
 
-function midpoint(segments: NodeSegment[]) {
-  const mid = segments[Math.floor(segments.length / 2)]!
-  return { x: mid.x, y: mid.y }
+// A deletion's label rides its arc's apex rather than sitting on the backbone
+// the arc routes around, so it reads as belonging to the arc.
+function deletionApex(
+  nodePositions: Record<string, NodeSegment[]>,
+  deletion: DeletionEdge,
+  bulge: number,
+) {
+  const ends = deletion.bypassed
+    .map(id => nodePositions[id])
+    .filter(segs => segs !== undefined && segs.length > 0)
+  const first = ends[0]?.[0]
+  const lastSegs = ends[ends.length - 1]
+  const last = lastSegs?.[lastSegs.length - 1]
+  if (first === undefined || last === undefined) {
+    return undefined
+  }
+  const dx = last.x - first.x
+  const dy = last.y - first.y
+  const len = Math.hypot(dx, dy) || 1
+  return {
+    x: (first.x + last.x) / 2 + (-dy / len) * bulge * BEZIER_APEX_FRACTION,
+    y: (first.y + last.y) / 2 + (dx / len) * bulge * BEZIER_APEX_FRACTION,
+  }
 }
 
 export function graphLabels({
@@ -66,57 +157,77 @@ export function graphLabels({
   nodeLengths,
   deletions,
   scale,
+  translateX,
+  translateY,
+  width,
+  height,
 }: {
   nodePositions: Record<string, NodeSegment[]>
   // bp per node id, so this module never has to know what a GraphNode is
   nodeLengths: Map<string, number>
   deletions: DeletionEdge[]
   scale: number
+  translateX: number
+  translateY: number
+  width: number
+  height: number
 }): GraphLabel[] {
-  const labels: GraphLabel[] = []
-
-  for (const [id, segments] of Object.entries(nodePositions)) {
-    const bp = nodeLengths.get(id)
-    if (bp !== undefined && segments.length > 0) {
-      if (drawnLength(segments) * scale >= MIN_NODE_LABEL_PX) {
-        const { x, y } = midpoint(segments)
-        labels.push({
-          key: `node:${id}`,
-          text: formatBp(bp),
-          x,
-          y,
-          kind: 'node',
-        })
-      }
-    }
-  }
-
-  for (const deletion of deletions) {
+  // Deletions first, so an arc keeps its label against the nodes around it: the
+  // arc is the only thing in the drawing that represents sequence which is not
+  // there, and a reader who cannot read it has no other route to it.
+  const candidates: GraphLabel[] = []
+  for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
     const bulge = deletionBulge(nodePositions, deletion.bypassed)
     if (bulge * scale >= MIN_DELETION_LABEL_PX) {
-      // the arc's own apex, so the label rides the curve rather than sitting on
-      // the backbone the deletion routes around
-      const ends = deletion.bypassed
-        .map(id => nodePositions[id])
-        .filter(segs => segs !== undefined && segs.length > 0)
-      const first = ends[0]?.[0]
-      const lastSegs = ends[ends.length - 1]
-      const last = lastSegs?.[lastSegs.length - 1]
-      if (first && last) {
-        const dx = last.x - first.x
-        const dy = last.y - first.y
-        const len = Math.hypot(dx, dy) || 1
-        labels.push({
+      const apex = deletionApex(nodePositions, deletion, bulge)
+      if (apex) {
+        candidates.push({
           key: `del:${deletion.edgeIndex}`,
-          text: `−${formatBp(deletion.bp)}`,
-          x:
-            (first.x + last.x) / 2 + (-dy / len) * bulge * BEZIER_APEX_FRACTION,
-          y: (first.y + last.y) / 2 + (dx / len) * bulge * BEZIER_APEX_FRACTION,
+          text: `skips ${formatBp(deletion.bp)}`,
+          x: apex.x * scale + translateX,
+          y: apex.y * scale + translateY,
           kind: 'deletion',
         })
       }
     }
   }
 
+  // Biggest allele first: in a crowd, the label that survives should be the one
+  // carrying the most sequence, not whichever node the layout happened to emit
+  // first.
+  const nodes = Object.entries(nodePositions)
+    .filter(([id, segments]) => segments.length > 0 && nodeLengths.has(id))
+    .sort(([a], [b]) => nodeLengths.get(b)! - nodeLengths.get(a)!)
+  for (const [id, segments] of nodes) {
+    const { x, y } = midpoint(segments)
+    const text = formatBp(nodeLengths.get(id)!)
+    const box = labelBox(text, 0, 0)
+    if (
+      drawnLength(segments) * scale >=
+      (box.right - box.left) / MAX_LABEL_OVERHANG
+    ) {
+      candidates.push({
+        key: `node:${id}`,
+        text,
+        x: x * scale + translateX,
+        y: y * scale + translateY,
+        kind: 'node',
+      })
+    }
+  }
+
+  const placed: Box[] = []
+  const labels: GraphLabel[] = []
+  for (const label of candidates) {
+    const box = labelBox(label.text, label.x, label.y)
+    // Culled before the collision test, so a label outside the canvas cannot
+    // hold a box against one inside it.
+    const onScreen =
+      box.right > 0 && box.left < width && box.bottom > 0 && box.top < height
+    if (onScreen && !placed.some(p => overlaps(p, box))) {
+      placed.push(box)
+      labels.push(label)
+    }
+  }
   return labels
 }

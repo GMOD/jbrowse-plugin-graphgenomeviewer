@@ -509,6 +509,15 @@ describe('the reference-position ramp', () => {
       depth: 1,
       stable: { refName: 'other', start: 7, rank: 1 },
     },
+    // a second allele, branching from the far end of the window rather than the
+    // middle of it, so a position-dependent colouring would paint it differently
+    {
+      id: 'alt2+',
+      name: 'alt2',
+      length: 400,
+      depth: 1,
+      stable: { refName: 'other', start: 900, rank: 1 },
+    },
     { id: 'loose+', name: 'loose', length: 10, depth: 1 },
   ]
   const graph = {
@@ -517,6 +526,7 @@ describe('the reference-position ramp', () => {
     edges: [
       { from: 'left+', to: 'alt+' },
       { from: 'alt+', to: 'right+' },
+      { from: 'right+', to: 'alt2+' },
     ],
   }
   const positions = Object.fromEntries(
@@ -552,18 +562,9 @@ describe('the reference-position ramp', () => {
   // The contract a linear track's `color` jexl reproduces. Written out as the
   // arithmetic rather than as a captured constant, so an edit to the ramp fails
   // here instead of silently desynchronising the two panels.
-  function expectedColor(
-    mid: number,
-    start: number,
-    span: number,
-    offReference = false,
-  ) {
+  function expectedColor(mid: number, start: number, span: number) {
     const frac = Math.max(0, Math.min(1, (mid - start) / span))
-    const [r, g, b] = hslToRgb(
-      frac * REFERENCE_RAMP_MAX_HUE,
-      offReference ? 0.45 : 0.7,
-      offReference ? 0.72 : 0.5,
-    )
+    const [r, g, b] = hslToRgb(frac * REFERENCE_RAMP_MAX_HUE, 0.7, 0.5)
     return packAbgr(
       Math.round(r * 255),
       Math.round(g * 255),
@@ -578,20 +579,20 @@ describe('the reference-position ramp', () => {
     expect(colors['right+']).toBe(expectedColor(950, 0, 1000))
   })
 
-  // The point of the scheme: an allele has no reference coordinate of its own,
-  // so it takes the colour of the interval it branches from — between the end
-  // of the left flank and the start of the right one.
-  test('paints an allele the hue of the interval it branches from', () => {
+  // The ramp is the reference path's colouring, so an allele is taken off it
+  // entirely: a hue here — even a pale one — says the allele IS the reference at
+  // that position, which is the opposite of what it is.
+  test('paints an allele off the ramp, in the flat alternative colour', () => {
     const colors = colorsFor({ start: 0, end: 1000 })
-    expect(colors['alt+']).toBe(expectedColor((100 + 900) / 2, 0, 1000, true))
+    expect(colors['alt+']).toBe(packAbgr(60, 65, 72, 255))
   })
 
-  // Same hue, paler: the correspondence with the reference is the scheme, and
-  // rank is what a reader could not otherwise see under it. A backbone segment
-  // at the same midpoint has to come out a different colour, or the two rows of
-  // an anchored layout are painted identically.
-  test('paints an allele paler than the backbone at the same position', () => {
+  // Every allele the same colour, wherever it branches: the ramp is not what
+  // distinguishes them, and a reader looking for one is reading position off a
+  // node that has none.
+  test('paints two alleles at different positions the same colour', () => {
     const colors = colorsFor({ start: 0, end: 1000 })
+    expect(colors['alt+']).toBe(colors['alt2+'])
     expect(colors['alt+']).not.toBe(expectedColor(500, 0, 1000))
   })
 

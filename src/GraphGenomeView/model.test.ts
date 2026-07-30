@@ -83,6 +83,15 @@ function createModel() {
   return stateModelFactory().create({ type: 'GraphGenomeView' })
 }
 
+// The view defaults to the force layout, so a test about a reference-anchored
+// drawing has to select one — the same way the anchored figures do.
+function createAnchoredModel() {
+  return stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+  })
+}
+
 const TEST_REGION = {
   refName: 'chr1',
   assemblyName: 'hg38',
@@ -502,7 +511,7 @@ describe('layoutMode', () => {
 
   test('auto lays an rGFA out from the file, with no layout RPC', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'rgfa')
 
     expect(model.canAnchorLayout).toBe(true)
@@ -577,7 +586,7 @@ describe('reference path', () => {
 
   test('a whole-file pggb import anchors on the first path in the file', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(PGGB_GFA, 'pggb')
 
     expect(model.activeReferencePath).toBe('K12#1#chr')
@@ -589,7 +598,7 @@ describe('reference path', () => {
 
   test('the picker moves the backbone onto another path', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(PGGB_GFA, 'pggb')
 
     model.setReferencePath('Sakai#1#chr')
@@ -658,7 +667,7 @@ describe('zoomToFit on a layout that is flat in y', () => {
 
   test('fits on x and centers on y', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(RGFA_BACKBONE_ONLY, 'backbone only')
 
     const ys = Object.values(model.nodePositions!)
@@ -734,7 +743,7 @@ describe('zoomToFit on a megabase-scale layout', () => {
 
   test('fits a 5 Mbp span inside the canvas', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(WIDE_RGFA, 'wide')
 
     model.zoomToFit()
@@ -812,7 +821,7 @@ describe('canvas height follows the drawing', () => {
   // a ~116 px pane, which leaves nothing to hover in.
   test('a nearly flat layout stops shrinking at the floor', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'two rows over 8 bp')
 
     expect(model.canvasHeight).toBe(160)

@@ -155,14 +155,21 @@ function hashColor(str: string, alpha: number) {
 export const REFERENCE_RAMP_MAX_HUE = 300
 const REFERENCE_RAMP_SATURATION = 0.7
 const REFERENCE_RAMP_LIGHTNESS = 0.5
-// Off-reference segments keep the hue of the reference they replace — that
-// correspondence is the whole scheme — but take a paler, softer version of it,
-// so a rank row is not painted the same swatch as the backbone above it
-// (review: "kind of weird to see the rank 1 having coloring the same as the
-// reference"). Rank goes on lightness rather than on a second hue range, which
-// would have to mean position and rank at once and could state neither.
-const REFERENCE_RAMP_ALT_SATURATION = 0.45
-const REFERENCE_RAMP_ALT_LIGHTNESS = 0.72
+// Off-reference segments come off the ramp entirely and paint one flat charcoal.
+//
+// They used to keep the hue of the reference they replace, paler and softer, on
+// the argument that the correspondence is the whole scheme. Two rounds of docs
+// review say otherwise: a pale hue is still a hue on the ramp, so an alternative
+// allele reads as reference sequence at that position rather than as sequence
+// the reference does not have — "non-backbone parts of the bandage graph could
+// be coloured in a non-spectrum colouring". Nothing is lost by dropping the hue,
+// because in both anchored layouts an allele's x already states which reference
+// position it attaches to, and in the force layout its position states nothing
+// to begin with.
+//
+// Distinct from the light grey a node with no reference coordinates at all gets:
+// this one is anchored and off-reference, that one is unplaceable.
+const REFERENCE_RAMP_ALT_COLOR = packAbgr(60, 65, 72, 255)
 
 export interface ReferenceRamp {
   start: number
@@ -296,14 +303,14 @@ export function getNodeColor(
       if (ramp === undefined || mid === undefined) {
         return packAbgr(160, 160, 160, 255)
       }
+      if (node.stable !== undefined && node.stable.rank > 0) {
+        return REFERENCE_RAMP_ALT_COLOR
+      }
       const frac = Math.max(0, Math.min(1, (mid - ramp.start) / ramp.span))
-      const offReference = node.stable !== undefined && node.stable.rank > 0
       const [r, g, b] = hslToRgb(
         frac * REFERENCE_RAMP_MAX_HUE,
-        offReference
-          ? REFERENCE_RAMP_ALT_SATURATION
-          : REFERENCE_RAMP_SATURATION,
-        offReference ? REFERENCE_RAMP_ALT_LIGHTNESS : REFERENCE_RAMP_LIGHTNESS,
+        REFERENCE_RAMP_SATURATION,
+        REFERENCE_RAMP_LIGHTNESS,
       )
       return packNorm(r, g, b, 1)
     }

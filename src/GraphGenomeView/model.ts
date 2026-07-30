@@ -186,12 +186,23 @@ export default function stateModelFactory() {
         layoutQuality: types.optional(types.number, 1),
         linearLayout: types.optional(types.boolean, false),
         // Which drawing to use; the modes and their fallbacks are described in
-        // LAYOUT_MODES. Default 'auto' is the anchored layout, which puts x on
-        // the reference axis so the graph lines up with a linear view above it,
-        // falling through to FMMM for a GFA with no backbone to anchor to.
+        // LAYOUT_MODES. Default 'force' is the Bandage FMMM drawing, i.e. what
+        // someone who has seen a pangenome graph before expects to see.
+        //
+        // The default used to be 'auto', the reference-anchored layout, on the
+        // argument that lining the graph's x axis up with a linear view above it
+        // is what this view can do and Bandage cannot. Docs review disagreed
+        // twice, on figure after figure — "the linear backbone is just
+        // confusing", "default to showing the bandage graphs over linear
+        // backbone in almost all cases" — and the reason is that the anchored
+        // drawing looks like a track rather than a graph: a bubble collapses onto
+        // the reference axis, so the alternative alleles read as short bars
+        // hanging under a line rather than as two routes through the same locus.
+        // The anchored modes stay one dropdown click away, and are what the
+        // hover-sync and one-row-per-strain figures select deliberately.
         layoutMode: types.optional(
           types.enumeration(LAYOUT_MODE_VALUES),
-          'auto',
+          'force',
         ),
         colorScheme: types.optional(
           types.enumeration(COLOR_SCHEME_VALUES),
