@@ -27,6 +27,111 @@ export interface BezierCurve {
   y1: number
 }
 
+// The cubic's own point at t, by de Casteljau. Used to place a label ON a curve
+// rather than at a position derived from what the curve was supposed to be: an
+// apex recomputed from the bulge and the endpoints agrees with the drawing only
+// as long as both derive it the same way, and they did not.
+export function curvePointAt(c: BezierCurve, t: number) {
+  const u = 1 - t
+  const a = u * u * u
+  const b = 3 * u * u * t
+  const d = 3 * u * t * t
+  const e = t * t * t
+  return {
+    x: a * c.x0 + b * c.cx0 + d * c.cx1 + e * c.x1,
+    y: a * c.y0 + b * c.cy0 + d * c.cy1 + e * c.y1,
+  }
+}
+
+// Halfway along a run of curves, measured in curves rather than in arc length: a
+// run is one cubic for every edge this is used on (computeEdgeCurves returns a
+// single curve except for self-loops), so the two agree where it matters and the
+// cheap version cannot be wrong by more than a curve.
+export function curveMidpoint(curves: BezierCurve[]) {
+  const mid = curves[Math.floor(curves.length / 2)]
+  return mid ? curvePointAt(mid, 0.5) : undefined
+}
+
+// Control-polygon bounds, which contain the curve. Used to ask how big a drawn
+// edge is on screen, where the answer has to hold under any layout: a bulge
+// alone is in whatever units the layout works in.
+export function curveBounds(curves: BezierCurve[]) {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const c of curves) {
+    minX = Math.min(minX, c.x0, c.cx0, c.cx1, c.x1)
+    maxX = Math.max(maxX, c.x0, c.cx0, c.cx1, c.x1)
+    minY = Math.min(minY, c.y0, c.cy0, c.cy1, c.y1)
+    maxY = Math.max(maxY, c.y0, c.cy0, c.cy1, c.y1)
+  }
+  return { minX, minY, maxX, maxY }
+}
+
+// The sub-curve over [t0, t1], exact rather than sampled: de Casteljau twice,
+// which is what keeps a dashed curve on the same path as the solid one.
+function subCurve(c: BezierCurve, t0: number, t1: number): BezierCurve {
+  const p0 = curvePointAt(c, t0)
+  const p1 = curvePointAt(c, t1)
+  // The Hermite tangents of the whole cubic at t0/t1, scaled by the sub-span,
+  // are the sub-curve's control-point offsets.
+  const dt = (t1 - t0) / 3
+  const d0 = curveTangentAt(c, t0)
+  const d1 = curveTangentAt(c, t1)
+  return {
+    x0: p0.x,
+    y0: p0.y,
+    cx0: p0.x + d0.x * dt,
+    cy0: p0.y + d0.y * dt,
+    cx1: p1.x - d1.x * dt,
+    cy1: p1.y - d1.y * dt,
+    x1: p1.x,
+    y1: p1.y,
+  }
+}
+
+function curveTangentAt(c: BezierCurve, t: number) {
+  const u = 1 - t
+  const a = 3 * u * u
+  const b = 6 * u * t
+  const d = 3 * t * t
+  return {
+    x: a * (c.cx0 - c.x0) + b * (c.cx1 - c.cx0) + d * (c.x1 - c.cx1),
+    y: a * (c.cy0 - c.y0) + b * (c.cy1 - c.cy0) + d * (c.y1 - c.cy1),
+  }
+}
+
+// A curve chopped into dashes, each its own run so a renderer strokes them as
+// separate paths. Dashing is geometry here rather than a stroke style because
+// the two backends do not share one: Canvas2D has setLineDash, a GPU backend
+// tessellating these curves does not, and a dash pattern that only exists in one
+// of them is a figure that changes with the renderer.
+//
+// `dashWorld` is the period in layout units, so a caller passing screen px over
+// the current scale gets dashes of a constant on-screen size.
+export function dashCurves(
+  curves: BezierCurve[],
+  dashWorld: number,
+): BezierCurve[][] {
+  const out: BezierCurve[][] = []
+  for (const c of curves) {
+    // Control-polygon length overestimates the arc, which errs toward more
+    // dashes rather than toward a curve that reads as solid.
+    const polyLen =
+      Math.hypot(c.cx0 - c.x0, c.cy0 - c.y0) +
+      Math.hypot(c.cx1 - c.cx0, c.cy1 - c.cy0) +
+      Math.hypot(c.x1 - c.cx1, c.y1 - c.cy1)
+    // Odd, so a dash sits at each end of the curve and the arc reads as
+    // attached to both nodes rather than floating between them.
+    const spans = Math.max(3, Math.round(polyLen / dashWorld) | 1)
+    for (let i = 0; i < spans; i += 2) {
+      out.push([subCurve(c, i / spans, (i + 1) / spans)])
+    }
+  }
+  return out
+}
+
 export function translateCurves(
   curves: BezierCurve[],
   dx: number,

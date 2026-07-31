@@ -1,7 +1,7 @@
 import { brightenAbgr, packAbgr } from './colorBits'
 import { deletionBulge } from '../deletionEdges'
 import { referenceMidpoints } from '../referenceSpan'
-import { computeEdgeCurves } from '../util/geometry'
+import { computeEdgeCurves, dashCurves } from '../util/geometry'
 import {
   FIELD_OFFSET_F32,
   INSTANCE_STRIDE_BYTES,
@@ -40,6 +40,10 @@ const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0
 // position and only that.
 const EDGE_DELETION_COLOR = packAbgr(24, 24, 28, 240)
 const DELETION_THICKNESS_FACTOR = 2.2
+// Dash period in screen px, so a dashed arc looks the same at any zoom. Dashes
+// are geometry rather than a stroke style, because only one of the two backends
+// has one; see dashCurves.
+const DELETION_DASH_PX = 11
 
 // Half-extent of an arrowhead, in world units before the view transform.
 const ARROWHEAD_SIZE = 12
@@ -750,7 +754,22 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         return
       }
 
-      edgeCurves.push({ curves, thickness: edgeThickness, color })
+      // A deletion is drawn dashed, and that is the only thing in the drawing
+      // that is. Weight and darkness were carrying it alone, and they could not:
+      // an off-reference node is charcoal rgb(60,65,72) and the arc is near-black
+      // rgb(24,24,28), which is ~25 points a channel apart, so in a figure the
+      // two dark strokes read as the same ink and the arc is the rarer of them
+      // (measured on `pangenome/hprc_lpa_kiv2`: 7,411 px of charcoal node against
+      // ~5,000 px of arc). Hue cannot separate them either, since hue means
+      // reference position and charcoal means having none. A broken line is
+      // available, unused, and says what it draws: sequence that is not there.
+      if (isDeletion) {
+        for (const dash of dashCurves(curves, DELETION_DASH_PX / scale)) {
+          edgeCurves.push({ curves: dash, thickness: edgeThickness, color })
+        }
+      } else {
+        edgeCurves.push({ curves, thickness: edgeThickness, color })
+      }
 
       if (showArrows) {
         const last = curves[curves.length - 1]!

@@ -1,4 +1,5 @@
 import { isBackbone } from './anchoredNodes'
+import { computeEdgeCurves } from './util/geometry'
 
 import type { Graph } from './types'
 
@@ -36,6 +37,10 @@ const MIN_DELETION_BP = 1
 export interface DeletionEdge {
   // index into graph.edges, which is what the renderer keys its curve ranges by
   edgeIndex: number
+  // the edge's own endpoints, so anything that needs the arc as it is DRAWN can
+  // rebuild it (deletionArcCurves) instead of approximating it from `bypassed`
+  from: string
+  to: string
   refName: string
   start: number
   end: number
@@ -70,6 +75,37 @@ export function deletionBulge(
   )
 }
 
+// The deletion's arc exactly as the renderer draws it, for anything that has to
+// agree with the drawing: the label that rides it, and hit detection.
+//
+// This exists because the label used to be placed at an apex derived from the
+// BYPASSED nodes while the curve was drawn between the EDGE's endpoints. In an
+// anchored layout the bypassed run lies between the endpoints, so the two agreed
+// and the divergence was invisible; under FMMM the endpoints are wherever the
+// simulation left them and the bypassed run is elsewhere, so the words and the
+// arc they named came out in different corners of the drawing
+// (`pangenome/hprc_cfhr_deletion`, reviewed 2026-07-31). One function is the fix:
+// a second derivation of the same curve is a second thing to keep in step.
+export function deletionArcCurves(
+  nodePositions: Record<string, { x: number; y: number }[]>,
+  deletion: DeletionEdge,
+  scale: number,
+) {
+  const from = nodePositions[deletion.from]
+  const to = nodePositions[deletion.to]
+  return from?.length && to?.length
+    ? computeEdgeCurves(
+        from,
+        to,
+        deletion.from === deletion.to,
+        0,
+        0,
+        scale,
+        deletionBulge(nodePositions, deletion.bypassed),
+      )
+    : undefined
+}
+
 // Every edge that skips reference sequence, in graph.edges order.
 export function deletionEdges(graph: Graph): DeletionEdge[] {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
@@ -98,6 +134,8 @@ export function deletionEdges(graph: Graph): DeletionEdge[] {
         const refName = left.stable.refName
         found.push({
           edgeIndex,
+          from: edge.from,
+          to: edge.to,
           refName,
           start,
           end,

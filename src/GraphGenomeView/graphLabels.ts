@@ -1,4 +1,5 @@
-import { deletionBulge } from './deletionEdges'
+import { deletionArcCurves } from './deletionEdges'
+import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
 import type { NodeSegment } from './types'
@@ -46,6 +47,15 @@ import type { NodeSegment } from './types'
 
 // A deletion is worth saying even when its arc is small, because the arc is the
 // only thing on screen that represents it; but not when it is a dot.
+//
+// Measured on the arc's DRAWN EXTENT (the larger side of its bounds, in screen
+// px), not on its bulge. Bulge is in whatever units the layout works in: under
+// FMMM it is a fraction of the bypassed nodes' drawn length at the engine's own
+// scale, and in an anchored layout it is a fraction of their length in bp. The
+// same deletion therefore cleared this in one layout and not the other, which is
+// how `pangenome/hprc_cfhr_deletion` lost the labels on its 2.2 kb and 9.3 kb
+// arcs by changing nothing but the layout. Extent is what a reader sees either
+// way, and it is the same quantity the node rule below uses.
 const MIN_DELETION_LABEL_PX = 26
 
 // The label's own box, for collision. Mirrors GraphCanvas's nodeLabelStyle:
@@ -100,11 +110,6 @@ function overlaps(a: Box, b: Box) {
   )
 }
 
-// Where the cubic drawn by computeEdgeCurves reaches at its furthest from the
-// chord. Both control points sit `bulge` off it, so the curve peaks at 3/4 of
-// that — enough that a label placed here sits on the arc rather than inside it.
-const BEZIER_APEX_FRACTION = 0.75
-
 export interface GraphLabel {
   key: string
   text: string
@@ -143,31 +148,6 @@ function drawnLength(segments: NodeSegment[]) {
   return total
 }
 
-// A deletion's label rides its arc's apex rather than sitting on the backbone
-// the arc routes around, so it reads as belonging to the arc.
-function deletionApex(
-  nodePositions: Record<string, NodeSegment[]>,
-  deletion: DeletionEdge,
-  bulge: number,
-) {
-  const ends = deletion.bypassed
-    .map(id => nodePositions[id])
-    .filter(segs => segs !== undefined && segs.length > 0)
-  const first = ends[0]?.[0]
-  const lastSegs = ends[ends.length - 1]
-  const last = lastSegs?.[lastSegs.length - 1]
-  if (first === undefined || last === undefined) {
-    return undefined
-  }
-  const dx = last.x - first.x
-  const dy = last.y - first.y
-  const len = Math.hypot(dx, dy) || 1
-  return {
-    x: (first.x + last.x) / 2 + (-dy / len) * bulge * BEZIER_APEX_FRACTION,
-    y: (first.y + last.y) / 2 + (dx / len) * bulge * BEZIER_APEX_FRACTION,
-  }
-}
-
 export function graphLabels({
   nodePositions,
   nodeLengths,
@@ -201,10 +181,12 @@ export function graphLabels({
   // there, and a reader who cannot read it has no other route to it.
   const candidates: GraphLabel[] = []
   for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
-    const bulge = deletionBulge(nodePositions, deletion.bypassed)
-    if (bulge * scale >= MIN_DELETION_LABEL_PX) {
-      const apex = deletionApex(nodePositions, deletion, bulge)
-      if (apex) {
+    const curves = deletionArcCurves(nodePositions, deletion, scale)
+    const apex = curves ? curveMidpoint(curves) : undefined
+    if (curves && apex) {
+      const { minX, minY, maxX, maxY } = curveBounds(curves)
+      const extent = Math.max(maxX - minX, maxY - minY)
+      if (extent * scale >= MIN_DELETION_LABEL_PX) {
         candidates.push({
           key: `del:${deletion.edgeIndex}`,
           text: `skips ${formatBp(deletion.bp)} of reference`,

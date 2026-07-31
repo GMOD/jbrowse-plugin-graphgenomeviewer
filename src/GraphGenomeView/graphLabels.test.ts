@@ -23,6 +23,26 @@ const LENGTHS = new Map([
   ['speck', 7],
 ])
 
+// The two backbone nodes a deletion edge runs BETWEEN. The arc is drawn from the
+// end of one to the start of the other and bowed off that chord, so a fixture
+// that states only `bypassed` cannot say where the arc is: the label is placed on
+// the curve now rather than at an apex re-derived from the bypassed run, which is
+// what stopped the words and the arc landing in different places under a force
+// layout. Deliberately absent from LENGTHS, so they carry no labels of their own
+// and the assertions below stay about the deletion.
+const FLANKS = {
+  before: [
+    { x: -80, y: 0 },
+    { x: 0, y: 0 },
+  ],
+  after: [
+    { x: 200, y: 0 },
+    { x: 280, y: 0 },
+  ],
+}
+const FLANKED = { ...NODES, ...FLANKS }
+const between = { from: 'before', to: 'after' }
+
 const VIEWPORT = { translateX: 0, translateY: 0, width: 800, height: 400 }
 
 test('labels a node with the sequence it carries', () => {
@@ -84,11 +104,12 @@ test('drops a label that would land outside the canvas', () => {
 // took "−84.7 kb" for.
 test('a deletion says what it skips, positively, on its arc', () => {
   const [label] = graphLabels({
-    nodePositions: NODES,
+    nodePositions: FLANKED,
     nodeLengths: LENGTHS,
     deletions: [
       {
         edgeIndex: 3,
+        ...between,
         refName: 'chr1',
         start: 100,
         end: 84_783,
@@ -110,8 +131,10 @@ test('a deletion label wins the space over a node label', () => {
   const labels = graphLabels({
     nodePositions: {
       long: NODES.long,
-      // sits where the arc's apex lands (bulge 0.35*200, apex 3/4 of it), so the
-      // two labels compete for one box
+      ...FLANKS,
+      // sits where the arc's own midpoint lands (bulge 0.35*200, and a cubic
+      // whose control points both sit that far off the chord reaches 3/4 of it),
+      // so the two labels compete for one box
       clash: [
         { x: 60, y: 52 },
         { x: 140, y: 52 },
@@ -124,6 +147,7 @@ test('a deletion label wins the space over a node label', () => {
     deletions: [
       {
         edgeIndex: 0,
+        ...between,
         refName: 'chr1',
         start: 100,
         end: 84_783,
@@ -140,6 +164,39 @@ test('a deletion label wins the space over a node label', () => {
   ])
 })
 
+// The gate is the arc's drawn extent, not its bulge. Bulge is in layout units,
+// which differ per layout: the same deletion cleared a bulge threshold under FMMM
+// and failed it in an anchored layout, where the bow is a fraction of the skipped
+// span in bp. Here the bypassed node is short (so the bulge is small) while the
+// endpoints are far apart (so the arc is wide) -- the anchored case, and the one
+// the old rule got wrong.
+test('a wide, shallow arc is labelled', () => {
+  const labels = graphLabels({
+    nodePositions: {
+      ...FLANKS,
+      shallow: [
+        { x: 90, y: 0 },
+        { x: 110, y: 0 },
+      ],
+    },
+    nodeLengths: new Map(),
+    deletions: [
+      {
+        edgeIndex: 0,
+        ...between,
+        refName: 'chr1',
+        start: 100,
+        end: 9400,
+        bp: 9300,
+        bypassed: ['shallow'],
+      },
+    ],
+    scale: 1,
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text)).toEqual(['skips 9.3 kb of reference'])
+})
+
 // Two arcs over the same stretch of backbone put their labels in nearly the same
 // place, and the one that survives should be the larger event rather than
 // whichever the edge list happened to reach first.
@@ -147,6 +204,7 @@ test('the bigger deletion keeps its label', () => {
   const bypassed = ['long']
   const del = (edgeIndex: number, bp: number) => ({
     edgeIndex,
+    ...between,
     refName: 'chr1',
     start: 100,
     end: 100 + bp,
@@ -154,7 +212,7 @@ test('the bigger deletion keeps its label', () => {
     bypassed,
   })
   const labels = graphLabels({
-    nodePositions: NODES,
+    nodePositions: FLANKED,
     nodeLengths: LENGTHS,
     deletions: [del(0, 10_000), del(1, 15_700)],
     scale: 1,

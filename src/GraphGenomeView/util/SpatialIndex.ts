@@ -1,4 +1,5 @@
 import { computeEdgeCurves } from './geometry'
+import { deletionBulge } from '../deletionEdges'
 
 import type { Graph, NodeSegment } from '../types'
 import type { BezierCurve } from './geometry'
@@ -158,6 +159,14 @@ export class EdgeSpatialIndex {
     drawPaths: boolean,
     scale = 1,
     cellSize?: number,
+    // Bypassed backbone ids per deletion edge, i.e. what GeometryBuilder is
+    // given. Without it a deletion is indexed and hit-tested on the STRAIGHT
+    // chord between its endpoints while it is drawn as an arc bowed off that
+    // chord, so the shape on screen is not hoverable and the empty space where
+    // the chord runs is — and the tutorial tells the reader to hover it for the
+    // interval and the bp. Bowing is part of the drawn geometry, so it has to be
+    // part of the geometry hit detection uses.
+    deletions?: Map<number, string[]>,
   ) {
     const boxes: {
       ei: number
@@ -173,6 +182,7 @@ export class EdgeSpatialIndex {
       const toSegments = nodePositions[edge.to]
       if (fromSegments?.length && toSegments?.length) {
         const isSelfLoop = edge.from === edge.to
+        const bypassed = deletions?.get(ei)
         const curves = computeEdgeCurves(
           fromSegments,
           toSegments,
@@ -180,6 +190,7 @@ export class EdgeSpatialIndex {
           0,
           0,
           scale,
+          bypassed ? deletionBulge(nodePositions, bypassed) : 0,
         )
         this.edgeCurves.set(ei, curves)
 

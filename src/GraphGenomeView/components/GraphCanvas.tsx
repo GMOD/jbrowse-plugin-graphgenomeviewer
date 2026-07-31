@@ -400,6 +400,7 @@ const GraphCanvas = observer(function GraphCanvas({
               model.scale,
               model.drawPaths,
               model.viewportDirty,
+              model.deletionEdgeIndexes,
             ),
       )
     }

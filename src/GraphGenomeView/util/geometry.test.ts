@@ -1,4 +1,88 @@
-import { computeEdgeCurves, projectLine, translateCurves } from './geometry'
+import {
+  computeEdgeCurves,
+  curveMidpoint,
+  curvePointAt,
+  dashCurves,
+  projectLine,
+  translateCurves,
+} from './geometry'
+
+import type { BezierCurve } from './geometry'
+
+// A quarter-circle-ish arc, enough to tell "on the curve" from "near the chord".
+const ARC: BezierCurve = {
+  x0: 0,
+  y0: 0,
+  cx0: 0,
+  cy0: 60,
+  cx1: 100,
+  cy1: 60,
+  x1: 100,
+  y1: 0,
+}
+
+describe('dashCurves', () => {
+  test('dashes start and end on the curve, and lie on it', () => {
+    const dashes = dashCurves([ARC], 12)
+    expect(dashes.length).toBeGreaterThan(1)
+    // A dash sits at each end, so the arc reads as attached to both nodes
+    expect(dashes[0]![0]!.x0).toBeCloseTo(ARC.x0)
+    expect(dashes[0]![0]!.y0).toBeCloseTo(ARC.y0)
+    const last = dashes[dashes.length - 1]![0]!
+    expect(last.x1).toBeCloseTo(ARC.x1)
+    expect(last.y1).toBeCloseTo(ARC.y1)
+  })
+
+  test('a dash is the sub-curve of the original, not a chord across it', () => {
+    // Two dashes over the same span must trace the same points as the whole
+    // curve does there: this is what keeps the dashed arc on the solid one's
+    // path rather than cutting corners off it.
+    const [first] = dashCurves([ARC], 1e9 / 3) // forced to the 3-span minimum
+    const t = 1 / 3
+    for (const s of [0, 0.5, 1]) {
+      const onDash = curvePointAt(first![0]!, s)
+      const onArc = curvePointAt(ARC, s * t)
+      expect(onDash.x).toBeCloseTo(onArc.x)
+      expect(onDash.y).toBeCloseTo(onArc.y)
+    }
+  })
+
+  test('a shorter period gives more dashes', () => {
+    expect(dashCurves([ARC], 6).length).toBeGreaterThan(
+      dashCurves([ARC], 30).length,
+    )
+  })
+})
+
+describe('curveMidpoint', () => {
+  test('is on the curve, off its chord', () => {
+    const mid = curveMidpoint([ARC])!
+    expect(mid.x).toBeCloseTo(50)
+    // the chord runs along y=0; the curve reaches 3/4 of its control offset
+    expect(mid.y).toBeCloseTo(45)
+  })
+
+  test('agrees with the drawn bow of a deletion arc', () => {
+    // What the label placement depends on: the point it puts the words at has to
+    // be a point of the curve the renderer strokes, whatever the layout did with
+    // the endpoints.
+    const from = [
+      { x: -80, y: 0 },
+      { x: 0, y: 0 },
+    ]
+    const to = [
+      { x: 200, y: 0 },
+      { x: 280, y: 0 },
+    ]
+    const curves = computeEdgeCurves(from, to, false, 0, 0, 1, 70)
+    const mid = curveMidpoint(curves)!
+    expect(curves).toHaveLength(1)
+    const onCurve = curvePointAt(curves[0]!, 0.5)
+    expect(mid.x).toBeCloseTo(onCurve.x)
+    expect(mid.y).toBeCloseTo(onCurve.y)
+    expect(Math.abs(mid.y)).toBeGreaterThan(10)
+  })
+})
 
 describe('projectLine', () => {
   test('projects along positive x direction', () => {

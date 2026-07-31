@@ -110,6 +110,33 @@ describe('findHoveredEdge', () => {
   test('drawPaths=false still hits on centerline', () => {
     expect(findHoveredEdge(nodePositions, graph, 100, 0, 1, false)).toBe(0)
   })
+
+  // A deletion is drawn bowed off its chord, and the tutorial tells the reader to
+  // hover it for the interval and the bp it removes. Hit detection built its
+  // curves without the bow, so the shape on screen was not hoverable and the
+  // empty space along the chord was.
+  describe('a bowed deletion arc', () => {
+    // bulge = DELETION_BULGE_FRACTION * the bypassed node's drawn length
+    const bypassing = new Map([[0, ['mid']]])
+    const withBypassed = {
+      ...nodePositions,
+      mid: [
+        { x: 50, y: 0 },
+        { x: 150, y: 0 },
+      ],
+    }
+    const at = (x: number, y: number, deletions?: Map<number, string[]>) =>
+      findHoveredEdge(withBypassed, graph, x, y, 1, false, 0, deletions)
+
+    test('is hoverable where it is drawn', () => {
+      // 0.35 * 100 = 35 of bulge, so the curve's own midpoint is near y = 26
+      expect(at(100, 26, bypassing)).toBe(0)
+    })
+
+    test('and the chord it is not drawn on is not', () => {
+      expect(at(100, 26)).toBeNull()
+    })
+  })
 })
 
 // The hover threshold is 5 screen px converted to world units, so zoomed out it
