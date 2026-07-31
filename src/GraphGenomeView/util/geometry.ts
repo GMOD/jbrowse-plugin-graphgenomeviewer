@@ -49,6 +49,77 @@ export function translateCurves(
   return out
 }
 
+type Side = 'start' | 'end'
+
+// The attachment point, and the point just inside the node from it — which is
+// what gives the outward tangent, so a curve leaves along the node it leaves
+// rather than straight at its partner.
+function attachment(segments: NodeSegment[], side: Side) {
+  const last = segments.length - 1
+  return side === 'end'
+    ? { at: segments[last]!, inward: segments[last - 1] }
+    : { at: segments[0]!, inward: segments[1] }
+}
+
+// Ceilings on how far a control point runs along its own node's direction: a
+// fraction of the separation the curve has to cover, so endpoints that nearly
+// touch cannot fold the cubic back over itself, and an absolute cap so a
+// graph-wide edge does not sprout a huge hook.
+const TANGENT_SPAN_FACTOR = 0.5
+const MAX_TANGENT = 80
+
+// Which drawn end of each node the edge joins.
+//
+// A link states the orientation it reads each segment in, but a node is drawn
+// in whatever direction its layout placed it — reference-forward on the
+// anchored rows, run-sweep order off them, arbitrary under FMMM — and nothing
+// records that direction, so the strands cannot be turned into drawn ends. What
+// the drawing itself says is which ends face each other, so that is what is
+// read: each node attaches at whichever of its two ends is nearer the OTHER
+// node's drawn span, with the forward reading (leave the from-node's end, enter
+// the to-node's start) winning a tie.
+//
+// Nearer to the span, not to the other attachment point. A bubble's two nodes
+// usually overlap in x, and there the distances to a point differ by a hair
+// that says nothing — enough to hang a node's entry and exit edges off the same
+// end, which draws them crossed. Overlapping spans give both ends distance 0,
+// i.e. a tie, and the tie is what keeps such a bubble forward. What survives is
+// the case the rule is for: `L s381 - s2087 +` then `L s2087 + s378 -` is
+// NCTC86 crossing its locus right to left, and joining last-point to
+// first-point regardless drew the second link 7 kb backwards across the segment
+// it rejoins — the long X in pangenome/rgfa_subgraph_launch. There the spans do
+// not overlap and the far end loses by 7 kb. Pinned by bubbleCrossing.test.ts.
+function spanOf(segments: NodeSegment[]) {
+  let min = Infinity
+  let max = -Infinity
+  for (const s of segments) {
+    min = Math.min(min, s.x)
+    max = Math.max(max, s.x)
+  }
+  return { min, max }
+}
+
+function distanceToSpan(x: number, span: { min: number; max: number }) {
+  return Math.max(0, span.min - x, x - span.max)
+}
+
+function facingSide(
+  segments: NodeSegment[],
+  other: { min: number; max: number },
+  tieBreak: Side,
+): Side {
+  const startGap = distanceToSpan(segments[0]!.x, other)
+  const endGap = distanceToSpan(segments[segments.length - 1]!.x, other)
+  return startGap === endGap ? tieBreak : startGap < endGap ? 'start' : 'end'
+}
+
+function facingSides(fromSegments: NodeSegment[], toSegments: NodeSegment[]) {
+  return {
+    from: facingSide(fromSegments, spanOf(toSegments), 'end'),
+    to: facingSide(toSegments, spanOf(fromSegments), 'start'),
+  }
+}
+
 export function computeEdgeCurves(
   fromSegments: NodeSegment[],
   toSegments: NodeSegment[],
@@ -67,8 +138,13 @@ export function computeEdgeCurves(
   // has to see to read it as an alternative route.
   bulge = 0,
 ): BezierCurve[] {
-  const fromEnd = fromSegments[fromSegments.length - 1]!
-  const toStart = toSegments[0]!
+  const sides = isSelfLoop
+    ? { from: 'end' as Side, to: 'start' as Side }
+    : facingSides(fromSegments, toSegments)
+  const fromAttach = attachment(fromSegments, sides.from)
+  const toAttach = attachment(toSegments, sides.to)
+  const fromEnd = fromAttach.at
+  const toStart = toAttach.at
 
   const p1x = fromEnd.x + offsetX
   const p1y = fromEnd.y + offsetY
@@ -78,11 +154,9 @@ export function computeEdgeCurves(
   if (isSelfLoop) {
     let segDirX = 1
     let segDirY = 0
-    if (fromSegments.length >= 2) {
-      const prev = fromSegments[fromSegments.length - 2]!
-      const last = fromSegments[fromSegments.length - 1]!
-      const dx = last.x - prev.x
-      const dy = last.y - prev.y
+    if (fromAttach.inward) {
+      const dx = fromEnd.x - fromAttach.inward.x
+      const dy = fromEnd.y - fromAttach.inward.y
       const len = Math.hypot(dx, dy)
       if (len > 0) {
         segDirX = dx / len
@@ -123,32 +197,31 @@ export function computeEdgeCurves(
       },
     ]
   } else {
-    const fromPrev =
-      fromSegments.length >= 2
-        ? fromSegments[fromSegments.length - 2]!
-        : {
-            x: fromEnd.x - (toStart.x - fromEnd.x),
-            y: fromEnd.y - (toStart.y - fromEnd.y),
-          }
-    const toNext =
-      toSegments.length >= 2
-        ? toSegments[1]!
-        : {
-            x: toStart.x - (fromEnd.x - toStart.x),
-            y: toStart.y - (fromEnd.y - toStart.y),
-          }
+    // The point just inside each node from where the edge attaches, so
+    // projectLine extends OUTWARD from the node. A node drawn as a single point
+    // has no direction of its own; mirroring the chord through the attachment
+    // leaves it pointing at its partner, i.e. a straight leader.
+    const fromPrev = fromAttach.inward ?? {
+      x: fromEnd.x - (toStart.x - fromEnd.x),
+      y: fromEnd.y - (toStart.y - fromEnd.y),
+    }
+    const toNext = toAttach.inward ?? {
+      x: toStart.x - (fromEnd.x - toStart.x),
+      y: toStart.y - (fromEnd.y - toStart.y),
+    }
 
     const dist = Math.hypot(p2x - p1x, p2y - p1y)
     // Each control point leaves along its OWN node's direction, so the tangent
     // extension may only run as far as the other endpoint actually lies in that
-    // direction. A flat `dist * 0.5` sized it by the whole separation, which on
-    // a reference-anchored layout is mostly the row drop: an edge from the
-    // backbone down to an off-reference node swung sideways past both of its
-    // endpoints and came back, and the entry and exit edges of one node drew as
-    // a crossed bowtie rather than as a bubble. Projecting the separation onto
-    // the tangent is rotation invariant, so a force-directed layout, whose
-    // edges do run along their nodes, is unchanged; and it is clamped at 0, so
-    // an edge that doubles back gets a straight leader instead of a loop.
+    // direction. Sizing it by the whole separation instead cannot work on an
+    // anchored layout, where the separation is mostly the row drop: both edges
+    // of a bubble then leave sideways and come back, and the pair draws as a
+    // crossed bowtie rather than as a bubble (pinned by bubbleCrossing.test.ts,
+    // which fails on 17 of the pggb subgraph's alleles under a flat
+    // `dist * 0.35`). Projecting the separation onto the tangent is rotation
+    // invariant, so a force-directed layout, whose edges do run along their
+    // nodes, is unchanged; and it is clamped at 0, so an edge that doubles back
+    // gets a straight leader instead of a loop.
     const tangentProj = (
       prev: { x: number; y: number },
       at: { x: number; y: number },
@@ -159,7 +232,10 @@ export function computeEdgeCurves(
       const dy = at.y - prev.y
       const len = Math.hypot(dx, dy)
       const along = len === 0 ? 0 : (towardX * dx + towardY * dy) / len
-      return Math.max(0, Math.min(dist * 0.5, 80, along * 0.5))
+      return Math.max(
+        0,
+        Math.min(dist * TANGENT_SPAN_FACTOR, MAX_TANGENT, along * 0.5),
+      )
     }
     const towardToX = toStart.x - fromEnd.x
     const towardToY = toStart.y - fromEnd.y

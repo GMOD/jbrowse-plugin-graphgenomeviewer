@@ -8,7 +8,7 @@ import { anchorGraph } from '../pathAnchoring'
 import { computeEdgeCurves } from '../util/geometry'
 
 import type { ProjectedAllele } from '../../alleleProjection/projectAlleles'
-import type { Graph, NodeSegment } from '../types'
+import type { Graph, GraphEdge, NodeSegment } from '../types'
 import type { BezierCurve } from '../util/geometry'
 
 // A bubble is drawn by two edges: the one entering an off-reference node and
@@ -82,10 +82,12 @@ function crossingBubbles(
   graph: Graph,
   positions: Record<string, NodeSegment[]>,
 ) {
-  const curvesFor = (from: string, to: string) => {
-    const f = positions[from]
-    const t = positions[to]
-    return f && t ? computeEdgeCurves(f, t, from === to, 0, 0, 1) : undefined
+  const curvesFor = (edge: GraphEdge) => {
+    const f = positions[edge.from]
+    const t = positions[edge.to]
+    return f && t
+      ? computeEdgeCurves(f, t, edge.from === edge.to, 0, 0, 1)
+      : undefined
   }
   const crossing: string[] = []
   let checked = 0
@@ -97,8 +99,8 @@ function crossingBubbles(
         e => e.to === node.id && e.from !== node.id,
       )
       const exit = graph.edges.find(e => e.from === node.id && e.to !== node.id)
-      const ec = entry ? curvesFor(entry.from, entry.to) : undefined
-      const xc = exit ? curvesFor(exit.from, exit.to) : undefined
+      const ec = entry ? curvesFor(entry) : undefined
+      const xc = exit ? curvesFor(exit) : undefined
       if (ec && xc) {
         checked++
         if (polylinesCross(polyline(ec), polyline(xc))) {
@@ -132,33 +134,21 @@ test('no bubble crosses itself on the pggb subgraph', () => {
 // neighbours 26 kb apart, and the edges spanning those gaps drew the long X in
 // the pangenome/rgfa_subgraph_launch figure.
 //
-// Bubbles a reverse-complement link attaches to are excluded, and that is the
-// only remaining cause of a crossing here — a defect in how an edge is drawn,
-// not in where its nodes are placed. `L s381 - s2087 +` and `L s2087 + s378 -`
-// say NCTC86 crosses that locus right to left: the first link touches s381's
-// LEFT end and the second s378's RIGHT end, but computeEdgeCurves always leaves
-// the from-node's last point for the to-node's first, so the exit edge is drawn
-// 7 kb backwards past the segment it rejoins. Re-running the same check with
-// each edge attached to whichever pair of ends face each other drops all three.
-// Fixing it for real needs the link strands carried onto GraphEdge plus each
-// node's drawn orientation, neither of which exists yet.
+// The rGFA slice also carries reverse-complement links, which used to be
+// excluded here: `L s381 - s2087 +` and `L s2087 + s378 -` say NCTC86 crosses
+// that locus right to left, the first link touching s381's LEFT end and the
+// second s378's RIGHT end, and an edge drawn unconditionally from the source's
+// last point to the target's first ran 7 kb backwards over the segment it
+// rejoins. GraphEdge carries each link's strands as `sides` now, so no
+// exclusion: every bubble in the slice is checked.
 test('no bubble crosses itself on the rGFA slice', () => {
-  const gfaGraph = parseGFA(gfa('ecoli_rgfa_slice.gfa'))
-  const graph = convertGFAToGraph(gfaGraph)
-  const reverseAttached = new Set(
-    gfaGraph.links
-      .filter(l => l.strand1 === '-' || l.strand2 === '-')
-      .flatMap(l => [l.source, l.target]),
-  )
+  const graph = convertGFAToGraph(parseGFA(gfa('ecoli_rgfa_slice.gfa')))
   const { crossing, checked } = crossingBubbles(
     graph,
     anchoredLayout(graph)!.nodePositions,
   )
-  const placed = crossing.filter(
-    id => !reverseAttached.has(graph.nodes.find(n => n.id === id)!.name),
-  )
   expect(checked).toBeGreaterThan(5)
-  expect(placed).toEqual([])
+  expect(crossing).toEqual([])
 })
 
 // The placement property the crossing check rests on, stated on its own so a
