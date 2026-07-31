@@ -25,9 +25,46 @@ import type { Region } from '@jbrowse/core/util/types'
 
 export interface SubgraphOptions {
   // extra rounds of link-following past the region's own segments and their
-  // immediate neighbours. Each round costs one tabix query per newly reached
-  // segment, so it stays 0 unless a caller asks for more graph around the view.
+  // immediate neighbours, each round costing one tabix query per off-reference
+  // segment newly reached. One round is what closes a bubble, so it is the
+  // default the view asks for; see the frontier in getSubgraph.
   context?: number
+}
+
+// What a hop follows: alleles, never the backbone. A rank-0 segment reached
+// through a link is flanking backbone, usually outside the window, so querying
+// its links walks the reference away from the region, brings back more backbone,
+// and closes nothing. Every segment that closes a bubble is an allele interior,
+// and an allele interior is rank > 0 in both index formats (rGFA's SR tag, and
+// pggb's rank 0-or-1 against the anchor path). Reached backbone still becomes a
+// node and its edge still draws; it is only not walked through.
+//
+// This is gfabase's rule, arrived at from the other end. `gfabase sub` expands
+// from a seed either to the whole connected component (`--connected`, which its
+// own README calls overkill) or with `--cutpoints 1`, which takes the biconnected
+// component by *stopping at cutpoints*, the segments every end-to-end walk of
+// the chromosome must traverse. In a reference-anchored pangenome the cutpoints
+// are the backbone, and rank is what the index already states about it, so
+// `rank > 0` is that stopping rule without a connectivity index to build. The
+// third tool is the same shape again: `gfatools view -R` maps the region onto its
+// precomputed bubble decomposition and returns whole overlapping bubbles
+// (gfa_query_by_reg), which is complete for the same reason. Bandage's own
+// `--distance` is a node-step radius, but Bandage holds the entire graph in
+// memory, so its scope is a drawing filter rather than a fetch strategy.
+//
+// Measured with this rule: the E. coli paa window converges at one hop (17
+// segments at 1 and at 2), so the cut closes and stays closed. HPRC's amylase
+// window keeps growing (63 at 0, 78 at 1, 92 at 2) because its alleles have
+// alleles, and wall-clock is flat across all three, since a hop's queries go out
+// together and the remote index dominates.
+//
+// The exact version, when a graph ships a bubble index beside its segments:
+// gfatools' bubble rows carry the member segment ids of every bubble, so the
+// bubbles overlapping the region state which segments a complete cut must
+// contain. That turns the hop count into a termination condition rather than a
+// setting, and MinigraphBubbleAdapter already parses those rows.
+function offReference(segments: RgfaSegment[]) {
+  return segments.filter(segment => segment.rank > 0)
 }
 
 export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAdapterConfig> {
@@ -176,7 +213,9 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
           segments.set(segment.id, segment)
         },
       })
-      let frontier = await addLinksOver(tabixRefName, region.start, region.end)
+      let frontier = offReference(
+        await addLinksOver(tabixRefName, region.start, region.end),
+      )
       for (let hop = 0; hop < context; hop++) {
         // One hop's queries are independent of each other, so they go out
         // together rather than one round-trip at a time. Their callbacks share
@@ -188,7 +227,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
             addLinksOver(segment.refName, segment.start, segment.end),
           ),
         )
-        frontier = reached.flat()
+        frontier = offReference(reached.flat())
       }
     }
 

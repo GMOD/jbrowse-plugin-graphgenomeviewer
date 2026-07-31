@@ -243,24 +243,30 @@ export default function stateModelFactory() {
           }>(),
         ),
         // How far the cut follows links past the segments the region's own
-        // links name. It has to be reachable, because at 0 a detour that leaves
-        // the backbone before the window and rejoins after it draws as two
-        // stubs: its interior segments are indexed only under their own stable
-        // sequence, which no query on the reference reaches, so an arm that
-        // bypasses 21 kb of reference arrives as a 43 bp fragment that reads as
-        // a small insertion. One hop closes those. Measured on the two hosted
-        // indexes: the E. coli paa locus goes 14 segments / 2 queries at 0 to
-        // 22 / 10 at 1, closing all four detours; a 100 kb HPRC window in
-        // chr6's densest stretch goes 352 / 2 to 363 / 140, so the cost is
-        // queries (one per off-reference segment reached) rather than nodes.
+        // links name, defaulting to one hop because at 0 the drawing is wrong
+        // rather than merely sparse. A detour that leaves the backbone before
+        // the window and rejoins after it has its interior indexed only under
+        // its own stable sequence, which no query on the reference reaches, so an
+        // arm that bypasses 21 kb of reference arrives as a 43 bp fragment: the
+        // one bubble draws as two unrelated small insertions, and nothing on
+        // screen says they are the same event. One hop closes those, and that is
+        // the whole of what a reader means by seeing the local graph.
         //
-        // Not the same operation as a graph-aware cut, and it does not converge
-        // to one: the frontier is a coordinate interval per reached segment, so
-        // each hop also pulls in flanking backbone outside the window while
-        // still stopping somewhere. `gfatools view -R <region> -r 1` walks the
-        // graph itself and is what to cut a file with; this is what the
-        // right-click launch has.
-        subgraphContext: types.optional(types.number, 0),
+        // The cost is queries rather than nodes, and a hop only follows alleles
+        // (offReference in RgfaTabixAdapter, which is gfabase's stop-at-cutpoints
+        // rule read off the rank tag), so it is bounded by the off-reference
+        // segments the cut already reached and it does not walk the backbone out
+        // of the window. Measured: the E. coli paa locus goes 14 segments at 0 to
+        // 17 at 1 and stays at 17 at 2, so the cut closes and stays closed.
+        // HPRC's amylase window goes 63 to 78 to 92, because there the alleles
+        // have alleles; wall-clock is flat across all three, the remote index
+        // dominating. 0 stays available for a graph where even that is too much.
+        //
+        // Still not a graph-aware cut: a complete one needs the bubble
+        // decomposition (`gfatools view -R`, whose bubble rows state their own
+        // member segments) rather than a frontier, which is the follow-up noted
+        // in the adapter.
+        subgraphContext: types.optional(types.number, 1),
         // Whole-GFA source loaded on attach — lets a GraphGenomeView be
         // instantiated declaratively from a session/config snapshot.
         gfaLocation: types.maybe(types.frozen<FileLocation>()),

@@ -20,9 +20,13 @@ const useStyles = makeStyles()({
 })
 
 // Hops past the region's own segments, each costing a tabix query per
-// off-reference segment already reached. It stops at two because a coordinate
-// frontier never closes the graph however far it runs — see subgraphContext in
-// the model, and cut an exact slice with gfatools when that is what is wanted.
+// off-reference segment already reached. One is the default: at none a single
+// detour draws as two unrelated stubs, which is a wrong picture of the graph
+// rather than a cheaper one. Two exists for a graph whose alleles have alleles
+// (HPRC's amylase window keeps growing at 2, the E. coli paa locus does not), and
+// it stops there because a frontier is still not a bubble decomposition. See
+// subgraphContext in the model, and cut an exact slice with gfatools when that is
+// what is wanted.
 const SUBGRAPH_CONTEXTS = [
   { value: 0, label: 'None' },
   { value: 1, label: '1 hop' },
@@ -58,10 +62,11 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
         </Select>
       </FormControl>
       <Typography variant="caption" color="text.secondary">
-        How far the cut follows links out of the region. A detour that leaves
-        the reference before the window and rejoins after it is indexed under
-        its own sequence, so at none its middle is missing and it draws as two
-        short stubs rather than as the bubble it is.
+        How far the cut follows links out of the region, one hop by default. A
+        detour that leaves the reference before the window and rejoins after it
+        is indexed under its own sequence, so at none its middle is missing and
+        the one bubble draws as two unrelated stubs. Each hop costs a query per
+        off-reference segment already reached.
       </Typography>
     </div>
   ) : null
