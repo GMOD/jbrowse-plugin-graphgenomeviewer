@@ -128,6 +128,18 @@ const deletionLabelStyle = {
   fontWeight: 600,
 }
 
+// Under the labels (z 3) and over the canvas, so a leader runs beneath the text
+// it points from rather than across it. `overflow: visible` because a label
+// displaced past the canvas edge is culled by the placement, not clipped here.
+const leaderStyle = {
+  position: 'absolute' as const,
+  left: 0,
+  top: 0,
+  pointerEvents: 'none' as const,
+  overflow: 'visible' as const,
+  zIndex: 2,
+}
+
 // Writes each drawn thing's size onto it, which is what Bandage's Length label
 // does and what the tooltip alone could not: a graph you have to hover to read
 // is a graph nobody reads. graphLabels applies the same transform the canvas
@@ -157,8 +169,33 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
       rowLabelBox(label, y * model.scale + model.translateY),
     ),
   })
+  // A label too wide for the arc it names is placed clear of it and tethered
+  // back; nothing else in the drawing carries one.
+  const leaders = labels.flatMap(({ key, leader }) =>
+    leader ? [{ key, ...leader }] : [],
+  )
   return (
     <>
+      {leaders.length > 0 ? (
+        <svg
+          style={leaderStyle}
+          width={model.width}
+          height={model.canvasHeight}
+        >
+          {leaders.map(({ key, arcX, arcY, labelX, labelY }) => (
+            <line
+              key={key}
+              data-testid="graph-label-leader"
+              x1={arcX}
+              y1={arcY}
+              x2={labelX}
+              y2={labelY}
+              stroke="#18181c"
+              strokeWidth={1}
+            />
+          ))}
+        </svg>
+      ) : null}
       {labels.map(({ key, text, x, y, kind }) => (
         <div
           key={key}

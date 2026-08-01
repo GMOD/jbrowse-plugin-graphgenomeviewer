@@ -3,6 +3,7 @@ import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
 import type { NodeSegment } from './types'
+import type { BezierCurve } from './util/geometry'
 
 // What to write on the drawing, and where. Bandage labels a node with its name,
 // its length or its depth; a segment id means nothing to a reader of a pangenome
@@ -58,6 +59,26 @@ import type { NodeSegment } from './types'
 // way, and it is the same quantity the node rule below uses.
 const MIN_DELETION_LABEL_PX = 26
 
+// A deletion clearing that floor still need not be able to CARRY its label: the
+// text is a fixed 26 characters however small the event's arc is, so at the LPA
+// KIV-2 locus `skips 27.7 kb of reference` came out four times the width of the
+// arc it was centred on, reading as a caption dropped on the bubble beside it
+// rather than as that arc's name (`pangenome/hprc_lpa_kiv2`, reviewed
+// 2026-07-31).
+//
+// A node in the same position simply loses its label, and that is right for a
+// node — the tube is still drawn, still coloured, still hoverable, and the graph
+// is full of them. It is wrong for a deletion, which is one dashed curve
+// standing for sequence that is not in the picture at all: dropped, nothing
+// tells a reader the arc is an event rather than another link.
+//
+// So the label moves off the arc instead and takes a leader line with it. It is
+// displaced along the direction the arc bows — which is the side the bulge was
+// drawn INTO, so it is the open side by construction — far enough that its box
+// clears the curve, and the leader states the association the proximity no
+// longer does.
+const LEADER_GAP_PX = 8
+
 // The label's own box, for collision. Mirrors GraphCanvas's nodeLabelStyle:
 // 10px text in 3px of horizontal padding, on a 13px line. Character width is an
 // average rather than a measurement — placement runs on every pan and zoom, and
@@ -110,6 +131,19 @@ function overlaps(a: Box, b: Box) {
   )
 }
 
+// A displaced label's tether, in the same screen pixels the label is placed in.
+// Both ends are computed here rather than in the component, because the label's
+// end is the point where its own box meets the line — geometry the placement
+// already has and the painter would have to rederive. It stops at the box edge
+// rather than at the centre because the label's background is translucent, so a
+// line run under it shows through the text.
+export interface Leader {
+  arcX: number
+  arcY: number
+  labelX: number
+  labelY: number
+}
+
 export interface GraphLabel {
   key: string
   text: string
@@ -119,6 +153,8 @@ export interface GraphLabel {
   x: number
   y: number
   kind: 'node' | 'deletion'
+  // present only on a label that had to move off the thing it names
+  leader?: Leader
 }
 
 // bp in the unit that reads. Deliberately coarse: a label is a glance, and
@@ -129,6 +165,53 @@ export function formatBp(bp: number) {
     return `${+(bp / 1_000_000).toFixed(1)} Mb`
   }
   return bp >= 1000 ? `${+(bp / 1000).toFixed(1)} kb` : `${bp} bp`
+}
+
+// Which way the arc bows, as a unit vector: its chord's midpoint towards its
+// apex. A deletion's bulge is perpendicular to the chord by construction, so
+// this points away from the backbone the arc leaves and rejoins — the side the
+// curve was opened into, and the side with room in it. Scale and translate are a
+// similarity transform, so a direction in layout units is the same direction on
+// screen and needs no conversion.
+function arcOutward(curves: BezierCurve[], apex: { x: number; y: number }) {
+  const first = curves[0]!
+  const last = curves[curves.length - 1]!
+  const dx = apex.x - (first.x0 + last.x1) / 2
+  const dy = apex.y - (first.y0 + last.y1) / 2
+  const len = Math.hypot(dx, dy)
+  // A curve with no bow has no outward side; up is as good as any, and this is
+  // unreachable for a deletion, whose bulge is what gives it extent at all.
+  return len === 0 ? { x: 0, y: -1 } : { x: dx / len, y: dy / len }
+}
+
+// How far the box's own boundary is from its centre in a given direction — the
+// support function of an axis-aligned rectangle. Displacing a label by this plus
+// a gap puts its near EDGE that gap away from the point, whatever angle the
+// leader leaves at, which a single radius cannot do for a box six times wider
+// than it is tall.
+function boxSupport(box: Box, dir: { x: number; y: number }) {
+  return (
+    (Math.abs(dir.x) * (box.right - box.left)) / 2 +
+    (Math.abs(dir.y) * (box.bottom - box.top)) / 2
+  )
+}
+
+// Where a ray along `dir` through the box's centre crosses the box, again from
+// the centre — which is where a leader coming in along that ray has to stop.
+//
+// This is not `boxSupport`, and the difference is the whole leader: support is
+// the distance to the supporting line perpendicular to `dir`, which a box six
+// times wider than it is tall touches at a corner, so a diagonal approach hits
+// the box's real edge four or five times sooner. Stopping the line at the
+// support distance drew an 8px stub at the arc with 50px of white between it and
+// the text it was supposed to tie to.
+function boxRayCrossing(box: Box, dir: { x: number; y: number }) {
+  const halfW = (box.right - box.left) / 2
+  const halfH = (box.bottom - box.top) / 2
+  return Math.min(
+    dir.x === 0 ? Infinity : halfW / Math.abs(dir.x),
+    dir.y === 0 ? Infinity : halfH / Math.abs(dir.y),
+  )
 }
 
 function midpoint(segments: NodeSegment[]) {
@@ -187,12 +270,36 @@ export function graphLabels({
       const { minX, minY, maxX, maxY } = curveBounds(curves)
       const extent = Math.max(maxX - minX, maxY - minY)
       if (extent * scale >= MIN_DELETION_LABEL_PX) {
+        const text = `skips ${formatBp(deletion.bp)} of reference`
+        const box = labelBox(text, 0, 0)
+        const arcX = apex.x * scale + translateX
+        const arcY = apex.y * scale + translateY
+        // The node rule, applied to an arc: a label wider than twice what it
+        // names is a label with an arc attached. Under it the label stays
+        // centred on the curve, which is what every arc big enough to hold its
+        // own name already does.
+        const fits =
+          extent * scale >= (box.right - box.left) / MAX_LABEL_OVERHANG
+        // Displaced by the SUPPORT distance, so the whole box clears the arc
+        // whatever angle it leaves at, then the leader is stopped at the box's
+        // real edge along the same ray.
+        const dir = arcOutward(curves, apex)
+        const offset = boxSupport(box, dir) + LEADER_GAP_PX
+        const reach = offset - boxRayCrossing(box, dir)
         candidates.push({
           key: `del:${deletion.edgeIndex}`,
-          text: `skips ${formatBp(deletion.bp)} of reference`,
-          x: apex.x * scale + translateX,
-          y: apex.y * scale + translateY,
+          text,
+          x: fits ? arcX : arcX + dir.x * offset,
+          y: fits ? arcY : arcY + dir.y * offset,
           kind: 'deletion',
+          leader: fits
+            ? undefined
+            : {
+                arcX,
+                arcY,
+                labelX: arcX + dir.x * reach,
+                labelY: arcY + dir.y * reach,
+              },
         })
       }
     }

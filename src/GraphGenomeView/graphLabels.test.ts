@@ -221,6 +221,121 @@ test('the bigger deletion keeps its label', () => {
   expect(labels.map(l => l.text)).toEqual(['skips 15.7 kb of reference'])
 })
 
+// An arc wide enough to hold "skips ... of reference" keeps the label centred on
+// it: the tether is for the case below, and every figure whose arcs are already
+// readable must be untouched by it.
+test('an arc that can hold its own name keeps it, untethered', () => {
+  const [label] = graphLabels({
+    nodePositions: FLANKED,
+    nodeLengths: LENGTHS,
+    deletions: [
+      {
+        edgeIndex: 0,
+        ...between,
+        refName: 'chr1',
+        start: 100,
+        end: 84_783,
+        bp: 84_683,
+        bypassed: ['long'],
+      },
+    ],
+    scale: 1,
+    ...VIEWPORT,
+  }).filter(l => l.kind === 'deletion')
+  expect(label!.leader).toBeUndefined()
+})
+
+// The LPA KIV-2 case: a 40-unit arc over a short bypassed run, which clears the
+// "not a dot" floor while still being half the width of the 26 characters naming
+// it. Centred there the text reads as a caption dropped on whatever is beside the
+// arc, so it moves off and states the link instead.
+const CRAMPED = {
+  nodePositions: {
+    before: [
+      { x: -80, y: 0 },
+      { x: 0, y: 0 },
+    ],
+    after: [
+      { x: 40, y: 0 },
+      { x: 120, y: 0 },
+    ],
+    short: [
+      { x: 0, y: 0 },
+      { x: 40, y: 0 },
+    ],
+  },
+  nodeLengths: new Map<string, number>(),
+  deletions: [
+    {
+      edgeIndex: 0,
+      ...between,
+      refName: 'chr1',
+      start: 100,
+      end: 27_800,
+      bp: 27_700,
+      bypassed: ['short'],
+    },
+  ],
+  scale: 1,
+  ...VIEWPORT,
+}
+
+test('an arc too small for its name keeps it on a leader', () => {
+  const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
+  expect(label!.text).toBe('skips 27.7 kb of reference')
+  const { leader } = label!
+  expect(leader).toBeDefined()
+  // the tether starts on the arc and ends short of the label's centre, so the
+  // line stops at the box rather than running under the text
+  const toLabel = Math.hypot(label!.x - leader!.arcX, label!.y - leader!.arcY)
+  const drawn = Math.hypot(
+    leader!.labelX - leader!.arcX,
+    leader!.labelY - leader!.arcY,
+  )
+  expect(drawn).toBeLessThan(toLabel)
+})
+
+// The same arc turned 45 degrees, which is where "the box's edge" and "the plane
+// the box touches at a corner" come apart: the label is six times wider than it
+// is tall, so a diagonal leader stopped at the support distance ends a stub's
+// length from the arc with most of the gap left white. It has to run to the box.
+test('a diagonal leader reaches the label it tethers', () => {
+  const turn = (segments: { x: number; y: number }[]) =>
+    segments.map(({ x, y }) => ({
+      x: (x - y) / Math.SQRT2,
+      y: (x + y) / Math.SQRT2,
+    }))
+  const [label] = graphLabels({
+    ...CRAMPED,
+    nodePositions: Object.fromEntries(
+      Object.entries(CRAMPED.nodePositions).map(([id, s]) => [id, turn(s)]),
+    ),
+  }).filter(l => l.kind === 'deletion')
+  const { leader } = label!
+  const drawn = Math.hypot(
+    leader!.labelX - leader!.arcX,
+    leader!.labelY - leader!.arcY,
+  )
+  const remaining = Math.hypot(
+    label!.x - leader!.labelX,
+    label!.y - leader!.labelY,
+  )
+  // it stops within the label's own half-height of the text rather than at the
+  // far corner of its bounding box, and so covers most of the displacement
+  expect(remaining).toBeLessThan(15)
+  expect(drawn).toBeGreaterThan(remaining * 3)
+})
+
+// Displaced along the bow, so the label lands on the open side the arc was drawn
+// into rather than back across the backbone it leaves.
+test('a tethered label moves the way its arc bows', () => {
+  const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
+  // the chord lies on y = 0, so the apex and the label are both on the side the
+  // arc bows to, and the label is the further out
+  expect(Math.sign(label!.y)).toBe(Math.sign(label!.leader!.arcY))
+  expect(Math.abs(label!.y)).toBeGreaterThan(Math.abs(label!.leader!.arcY))
+})
+
 test('formats bp at the scale a pangenome allele lives at', () => {
   expect([formatBp(12), formatBp(1200), formatBp(2_500_000)]).toEqual([
     '12 bp',
