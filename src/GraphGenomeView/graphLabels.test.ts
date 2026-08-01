@@ -99,10 +99,10 @@ test('drops a label that would land outside the canvas', () => {
   expect(labels.map(l => l.text)).toEqual(['12 bp'])
 })
 
-// A deletion carries no negative sequence; it skips reference. A signed number
+// A deletion carries no negative sequence; it removes reference. A signed number
 // beside a graph reads as a length that went negative, which is what a review
 // took "−84.7 kb" for.
-test('a deletion says what it skips, positively, on its arc', () => {
+test('a deletion names itself, positively, on its arc', () => {
   const [label] = graphLabels({
     nodePositions: FLANKED,
     nodeLengths: LENGTHS,
@@ -120,7 +120,7 @@ test('a deletion says what it skips, positively, on its arc', () => {
     scale: 1,
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(label!.text).toBe('skips 84.7 kb of reference')
+  expect(label!.text).toBe('84.7 kb deletion')
   // off the line the bypassed node lies on, which is what puts it on the curve
   expect(Math.abs(label!.y)).toBeGreaterThan(10)
 })
@@ -159,7 +159,7 @@ test('a deletion label wins the space over a node label', () => {
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).toEqual([
-    'skips 84.7 kb of reference',
+    '84.7 kb deletion',
     '39 kb',
   ])
 })
@@ -194,7 +194,7 @@ test('a wide, shallow arc is labelled', () => {
     scale: 1,
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toEqual(['skips 9.3 kb of reference'])
+  expect(labels.map(l => l.text)).toEqual(['9.3 kb deletion'])
 })
 
 // Two arcs over the same stretch of backbone put their labels in nearly the same
@@ -218,10 +218,10 @@ test('the bigger deletion keeps its label', () => {
     scale: 1,
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(labels.map(l => l.text)).toEqual(['skips 15.7 kb of reference'])
+  expect(labels.map(l => l.text)).toEqual(['15.7 kb deletion'])
 })
 
-// An arc wide enough to hold "skips ... of reference" keeps the label centred on
+// An arc wide enough to hold its own name keeps the label centred on
 // it: the tether is for the case below, and every figure whose arcs are already
 // readable must be untouched by it.
 test('an arc that can hold its own name keeps it, untethered', () => {
@@ -282,7 +282,7 @@ const CRAMPED = {
 
 test('an arc too small for its name keeps it on a leader', () => {
   const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
-  expect(label!.text).toBe('skips 27.7 kb of reference')
+  expect(label!.text).toBe('27.7 kb deletion')
   const { leader } = label!
   expect(leader).toBeDefined()
   // the tether starts on the arc and ends short of the label's centre, so the
@@ -336,7 +336,7 @@ test('a tethered label slides into the frame, leader following', () => {
   const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
   const { leader } = label!
   expect(leader).toBeDefined()
-  const halfW = 'skips 27.7 kb of reference'.length * 5.7 + 9
+  const halfW = '27.7 kb deletion'.length * 5.7 + 9
   expect(label!.x - halfW / 2).toBeGreaterThanOrEqual(0)
   // still anchored on the arc, and still pointing from it at the words
   expect(leader!.arcX).toBeLessThan(label!.x)

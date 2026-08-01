@@ -11,14 +11,16 @@ import type { BezierCurve } from './util/geometry'
 // much sequence the alternative is worth. A node says its length, a deletion arc
 // says what it skips.
 //
-// **Every length written here is positive, and a deletion names what it skips.**
+// **Every length written here is positive, and a deletion says it is one.**
 // A deletion arc used to be labelled "−94.2 kb", and a review read that as the
 // node's sequence length being negative, which is the only thing a bare signed
-// number beside a graph can mean. The arc removes reference sequence rather than
-// carrying negative sequence, so the label says the verb. It also says WHAT is
-// skipped: "skips 94.2 kb" left a reader asking 94.2 kb of what (second review,
-// "unclear to me what 'skips' refers to. is it something missing from
-// reference?"), and the answer is the reference, which the label now states.
+// number beside a graph can mean. "skips 94.2 kb" replaced it and left a reader
+// asking 94.2 kb of what; "skips 94.2 kb of reference" answered that and still
+// drew "it is sort of unclear what 'skips X bp of reference' means. is there any
+// better wording?" on a third round. So the label now names the event rather
+// than describing the arc's mechanics: "94.2 kb deletion" is the term a reader
+// already has for reference sequence a haplotype does not carry, and against the
+// reference is what a deletion is measured from by default.
 //
 // **Two rules decide which labels there are, and both are about the drawing
 // rather than about a threshold on the graph.**
@@ -277,7 +279,7 @@ export function graphLabels({
       const { minX, minY, maxX, maxY } = curveBounds(curves)
       const extent = Math.max(maxX - minX, maxY - minY)
       if (extent * scale >= MIN_DELETION_LABEL_PX) {
-        const text = `skips ${formatBp(deletion.bp)} of reference`
+        const text = `${formatBp(deletion.bp)} deletion`
         const box = labelBox(text, 0, 0)
         const arcX = apex.x * scale + translateX
         const arcY = apex.y * scale + translateY
