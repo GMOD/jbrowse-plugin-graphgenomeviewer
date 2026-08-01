@@ -1,5 +1,5 @@
 import { brightenAbgr, packAbgr } from './colorBits'
-import { deletionBulge } from '../deletionEdges'
+import { bypassedPoints } from '../deletionEdges'
 import { referenceMidpoints } from '../referenceSpan'
 import { computeEdgeCurves, dashCurves } from '../util/geometry'
 import {
@@ -729,11 +729,13 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const isDeletion = bypassed !== undefined
     const edgeThickness =
       (connectorThickness / 2) * (isDeletion ? DELETION_THICKNESS_FACTOR : 1)
-    // Bow the arc out by the drawn extent of the reference it skips, so the two
-    // arms of the bubble are comparable instead of one being a stub at a joint.
-    // Measured off the layout rather than converted from bp, because that is the
-    // only thing that is in the same units as the drawing whichever layout ran.
-    const bulge = bypassed ? deletionBulge(nodePositions, bypassed) : 0
+    // Bow the arc AROUND the reference it skips, so the two arms of the bubble
+    // are comparable instead of one being a stub at a joint. Where that run is
+    // drawn is the input; computeEdgeCurves turns it into a bow, because only it
+    // knows the chord to measure against.
+    const bowAroundNodes = bypassed
+      ? bypassedPoints(nodePositions, bypassed)
+      : []
 
     const buildSingleEdge = (
       offsetX: number,
@@ -747,7 +749,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         offsetX,
         offsetY,
         scale,
-        bulge,
+        bowAroundNodes,
       )
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {

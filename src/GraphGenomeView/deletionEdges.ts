@@ -53,26 +53,15 @@ export interface DeletionEdge {
   bypassed: string[]
 }
 
-// How far a deletion's arc bows out, in layout units: a fraction of the drawn
-// length of the backbone it bypasses. Shared by the geometry that draws the arc
-// and the overlay that labels it, so the label cannot drift off the curve.
-export const DELETION_BULGE_FRACTION = 0.35
-
-export function deletionBulge(
+// Where the backbone this deletion bypasses is drawn, as points. `bowAround`
+// turns them into how far and which way the arc bows; this only has to say which
+// points they are, and is shared so the geometry that draws the arc, the index
+// that hit-tests it and the overlay that labels it all bow around the same run.
+export function bypassedPoints(
   nodePositions: Record<string, { x: number; y: number }[]>,
   bypassed: string[],
 ) {
-  return (
-    DELETION_BULGE_FRACTION *
-    bypassed.reduce((total, id) => {
-      const segs = nodePositions[id]
-      const first = segs?.[0]
-      const last = segs?.[segs.length - 1]
-      return first && last
-        ? total + Math.hypot(last.x - first.x, last.y - first.y)
-        : total
-    }, 0)
-  )
+  return bypassed.flatMap(id => nodePositions[id] ?? [])
 }
 
 // The deletion's arc exactly as the renderer draws it, for anything that has to
@@ -101,7 +90,7 @@ export function deletionArcCurves(
         0,
         0,
         scale,
-        deletionBulge(nodePositions, deletion.bypassed),
+        bypassedPoints(nodePositions, deletion.bypassed),
       )
     : undefined
 }

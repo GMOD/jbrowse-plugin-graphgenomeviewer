@@ -326,6 +326,23 @@ test('a diagonal leader reaches the label it tethers', () => {
   expect(drawn).toBeGreaterThan(remaining * 3)
 })
 
+// A tethered label picks its own position, so it must pick one on the canvas.
+// CRAMPED's arc sits 20px from the left edge and the words are 157 wide, so
+// displacing blind hangs them off the frame — the general cull keeps any box
+// that merely overlaps it, which is how the MHC force layout shipped a clipped
+// `…ips 1.5 kb of reference` against its left edge. It slides in instead, and
+// the leader is redrawn to wherever it ended up.
+test('a tethered label slides into the frame, leader following', () => {
+  const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
+  const { leader } = label!
+  expect(leader).toBeDefined()
+  const halfW = 'skips 27.7 kb of reference'.length * 5.7 + 9
+  expect(label!.x - halfW / 2).toBeGreaterThanOrEqual(0)
+  // still anchored on the arc, and still pointing from it at the words
+  expect(leader!.arcX).toBeLessThan(label!.x)
+  expect(leader!.labelX).toBeGreaterThan(leader!.arcX)
+})
+
 // Displaced along the bow, so the label lands on the open side the arc was drawn
 // into rather than back across the backbone it leaves.
 test('a tethered label moves the way its arc bows', () => {

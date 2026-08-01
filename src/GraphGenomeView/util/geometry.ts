@@ -225,6 +225,76 @@ function facingSides(fromSegments: NodeSegment[], toSegments: NodeSegment[]) {
   }
 }
 
+// A cubic whose two control points both sit `b` off the chord reaches 3b/4 at
+// its midpoint: (P0 + 3C0 + 3C1 + P1)/8 with the endpoints on the chord.
+const APEX_FRACTION = 0.75
+// How far past the run the apex goes, so the arc reads as passing AROUND the
+// reference it skips rather than through it.
+const BOW_CLEARANCE = 1.15
+
+// How far, and which way, to bow an arc so that it encloses the run of nodes it
+// bypasses -- the deletion case. Both come from where that run actually lies
+// relative to this edge's own chord, which is the only thing that can answer
+// either question.
+//
+// It used to be a magnitude alone, `0.35 * the summed drawn length of the
+// bypassed nodes`, bowed to a hardcoded side. Both halves were wrong, and the
+// amylase 94.2 kb arc showed each: summed path length is not spatial reach, so a
+// chain that snakes (as an FMMM chain does) sizes an arc far past where its own
+// nodes are; and the fixed sign is a coin flip on which side those nodes fell.
+// Measured on that figure, the bypassed run reached 739 units to one side of a
+// 16-unit chord while the arc bowed 719 units to the other -- a balloon in empty
+// space, enclosing nothing, beside the run it was supposed to name. The two arcs
+// in the same figure that read correctly were the two whose runs happened to
+// fall on the hardcoded side.
+//
+// Sign comes from the FARTHEST point rather than the mean, because the arc has
+// to clear the whole run, not most of it.
+//
+// The magnitude needs two terms, and the perpendicular one alone is not enough:
+// in an anchored layout the backbone is a straight line, so a bypassed run lies
+// exactly ON the chord, reaches nowhere off it, and an arc sized by clearance
+// alone collapses back into the stub at a joint this exists to prevent. That is
+// every anchored figure, and it is what the unit tests caught. So the run's
+// extent ALONG the chord carries the collinear case, at the same 0.35 the old
+// rule used, which is what keeps those figures where they are; clearance takes
+// over exactly when the run has gone somewhere the arc would otherwise miss.
+const ALONG_FRACTION = 0.35
+
+export function bowAround(
+  p1x: number,
+  p1y: number,
+  p2x: number,
+  p2y: number,
+  toward: NodeSegment[],
+) {
+  const chord = Math.hypot(p2x - p1x, p2y - p1y)
+  const ux = chord === 0 ? 1 : (p2x - p1x) / chord
+  const uy = chord === 0 ? 0 : (p2y - p1y) / chord
+  let reach = 0
+  let minAlong = Infinity
+  let maxAlong = -Infinity
+  for (const p of toward) {
+    const dx = p.x - p1x
+    const dy = p.y - p1y
+    const perp = dx * -uy + dy * ux
+    if (Math.abs(perp) > Math.abs(reach)) {
+      reach = perp
+    }
+    const along = dx * ux + dy * uy
+    minAlong = Math.min(minAlong, along)
+    maxAlong = Math.max(maxAlong, along)
+  }
+  const span = toward.length ? maxAlong - minAlong : 0
+  const size = Math.max(
+    (Math.abs(reach) * BOW_CLEARANCE) / APEX_FRACTION,
+    span * ALONG_FRACTION,
+  )
+  // A run that sits on the chord has no side of its own; the arc keeps the one
+  // it has always taken there, so a collinear layout draws exactly as before.
+  return reach < 0 ? -size : size
+}
+
 export function computeEdgeCurves(
   fromSegments: NodeSegment[],
   toSegments: NodeSegment[],
@@ -232,16 +302,23 @@ export function computeEdgeCurves(
   offsetX: number,
   offsetY: number,
   scale: number,
-  // Perpendicular displacement of the CONTROL points only, in layout units, so
-  // the curve bows away from the straight line between its endpoints while
-  // staying attached to both. Used to draw a deletion as an arc with real
-  // extent: topologically a deletion is a bubble whose reference arm is a long
-  // node and whose own arm is a bare link, so at the engine's 5-unit edge length
-  // it collapses into a stub at a joint and the one event a graph shows better
-  // than a linear view is invisible. Bowing it by the drawn length of the
-  // backbone it bypasses makes the two arms comparable, which is what a reader
-  // has to see to read it as an alternative route.
-  bulge = 0,
+  // The nodes this edge bypasses, for a deletion; empty for every other edge.
+  // Given them, the curve bows around them.
+  //
+  // Topologically a deletion is a bubble whose reference arm is a run of long
+  // nodes and whose own arm is a bare link, so at the engine's 5-unit edge
+  // length it collapses into a stub at a joint and the one event a graph shows
+  // better than a linear view is invisible. Bowing it around that run is what
+  // makes the two arms comparable, which is what a reader has to see to read it
+  // as an alternative route.
+  //
+  // Taken as nodes rather than as a precomputed number because the chord is
+  // needed to turn them into one, and only this function knows the chord -- it
+  // picks the attachment ends. Three callers build this curve (the drawing, the
+  // hit index and the label that rides it) and a second derivation of it is a
+  // second thing to keep in step; that is exactly how the label and the arc once
+  // came out in different corners of the drawing.
+  bypassed: NodeSegment[] = [],
 ): BezierCurve[] {
   const sides = isSelfLoop
     ? { from: 'end' as Side, to: 'start' as Side }
@@ -360,18 +437,25 @@ export function computeEdgeCurves(
     )
 
     // Perpendicular to the chord, so the bow is symmetric about it, and spread
-    // the two control points APART along it by the same amount. Perpendicular
-    // alone draws a hairpin whenever the bulge exceeds the chord — which is the
-    // normal case for a deletion, whose endpoints the simulation leaves adjacent
-    // however much reference it skips — and a hairpin reads as a stray line
-    // rather than as a route. The along-chord spread opens it into an arch.
+    // the two control points APART along it. Perpendicular alone draws a hairpin
+    // whenever the bulge exceeds the chord — which is the normal case for a
+    // deletion, whose endpoints the simulation leaves adjacent however much
+    // reference it skips — and a hairpin reads as a stray line rather than as a
+    // route. The along-chord spread opens it into an arch.
+    //
+    // The spread takes the MAGNITUDE, not the signed bulge: it decides how open
+    // the arch is, not which way it faces, and letting it flip swaps the two
+    // control points past each other and folds the cubic into a cusp.
+    const bulge = bypassed.length
+      ? bowAround(p1x, p1y, p2x, p2y, bypassed)
+      : 0
     const chordLen = dist === 0 ? 1 : dist
     const ux = (p2x - p1x) / chordLen
     const uy = (p2y - p1y) / chordLen
     const bulgeX = -uy * bulge
     const bulgeY = ux * bulge
-    const spreadX = ux * bulge
-    const spreadY = uy * bulge
+    const spreadX = ux * Math.abs(bulge)
+    const spreadY = uy * Math.abs(bulge)
 
     return [
       {

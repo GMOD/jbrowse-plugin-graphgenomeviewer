@@ -125,6 +125,13 @@ export function rowLabelBox(text: string, screenY: number): Box {
   }
 }
 
+// Slide a value into [lo, hi], leaving it alone when the range is empty — a box
+// wider than the canvas has nowhere to fit, and pinning it to one edge is worse
+// than the overflow.
+function clamp(v: number, lo: number, hi: number) {
+  return hi < lo ? v : Math.min(Math.max(v, lo), hi)
+}
+
 function overlaps(a: Box, b: Box) {
   return (
     a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
@@ -283,23 +290,42 @@ export function graphLabels({
         // Displaced by the SUPPORT distance, so the whole box clears the arc
         // whatever angle it leaves at, then the leader is stopped at the box's
         // real edge along the same ray.
-        const dir = arcOutward(curves, apex)
-        const offset = boxSupport(box, dir) + LEADER_GAP_PX
-        const reach = offset - boxRayCrossing(box, dir)
+        const bow = arcOutward(curves, apex)
+        const offset = boxSupport(box, bow) + LEADER_GAP_PX
+        const halfW = (box.right - box.left) / 2
+        const halfH = (box.bottom - box.top) / 2
+        // ...and then slid back into the frame if that put it outside one. A
+        // tethered label chooses where it goes, and the cull below keeps any box
+        // merely OVERLAPPING the canvas, so displacing blind is how the MHC force
+        // layout came out with a clipped `…ips 1.5 kb of reference` against its
+        // left edge. Sliding beats dropping and beats picking the arc's other
+        // side: the leader is redrawn to wherever the words ended up, so it stays
+        // unambiguous however far along the edge they had to move.
+        const x = fits
+          ? arcX
+          : clamp(arcX + bow.x * offset, halfW, width - halfW)
+        const y = fits
+          ? arcY
+          : clamp(arcY + bow.y * offset, halfH, height - halfH)
+        // Recomputed from where the label ACTUALLY sits, not from the bow, or
+        // the line points off at the position the label would have had.
+        const away = Math.hypot(x - arcX, y - arcY)
+        const dir = { x: (x - arcX) / away, y: (y - arcY) / away }
         candidates.push({
           key: `del:${deletion.edgeIndex}`,
           text,
-          x: fits ? arcX : arcX + dir.x * offset,
-          y: fits ? arcY : arcY + dir.y * offset,
+          x,
+          y,
           kind: 'deletion',
-          leader: fits
-            ? undefined
-            : {
-                arcX,
-                arcY,
-                labelX: arcX + dir.x * reach,
-                labelY: arcY + dir.y * reach,
-              },
+          leader:
+            fits || away === 0
+              ? undefined
+              : {
+                  arcX,
+                  arcY,
+                  labelX: x - dir.x * boxRayCrossing(box, dir),
+                  labelY: y - dir.y * boxRayCrossing(box, dir),
+                },
         })
       }
     }

@@ -4,7 +4,7 @@ import { join } from 'path'
 import { deletionEdges } from './deletionEdges'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { parseGFA } from '../gfa-core/index'
-import { computeEdgeCurves } from './util/geometry'
+import { computeEdgeCurves, curvePointAt } from './util/geometry'
 
 function graphOf(gfa: string) {
   return convertGFAToGraph(parseGFA(gfa))
@@ -108,8 +108,14 @@ test('a bulge moves the curve off the chord but not its endpoints', () => {
     { x: 110, y: 0 },
     { x: 210, y: 0 },
   ]
+  // where the layout put the reference this deletion skips: off the chord, which
+  // is the force-directed case
+  const bypassed = [
+    { x: 105, y: -60 },
+    { x: 105, y: -160 },
+  ]
   const flat = computeEdgeCurves(from, to, false, 0, 0, 1)[0]!
-  const bowed = computeEdgeCurves(from, to, false, 0, 0, 1, 60)[0]!
+  const bowed = computeEdgeCurves(from, to, false, 0, 0, 1, bypassed)[0]!
   expect([bowed.x0, bowed.y0, bowed.x1, bowed.y1]).toEqual([
     flat.x0,
     flat.y0,
@@ -117,4 +123,46 @@ test('a bulge moves the curve off the chord but not its endpoints', () => {
     flat.y1,
   ])
   expect(Math.abs(bowed.cy0)).toBeGreaterThan(Math.abs(flat.cy0) + 10)
+})
+
+// The amylase 94.2 kb arc: the bow used to take a hardcoded side, so whether it
+// landed on the reference it names or ballooned into the empty half of the
+// drawing was down to which way the simulation happened to throw that run. On
+// that figure the run reached 739 units one way off a 16-unit chord and the arc
+// bowed 719 the other -- a loop enclosing nothing, beside the thing it meant.
+test('the arc bows to the side the bypassed reference is on', () => {
+  const from = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ]
+  const to = [
+    { x: 110, y: 0 },
+    { x: 210, y: 0 },
+  ]
+  const at = (y: number) =>
+    computeEdgeCurves(from, to, false, 0, 0, 1, [
+      { x: 105, y },
+      { x: 145, y },
+    ])[0]!
+  // the chord runs along y = 0, so the control points' sign is the side taken
+  expect(Math.sign(at(-200).cy0)).toBe(-1)
+  expect(Math.sign(at(200).cy0)).toBe(1)
+})
+
+// ...and it clears that run rather than cutting through it, which is the other
+// half of reading as a route around something.
+test('the arc reaches past the reference it bows around', () => {
+  const from = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ]
+  const to = [
+    { x: 110, y: 0 },
+    { x: 210, y: 0 },
+  ]
+  const curves = computeEdgeCurves(from, to, false, 0, 0, 1, [
+    { x: 105, y: 300 },
+    { x: 145, y: 300 },
+  ])
+  expect(curvePointAt(curves[0]!, 0.5).y).toBeGreaterThan(300)
 })

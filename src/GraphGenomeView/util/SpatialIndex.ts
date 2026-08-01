@@ -1,5 +1,5 @@
 import { computeEdgeCurves } from './geometry'
-import { deletionBulge } from '../deletionEdges'
+import { bypassedPoints } from '../deletionEdges'
 
 import type { Graph, NodeSegment } from '../types'
 import type { BezierCurve } from './geometry'
@@ -190,7 +190,7 @@ export class EdgeSpatialIndex {
           0,
           0,
           scale,
-          bypassed ? deletionBulge(nodePositions, bypassed) : 0,
+          bypassed ? bypassedPoints(nodePositions, bypassed) : [],
         )
         this.edgeCurves.set(ei, curves)
 

@@ -74,7 +74,13 @@ describe('curveMidpoint', () => {
       { x: 200, y: 0 },
       { x: 280, y: 0 },
     ]
-    const curves = computeEdgeCurves(from, to, false, 0, 0, 1, 70)
+    // the bypassed backbone, lying on the chord as an anchored layout draws it:
+    // 200 units of run at the 0.35 along-fraction is 70 of bow
+    const bypassed = [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+    ]
+    const curves = computeEdgeCurves(from, to, false, 0, 0, 1, bypassed)
     const mid = curveMidpoint(curves)!
     expect(curves).toHaveLength(1)
     const onCurve = curvePointAt(curves[0]!, 0.5)
