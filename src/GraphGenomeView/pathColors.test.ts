@@ -55,3 +55,29 @@ test('five paths spread evenly over the wheel', () => {
     'hsl(288, 70%, 50%)',
   ])
 })
+
+// The E. coli rRNA operons: pggb folds nine locations across five chromosomes
+// onto one 908 bp run of graph, so odgi extract emits nine paths whose names
+// differ only in the offset it appends.
+test('repeat copies of one sequence are told apart by offset, not by name', () => {
+  expect(
+    pathLegend(
+      [
+        'K12#1#chr:4166751-4167659',
+        'Sakai#1#chr:4735469-4736377',
+        'Sakai#1#chr:4976146-4977054',
+      ].map(name => ({ name, nodeIds: [] })),
+    ).map(e => e.label),
+  ).toEqual(['K12 @4,166,751', 'Sakai @4,735,469', 'Sakai @4,976,146'])
+})
+
+// but a plain two-haplotype cut still widens the name rather than reaching for
+// an offset both paths share
+test('two haplotypes at the same offset widen the name instead', () => {
+  expect(
+    pathLegend([
+      { name: 'HG00738#1', nodeIds: [] },
+      { name: 'HG00738#2', nodeIds: [] },
+    ]).map(e => e.label),
+  ).toEqual(['HG00738#1', 'HG00738#2'])
+})

@@ -48,6 +48,22 @@ function labelTiers(name: string) {
   return [parts[0]!, parts.slice(0, 2).join('#'), parts.join('#')]
 }
 
+// Locale-independent, unlike toLocaleString: a figure regenerated on a machine
+// with a different locale would otherwise differ from the committed one.
+function groupDigits(n: number) {
+  return String(n).replace(/\B(?=(\d{3})+$)/g, ',')
+}
+
+// A collapsed repeat puts one sequence through the same segments more than
+// once, and `odgi extract` emits one path per visit — nine visits over five
+// E. coli chromosomes at the rRNA operons, where every name tier above collides
+// because the sequence really is the same one. What separates those is the
+// offset each name carried, which is the one thing pathOrigin strips off.
+function offsetTiers(name: string, tiers: string[]) {
+  const { start } = pathOrigin(name)
+  return tiers.map(t => `${t} @${groupDigits(start)}`)
+}
+
 export interface PathLegendEntry {
   name: string
   label: string
@@ -55,15 +71,23 @@ export interface PathLegendEntry {
 }
 
 export function pathLegend(paths: GraphPath[]): PathLegendEntry[] {
-  const tiers = paths.map(p => labelTiers(p.name))
-  const distinct = (i: number) =>
-    new Set(tiers.map(t => t[i]!)).size === paths.length
-  // The widest tier is the file's own name, so a collision there is a duplicate
-  // path in the file and no labelling can separate them.
-  const tier = distinct(0) ? 0 : distinct(1) ? 1 : 2
+  const named = paths.map(p => labelTiers(p.name))
+  // narrowest first, and the offset is tried before the next name tier: two
+  // copies of one operon are told apart by where they are, not by widening a
+  // name that is genuinely identical
+  const candidates = [0, 1, 2].flatMap(t => [
+    paths.map((_, i) => named[i]![t]!),
+    paths.map((p, i) => offsetTiers(p.name, named[i]!)[t]!),
+  ])
+  const distinct = candidates.find(
+    labels => new Set(labels).size === paths.length,
+  )
+  // Nothing separates two paths with the same name and the same offset, so the
+  // widest labelling is as close as any can get.
+  const labels = distinct ?? candidates.at(-1)!
   return paths.map((path, i) => ({
     name: path.name,
-    label: tiers[i]![tier]!,
+    label: labels[i]!,
     color: pathCssColor(i, paths.length),
   }))
 }
