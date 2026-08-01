@@ -108,6 +108,48 @@ const RowLabels = observer(function RowLabels({
   )
 })
 
+// Top RIGHT: the row labels own the left edge and the hover tooltip owns the
+// bottom right, so this is the one corner nothing else claims. A row-structured
+// layout draws its band across the middle, which is what the key is for.
+const pathLegendStyle = {
+  position: 'absolute' as const,
+  top: 6,
+  right: 6,
+  background: 'rgba(255,255,255,0.82)',
+  padding: '4px 6px',
+  borderRadius: 3,
+  fontSize: 11,
+  lineHeight: '15px',
+  whiteSpace: 'nowrap' as const,
+  pointerEvents: 'none' as const,
+  zIndex: 4,
+}
+
+const pathLegendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
+
+const pathSwatchStyle = { width: 18, height: 3, borderRadius: 2 }
+
+// Which haplotype each ribbon colour is. The ribbons are one stroke per path
+// fanned across every edge the path crosses, so without this the drawing states
+// that the alleles are taken by *different* samples and never which.
+const PathLegend = observer(function PathLegend({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const { pathLegend } = model
+  return pathLegend.length > 0 ? (
+    <div style={pathLegendStyle} data-testid="graph-path-legend">
+      {pathLegend.map(({ name, label, color }) => (
+        <div key={name} style={pathLegendRowStyle}>
+          <div style={{ ...pathSwatchStyle, backgroundColor: color }} />
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  ) : null
+})
+
 const nodeLabelStyle = {
   position: 'absolute' as const,
   transform: 'translate(-50%, -50%)',
@@ -509,6 +551,7 @@ const GraphCanvas = observer(function GraphCanvas({
 
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
+        <PathLegend model={model} />
       </div>
 
       <HoverTooltips model={model} />

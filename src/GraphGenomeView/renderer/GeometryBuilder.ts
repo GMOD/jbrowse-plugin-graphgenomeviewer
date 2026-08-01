@@ -1,5 +1,6 @@
 import { brightenAbgr, packAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
+import { PATH_LIGHTNESS, PATH_SATURATION, pathHue } from '../pathColors'
 import { referenceMidpoints } from '../referenceSpan'
 import { computeEdgeCurves, dashCurves } from '../util/geometry'
 import {
@@ -149,13 +150,11 @@ function sampleGradient(
   )
 }
 
-// Deterministic color from a string (djb2-style hash → HSL hue).
+// Deterministic color from a string (djb2-style hash → HSL hue). The hue comes
+// from pathColors so the legend beside a path ribbon is the same colour as the
+// ribbon rather than a second guess at it.
 function hashColor(str: string, alpha: number) {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const [r, g, b] = hslToRgb(Math.abs(hash % 360), 0.7, 0.5)
+  const [r, g, b] = hslToRgb(pathHue(str), PATH_SATURATION, PATH_LIGHTNESS)
   return packNorm(r, g, b, alpha)
 }
 

@@ -16,6 +16,7 @@ import { convertGFAToGraph } from './gfa/gfaConverter'
 import { bandageAutoScale } from './layout/drawnScale'
 import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
+import { pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
@@ -359,6 +360,15 @@ export default function stateModelFactory() {
       // rGFA, which has no P/W records and needs none.
       get anchorPaths() {
         return self.graph?.anchorPaths ?? []
+      },
+      // Which haplotype each ribbon colour belongs to, in the order the file
+      // states the paths — the same list and the same order the geometry keys
+      // its colours off, so the key cannot name a colour that is not drawn.
+      // Empty unless the ribbons are actually on: a colour key beside a drawing
+      // with no colours in it is a legend for nothing.
+      get pathLegend() {
+        const paths = self.graph?.paths
+        return self.drawPaths && paths ? pathLegend(paths) : []
       },
       // The path x is currently drawn on, which is not necessarily the one
       // `referencePath` asked for: an unmatched name falls back rather than
