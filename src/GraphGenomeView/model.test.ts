@@ -38,7 +38,10 @@ vi.mock('@jbrowse/core/util', () => {
   }
 })
 
-vi.mock('@jbrowse/core/configuration', () => ({
+// Partial, not wholesale: core modules pulled in transitively (BaseFeatureWidget's
+// config schema) call ConfigurationSchema at module-eval time.
+vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
+  ...(await importOriginal()),
   readConfObject: vi.fn((obj: Record<string, unknown>, key: string) =>
     key === 'adapter' ? obj.adapter : undefined,
   ),

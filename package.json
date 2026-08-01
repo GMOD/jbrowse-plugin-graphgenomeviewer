@@ -45,7 +45,7 @@
   "dependencies": {
     "@gmod/tabix": "^3.4.2",
     "@jbrowse/core": "link:../../jbrowse-components/packages/core",
-    "@jbrowse/mobx-state-tree": "^5.6.0",
+    "@jbrowse/mobx-state-tree": "^6.0.0",
     "@jbrowse/render-core": "link:../../jbrowse-components/packages/render-core"
   },
   "devDependencies": {
@@ -71,8 +71,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^29.1.1",
-    "mobx": "^6.15.0",
-    "mobx-react": "^9.2.1",
+    "mobx": "^7.0.0",
+    "mobx-react": "^10.0.0",
     "prettier": "^3.8.3",
     "pretty-bytes": "^7.1.0",
     "puppeteer": "^25.3.0",
