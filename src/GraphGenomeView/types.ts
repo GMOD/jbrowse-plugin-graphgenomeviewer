@@ -86,4 +86,10 @@ export interface RowLabel {
 export interface LayoutResult {
   nodePositions: Record<string, NodeSegment[]>
   rowLabels?: RowLabel[]
+  // Set by the layouts whose x is reference bp, so the fit can be taken from
+  // the region the cut was made for rather than from how far the drawing
+  // happens to reach. An allele anchored far outside the window is a fact
+  // about the graph, not a reason to redraw the window at 6% of the frame —
+  // see layoutBounds.
+  referenceAxis?: boolean
 }

@@ -77,5 +77,5 @@ export function anchoredLayout(graph: Graph): LayoutResult | undefined {
     y: row * rowSpacing,
   }))
 
-  return { nodePositions, rowLabels }
+  return { nodePositions, rowLabels, referenceAxis: true }
 }

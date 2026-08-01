@@ -392,6 +392,20 @@ export default function stateModelFactory() {
       // Extent of the drawing in layout units, or undefined before there is
       // one. Shared by the pane height and by zoomToFit so the two cannot
       // measure the same graph differently.
+      //
+      // On the reference-anchored layouts x is reference bp, and the axis those
+      // layouts exist for is the region the cut was made for: it is what lines
+      // the graph pane up with the linear view above it. So x comes from
+      // `loadedRegion` there, not from how far the drawing reaches. One allele
+      // can legitimately anchor far outside the window -- a 75 bp CFT073
+      // segment in the E. coli pggb graph attaches at K12:997,574 and rejoins
+      // at K12:1,004,667, a real 7 kb deletion -- and fitting to that drew a
+      // 484 bp window at 6% of the frame, on a pane whose whole claim is that
+      // its x matches the panel above. It exits the frame instead, which is
+      // where it goes. y is always measured: rows are not on the reference.
+      //
+      // Force layouts keep the measured extent in both axes, x there being
+      // simulation units that no region can bound.
       get layoutBounds() {
         let bounds:
           { minX: number; minY: number; w: number; h: number } | undefined
@@ -409,6 +423,13 @@ export default function stateModelFactory() {
               maxX = Math.max(maxX, seg.x)
               maxY = Math.max(maxY, seg.y)
             }
+          }
+          const region = self.layoutResult.referenceAxis
+            ? self.loadedRegion
+            : undefined
+          if (region && region.end > region.start) {
+            minX = region.start
+            maxX = region.end
           }
           bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
         }

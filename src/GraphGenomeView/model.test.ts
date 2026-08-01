@@ -1209,3 +1209,100 @@ describe('bubbleSpread', () => {
     ).toBe(5)
   })
 })
+
+// A cut made for a region draws on that region's axis, which is the whole claim
+// of the reference-anchored layouts: the graph pane's x is meant to match the
+// linear view stacked above it. One allele can anchor far outside the window and
+// still be correct -- in the E. coli pggb graph a 75 bp CFT073 segment attaches
+// at K12:997,574 and rejoins at K12:1,004,667, a real 7 kb deletion -- and
+// fitting the drawing to that redrew a 484 bp window at 6% of the frame. It got
+// there when the graph-context default went from None to 1 hop, which is what
+// first fetches the distant anchor.
+const FAR_ANCHORED_RGFA =
+  'H\tVN:Z:1.0\n' +
+  // in the window
+  'S\tin1\tACGTACGTAC\tSN:Z:chr\tSO:i:100000\tSR:i:0\n' +
+  'S\tin2\tACGTACGTAC\tSN:Z:chr\tSO:i:100380\tSR:i:0\n' +
+  // the same reference, 99 kb upstream of the window: reached because the
+  // allele below links to it, never walked through
+  'S\tfar\tACGTACGTAC\tSN:Z:chr\tSO:i:1000\tSR:i:0\n' +
+  // the allele that bridges them
+  'S\talt\tTTTT\tSN:Z:other\tSO:i:0\tSR:i:1\n' +
+  'L\tfar\t+\talt\t+\t0M\nL\talt\t+\tin1\t+\t0M\nL\tin1\t+\tin2\t+\t0M\n'
+
+const FAR_REGION = {
+  refName: 'chr',
+  assemblyName: 'hg38',
+  start: 100000,
+  end: 100400,
+}
+
+describe('layoutBounds on a reference axis', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = [TEST_TRACK]
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(FAR_ANCHORED_RGFA)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+  })
+
+  test('x is the cut region, not how far the drawing reaches', async () => {
+    const model = createAnchoredModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      FAR_REGION,
+      { trackId: 'rgfa-track' },
+    )
+
+    // the drawing does reach the far anchor -- this is not a fetch change
+    const drawnX = Object.values(model.nodePositions!)
+      .flat()
+      .map(s => s.x)
+    expect(Math.min(...drawnX)).toBeLessThan(FAR_REGION.start)
+
+    expect(model.layoutBounds!.minX).toBe(FAR_REGION.start)
+    expect(model.layoutBounds!.w).toBe(FAR_REGION.end - FAR_REGION.start)
+  })
+
+  test('y still comes from the rows, which are not on the reference', async () => {
+    const model = createAnchoredModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      FAR_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    const drawnY = Object.values(model.nodePositions!)
+      .flat()
+      .map(s => s.y)
+    expect(model.layoutBounds!.h).toBe(
+      Math.max(...drawnY) - Math.min(...drawnY),
+    )
+  })
+
+  test('a force layout keeps the extent it measured', async () => {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(FAR_ANCHORED_RGFA)
+        : method === 'GraphComputeLayout'
+          ? Promise.resolve({ result: MOCK_LAYOUT, duration: 5 })
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    model.setLayoutMode('force')
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      FAR_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    // MOCK_LAYOUT's own units, which no region bounds
+    const drawnX = Object.values(model.nodePositions!)
+      .flat()
+      .map(s => s.x)
+    expect(model.layoutBounds!.minX).toBe(Math.min(...drawnX))
+    expect(model.layoutBounds!.w).toBe(
+      Math.max(...drawnX) - Math.min(...drawnX),
+    )
+  })
+})

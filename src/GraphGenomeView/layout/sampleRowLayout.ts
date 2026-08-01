@@ -105,5 +105,5 @@ export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
     })),
   ]
 
-  return { nodePositions, rowLabels }
+  return { nodePositions, rowLabels, referenceAxis: true }
 }
