@@ -2,11 +2,10 @@ import { pathOrigin } from './pathAnchoring'
 
 import type { GraphPath } from './types'
 
-// One answer to "what colour is this path", for the ribbons the renderer packs
-// into vertex colours and for the DOM swatch that names them. They were two
-// answers for as long as there was no legend, and a legend derived from a
-// second hash is a legend that lies.
-export function pathHue(name: string) {
+// Deterministic colour from a string (djb2-style hash to an HSL hue). Fine for
+// the `random` node scheme, where a collision between two of thousands of nodes
+// means nothing. NOT what the path ribbons use: see pathHueAt.
+export function nameHue(name: string) {
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -14,11 +13,25 @@ export function pathHue(name: string) {
   return Math.abs(hash % 360)
 }
 
+// Ribbon hues are spread evenly over the wheel by position in the path list,
+// not hashed from the path name. A hash draws from the wheel at random, and at
+// five paths two of them landing on the same hue is common rather than
+// unlucky: `Sakai#1#chr:1983339-1983535` and `NCTC86#1#chr:1709109-1710286`
+// hash 26 degrees apart, which is two purples and a legend that cannot be read
+// off the drawing. Evenly spaced, the worst case is the best available.
+//
+// The cost is that a path's colour depends on how many paths there are, so it
+// moves when the cut changes. That is what the legend is for, and it is the
+// same trade the Bandage demo this was ported from made.
+export function pathHueAt(index: number, count: number) {
+  return (index * 360) / count
+}
+
 export const PATH_SATURATION = 0.7
 export const PATH_LIGHTNESS = 0.5
 
-export function pathCssColor(name: string) {
-  return `hsl(${pathHue(name)}, ${PATH_SATURATION * 100}%, ${
+export function pathCssColor(index: number, count: number) {
+  return `hsl(${pathHueAt(index, count)}, ${PATH_SATURATION * 100}%, ${
     PATH_LIGHTNESS * 100
   }%)`
 }
@@ -51,6 +64,6 @@ export function pathLegend(paths: GraphPath[]): PathLegendEntry[] {
   return paths.map((path, i) => ({
     name: path.name,
     label: tiers[i]![tier]!,
-    color: pathCssColor(path.name),
+    color: pathCssColor(i, paths.length),
   }))
 }

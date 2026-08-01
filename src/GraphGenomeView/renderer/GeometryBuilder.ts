@@ -1,6 +1,11 @@
 import { brightenAbgr, packAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
-import { PATH_LIGHTNESS, PATH_SATURATION, pathHue } from '../pathColors'
+import {
+  PATH_LIGHTNESS,
+  PATH_SATURATION,
+  nameHue,
+  pathHueAt,
+} from '../pathColors'
 import { referenceMidpoints } from '../referenceSpan'
 import { computeEdgeCurves, dashCurves } from '../util/geometry'
 import {
@@ -150,11 +155,10 @@ function sampleGradient(
   )
 }
 
-// Deterministic color from a string (djb2-style hash → HSL hue). The hue comes
-// from pathColors so the legend beside a path ribbon is the same colour as the
-// ribbon rather than a second guess at it.
+// Deterministic color from a string (djb2-style hash → HSL hue), for the
+// `random` node scheme. The path ribbons do NOT use this — see pathHueAt.
 function hashColor(str: string, alpha: number) {
-  const [r, g, b] = hslToRgb(pathHue(str), PATH_SATURATION, PATH_LIGHTNESS)
+  const [r, g, b] = hslToRgb(nameHue(str), PATH_SATURATION, PATH_LIGHTNESS)
   return packNorm(r, g, b, alpha)
 }
 
@@ -703,10 +707,17 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     }
   }
 
+  // By position in the path list, matching pathLegend's swatches exactly, so
+  // the key beside the drawing names the strokes in it.
   const pathColors = new Map<string, number>()
   if (graph.paths) {
-    for (const path of graph.paths) {
-      pathColors.set(path.name, hashColor(path.name, 0.85))
+    for (let i = 0; i < graph.paths.length; i++) {
+      const [r, g, b] = hslToRgb(
+        pathHueAt(i, graph.paths.length),
+        PATH_SATURATION,
+        PATH_LIGHTNESS,
+      )
+      pathColors.set(graph.paths[i]!.name, packNorm(r, g, b, 0.85))
     }
   }
 
