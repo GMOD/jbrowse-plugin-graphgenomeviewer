@@ -889,7 +889,10 @@ export default function stateModelFactory() {
       // 'force' is expressed. See LAYOUT_MODES.
       function* computeLayout(graph: Graph) {
         const start = performance.now()
-        const local = layoutModeByValue(self.layoutMode).run(graph)
+        const local = layoutModeByValue(self.layoutMode).run(
+          graph,
+          self.loadedRegion,
+        )
         return local
           ? { result: local, duration: performance.now() - start }
           : ((yield callLayout(

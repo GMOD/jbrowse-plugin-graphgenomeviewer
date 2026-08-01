@@ -50,3 +50,24 @@ export function backboneSpan(backbone: AnchoredNode[]) {
   }
   return max - min
 }
+
+// The reference interval the drawing is scaled against: the region the cut was
+// made for, when there is one.
+//
+// Not the same as the backbone's own extent, and the difference is not small. A
+// hop reaches the far anchor of a long-range allele, and that anchor is a rank-0
+// segment: in the E. coli pggb graph a 75 bp CFT073 segment bridges K12:997,574
+// and K12:1,004,667, so a 484 bp window's backbone measured 7,395 bp. Everything
+// scaled off that span went with it — rows 15x too far apart, and an off-
+// reference floor of 111 bp inside a 484 bp window.
+//
+// A whole-file import has no region, and there the measured extent is the only
+// answer available.
+export function referenceSpan(
+  backbone: AnchoredNode[],
+  region?: { start: number; end: number },
+) {
+  return region && region.end > region.start
+    ? region.end - region.start
+    : backboneSpan(backbone)
+}

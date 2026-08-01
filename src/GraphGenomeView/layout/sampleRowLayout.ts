@@ -3,8 +3,8 @@ import { rowSpacing as rowSpacingFor } from './rowSpacing'
 import { parsePanSN } from '../../alleleProjection/projectAlleles'
 import {
   backboneNodes,
-  backboneSpan,
   isOffReference,
+  referenceSpan,
 } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
@@ -59,13 +59,16 @@ function contributingSamples(graph: Graph) {
   return [...samples].sort()
 }
 
-export function sampleRowLayout(graph: Graph): LayoutResult | undefined {
+export function sampleRowLayout(
+  graph: Graph,
+  region?: { start: number; end: number },
+): LayoutResult | undefined {
   const backbone = backboneNodes(graph)
   const samples = contributingSamples(graph)
   if (backbone.length === 0 || samples.length === 0) {
     return undefined
   }
-  const span = backboneSpan(backbone)
+  const span = referenceSpan(backbone, region)
   // backbone row plus one per sample
   const rowSpacing = rowSpacingFor(span, samples.length + 1)
   const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION

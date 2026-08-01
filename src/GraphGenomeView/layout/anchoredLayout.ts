@@ -1,6 +1,6 @@
 import { placeOffReference } from './placeOffReference'
 import { rowSpacing as rowSpacingFor } from './rowSpacing'
-import { backboneNodes, backboneSpan } from '../anchoredNodes'
+import { backboneNodes, referenceSpan } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 
@@ -43,13 +43,16 @@ function rankRows(graph: Graph) {
   return new Map([...present].sort((a, b) => a - b).map((r, i) => [r, i]))
 }
 
-export function anchoredLayout(graph: Graph): LayoutResult | undefined {
+export function anchoredLayout(
+  graph: Graph,
+  region?: { start: number; end: number },
+): LayoutResult | undefined {
   const backbone = backboneNodes(graph)
   if (backbone.length === 0) {
     return undefined
   }
 
-  const span = backboneSpan(backbone)
+  const span = referenceSpan(backbone, region)
   const rows = rankRows(graph)
   const rowSpacing = rowSpacingFor(span, rows.size)
 

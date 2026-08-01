@@ -21,7 +21,15 @@ export interface LayoutMode {
   value: string
   label: string
   description: string
-  run: (graph: Graph) => LayoutResult | undefined
+  // `region` is the interval the cut was made for, absent for a whole-file
+  // import. The reference-anchored modes scale their rows and their allele
+  // floor against it rather than against the backbone they were handed, which
+  // a long-range allele's far anchor stretches well past the window
+  // (referenceSpan).
+  run: (
+    graph: Graph,
+    region?: { start: number; end: number },
+  ) => LayoutResult | undefined
   // whether this mode can draw this graph at all; the dropdown greys out the
   // rest rather than hiding them, so the reason a mode is unavailable stays
   // visible instead of the menu silently changing shape between graphs

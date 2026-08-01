@@ -1266,6 +1266,29 @@ describe('layoutBounds on a reference axis', () => {
     expect(model.layoutBounds!.w).toBe(FAR_REGION.end - FAR_REGION.start)
   })
 
+  // The fit is only half of it. Row spacing and the off-reference floor are
+  // both fractions of the reference span, so a backbone stretched by the far
+  // anchor pushed the rows 15x apart and set a 111 bp floor inside a 484 bp
+  // window -- a pane too tall for its own viewport, with the drawing at the top
+  // of it.
+  test('rows are spaced against the region, not the stretched backbone', async () => {
+    const model = createAnchoredModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      FAR_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    const rowYs = [...new Set(model.rowLabels.map(r => r.y))].sort(
+      (a, b) => a - b,
+    )
+    expect(rowYs.length).toBeGreaterThan(1)
+    // whatever the fraction is, one row step has to stay inside the window it
+    // is a fraction of
+    expect(rowYs[1]! - rowYs[0]!).toBeLessThan(
+      FAR_REGION.end - FAR_REGION.start,
+    )
+  })
+
   test('y still comes from the rows, which are not on the reference', async () => {
     const model = createAnchoredModel()
     await model.loadFromTabixSubgraph(
