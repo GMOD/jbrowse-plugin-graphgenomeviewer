@@ -58,6 +58,7 @@ import type {
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
+import type { AbstractSessionModel } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
@@ -130,6 +131,21 @@ const MAX_ZOOM = 100
 
 function clampZoom(zoom: number) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom))
+}
+
+// A node's PanSN sample as an assembly this session can open, or undefined. The
+// graph's spelling and the assembly's need not agree — HPRC writes `CHM13` where
+// the assembly is UCSC's `hs1` — and `assemblyManager` is what knows the aliases,
+// so resolution goes through it and returns the canonical name.
+//
+// `has` before `get`, deliberately: `get` reports an unknown name to
+// `Core-handleUnrecognizedAssembly`, which asks every installed plugin to go
+// supply it, and this is a probe run for hundreds of haplotypes per graph.
+function assemblySampleResolver(session: AbstractSessionModel) {
+  return (sample: string) =>
+    session.assemblyManager.has(sample)
+      ? (session.assemblyManager.get(sample)?.name ?? sample)
+      : undefined
 }
 
 function computeViewportBounds(model: {
@@ -555,7 +571,7 @@ export default function stateModelFactory() {
       get launchableAssemblies() {
         return resolveContributors(
           withReferenceRegion(self.contributingAssemblies, self.loadedRegion),
-          getSession(self).assemblyNames,
+          assemblySampleResolver(getSession(self)),
         )
       },
       // Whether there is a linear view this graph may draw a highlight into —
@@ -580,7 +596,9 @@ export default function stateModelFactory() {
       nodeLaunchTargets(nodeId: string) {
         const node = self.nodeById?.get(nodeId)
         const own = node ? nodeOwnLocation(node) : undefined
-        const loaded = new Set(getSession(self).assemblyNames)
+        const ownAssembly = own
+          ? assemblySampleResolver(getSession(self))(own.sample)
+          : undefined
         const region = self.loadedRegion
         const nodeById = self.nodeById
         const neighbors = self.nodeNeighbors
@@ -590,8 +608,8 @@ export default function stateModelFactory() {
             : undefined
         return {
           own:
-            own && loaded.has(own.sample)
-              ? { location: paddedLocation(own), assembly: own.sample }
+            own && ownAssembly
+              ? { location: paddedLocation(own), assembly: ownAssembly }
               : undefined,
           reference:
             region && span

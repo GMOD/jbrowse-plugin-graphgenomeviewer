@@ -90,6 +90,12 @@ test('a distant second locus does not widen a contributor to cover both', () => 
   })
 })
 
+// A session that has loaded exactly these assemblies, under exactly these names.
+const loaded =
+  (...names: string[]) =>
+  (sample: string) =>
+    names.includes(sample) ? sample : undefined
+
 // The HPRC case: hundreds of contributing haplotypes, one loaded assembly. Only
 // the reference can be opened, and that is the honest answer rather than a menu
 // full of items that would fail.
@@ -102,12 +108,34 @@ test('only contributors naming a loaded assembly are openable', () => {
     ]),
   )
   expect(contributors).toHaveLength(3)
-  expect(resolveContributors(contributors, ['hg38', 'GRCh38#0#chr6'])).toEqual(
-    [],
-  )
+  expect(resolveContributors(contributors, loaded('hg38'))).toEqual([])
   expect(
-    resolveContributors(contributors, ['GRCh38', 'hg38']).map(c => c.sample),
+    resolveContributors(contributors, loaded('GRCh38', 'hg38')).map(
+      c => c.sample,
+    ),
   ).toEqual(['GRCh38'])
+})
+
+// The graph's spelling of an assembly and the session's need not agree: HPRC
+// writes `CHM13` where the assembly is UCSC's `hs1`. The launch has to name the
+// assembly, so the resolver's answer replaces the sample.
+test('a contributor resolves through an assembly alias, under its own name', () => {
+  const contributors = contributingAssemblies(
+    graph([
+      node('s1', 'GRCh38#0#chr17', 83000000, 5000, 0),
+      node('s2', 'CHM13#0#chr17', 83899576, 142227, 61),
+    ]),
+  )
+  const resolve = (sample: string) =>
+    sample === 'CHM13' ? 'hs1' : sample === 'GRCh38' ? 'hg38' : undefined
+  expect(resolveContributors(contributors, resolve).map(c => c.sample)).toEqual([
+    'hg38',
+    'hs1',
+  ])
+  // and the locus travels with it, rather than being dropped on rename
+  expect(
+    resolveContributors(contributors, resolve).find(c => c.sample === 'hs1'),
+  ).toMatchObject({ refName: 'chr17', start: 83899576, end: 84041803 })
 })
 
 test('a locstring is 1-based inclusive', () => {

@@ -5,10 +5,31 @@ import { MEAN_NODE_LENGTH, bandageAutoScale } from './layout/drawnScale'
 import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 
 const mockRpcCall = vi.fn()
+// The canonical assembly a name or alias resolves to, which is what
+// assemblyManager.assemblyNameMap does: it is keyed by [name, ...aliases].
+function canonicalAssembly(name: string) {
+  const aliased = mockSession.assemblyAliases[name]
+  return mockSession.assemblyNames.includes(name)
+    ? name
+    : aliased !== undefined && mockSession.assemblyNames.includes(aliased)
+      ? aliased
+      : undefined
+}
 const mockSession = {
   tracks: [] as { trackId: string; [key: string]: unknown }[],
   rpcManager: { call: mockRpcCall },
   assemblyNames: [] as string[],
+  // alias -> the assembly it names, the half of assemblyManager a graph needs:
+  // a node's PanSN sample is the graph's spelling, not necessarily the
+  // assembly's
+  assemblyAliases: {} as Record<string, string>,
+  assemblyManager: {
+    has: (name: string) => canonicalAssembly(name) !== undefined,
+    get: (name: string) => {
+      const canonical = canonicalAssembly(name)
+      return canonical === undefined ? undefined : { name: canonical }
+    },
+  },
   views: [] as unknown[],
   addedViews: [] as [string, Record<string, unknown> | undefined][],
   addView(type: string, snapshot?: Record<string, unknown>) {
@@ -1009,6 +1030,15 @@ describe('launching out of the graph', () => {
     'S\t3\tTTTT\tSN:Z:HG02717#1#chr6\tSO:i:9000\tSR:i:1\n' +
     'L\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\nL\t3\t+\t2\t+\t0M\n'
 
+  // The one HPRC donor a session can load: CHM13, whose sequence is UCSC's `hs1`
+  // and whose contigs are spelled the way GRCh38's are.
+  const CHM13_RGFA =
+    'H\tVN:Z:1.0\n' +
+    'S\t1\tACGTACGTAC\tSN:Z:GRCh38#0#chr17\tSO:i:83022650\tSR:i:0\n' +
+    'S\t2\tACGTACGTAC\tSN:Z:GRCh38#0#chr17\tSO:i:83022660\tSR:i:0\n' +
+    'S\t3\tTTTT\tSN:Z:CHM13#0#chr17\tSO:i:83899576\tSR:i:61\n' +
+    'L\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\nL\t3\t+\t2\t+\t0M\n'
+
   // An E. coli-shaped graph: two strains, both loaded as assemblies.
   const ECOLI_RGFA =
     'H\tVN:Z:1.0\n' +
@@ -1028,6 +1058,7 @@ describe('launching out of the graph', () => {
     mockRpcCall.mockReset()
     mockSession.tracks = []
     mockSession.assemblyNames = []
+    mockSession.assemblyAliases = {}
     mockSession.views = []
     mockSession.addedViews = []
   })
@@ -1101,6 +1132,44 @@ describe('launching out of the graph', () => {
       assembly: 'hg38',
       location: expect.objectContaining({ refName: 'chr6' }),
     })
+  })
+
+  // A donor is openable when the session has its sequence, whatever the session
+  // calls it: the graph says CHM13, the assembly is `hs1` with CHM13 as an alias,
+  // and the launch has to name `hs1` because that is what addView can open.
+  test('a donor loaded under an alias is openable, under the assembly name', async () => {
+    mockSession.assemblyNames = ['hg38', 'hs1']
+    mockSession.assemblyAliases = { CHM13: 'hs1', GRCh38: 'hg38' }
+    const model = await loadedGraph(CHM13_RGFA, {
+      refName: 'chr17',
+      assemblyName: 'hg38',
+      start: 83022650,
+      end: 83022670,
+    })
+
+    expect(model.launchableAssemblies.map(c => c.sample)).toEqual([
+      'hg38',
+      'hs1',
+    ])
+    expect(model.nodeLaunchTargets('3+').own).toEqual({
+      assembly: 'hs1',
+      location: expect.objectContaining({ refName: 'chr17' }),
+    })
+  })
+
+  // The same graph with no CHM13 assembly loaded: the donor node falls back to
+  // the reference projection, which is the HPRC default.
+  test('a donor with no assembly, aliased or otherwise, is not openable', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(CHM13_RGFA, {
+      refName: 'chr17',
+      assemblyName: 'hg38',
+      start: 83022650,
+      end: 83022670,
+    })
+
+    expect(model.launchableAssemblies.map(c => c.sample)).toEqual(['hg38'])
+    expect(model.nodeLaunchTargets('3+').own).toBeUndefined()
   })
 
   // Where every contributor is a loaded assembly the graph offers one panel per
