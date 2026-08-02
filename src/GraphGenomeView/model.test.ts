@@ -1,8 +1,15 @@
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
-import { minNodeLengthFor } from './bubbleSpreads'
-import { MEAN_NODE_LENGTH, bandageAutoScale } from './layout/drawnScale'
+import { lawFor } from './bubbleSpreads'
+import {
+  PROPORTIONAL_LENGTH,
+  bandageAutoScale,
+  drawnLengthFor,
+  layoutScaling,
+} from './layout/drawnScale'
 import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
+
+import type { Graph } from './types'
 
 const mockRpcCall = vi.fn()
 // The canonical assembly a name or alias resolves to, which is what
@@ -1245,37 +1252,89 @@ describe('launching out of the graph', () => {
 // the drawing exactly as it was — every existing force figure is committed
 // against it, and the proportionality test above is stated at that setting.
 describe('bubbleSpread', () => {
-  const graph = {
-    nodes: [
-      { id: '1', name: '1', length: 164 },
-      { id: '2', name: '2', length: 1 },
-    ],
-    edges: [],
-  } as unknown as Parameters<typeof bandageAutoScale>[0]
+  // the real minigraph cut behind `pangenome/graph_resolution`: a 16.4 kb
+  // backbone segment and a 4.4 kb one, against five alleles of 6-154 bp
+  const minigraphLengths = [16_417, 4_423, 154, 88, 65, 33, 6]
+  const graphOf = (lengths: number[]) =>
+    ({
+      nodes: lengths.map((length, i) => ({ id: `${i}`, name: `${i}`, length })),
+      edges: [],
+    }) as unknown as Graph
 
-  test("'auto' keeps Bandage's own floor", () => {
-    expect(
-      bandageAutoScale(graph, minNodeLengthFor('auto')).minimumNodeLength,
-    ).toBe(5)
+  // What the engine does with what we hand it (`settings.h`,
+  // `getDrawnNodeLength`): linear in the node's length, with a floor.
+  function drawn(scaling: ReturnType<typeof layoutScaling>, index: number) {
+    const { nodeLengthPerMegabase, minimumNodeLength } = scaling.opts
+    const length = scaling.nodes[index]!.length
+    return Math.max(
+      (nodeLengthPerMegabase * length) / 1_000_000,
+      minimumNodeLength,
+    )
+  }
+
+  const lengthsUnder = (spread: string) => {
+    const scaling = layoutScaling(graphOf(minigraphLengths), lawFor(spread))
+    return minigraphLengths.map((_, i) => drawn(scaling, i))
+  }
+
+  test("'auto' hands the engine the graph's own nodes, untransformed", () => {
+    const graph = graphOf(minigraphLengths)
+    const scaling = layoutScaling(graph, lawFor('auto'))
+    // identity, not a copy: the proportional path must not round-trip lengths
+    // through a rounding step FMMM is free to amplify
+    expect(scaling.nodes).toBe(graph.nodes)
+    expect(scaling.opts).toStrictEqual(bandageAutoScale(graph))
   })
 
-  test('opening bubbles raises the floor above the mean drawn node length', () => {
-    const open = bandageAutoScale(graph, minNodeLengthFor('open'))
-    const wide = bandageAutoScale(graph, minNodeLengthFor('wide'))
-    expect(open.minimumNodeLength).toBeGreaterThan(MEAN_NODE_LENGTH)
-    expect(wide.minimumNodeLength).toBeGreaterThan(open.minimumNodeLength)
-    // the scale itself is untouched, so a node above the floor keeps the length
-    // it had — only the smallest ones are lifted
-    expect(open.nodeLengthPerMegabase).toBe(
-      bandageAutoScale(graph, minNodeLengthFor('auto')).nodeLengthPerMegabase,
+  // The equivalence that lets the law replace the old linear scale outright
+  // rather than sit beside it.
+  test("the proportional law reproduces bandageAutoScale's own drawn lengths", () => {
+    const graph = graphOf(minigraphLengths)
+    const scale = bandageAutoScale(graph)
+    const law = drawnLengthFor(graph, PROPORTIONAL_LENGTH)
+    for (const bp of minigraphLengths) {
+      expect(law(bp)).toBeCloseTo(
+        Math.max((scale.nodeLengthPerMegabase * bp) / 1_000_000, 5),
+        6,
+      )
+    }
+  })
+
+  test('opening bubbles compresses the drawn length range', () => {
+    const range = (lengths: number[]) =>
+      Math.max(...lengths) / Math.min(...lengths)
+    // the rope: on the real cut the longest node draws tens of times the
+    // shortest, so zoom-to-fit frames the long one and the alleles vanish
+    expect(range(lengthsUnder('auto'))).toBeGreaterThan(20)
+    expect(range(lengthsUnder('open'))).toBeLessThan(5)
+    expect(range(lengthsUnder('wide'))).toBeLessThan(
+      range(lengthsUnder('open')),
     )
   })
 
-  test('an unknown spread falls back to auto rather than to zero', () => {
-    expect(minNodeLengthFor('nonsense')).toBe(0)
-    expect(
-      bandageAutoScale(graph, minNodeLengthFor('nonsense')).minimumNodeLength,
-    ).toBe(5)
+  // The property a per-node floor did not have, and the reason it could only be
+  // afforded on a small cut: compressing against the mean leaves the drawing
+  // the size it already was, so the same setting works at any node count.
+  test('compressing does not inflate the total drawing', () => {
+    const total = (lengths: number[]) => lengths.reduce((a, b) => a + b, 0)
+    const proportional = total(lengthsUnder('auto'))
+    expect(total(lengthsUnder('open'))).toBeLessThan(proportional * 1.5)
+    expect(total(lengthsUnder('wide'))).toBeLessThan(proportional * 1.5)
+  })
+
+  test('every allele clears the floor it used to clamp to', () => {
+    // 6 bp against a 3 kb mean is 5 units proportionally, which is the engine's
+    // own minimum: indistinguishable from the 33 bp and 65 bp beside it
+    const auto = lengthsUnder('auto')
+    expect(auto.at(-1)).toBe(5)
+    expect(auto.at(-2)).toBe(5)
+    const open = lengthsUnder('open')
+    expect(open.at(-1)).toBeGreaterThan(5)
+    expect(open.at(-1)).toBeLessThan(open.at(-2)!)
+  })
+
+  test('an unknown spread draws proportionally rather than throwing', () => {
+    expect(lawFor('nonsense')).toStrictEqual(PROPORTIONAL_LENGTH)
   })
 })
 

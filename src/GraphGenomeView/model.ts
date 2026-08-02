@@ -8,12 +8,12 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
-import { BUBBLE_SPREAD_VALUES, minNodeLengthFor } from './bubbleSpreads'
+import { BUBBLE_SPREAD_VALUES, lawFor } from './bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
-import { bandageAutoScale } from './layout/drawnScale'
+import { layoutScaling } from './layout/drawnScale'
 import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathLegend } from './pathColors'
@@ -47,7 +47,7 @@ import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme } from './colorSchemes'
-import type { BandageScaleOpts } from './layout/drawnScale'
+import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type {
   RenderBatch,
@@ -892,18 +892,21 @@ export default function stateModelFactory() {
       }
     })
     .actions(self => {
-      function callLayout(graph: Graph, extraOpts?: BandageScaleOpts) {
+      // `scaling.nodes` rather than the graph's own: under a compressing
+      // drawn-length law a node's `length` crosses this boundary as a drawn
+      // length, which is all the engine ever reads it as.
+      function callLayout(graph: Graph, scaling: LayoutScaling) {
         const session = getSession(self)
         const { rpcManager } = session
         // Stable grouping key for the layout RPC; a view has no display-level
         // rpcSessionId. `rpcManager.call` injects sessionId into the args.
         const sessionId = 'graph'
         return rpcManager.call(sessionId, 'GraphComputeLayout', {
-          graph: { nodes: graph.nodes, edges: graph.edges },
+          graph: { nodes: scaling.nodes, edges: graph.edges },
           options: {
             quality: self.layoutQuality,
             linearLayout: self.linearLayout,
-            ...extraOpts,
+            ...scaling.opts,
           },
           statusCallback: (message: string) => {
             self.setStatusMessage(message)
@@ -925,7 +928,7 @@ export default function stateModelFactory() {
           ? { result: local, duration: performance.now() - start }
           : ((yield callLayout(
               graph,
-              bandageAutoScale(graph, minNodeLengthFor(self.bubbleSpread)),
+              layoutScaling(graph, lawFor(self.bubbleSpread)),
             )) as {
               result: LayoutResult
               duration: number
