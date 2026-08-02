@@ -1,6 +1,6 @@
-import { PROPORTIONAL_LENGTH } from './layout/drawnScale'
+import { MEAN_NODE_LENGTH, PROPORTIONAL_LENGTH } from './layout/drawnScale'
 
-import type { DrawnLengthLaw } from './layout/drawnScale'
+import type { NodeLengthSpread } from './layout/drawnScale'
 
 // How far apart the force layout draws the two arms of a bubble, as the law
 // turning a node's bp into its drawn length. One table drives the persisted
@@ -29,14 +29,24 @@ import type { DrawnLengthLaw } from './layout/drawnScale'
 // pane: proportional is one squiggle with a single knot in it, and the bubbles
 // come apart into legible lenses once the law compresses.
 //
-// This replaces a floor on a node's drawn length, which reached the small end
-// but did it by raising a per-node minimum: that lifts a graph's non-branching
-// chain nodes along with its alleles, so the drawing inflates with the node
-// count and zoom-to-fit hands it back as a smaller picture. On the 521-node pggb
-// cut in `pangenome/graph_resolution` the floor put the drawing at ~52,000 units
-// and the fit at 1.4%, which is why that figure could only afford a spread on
-// its 7-node half. A law stated against the mean leaves the drawing the size it
-// already was, so both halves can take the same one.
+// The floor and the law are different instruments and both are kept, because
+// neither does the other's job:
+//
+// - a FLOOR lifts the small end and leaves everything above it proportional. It
+//   is what a figure wants when one long node has to stay long — the ribbons in
+//   `pangenome/pggb_haplotype_paths` separate along a 1.2 kb deletion arc, and
+//   shortening that arc towards the mean piles them up. Its cost is that it is a
+//   per-node minimum, so it lifts a graph's non-branching chain nodes along with
+//   its alleles and the drawing inflates with node count: on the 521-node pggb
+//   cut in `pangenome/graph_resolution` it reached ~52,000 units and a 1.4% fit,
+//   which is why that figure could once afford a spread on its 7-node half only.
+// - the LAW compresses both ends towards the mean, so the drawing stays the size
+//   it already was whatever the node count, and a cut spanning 6 bp to 16 kb
+//   fits one pane. Its cost is the top end: a node that has to read as long no
+//   longer does.
+//
+// So a figure about bubble shape at scale takes 'compress', and a figure about
+// what is drawn along one long edge takes 'open'.
 //
 // 'auto' is the proportional map, unchanged, so every existing figure and the
 // `bandageAutoScale` length-proportionality test are untouched by this existing.
@@ -47,20 +57,31 @@ export const BUBBLE_SPREADS = [
     description:
       "Bandage's own scale: a node draws proportional to its length, so a 1 bp allele is a speck.",
     law: PROPORTIONAL_LENGTH,
+    minNodeFactor: 0,
   },
   {
     value: 'open',
     label: 'Open bubbles',
     description:
       'Give every allele a drawn length, so a bubble reads as two arms rather than a knot.',
-    law: { power: 0.5, effect: 0.5 },
+    law: PROPORTIONAL_LENGTH,
+    minNodeFactor: 2.5,
   },
   {
     value: 'wide',
     label: 'Wide bubbles',
     description:
       'As open, spread further. Best on a window of a dozen bubbles.',
-    law: { power: 0.5, effect: 0.25 },
+    law: PROPORTIONAL_LENGTH,
+    minNodeFactor: 10,
+  },
+  {
+    value: 'compress',
+    label: 'Compress lengths',
+    description:
+      'Pull the longest and shortest nodes towards the graph\u2019s mean, so a cut spanning kb and bp fits one pane.',
+    law: { power: 0.5, effect: 0.5 },
+    minNodeFactor: 0,
   },
 ] as const
 
@@ -68,11 +89,14 @@ export type BubbleSpread = (typeof BUBBLE_SPREADS)[number]['value']
 
 export const BUBBLE_SPREAD_VALUES = BUBBLE_SPREADS.map(s => s.value)
 
-// The law behind a spread, resolved so the model has one place that knows how a
-// spread becomes numbers. An unknown value draws proportionally rather than
-// throwing, which is what a session persisted by a newer build degrades to.
-export function lawFor(spread: string): DrawnLengthLaw {
-  return (
-    BUBBLE_SPREADS.find(s => s.value === spread)?.law ?? PROPORTIONAL_LENGTH
-  )
+// The law and floor behind a spread, resolved so the model has one place that
+// knows how a spread becomes numbers. An unknown value draws proportionally
+// rather than throwing, which is what a session persisted by a newer build
+// degrades to.
+export function spreadFor(spread: string): NodeLengthSpread {
+  const entry = BUBBLE_SPREADS.find(s => s.value === spread)
+  return {
+    law: entry?.law ?? PROPORTIONAL_LENGTH,
+    minNodeLength: (entry?.minNodeFactor ?? 0) * MEAN_NODE_LENGTH,
+  }
 }

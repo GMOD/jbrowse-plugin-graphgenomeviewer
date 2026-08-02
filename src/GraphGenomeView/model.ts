@@ -8,7 +8,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { autorun, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
-import { BUBBLE_SPREAD_VALUES, lawFor } from './bubbleSpreads'
+import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import { parseGFA } from '../gfa-core/index'
@@ -928,7 +928,7 @@ export default function stateModelFactory() {
           ? { result: local, duration: performance.now() - start }
           : ((yield callLayout(
               graph,
-              layoutScaling(graph, lawFor(self.bubbleSpread)),
+              layoutScaling(graph, spreadFor(self.bubbleSpread)),
             )) as {
               result: LayoutResult
               duration: number

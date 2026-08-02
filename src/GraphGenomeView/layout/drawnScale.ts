@@ -131,6 +131,20 @@ export function drawnLengthFor(graph: Graph, law: DrawnLengthLaw) {
 // quantise the small end where the whole point is legibility.
 const LAYOUT_LENGTH_PRECISION = 1000
 
+// How a view asks for its node lengths: a law, plus Bandage's own per-node
+// floor. Orthogonal on purpose — see BUBBLE_SPREADS for which does what.
+export interface NodeLengthSpread {
+  law: DrawnLengthLaw
+  // in the same FMMM units as the drawn lengths. At or under Bandage's own
+  // floor this leaves the drawing exactly as it was.
+  minNodeLength: number
+}
+
+export const PROPORTIONAL_SPREAD: NodeLengthSpread = {
+  law: PROPORTIONAL_LENGTH,
+  minNodeLength: 0,
+}
+
 export interface LayoutScaling {
   // the nodes to hand the engine. Under any law but the proportional one their
   // `length` is a scaled drawn length rather than a bp count, which is why this
@@ -141,13 +155,15 @@ export interface LayoutScaling {
 
 export function layoutScaling(
   graph: Graph,
-  law: DrawnLengthLaw = PROPORTIONAL_LENGTH,
+  spread: NodeLengthSpread = PROPORTIONAL_SPREAD,
 ): LayoutScaling {
-  const opts = bandageAutoScale(graph)
+  const { law, minNodeLength } = spread
+  const opts = bandageAutoScale(graph, minNodeLength)
   // The proportional law is what every committed force figure was drawn
   // against, and it is already exactly what `bandageAutoScale` expresses, so it
   // keeps the untransformed path rather than round-tripping through a rounding
-  // step FMMM would be free to amplify.
+  // step FMMM would be free to amplify. Every floor-based spread comes through
+  // here too, unchanged.
   if (isProportional(law)) {
     return { nodes: graph.nodes, opts }
   }
@@ -160,8 +176,9 @@ export function layoutScaling(
     opts: {
       ...opts,
       nodeLengthPerMegabase: 1_000_000 / LAYOUT_LENGTH_PRECISION,
-      // the law has already lifted the small end, and leaving the floor raised
-      // on top of it would flatten what it just spread
+      // Bandage's own floor only. A law and a raised floor are alternatives
+      // rather than a stack: the law has already lifted the small end, and a
+      // floor on top of it would flatten exactly what it just spread.
       minimumNodeLength: BANDAGE_MINIMUM_NODE_LENGTH,
     },
   }

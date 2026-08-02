@@ -1,6 +1,6 @@
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
-import { lawFor } from './bubbleSpreads'
+import { spreadFor } from './bubbleSpreads'
 import {
   PROPORTIONAL_LENGTH,
   bandageAutoScale,
@@ -1273,13 +1273,13 @@ describe('bubbleSpread', () => {
   }
 
   const lengthsUnder = (spread: string) => {
-    const scaling = layoutScaling(graphOf(minigraphLengths), lawFor(spread))
+    const scaling = layoutScaling(graphOf(minigraphLengths), spreadFor(spread))
     return minigraphLengths.map((_, i) => drawn(scaling, i))
   }
 
   test("'auto' hands the engine the graph's own nodes, untransformed", () => {
     const graph = graphOf(minigraphLengths)
-    const scaling = layoutScaling(graph, lawFor('auto'))
+    const scaling = layoutScaling(graph, spreadFor('auto'))
     // identity, not a copy: the proportional path must not round-trip lengths
     // through a rounding step FMMM is free to amplify
     expect(scaling.nodes).toBe(graph.nodes)
@@ -1300,16 +1300,13 @@ describe('bubbleSpread', () => {
     }
   })
 
-  test('opening bubbles compresses the drawn length range', () => {
+  test('compressing shrinks the drawn length range', () => {
     const range = (lengths: number[]) =>
       Math.max(...lengths) / Math.min(...lengths)
     // the rope: on the real cut the longest node draws tens of times the
     // shortest, so zoom-to-fit frames the long one and the alleles vanish
     expect(range(lengthsUnder('auto'))).toBeGreaterThan(20)
-    expect(range(lengthsUnder('open'))).toBeLessThan(5)
-    expect(range(lengthsUnder('wide'))).toBeLessThan(
-      range(lengthsUnder('open')),
-    )
+    expect(range(lengthsUnder('compress'))).toBeLessThan(5)
   })
 
   // The property a per-node floor did not have, and the reason it could only be
@@ -1318,8 +1315,7 @@ describe('bubbleSpread', () => {
   test('compressing does not inflate the total drawing', () => {
     const total = (lengths: number[]) => lengths.reduce((a, b) => a + b, 0)
     const proportional = total(lengthsUnder('auto'))
-    expect(total(lengthsUnder('open'))).toBeLessThan(proportional * 1.5)
-    expect(total(lengthsUnder('wide'))).toBeLessThan(proportional * 1.5)
+    expect(total(lengthsUnder('compress'))).toBeLessThan(proportional * 1.5)
   })
 
   test('every allele clears the floor it used to clamp to', () => {
@@ -1328,13 +1324,44 @@ describe('bubbleSpread', () => {
     const auto = lengthsUnder('auto')
     expect(auto.at(-1)).toBe(5)
     expect(auto.at(-2)).toBe(5)
-    const open = lengthsUnder('open')
-    expect(open.at(-1)).toBeGreaterThan(5)
-    expect(open.at(-1)).toBeLessThan(open.at(-2)!)
+    const compressed = lengthsUnder('compress')
+    expect(compressed.at(-1)).toBeGreaterThan(5)
+    expect(compressed.at(-1)).toBeLessThan(compressed.at(-2)!)
   })
 
   test('an unknown spread draws proportionally rather than throwing', () => {
-    expect(lawFor('nonsense')).toStrictEqual(PROPORTIONAL_LENGTH)
+    expect(spreadFor('nonsense')).toStrictEqual({
+      law: PROPORTIONAL_LENGTH,
+      minNodeLength: 0,
+    })
+  })
+
+  // The floor and the law are alternatives, not a stack, and the floor-based
+  // spreads have to keep drawing exactly what they drew before the law existed:
+  // every figure committed against them predates it.
+  test('the floor-based spreads still raise a floor and nothing else', () => {
+    const graph = graphOf(minigraphLengths)
+    for (const spread of ['open', 'wide']) {
+      const scaling = layoutScaling(graph, spreadFor(spread))
+      expect(scaling.nodes).toBe(graph.nodes)
+      expect(scaling.opts.nodeLengthPerMegabase).toBe(
+        bandageAutoScale(graph).nodeLengthPerMegabase,
+      )
+      expect(scaling.opts.minimumNodeLength).toBeGreaterThan(40)
+    }
+    expect(
+      layoutScaling(graph, spreadFor('wide')).opts.minimumNodeLength,
+    ).toBeGreaterThan(
+      layoutScaling(graph, spreadFor('open')).opts.minimumNodeLength,
+    )
+  })
+
+  // What each instrument is for: a floor leaves the long node long, the law
+  // does not. That difference is why both are kept.
+  test('a floor keeps the top end proportional where the law compresses it', () => {
+    const longest = (spread: string) => lengthsUnder(spread)[0]!
+    expect(longest('open')).toBe(longest('auto'))
+    expect(longest('compress')).toBeLessThan(longest('auto') / 3)
   })
 })
 
