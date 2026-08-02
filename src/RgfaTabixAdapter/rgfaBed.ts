@@ -1,14 +1,24 @@
 import { panSNContig, panSNSample } from '../pansn.ts'
 
 // A segment as it appears in segs.bed.gz, and as it is repeated inside every
-// links.bed.gz row: `stableName start end segmentId rank`. These are the SN/SO/
-// SR tags rGFA already carries, projected to BED by `gfatools gfa2bed -m`.
+// links.bed.gz row: `stableName start end segmentId rank [tags]`. The first
+// five are the SN/SO/SR tags rGFA already carries, projected to BED by
+// `gfatools gfa2bed -m`.
+//
+// `tags` is a space-separated list of GFA tags, written verbatim onto the
+// S-line formatSegment synthesizes, where the GFA parser reads them into
+// `GraphNode.tags` with no work here. It is the extension point for everything
+// the five columns cannot say: carriage on a path-derived graph (`SM:Z:`), the
+// collapse summary on a level-of-detail tier (`ct:Z:`, `cn:i:`, ...), a
+// precomputed layout position later. rGFA files have no sixth column at all,
+// so this is empty for them and nothing changes.
 export interface RgfaSegment {
   refName: string
   start: number
   end: number
   id: string
   rank: number
+  tags: string
 }
 
 export interface RgfaLink {
@@ -28,6 +38,7 @@ export function parseSegmentLine(line: string): RgfaSegment {
     end: +cols[2]!,
     id: cols[3]!,
     rank: +cols[4]!,
+    tags: cols[5] ?? '',
   }
 }
 
@@ -52,6 +63,7 @@ export function parseLinkLine(line: string): RgfaLink {
       start: +cols[6]!,
       end: +cols[7]!,
       rank: +cols[8]!,
+      tags: cols[13] ?? '',
     },
     targetSegment: {
       id: target.id,
@@ -59,6 +71,7 @@ export function parseLinkLine(line: string): RgfaLink {
       start: +cols[10]!,
       end: +cols[11]!,
       rank: +cols[12]!,
+      tags: cols[14] ?? '',
     },
   }
 }
@@ -104,9 +117,18 @@ export function resolveRefName(
 // Segments carry no sequence here — the BED records only their span — so every
 // S-line is written with `*` and an LN tag, which is what the GFA spec asks for
 // and what packages/graph-core's parser reads back as the node length.
+// `NM:i:0`, `SM:Z:HG002.1,HG002.2` — the GFA tag grammar, checked rather than
+// trusted. Files built before the tag column existed put a bare comma-separated
+// sample list here, and passing that through would put a field that is not a
+// tag on an S-line, which is a malformed GFA rather than a missing annotation.
+// Dropping it degrades to the pre-tag behaviour instead.
+const GFA_TAG = /^[A-Za-z][A-Za-z0-9]:[AifZJHB]:/
+
 function formatSegment(segment: RgfaSegment) {
-  const { id, refName, start, end, rank } = segment
-  return `S\t${id}\t*\tLN:i:${end - start}\tSN:Z:${refName}\tSO:i:${start}\tSR:i:${rank}`
+  const { id, refName, start, end, rank, tags } = segment
+  const valid = tags.split(' ').filter(t => GFA_TAG.test(t))
+  const extra = valid.length === 0 ? '' : `\t${valid.join('\t')}`
+  return `S\t${id}\t*\tLN:i:${end - start}\tSN:Z:${refName}\tSO:i:${start}\tSR:i:${rank}${extra}`
 }
 
 function formatLink(link: RgfaLink) {
