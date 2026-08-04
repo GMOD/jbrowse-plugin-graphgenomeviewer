@@ -83,9 +83,33 @@ export interface RowLabel {
   y: number
 }
 
+// An allele that stands in for MORE reference than it carries sequence, as the
+// row-structured layouts drew it. Those layouts give an off-reference node the
+// slice of reference its allele replaces rather than its own length
+// (placeOffReference), so on this axis a 93 bp segment bridging two backbone
+// anchors 7.1 kb apart is drawn 7.1 kb wide — and labelling it `93 bp`, which is
+// what a node label says everywhere else, describes the sequence while the
+// reader is looking at the reference. It is a deletion, and the drawing already
+// names deletions when they are bare edges; this is the same event with a
+// segment in the middle of it, which `deletionEdges` cannot see.
+//
+// Emitted by the layout, because only the layout knows whether x is reference bp
+// — under FMMM a node IS drawn at its own scale and `93 bp` is the true label.
+export interface AlleleDeletion {
+  // the run's nodes, so a label can be placed over the extent they were drawn at
+  nodeIds: string[]
+  // reference bp the allele does not carry: the span between its anchors less
+  // the longest path through the run. Not `-delta`, which sums a bubble's
+  // parallel branches and so understates what any one haplotype skips.
+  bp: number
+}
+
 export interface LayoutResult {
   nodePositions: Record<string, NodeSegment[]>
   rowLabels?: RowLabel[]
+  // Deletions carried by a SEGMENT rather than by a bare edge, which only a
+  // reference-bp layout can state — see AlleleDeletion.
+  alleleDeletions?: AlleleDeletion[]
   // Set by the layouts whose x is reference bp, so the fit can be taken from
   // the region the cut was made for rather than from how far the drawing
   // happens to reach. An allele anchored far outside the window is a fact

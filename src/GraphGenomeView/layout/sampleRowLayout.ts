@@ -86,7 +86,7 @@ export function sampleRowLayout(
     ]
   }
 
-  placeOffReference({
+  const alleleDeletions = placeOffReference({
     graph,
     minSpan: minAlleleSpan,
     rowY: node =>
@@ -108,5 +108,5 @@ export function sampleRowLayout(
     })),
   ]
 
-  return { nodePositions, rowLabels, referenceAxis: true }
+  return { nodePositions, rowLabels, referenceAxis: true, alleleDeletions }
 }

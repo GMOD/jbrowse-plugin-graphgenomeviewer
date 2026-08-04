@@ -383,3 +383,76 @@ test('a row label holds its space against a node label', () => {
   expect(at()).toEqual(['17 bp'])
   expect(at([rowLabelBox('Reference (rank 0)', 40)])).toEqual([])
 })
+
+// A segment standing in for more reference than it carries is a deletion, and
+// on a reference-bp axis the drawing has already committed to that reading: the
+// bar's width is the reference it replaces. Labelling it with the node's own
+// length describes the sequence while the reader is looking at the reference —
+// this is the E. coli pggb case, 93 bp of CFT073 drawn across the 7.1 kb of K12
+// it stands in for (review: "unclear why the '93bp' is just a weird little
+// line. should it be a 'loop'?").
+test('an allele that replaces more reference than it carries is a deletion', () => {
+  const labels = graphLabels({
+    nodePositions: NODES,
+    nodeLengths: LENGTHS,
+    deletions: [],
+    alleleDeletions: [{ nodeIds: ['long'], bp: 7019 }],
+    scale: 1,
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '7 kb deletion'])
+  expect(labels.find(l => l.text === '7 kb deletion')?.kind).toBe('deletion')
+})
+
+// ...and the node it covers does not also print its length there. Both are true;
+// only one of them is about the extent being drawn, and "39 kb" written across a
+// bar whose width means something else is the misreading the label exists to fix.
+test('a node inside a labelled allele deletion keeps its length off the drawing', () => {
+  const labels = graphLabels({
+    nodePositions: NODES,
+    nodeLengths: LENGTHS,
+    deletions: [],
+    alleleDeletions: [{ nodeIds: ['long'], bp: 7019 }],
+    scale: 1,
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text)).not.toContain('39 kb')
+})
+
+// The fit rule is the same one node labels obey, so a base-level graph whose
+// alleles occupy a visibility-floor sliver stays unlabelled rather than carrying
+// a caption per SNP: at 2 units of extent the words are twenty times the run.
+test('an allele deletion too small to carry its label is dropped, not shrunk', () => {
+  const labels = graphLabels({
+    nodePositions: NODES,
+    nodeLengths: LENGTHS,
+    deletions: [],
+    alleleDeletions: [{ nodeIds: ['speck'], bp: 3 }],
+    scale: 1,
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '39 kb'])
+})
+
+// A run wider than the window has no on-screen midpoint, and placing the label
+// at its true one puts it off the canvas, where the cull below drops it and the
+// bar goes unnamed. That is the real E. coli case: 7.1 kb of reference drawn
+// across a 460 bp window, entering from the left edge.
+test('a run reaching off-frame is labelled on the part that is shown', () => {
+  const labels = graphLabels({
+    nodePositions: {
+      offframe: [
+        { x: -9000, y: 20 },
+        { x: 200, y: 20 },
+      ],
+    },
+    nodeLengths: new Map([['offframe', 93]]),
+    deletions: [],
+    alleleDeletions: [{ nodeIds: ['offframe'], bp: 7019 }],
+    scale: 1,
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text)).toEqual(['7 kb deletion'])
+  expect(labels[0]!.x).toBeGreaterThan(0)
+  expect(labels[0]!.x).toBeLessThan(VIEWPORT.width)
+})

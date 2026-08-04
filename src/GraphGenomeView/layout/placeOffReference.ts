@@ -1,6 +1,6 @@
 import { projectAlleles } from '../../alleleProjection/projectAlleles'
 
-import type { Graph, NodeSegment } from '../types'
+import type { AlleleDeletion, Graph, NodeSegment } from '../types'
 
 // Where off-reference segments go on a reference x axis. Shared by the two
 // row-structured layouts, which differ only in what a row means (stable rank
@@ -19,6 +19,15 @@ import type { Graph, NodeSegment } from '../types'
 // how much sequence an insertion adds, so it is not stated here: it is in the
 // node tooltip, and drawn to scale in the allele-inventory track, where a CIGAR
 // gives the alignments display a channel for length that is not the x axis.
+
+// Reference bp an allele has to skip before the drawing calls it a deletion.
+// The same 1 bp floor `deletionEdges` uses, and for the same reason: it is not a
+// biological threshold but a guard against a rounding artifact, since anchors
+// that abut leave a gap of exactly zero. What actually decides whether a small
+// one is DRAWN is the label's fit against the run's own drawn extent, in
+// graphLabels — a 2 bp skip in a pggb graph occupies a floor-width sliver that
+// no label fits on, and is culled there rather than by a number here.
+const MIN_DELETION_BP = 1
 
 interface PlaceArgs {
   graph: Graph
@@ -39,11 +48,23 @@ export function placeOffReference({
   minSpan,
   rowY,
   positions,
-}: PlaceArgs) {
+}: PlaceArgs): AlleleDeletion[] {
   const { alleles } = projectAlleles(graph)
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  // Alleles standing in for more reference than they carry. Collected here
+  // rather than derived by the label pass, because the reason they need saying
+  // is the placement done in this function: a run drawn over the reference it
+  // replaces has a width that is not its length, and nothing downstream can
+  // tell that from a node drawn at its own scale. Same measure the deletion
+  // arcs use — reference bp a haplotype does not carry — so the two kinds of
+  // deletion in a drawing are stated in the same units and the same words.
+  const alleleDeletions: AlleleDeletion[] = []
 
   for (const allele of alleles) {
+    const skipped = allele.refSpan - allele.pathLength
+    if (skipped >= MIN_DELETION_BP) {
+      alleleDeletions.push({ nodeIds: allele.nodeIds, bp: skipped })
+    }
     const drawn = Math.max(allele.refSpan, minSpan)
     // A node sits where it sits *within* the allele: its bp offset from the
     // entry, scaled so the run's longest path fills the reference the allele
@@ -118,4 +139,6 @@ export function placeOffReference({
       }
     }
   }
+
+  return alleleDeletions
 }

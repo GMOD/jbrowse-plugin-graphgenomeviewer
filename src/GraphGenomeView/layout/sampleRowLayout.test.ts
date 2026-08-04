@@ -185,3 +185,63 @@ test('few rows keep the flat per-row spacing', () => {
   expect(rows[3]! - rows[2]!).toBeCloseTo(spacing)
   expect(rows.at(-1)!).toBeCloseTo(spacing * 3)
 })
+
+// The other half of the same rule. An allele occupies the reference it replaces,
+// so when it carries far less sequence than that, its BAR is a deletion and its
+// own length is not what the width means. The layout is the only thing that
+// knows this — under FMMM the same node is drawn at its own scale — so it says
+// so, and graphLabels turns it into the same words a bare-edge deletion gets.
+test('an allele carrying less than the reference it replaces is reported as a deletion', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:7500\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:93\tSN:Z:CFT073#1#chr\tSO:i:1048515\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts2\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'deletion')
+
+  const { alleleDeletions } = sampleRowLayout(graph)!
+
+  // 7,000 bp of K12 between the two anchors, 93 bp of CFT073 across it
+  expect(alleleDeletions).toEqual([{ nodeIds: ['a1+'], bp: 6907 }])
+})
+
+// Which measure of "carries less" is used matters, and only one of them is
+// right. A run is measured by the longest path THROUGH it, not by its segments
+// summed: two 600 bp alternatives over 1,000 bp of reference sum to 1,200 and
+// read as an insertion, where either haplotype taking one of them is missing
+// 400 bp. Arms that do not touch each other are also separate runs — a run is a
+// connected component of off-reference segments — so each states its own 400.
+test('a bubble arm is measured by the path through it, not by segments summed', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:1500\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:600\tSN:Z:Sakai#1#chr\tSO:i:0\tSR:i:1\n' +
+    'S\ta2\t*\tLN:i:600\tSN:Z:Sakai#1#chr\tSO:i:5000\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts2\t+\t0M\n' +
+    'L\ts1\t+\ta2\t+\t0M\n' +
+    'L\ta2\t+\ts2\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'bubble')
+
+  expect(sampleRowLayout(graph)!.alleleDeletions).toEqual([
+    { nodeIds: ['a1+'], bp: 400 },
+    { nodeIds: ['a2+'], bp: 400 },
+  ])
+})
+
+// And an allele that fills the span it replaces removes nothing.
+test('an allele spanning its anchors is not a deletion', () => {
+  const gfa =
+    'H\tVN:Z:1.0\n' +
+    'S\ts1\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\n' +
+    'S\ts2\t*\tLN:i:500\tSN:Z:K12#1#chr\tSO:i:1500\tSR:i:0\n' +
+    'S\ta1\t*\tLN:i:1000\tSN:Z:Sakai#1#chr\tSO:i:0\tSR:i:1\n' +
+    'L\ts1\t+\ta1\t+\t0M\n' +
+    'L\ta1\t+\ts2\t+\t0M\n'
+  const graph = convertGFAToGraph(parseGFA(gfa), 'spanning')
+
+  expect(sampleRowLayout(graph)!.alleleDeletions).toEqual([])
+})

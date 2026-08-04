@@ -2,7 +2,7 @@ import { deletionArcCurves } from './deletionEdges'
 import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
-import type { NodeSegment } from './types'
+import type { AlleleDeletion, NodeSegment } from './types'
 import type { BezierCurve } from './util/geometry'
 
 // What to write on the drawing, and where. Bandage labels a node with its name,
@@ -244,6 +244,7 @@ export function graphLabels({
   nodePositions,
   nodeLengths,
   deletions,
+  alleleDeletions,
   scale,
   translateX,
   translateY,
@@ -255,6 +256,10 @@ export function graphLabels({
   // bp per node id, so this module never has to know what a GraphNode is
   nodeLengths: Map<string, number>
   deletions: DeletionEdge[]
+  // Deletions the layout found that carry a segment, so `deletions` above
+  // cannot: empty under a layout drawn at sequence scale, where a node's own
+  // length IS what its drawn extent means. See AlleleDeletion.
+  alleleDeletions?: AlleleDeletion[]
   scale: number
   translateX: number
   translateY: number
@@ -333,11 +338,74 @@ export function graphLabels({
     }
   }
 
+  // Segment-carrying deletions, next: the arcs above and these are the same
+  // event and are said in the same words, so they queue together ahead of the
+  // node lengths and biggest-first among themselves.
+  //
+  // A run's label rides the middle of what the layout DREW for it, which is the
+  // reference the allele replaces, and it has to fit that extent by the same
+  // factor-of-two rule a node label does — so the sliver a 2 bp skip occupies in
+  // a base-level graph carries nothing, and the 7.1 kb one CFT073 leaves in the
+  // E. coli pggb graph carries `7.0 kb deletion`.
+  //
+  // The nodes it covers are then barred from labelling themselves. Their length
+  // is a true fact and the wrong one to print here: `93 bp` written across a bar
+  // drawn 7.1 kb wide is read as the bar's size, which is the misreading this
+  // whole label exists to fix. It stays in the tooltip and the details panel.
+  const labelledByDeletion = new Set<string>()
+  const alleleRuns = [...(alleleDeletions ?? [])].sort((a, b) => b.bp - a.bp)
+  for (const run of alleleRuns) {
+    const points = run.nodeIds.flatMap(id => nodePositions[id] ?? [])
+    if (points.length === 0) {
+      continue
+    }
+    // ON SCREEN, not in layout units, and that is the whole subtlety here. A
+    // run drawn over the reference it replaces can be far wider than the window
+    // — the E. coli one starts 7 kb before the left edge — so its true midpoint
+    // is nowhere, and a label placed there is culled for being off-canvas and
+    // the bar goes unnamed. The visible slice is what a reader has, so the
+    // label rides the middle of that, and the fit test asks whether the words
+    // fit what is SHOWN rather than what is drawn.
+    const left = Math.min(...points.map(p => p.x)) * scale + translateX
+    const right = Math.max(...points.map(p => p.x)) * scale + translateX
+    const top = Math.min(...points.map(p => p.y)) * scale + translateY
+    const bottom = Math.max(...points.map(p => p.y)) * scale + translateY
+    const shownLeft = Math.max(left, 0)
+    const shownRight = Math.min(right, width)
+    const shownTop = Math.max(top, 0)
+    const shownBottom = Math.min(bottom, height)
+    if (shownRight < shownLeft || shownBottom < shownTop) {
+      continue
+    }
+    const extent = Math.max(shownRight - shownLeft, shownBottom - shownTop)
+    const text = `${formatBp(run.bp)} deletion`
+    const box = labelBox(text, 0, 0)
+    const halfW = (box.right - box.left) / 2
+    const halfH = (box.bottom - box.top) / 2
+    if (extent >= (halfW * 2) / MAX_LABEL_OVERHANG) {
+      for (const id of run.nodeIds) {
+        labelledByDeletion.add(id)
+      }
+      candidates.push({
+        key: `alleledel:${run.nodeIds.join(',')}`,
+        text,
+        x: clamp((shownLeft + shownRight) / 2, halfW, width - halfW),
+        y: clamp((shownTop + shownBottom) / 2, halfH, height - halfH),
+        kind: 'deletion',
+      })
+    }
+  }
+
   // Biggest allele first: in a crowd, the label that survives should be the one
   // carrying the most sequence, not whichever node the layout happened to emit
   // first.
   const nodes = Object.entries(nodePositions)
-    .filter(([id, segments]) => segments.length > 0 && nodeLengths.has(id))
+    .filter(
+      ([id, segments]) =>
+        segments.length > 0 &&
+        nodeLengths.has(id) &&
+        !labelledByDeletion.has(id),
+    )
     .sort(([a], [b]) => nodeLengths.get(b)! - nodeLengths.get(a)!)
   for (const [id, segments] of nodes) {
     const { x, y } = midpoint(segments)

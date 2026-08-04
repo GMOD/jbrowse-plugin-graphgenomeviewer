@@ -200,7 +200,20 @@ export default function stateModelFactory() {
       RenderLifecycleMixin(),
       types.model({
         type: types.literal('GraphGenomeView'),
-        layoutQuality: types.optional(types.number, 1),
+        // FMMM's iteration budget, 0-4, the same scale Bandage's own settings
+        // dialog exposes: 3+1 iterations at 0, 15+10 at 1, 30+20 at 2, 60+40 at
+        // 3, 120+60 at 4 (BandageNG layout/graphlayoutworker.cpp).
+        //
+        // 2 because that is what the engine we vendor ships as its default
+        // (`graphLayoutQuality = IntSetting(2, 0, 4)`, program/settings.cpp).
+        // This was 1 for no recorded reason, i.e. one step BELOW upstream, and a
+        // first sight of any graph is the default: review kept asking whether
+        // the drawing could be iterated more ("are you sure you can't iterate it
+        // more times for better layout?") of figures that were simply on a lower
+        // setting than the tool they come from. Cost at the sizes this view
+        // draws is milliseconds, and the header states the layout time so the
+        // difference is visible rather than asserted.
+        layoutQuality: types.optional(types.number, 2),
         linearLayout: types.optional(types.boolean, false),
         // Which drawing to use; the modes and their fallbacks are described in
         // LAYOUT_MODES. Default 'force' is the Bandage FMMM drawing, i.e. what
@@ -414,6 +427,13 @@ export default function stateModelFactory() {
       // with no row structure (FMMM) is a normal state, not a missing one.
       get rowLabels() {
         return self.layoutResult?.rowLabels ?? []
+      },
+      // Deletions the layout found inside an allele, empty for the same reason
+      // rowLabels is: a layout drawn at sequence scale states none, because
+      // there a node's drawn extent already IS its length. `deletions` beside
+      // this one is the bare-edge kind, which every layout has.
+      get alleleDeletions() {
+        return self.layoutResult?.alleleDeletions ?? []
       },
       // Extent of the drawing in layout units, or undefined before there is
       // one. Shared by the pane height and by zoomToFit so the two cannot

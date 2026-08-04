@@ -65,7 +65,7 @@ export function anchoredLayout(
     ]
   }
 
-  placeOffReference({
+  const alleleDeletions = placeOffReference({
     graph,
     minSpan: span * MIN_OFF_REFERENCE_SPAN_FRACTION,
     rowY: node => (rows.get(node.stable?.rank ?? 1) ?? rows.size) * rowSpacing,
@@ -80,5 +80,5 @@ export function anchoredLayout(
     y: row * rowSpacing,
   }))
 
-  return { nodePositions, rowLabels, referenceAxis: true }
+  return { nodePositions, rowLabels, referenceAxis: true, alleleDeletions }
 }

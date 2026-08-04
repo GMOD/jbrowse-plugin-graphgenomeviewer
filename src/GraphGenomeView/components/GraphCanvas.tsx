@@ -201,6 +201,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     nodePositions,
     nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
     deletions: model.deletions,
+    alleleDeletions: model.alleleDeletions,
     scale: model.scale,
     translateX: model.translateX,
     translateY: model.translateY,
