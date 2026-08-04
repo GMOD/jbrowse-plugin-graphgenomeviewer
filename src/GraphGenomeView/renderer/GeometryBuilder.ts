@@ -51,8 +51,105 @@ const DELETION_THICKNESS_FACTOR = 2.2
 // has one; see dashCurves.
 const DELETION_DASH_PX = 11
 
+// A node drawn under `drawPaths` is split into one lengthwise stripe per path in
+// the graph, in the legend's own order, and a path that does not visit the node
+// leaves its slot empty. The slot is what makes carriage readable: an absence
+// lands in the same place on every node, so "which sample skips this segment"
+// is a gap at a fixed height rather than something to be counted.
+//
+// Only the edges used to carry this, and how many of a graph's paths resolved
+// there was a function of how long the edge happened to be DRAWN: a kilobase
+// deletion is one long edge and separates all five strokes, while a 1 bp SNP
+// bubble is an edge a few px long and shows a speck (review: "only deletion
+// really shows paths clearly, the edges between nodes are too small to see the
+// paths ... even coloring the length of the nodes using the per-sample colors").
+// A node is drawn at its own length, which is the one thing in the drawing that
+// does not shrink to a joint.
+const MAX_PATH_STRIPES = 16
+// A stripe below this many screen px is not a color, it is aliasing between
+// neighbouring stripes. Under it the node keeps its own scheme colour.
+// `contigThickness` is itself in screen px, so this bites on the path COUNT
+// rather than on the zoom.
+const MIN_PATH_STRIPE_PX = 1.2
+// Guards the screen-px-to-world division below against a degenerate transform.
+const MIN_SCALE_FOR_OFFSET = 1e-6
+
 // Half-extent of an arrowhead, in world units before the view transform.
 const ARROWHEAD_SIZE = 12
+
+// Per-point unit normals of a polyline, mitred at the interior joints so a bend
+// keeps a constant drawn width. Shared by addPolyline, which expands a stroke
+// along them, and by offsetPolyline, which slides a whole stroke sideways —
+// both have to agree, or a node's path stripes drift off its own outline where
+// it bends.
+function pointNormalsOf(points: { x: number; y: number }[]) {
+  const pointNormals: { nx: number; ny: number }[] = []
+  for (let i = 0; i < points.length; i++) {
+    let nx = 0
+    let ny = 0
+
+    if (i === 0) {
+      const dx = points[1]!.x - points[0]!.x
+      const dy = points[1]!.y - points[0]!.y
+      const len = Math.hypot(dx, dy)
+      if (len > 0) {
+        nx = -dy / len
+        ny = dx / len
+      }
+    } else if (i === points.length - 1) {
+      const dx = points[i]!.x - points[i - 1]!.x
+      const dy = points[i]!.y - points[i - 1]!.y
+      const len = Math.hypot(dx, dy)
+      if (len > 0) {
+        nx = -dy / len
+        ny = dx / len
+      }
+    } else {
+      const dx1 = points[i]!.x - points[i - 1]!.x
+      const dy1 = points[i]!.y - points[i - 1]!.y
+      const len1 = Math.hypot(dx1, dy1)
+      const dx2 = points[i + 1]!.x - points[i]!.x
+      const dy2 = points[i + 1]!.y - points[i]!.y
+      const len2 = Math.hypot(dx2, dy2)
+
+      if (len1 > 0 && len2 > 0) {
+        const nx1 = -dy1 / len1
+        const ny1 = dx1 / len1
+        const nx2 = -dy2 / len2
+        const ny2 = dx2 / len2
+        nx = (nx1 + nx2) / 2
+        ny = (ny1 + ny2) / 2
+        const dot = nx1 * nx + ny1 * ny
+        if (dot > 0.1) {
+          nx /= dot
+          ny /= dot
+        }
+      } else if (len1 > 0) {
+        nx = -dy1 / len1
+        ny = dx1 / len1
+      } else if (len2 > 0) {
+        nx = -dy2 / len2
+        ny = dx2 / len2
+      }
+    }
+    pointNormals.push({ nx, ny })
+  }
+  return pointNormals
+}
+
+// The polyline shifted `distance` world units along its own normals, which is
+// the node equivalent of the constant perpendicular offset the edge path
+// strokes already take.
+function offsetPolyline(
+  points: { x: number; y: number }[],
+  normals: { nx: number; ny: number }[],
+  distance: number,
+) {
+  return points.map((p, i) => ({
+    x: p.x + normals[i]!.nx * distance,
+    y: p.y + normals[i]!.ny * distance,
+  }))
+}
 
 function packNorm(r: number, g: number, b: number, a: number) {
   return packAbgr(
@@ -522,57 +619,7 @@ class MeshBuilder {
       return
     }
 
-    const pointNormals: { nx: number; ny: number }[] = []
-    for (let i = 0; i < points.length; i++) {
-      let nx = 0
-      let ny = 0
-
-      if (i === 0) {
-        const dx = points[1]!.x - points[0]!.x
-        const dy = points[1]!.y - points[0]!.y
-        const len = Math.hypot(dx, dy)
-        if (len > 0) {
-          nx = -dy / len
-          ny = dx / len
-        }
-      } else if (i === points.length - 1) {
-        const dx = points[i]!.x - points[i - 1]!.x
-        const dy = points[i]!.y - points[i - 1]!.y
-        const len = Math.hypot(dx, dy)
-        if (len > 0) {
-          nx = -dy / len
-          ny = dx / len
-        }
-      } else {
-        const dx1 = points[i]!.x - points[i - 1]!.x
-        const dy1 = points[i]!.y - points[i - 1]!.y
-        const len1 = Math.hypot(dx1, dy1)
-        const dx2 = points[i + 1]!.x - points[i]!.x
-        const dy2 = points[i + 1]!.y - points[i]!.y
-        const len2 = Math.hypot(dx2, dy2)
-
-        if (len1 > 0 && len2 > 0) {
-          const nx1 = -dy1 / len1
-          const ny1 = dx1 / len1
-          const nx2 = -dy2 / len2
-          const ny2 = dx2 / len2
-          nx = (nx1 + nx2) / 2
-          ny = (ny1 + ny2) / 2
-          const dot = nx1 * nx + ny1 * ny
-          if (dot > 0.1) {
-            nx /= dot
-            ny /= dot
-          }
-        } else if (len1 > 0) {
-          nx = -dy1 / len1
-          ny = dx1 / len1
-        } else if (len2 > 0) {
-          nx = -dy2 / len2
-          ny = dx2 / len2
-        }
-      }
-      pointNormals.push({ nx, ny })
-    }
+    const pointNormals = pointNormalsOf(points)
 
     const startDx = points[1]!.x - points[0]!.x
     const startDy = points[1]!.y - points[0]!.y
@@ -710,6 +757,8 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
   // By position in the path list, matching pathLegend's swatches exactly, so
   // the key beside the drawing names the strokes in it.
   const pathColors = new Map<string, number>()
+  const pathCount = graph.paths?.length ?? 0
+  const pathColorByIndex: number[] = []
   if (graph.paths) {
     for (let i = 0; i < graph.paths.length; i++) {
       const [r, g, b] = hslToRgb(
@@ -717,7 +766,29 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         PATH_SATURATION,
         PATH_LIGHTNESS,
       )
-      pathColors.set(graph.paths[i]!.name, packNorm(r, g, b, 0.85))
+      const packed = packNorm(r, g, b, 0.85)
+      pathColors.set(graph.paths[i]!.name, packed)
+      pathColorByIndex.push(packed)
+    }
+  }
+
+  // nodeId -> the indices of the paths that visit it, i.e. which stripe slots
+  // this node fills. Built from the paths themselves rather than read off the
+  // node, because `GraphNode.samples` collapses a sample's haplotypes together
+  // and the legend does not.
+  const nodePathSlots = new Map<string, number[]>()
+  const stripeNodes =
+    drawPaths && pathCount > 1 && pathCount <= MAX_PATH_STRIPES
+  if (stripeNodes) {
+    for (const [pathIdx, path] of graph.paths!.entries()) {
+      for (const nodeId of new Set(path.nodeIds)) {
+        const slots = nodePathSlots.get(nodeId)
+        if (slots) {
+          slots.push(pathIdx)
+        } else {
+          nodePathSlots.set(nodeId, [pathIdx])
+        }
+      }
     }
   }
 
@@ -854,7 +925,32 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const nodeThickness = contigThickness / 2
 
     const startVert = nodeMesh.vertexCount
-    nodeMesh.addPolyline(segments, nodeThickness, color)
+    // The node's drawn width is the same either way: the stripes divide it
+    // rather than inflate it, so turning paths on does not re-weight the
+    // drawing against the edges and the layout underneath it.
+    //
+    // `thickness` reaches the shader in SCREEN px (it is divided by the view
+    // scale before the scale is applied, see graph.slang), while a point is in
+    // world units. So the slot width is screen px and the sideways shift that
+    // places a stripe has to be taken back into world units, or the stripes
+    // fan apart as you zoom in and collapse into one as you zoom out.
+    const slots = nodePathSlots.get(nodeId)
+    const slotWidth = contigThickness / pathCount
+    if (slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
+      const normals = pointNormalsOf(segments)
+      const worldPerScreenPx = 1 / Math.max(scale, MIN_SCALE_FOR_OFFSET)
+      for (const slot of slots) {
+        const offset =
+          (slot - (pathCount - 1) / 2) * slotWidth * worldPerScreenPx
+        nodeMesh.addPolyline(
+          offsetPolyline(segments, normals, offset),
+          slotWidth / 2,
+          pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR,
+        )
+      }
+    } else {
+      nodeMesh.addPolyline(segments, nodeThickness, color)
+    }
     const count = nodeMesh.vertexCount - startVert
     if (count > 0) {
       nodeVertexRanges.set(nodeId, { start: startVert, count })

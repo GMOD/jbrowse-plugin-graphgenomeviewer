@@ -79,10 +79,12 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 }}
               />
             }
-            label="Draw paths on edges"
+            label="Draw paths"
           />
           <Typography variant="caption" color="text.secondary">
-            Show the full path trajectories along edges
+            Color each node and connector by the paths through it, one lane per
+            path in legend order, so a path that skips a node leaves its lane
+            empty
           </Typography>
         </div>
 

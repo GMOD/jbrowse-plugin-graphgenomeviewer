@@ -70,11 +70,18 @@ test('forwards the region and context to the adapter', async () => {
 // The fake root model carries only what renameRegionsIfNeeded reaches for. Its
 // one cast is the price of not building an entire session to assert a refName.
 test('renames the region onto the adapter spelling before the call', async () => {
+  const assembly = {
+    getRefNameMapForAdapter: async () => ({ '6': 'chr6' }),
+    getSeqAdapterRefName: (refName: string) => refName,
+  }
+  // requireAssembly as well as waitForAssembly: renameRegionsIfNeeded resolves
+  // through require (a named assembly that will not resolve is a rename that
+  // cannot be done, not a no-op), and a fake carrying only the wait form throws
+  // at the call rather than failing a type check, since the cast below is what
+  // gets it past one.
   const assemblyManager = {
-    waitForAssembly: async () => ({
-      getRefNameMapForAdapter: async () => ({ '6': 'chr6' }),
-      getSeqAdapterRefName: (refName: string) => refName,
-    }),
+    waitForAssembly: async () => assembly,
+    requireAssembly: async () => assembly,
   }
   const method = makeMethod()
   method.pluginManager.rootModel = {

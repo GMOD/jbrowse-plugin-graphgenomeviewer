@@ -157,6 +157,120 @@ test('handles graph with paths and drawPaths', () => {
   expect(batch.edgeCurveRanges.get(0)).toEqual({ start: 0, count: 1 })
 })
 
+// A three-path graph where the middle node is the one B skips: A and C walk
+// A+ -> B+ , B walks around it. That absence is what the stripes have to show.
+const carriageGraph = {
+  ...simpleGraph,
+  edges: [{ from: 'A+', to: 'B+', pathIds: ['pA', 'pB', 'pC'] }],
+  paths: [
+    { name: 'pA', nodeIds: ['A+', 'B+'] },
+    { name: 'pB', nodeIds: ['A+'] },
+    { name: 'pC', nodeIds: ['A+', 'B+'] },
+  ],
+}
+
+const carriageOpts = {
+  nodePositions: simplePositions,
+  scale: 1,
+  graph: carriageGraph,
+  nodeById: simpleNodeById,
+  colorScheme: 'uniform' as const,
+  contigThickness: 12,
+  connectorThickness: 1.5,
+}
+
+// distinct colors used anywhere in a node's vertex range
+function nodeColors(
+  batch: ReturnType<typeof buildGeometry>,
+  nodeId: string,
+) {
+  const range = batch.nodeVertexRanges.get(nodeId)!
+  return new Set(
+    Array.from(batch.nodes.colors.slice(range.start, range.start + range.count)),
+  )
+}
+
+test('drawPaths stripes a node once per path that visits it', () => {
+  const batch = buildGeometry({ ...carriageOpts, drawPaths: true })
+
+  // A+ is on all three paths, B+ on two: the count of colors down the node is
+  // its carriage, which is the whole point of striping the node rather than
+  // only the edge
+  expect(nodeColors(batch, 'A+').size).toBe(3)
+  expect(nodeColors(batch, 'B+').size).toBe(2)
+  // and B+'s two are the same two colors A+ has, not a re-numbered pair: the
+  // slot is fixed by the path's position in the legend, so a gap lands in the
+  // same place on every node
+  expect([...nodeColors(batch, 'B+')].every(c => nodeColors(batch, 'A+').has(c))).toBe(true)
+})
+
+test('stripes divide the node width rather than inflating it', () => {
+  const striped = buildGeometry({ ...carriageOpts, drawPaths: true })
+  const plain = buildGeometry({ ...carriageOpts, drawPaths: false })
+
+  const halfWidth = (batch: ReturnType<typeof buildGeometry>) => {
+    const { vertexData, vertexCount } = batch.nodes
+    let max = 0
+    for (let i = 0; i < vertexCount; i++) {
+      const base = i * INSTANCE_STRIDE_F32
+      const nx = vertexData[base + FIELD_OFFSET_F32.normal]!
+      const ny = vertexData[base + FIELD_OFFSET_F32.normal + 1]!
+      const t = vertexData[base + FIELD_OFFSET_F32.thickness]!
+      max = Math.max(max, Math.hypot(nx, ny) * t)
+    }
+    return max
+  }
+  // three stripes of a third the width each, laid across the same 12 units
+  expect(halfWidth(striped)).toBeLessThanOrEqual(halfWidth(plain))
+})
+
+test('a node keeps its scheme color when a stripe would be sub-pixel', () => {
+  // contigThickness is screen px, so a thin node over three paths gives a
+  // one-px stripe each: aliasing between neighbours rather than three colors
+  const thin = buildGeometry({
+    ...carriageOpts,
+    contigThickness: 3,
+    drawPaths: true,
+  })
+  expect(nodeColors(thin, 'A+').size).toBe(1)
+})
+
+test('the stripe offset is in world units, so zoom does not fan them apart', () => {
+  const yAt = (batch: ReturnType<typeof buildGeometry>, nodeId: string) => {
+    const range = batch.nodeVertexRanges.get(nodeId)!
+    let min = Infinity
+    let max = -Infinity
+    for (let i = range.start; i < range.start + range.count; i++) {
+      const y = batch.nodes.vertexData[i * INSTANCE_STRIDE_F32 + 1]!
+      min = Math.min(min, y)
+      max = Math.max(max, y)
+    }
+    return max - min
+  }
+  // the stripes are laid across a width stated in screen px, so in world units
+  // they must spread twice as far when the view is drawn at half the zoom
+  const near = buildGeometry({ ...carriageOpts, drawPaths: true, scale: 1 })
+  const far = buildGeometry({ ...carriageOpts, drawPaths: true, scale: 0.5 })
+  expect(yAt(far, 'A+')).toBeCloseTo(yAt(near, 'A+') * 2, 5)
+})
+
+test('a many-path graph is not striped at all', () => {
+  const manyPaths = {
+    ...simpleGraph,
+    paths: Array.from({ length: 40 }, (_, i) => ({
+      name: `p${i}`,
+      nodeIds: ['A+', 'B+'],
+    })),
+  }
+  const batch = buildGeometry({
+    ...carriageOpts,
+    graph: manyPaths,
+    drawPaths: true,
+  })
+  // forty colors down one node is not a reading, so the node keeps its own
+  expect(nodeColors(batch, 'A+').size).toBe(1)
+})
+
 test('stores normals and thicknesses for shader-based expansion', () => {
   const batch = buildGeometry({
     scale: 1,
