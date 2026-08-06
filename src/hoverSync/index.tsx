@@ -11,14 +11,22 @@ import type PluginManager from '@jbrowse/core/PluginManager'
 // runtime — it is not one of JBrowse's shared globals, so a value import would
 // bundle a second copy of that whole plugin.
 export default function GraphHoverSyncF(pluginManager: PluginManager) {
-  pluginManager.addToExtensionPoint(
+  // `contributeToExtensionPoint`, not `addToExtensionPoint`. This point declares
+  // `args: ReactNode[]`, which makes it *accumulating*, and the typed overload of
+  // `addToExtensionPoint` excludes those by construction
+  // (`Exclude<ExtensionPointName, AccumulatingPointName>`). Registering through
+  // it therefore fell through to the untyped fallback, where `extendee` and
+  // `props` are both loose — so the spread and the model prop were type errors
+  // that read as "this extension point has no types", which sent a search off
+  // toward declaration merging and symlink identity. It is the wrong method, not
+  // a missing declaration.
+  //
+  // Contributing one element is also all this wants: the fold, the array and the
+  // React key are the method's job.
+  pluginManager.contributeToExtensionPoint(
     'LinearGenomeView-TracksContainerComponent',
-    (rest, { model }) => [
-      ...rest,
-      <GraphNodeHighlight
-        key="graphgenomeview-hover-highlight"
-        model={model}
-      />,
-    ],
+    ({ model }) => (
+      <GraphNodeHighlight key="graphgenomeview-hover-highlight" model={model} />
+    ),
   )
 }
