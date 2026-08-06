@@ -438,6 +438,24 @@ describe('region size cap', () => {
     expect(mockRpcCall).not.toHaveBeenCalled()
   })
 
+  test('a session can raise the bp cap for a coarse tier', async () => {
+    // The bp cap is a proxy for node count and a level-of-detail tier breaks
+    // it: a whole 249 Mb human chromosome is 474 nodes off the hosted HPRC
+    // tier, where 5 Mb of the fine index is 3,034 segments. A session pointed
+    // at a tier says so by raising this; maxGraphNodes still counts what came
+    // back, so the real backstop is untouched.
+    rpcRespond()
+    const model = createModel()
+    model.setMaxRegionBp(250_000_000)
+    await model.loadFromTabixSubgraph(
+      { type: 'GfaTabixAdapter' },
+      { ...TEST_REGION, start: 0, end: 248_956_422 },
+      { trackId: 'rgfa-track' },
+    )
+    expect(model.error).toBeUndefined()
+    expect(mockRpcCall).toHaveBeenCalled()
+  })
+
   test('accepts a region exactly at the cap', async () => {
     rpcRespond()
     const model = createModel()

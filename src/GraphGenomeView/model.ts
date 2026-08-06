@@ -278,6 +278,18 @@ export default function stateModelFactory() {
         // Raise to draw a bigger graph than the default budget allows; see
         // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
         maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
+        // The bp ceiling on a cut, which is a PROXY for node count and only a
+        // good one at fine granularity: on a base-level index 5 Mb is already
+        // thousands of segments, so refusing by span is refusing by cost. A
+        // level-of-detail tier breaks the proxy — a whole 249 Mb human
+        // chromosome is 474 nodes off the hosted HPRC tier — so a session that
+        // knows which granularity it is pointed at can raise this. The real
+        // backstop stays `maxGraphNodes`, which counts what actually came back.
+        //
+        // The launch MENUS keep the constant deliberately (launchSubgraphView):
+        // a user rubber-banding 249 Mb over a fine index should still be told
+        // no, because nothing there has said the track is coarse.
+        maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
         loadedTrackId: types.optional(types.string, ''),
         loadedRegion: types.maybe(
           types.frozen<{
@@ -725,6 +737,12 @@ export default function stateModelFactory() {
       setSubgraphContext(hops: number) {
         self.subgraphContext = hops
       },
+      // Same contract as setSubgraphContext: describes how the NEXT cut is
+      // gated, so the caller refetches. See the prop for why a session is
+      // allowed to move this and the launch menus are not.
+      setMaxRegionBp(bp: number) {
+        self.maxRegionBp = bp
+      },
       // Pair with a linear view for the hover sync, without ever repointing an
       // existing pairing: a graph launched *from* an LGV is already paired with
       // it, and stealing that would break the sync the user came in on. So a
@@ -1039,14 +1057,14 @@ export default function stateModelFactory() {
         } = {},
       ) {
         const regionSize = region.end - region.start
-        if (regionSize > MAX_GRAPH_REGION_BP) {
+        if (regionSize > self.maxRegionBp) {
           // One mode only: past the size cap the graph view declines rather
           // than degrading to a non-graph rectangle rendering. Large-region and
           // full-genome comparison is a linear synteny view instead.
           self.graph = undefined
           self.layoutResult = undefined
           self.error = new Error(
-            `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(MAX_GRAPH_REGION_BP)})`,
+            `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.maxRegionBp)})`,
           )
           return
         }
