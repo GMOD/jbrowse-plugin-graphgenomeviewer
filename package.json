@@ -43,7 +43,7 @@
   },
   "private": true,
   "dependencies": {
-    "@gmod/tabix": "^3.4.2",
+    "@gmod/tabix": "^3.5.5",
     "@jbrowse/core": "link:../../jbrowse-components/packages/core",
     "@jbrowse/mobx-state-tree": "^6.0.0",
     "@jbrowse/render-core": "link:../../jbrowse-components/packages/render-core"
