@@ -42,6 +42,34 @@ export function parseSegmentLine(line: string): RgfaSegment {
   }
 }
 
+// Carriage as an ordinary feature attribute, for the linear track rather than
+// the graph. The tag column reaches the graph view through the synthesized
+// S-line (formatSegment below, then gfaConverter reads SM into
+// `GraphNode.samples`), and that route ends at the graph: `getFeatures` builds
+// its own features and had no way to say who carries a segment, so a lane
+// colored by carriage was not expressible.
+//
+// `SM:Z:` is its own grammar check here. build_pggb_tabix.sh wrote a bare
+// comma-separated list in this column before the tag column existed, and those
+// files are still hosted; a bare list has no prefix to match, so it is dropped
+// rather than read as one sample named `K12,Sakai,CFT073`.
+//
+// Undefined rather than [] when the tag is absent, matching gfaConverter: an
+// rGFA has no sixth column at all, so a segment that says nothing about
+// carriage stays distinguishable from one carried by nobody.
+export function segmentSamples(segment: RgfaSegment) {
+  const tag = segment.tags.split(' ').find(t => t.startsWith('SM:Z:'))
+  if (tag === undefined) {
+    return undefined
+  }
+  const samples = tag
+    .slice('SM:Z:'.length)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+  return samples.length > 0 ? samples : undefined
+}
+
 // `s322+` — the L-line's segment id with its orientation appended, mirroring
 // the GFA record it came from.
 function parseEndpoint(field: string) {

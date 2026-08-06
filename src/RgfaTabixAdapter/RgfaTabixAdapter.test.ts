@@ -133,6 +133,78 @@ test('getSubgraph returns a bare header outside the graph', async () => {
   expect(gfa).toBe('H\tVN:Z:1.0')
 })
 
+// The carriage half of the index, which no rGFA has: built by
+// scripts/build_pggb_tabix.sh in jbrowse-components from the same five-strain
+// pggb graph the tutorial uses, sliced to the IS5 element at K12
+// chr:1,299,499-1,300,693. 24 segments spanning every carrier count from 1 to
+// 5, so the fixture covers a strain-private allele and core backbone in one
+// window.
+const pggbPrefix = require
+  .resolve('./test_data/pggb_ecoli.segs.bed.gz')
+  .replace(/\.segs\.bed\.gz$/, '')
+
+function makePggbAdapter() {
+  const local = (path: string) => ({
+    localPath: path,
+    locationType: 'LocalPathLocation',
+  })
+  return new Adapter(
+    configSchema.create({
+      segmentsLocation: local(`${pggbPrefix}.segs.bed.gz`),
+      segmentsIndex: { location: local(`${pggbPrefix}.segs.bed.gz.tbi`) },
+      linksLocation: local(`${pggbPrefix}.links.bed.gz`),
+      linksIndex: { location: local(`${pggbPrefix}.links.bed.gz.tbi`) },
+    }),
+  )
+}
+
+const is5 = { refName: 'chr', assemblyName: 'K12', start: 1299260, end: 1300800 }
+
+// The lane this exists for: color a linear track by how many haplotypes carry
+// each segment. Before this the tag column reached the graph view's node popup
+// and stopped there, so a feature could say its rank but not its carriage.
+test('getFeatures carries SM:Z: onto the feature', async () => {
+  const features = await firstValueFrom(
+    makePggbAdapter().getFeatures(is5).pipe(toArray()),
+  )
+  const private1199 = features.find(f => f.get('name') === '196827')!
+  expect(private1199.get('end') - private1199.get('start')).toBe(1199)
+  expect(private1199.get('samples')).toEqual(['K12.1'])
+  expect(private1199.get('carriers')).toBe(1)
+
+  const core = features.find(f => f.get('name') === '196843')!
+  expect(core.get('samples')).toEqual([
+    'K12.1',
+    'Sakai.1',
+    'CFT073.1',
+    'NCTC86.1',
+    'IAI39.1',
+  ])
+  expect(core.get('carriers')).toBe(5)
+})
+
+// The other half of the same fixture: the graph route reads carriage off the
+// synthesized S-line, and rgfaBed.test.ts asserts that from a hand-written row.
+// This is the same claim against a real indexed file.
+test('getSubgraph keeps the tag on the S-line it synthesizes', async () => {
+  const gfa = await makePggbAdapter().getSubgraph(is5)
+  expect(gfa.split('\n')).toContain(
+    'S\t196827\t*\tLN:i:1199\tSN:Z:K12#1#chr\tSO:i:1299498\tSR:i:0\tSM:Z:K12.1',
+  )
+})
+
+// An rGFA has no sixth column, so the attribute is absent rather than 0 — a
+// color expression reading `carriers` on such a track gets undefined, not a
+// claim that nothing carries the segment.
+test('getFeatures omits carriage on a graph that states none', async () => {
+  const features = await firstValueFrom(
+    makeAdapter().getFeatures(k12).pipe(toArray()),
+  )
+  expect(features.length).toBeGreaterThan(0)
+  expect(features.every(f => f.get('samples') === undefined)).toBe(true)
+  expect(features.every(f => f.get('carriers') === undefined)).toBe(true)
+})
+
 // Minigraph-Cactus writes PanSN stable names, so HPRC release 2 calls the
 // reference `GRCh38#0#chr1` while the JBrowse assembly is `hg38`. This reuses
 // the `assemblyNameToPanSN` slot and helper the all-vs-all PAF adapters use.

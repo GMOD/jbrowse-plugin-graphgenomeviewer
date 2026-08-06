@@ -1,4 +1,9 @@
-import { formatSubgraph, parseLinkLine, parseSegmentLine } from './rgfaBed.ts'
+import {
+  formatSubgraph,
+  parseLinkLine,
+  parseSegmentLine,
+  segmentSamples,
+} from './rgfaBed.ts'
 
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 
@@ -106,6 +111,35 @@ test('a valid tag beside a malformed one keeps only the valid one', () => {
       'S\ts1\t*\tLN:i:10\tSN:Z:c\tSO:i:0\tSR:i:1\tSM:Z:HG002.1',
     ].join('\n'),
   )
+})
+
+test('segmentSamples reads the carriers off the tag column', () => {
+  const segment = parseSegmentLine(
+    'K12#1#chr\t1004477\t1004500\ts119690\t0\tSM:Z:K12.1,Sakai.1,NCTC86.1',
+  )
+  expect(segmentSamples(segment)).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
+})
+
+// Undefined, not [], so a lane can tell a graph that states nothing about
+// carriage apart from a segment nothing carries.
+test('segmentSamples is undefined when the column says nothing', () => {
+  expect(segmentSamples(parseSegmentLine(RGFA_SEG))).toBeUndefined()
+  expect(segmentSamples(parseSegmentLine(TAGGED_SEG))).toBeUndefined()
+})
+
+// Same reason formatSegment checks the grammar: build_pggb_tabix.sh wrote a
+// bare comma list here before the tag column existed, and reading it would
+// invent a single sample named after the whole list.
+test('segmentSamples drops a legacy bare sample list', () => {
+  const segment = parseSegmentLine('c\t0\t10\ts1\t1\tK12,Sakai,CFT073')
+  expect(segmentSamples(segment)).toBeUndefined()
+})
+
+test('segmentSamples finds the tag beside other tags', () => {
+  const segment = parseSegmentLine(
+    'c\t0\t10\ts1\t1\tct:Z:bubble SM:Z:HG002.1,HG002.2 cn:i:95',
+  )
+  expect(segmentSamples(segment)).toEqual(['HG002.1', 'HG002.2'])
 })
 
 // The whole carriage chain in one test, because it spans three files and each

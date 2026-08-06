@@ -13,6 +13,7 @@ import {
   parseLinkLine,
   parseSegmentLine,
   resolveRefName,
+  segmentSamples,
 } from './rgfaBed.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
@@ -154,6 +155,12 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
           this.segments.getLines(tabixRefName, query.start, query.end, {
             lineCallback: line => {
               const segment = parseSegmentLine(line)
+              // `samples` is who, `carriers` is how many, and the second is not
+              // just a convenience: a lane colored by carriage is a jexl
+              // expression in a config, where counting a list means relying on
+              // jexl resolving `.length` through a member access on an array.
+              // The count is the axis the color reads, so the index states it.
+              const samples = segmentSamples(segment)
               observer.next(
                 new SimpleFeature({
                   uniqueId: segment.id,
@@ -164,6 +171,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
                   type: 'segment',
                   rank: segment.rank,
                   stableName: segment.refName,
+                  ...(samples && { samples, carriers: samples.length }),
                 }),
               )
             },
