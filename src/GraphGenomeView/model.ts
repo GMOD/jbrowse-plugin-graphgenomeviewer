@@ -260,6 +260,21 @@ export default function stateModelFactory() {
         translateX: types.optional(types.number, 0),
         translateY: types.optional(types.number, 0),
         drawPaths: types.optional(types.boolean, false),
+        // Ceiling on the drawing pane, in css px, for a session or a figure that
+        // wants a shorter one than the drawing asks for. Unset means the built-in
+        // MAX_CANVAS_HEIGHT, which is what every existing session gets.
+        //
+        // Why this is a knob rather than a smaller default: the pane is as tall
+        // as the drawing's own aspect ratio (see canvasHeight), which is right —
+        // a graph that is twice as tall as it is wide should not be squeezed
+        // into a strip. But one very long node in a cut of short ones makes that
+        // aspect ratio all arc: the HPRC CHM13 figure draws a 142 kb allele
+        // among sub-kb backbone segments, pins the 600 px ceiling and spends
+        // most of it on the loop, with the chain squashed along the bottom edge.
+        // Lowering the ceiling there scales the whole drawing down, which is
+        // exactly the trade that figure wants and the wrong default for a graph
+        // whose height is carrying information.
+        paneHeight: types.maybe(types.number),
         // Raise to draw a bigger graph than the default budget allows; see
         // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
         maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
@@ -517,15 +532,23 @@ export default function stateModelFactory() {
       get canvasHeight() {
         const bounds = self.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
+        // `paneHeight` replaces the built-in ceiling rather than adding a
+        // second clamp under it, and the floor still wins: a pane shorter than
+        // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its
+        // tooltip, which is the reason that floor exists.
+        const ceiling = Math.max(
+          MIN_CANVAS_HEIGHT,
+          self.paneHeight ?? MAX_CANVAS_HEIGHT,
+        )
         return bounds && bounds.w > 0 && usableWidth > 0
           ? Math.min(
-              MAX_CANVAS_HEIGHT,
+              ceiling,
               Math.max(
                 MIN_CANVAS_HEIGHT,
                 (bounds.h * usableWidth) / bounds.w + FIT_PADDING * 2,
               ),
             )
-          : MAX_CANVAS_HEIGHT
+          : ceiling
       },
     }))
     .views(self => ({
@@ -690,6 +713,12 @@ export default function stateModelFactory() {
       },
       setBubbleSpread(spread: BubbleSpread) {
         self.bubbleSpread = spread
+      },
+      // Undefined restores the built-in ceiling. Nothing recomputes: the pane
+      // reads canvasHeight and the drawing is placed by zoomToFit, which the
+      // caller runs if it wants the drawing refitted into the new pane.
+      setPaneHeight(px: number | undefined) {
+        self.paneHeight = px
       },
       // The caller refetches — the number only describes how the next cut is
       // made, and the graph on screen was cut with the old one.

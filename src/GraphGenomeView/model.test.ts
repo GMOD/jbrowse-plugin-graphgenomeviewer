@@ -885,6 +885,60 @@ describe('canvas height follows the drawing', () => {
   test('a pane with no layout in it yet is full height', () => {
     expect(createModel().canvasHeight).toBe(600)
   })
+
+  // One long node among short ones makes the drawing's aspect ratio all arc, so
+  // the pane pins its ceiling and spends most of it on the loop. `paneHeight`
+  // lowers that ceiling for the session that wants it, and the drawing scales
+  // into it rather than being cropped.
+  test('paneHeight lowers the ceiling a square layout would pin', async () => {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? Promise.resolve({
+            result: {
+              nodePositions: {
+                '1+': [
+                  { x: 0, y: 0 },
+                  { x: 100, y: 100 },
+                ],
+              },
+            },
+            duration: 5,
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'square')
+    expect(model.canvasHeight).toBe(600)
+
+    model.setPaneHeight(420)
+    expect(model.canvasHeight).toBe(420)
+    model.zoomToFit()
+    expect(extent(model).h * model.scale).toBeLessThanOrEqual(420 - 80 + 1e-6)
+  })
+
+  // The floor is the reason a pane has a minimum at all: below it there is no
+  // room to hover a node and read its tooltip, so a smaller request loses.
+  test('paneHeight cannot go under the hover floor', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+
+    model.setPaneHeight(40)
+    expect(model.canvasHeight).toBe(160)
+  })
+
+  // A pane taller than the drawing is dead space, which is what the whole
+  // shrink-to-fit exists to remove, so a raised ceiling changes nothing for a
+  // flat layout.
+  test('a raised paneHeight does not re-inflate a flat pane', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    const fitted = model.canvasHeight
+
+    model.setPaneHeight(900)
+    expect(model.canvasHeight).toBe(fitted)
+  })
 })
 
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set
