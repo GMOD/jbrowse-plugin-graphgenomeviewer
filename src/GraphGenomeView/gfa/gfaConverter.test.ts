@@ -287,3 +287,33 @@ W\tsample1\t0\tchr1\t0\t1000\t>A>B>C`)
   expect(graph.paths![1]!.name).toBe('sample1#0')
   expect(graph.paths![1]!.sample).toBe('sample1')
 })
+
+test('reads carriage off the SM tag, per haplotype', () => {
+  const gfa = parseGFA(`S\t1\tACGT\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\tSM:Z:K12.1,Sakai.1
+S\t2\tGGCC\tSN:Z:K12#1#chr\tSO:i:4\tSR:i:0
+L\t1\t+\t2\t+\t0M`)
+  const graph = convertGFAToGraph(gfa)
+
+  // the tabix route synthesizes S-lines with this tag; it is the only statement
+  // of carriage a cut with no P/W lines can carry
+  expect(graph.nodes.find(n => n.name === '1')!.samples).toEqual([
+    'K12.1',
+    'Sakai.1',
+  ])
+  // absent rather than empty, so a segment that says nothing is distinguishable
+  // from one carried by nobody
+  expect(graph.nodes.find(n => n.name === '2')!.samples).toBeUndefined()
+})
+
+test('the converter does not anchor, so the tag survives it unread', () => {
+  // convertGFAToGraph is the parse step only; anchoring against a chosen
+  // reference path is anchorGraph's job and is covered in pathAnchoring.test.ts,
+  // where the walk-derived carriage replaces this. Asserted here so a future
+  // reader does not mistake this for the precedence rule.
+  const gfa = parseGFA(`S\t1\tACGT\tSM:Z:Tagged.1
+S\t2\tGGCC
+L\t1\t+\t2\t+\t0M
+P\tK12#1#chr\t1+,2+\t*`)
+  const graph = convertGFAToGraph(gfa)
+  expect(graph.nodes.find(n => n.name === '1')!.samples).toEqual(['Tagged.1'])
+})

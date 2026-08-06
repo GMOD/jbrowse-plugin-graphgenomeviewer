@@ -217,3 +217,24 @@ test('walks anchor the same way paths do', () => {
   })
   expect(nodeNamed(graph, '2').stable!.start).toBe(105)
 })
+
+test('walk-derived carriage replaces an SM tag', () => {
+  // Both statements present. The walk is authoritative -- it is the graph
+  // itself saying who visits the segment -- so a file-loaded graph must not
+  // keep a tag that some producer wrote earlier. The tabix route has no walk,
+  // which is the case the tag exists for (gfaConverter.test.ts).
+  const graph = convertGFAToGraph(
+    parseGFA(`S\t1\tACGT\tSM:Z:Stale.9
+S\t2\tGGCC
+L\t1\t+\t2\t+\t0M
+P\tK12#1#chr\t1+,2+\t*
+P\tSakai#1#chr\t1+\t*`),
+  )
+  expect(graph.nodes.find(n => n.name === '1')!.samples).toEqual(['Stale.9'])
+
+  const anchored = anchorGraph(graph, 'K12')
+  expect(anchored.nodes.find(n => n.name === '1')!.samples).toEqual([
+    'K12',
+    'Sakai',
+  ])
+})

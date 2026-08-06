@@ -107,3 +107,21 @@ test('a valid tag beside a malformed one keeps only the valid one', () => {
     ].join('\n'),
   )
 })
+
+// The whole carriage chain in one test, because it spans three files and each
+// half is covered on its own: a segs.bed SM:Z: column -> the synthesized S-line
+// -> the GFA parser -> GraphNode.samples, which is what model.ts renders as
+// `carriedBy` in the node popup. An indexed cut has no P/W lines, so this tag is
+// the only statement of carriage it can carry, and nothing else asserts that it
+// survives the round trip.
+test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
+  const { parseGFA } = await import('../gfa-core/index.ts')
+  const { convertGFAToGraph } = await import(
+    '../GraphGenomeView/gfa/gfaConverter.ts'
+  )
+  const segment = parseSegmentLine(
+    'K12#1#chr\t1004477\t1004500\ts119690\t0\tSM:Z:K12.1,Sakai.1,NCTC86.1',
+  )
+  const graph = convertGFAToGraph(parseGFA(subgraphOf([segment])))
+  expect(graph.nodes[0]!.samples).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
+})

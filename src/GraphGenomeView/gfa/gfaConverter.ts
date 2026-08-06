@@ -76,6 +76,29 @@ function anchorablePaths(gfaGraph: GFAGraph): PathSteps[] {
   ]
 }
 
+// Carriage stated as a tag rather than derived from a walk. `RgfaTabixAdapter`
+// synthesizes its S-lines from a segs.bed whose sixth column is a list of GFA
+// tags, and `scripts/pggb_gfa_to_bed.py` in jbrowse-components puts every
+// haplotype that visits a segment there as `SM:Z:K12.1,Sakai.1`. That is the
+// only way carriage reaches an INDEXED graph: the cut has no P or W lines to
+// walk, so `pathAnchoring` has no visits to derive it from.
+//
+// It does not compete with that walk. `pathAnchoring.anchorNode` rebuilds
+// `samples` from the visits whenever there are any, so a graph loaded as a file
+// keeps the authoritative path-derived set and this is what a tabix cut falls
+// back to.
+function carriedSamples(gfaNode: GFANode) {
+  const sm = gfaNode.tags.SM
+  if (typeof sm !== 'string') {
+    return undefined
+  }
+  const samples = sm
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+  return samples.length > 0 ? samples : undefined
+}
+
 function makeNode(
   gfaNode: GFANode,
   strand: '+' | '-',
@@ -87,6 +110,7 @@ function makeNode(
     length: gfaNode.length,
     depth,
     stable: stableCoordinate(gfaNode),
+    samples: carriedSamples(gfaNode),
   }
 }
 
