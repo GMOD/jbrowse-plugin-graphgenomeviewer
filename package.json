@@ -45,7 +45,6 @@
   "dependencies": {
     "@gmod/tabix": "^3.5.5",
     "@jbrowse/core": "link:../../jbrowse-components/packages/core",
-    "@jbrowse/mobx-state-tree": "^6.0.0",
     "@jbrowse/render-core": "link:../../jbrowse-components/packages/render-core"
   },
   "devDependencies": {
@@ -54,6 +53,7 @@
     "@eslint/js": "^10.0.1",
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
     "@jbrowse/cli": "^4.2.1",
+    "@jbrowse/mobx-state-tree": "^6.1.0",
     "@jbrowse/plugin-canvas": "link:../../jbrowse-components/plugins/canvas",
     "@jbrowse/plugin-linear-genome-view": "link:../../jbrowse-components/plugins/linear-genome-view",
     "@mui/icons-material": "^9.2.0",

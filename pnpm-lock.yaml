@@ -14,9 +14,6 @@ importers:
       '@jbrowse/core':
         specifier: link:../../jbrowse-components/packages/core
         version: link:../../jbrowse-components/packages/core
-      '@jbrowse/mobx-state-tree':
-        specifier: ^6.0.0
-        version: 6.0.0(mobx@7.0.0)
       '@jbrowse/render-core':
         specifier: link:../../jbrowse-components/packages/render-core
         version: link:../../jbrowse-components/packages/render-core
@@ -36,6 +33,9 @@ importers:
       '@jbrowse/cli':
         specifier: ^4.2.1
         version: 4.3.0(supports-color@7.2.0)
+      '@jbrowse/mobx-state-tree':
+        specifier: ^6.1.0
+        version: 6.1.0(mobx@7.0.0)
       '@jbrowse/plugin-canvas':
         specifier: link:../../jbrowse-components/plugins/canvas
         version: link:../../jbrowse-components/plugins/canvas
@@ -568,8 +568,8 @@ packages:
     engines: {node: '>=18.3.0'}
     hasBin: true
 
-  '@jbrowse/mobx-state-tree@6.0.0':
-    resolution: {integrity: sha512-tfBS4MLXuF4OKBL+HH5qjraenvtgO6+qyOnwsvXsyrS3d4yF/QLXcYcOO4OfJpG8miFzdEmkoxjcw4tVRwLibw==}
+  '@jbrowse/mobx-state-tree@6.1.0':
+    resolution: {integrity: sha512-WGj6/RMViC1LbUGpK5TMIzfqFxDO6cF2r8tWmN+A+VFCSxj2yETONDJdvu045hF2cHA9ajk15dK4Ak6iyPQCRA==}
     engines: {node: '>=22', pnpm: '>=10'}
     peerDependencies:
       mobx: ^7.0.0
@@ -3598,7 +3598,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jbrowse/mobx-state-tree@6.0.0(mobx@7.0.0)':
+  '@jbrowse/mobx-state-tree@6.1.0(mobx@7.0.0)':
     dependencies:
       mobx: 7.0.0
 
