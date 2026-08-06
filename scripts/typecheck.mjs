@@ -7,12 +7,22 @@
 // reporting them here makes our own typecheck permanently red and useless.
 //
 // Upstream errors are still printed, just not fatal.
+//
+// Runs TypeScript 7 explicitly, via the `typescript7` npm alias, because two
+// versions are installed on purpose and `npx tsc` would resolve the wrong one.
+// typescript-eslint does not support TS 7 yet
+// (typescript-eslint/typescript-eslint#10940), so `typescript` stays on 6.x for
+// lint while typecheck gets the newer compiler. Same split as the
+// jbrowse-components repo this plugin links against, for the same reason -- do
+// not unify them.
 
 import { spawnSync } from 'node:child_process'
 
-const { stdout } = spawnSync('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
-  encoding: 'utf8',
-})
+const { stdout } = spawnSync(
+  'node',
+  ['node_modules/typescript7/bin/tsc', '--noEmit', '--pretty', 'false'],
+  { encoding: 'utf8' },
+)
 
 const lines = stdout.split('\n').filter(Boolean)
 // tsc emits "path(line,col): error TS…"; continuation lines are indented
