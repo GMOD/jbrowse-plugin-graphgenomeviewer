@@ -856,10 +856,24 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       ? bypassedPoints(nodePositions, bypassed)
       : []
 
+    // An arrowhead states which way a LINK is read, which is a property of the
+    // edge and not of each path crossing it. Drawn per ribbon it says one thing
+    // once per haplotype: five stacked heads at a joint, in five colours, for a
+    // single fact about a single link. That is the "coloured confetti at each
+    // joint" that made `drawPaths` unusable on a force layout, and it reached
+    // the anchored layouts too the moment their abutting edges started drawing
+    // again. Measured on `ecoli_pggb_subgraph.gfa`: 72 arrowheads plain, 155
+    // with ribbons, over 72 links.
+    //
+    // So one head per edge, in the edge's own colour rather than a ribbon's,
+    // since choosing a ribbon's would privilege one haplotype for a fact that
+    // belongs to none of them. `undefined` means this call draws no head.
+    const edgeColor = isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR
     const buildSingleEdge = (
       offsetX: number,
       offsetY: number,
       color: number,
+      arrowColor: number | undefined,
     ) => {
       const curves = computeEdgeCurves(
         fromSegments,
@@ -892,14 +906,14 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         edgeCurves.push({ curves, thickness: edgeThickness, color })
       }
 
-      if (showArrows) {
+      if (showArrows && arrowColor !== undefined) {
         const last = curves[curves.length - 1]!
         arrowMesh.addArrowhead(
           last.x1,
           last.y1,
           endTangent(last, yToX),
           ARROWHEAD_SIZE,
-          color,
+          arrowColor,
         )
       }
     }
@@ -908,11 +922,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const arrowStart = arrowMesh.vertexCount
 
     if (!drawPaths || numPaths === 0) {
-      buildSingleEdge(
-        0,
-        0,
-        isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR,
-      )
+      buildSingleEdge(0, 0, edgeColor, edgeColor)
     } else {
       const offsets = pathRibbonOffsets(
         fromSegments,
@@ -920,12 +930,18 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         numPaths,
         axis,
       )
+      // The middle ribbon carries the head, which at an odd path count is the
+      // one drawn at offset 0, i.e. on the edge's own line. At an even count it
+      // is half a spacing off, which beats a sixth `computeEdgeCurves` call to
+      // rebuild a curve the fan is already centred on.
+      const arrowRibbon = Math.floor((numPaths - 1) / 2)
       for (let pathIdx = 0; pathIdx < numPaths; pathIdx++) {
         const offset = offsets[pathIdx]!
         buildSingleEdge(
           offset.x,
           offset.y,
           pathColorByName(edge.pathIds![pathIdx]!),
+          pathIdx === arrowRibbon ? edgeColor : undefined,
         )
       }
     }

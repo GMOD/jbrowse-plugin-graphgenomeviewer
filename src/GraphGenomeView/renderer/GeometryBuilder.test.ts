@@ -789,3 +789,64 @@ describe('abutting nodes under drawPaths', () => {
     expect(build(true).edgeCurveRanges.get(0)).toEqual({ start: 0, count: 2 })
   })
 })
+
+// An arrowhead states which way a link is read, which belongs to the edge and
+// not to each path crossing it. One head per ribbon said it once per haplotype:
+// five stacked heads in five colours at each joint, which is the confetti that
+// made drawPaths unusable on a force layout and reached the anchored ones the
+// moment their abutting edges started drawing again.
+describe('one arrowhead per edge, whatever crosses it', () => {
+  const graph = {
+    name: 'ribbons',
+    nodes: [
+      { id: 'A+', name: 'A', length: 100, depth: 1 },
+      { id: 'B+', name: 'B', length: 100, depth: 1 },
+    ],
+    edges: [{ from: 'A+', to: 'B+', pathIds: ['p1', 'p2', 'p3'] }],
+    paths: [
+      { name: 'p1', nodeIds: ['A+', 'B+'] },
+      { name: 'p2', nodeIds: ['A+', 'B+'] },
+      { name: 'p3', nodeIds: ['A+', 'B+'] },
+    ],
+  }
+  const nodeById = new Map(graph.nodes.map(n => [n.id, n]))
+  const positions = {
+    'A+': [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ],
+    'B+': [
+      { x: 200, y: 0 },
+      { x: 300, y: 0 },
+    ],
+  }
+
+  function build(drawPaths: boolean) {
+    return buildGeometry({
+      axis: iso(),
+      nodePositions: positions,
+      graph,
+      nodeById,
+      colorScheme: 'uniform',
+      contigThickness: 10,
+      connectorThickness: 4,
+      drawPaths,
+    })
+  }
+
+  // three vertices to an arrowhead
+  const heads = (b: ReturnType<typeof build>) => b.arrows.vertexCount / 3
+
+  test('three ribbons still leave one head', () => {
+    expect(heads(build(false))).toBe(1)
+    expect(build(true).edgeCurves).toHaveLength(3)
+    expect(heads(build(true))).toBe(1)
+  })
+
+  test('and it is the edge colour, not a haplotype it would have to pick', () => {
+    const plain = build(false)
+    const ribboned = build(true)
+    const colorOf = (b: ReturnType<typeof build>) => b.arrows.colors[0]
+    expect(colorOf(ribboned)).toBe(colorOf(plain))
+  })
+})
