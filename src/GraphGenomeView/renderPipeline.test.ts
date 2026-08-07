@@ -102,3 +102,67 @@ test('a layout larger than the pane still uploads geometry', async () => {
   expect(uploads.length).toBeGreaterThan(0)
   expect(uploads.at(-1)!.nodes.vertexCount).toBeGreaterThan(0)
 })
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+async function drawnModel() {
+  mockRpcCall.mockImplementation((_id: string, method: string) =>
+    method === 'GraphComputeLayout'
+      ? Promise.resolve({ result: WIDE_LAYOUT, duration: 5 })
+      : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const model = stateModelFactory().create({ type: 'GraphGenomeView' })
+  await model.loadGFA(GFA, 'wide')
+  model.startRenderingBackend(fakeRenderer([]))
+  model.setWidth(1000)
+  // past the zoom-to-fit autorun and the pan/zoom debounce, so the transform
+  // has stopped moving on its own before a test moves it
+  await sleep(400)
+  return model
+}
+
+// jbrowse-components' `installClearHoverOnViewportChange` rule, on this view's
+// own three axes. A hover is set by a mousemove; a wheel zoom, a toolbar zoom
+// and a pan all move the drawing under a stationary cursor and fire no pointer
+// event, so without this the tooltip goes on naming a node that has moved away
+// and `hoverHighlight` goes on publishing its span to the paired linear view.
+test('a zoom drops a hover the pointer can no longer be over', async () => {
+  const model = await drawnModel()
+  model.setHoveredNode('1+')
+  model.setHoveredEdge(0)
+  model.setSelectedNode('1+')
+
+  model.zoom(1.5, 100, 100)
+
+  expect(model.hoveredNode).toBeNull()
+  expect(model.hoveredEdge).toBeNull()
+  // A click is a choice, and the content moving does not unmake it.
+  expect(model.selectedNode).toBe('1+')
+})
+
+test('a pan drops it too', async () => {
+  const model = await drawnModel()
+  model.setHoveredNode('1+')
+  model.setTransform(model.scale, model.translateX + 40, model.translateY)
+  expect(model.hoveredNode).toBeNull()
+})
+
+// The two signals name different events and are read by different consumers:
+// `viewportDirty` says the window onto the drawing moved, `positionsVersion`
+// says the drawing itself did. Conflating them rebuilt a 12k-edge hit index on
+// the first mousemove after every pan, for an index that is in layout units and
+// had not changed.
+test('a pan moves the viewport signal and a node drag moves the positions one', async () => {
+  const model = await drawnModel()
+  const dirty = model.viewportDirty
+  const positions = model.positionsVersion
+
+  model.setTransform(model.scale, model.translateX + 40, model.translateY)
+  await sleep(300)
+  expect(model.viewportDirty).toBeGreaterThan(dirty)
+  expect(model.positionsVersion).toBe(positions)
+
+  model.moveNode('1+', 10, 10)
+  await sleep(100)
+  expect(model.positionsVersion).toBe(positions + 1)
+})

@@ -5,7 +5,7 @@ import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
-import { autorun, untracked } from 'mobx'
+import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
@@ -1431,6 +1431,41 @@ export default function stateModelFactory() {
                 }
               })
             }),
+          )
+
+          // Reaction: drop a hover the pointer cannot still be over.
+          //
+          // A hover is set by a mousemove on the canvas, and here the drawing
+          // moves under a STATIONARY cursor on three axes — the wheel zoom, the
+          // toolbar's zoom and fit buttons, and a pan — none of which fire a
+          // pointer event. Left alone the tooltip goes on naming the node that
+          // used to be under the cursor, `hoverHighlight` goes on publishing its
+          // span, and the paired linear view paints a band over the wrong
+          // sequence until the mouse happens to move.
+          //
+          // This is jbrowse-components' `installClearHoverOnViewportChange`
+          // (BaseLinearDisplay), whose three axes are bpPerPx / offsetPx /
+          // scrollTop; a graph view's are its own transform. Its rule is worth
+          // restating rather than just citing: a sticky canvas gets no
+          // mousemove and no mouseleave for any of them. Not imported because
+          // it lives in the LGV plugin and reads a containing LGV, and this
+          // plugin deliberately takes no runtime dependency on that plugin
+          // (see hoverSync/index.tsx).
+          //
+          // A `reaction`, not an autorun, for the reason stated there: the
+          // effect touches hover state, and an autorun would re-enter itself.
+          // Selection is untouched — a click is a choice, and the content
+          // moving does not unmake it.
+          addDisposer(
+            self,
+            reaction(
+              () => `${self.scale}-${self.translateX}-${self.translateY}`,
+              () => {
+                self.setHoveredNode(null)
+                self.setHoveredEdge(null)
+              },
+              { name: 'GraphClearHoverOnViewportChange' },
+            ),
           )
 
           // Autorun: debounce viewport dirty flag on pan/zoom (skip first run)
