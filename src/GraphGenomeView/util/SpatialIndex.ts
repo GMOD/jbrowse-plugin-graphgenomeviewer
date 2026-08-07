@@ -1,4 +1,4 @@
-import { computeEdgeCurves, pathRibbonOffsets } from './geometry'
+import { computeEdgeCurves, curveBounds, pathRibbonOffsets } from './geometry'
 import { bypassedPoints } from '../deletionEdges'
 
 import type { Graph, NodeSegment } from '../types'
@@ -263,16 +263,10 @@ export class EdgeSpatialIndex {
         )
         this.edgeCurves.set(ei, curves)
 
-        let minX = Infinity
-        let minY = Infinity
-        let maxX = -Infinity
-        let maxY = -Infinity
-        for (const c of curves) {
-          minX = Math.min(minX, c.x0, c.cx0, c.cx1, c.x1)
-          maxX = Math.max(maxX, c.x0, c.cx0, c.cx1, c.x1)
-          minY = Math.min(minY, c.y0, c.cy0, c.cy1, c.y1)
-          maxY = Math.max(maxY, c.y0, c.cy0, c.cy1, c.y1)
-        }
+        // The control polygon's box, which contains the curve — the same
+        // measure the geometry builder culls by, from the one function that
+        // takes it.
+        let { minX, minY, maxX, maxY } = curveBounds(curves)
 
         // Ribbons sit off the edge itself, so the box has to hold them too. Per
         // axis and off the offsets actually used, rather than one number on

@@ -2,6 +2,7 @@ import {
   REFERENCE_RAMP_MAX_HUE,
   brightenColors,
   buildGeometry,
+  computeReferenceRamp,
   endTangent,
   extractColorSlice,
   hslToRgb,
@@ -662,7 +663,8 @@ describe('the reference-position ramp', () => {
       graph,
       nodeById: new Map(nodes.map(n => [n.id, n])),
       colorScheme: 'reference-position',
-      colorDomain,
+      // what the model holds against the graph and hands over; see BuildOptions
+      referenceRamp: computeReferenceRamp(graph, colorDomain),
       axis: iso(),
       contigThickness: 5,
       connectorThickness: 1.5,

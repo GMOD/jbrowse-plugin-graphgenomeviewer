@@ -456,3 +456,75 @@ test('a run reaching off-frame is labelled on the part that is shown', () => {
   expect(labels[0]!.x).toBeGreaterThan(0)
   expect(labels[0]!.x).toBeLessThan(VIEWPORT.width)
 })
+
+// A run's on-screen extent used to be taken with `Math.min(...points.map(...))`,
+// four spreads over the same array. Past ~128k arguments V8 throws RangeError
+// out of the spread rather than returning a number, so a long enough run took
+// the whole label overlay down — and the overlay is what the labels of every
+// OTHER thing in the drawing come from, so one oversized allele erased all of
+// them. `maxGraphNodes` is a view prop a session can raise, which is what makes
+// the size reachable; `backboneSpan` is a fold for the same reason.
+test('a run too long to spread into an argument list is still measured', () => {
+  const nodeIds = Array.from({ length: 70_000 }, (_, i) => `n${i}`)
+  const nodePositions = Object.fromEntries(
+    nodeIds.map((id, i) => [
+      id,
+      [
+        { x: i, y: 0 },
+        { x: i + 1, y: 0 },
+      ],
+    ]),
+  )
+  const labels = graphLabels({
+    nodePositions,
+    nodeLengths: new Map(nodeIds.map(id => [id, 1])),
+    deletions: [],
+    alleleDeletions: [{ nodeIds, bp: 70_000 }],
+    axis: iso(),
+    ...VIEWPORT,
+  })
+  expect(labels.map(l => l.text)).toContain('70 kb deletion')
+})
+
+// A node drag moves the position objects without replacing them, so nothing
+// about `nodePositions` reports that the drawing changed — which is why the
+// caches keyed on it take a version, and why the overlay reads one. Without it
+// a dragged node's size label sits at the position the node used to have.
+test('a version bump republishes labels for positions mutated in place', () => {
+  const nodePositions = {
+    long: [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+    ],
+  }
+  const at = (version: number) =>
+    graphLabels({
+      nodePositions,
+      nodeLengths: new Map([['long', 39_000]]),
+      deletions: [],
+      axis: iso(),
+      ...VIEWPORT,
+      version,
+    })[0]!
+  const before = at(1)
+  for (const seg of nodePositions.long) {
+    seg.x += 120
+  }
+  expect(at(2).x).toBeCloseTo(before.x + 120, 5)
+})
+
+// The other half of that contract: a pan changes where labels go and nothing
+// else, so the per-layout caches have to survive it rather than be keyed by it.
+test('a pan moves every label by the pan and drops none', () => {
+  const args = {
+    nodePositions: NODES,
+    nodeLengths: LENGTHS,
+    deletions: [],
+    axis: iso(),
+    ...VIEWPORT,
+  }
+  const before = graphLabels(args)
+  const after = graphLabels({ ...args, translateX: args.translateX + 25 })
+  expect(after.map(l => l.key)).toEqual(before.map(l => l.key))
+  expect(after.map(l => l.x)).toEqual(before.map(l => l.x + 25))
+})

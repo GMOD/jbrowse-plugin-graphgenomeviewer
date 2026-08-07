@@ -245,13 +245,13 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
 }: {
   model: GraphGenomeViewModel
 }) {
-  const { nodePositions, graph } = model
-  if (!nodePositions || !graph) {
+  const { nodePositions } = model
+  if (!nodePositions) {
     return null
   }
   const labels = graphLabels({
     nodePositions,
-    nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
+    nodeLengths: model.nodeLengths,
     deletions: model.deletions,
     alleleDeletions: model.alleleDeletions,
     axis: model.axisScale,
@@ -263,6 +263,11 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     reserved: model.rowLabels.map(({ label, y }) =>
       rowLabelBox(label, y * model.scaleY + model.translateY),
     ),
+    // A drag moves the position objects without replacing them, so nothing
+    // else here can report it: reading this is both what invalidates the
+    // per-layout caches inside `graphLabels` and what re-renders this overlay,
+    // which is why a dragged node used to leave its own size label behind.
+    version: model.positionsVersion,
   })
   // A label too wide for the arc it names is placed clear of it and tethered
   // back; nothing else in the drawing carries one.
@@ -482,7 +487,13 @@ const GraphCanvas = observer(function GraphCanvas({
   function nodeAt(x: number, y: number) {
     const { nodePositions } = model
     return nodePositions
-      ? findHoveredNode(nodePositions, x, y, model.axisScale, model.viewportDirty)
+      ? findHoveredNode(
+          nodePositions,
+          x,
+          y,
+          model.axisScale,
+          model.positionsVersion,
+        )
       : null
   }
 
@@ -531,7 +542,7 @@ const GraphCanvas = observer(function GraphCanvas({
               y,
               model.axisScale,
               model.drawPaths,
-              model.viewportDirty,
+              model.positionsVersion,
               model.deletionEdgeIndexes,
             ),
       )

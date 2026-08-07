@@ -189,9 +189,13 @@ export interface BuildOptions {
   axis: AxisScale
   linearLayout?: boolean
   viewportBounds?: { minX: number; minY: number; maxX: number; maxY: number }
-  // the reference interval the 'reference-position' ramp spans, i.e. the region
-  // this subgraph was cut from. Unused by every other scheme.
-  colorDomain?: { start: number; end: number }
+  // What the 'reference-position' scheme paints from: each node's midpoint on
+  // the reference, and the interval the hue spans. Unused by every other
+  // scheme, and passed in rather than derived here for the reason `deletions`
+  // below is — it costs a neighbour walk per node, it is a fact about the
+  // graph, and this function runs on every pan. `computeReferenceRamp` is what
+  // builds one.
+  referenceRamp?: ReferenceRamp
   // links that skip reference sequence (deletionEdges()), keyed by their index
   // into graph.edges and carrying the backbone node ids they bypass. Passed in
   // rather than derived here because the model can hold it against the graph,
@@ -752,7 +756,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     axis,
     linearLayout,
     viewportBounds,
-    colorDomain,
+    referenceRamp,
     deletions,
   } = options
   const scale = axis.scaleX
@@ -766,15 +770,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
   const edgeCurves: EdgeCurveBatch[] = []
   const edgeCurveRanges = new Map<number, VertexRange>()
 
-  // the ramp costs a neighbour walk per node, so it is built only for the
-  // scheme that reads it
-  const colorRange = {
-    ...computeColorSchemeRange(graph),
-    referenceRamp:
-      colorScheme === 'reference-position'
-        ? computeReferenceRamp(graph, colorDomain)
-        : undefined,
-  }
+  const colorRange = { ...computeColorSchemeRange(graph), referenceRamp }
 
   const nodeIndexMap = new Map<string, number>()
   if (colorScheme === 'rainbow') {

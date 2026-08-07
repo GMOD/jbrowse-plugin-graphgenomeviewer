@@ -375,6 +375,13 @@ export default function stateModelFactory() {
       hoveredEdge: null as number | null,
       selectedNode: null as string | null,
       viewportDirty: 0,
+      // Bumped when the layout's positions are mutated IN PLACE, which only a
+      // node drag does. Separate from `viewportDirty` because that one also
+      // fires on pan and zoom, and the things keyed off this — the two hit
+      // indexes and the label placement's per-layout caches — do not depend on
+      // the transform at all. Rebuilding a 12k-edge hit index because the user
+      // panned cost ~14 ms of the first mousemove after every gesture.
+      positionsVersion: 0,
       nodeVertexRanges: undefined as Map<string, VertexRange> | undefined,
       arrowVertexRanges: undefined as Map<number, VertexRange> | undefined,
       baseNodeColors: undefined as Uint32Array | undefined,
@@ -394,7 +401,7 @@ export default function stateModelFactory() {
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
       // 0 is never a live rAF handle, so it doubles as "nothing pending"
-      viewportDirtyFrame: 0,
+      positionsDirtyFrame: 0,
       // Performance instrumentation, surfaced in GraphStats for browser tests
       // to assert against budgets. `fetchMs` is the GetSubgraph RPC round-trip,
       // `layoutMs` is the Bandage FMMM compute time reported by the
@@ -415,6 +422,17 @@ export default function stateModelFactory() {
           return m
         }
         return undefined
+      },
+      // bp per node id, which is all the label overlay needs of a GraphNode.
+      // Held here rather than rebuilt in the component: that render runs on
+      // every pan, and the map is a fact about the graph (measured 6.9 ms an
+      // allocation on a 30k-node cut).
+      get nodeLengths() {
+        const m = new Map<string, number>()
+        for (const n of self.graph?.nodes ?? []) {
+          m.set(n.id, n.length)
+        }
+        return m
       },
       get nodeCount() {
         return self.graph?.nodes.length ?? 0
@@ -577,6 +595,22 @@ export default function stateModelFactory() {
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
       },
+      // Every node's midpoint on the reference plus the interval the hue ramps
+      // over — what `reference-position` paints from, and undefined under every
+      // other scheme so the walk is never run for a colouring that ignores it.
+      //
+      // Here for the same reason `deletions` is, only more so: deriving it is a
+      // bounded neighbour walk PER NODE (referenceMidpoints), it depends on
+      // nothing the transform touches, and it was being redone inside every
+      // geometry rebuild — 1.6 ms at 1.5k nodes, 45 ms at 30k, on a pass that
+      // reruns on each debounced pan and each drag frame. `reference-position`
+      // is also what `auto` resolves to on any anchored graph, so this was the
+      // default path rather than an opt-in one.
+      get referenceRamp() {
+        return self.effectiveColorScheme === 'reference-position' && self.graph
+          ? computeReferenceRamp(self.graph, self.rampDomain)
+          : undefined
+      },
       // The assemblies this view is showing, which is the interface every
       // assembly-aware piece of the app looks for — `viewTitle` first among
       // them, which falls back through it and otherwise names the view
@@ -591,26 +625,6 @@ export default function stateModelFactory() {
       get assemblyNames() {
         const region = self.loadedRegion
         return region ? [region.assemblyName] : []
-      },
-      // The interval the reference-position ramp runs over, for the key beside
-      // the drawing, and undefined when no key should be drawn. Two tutorials
-      // carry "red to magenta is left to right of the cut window" as a sentence
-      // in prose because nothing on screen said it.
-      //
-      // The stated domain short-circuits the derived one on purpose: deriving it
-      // costs a neighbour walk per node (computeReferenceRamp), and a graph cut
-      // from a track always states one.
-      get referenceRampDomain() {
-        const graph = self.graph
-        if (self.effectiveColorScheme !== 'reference-position' || !graph) {
-          return undefined
-        }
-        const stated = self.rampDomain
-        if (stated && stated.end > stated.start) {
-          return { start: stated.start, end: stated.end }
-        }
-        const ramp = computeReferenceRamp(graph, undefined)
-        return { start: ramp.start, end: ramp.start + ramp.span }
       },
       // Screen px per layout unit, per axis. `scale` is the x zoom and the whole
       // of what a user's wheel moves; y is a second question the layout answers
@@ -689,6 +703,22 @@ export default function stateModelFactory() {
       // assembly.
       get deletionEdgeIndexes() {
         return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
+      },
+      // The interval the reference-position ramp runs over, for the key beside
+      // the drawing, and undefined when no key should be drawn. Two tutorials
+      // carry "red to magenta is left to right of the cut window" as a sentence
+      // in prose because nothing on screen said it.
+      //
+      // Read off the ramp the drawing is actually painted with rather than
+      // re-derived from the domain, so the key cannot come to describe a
+      // different interval from the hues beside it — and so a graph that states
+      // no domain, whose interval has to be measured, does not pay for a second
+      // neighbour walk to say what the first one already worked out.
+      get referenceRampDomain() {
+        const ramp = self.referenceRamp
+        return ramp
+          ? { start: ramp.start, end: ramp.start + ramp.span }
+          : undefined
       },
       get hoverHighlight() {
         let result:
@@ -973,6 +1003,10 @@ export default function stateModelFactory() {
       setViewportDirty() {
         self.viewportDirty++
       },
+      // The positions themselves moved, as opposed to the window onto them.
+      setPositionsDirty() {
+        self.positionsVersion++
+      },
       storeRenderBatchMeta(batch: RenderBatch) {
         self.nodeVertexRanges = batch.nodeVertexRanges
         self.arrowVertexRanges = batch.arrowVertexRanges
@@ -1069,11 +1103,11 @@ export default function stateModelFactory() {
       // bursts well above the frame rate. Coalescing to the next frame keeps the
       // drag live while bounding that work to once per frame instead of once
       // per event.
-      function requestViewportDirtyFrame() {
-        cancelAnimationFrame(self.viewportDirtyFrame)
-        self.viewportDirtyFrame = requestAnimationFrame(() => {
+      function requestPositionsDirtyFrame() {
+        cancelAnimationFrame(self.positionsDirtyFrame)
+        self.positionsDirtyFrame = requestAnimationFrame(() => {
           if (isAlive(self)) {
-            self.setViewportDirty()
+            self.setPositionsDirty()
           }
         })
       }
@@ -1099,7 +1133,7 @@ export default function stateModelFactory() {
               seg.x += dx
               seg.y += dy
             }
-            requestViewportDirtyFrame()
+            requestPositionsDirtyFrame()
           }
         },
         scheduleViewportDirty,
@@ -1471,7 +1505,11 @@ export default function stateModelFactory() {
             b.resize(self.width, self.canvasHeight)
             const nodeById = self.nodeById
             if (self.nodePositions && self.graph && nodeById) {
+              // The window moved (debounced pan/zoom), or the positions did (a
+              // node drag, coalesced to a frame). Both change the drawing;
+              // everything below reads them untracked or not at all.
               void self.viewportDirty
+              void self.positionsVersion
               const geometryStart = performance.now()
               const batch = buildGeometry({
                 nodePositions: self.nodePositions,
@@ -1488,11 +1526,11 @@ export default function stateModelFactory() {
                 axis: untracked(() => self.axisScale),
                 linearLayout: self.linearLayout,
                 viewportBounds: untracked(() => computeViewportBounds(self)),
-                // What the reference-position ramp spans — the cut region, or
-                // whatever the snapshot stated instead. A whole-file import that
-                // states neither has none, and the ramp falls back to the drawn
-                // extent.
-                colorDomain: self.rampDomain,
+                // Where each node sits on the reference and what interval the
+                // hue spans. Held against the graph rather than derived here,
+                // the same way `deletions` is and for the same reason — see
+                // the `referenceRamp` view.
+                referenceRamp: self.referenceRamp,
                 deletions: self.deletionEdgeIndexes,
               })
               b.uploadGeometry(batch)

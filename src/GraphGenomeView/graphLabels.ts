@@ -102,16 +102,40 @@ export interface Box {
   bottom: number
 }
 
-function labelBox(text: string, screenX: number, screenY: number): Box {
-  // translate(-50%, -50%) in the style, so the anchor is the box's centre
-  const halfW = (text.length * LABEL_CHAR_PX + LABEL_PAD_PX + LABEL_GAP_PX) / 2
-  const halfH = (LABEL_HEIGHT_PX + LABEL_GAP_PX) / 2
+// Half the box a piece of label text occupies. Split out of `labelBox` because
+// the width is wanted before there is anywhere to put the box: a displaced
+// deletion label is clamped by its own half-width, and the node pass below
+// rejects on size before it has a position at all.
+function labelHalfWidth(text: string) {
+  return (text.length * LABEL_CHAR_PX + LABEL_PAD_PX + LABEL_GAP_PX) / 2
+}
+
+// Constant whatever the label says, so a candidate's vertical cull costs
+// nothing and can be taken before its text exists.
+const LABEL_HALF_HEIGHT = (LABEL_HEIGHT_PX + LABEL_GAP_PX) / 2
+
+// The narrowest box `formatBp` can ask for, `1 bp`. A node drawn shorter than
+// this cannot carry ANY label, so the check happens before the length is
+// formatted: on a 7,499-node cut nearly every node fails it, and building a
+// string and a box per node only to discard both was most of this pass
+// (measured 37 ms per frame, and this pass runs on every pan).
+const MIN_LABEL_HALF_WIDTH = labelHalfWidth('1 bp')
+
+// translate(-50%, -50%) in the style, so the anchor is the box's centre.
+function boxAt(halfW: number, x: number, y: number): Box {
   return {
-    left: screenX - halfW,
-    right: screenX + halfW,
-    top: screenY - halfH,
-    bottom: screenY + halfH,
+    left: x - halfW,
+    right: x + halfW,
+    top: y - LABEL_HALF_HEIGHT,
+    bottom: y + LABEL_HALF_HEIGHT,
   }
+}
+
+// A box outside the canvas is dropped rather than clipped, and dropped BEFORE
+// the collision test, so a label nobody can see cannot hold space against one
+// inside the frame.
+function onScreen(box: Box, width: number, height: number) {
+  return box.right > 0 && box.left < width && box.bottom > 0 && box.top < height
 }
 
 // The box a row label occupies, from the same metrics RowLabels renders with
@@ -250,6 +274,125 @@ function drawnLength(segments: NodeSegment[], scaleX: number, scaleY: number) {
   return total
 }
 
+// The extent of a run's drawn points, in layout units. One pass rather than
+// four `Math.min(...points.map(...))` spreads over the same array: those
+// allocate a mapped copy per axis, and a run long enough — a chain of alleles
+// across a whole-file import — overflows the argument limit and throws
+// RangeError instead of labelling anything. Same reason `backboneSpan` is a
+// fold.
+function runBounds(
+  nodeIds: string[],
+  nodePositions: Record<string, NodeSegment[]>,
+) {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const id of nodeIds) {
+    for (const p of nodePositions[id] ?? []) {
+      minX = Math.min(minX, p.x)
+      maxX = Math.max(maxX, p.x)
+      minY = Math.min(minY, p.y)
+      maxY = Math.max(maxY, p.y)
+    }
+  }
+  return minX === Infinity ? undefined : { minX, minY, maxX, maxY }
+}
+
+// Both caches below are keyed the way hit detection keys its spatial indexes: a
+// WeakMap on the positions object, so two graph views cannot evict each other
+// and an entry dies with the layout it describes, plus an explicit check of
+// everything the value actually depends on. A node drag mutates the positions
+// in place, so their identity cannot report that they moved — hence `version`,
+// which the model bumps on exactly that (`positionsVersion`).
+//
+// What makes the caching worth having is that this whole pass reruns on every
+// pan: the labels are placed in screen space, so a translate changes where they
+// go, and neither the order they are considered in nor the arcs they ride
+// depends on it.
+
+// Node label candidates in the order they are considered — biggest allele
+// first — which is a function of the sequence lengths alone.
+const nodeOrderCache = new WeakMap<
+  Record<string, NodeSegment[]>,
+  {
+    nodeLengths: Map<string, number>
+    order: [string, NodeSegment[]][]
+  }
+>()
+
+function labelOrder(
+  nodePositions: Record<string, NodeSegment[]>,
+  nodeLengths: Map<string, number>,
+) {
+  const cached = nodeOrderCache.get(nodePositions)
+  if (cached?.nodeLengths === nodeLengths) {
+    return cached.order
+  }
+  const order = Object.entries(nodePositions)
+    .filter(([id, segments]) => segments.length > 0 && nodeLengths.has(id))
+    .sort(([a], [b]) => nodeLengths.get(b)! - nodeLengths.get(a)!)
+  nodeOrderCache.set(nodePositions, { nodeLengths, order })
+  return order
+}
+
+// One deletion arc as the renderer draws it, plus the two things placement
+// reads off it: where its apex is, and how big it is on screen.
+interface ArcPlacement {
+  deletion: DeletionEdge
+  curves: BezierCurve[]
+  apex: { x: number; y: number }
+  extent: number
+}
+
+const arcCache = new WeakMap<
+  Record<string, NodeSegment[]>,
+  {
+    deletions: DeletionEdge[]
+    scaleX: number
+    scaleY: number
+    version: number
+    arcs: ArcPlacement[]
+  }
+>()
+
+// Biggest deletion first, so an arc that survives a crowd is the one carrying
+// the most sequence.
+function arcPlacements(
+  nodePositions: Record<string, NodeSegment[]>,
+  deletions: DeletionEdge[],
+  axis: AxisScale,
+  version: number,
+) {
+  const { scaleX, scaleY } = axis
+  const cached = arcCache.get(nodePositions)
+  if (
+    cached?.deletions === deletions &&
+    cached.scaleX === scaleX &&
+    cached.scaleY === scaleY &&
+    cached.version === version
+  ) {
+    return cached.arcs
+  }
+  const arcs: ArcPlacement[] = []
+  for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
+    const curves = deletionArcCurves(nodePositions, deletion, axis)
+    const apex = curves ? curveMidpoint(curves) : undefined
+    if (curves && apex) {
+      const { minX, minY, maxX, maxY } = curveBounds(curves)
+      arcs.push({
+        deletion,
+        curves,
+        apex,
+        // in screen px, so the two axes' units cannot be added by accident
+        extent: Math.max((maxX - minX) * scaleX, (maxY - minY) * scaleY),
+      })
+    }
+  }
+  arcCache.set(nodePositions, { deletions, scaleX, scaleY, version, arcs })
+  return arcs
+}
+
 export function graphLabels({
   nodePositions,
   nodeLengths,
@@ -261,6 +404,7 @@ export function graphLabels({
   width,
   height,
   reserved,
+  version = 0,
 }: {
   nodePositions: Record<string, NodeSegment[]>
   // bp per node id, so this module never has to know what a GraphNode is
@@ -285,54 +429,60 @@ export function graphLabels({
   // stray "bp" beside `Reference (rank 0)`. Feeding them into the same collision
   // pass moves that label instead of clipping it.
   reserved?: Box[]
+  // Bumped whenever the layout's positions are mutated in place, i.e. by a node
+  // drag. Everything cached across frames here is keyed by it — see the caches
+  // above — and reading it is also what makes a dragged node's label follow it.
+  version?: number
 }): GraphLabel[] {
   const { scaleX, scaleY } = axis
   // Deletions first, so an arc keeps its label against the nodes around it: the
   // arc is the only thing in the drawing that represents sequence which is not
   // there, and a reader who cannot read it has no other route to it.
-  const candidates: GraphLabel[] = []
-  for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
-    const curves = deletionArcCurves(nodePositions, deletion, axis)
-    const apex = curves ? curveMidpoint(curves) : undefined
-    if (curves && apex) {
-      const { minX, minY, maxX, maxY } = curveBounds(curves)
-      // in screen px, so the two axes' units cannot be added by accident
-      const extent = Math.max((maxX - minX) * scaleX, (maxY - minY) * scaleY)
-      if (extent >= MIN_DELETION_LABEL_PX) {
-        const text = `${formatBp(deletion.bp)} deletion`
-        const box = labelBox(text, 0, 0)
-        const arcX = apex.x * scaleX + translateX
-        const arcY = apex.y * scaleY + translateY
-        // The node rule, applied to an arc: a label wider than twice what it
-        // names is a label with an arc attached. Under it the label stays
-        // centred on the curve, which is what every arc big enough to hold its
-        // own name already does.
-        const fits = extent >= (box.right - box.left) / MAX_LABEL_OVERHANG
-        // Displaced by the SUPPORT distance, so the whole box clears the arc
-        // whatever angle it leaves at, then the leader is stopped at the box's
-        // real edge along the same ray.
-        const bow = arcOutward(curves, apex, scaleX, scaleY)
-        const offset = boxSupport(box, bow) + LEADER_GAP_PX
-        const halfW = (box.right - box.left) / 2
-        const halfH = (box.bottom - box.top) / 2
-        // ...and then slid back into the frame if that put it outside one. A
-        // tethered label chooses where it goes, and the cull below keeps any box
-        // merely OVERLAPPING the canvas, so displacing blind is how the MHC force
-        // layout came out with a clipped `…ips 1.5 kb of reference` against its
-        // left edge. Sliding beats dropping and beats picking the arc's other
-        // side: the leader is redrawn to wherever the words ended up, so it stays
-        // unambiguous however far along the edge they had to move.
-        const x = fits
-          ? arcX
-          : clamp(arcX + bow.x * offset, halfW, width - halfW)
-        const y = fits
-          ? arcY
-          : clamp(arcY + bow.y * offset, halfH, height - halfH)
-        // Recomputed from where the label ACTUALLY sits, not from the bow, or
-        // the line points off at the position the label would have had.
-        const away = Math.hypot(x - arcX, y - arcY)
-        const dir = { x: (x - arcX) / away, y: (y - arcY) / away }
-        candidates.push({
+  const candidates: { label: GraphLabel; box: Box }[] = []
+  for (const { deletion, curves, apex, extent } of arcPlacements(
+    nodePositions,
+    deletions,
+    axis,
+    version,
+  )) {
+    if (extent >= MIN_DELETION_LABEL_PX) {
+      const text = `${formatBp(deletion.bp)} deletion`
+      const halfW = labelHalfWidth(text)
+      const box = boxAt(halfW, 0, 0)
+      const arcX = apex.x * scaleX + translateX
+      const arcY = apex.y * scaleY + translateY
+      // The node rule, applied to an arc: a label wider than twice what it
+      // names is a label with an arc attached. Under it the label stays
+      // centred on the curve, which is what every arc big enough to hold its
+      // own name already does.
+      const fits = extent >= (halfW * 2) / MAX_LABEL_OVERHANG
+      // Displaced by the SUPPORT distance, so the whole box clears the arc
+      // whatever angle it leaves at, then the leader is stopped at the box's
+      // real edge along the same ray.
+      const bow = arcOutward(curves, apex, scaleX, scaleY)
+      const offset = boxSupport(box, bow) + LEADER_GAP_PX
+      // ...and then slid back into the frame if that put it outside one. A
+      // tethered label chooses where it goes, and the cull below keeps any box
+      // merely OVERLAPPING the canvas, so displacing blind is how the MHC force
+      // layout came out with a clipped `…ips 1.5 kb of reference` against its
+      // left edge. Sliding beats dropping and beats picking the arc's other
+      // side: the leader is redrawn to wherever the words ended up, so it stays
+      // unambiguous however far along the edge they had to move.
+      const x = fits ? arcX : clamp(arcX + bow.x * offset, halfW, width - halfW)
+      const y = fits
+        ? arcY
+        : clamp(
+            arcY + bow.y * offset,
+            LABEL_HALF_HEIGHT,
+            height - LABEL_HALF_HEIGHT,
+          )
+      // Recomputed from where the label ACTUALLY sits, not from the bow, or
+      // the line points off at the position the label would have had.
+      const away = Math.hypot(x - arcX, y - arcY)
+      const dir = { x: (x - arcX) / away, y: (y - arcY) / away }
+      const crossing = boxRayCrossing(box, dir)
+      candidates.push({
+        label: {
           key: `del:${deletion.edgeIndex}`,
           text,
           x,
@@ -344,11 +494,12 @@ export function graphLabels({
               : {
                   arcX,
                   arcY,
-                  labelX: x - dir.x * boxRayCrossing(box, dir),
-                  labelY: y - dir.y * boxRayCrossing(box, dir),
+                  labelX: x - dir.x * crossing,
+                  labelY: y - dir.y * crossing,
                 },
-        })
-      }
+        },
+        box: boxAt(halfW, x, y),
+      })
     }
   }
 
@@ -369,8 +520,8 @@ export function graphLabels({
   const labelledByDeletion = new Set<string>()
   const alleleRuns = [...(alleleDeletions ?? [])].sort((a, b) => b.bp - a.bp)
   for (const run of alleleRuns) {
-    const points = run.nodeIds.flatMap(id => nodePositions[id] ?? [])
-    if (points.length === 0) {
+    const drawn = runBounds(run.nodeIds, nodePositions)
+    if (!drawn) {
       continue
     }
     // ON SCREEN, not in layout units, and that is the whole subtlety here. A
@@ -380,74 +531,79 @@ export function graphLabels({
     // the bar goes unnamed. The visible slice is what a reader has, so the
     // label rides the middle of that, and the fit test asks whether the words
     // fit what is SHOWN rather than what is drawn.
-    const left = Math.min(...points.map(p => p.x)) * scaleX + translateX
-    const right = Math.max(...points.map(p => p.x)) * scaleX + translateX
-    const top = Math.min(...points.map(p => p.y)) * scaleY + translateY
-    const bottom = Math.max(...points.map(p => p.y)) * scaleY + translateY
-    const shownLeft = Math.max(left, 0)
-    const shownRight = Math.min(right, width)
-    const shownTop = Math.max(top, 0)
-    const shownBottom = Math.min(bottom, height)
+    const shownLeft = Math.max(drawn.minX * scaleX + translateX, 0)
+    const shownRight = Math.min(drawn.maxX * scaleX + translateX, width)
+    const shownTop = Math.max(drawn.minY * scaleY + translateY, 0)
+    const shownBottom = Math.min(drawn.maxY * scaleY + translateY, height)
     if (shownRight < shownLeft || shownBottom < shownTop) {
       continue
     }
     const extent = Math.max(shownRight - shownLeft, shownBottom - shownTop)
     const text = `${formatBp(run.bp)} deletion`
-    const box = labelBox(text, 0, 0)
-    const halfW = (box.right - box.left) / 2
-    const halfH = (box.bottom - box.top) / 2
+    const halfW = labelHalfWidth(text)
     if (extent >= (halfW * 2) / MAX_LABEL_OVERHANG) {
       for (const id of run.nodeIds) {
         labelledByDeletion.add(id)
       }
+      const x = clamp((shownLeft + shownRight) / 2, halfW, width - halfW)
+      const y = clamp(
+        (shownTop + shownBottom) / 2,
+        LABEL_HALF_HEIGHT,
+        height - LABEL_HALF_HEIGHT,
+      )
       candidates.push({
-        key: `alleledel:${run.nodeIds.join(',')}`,
-        text,
-        x: clamp((shownLeft + shownRight) / 2, halfW, width - halfW),
-        y: clamp((shownTop + shownBottom) / 2, halfH, height - halfH),
-        kind: 'deletion',
+        label: {
+          key: `alleledel:${run.nodeIds.join(',')}`,
+          text,
+          x,
+          y,
+          kind: 'deletion',
+        },
+        box: boxAt(halfW, x, y),
       })
     }
   }
 
   // Biggest allele first: in a crowd, the label that survives should be the one
   // carrying the most sequence, not whichever node the layout happened to emit
-  // first.
-  const nodes = Object.entries(nodePositions)
-    .filter(
-      ([id, segments]) =>
-        segments.length > 0 &&
-        nodeLengths.has(id) &&
-        !labelledByDeletion.has(id),
-    )
-    .sort(([a], [b]) => nodeLengths.get(b)! - nodeLengths.get(a)!)
-  for (const [id, segments] of nodes) {
+  // first. The order is `labelOrder`'s, cached across frames; the three rejects
+  // below are what a frame actually decides, cheapest first — a node barred by
+  // a run's label, then one whose row is off the pane (the box's height is a
+  // constant, so this needs no text), then one too short to hold the shortest
+  // label there is.
+  for (const [id, segments] of labelOrder(nodePositions, nodeLengths)) {
+    if (labelledByDeletion.has(id)) {
+      continue
+    }
     const { x, y } = midpoint(segments)
-    const text = formatBp(nodeLengths.get(id)!)
-    const box = labelBox(text, 0, 0)
+    const screenY = y * scaleY + translateY
     if (
-      drawnLength(segments, scaleX, scaleY) >=
-      (box.right - box.left) / MAX_LABEL_OVERHANG
+      screenY + LABEL_HALF_HEIGHT <= 0 ||
+      screenY - LABEL_HALF_HEIGHT >= height
     ) {
+      continue
+    }
+    const drawn = drawnLength(segments, scaleX, scaleY)
+    // The same comparison the real fit test makes, against the narrowest box
+    // any label can have — so nothing that would have passed is rejected here.
+    if (drawn < (MIN_LABEL_HALF_WIDTH * 2) / MAX_LABEL_OVERHANG) {
+      continue
+    }
+    const text = formatBp(nodeLengths.get(id)!)
+    const halfW = labelHalfWidth(text)
+    if (drawn >= (halfW * 2) / MAX_LABEL_OVERHANG) {
+      const screenX = x * scaleX + translateX
       candidates.push({
-        key: `node:${id}`,
-        text,
-        x: x * scaleX + translateX,
-        y: y * scaleY + translateY,
-        kind: 'node',
+        label: { key: `node:${id}`, text, x: screenX, y: screenY, kind: 'node' },
+        box: boxAt(halfW, screenX, screenY),
       })
     }
   }
 
   const placed: Box[] = [...(reserved ?? [])]
   const labels: GraphLabel[] = []
-  for (const label of candidates) {
-    const box = labelBox(label.text, label.x, label.y)
-    // Culled before the collision test, so a label outside the canvas cannot
-    // hold a box against one inside it.
-    const onScreen =
-      box.right > 0 && box.left < width && box.bottom > 0 && box.top < height
-    if (onScreen && !placed.some(p => overlaps(p, box))) {
+  for (const { label, box } of candidates) {
+    if (onScreen(box, width, height) && !placed.some(p => overlaps(p, box))) {
       placed.push(box)
       labels.push(label)
     }
