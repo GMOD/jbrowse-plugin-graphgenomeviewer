@@ -1126,6 +1126,27 @@ export default function stateModelFactory() {
           self.clearRenderBatchMeta()
           self.clearPerfMetrics()
         },
+        // Moves the position objects IN PLACE, which is the one thing
+        // jbrowse-components' upload invariant says not to do ("per-region
+        // upload values must be freshly constructed, never mutated — backends
+        // diff by reference identity"), so it is worth saying why this is not
+        // that case and what it costs instead.
+        //
+        // Nothing here diffs by identity: the geometry is rebuilt wholesale and
+        // handed over as one batch, so `nodePositions` identity is not a
+        // protocol between the model and the backend the way a per-region map
+        // is. What identity DOES drive is the fit: the zoom-to-fit autorun and
+        // `layoutBounds` — and so `canvasHeight` — key off `layoutResult`, and
+        // they mean "a new LAYOUT arrived", not "a node moved". Publishing a
+        // fresh positions record per frame of a drag would refit the drawing
+        // and resize the pane under the cursor, sixty times a second.
+        //
+        // So the change is announced by `positionsVersion` instead, and every
+        // cache that would otherwise trust identity takes it as a key. The cost
+        // of that trade is that the version is a thing to remember: a caller
+        // that mutates here and does not bump it gets stale curves, stale hit
+        // boxes and stale labels, silently. Everything downstream of it is
+        // reached from this one action.
         moveNode(nodeId: string, dx: number, dy: number) {
           const positions = self.layoutResult?.nodePositions
           if (positions?.[nodeId]) {
@@ -1532,6 +1553,9 @@ export default function stateModelFactory() {
                 // the `referenceRamp` view.
                 referenceRamp: self.referenceRamp,
                 deletions: self.deletionEdgeIndexes,
+                // Read tracked above; passed here so the shared edge-curve
+                // cache can tell a drag from a pan.
+                version: self.positionsVersion,
               })
               b.uploadGeometry(batch)
               self.storeRenderBatchMeta(batch)

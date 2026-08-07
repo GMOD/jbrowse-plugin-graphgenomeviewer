@@ -171,6 +171,7 @@ function getEdgeSpatialIndex(
     axis,
     undefined,
     deletions,
+    version,
   )
   edgeCache.set(nodePositions, {
     graph,

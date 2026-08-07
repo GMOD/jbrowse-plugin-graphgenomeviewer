@@ -1,8 +1,9 @@
-import { computeEdgeCurves, curveBounds, pathRibbonOffsets } from './geometry'
-import { bypassedPoints } from '../deletionEdges'
+import { baseEdgeCurves } from './edgeCurves'
+import { curveBounds, pathRibbonOffsets } from './geometry'
 
+import type { EdgeCurves } from './edgeCurves'
 import type { Graph, NodeSegment } from '../types'
-import type { AxisScale, BezierCurve } from './geometry'
+import type { AxisScale } from './geometry'
 
 interface CellEntry {
   nodeId: string
@@ -214,10 +215,10 @@ export class SpatialIndex {
 export class EdgeSpatialIndex {
   private cellSize: CellSize
   private cells = new Map<number, Map<number, number[]>>()
-  // Base curves (offset 0) by edge index — retained here because we already
-  // compute them to derive each edge's bbox. findHoveredEdge reuses them on
+  // Base curves (offset 0) by edge index — the shared derivation, which the
+  // geometry builder draws the same edges from. findHoveredEdge reuses them on
   // every mousemove; path-offset variants translate them (pure translation).
-  private edgeCurves = new Map<number, BezierCurve[]>()
+  private edgeCurves: EdgeCurves
 
   constructor(
     nodePositions: Record<string, NodeSegment[]>,
@@ -235,7 +236,16 @@ export class EdgeSpatialIndex {
     // interval and the bp. Bowing is part of the drawn geometry, so it has to be
     // part of the geometry hit detection uses.
     deletions?: Map<number, string[]>,
+    // Bumped when a drag moves the positions in place; see baseEdgeCurves.
+    version = 0,
   ) {
+    this.edgeCurves = baseEdgeCurves(
+      nodePositions,
+      graph,
+      axis,
+      deletions,
+      version,
+    )
     const boxes: {
       ei: number
       minX: number
@@ -249,20 +259,8 @@ export class EdgeSpatialIndex {
       const edge = graph.edges[ei]!
       const fromSegments = nodePositions[edge.from]
       const toSegments = nodePositions[edge.to]
-      if (fromSegments?.length && toSegments?.length) {
-        const isSelfLoop = edge.from === edge.to
-        const bypassed = deletions?.get(ei)
-        const curves = computeEdgeCurves(
-          fromSegments,
-          toSegments,
-          isSelfLoop,
-          0,
-          0,
-          axis,
-          bypassed ? bypassedPoints(nodePositions, bypassed) : [],
-        )
-        this.edgeCurves.set(ei, curves)
-
+      const curves = this.edgeCurves.get(ei)
+      if (fromSegments?.length && toSegments?.length && curves) {
         // The control polygon's box, which contains the curve — the same
         // measure the geometry builder culls by, from the one function that
         // takes it.

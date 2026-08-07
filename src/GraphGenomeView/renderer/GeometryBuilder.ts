@@ -7,6 +7,7 @@ import {
   pathHueAt,
 } from '../pathColors'
 import { referenceMidpoints } from '../referenceSpan'
+import { baseEdgeCurves } from '../util/edgeCurves'
 import {
   computeEdgeCurves,
   dashCurves,
@@ -201,6 +202,9 @@ export interface BuildOptions {
   // rather than derived here because the model can hold it against the graph,
   // and because the same set names the hover text.
   deletions?: Map<number, string[]>
+  // Bumped when a drag moves the positions in place, which their identity
+  // cannot report. Only the shared curve cache reads it; see baseEdgeCurves.
+  version?: number
 }
 
 export function hslToRgb(
@@ -758,9 +762,19 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     viewportBounds,
     referenceRamp,
     deletions,
+    version = 0,
   } = options
   const scale = axis.scaleX
   const yToX = yToXOf(axis)
+  // The offset-zero curve of every edge, from the one place that derives it —
+  // shared with the hit index, which draws its boxes from the same objects.
+  const sharedCurves = baseEdgeCurves(
+    nodePositions,
+    graph,
+    axis,
+    deletions,
+    version,
+  )
 
   const nodeMesh = new MeshBuilder()
   const arrowMesh = new MeshBuilder()
@@ -834,7 +848,8 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const edge = graph.edges[ei]!
     const fromSegments = nodePositions[edge.from]
     const toSegments = nodePositions[edge.to]
-    if (!fromSegments?.length || !toSegments?.length) {
+    const baseCurves = sharedCurves.get(ei)
+    if (!fromSegments?.length || !toSegments?.length || !baseCurves) {
       continue
     }
 
@@ -844,13 +859,17 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const isDeletion = bypassed !== undefined
     const edgeThickness =
       (connectorThickness / 2) * (isDeletion ? DELETION_THICKNESS_FACTOR : 1)
+    // One stroke per path crossing the edge, fanned off it. The only variant
+    // that is not the shared curve, and the only reason this loop still builds
+    // one at all.
+    const ribbons = drawPaths && numPaths > 0
     // Bow the arc AROUND the reference it skips, so the two arms of the bubble
     // are comparable instead of one being a stub at a joint. Where that run is
     // drawn is the input; computeEdgeCurves turns it into a bow, because only it
-    // knows the chord to measure against.
-    const bowAroundNodes = bypassed
-      ? bypassedPoints(nodePositions, bypassed)
-      : []
+    // knows the chord to measure against. `baseEdgeCurves` has already done this
+    // for the offset-zero curve, so it is only gathered again for a fan.
+    const bowAroundNodes =
+      ribbons && bypassed ? bypassedPoints(nodePositions, bypassed) : []
 
     // An arrowhead states which way a LINK is read, which is a property of the
     // edge and not of each path crossing it. Drawn per ribbon it says one thing
@@ -871,15 +890,18 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       color: number,
       arrowColor: number | undefined,
     ) => {
-      const curves = computeEdgeCurves(
-        fromSegments,
-        toSegments,
-        isSelfLoop,
-        offsetX,
-        offsetY,
-        axis,
-        bowAroundNodes,
-      )
+      const curves =
+        offsetX === 0 && offsetY === 0
+          ? baseCurves
+          : computeEdgeCurves(
+              fromSegments,
+              toSegments,
+              isSelfLoop,
+              offsetX,
+              offsetY,
+              axis,
+              bowAroundNodes,
+            )
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {
         return
@@ -917,7 +939,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const edgeCurveStart = edgeCurves.length
     const arrowStart = arrowMesh.vertexCount
 
-    if (!drawPaths || numPaths === 0) {
+    if (!ribbons) {
       buildSingleEdge(0, 0, edgeColor, edgeColor)
     } else {
       const offsets = pathRibbonOffsets(
