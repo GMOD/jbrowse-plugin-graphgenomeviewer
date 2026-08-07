@@ -57,6 +57,7 @@ import type {
   VertexRange,
 } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
+import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { AbstractSessionModel } from '@jbrowse/core/util'
@@ -147,6 +148,14 @@ function assemblySampleResolver(session: AbstractSessionModel) {
     session.assemblyManager.has(sample)
       ? (session.assemblyManager.get(sample)?.name ?? sample)
       : undefined
+}
+
+// The zoom as a pair of axis scales. One expression, read by all three getters
+// below: they sit in one `.views()` block and so cannot reach each other through
+// `self`, which had each of them restating the `pixelRows ? 1 : scale` rule that
+// AxisScale exists to keep in one place.
+function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
+  return { scaleX: scale, scaleY: pixelRows ? 1 : scale }
 }
 
 function computeViewportBounds(model: {
@@ -616,17 +625,17 @@ export default function stateModelFactory() {
       // Everything that mixes the two axes takes their ratio as `yToX`
       // (scaleY / scaleX) — see computeEdgeCurves.
       get scaleX() {
-        return self.scale
+        return axisScaleOf(self.scale, self.pixelRows).scaleX
       },
       get scaleY() {
-        return self.pixelRows ? 1 : self.scale
+        return axisScaleOf(self.scale, self.pixelRows).scaleY
       },
       // The pair, for everything that draws or hit-tests. Handed over as one
       // value on purpose: every consumer needs both, and passing them separately
       // let a caller supply the x scale and default y, which compiles and draws
       // a wrong picture. See AxisScale.
       get axisScale() {
-        return { scaleX: self.scale, scaleY: self.pixelRows ? 1 : self.scale }
+        return axisScaleOf(self.scale, self.pixelRows)
       },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in the middle of.
@@ -1013,10 +1022,19 @@ export default function stateModelFactory() {
             (usableWidth - bounds.w * newScale) / 2
           // scaleY, which a row layout pins at 1
           const yScale = self.pixelRows ? 1 : newScale
+          // Centre the leftover, but only when there IS leftover. A row layout
+          // fits on x alone, so its drawing is routinely taller than the pane —
+          // that is the case rowSpacing.ts means by "reached by panning" — and
+          // centring an overflow splits the loss across both ends: at 41 rows
+          // the top row landed 100 px above the pane. The top row is the
+          // reference backbone, i.e. the axis the whole layout exists to put
+          // under the linear view, so it is the one row that must not be the
+          // first thing to go. Pinned at the padding it opens where a fitting
+          // drawing opens, and the rows past the ceiling are below, which is the
+          // direction a reader already scrolls a track in.
+          const leftoverY = usableHeight - bounds.h * yScale
           self.translateY =
-            FIT_PADDING -
-            bounds.minY * yScale +
-            (usableHeight - bounds.h * yScale) / 2
+            FIT_PADDING - bounds.minY * yScale + Math.max(0, leftoverY) / 2
         }
       },
       clearRenderBatchMeta() {

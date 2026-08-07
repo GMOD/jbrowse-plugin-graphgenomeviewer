@@ -833,6 +833,24 @@ describe('canvas height follows the drawing', () => {
     'L\t1\t+\tb\t+\t0M\nL\tb\t+\t2\t+\t0M\n' +
     'L\t1\t+\tc\t+\t0M\nL\tc\t+\t2\t+\t0M\n'
 
+  // The same shape with as many ranks as asked for, for the case where the rows
+  // outrun the pane's ceiling rather than fitting inside it.
+  function manyRankGfa(ranks: number) {
+    const lines = [
+      'H\tVN:Z:1.0',
+      'S\t1\t*\tLN:i:1000\tSN:Z:chr\tSO:i:0\tSR:i:0',
+      'S\t2\t*\tLN:i:1000\tSN:Z:chr\tSO:i:2000\tSR:i:0',
+    ]
+    for (let r = 1; r <= ranks; r++) {
+      lines.push(
+        `S\ta${r}\t*\tLN:i:100\tSN:Z:alt${r}\tSO:i:0\tSR:i:${r}`,
+        `L\t1\t+\ta${r}\t+\t0M`,
+        `L\ta${r}\t+\t2\t+\t0M`,
+      )
+    }
+    return `${lines.join('\n')}\n`
+  }
+
   function extent(model: ReturnType<typeof createModel>) {
     const points = Object.values(model.nodePositions!).flat()
     const ys = points.map(p => p.y)
@@ -937,6 +955,37 @@ describe('canvas height follows the drawing', () => {
     expect(model.canvasHeight).toBe(420)
     model.zoomToFit()
     expect(extent(model).h * model.scale).toBeLessThanOrEqual(420 - 80 + 1e-6)
+  })
+
+  // More rows than the pane's ceiling holds is the case a row layout is
+  // expected to reach — it fits on x alone, and rowSpacing.ts says the rest are
+  // reached by panning. Centring the overflow split the loss across both ends,
+  // which spent the top row first: at 41 rows it landed 100 px above the pane.
+  // The top row is the reference backbone, i.e. the thing the layout exists to
+  // line up with the linear view.
+  test('an overflowing row layout keeps the reference row on screen', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    await model.loadGFA(manyRankGfa(40), '41 rows')
+    model.zoomToFit()
+
+    const rows = model.rowLabels
+    expect(rows).toHaveLength(41)
+    // the drawing genuinely does not fit, or this asserts nothing
+    expect(model.layoutBounds!.h).toBeGreaterThan(model.canvasHeight)
+    expect(rows[0]!.label).toBe('Reference (rank 0)')
+    expect(rows[0]!.y * model.scaleY + model.translateY).toBe(40)
+  })
+
+  // and the ordinary case still centres, so nothing that already fits moves
+  test('a row layout that fits is still centred in its pane', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.zoomToFit()
+
+    const h = extent(model).h * model.scaleY
+    expect(model.translateY).toBeCloseTo((model.canvasHeight - h) / 2, 5)
   })
 
   // The floor is the reason a pane has a minimum at all: below it there is no
