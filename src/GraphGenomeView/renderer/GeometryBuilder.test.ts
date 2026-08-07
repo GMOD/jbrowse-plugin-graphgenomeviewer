@@ -728,3 +728,64 @@ describe('the reference-position ramp', () => {
     expect(colors['right+']).toBe(expectedColor(950, 50, 900))
   })
 })
+
+// In both anchored layouts consecutive segments meet at exactly one point, so
+// every backbone link has a zero-length chord. The ribbon fan used to be
+// perpendicular to that chord and gave up when there was none, which dropped the
+// edge outright: no curve, no arrowhead, nothing to hover, along the whole
+// backbone, and the abutting nodes hid it. Only reachable with drawPaths on,
+// which is why it survived — the plain path draws the edge either way.
+describe('abutting nodes under drawPaths', () => {
+  const abutting = {
+    name: 'abutting',
+    nodes: [
+      { id: 'A+', name: 'A', length: 100, depth: 1 },
+      { id: 'B+', name: 'B', length: 100, depth: 1 },
+    ],
+    edges: [{ from: 'A+', to: 'B+', pathIds: ['p1', 'p2'] }],
+    paths: [
+      { name: 'p1', nodeIds: ['A+', 'B+'] },
+      { name: 'p2', nodeIds: ['A+', 'B+'] },
+    ],
+  }
+  const nodeById = new Map(abutting.nodes.map(n => [n.id, n]))
+  const positions = {
+    'A+': [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ],
+    'B+': [
+      { x: 100, y: 0 },
+      { x: 200, y: 0 },
+    ],
+  }
+
+  function build(drawPaths: boolean) {
+    return buildGeometry({
+      axis: iso(),
+      nodePositions: positions,
+      graph: abutting,
+      nodeById,
+      colorScheme: 'uniform',
+      contigThickness: 10,
+      connectorThickness: 4,
+      drawPaths,
+    })
+  }
+
+  test('draws one ribbon per path where a plain edge draws one curve', () => {
+    expect(build(false).edgeCurves).toHaveLength(1)
+    expect(build(true).edgeCurves).toHaveLength(2)
+  })
+
+  test('fans them across the row, since the nodes run along it', () => {
+    const ys = build(true).edgeCurves.map(c => c.curves[0]!.y0)
+    // the node's own direction stands in for the missing chord, so the two
+    // ribbons straddle y = 0 rather than landing on top of each other
+    expect(ys).toEqual([-1.5, 1.5])
+  })
+
+  test('keys the ribbons under the edge, so they stay hoverable', () => {
+    expect(build(true).edgeCurveRanges.get(0)).toEqual({ start: 0, count: 2 })
+  })
+})

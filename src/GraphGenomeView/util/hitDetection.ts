@@ -1,5 +1,5 @@
 import { EdgeSpatialIndex, SpatialIndex } from './SpatialIndex'
-import { translateCurves, yToXOf } from './geometry'
+import { pathRibbonOffsets, translateCurves, yToXOf } from './geometry'
 
 import type { Graph, NodeSegment } from '../types'
 import type { AxisScale, BezierCurve } from './geometry'
@@ -279,30 +279,19 @@ export function findHoveredEdge(
     if (!drawPaths || numPaths === 0) {
       dist = distanceToEdgeCurves(graphX, graphY * yToX, baseCurves, yToX)
     } else {
-      const fromEnd = fromSegments[fromSegments.length - 1]!
-      const toStart = toSegments[0]!
-      const edgeDx = toStart.x - fromEnd.x
-      const edgeDy = toStart.y - fromEnd.y
-      const len = Math.hypot(edgeDx, edgeDy)
-      if (len === 0) {
-        continue
-      }
-
-      const perpX = -edgeDy / len
-      const perpY = edgeDx / len
-      const offsetDist = 3
-
+      // The same offsets GeometryBuilder drew the ribbons at, from the one
+      // function that decides them, so a ribbon is hoverable where it is drawn.
       let minDist = Infinity
-      for (let pathIdx = 0; pathIdx < numPaths; pathIdx++) {
-        const pathOffset = (pathIdx - (numPaths - 1) / 2) * offsetDist
+      for (const offset of pathRibbonOffsets(
+        fromSegments,
+        toSegments,
+        numPaths,
+        axis,
+      )) {
         const curves =
-          pathOffset === 0
+          offset.x === 0 && offset.y === 0
             ? baseCurves
-            : translateCurves(
-                baseCurves,
-                perpX * pathOffset,
-                perpY * pathOffset,
-              )
+            : translateCurves(baseCurves, offset.x, offset.y)
         const d = distanceToEdgeCurves(graphX, graphY * yToX, curves, yToX)
         if (d < minDist) {
           minDist = d

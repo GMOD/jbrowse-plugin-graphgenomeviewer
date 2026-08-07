@@ -7,7 +7,12 @@ import {
   pathHueAt,
 } from '../pathColors'
 import { referenceMidpoints } from '../referenceSpan'
-import { computeEdgeCurves, dashCurves, yToXOf } from '../util/geometry'
+import {
+  computeEdgeCurves,
+  dashCurves,
+  pathRibbonOffsets,
+  yToXOf,
+} from '../util/geometry'
 import {
   FIELD_OFFSET_F32,
   INSTANCE_STRIDE_BYTES,
@@ -780,9 +785,16 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
 
   // By position in the path list, matching pathLegend's swatches exactly, so
   // the key beside the drawing names the strokes in it.
-  const pathColors = new Map<string, number>()
+  //
+  // One array plus a name lookup, rather than an array and a Map of the same
+  // colours: two paths that share a name then draw the same colour on their
+  // edges and on their nodes, instead of the Map keeping the last one written
+  // while the array kept the first. `gfaConverter` no longer produces such a
+  // pair, and this is what makes the drawing merely wrong rather than
+  // inconsistent if anything ever does again.
   const pathCount = graph.paths?.length ?? 0
   const pathColorByIndex: number[] = []
+  const pathIndexByName = new Map<string, number>()
   if (graph.paths) {
     for (let i = 0; i < graph.paths.length; i++) {
       const [r, g, b] = hslToRgb(
@@ -790,11 +802,15 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         PATH_SATURATION,
         PATH_LIGHTNESS,
       )
-      const packed = packNorm(r, g, b, 0.85)
-      pathColors.set(graph.paths[i]!.name, packed)
-      pathColorByIndex.push(packed)
+      pathColorByIndex.push(packNorm(r, g, b, 0.85))
+      if (!pathIndexByName.has(graph.paths[i]!.name)) {
+        pathIndexByName.set(graph.paths[i]!.name, i)
+      }
     }
   }
+  const pathColorByName = (name: string) =>
+    pathColorByIndex[pathIndexByName.get(name) ?? -1] ??
+    EDGE_PATH_FALLBACK_COLOR
 
   // nodeId -> the indices of the paths that visit it, i.e. which stripe slots
   // this node fills. Built from the paths themselves rather than read off the
@@ -826,8 +842,6 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       continue
     }
 
-    const fromEnd = fromSegments[fromSegments.length - 1]!
-    const toStart = toSegments[0]!
     const numPaths = edge.pathIds?.length ?? 0
     const isSelfLoop = edge.from === edge.to
     const bypassed = deletions?.get(ei)
@@ -900,20 +914,19 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR,
       )
     } else {
-      const dx = toStart.x - fromEnd.x
-      const dy = toStart.y - fromEnd.y
-      const len = Math.hypot(dx, dy)
-      if (len > 0) {
-        const perpX = -dy / len
-        const perpY = dx / len
-        const offsetDist = 3
-
-        for (let pathIdx = 0; pathIdx < numPaths; pathIdx++) {
-          const offset = (pathIdx - (numPaths - 1) / 2) * offsetDist
-          const pathId = edge.pathIds![pathIdx]!
-          const color = pathColors.get(pathId) ?? EDGE_PATH_FALLBACK_COLOR
-          buildSingleEdge(perpX * offset, perpY * offset, color)
-        }
+      const offsets = pathRibbonOffsets(
+        fromSegments,
+        toSegments,
+        numPaths,
+        axis,
+      )
+      for (let pathIdx = 0; pathIdx < numPaths; pathIdx++) {
+        const offset = offsets[pathIdx]!
+        buildSingleEdge(
+          offset.x,
+          offset.y,
+          pathColorByName(edge.pathIds![pathIdx]!),
+        )
       }
     }
 

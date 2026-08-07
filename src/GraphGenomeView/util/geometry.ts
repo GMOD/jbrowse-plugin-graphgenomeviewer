@@ -322,6 +322,66 @@ export function yToXOf({ scaleX, scaleY }: AxisScale) {
   return scaleY / scaleX
 }
 
+// How far apart two adjacent path ribbons run, in world x units.
+export const PATH_RIBBON_SPACING = 3
+
+// A polyline's overall direction in DRAWN space, or undefined when it has none.
+function drawnDirection(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  yToX: number,
+) {
+  const dx = b.x - a.x
+  const dy = (b.y - a.y) * yToX
+  const len = Math.hypot(dx, dy)
+  return len === 0 ? undefined : { x: dx / len, y: dy / len }
+}
+
+// Where each of an edge's path ribbons is drawn, as an offset from the edge
+// itself, in world units — the one derivation of it, because three callers need
+// the same answer: the geometry that draws the ribbons, the spatial index that
+// bounds them and the hit test that measures against them. Two of those already
+// held their own copy of these four lines.
+//
+// The fan runs perpendicular to the edge, and the perpendicular is taken in
+// DRAWN space: on a row layout x is bp and y is screen px, so a perpendicular
+// taken from the raw coordinates is perpendicular to nothing on screen. `yToX`
+// converts before the direction is measured and the y component is converted
+// back, the same round trip `pointNormalsOf` makes for a node's own outline. On
+// an isotropic layout `yToX` is 1 and this is the arithmetic it always did.
+//
+// **Two abutting nodes have no chord to be perpendicular to, and in an anchored
+// layout that is every backbone link rather than a corner case**: consecutive
+// segments meet at exactly one point, so the chord is zero-length. Both callers
+// used to give up there, which left the whole backbone chain with no edge
+// geometry at all whenever `drawPaths` was on — no curve, no arrowhead, nothing
+// to hover — and the abutting nodes hid it. A node's own drawn direction answers
+// what the chord cannot, and for a backbone running along x it fans the ribbons
+// across the row, which is where they belong.
+export function pathRibbonOffsets(
+  fromSegments: NodeSegment[],
+  toSegments: NodeSegment[],
+  count: number,
+  axis: AxisScale,
+  spacing = PATH_RIBBON_SPACING,
+) {
+  const yToX = yToXOf(axis)
+  const dir =
+    drawnDirection(
+      fromSegments[fromSegments.length - 1]!,
+      toSegments[0]!,
+      yToX,
+    ) ??
+    drawnDirection(fromSegments[0]!, fromSegments.at(-1)!, yToX) ??
+    drawnDirection(toSegments[0]!, toSegments.at(-1)!, yToX) ?? { x: 1, y: 0 }
+  const offsets: { x: number; y: number }[] = []
+  for (let i = 0; i < count; i++) {
+    const distance = (i - (count - 1) / 2) * spacing
+    offsets.push({ x: -dir.y * distance, y: (dir.x * distance) / yToX })
+  }
+  return offsets
+}
+
 function scaleYOf(points: NodeSegment[], yToX: number) {
   return points.map(p => ({ x: p.x, y: p.y * yToX }))
 }
