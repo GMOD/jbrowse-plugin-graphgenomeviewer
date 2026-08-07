@@ -1,4 +1,5 @@
 import { projectAlleles } from '../../alleleProjection/projectAlleles'
+import { buildNeighbors } from '../referenceSpan'
 
 import type { AlleleDeletion, Graph, NodeSegment } from '../types'
 
@@ -117,11 +118,11 @@ export function placeOffReference({
   // They get the floor each, chained from wherever they branch: the only honest
   // claim available is "attaches here and continues past the edge", and a floor
   // keeps a chain of them bounded by the window instead of by their sequence.
-  const neighbors = new Map<string, string[]>()
-  for (const edge of graph.edges) {
-    neighbors.set(edge.from, [...(neighbors.get(edge.from) ?? []), edge.to])
-    neighbors.set(edge.to, [...(neighbors.get(edge.to) ?? []), edge.from])
-  }
+  // The same undirected adjacency the reference walk builds, from the one
+  // function that builds it. The copy here rebuilt each list with a spread per
+  // edge, which is quadratic in a node's degree and is the shape a collapsed
+  // repeat's hub node is worst at.
+  const neighbors = buildNeighbors(graph)
   // Read forward while appending, so this is a BFS with an O(1) dequeue rather
   // than a quadratic shift() over what ends up being every node in the run.
   const queue = Object.keys(positions)

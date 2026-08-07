@@ -55,12 +55,13 @@ export function anchoredLayout(
   const span = referenceSpan(backbone, region)
   const rows = rankRows(graph)
 
+  // Row 0 by construction: a backbone exists, so rank 0 is present, and
+  // `rankRows` numbers the present ranks in ascending order.
   const nodePositions: Record<string, NodeSegment[]> = {}
   for (const node of backbone) {
-    const y = (rows.get(0) ?? 0) * ROW_HEIGHT_PX
     nodePositions[node.id] = [
-      { x: node.stable.start, y },
-      { x: node.stable.start + node.length, y },
+      { x: node.stable.start, y: 0 },
+      { x: node.stable.start + node.length, y: 0 },
     ]
   }
 

@@ -1,6 +1,7 @@
 import { isBackbone } from './anchoredNodes'
 import { computeEdgeCurves } from './util/geometry'
 
+import type { AnchoredNode } from './anchoredNodes'
 import type { Graph } from './types'
 import type { AxisScale } from './util/geometry'
 
@@ -97,10 +98,72 @@ export function deletionArcCurves(
     : undefined
 }
 
+// The backbone by stable sequence, each sorted by start, so the run a deletion
+// bypasses is a slice rather than a scan. Filtering the whole backbone per
+// candidate edge is O(edges x backbone), which at the node budget this view
+// accepts (20,000) is hundreds of millions of comparisons for a pass that runs
+// once per graph.
+function backboneBySequence(graph: Graph) {
+  const bySequence = new Map<string, AnchoredNode[]>()
+  for (const node of graph.nodes) {
+    if (isBackbone(node)) {
+      const list = bySequence.get(node.stable.refName)
+      if (list) {
+        list.push(node)
+      } else {
+        bySequence.set(node.stable.refName, [node])
+      }
+    }
+  }
+  for (const list of bySequence.values()) {
+    list.sort((a, b) => a.stable.start - b.stable.start)
+  }
+  return bySequence
+}
+
+// Index of the first node starting at or after `start`, by bisection.
+function lowerBound(nodes: AnchoredNode[], start: number) {
+  let lo = 0
+  let hi = nodes.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (nodes[mid]!.stable.start < start) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
+  }
+  return lo
+}
+
+// Backbone nodes lying wholly inside [start, end) on `refName`. Sorted by
+// start, so the candidates are one contiguous run and the walk stops at the
+// first node starting past the end; only the upper bound still needs testing
+// per node, since a long node can start inside and finish outside.
+function bypassedNodes(
+  nodes: AnchoredNode[] | undefined,
+  start: number,
+  end: number,
+) {
+  const bypassed: string[] = []
+  if (nodes) {
+    for (let i = lowerBound(nodes, start); i < nodes.length; i++) {
+      const node = nodes[i]!
+      if (node.stable.start >= end) {
+        break
+      }
+      if (node.stable.start + node.length <= end) {
+        bypassed.push(node.id)
+      }
+    }
+  }
+  return bypassed
+}
+
 // Every edge that skips reference sequence, in graph.edges order.
 export function deletionEdges(graph: Graph): DeletionEdge[] {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
-  const backbone = graph.nodes.filter(isBackbone)
+  const backbone = backboneBySequence(graph)
   const found: DeletionEdge[] = []
   for (let edgeIndex = 0; edgeIndex < graph.edges.length; edgeIndex++) {
     const edge = graph.edges[edgeIndex]!
@@ -131,14 +194,7 @@ export function deletionEdges(graph: Graph): DeletionEdge[] {
           start,
           end,
           bp,
-          bypassed: backbone
-            .filter(
-              n =>
-                n.stable.refName === refName &&
-                n.stable.start >= start &&
-                n.stable.start + n.length <= end,
-            )
-            .map(n => n.id),
+          bypassed: bypassedNodes(backbone.get(refName), start, end),
         })
       }
     }

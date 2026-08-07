@@ -51,3 +51,23 @@ test('deduplicates entries across cells', () => {
   const unique = new Set(keys)
   expect(keys.length).toBe(unique.size)
 })
+
+// A row layout puts bp on x and a 20 px row pitch on y, so one cell size taken
+// from the two summed is the x size, and applied to y it swallows every row into
+// one cell: the grid stops discriminating on y and each query hands the distance
+// loop every row in the band. HPRC's rGFA is exactly this shape, at ~7 kb a
+// segment.
+test('a row layout is bucketed on both axes, not just on x', () => {
+  const rows: Record<string, { x: number; y: number }[]> = {}
+  for (let row = 0; row < 20; row++) {
+    rows[`r${row}`] = [
+      { x: 0, y: row * 20 },
+      { x: 7000, y: row * 20 },
+    ]
+  }
+  const index = new SpatialIndex(rows)
+
+  // 5 screen px of slack on y, which is a quarter of a row
+  const hits = index.query(3500, 0, 7000 * 0.001, 5)
+  expect(hits.map(h => h.nodeId)).toEqual(['r0'])
+})

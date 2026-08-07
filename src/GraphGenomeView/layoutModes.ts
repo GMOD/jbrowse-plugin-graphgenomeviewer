@@ -72,6 +72,8 @@ export const LAYOUT_MODE_VALUES = LAYOUT_MODES.map(m => m.value)
 
 export function layoutModeByValue(value: string) {
   // An unknown value can only come from a snapshot written by a build that had
-  // a mode this one doesn't; falling back to the default beats failing to draw
+  // a mode this one doesn't. It falls back to 'auto' rather than to the model's
+  // own default of 'force', because 'auto' declines any graph it cannot draw and
+  // hands off to force anyway, so this is the fallback that covers both.
   return LAYOUT_MODES.find(m => m.value === value) ?? LAYOUT_MODES[0]
 }
