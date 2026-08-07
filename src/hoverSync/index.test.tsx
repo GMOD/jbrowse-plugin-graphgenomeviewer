@@ -15,6 +15,10 @@ import type PluginManager from '@jbrowse/core/PluginManager'
 // pair that says so, and the second is the one that would have caught it.
 const POINT = 'LinearGenomeView-TracksContainerComponent'
 
+// the two members the highlight actually reaches: the id it is matched by and
+// the LGV's own projection
+const lgv = () => ({ id: 'lgv1', getHighlightCoords: () => undefined })
+
 // enough of a pluginManager to record a registration; the two halves differ only
 // in which method the host offers
 function modernHost() {
@@ -64,7 +68,7 @@ test('a host with the accumulating method gets one contributed element', () => {
   expect(calls).toHaveLength(1)
   expect(calls[0]!.name).toBe(POINT)
   // one element, not an array: the fold and the key are the method's job
-  expect(calls[0]!.callback({ model: { id: 'lgv1' } })).toBeTruthy()
+  expect(calls[0]!.callback({ model: lgv() })).toBeTruthy()
 })
 
 test('a host without it still registers, and appends rather than replacing', () => {
@@ -78,20 +82,27 @@ test('a host without it still registers, and appends rather than replacing', () 
   // free: append. Returning just its own element would delete every other
   // plugin's, which is the bug that method exists to prevent.
   const existing = ['someone-elses-element']
-  const result = calls[0]!.callback(existing, { model: { id: 'lgv1' } })
+  const result = calls[0]!.callback(existing, { model: lgv() })
   expect(result).toHaveLength(2)
   expect(result[0]).toBe(existing[0])
   // and the input array is left alone
   expect(existing).toHaveLength(1)
 })
 
-// A host that hands the callback something with no model has nothing to draw a
-// highlight against, and dropping the accumulated array there would delete other
-// plugins' entries on the way past.
-test('the fallback passes the accumulated entries through when there is no model', () => {
+// A host that hands the callback nothing it can draw against has to leave the
+// accumulated array alone: dropping it would delete every other plugin's entries
+// on the way past, which is the bug contributeToExtensionPoint exists to prevent
+// and which the fallback path has to avoid on its own.
+test('the fallback passes the entries through when there is nothing to draw against', () => {
   const { calls, manager } = releasedHost()
   GraphHoverSyncF(manager)
 
   const existing = ['someone-elses-element']
   expect(calls[0]!.callback(existing, {})).toEqual(existing)
+  // ...including a props whose `model` is not a linear view at all, which is
+  // what an older host's registry offers no guarantee about
+  expect(calls[0]!.callback(existing, { model: { id: 'lgv1' } })).toEqual(
+    existing,
+  )
+  expect(calls[0]!.callback(existing, { model: null })).toEqual(existing)
 })

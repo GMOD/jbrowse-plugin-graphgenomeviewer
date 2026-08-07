@@ -11,6 +11,9 @@ import type { ProjectedAllele } from '../../alleleProjection/projectAlleles'
 import type { Graph, GraphEdge, NodeSegment } from '../types'
 import type { BezierCurve } from '../util/geometry'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 // A bubble is drawn by two edges: the one entering an off-reference node and
 // the one leaving it. Those two are the only pair a reader reads as one shape,
 // so a crossing between them is a drawing artifact rather than the graph
@@ -86,7 +89,7 @@ function crossingBubbles(
     const f = positions[edge.from]
     const t = positions[edge.to]
     return f && t
-      ? computeEdgeCurves(f, t, edge.from === edge.to, 0, 0, 1)
+      ? computeEdgeCurves(f, t, edge.from === edge.to, 0, 0, iso())
       : undefined
   }
   const crossing: string[] = []

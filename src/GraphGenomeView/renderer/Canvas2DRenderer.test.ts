@@ -4,6 +4,9 @@ import { recordingCanvas } from './recordingCanvas'
 
 import type { TransformUniform } from './types'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 function makeRenderer() {
   const { canvas, strokes, fills } = recordingCanvas()
   return { renderer: new Canvas2DRenderer(canvas), strokes, fills }
@@ -55,7 +58,7 @@ function batchOf2Edges() {
     contigThickness: 10,
     connectorThickness: 4,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
   })
 }
 

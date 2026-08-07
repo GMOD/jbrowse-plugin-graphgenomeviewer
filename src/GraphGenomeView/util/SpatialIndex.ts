@@ -2,7 +2,7 @@ import { computeEdgeCurves } from './geometry'
 import { bypassedPoints } from '../deletionEdges'
 
 import type { Graph, NodeSegment } from '../types'
-import type { BezierCurve } from './geometry'
+import type { AxisScale, BezierCurve } from './geometry'
 
 interface CellEntry {
   nodeId: string
@@ -162,7 +162,9 @@ export class EdgeSpatialIndex {
     nodePositions: Record<string, NodeSegment[]>,
     graph: Graph,
     drawPaths: boolean,
-    scale = 1,
+    // The transform the curves indexed here were drawn under, so hit detection
+    // tests the shape on screen. See AxisScale.
+    axis: AxisScale,
     cellSize?: number,
     // Bypassed backbone ids per deletion edge, i.e. what GeometryBuilder is
     // given. Without it a deletion is indexed and hit-tested on the STRAIGHT
@@ -172,9 +174,6 @@ export class EdgeSpatialIndex {
     // interval and the bp. Bowing is part of the drawn geometry, so it has to be
     // part of the geometry hit detection uses.
     deletions?: Map<number, string[]>,
-    // y units per x unit as drawn, so the curves indexed here are the ones the
-    // renderer drew. See computeEdgeCurves.
-    yToX = 1,
   ) {
     const boxes: {
       ei: number
@@ -197,9 +196,8 @@ export class EdgeSpatialIndex {
           isSelfLoop,
           0,
           0,
-          scale,
+          axis,
           bypassed ? bypassedPoints(nodePositions, bypassed) : [],
-          yToX,
         )
         this.edgeCurves.set(ei, curves)
 

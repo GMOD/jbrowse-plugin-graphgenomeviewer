@@ -3,7 +3,7 @@ import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
 import type { AlleleDeletion, NodeSegment } from './types'
-import type { BezierCurve } from './util/geometry'
+import type { AxisScale, BezierCurve } from './util/geometry'
 
 // What to write on the drawing, and where. Bandage labels a node with its name,
 // its length or its depth; a segment id means nothing to a reader of a pangenome
@@ -255,8 +255,7 @@ export function graphLabels({
   nodeLengths,
   deletions,
   alleleDeletions,
-  scaleX,
-  scaleY,
+  axis,
   translateX,
   translateY,
   width,
@@ -271,10 +270,10 @@ export function graphLabels({
   // cannot: empty under a layout drawn at sequence scale, where a node's own
   // length IS what its drawn extent means. See AlleleDeletion.
   alleleDeletions?: AlleleDeletion[]
-  // Screen px per layout unit, per axis. They are equal on an isotropic layout
-  // and differ on a row layout, whose y is already px (scaleY === 1).
-  scaleX: number
-  scaleY: number
+  // Screen px per layout unit, both axes. They are equal on an isotropic layout
+  // and differ on a row layout, whose y is already px (scaleY === 1). One value
+  // so a caller cannot pass one and default the other — see AxisScale.
+  axis: AxisScale
   translateX: number
   translateY: number
   width: number
@@ -287,17 +286,13 @@ export function graphLabels({
   // pass moves that label instead of clipping it.
   reserved?: Box[]
 }): GraphLabel[] {
+  const { scaleX, scaleY } = axis
   // Deletions first, so an arc keeps its label against the nodes around it: the
   // arc is the only thing in the drawing that represents sequence which is not
   // there, and a reader who cannot read it has no other route to it.
   const candidates: GraphLabel[] = []
   for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
-    const curves = deletionArcCurves(
-      nodePositions,
-      deletion,
-      scaleX,
-      scaleY / scaleX,
-    )
+    const curves = deletionArcCurves(nodePositions, deletion, axis)
     const apex = curves ? curveMidpoint(curves) : undefined
     if (curves && apex) {
       const { minX, minY, maxX, maxY } = curveBounds(curves)

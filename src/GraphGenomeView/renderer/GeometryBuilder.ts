@@ -7,7 +7,7 @@ import {
   pathHueAt,
 } from '../pathColors'
 import { referenceMidpoints } from '../referenceSpan'
-import { computeEdgeCurves, dashCurves } from '../util/geometry'
+import { computeEdgeCurves, dashCurves, yToXOf } from '../util/geometry'
 import {
   FIELD_OFFSET_F32,
   INSTANCE_STRIDE_BYTES,
@@ -22,7 +22,7 @@ import type {
   SubBatch,
   VertexRange,
 } from './types'
-import type { BezierCurve } from '../util/geometry'
+import type { AxisScale, BezierCurve } from '../util/geometry'
 
 // Colors flow through the geometry builder as ABGR-in-u32 (see colorBits.ts).
 // That matches the shader's uint color attribute so no repacking happens at
@@ -176,14 +176,12 @@ export interface BuildOptions {
   contigThickness: number
   connectorThickness: number
   drawPaths: boolean
-  // x world units per screen px, i.e. the model's scaleX. Every screen-metric
-  // constant here (dash period, stripe width, hit slack) is divided by it.
-  scale: number
-  // y world units per x world unit, as drawn — the model's scaleY / scaleX. 1 on
-  // an isotropic layout; on a row layout y is screen px and x is bp, and this is
-  // what lets a curve or a normal be perpendicular to what a reader sees rather
-  // than to a pair of numbers in different units. See computeEdgeCurves.
-  yToX?: number
+  // Both scales together, and required. Every screen-metric constant here (dash
+  // period, stripe width, arrowhead angle) divides by scaleX, and everything
+  // that mixes the axes needs their ratio; taking them as one value is what
+  // keeps a caller from supplying an x scale and defaulting y, which draws a
+  // wrong picture and reports nothing. See AxisScale.
+  axis: AxisScale
   linearLayout?: boolean
   viewportBounds?: { minX: number; minY: number; maxX: number; maxY: number }
   // the reference interval the 'reference-position' ramp spans, i.e. the region
@@ -746,13 +744,14 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     contigThickness,
     connectorThickness,
     drawPaths,
-    scale,
-    yToX = 1,
+    axis,
     linearLayout,
     viewportBounds,
     colorDomain,
     deletions,
   } = options
+  const scale = axis.scaleX
+  const yToX = yToXOf(axis)
 
   const nodeMesh = new MeshBuilder()
   const arrowMesh = new MeshBuilder()
@@ -854,9 +853,8 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         isSelfLoop,
         offsetX,
         offsetY,
-        scale,
+        axis,
         bowAroundNodes,
-        yToX,
       )
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {

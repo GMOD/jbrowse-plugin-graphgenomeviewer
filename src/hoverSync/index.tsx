@@ -20,13 +20,29 @@ function highlightFor(model: LinearGenomeViewModel) {
 }
 
 // The `props` an accumulating point hands a callback, at the untyped boundary
-// below. A guard rather than a cast: on the fallback path the host is an older
-// JBrowse whose registry this plugin's types do not describe, so what arrives is
-// genuinely unknown until it is checked.
+// below. On the fallback path the host is an older JBrowse whose extension-point
+// registry this plugin's types do not describe, so what arrives really is
+// unknown — a predicate is the honest shape, and a bare `'model' in props` would
+// be a cast wearing one.
+//
+// So it checks the two members that are actually reached: `id`, which
+// `graphViewHighlights` matches a graph view's `connectedViewId` against, and
+// `getHighlightCoords`, which is the LGV's own projection and the only method
+// called on the model. A host that has those draws correctly whatever else it
+// lacks; one that does not would throw inside the component instead, which on
+// this path is somebody's whole track container.
 function hasModel(props: Record<string, unknown>): props is {
   model: LinearGenomeViewModel
 } {
-  return 'model' in props && props.model !== null
+  const model: unknown = props.model
+  return (
+    typeof model === 'object' &&
+    model !== null &&
+    'id' in model &&
+    typeof model.id === 'string' &&
+    'getHighlightCoords' in model &&
+    typeof model.getHighlightCoords === 'function'
+  )
 }
 
 export default function GraphHoverSyncF(pluginManager: PluginManager) {

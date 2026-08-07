@@ -1,5 +1,8 @@
 import { formatBp, graphLabels, rowLabelBox } from './graphLabels'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 const NODES = {
   long: [
     { x: 0, y: 0 },
@@ -50,8 +53,7 @@ test('labels a node with the sequence it carries', () => {
     nodePositions: NODES,
     nodeLengths: LENGTHS,
     deletions: [],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '39 kb'])
@@ -65,8 +67,7 @@ test('drops a label the node cannot nearly hold', () => {
     nodePositions: NODES,
     nodeLengths: LENGTHS,
     deletions: [],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).not.toContain('7 bp')
@@ -80,8 +81,7 @@ test('sheds labels as the view zooms out', () => {
       nodePositions: NODES,
       nodeLengths: LENGTHS,
       deletions: [],
-      scaleX: scale,
-      scaleY: scale,
+      axis: iso(scale),
       ...VIEWPORT,
     }).map(l => l.text)
   expect(at(1).sort()).toEqual(['12 bp', '39 kb'])
@@ -94,8 +94,7 @@ test('drops a label that would land outside the canvas', () => {
     nodePositions: NODES,
     nodeLengths: LENGTHS,
     deletions: [],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
     // panned until the long node's midpoint is off the left edge
     translateX: -250,
@@ -121,8 +120,7 @@ test('a deletion names itself, positively, on its arc', () => {
         bypassed: ['long'],
       },
     ],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
   expect(label!.text).toBe('84.7 kb deletion')
@@ -160,8 +158,7 @@ test('a deletion label wins the space over a node label', () => {
         bypassed: ['long'],
       },
     ],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).toEqual(['84.7 kb deletion', '39 kb'])
@@ -194,8 +191,7 @@ test('a wide, shallow arc is labelled', () => {
         bypassed: ['shallow'],
       },
     ],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).toEqual(['9.3 kb deletion'])
@@ -219,8 +215,7 @@ test('the bigger deletion keeps its label', () => {
     nodePositions: FLANKED,
     nodeLengths: LENGTHS,
     deletions: [del(0, 10_000), del(1, 15_700)],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
   expect(labels.map(l => l.text)).toEqual(['15.7 kb deletion'])
@@ -244,8 +239,7 @@ test('an arc that can hold its own name keeps it, untethered', () => {
         bypassed: ['long'],
       },
     ],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
   expect(label!.leader).toBeUndefined()
@@ -282,8 +276,7 @@ const CRAMPED = {
       bypassed: ['short'],
     },
   ],
-  scaleX: 1,
-  scaleY: 1,
+  axis: iso(),
   ...VIEWPORT,
 }
 
@@ -383,8 +376,7 @@ test('a row label holds its space against a node label', () => {
       },
       nodeLengths: new Map([['atEdge', 17]]),
       deletions: [],
-      scaleX: 1,
-      scaleY: 1,
+      axis: iso(),
       ...VIEWPORT,
       reserved,
     }).map(l => l.text)
@@ -405,8 +397,7 @@ test('an allele that replaces more reference than it carries is a deletion', () 
     nodeLengths: LENGTHS,
     deletions: [],
     alleleDeletions: [{ nodeIds: ['long'], bp: 7019 }],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '7 kb deletion'])
@@ -422,8 +413,7 @@ test('a node inside a labelled allele deletion keeps its length off the drawing'
     nodeLengths: LENGTHS,
     deletions: [],
     alleleDeletions: [{ nodeIds: ['long'], bp: 7019 }],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).not.toContain('39 kb')
@@ -438,8 +428,7 @@ test('an allele deletion too small to carry its label is dropped, not shrunk', (
     nodeLengths: LENGTHS,
     deletions: [],
     alleleDeletions: [{ nodeIds: ['speck'], bp: 3 }],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '39 kb'])
@@ -460,8 +449,7 @@ test('a run reaching off-frame is labelled on the part that is shown', () => {
     nodeLengths: new Map([['offframe', 93]]),
     deletions: [],
     alleleDeletions: [{ nodeIds: ['offframe'], bp: 7019 }],
-    scaleX: 1,
-    scaleY: 1,
+    axis: iso(),
     ...VIEWPORT,
   })
   expect(labels.map(l => l.text)).toEqual(['7 kb deletion'])

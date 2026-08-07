@@ -9,6 +9,9 @@ import {
 
 import type { BezierCurve } from './geometry'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 // A quarter-circle-ish arc, enough to tell "on the curve" from "near the chord".
 const ARC: BezierCurve = {
   x0: 0,
@@ -80,7 +83,7 @@ describe('curveMidpoint', () => {
       { x: 0, y: 0 },
       { x: 200, y: 0 },
     ]
-    const curves = computeEdgeCurves(from, to, false, 0, 0, 1, bypassed)
+    const curves = computeEdgeCurves(from, to, false, 0, 0, iso(), bypassed)
     const mid = curveMidpoint(curves)!
     expect(curves).toHaveLength(1)
     const onCurve = curvePointAt(curves[0]!, 0.5)
@@ -126,7 +129,7 @@ describe('computeEdgeCurves', () => {
       { x: 20, y: 0 },
       { x: 30, y: 0 },
     ]
-    const curves = computeEdgeCurves(from, to, false, 0, 0, 1)
+    const curves = computeEdgeCurves(from, to, false, 0, 0, iso())
 
     expect(curves).toHaveLength(1)
     expect(curves[0]!.x0).toBeCloseTo(10)
@@ -140,7 +143,7 @@ describe('computeEdgeCurves', () => {
       { x: 0, y: 0 },
       { x: 10, y: 0 },
     ]
-    const curves = computeEdgeCurves(segments, segments, true, 0, 0, 1)
+    const curves = computeEdgeCurves(segments, segments, true, 0, 0, iso())
 
     expect(curves).toHaveLength(2)
     expect(curves[0]!.x1).toBeCloseTo(curves[1]!.x0)
@@ -156,7 +159,7 @@ describe('computeEdgeCurves', () => {
       { x: 20, y: 0 },
       { x: 30, y: 0 },
     ]
-    const curves = computeEdgeCurves(from, to, false, 0, 5, 1)
+    const curves = computeEdgeCurves(from, to, false, 0, 5, iso())
 
     expect(curves[0]!.y0).toBeCloseTo(5)
     expect(curves[0]!.y1).toBeCloseTo(5)
@@ -220,10 +223,10 @@ describe('translateCurves matches computeEdgeCurves offset', () => {
   test.each(cases)(
     '%s: translation equals offset compute',
     (_name, from, to, selfLoop) => {
-      const base = computeEdgeCurves(from, to, selfLoop, 0, 0, 1)
+      const base = computeEdgeCurves(from, to, selfLoop, 0, 0, iso())
       for (const [dx, dy] of offsets) {
         const translated = translateCurves(base, dx!, dy!)
-        const direct = computeEdgeCurves(from, to, selfLoop, dx!, dy!, 1)
+        const direct = computeEdgeCurves(from, to, selfLoop, dx!, dy!, iso())
         expect(translated).toHaveLength(direct.length)
         for (let i = 0; i < direct.length; i++) {
           const t = translated[i]!
@@ -269,16 +272,15 @@ describe('anisotropic axes', () => {
   }
 
   test('a curve is the same drawing whichever unit y arrived in', () => {
-    const flat = computeEdgeCurves(inXUnits.from, inXUnits.to, false, 0, 0, 1)
+    const flat = computeEdgeCurves(inXUnits.from, inXUnits.to, false, 0, 0, iso())
     const rows = computeEdgeCurves(
       asRows.from,
       asRows.to,
       false,
       0,
       0,
-      1,
+      { scaleX: 1, scaleY: yToX },
       [],
-      yToX,
     )
     expect(rows).toHaveLength(flat.length)
     for (let i = 0; i < flat.length; i++) {
@@ -320,7 +322,7 @@ describe('anisotropic axes', () => {
       Math.abs(curvePointAt(curves[0]!, 0.5).y * k)
 
     const bowFlat = apexOf(
-      computeEdgeCurves(flat.from, flat.to, false, 0, 0, 1, flat.bypassed),
+      computeEdgeCurves(flat.from, flat.to, false, 0, 0, iso(), flat.bypassed),
       1,
     )
     const bowRows = apexOf(
@@ -330,9 +332,8 @@ describe('anisotropic axes', () => {
         false,
         0,
         0,
-        1,
+      { scaleX: 1, scaleY: yToX },
         flat.bypassed,
-        yToX,
       ),
       yToX,
     )
@@ -344,7 +345,7 @@ describe('anisotropic axes', () => {
   // than merely close: every committed force-directed figure is that path.
   test('yToX of 1 is byte-identical to no conversion at all', () => {
     expect(
-      computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, 1, [], 1),
-    ).toEqual(computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, 1))
+      computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, iso(), []),
+    ).toEqual(computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, iso()))
   })
 })

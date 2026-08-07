@@ -18,38 +18,34 @@ function fmtMs(ms: number | undefined) {
   return ms === undefined ? '–' : `${Math.round(ms)}ms`
 }
 
-// Perf readout — always carries the raw numbers as data-* attributes, so browser
-// tests can assert against timing budgets without scraping formatted text, and
-// so turning the TEXT off costs no coverage.
+// The perf READOUT, off by default: it sat in the toolbar of every published
+// graph figure, where one machine's fetch time is a number a reader has to work
+// out is not about them. `showPerf` is in the settings menu.
 //
-// The text is off by default (`showPerf`, in the settings menu) because it sat
-// in the toolbar of every published graph figure, where one machine's fetch time
-// is a number a reader has to work out is not about them.
+// The numbers themselves are not conditional — they ride the stats element's
+// data-* attributes either way (see GraphStats), so a browser test asserting a
+// timing budget never depends on a display setting, and turning the text off
+// costs no coverage. They live there rather than on this element so that
+// switching the text off leaves no empty node behind to carry them.
 const GraphPerf = observer(function GraphPerf({
   model,
 }: {
   model: GraphGenomeViewModel
 }) {
   const { classes } = useStyles()
-  const { lastFetchMs, lastLayoutMs, lastGeometryMs, lastGeometryVertexCount } =
-    model
+  const { lastFetchMs, lastLayoutMs, lastGeometryMs } = model
   const hasMetrics =
     lastFetchMs !== undefined ||
     lastLayoutMs !== undefined ||
     lastGeometryMs !== undefined
-  return hasMetrics ? (
+  return model.showPerf && hasMetrics ? (
     <Typography
       variant="caption"
       className={classes.perf}
       data-testid="graph-perf-stats"
-      data-fetch-ms={lastFetchMs ?? ''}
-      data-layout-ms={lastLayoutMs ?? ''}
-      data-geometry-ms={lastGeometryMs ?? ''}
-      data-geometry-vertices={lastGeometryVertexCount ?? ''}
     >
-      {model.showPerf
-        ? `fetch ${fmtMs(lastFetchMs)} · layout ${fmtMs(lastLayoutMs)} · geom ${fmtMs(lastGeometryMs)}`
-        : null}
+      fetch {fmtMs(lastFetchMs)} · layout {fmtMs(lastLayoutMs)} · geom{' '}
+      {fmtMs(lastGeometryMs)}
     </Typography>
   ) : null
 })
@@ -67,6 +63,12 @@ const GraphStats = observer(function GraphStats({
       data-node-count={model.nodeCount}
       data-edge-count={model.edgeCount}
       data-path-count={model.pathCount}
+      // unconditional, whatever `showPerf` is doing to the text beside them —
+      // see GraphPerf
+      data-fetch-ms={model.lastFetchMs ?? ''}
+      data-layout-ms={model.lastLayoutMs ?? ''}
+      data-geometry-ms={model.lastGeometryMs ?? ''}
+      data-geometry-vertices={model.lastGeometryVertexCount ?? ''}
     >
       <Typography variant="body2" component="span">
         {model.nodeCount} nodes, {model.edgeCount} edges

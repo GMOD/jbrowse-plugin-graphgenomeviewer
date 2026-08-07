@@ -1,8 +1,8 @@
 import { EdgeSpatialIndex, SpatialIndex } from './SpatialIndex'
-import { translateCurves } from './geometry'
+import { translateCurves, yToXOf } from './geometry'
 
 import type { Graph, NodeSegment } from '../types'
-import type { BezierCurve } from './geometry'
+import type { AxisScale, BezierCurve } from './geometry'
 
 export function distanceToSegment(
   px: number,
@@ -134,8 +134,11 @@ const edgeCache = new WeakMap<
   {
     graph: Graph
     drawPaths: boolean
-    scale: number
-    yToX: number
+    // compared by VALUE, not by the AxisScale's identity: the model rebuilds
+    // that object whenever either scale changes, so identity would miss a cache
+    // hit on every mousemove
+    scaleX: number
+    scaleY: number
     version: number
     index: EdgeSpatialIndex
     deletions?: Map<number, string[]>
@@ -146,8 +149,7 @@ function getEdgeSpatialIndex(
   nodePositions: Record<string, NodeSegment[]>,
   graph: Graph,
   drawPaths: boolean,
-  scale: number,
-  yToX: number,
+  axis: AxisScale,
   version: number,
   deletions?: Map<number, string[]>,
 ) {
@@ -155,8 +157,8 @@ function getEdgeSpatialIndex(
   if (
     cached?.graph === graph &&
     cached.drawPaths === drawPaths &&
-    cached.scale === scale &&
-    cached.yToX === yToX &&
+    cached.scaleX === axis.scaleX &&
+    cached.scaleY === axis.scaleY &&
     cached.version === version &&
     cached.deletions === deletions
   ) {
@@ -166,16 +168,15 @@ function getEdgeSpatialIndex(
     nodePositions,
     graph,
     drawPaths,
-    scale,
+    axis,
     undefined,
     deletions,
-    yToX,
   )
   edgeCache.set(nodePositions, {
     graph,
     drawPaths,
-    scale,
-    yToX,
+    scaleX: axis.scaleX,
+    scaleY: axis.scaleY,
     version,
     index,
     deletions,
@@ -193,11 +194,11 @@ export function findHoveredNode(
   nodePositions: Record<string, NodeSegment[]>,
   graphX: number,
   graphY: number,
-  scale: number,
+  axis: AxisScale,
   version = 0,
-  yToX = 1,
 ) {
-  const nodeThreshold = 5 / scale
+  const yToX = yToXOf(axis)
+  const nodeThreshold = 5 / axis.scaleX
   const index = getSpatialIndex(nodePositions, version)
   const candidates = index.query(
     graphX,
@@ -235,19 +236,18 @@ export function findHoveredEdge(
   graph: Graph,
   graphX: number,
   graphY: number,
-  scale: number,
+  axis: AxisScale,
   drawPaths: boolean,
   version = 0,
   deletions?: Map<number, string[]>,
-  yToX = 1,
 ) {
-  const edgeThreshold = 10 / scale
+  const yToX = yToXOf(axis)
+  const edgeThreshold = 10 / axis.scaleX
   const edgeIndex = getEdgeSpatialIndex(
     nodePositions,
     graph,
     drawPaths,
-    scale,
-    yToX,
+    axis,
     version,
     deletions,
   )

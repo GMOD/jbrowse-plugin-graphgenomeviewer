@@ -18,6 +18,9 @@ import {
   INSTANCE_STRIDE_F32,
 } from './shaders/graph.generated'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 const simpleGraph = {
   name: 'test',
   nodes: [
@@ -42,7 +45,7 @@ const simplePositions = {
 
 test('produces non-empty geometry for simple graph', () => {
   const batch = buildGeometry({
-    scale: 1,
+    axis: iso(),
     nodePositions: simplePositions,
     graph: simpleGraph,
     nodeById: simpleNodeById,
@@ -73,7 +76,7 @@ test('produces different geometry for different color schemes', () => {
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
   }
 
   const uniformBatch = buildGeometry({
@@ -99,7 +102,7 @@ test('tracks vertex ranges for nodes and edges', () => {
     graph: simpleGraph,
     nodeById: simpleNodeById,
     colorScheme: 'uniform',
-    scale: 1,
+    axis: iso(),
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
@@ -119,7 +122,7 @@ test('tracks vertex ranges for nodes and edges', () => {
 test('handles empty node positions gracefully', () => {
   const batch = buildGeometry({
     nodePositions: {},
-    scale: 1,
+    axis: iso(),
     graph: simpleGraph,
     nodeById: simpleNodeById,
     colorScheme: 'uniform',
@@ -142,7 +145,7 @@ test('handles graph with paths and drawPaths', () => {
 
   const batch = buildGeometry({
     nodePositions: simplePositions,
-    scale: 1,
+    axis: iso(),
     graph: graphWithPaths,
     nodeById: simpleNodeById,
     colorScheme: 'uniform',
@@ -171,7 +174,7 @@ const carriageGraph = {
 
 const carriageOpts = {
   nodePositions: simplePositions,
-  scale: 1,
+  axis: iso(),
   graph: carriageGraph,
   nodeById: simpleNodeById,
   colorScheme: 'uniform' as const,
@@ -249,8 +252,8 @@ test('the stripe offset is in world units, so zoom does not fan them apart', () 
   }
   // the stripes are laid across a width stated in screen px, so in world units
   // they must spread twice as far when the view is drawn at half the zoom
-  const near = buildGeometry({ ...carriageOpts, drawPaths: true, scale: 1 })
-  const far = buildGeometry({ ...carriageOpts, drawPaths: true, scale: 0.5 })
+  const near = buildGeometry({ ...carriageOpts, drawPaths: true, axis: iso()})
+  const far = buildGeometry({ ...carriageOpts, drawPaths: true, axis: iso(0.5)})
   expect(yAt(far, 'A+')).toBeCloseTo(yAt(near, 'A+') * 2, 5)
 })
 
@@ -273,7 +276,7 @@ test('a many-path graph is not striped at all', () => {
 
 test('stores normals and thicknesses for shader-based expansion', () => {
   const batch = buildGeometry({
-    scale: 1,
+    axis: iso(),
     nodePositions: simplePositions,
     graph: simpleGraph,
     nodeById: simpleNodeById,
@@ -306,7 +309,7 @@ test('brightenColors produces brighter values', () => {
   const batch = buildGeometry({
     nodePositions: simplePositions,
     graph: simpleGraph,
-    scale: 1,
+    axis: iso(),
     nodeById: simpleNodeById,
     colorScheme: 'uniform',
     contigThickness: 5,
@@ -332,7 +335,7 @@ test('brightenColors produces brighter values', () => {
 
 test('viewport culling skips off-screen nodes', () => {
   const batch = buildGeometry({
-    scale: 1,
+    axis: iso(),
     nodePositions: simplePositions,
     graph: simpleGraph,
     nodeById: simpleNodeById,
@@ -362,7 +365,7 @@ test('viewport culling keeps a node spanning the whole viewport', () => {
     graph: { name: 'test', nodes, edges: [] },
     nodeById: new Map(nodes.map(n => [n.id, n])),
     colorScheme: 'uniform',
-    scale: 1,
+    axis: iso(),
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
@@ -395,7 +398,7 @@ test('node-length color scheme produces distinct colors for different lengths', 
     graph,
     nodeById,
     colorScheme: 'node-length',
-    scale: 1,
+    axis: iso(),
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
@@ -438,7 +441,7 @@ test('rainbow color scheme produces distinct colors for nodes at different indic
     graph,
     nodeById,
     colorScheme: 'rainbow',
-    scale: 1,
+    axis: iso(),
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
@@ -480,7 +483,7 @@ test('builds geometry for a self-loop edge', () => {
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
   })
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
   // a self loop is two curves, so it strokes as one two-segment path
@@ -507,7 +510,7 @@ test('skips edges that reference missing node positions', () => {
     contigThickness: 5,
     connectorThickness: 1.5,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
   })
   // node still builds; the dangling edge is silently dropped
   expect(batch.nodes.vertexCount).toBeGreaterThan(0)
@@ -660,7 +663,7 @@ describe('the reference-position ramp', () => {
       nodeById: new Map(nodes.map(n => [n.id, n])),
       colorScheme: 'reference-position',
       colorDomain,
-      scale: 1,
+      axis: iso(),
       contigThickness: 5,
       connectorThickness: 1.5,
       drawPaths: false,

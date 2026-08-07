@@ -15,6 +15,7 @@ import { recordingCanvas } from './renderer/recordingCanvas'
 
 import type { Graph } from './types'
 
+
 const mockRpcCall = vi.fn()
 // The canonical assembly a name or alias resolves to, which is what
 // assemblyManager.assemblyNameMap does: it is keyed by [name, ...aliases].
@@ -1677,8 +1678,23 @@ describe('what the row axis draws, in pixels', () => {
   // 4 rows: a rank-0 backbone over 0-100 kb, and one allele each at ranks 1-3
   const FOUR_ROWS = [
     'H\tVN:Z:1.0',
+    // abutting, so the reference route itself skips nothing and the only
+    // deletion in the graph is the link that bypasses `m`
     'S\t1\t*\tLN:i:25000\tSN:Z:chr\tSO:i:0\tSR:i:0',
-    'S\t2\t*\tLN:i:25000\tSN:Z:chr\tSO:i:75000\tSR:i:0',
+    'S\tm\t*\tLN:i:20000\tSN:Z:chr\tSO:i:25000\tSR:i:0',
+    'S\t2\t*\tLN:i:25000\tSN:Z:chr\tSO:i:45000\tSR:i:0',
+    // the reference route through the middle segment...
+    'L\t1\t+\tm\t+\t0M',
+    'L\tm\t+\t2\t+\t0M',
+    // ...and the one that skips it, i.e. a deletion, which is in the fixture
+    // because its BOW is the only thing here whose shape depends on both axes.
+    // A node polyline in a row layout is horizontal, so its normals are (0,±1)
+    // under any axis and its position comes from the transform — without an arc
+    // these tests pass with the axis wrong, which is what they were doing. The
+    // bow also needs backbone BETWEEN the anchors to size itself against, which
+    // is what `m` is for: with nothing to pass around, bowAround returns 0 and
+    // the arc is a straight chord that notices nothing either.
+    'L\t1\t+\t2\t+\t0M',
     ...[1, 2, 3].flatMap(rank => [
       `S\ta${rank}\t*\tLN:i:500\tSN:Z:alt${rank}\tSO:i:0\tSR:i:${rank}`,
       `L\t1\t+\ta${rank}\t+\t0M`,
@@ -1701,8 +1717,8 @@ describe('what the row axis draws, in pixels', () => {
         contigThickness: 10,
         connectorThickness: 4,
         drawPaths: false,
-        scale: model.scaleX,
-        yToX: model.scaleY / model.scaleX,
+        axis: model.axisScale,
+        deletions: model.deletionEdgeIndexes,
       }),
     )
     renderer.updateTransform({
@@ -1730,13 +1746,35 @@ describe('what the row axis draws, in pixels', () => {
     const model = await fitted()
     const points = render(model)
     expect(points.length).toBeGreaterThan(0)
-    const ys = points.map(p => p.y)
+    // the node tubes, which is what a row pitch is about: the arc reaches above
+    // them by design, so it is measured on its own below
+    const rowYs = model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
 
-    // three row gaps plus the tube's own thickness, top edge to bottom edge
-    expect(spread(ys)).toBeCloseTo(3 * ROW_HEIGHT_PX + model.contigThickness, 5)
-    // and it fits, which is what the pane is sized for
-    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0)
-    expect(Math.max(...ys)).toBeLessThanOrEqual(model.canvasHeight)
+    // three row gaps, and each tube half a thickness either side of its row
+    expect(spread(rowYs)).toBeCloseTo(3 * ROW_HEIGHT_PX, 5)
+    expect(Math.min(...rowYs) - model.contigThickness / 2).toBeGreaterThan(0)
+    expect(
+      Math.max(...rowYs) + model.contigThickness / 2,
+    ).toBeLessThan(model.canvasHeight)
+  })
+
+  // The assertion that actually depends on both scales. A deletion's bow is
+  // sized off the run it passes around, in x units; put on a y axis ~100x finer
+  // without the conversion it is a ~100x balloon that leaves the pane entirely
+  // and takes its label with it. Everything else in this drawing is horizontal
+  // and would not notice.
+  test('the deletion arc bows a legible distance, not a hundred rows', async () => {
+    const model = await fitted()
+    expect(model.deletions).toHaveLength(1)
+    const points = render(model)
+
+    const top = Math.min(...points.map(p => p.y))
+    const bottom = Math.max(...points.map(p => p.y))
+    // it does bow — a flat arc would mean the bow was dropped, not converted
+    expect(bottom - top).toBeGreaterThan(3 * ROW_HEIGHT_PX)
+    // ...and it bows in screen px, so the whole drawing still fits its pane
+    expect(top).toBeGreaterThan(-model.canvasHeight)
+    expect(bottom).toBeLessThan(2 * model.canvasHeight)
   })
 
   // The panel-alignment half: the backbone is drawn across the pane rather than
@@ -1754,16 +1792,17 @@ describe('what the row axis draws, in pixels', () => {
   // exactly the same pixels and only x has moved.
   test('zooming x redraws the rows where they were', async () => {
     const model = await fitted()
+    // the ROWS, not every drawn point: the deletion arc's bow is sized in x
+    // units, so it grows with the zoom by design and would mask this
+    const rowYs = () =>
+      model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
+    const rowsBefore = rowYs()
     const before = render(model)
 
     model.zoom(3, model.width / 2, model.canvasHeight / 2)
     const after = render(model)
 
-    expect(spread(after.map(p => p.y))).toBeCloseTo(spread(before.map(p => p.y)), 5)
-    expect(Math.min(...after.map(p => p.y))).toBeCloseTo(
-      Math.min(...before.map(p => p.y)),
-      5,
-    )
+    expect(rowYs()).toEqual(rowsBefore)
     // measured without the round caps, which are screen px and so do not zoom
     const tube = (points: { x: number }[]) =>
       spread(points.map(p => p.x)) - model.contigThickness

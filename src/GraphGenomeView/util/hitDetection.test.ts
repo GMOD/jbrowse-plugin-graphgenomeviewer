@@ -7,6 +7,9 @@ import {
 
 import type { Graph } from '../types'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 describe('distanceToSegment', () => {
   test('point on the segment', () => {
     expect(distanceToSegment(5, 0, 0, 0, 10, 0)).toBeCloseTo(0)
@@ -55,20 +58,20 @@ describe('findHoveredNode', () => {
   }
 
   test('finds node when cursor is on segment', () => {
-    expect(findHoveredNode(nodePositions, 5, 0, 1)).toBe('A+')
+    expect(findHoveredNode(nodePositions, 5, 0, iso())).toBe('A+')
   })
 
   test('finds node when cursor is near segment', () => {
-    expect(findHoveredNode(nodePositions, 5, 3, 1)).toBe('A+')
+    expect(findHoveredNode(nodePositions, 5, 3, iso())).toBe('A+')
   })
 
   test('returns null when cursor is far from nodes', () => {
-    expect(findHoveredNode(nodePositions, 50, 50, 1)).toBeNull()
+    expect(findHoveredNode(nodePositions, 50, 50, iso())).toBeNull()
   })
 
   test('respects scale for threshold', () => {
     // At scale 10, threshold is 5/10 = 0.5, so a point 3 units away should miss
-    expect(findHoveredNode(nodePositions, 5, 3, 10)).toBeNull()
+    expect(findHoveredNode(nodePositions, 5, 3, iso(10))).toBeNull()
   })
 })
 
@@ -95,20 +98,20 @@ describe('findHoveredEdge', () => {
   }
 
   test('hits edge on center lane', () => {
-    expect(findHoveredEdge(nodePositions, graph, 100, 0, 1, true)).toBe(0)
+    expect(findHoveredEdge(nodePositions, graph, 100, 0, iso(), true)).toBe(0)
   })
 
   test('hits edge on offset path lane', () => {
     // Outer lane sits ~3 units off center; 10/scale threshold easily covers it.
-    expect(findHoveredEdge(nodePositions, graph, 100, 3, 1, true)).toBe(0)
+    expect(findHoveredEdge(nodePositions, graph, 100, 3, iso(), true)).toBe(0)
   })
 
   test('misses when far from all lanes', () => {
-    expect(findHoveredEdge(nodePositions, graph, 100, 200, 1, true)).toBeNull()
+    expect(findHoveredEdge(nodePositions, graph, 100, 200, iso(), true)).toBeNull()
   })
 
   test('drawPaths=false still hits on centerline', () => {
-    expect(findHoveredEdge(nodePositions, graph, 100, 0, 1, false)).toBe(0)
+    expect(findHoveredEdge(nodePositions, graph, 100, 0, iso(), false)).toBe(0)
   })
 
   // A deletion is drawn bowed off its chord, and the tutorial tells the reader to
@@ -126,7 +129,7 @@ describe('findHoveredEdge', () => {
       ],
     }
     const at = (x: number, y: number, deletions?: Map<number, string[]>) =>
-      findHoveredEdge(withBypassed, graph, x, y, 1, false, 0, deletions)
+      findHoveredEdge(withBypassed, graph, x, y, iso(), false, 0, deletions)
 
     test('is hoverable where it is drawn', () => {
       // 0.35 * 100 = 35 of bulge, so the curve's own midpoint is near y = 26
@@ -155,8 +158,8 @@ test('picks the nearest node when several are inside the threshold', () => {
     ],
   }
   // scale 0.008 -> a 625 unit threshold, wide enough to reach both
-  expect(findHoveredNode(positions, 1050, 0, 0.008)).toBe('near+')
-  expect(findHoveredNode(positions, 550, 0, 0.008)).toBe('far+')
+  expect(findHoveredNode(positions, 1050, 0, iso(0.008))).toBe('near+')
+  expect(findHoveredNode(positions, 550, 0, iso(0.008))).toBe('far+')
 })
 
 // On a row layout x is reference bp and y is screen px, and the hover slack is
@@ -181,17 +184,17 @@ describe('hover on a row layout', () => {
   const yToX = 1 / scaleX
 
   test('a cursor on a row hits that row', () => {
-    expect(findHoveredNode(ROWS, 50_000, 2, scaleX, 0, yToX)).toBe('top')
-    expect(findHoveredNode(ROWS, 50_000, 18, scaleX, 0, yToX)).toBe('next')
+    expect(findHoveredNode(ROWS, 50_000, 2, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('top')
+    expect(findHoveredNode(ROWS, 50_000, 18, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('next')
   })
 
   test('a cursor between the rows hits neither', () => {
-    expect(findHoveredNode(ROWS, 50_000, 10, scaleX, 0, yToX)).toBeNull()
+    expect(findHoveredNode(ROWS, 50_000, 10, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBeNull()
   })
 
   test('the slack is still screen px along x', () => {
     // 300 bp past the end is 3 px at this scale, and inside the 5 px slack
-    expect(findHoveredNode(ROWS, 100_300, 0, scaleX, 0, yToX)).toBe('top')
-    expect(findHoveredNode(ROWS, 101_000, 0, scaleX, 0, yToX)).toBeNull()
+    expect(findHoveredNode(ROWS, 100_300, 0, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('top')
+    expect(findHoveredNode(ROWS, 101_000, 0, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBeNull()
   })
 })

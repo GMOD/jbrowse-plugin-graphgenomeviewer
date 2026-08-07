@@ -254,8 +254,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
     deletions: model.deletions,
     alleleDeletions: model.alleleDeletions,
-    scaleX: model.scaleX,
-    scaleY: model.scaleY,
+    axis: model.axisScale,
     translateX: model.translateX,
     translateY: model.translateY,
     width: model.width,
@@ -483,14 +482,7 @@ const GraphCanvas = observer(function GraphCanvas({
   function nodeAt(x: number, y: number) {
     const { nodePositions } = model
     return nodePositions
-      ? findHoveredNode(
-          nodePositions,
-          x,
-          y,
-          model.scaleX,
-          model.viewportDirty,
-          model.scaleY / model.scaleX,
-        )
+      ? findHoveredNode(nodePositions, x, y, model.axisScale, model.viewportDirty)
       : null
   }
 
@@ -537,11 +529,10 @@ const GraphCanvas = observer(function GraphCanvas({
               model.graph,
               x,
               y,
-              model.scaleX,
+              model.axisScale,
               model.drawPaths,
               model.viewportDirty,
               model.deletionEdgeIndexes,
-              model.scaleY / model.scaleX,
             ),
       )
     }

@@ -621,6 +621,13 @@ export default function stateModelFactory() {
       get scaleY() {
         return self.pixelRows ? 1 : self.scale
       },
+      // The pair, for everything that draws or hit-tests. Handed over as one
+      // value on purpose: every consumer needs both, and passing them separately
+      // let a caller supply the x scale and default y, which compiles and draws
+      // a wrong picture. See AxisScale.
+      get axisScale() {
+        return { scaleX: self.scale, scaleY: self.pixelRows ? 1 : self.scale }
+      },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in the middle of.
       //
@@ -1456,16 +1463,11 @@ export default function stateModelFactory() {
                 contigThickness: self.contigThickness,
                 connectorThickness: self.connectorThickness,
                 drawPaths: self.drawPaths,
-                // scale is untracked so a zoom doesn't eagerly rebuild
-                // geometry — the debounced viewportDirty bump drives the
-                // scale-dependent rebuild (flatness, arrow visibility,
-                // viewport culling), same as pan.
-                scale: untracked(() => self.scaleX),
-                // How the two axes compare on screen, so an edge curve or a
-                // node normal is perpendicular to what a reader sees. Untracked
-                // with `scale` and for the same reason: it only ever changes
-                // when the zoom does.
-                yToX: untracked(() => self.scaleY / self.scaleX),
+                // Untracked, so a zoom does not eagerly rebuild geometry — the
+                // debounced viewportDirty bump drives the scale-dependent
+                // rebuild (flatness, arrow visibility, viewport culling), same
+                // as pan.
+                axis: untracked(() => self.axisScale),
                 linearLayout: self.linearLayout,
                 viewportBounds: untracked(() => computeViewportBounds(self)),
                 // What the reference-position ramp spans — the cut region, or

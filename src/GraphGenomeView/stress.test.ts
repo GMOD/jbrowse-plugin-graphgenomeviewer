@@ -7,6 +7,9 @@ import { INSTANCE_STRIDE_F32 } from './renderer/shaders/graph.generated'
 
 import type { GraphNode, NodeSegment } from './types'
 
+// isotropic: one scale for both axes, which is every layout but the row ones
+const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
+
 // Builds a linear chain of `bubbleCount` diamond bubbles. Each bubble is
 // source -> {altA, altB} -> sink, and the sink is shared with the next
 // bubble's source, so the whole thing is one connected component shaped like
@@ -101,7 +104,7 @@ test('buildGeometry scales to a few thousand nodes', () => {
     contigThickness: 10,
     connectorThickness: 4,
     drawPaths: true,
-    scale: 1,
+    axis: iso(),
   })
   const elapsed = performance.now() - t0
 
@@ -130,7 +133,7 @@ test('buildGeometry scaling is roughly linear, not quadratic', () => {
       contigThickness: 10,
       connectorThickness: 4,
       drawPaths: false,
-      scale: 1,
+      axis: iso(),
     }
     buildGeometry(opts)
     const t0 = performance.now()
@@ -162,7 +165,7 @@ test('viewport culling drops the vast majority of off-screen nodes', () => {
     contigThickness: 10,
     connectorThickness: 4,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
     viewportBounds: { minX: 0, minY: -50, maxX: 500, maxY: 50 },
   })
 
@@ -209,7 +212,7 @@ test('draw calls per frame stay within the measured budget', () => {
     contigThickness: 10,
     connectorThickness: 4,
     drawPaths: false,
-    scale: 1,
+    axis: iso(),
   })
 
   const { strokes, fills } = countDrawCalls(batch)

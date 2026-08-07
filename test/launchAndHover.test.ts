@@ -119,6 +119,8 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
               loadedTrackId?: string
               loadedRegion?: unknown
               nodeCount?: number
+              colorScheme?: string
+              effectiveColorScheme?: string
               hoveredNode?: string | null
               hoverHighlight?: unknown
             }) => ({
@@ -127,6 +129,8 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
               loadedTrackId: v.loadedTrackId,
               loadedRegion: v.loadedRegion,
               nodeCount: v.nodeCount,
+              colorScheme: v.colorScheme,
+              effectiveColorScheme: v.effectiveColorScheme,
               hoveredNode: v.hoveredNode,
               hoverHighlight: v.hoverHighlight,
             }),
@@ -249,6 +253,17 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
       refName: REF_NAME,
       assemblyName: ASSEMBLY,
     })
+    // A menu launch takes the view's own defaults, and the colour default is
+    // 'auto' — resolved, on a graph carrying reference coordinates, to the ramp
+    // the linear lane above it can be painted with. It used to open flat grey
+    // and both tutorials spent a step saying "now pick a colour".
+    expect(graph.colorScheme).toBe('auto')
+    expect(graph.effectiveColorScheme).toBe('reference-position')
+    // ...and the key that says what the ramp spans is on screen with it, which
+    // is the half a reader needs and no assertion on the model can see
+    expect(
+      await page.$('[data-testid="graph-ramp-legend"]'),
+    ).not.toBeNull()
   }, 240_000)
 
   // ------------------------------------------------------------------ hover sync

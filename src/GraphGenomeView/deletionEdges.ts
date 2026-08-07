@@ -2,6 +2,8 @@ import { isBackbone } from './anchoredNodes'
 import { computeEdgeCurves } from './util/geometry'
 
 import type { Graph } from './types'
+import type { AxisScale } from './util/geometry'
+
 
 // A deletion is the one kind of variation this view could not draw, and the
 // reason is structural rather than cosmetic: extra sequence is a *node*, so it
@@ -78,8 +80,7 @@ export function bypassedPoints(
 export function deletionArcCurves(
   nodePositions: Record<string, { x: number; y: number }[]>,
   deletion: DeletionEdge,
-  scale: number,
-  yToX = 1,
+  axis: AxisScale,
 ) {
   const from = nodePositions[deletion.from]
   const to = nodePositions[deletion.to]
@@ -90,9 +91,8 @@ export function deletionArcCurves(
         deletion.from === deletion.to,
         0,
         0,
-        scale,
+        axis,
         bypassedPoints(nodePositions, deletion.bypassed),
-        yToX,
       )
     : undefined
 }
