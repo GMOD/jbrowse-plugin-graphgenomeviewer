@@ -18,8 +18,13 @@ function fmtMs(ms: number | undefined) {
   return ms === undefined ? '–' : `${Math.round(ms)}ms`
 }
 
-// Perf readout — also carries the raw numbers as data-* attributes so browser
-// tests can assert against timing budgets without scraping formatted text.
+// Perf readout — always carries the raw numbers as data-* attributes, so browser
+// tests can assert against timing budgets without scraping formatted text, and
+// so turning the TEXT off costs no coverage.
+//
+// The text is off by default (`showPerf`, in the settings menu) because it sat
+// in the toolbar of every published graph figure, where one machine's fetch time
+// is a number a reader has to work out is not about them.
 const GraphPerf = observer(function GraphPerf({
   model,
 }: {
@@ -42,8 +47,9 @@ const GraphPerf = observer(function GraphPerf({
       data-geometry-ms={lastGeometryMs ?? ''}
       data-geometry-vertices={lastGeometryVertexCount ?? ''}
     >
-      fetch {fmtMs(lastFetchMs)} · layout {fmtMs(lastLayoutMs)} · geom{' '}
-      {fmtMs(lastGeometryMs)}
+      {model.showPerf
+        ? `fetch ${fmtMs(lastFetchMs)} · layout ${fmtMs(lastLayoutMs)} · geom ${fmtMs(lastGeometryMs)}`
+        : null}
     </Typography>
   ) : null
 })

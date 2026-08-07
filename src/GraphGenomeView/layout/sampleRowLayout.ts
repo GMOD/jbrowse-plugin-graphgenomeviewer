@@ -41,22 +41,41 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // all.
 const MIN_ALLELE_SPAN_FRACTION = 0.015
 
-// Every assembly with a segment in this subgraph, sorted so rows keep their
-// order across pans. Taken from the nodes rather than from the projection's
-// per-allele attribution: a bubble path can mix assemblies, and a segment
-// belongs on the row of the assembly its own stable name gives it, not on the
-// row of whichever contributor happens to dominate the run it sits in.
+// Every assembly with a segment in this subgraph, ordered by how much
+// off-reference sequence it contributes here, most first. Taken from the nodes
+// rather than from the projection's per-allele attribution: a bubble path can
+// mix assemblies, and a segment belongs on the row of the assembly its own
+// stable name gives it, not on the row of whichever contributor happens to
+// dominate the run it sits in.
 //
 // Read off the same field `rowY` places by, so every row that exists has nodes
 // on it and every node lands on a row that exists.
+//
+// **Sorted by content rather than by name**, which is the change and the
+// tradeoff. Alphabetical put `HG00099` above `HG00280` for no reason a reader
+// could see, so a row's neighbours said nothing and the stack had to be read one
+// row at a time. By contributed sequence it reads the way a sorted pileup does:
+// the haplotypes doing the most to the reference are together at the top, and
+// how far down the stack the marks stop IS how many samples carry anything.
+//
+// What that costs is comparing one window against another — the order is a fact
+// about the window, so a sample is not in the same place in two of them. That is
+// the case §8's "a row set cannot be requested" is for, and an explicit sample
+// list is the right answer to it rather than an order nobody can read.
+//
+// Name breaks ties, so the order is still deterministic and a pan that changes
+// nothing about the content reshuffles nothing.
 function contributingSamples(graph: Graph) {
-  const samples = new Set<string>()
+  const carried = new Map<string, number>()
   for (const node of graph.nodes) {
     if (isOffReference(node)) {
-      samples.add(parsePanSN(node.stable.refName).sample)
+      const { sample } = parsePanSN(node.stable.refName)
+      carried.set(sample, (carried.get(sample) ?? 0) + node.length)
     }
   }
-  return [...samples].sort()
+  return [...carried.keys()].sort(
+    (a, b) => carried.get(b)! - carried.get(a)! || a.localeCompare(b),
+  )
 }
 
 export function sampleRowLayout(

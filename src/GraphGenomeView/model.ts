@@ -259,6 +259,13 @@ export default function stateModelFactory() {
         // for a whole-file import. No effect on an rGFA, whose segments carry
         // their own coordinates. See pathAnchoring.ts.
         referencePath: types.optional(types.string, ''),
+        // Whether the toolbar spells out `fetch 12371ms · layout 4ms · geom 9ms`.
+        // Off by default because it was in the toolbar of every published graph
+        // figure, where a machine's fetch time is noise a reader has to skip
+        // past. The numbers themselves are always on the element as `data-*`
+        // attributes, which is what browser tests assert against, so hiding the
+        // text costs no coverage.
+        showPerf: types.optional(types.boolean, false),
         contigThickness: types.optional(types.number, 10),
         connectorThickness: types.optional(types.number, 4),
         darkMode: types.optional(types.boolean, false),
@@ -561,6 +568,21 @@ export default function stateModelFactory() {
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
       },
+      // The assemblies this view is showing, which is the interface every
+      // assembly-aware piece of the app looks for — `viewTitle` first among
+      // them, which falls back through it and otherwise names the view
+      // "Untitled view". Every published HPRC figure showed that.
+      // `launchSubgraphView` only avoids it by writing `displayName`, so a
+      // declaratively-instantiated view (a session snapshot, a figure spec) got
+      // the fallback.
+      //
+      // A whole-file import has none: its stable names are a GFA's business and
+      // need not name anything the session has loaded. Empty rather than
+      // undefined, matching what an LGV with no displayed regions reports.
+      get assemblyNames() {
+        const region = self.loadedRegion
+        return region ? [region.assemblyName] : []
+      },
       // The interval the reference-position ramp runs over, for the key beside
       // the drawing, and undefined when no key should be drawn. Two tutorials
       // carry "red to magenta is left to right of the cut window" as a sentence
@@ -800,6 +822,9 @@ export default function stateModelFactory() {
       },
       setDrawPaths(draw: boolean) {
         self.drawPaths = draw
+      },
+      setShowPerf(show: boolean) {
+        self.showPerf = show
       },
       setColorScheme(scheme: ColorScheme) {
         self.colorScheme = scheme

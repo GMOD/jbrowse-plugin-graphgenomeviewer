@@ -24,12 +24,36 @@ function pggbGraph() {
 
 test('rows are the backbone plus one per contributing assembly', () => {
   const { rowLabels } = sampleRowLayout(ecoliGraph())!
-  expect(rowLabels!.map(r => r.label)).toEqual([
-    'K12',
+  // the reference keeps row 0; the rest are ordered by content, not by name
+  expect(rowLabels![0]!.label).toBe('K12')
+  expect(rowLabels!.map(r => r.label).sort()).toEqual([
     'CFT073',
+    'K12',
     'NCTC86',
     'Sakai',
   ])
+})
+
+// Alphabetical put HG00099 above HG00280 for no reason a reader could see, so a
+// row's neighbours said nothing. Ordering by contributed sequence reads the way
+// a sorted pileup does — most divergent at the top, and how far down the stack
+// the marks stop is how many samples carry anything.
+test('rows are ordered by the sequence each sample contributes', () => {
+  const graph = ecoliGraph()
+  const { rowLabels } = sampleRowLayout(graph)!
+  const carried = new Map<string, number>()
+  for (const node of graph.nodes) {
+    if (node.stable && node.stable.rank > 0) {
+      const sample = node.stable.refName.split('#')[0]!
+      carried.set(sample, (carried.get(sample) ?? 0) + node.length)
+    }
+  }
+  // row 0 is the backbone, which contributes none of this and is not in the sort
+  const bp = rowLabels!.slice(1).map(r => carried.get(r.label)!)
+  expect(bp.length).toBeGreaterThan(1)
+  expect(bp).toEqual([...bp].sort((a, b) => b - a))
+  // and it is a real ordering rather than a tie everywhere
+  expect(new Set(bp).size).toBeGreaterThan(1)
 })
 
 // A label that names a row the layout put elsewhere is worse than no label, so
@@ -110,10 +134,11 @@ test('a pggb graph rows once its paths are walked', () => {
   const graph = anchorGraph(pggbGraph(), 'K12')
   const { nodePositions, rowLabels } = sampleRowLayout(graph)!
 
-  expect(rowLabels!.map(r => r.label)).toEqual([
-    'K12',
+  expect(rowLabels![0]!.label).toBe('K12')
+  expect(rowLabels!.map(r => r.label).sort()).toEqual([
     'CFT073',
     'IAI39',
+    'K12',
     'NCTC86',
     'Sakai',
   ])

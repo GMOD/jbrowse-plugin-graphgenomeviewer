@@ -31,6 +31,14 @@ const SettingsMenu = observer(function SettingsMenu({
               void model.recomputeLayout()
             },
           },
+          {
+            type: 'checkbox' as const,
+            label: 'Show timings',
+            checked: model.showPerf,
+            onClick: () => {
+              model.setShowPerf(!model.showPerf)
+            },
+          },
           { type: 'divider' as const },
           {
             label: 'Settings',
