@@ -103,12 +103,26 @@ export function sampleRowLayout(
     ]
   }
 
+  // `placeOffReference` also reaches nodes with no coordinate at all: it walks
+  // out from what it placed to close a run that leaves the fetched window, and
+  // on a path-anchored graph a segment no P or W line visits never got a
+  // `stable` to begin with. That is legal GFA rather than a broken file, so
+  // asserting the coordinate here threw a bare "cannot read properties of
+  // undefined" out of the layout and left the view showing it instead of a
+  // graph. Such a node belongs on no sample's row, so it takes the spare row
+  // below the named ones, which is what the sibling layout does with an
+  // unrecognised rank.
+  const spareRow = samples.length + 1
   const alleleDeletions = placeOffReference({
     graph,
     minSpan: minAlleleSpan,
-    rowY: node =>
-      (rowOf.get(parsePanSN(node.stable!.refName).sample) ??
-        samples.length + 1) * ROW_HEIGHT_PX,
+    rowY: node => {
+      const stable = node.stable
+      const row = stable
+        ? rowOf.get(parsePanSN(stable.refName).sample)
+        : undefined
+      return (row ?? spareRow) * ROW_HEIGHT_PX
+    },
     positions: nodePositions,
   })
 

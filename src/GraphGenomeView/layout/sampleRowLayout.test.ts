@@ -279,3 +279,40 @@ test('an allele spanning its anchors is not a deletion', () => {
 
   expect(sampleRowLayout(graph)!.alleleDeletions).toEqual([])
 })
+
+// A segment on no P or W line is legal GFA, and `anchorFromPaths` leaves it with
+// no coordinate because it has nothing to derive one from. `placeOffReference`
+// still reaches it, by walking out from a placed neighbour to close a run that
+// leaves the window, so the layout has to have an answer for it. Asserting the
+// coordinate threw a bare "cannot read properties of undefined" out of the
+// layout, which the view then showed in place of a graph.
+test('a segment no path visits does not take the layout down', () => {
+  const graph = anchorGraph(
+    convertGFAToGraph(
+      parseGFA(
+        [
+          'H\tVN:Z:1.0',
+          'S\ts1\tACGTACGTAC',
+          'S\ts2\tACGTACGTAC',
+          'S\ts3\tACGTACGTAC',
+          'S\ts9\tTTTT',
+          'L\ts1\t+\ts2\t+\t0M',
+          'L\ts1\t+\ts3\t+\t0M',
+          'L\ts3\t+\ts2\t+\t0M',
+          'L\ts3\t+\ts9\t+\t0M',
+          'P\tK12#1#chr\ts1+,s2+\t*',
+          'P\tSakai#1#chr\ts1+,s3+,s2+\t*',
+        ].join('\n'),
+      ),
+    ),
+    'K12',
+  )
+  expect(graph.nodes.find(n => n.id === 's9+')!.stable).toBeUndefined()
+
+  const layout = sampleRowLayout(graph, { start: 0, end: 30 })!
+  expect(layout.nodePositions['s9+']).toBeDefined()
+  // on no sample's row, so the spare row below the named ones, which is what
+  // the anchored layout does with a rank it does not have a row for
+  const rows = layout.rowLabels.length
+  expect(layout.nodePositions['s9+']![0]!.y).toBe(rows * ROW_HEIGHT_PX)
+})
