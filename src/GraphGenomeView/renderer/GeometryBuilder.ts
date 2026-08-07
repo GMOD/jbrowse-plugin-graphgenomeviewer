@@ -82,7 +82,13 @@ const ARROWHEAD_SIZE = 12
 // along them, and by offsetPolyline, which slides a whole stroke sideways —
 // both have to agree, or a node's path stripes drift off its own outline where
 // it bends.
-function pointNormalsOf(points: { x: number; y: number }[]) {
+//
+// `yToX` puts the two axes in comparable units first (see computeEdgeCurves), so
+// the normal is perpendicular to the polyline AS DRAWN rather than to its
+// coordinates. It is 1 on an isotropic layout, where the two are the same thing.
+function pointNormalsOf(rawPoints: { x: number; y: number }[], yToX = 1) {
+  const points =
+    yToX === 1 ? rawPoints : rawPoints.map(p => ({ x: p.x, y: p.y * yToX }))
   const pointNormals: { nx: number; ny: number }[] = []
   for (let i = 0; i < points.length; i++) {
     let nx = 0
@@ -139,15 +145,17 @@ function pointNormalsOf(points: { x: number; y: number }[]) {
 
 // The polyline shifted `distance` world units along its own normals, which is
 // the node equivalent of the constant perpendicular offset the edge path
-// strokes already take.
+// strokes already take. `distance` is in x units and the normal is the drawn
+// one (pointNormalsOf), so the y component comes back out of x units here.
 function offsetPolyline(
   points: { x: number; y: number }[],
   normals: { nx: number; ny: number }[],
   distance: number,
+  yToX = 1,
 ) {
   return points.map((p, i) => ({
     x: p.x + normals[i]!.nx * distance,
-    y: p.y + normals[i]!.ny * distance,
+    y: p.y + (normals[i]!.ny * distance) / yToX,
   }))
 }
 
@@ -168,7 +176,14 @@ export interface BuildOptions {
   contigThickness: number
   connectorThickness: number
   drawPaths: boolean
+  // x world units per screen px, i.e. the model's scaleX. Every screen-metric
+  // constant here (dash period, stripe width, hit slack) is divided by it.
   scale: number
+  // y world units per x world unit, as drawn — the model's scaleY / scaleX. 1 on
+  // an isotropic layout; on a row layout y is screen px and x is bp, and this is
+  // what lets a curve or a normal be perpendicular to what a reader sees rather
+  // than to a pair of numbers in different units. See computeEdgeCurves.
+  yToX?: number
   linearLayout?: boolean
   viewportBounds?: { minX: number; minY: number; maxX: number; maxY: number }
   // the reference interval the 'reference-position' ramp spans, i.e. the region
@@ -449,12 +464,17 @@ export function getNodeColor(
 // Exported for the test that checks it against a numerically differentiated
 // curve: arrow angles previously came from the last two tessellated points, and
 // this has to reproduce that direction to keep arrowheads pointing along the edge.
-export function endTangent(c: BezierCurve) {
+// The angle an arrowhead points, which is a SCREEN angle: the head is expanded
+// from a screen-px size (addArrowhead offsets by `normal * size` after the
+// transform), so its direction has to be the drawn one too. `yToX` is what puts
+// the y difference in the same units as the x one; on an isotropic layout it is
+// 1 and the ratio inside atan2 is unchanged.
+export function endTangent(c: BezierCurve, yToX = 1) {
   const dx = c.x1 - c.cx1
-  const dy = c.y1 - c.cy1
+  const dy = (c.y1 - c.cy1) * yToX
   return Math.hypot(dx, dy) > 0
     ? Math.atan2(dy, dx)
-    : Math.atan2(c.y1 - c.y0, c.x1 - c.x0)
+    : Math.atan2((c.y1 - c.y0) * yToX, c.x1 - c.x0)
 }
 
 // Whether any part of a node's polyline falls inside the viewport. Testing the
@@ -610,19 +630,23 @@ class MeshBuilder {
     }
   }
 
+  // Both the normals and the cap angles here are SCREEN quantities — thickness
+  // is expanded in screen px after the transform — so `yToX` puts y in x units
+  // before either is measured. 1 on an isotropic layout.
   addPolyline(
     points: { x: number; y: number }[],
     thickness: number,
     color: number,
+    yToX = 1,
   ) {
     if (points.length < 2) {
       return
     }
 
-    const pointNormals = pointNormalsOf(points)
+    const pointNormals = pointNormalsOf(points, yToX)
 
     const startDx = points[1]!.x - points[0]!.x
-    const startDy = points[1]!.y - points[0]!.y
+    const startDy = (points[1]!.y - points[0]!.y) * yToX
     if (Math.hypot(startDx, startDy) > 0) {
       this.addRoundCap(
         points[0]!,
@@ -649,7 +673,7 @@ class MeshBuilder {
 
     const lastIdx = points.length - 1
     const endDx = points[lastIdx]!.x - points[lastIdx - 1]!.x
-    const endDy = points[lastIdx]!.y - points[lastIdx - 1]!.y
+    const endDy = (points[lastIdx]!.y - points[lastIdx - 1]!.y) * yToX
     if (Math.hypot(endDx, endDy) > 0) {
       this.addRoundCap(
         points[lastIdx]!,
@@ -723,6 +747,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     connectorThickness,
     drawPaths,
     scale,
+    yToX = 1,
     linearLayout,
     viewportBounds,
     colorDomain,
@@ -831,6 +856,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         offsetY,
         scale,
         bowAroundNodes,
+        yToX,
       )
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {
@@ -859,7 +885,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         arrowMesh.addArrowhead(
           last.x1,
           last.y1,
-          endTangent(last),
+          endTangent(last, yToX),
           ARROWHEAD_SIZE,
           color,
         )
@@ -937,19 +963,20 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const slots = nodePathSlots.get(nodeId)
     const slotWidth = contigThickness / pathCount
     if (slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
-      const normals = pointNormalsOf(segments)
+      const normals = pointNormalsOf(segments, yToX)
       const worldPerScreenPx = 1 / Math.max(scale, MIN_SCALE_FOR_OFFSET)
       for (const slot of slots) {
         const offset =
           (slot - (pathCount - 1) / 2) * slotWidth * worldPerScreenPx
         nodeMesh.addPolyline(
-          offsetPolyline(segments, normals, offset),
+          offsetPolyline(segments, normals, offset, yToX),
           slotWidth / 2,
           pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR,
+          yToX,
         )
       }
     } else {
-      nodeMesh.addPolyline(segments, nodeThickness, color)
+      nodeMesh.addPolyline(segments, nodeThickness, color, yToX)
     }
     const count = nodeMesh.vertexCount - startVert
     if (count > 0) {

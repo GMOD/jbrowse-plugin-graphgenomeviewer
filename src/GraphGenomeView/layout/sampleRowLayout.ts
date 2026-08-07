@@ -1,5 +1,5 @@
 import { placeOffReference } from './placeOffReference'
-import { rowSpacing as rowSpacingFor } from './rowSpacing'
+import { ROW_HEIGHT_PX } from './rowSpacing'
 import { parsePanSN } from '../../alleleProjection/projectAlleles'
 import {
   backboneNodes,
@@ -69,8 +69,6 @@ export function sampleRowLayout(
     return undefined
   }
   const span = referenceSpan(backbone, region)
-  // backbone row plus one per sample
-  const rowSpacing = rowSpacingFor(span, samples.length + 1)
   const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION
 
   // The backbone keeps row 0 and every sample gets a row below it, in the
@@ -90,8 +88,8 @@ export function sampleRowLayout(
     graph,
     minSpan: minAlleleSpan,
     rowY: node =>
-      (rowOf.get(parsePanSN(node.stable!.refName).sample) ?? samples.length + 1) *
-      rowSpacing,
+      (rowOf.get(parsePanSN(node.stable!.refName).sample) ??
+        samples.length + 1) * ROW_HEIGHT_PX,
     positions: nodePositions,
   })
 
@@ -104,9 +102,15 @@ export function sampleRowLayout(
     { label: referenceSample, y: 0 },
     ...samples.map(sample => ({
       label: sample,
-      y: rowOf.get(sample)! * rowSpacing,
+      y: rowOf.get(sample)! * ROW_HEIGHT_PX,
     })),
   ]
 
-  return { nodePositions, rowLabels, referenceAxis: true, alleleDeletions }
+  return {
+    nodePositions,
+    rowLabels,
+    referenceAxis: true,
+    pixelRows: true,
+    alleleDeletions,
+  }
 }

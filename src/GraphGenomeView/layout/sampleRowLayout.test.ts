@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs'
 
+import { ROW_HEIGHT_PX } from './rowSpacing'
 import { sampleRowLayout } from './sampleRowLayout'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
@@ -149,36 +150,44 @@ test('a zero-length allele gets finite positions', () => {
   }
 })
 
-// Row count grows with the data, the pane does not: canvasHeight is the
-// drawing's aspect ratio times the usable width, so a flat per-row spacing put
-// 17 HPRC haplotype rows past MAX_CANVAS_HEIGHT, where zoom-to-fit starts
-// binding on y and the backbone leaves the linear view's x axis. Asserted
-// against the span the same layout reports rather than a pixel figure, since
-// this layout never sees a width.
-test('many rows pack tighter rather than growing the drawing', () => {
-  const samples = Array.from({ length: 16 }, (_, i) => `HG${1000 + i}`)
-  const gfa = [
-    'H\tVN:Z:1.0',
-    'S\ts1\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:0\tSR:i:0',
-    'S\ts2\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:1000\tSR:i:0',
-    ...samples.flatMap((sample, i) => [
-      `S\ta${i}\t*\tLN:i:50\tSN:Z:${sample}#1#chr6\tSO:i:0\tSR:i:1`,
-      `L\ts1\t+\ta${i}\t+\t0M`,
-      `L\ta${i}\t+\ts2\t+\t0M`,
-    ]),
-  ].join('\n')
-  const graph = convertGFAToGraph(parseGFA(gfa), 'rows')
+// A row is a fixed number of SCREEN PIXELS and depends on nothing else — not on
+// how many rows there are, and not on how much reference the window covers.
+// Both used to move it, because y was in bp and one scale drew both axes: the
+// pitch was a fraction of the span, and a ceiling on the total then squeezed it
+// as rows were added. This is the assertion those two rules collapse into.
+function rowsGraph(sampleCount: number, backboneBp: number) {
+  const samples = Array.from({ length: sampleCount }, (_, i) => `HG${1000 + i}`)
+  return convertGFAToGraph(
+    parseGFA(
+      [
+        'H\tVN:Z:1.0',
+        `S\ts1\t*\tLN:i:${backboneBp / 2}\tSN:Z:GRCh38#0#chr6\tSO:i:0\tSR:i:0`,
+        `S\ts2\t*\tLN:i:${backboneBp / 2}\tSN:Z:GRCh38#0#chr6\tSO:i:${backboneBp / 2}\tSR:i:0`,
+        ...samples.flatMap((sample, i) => [
+          `S\ta${i}\t*\tLN:i:50\tSN:Z:${sample}#1#chr6\tSO:i:0\tSR:i:1`,
+          `L\ts1\t+\ta${i}\t+\t0M`,
+          `L\ta${i}\t+\ts2\t+\t0M`,
+        ]),
+      ].join('\n'),
+    ),
+    'rows',
+  )
+}
 
-  const { rowLabels } = sampleRowLayout(graph)!
-  const span = 2000
-
-  expect(rowLabels).toHaveLength(samples.length + 1)
-  expect(rowLabels!.at(-1)!.y).toBeCloseTo(span * 0.35)
+test('a row is a constant pitch, whatever the row count or the span', () => {
+  const pitchOf = (sampleCount: number, backboneBp: number) => {
+    const { rowLabels } = sampleRowLayout(rowsGraph(sampleCount, backboneBp))!
+    expect(rowLabels).toHaveLength(sampleCount + 1)
+    return rowLabels!.at(-1)!.y / sampleCount
+  }
+  expect(pitchOf(16, 2000)).toBeCloseTo(ROW_HEIGHT_PX)
+  expect(pitchOf(2, 2000)).toBeCloseTo(ROW_HEIGHT_PX)
+  expect(pitchOf(16, 5_000_000)).toBeCloseTo(ROW_HEIGHT_PX)
 })
 
-// ...and a handful of rows keeps the spacing it always had, so every figure
-// under the ceiling is untouched.
-test('few rows keep the flat per-row spacing', () => {
+// ...and the rows are evenly spaced, so a reader can tell one row from the next
+// by looking rather than by counting.
+test('rows are evenly spaced', () => {
   const { rowLabels } = sampleRowLayout(ecoliGraph())!
   const rows = rowLabels!.map(r => r.y)
   const spacing = rows[1]! - rows[0]!

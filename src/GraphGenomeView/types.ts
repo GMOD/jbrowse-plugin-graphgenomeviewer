@@ -116,4 +116,15 @@ export interface LayoutResult {
   // about the graph, not a reason to redraw the window at 6% of the frame —
   // see layoutBounds.
   referenceAxis?: boolean
+  // Set by the layouts that state y in SCREEN PIXELS rather than in the same
+  // units as x. A row layout's y is a row pitch, which is a property of what a
+  // row has to hold (a tube, a label) and not of the window's span, so the two
+  // axes are no longer one number — see rowSpacing.ts and the model's
+  // scaleX/scaleY. A layout that leaves this unset (FMMM) is isotropic, and
+  // every unit of it is drawn at one scale, exactly as before.
+  //
+  // Separate from `referenceAxis` on purpose: that one says what x MEANS, this
+  // one says what y is MEASURED IN, and a future layout could set either
+  // without the other.
+  pixelRows?: boolean
 }

@@ -179,14 +179,22 @@ export function formatBp(bp: number) {
 // Which way the arc bows, as a unit vector: its chord's midpoint towards its
 // apex. A deletion's bulge is perpendicular to the chord by construction, so
 // this points away from the backbone the arc leaves and rejoins — the side the
-// curve was opened into, and the side with room in it. Scale and translate are a
-// similarity transform, so a direction in layout units is the same direction on
-// screen and needs no conversion.
-function arcOutward(curves: BezierCurve[], apex: { x: number; y: number }) {
+// curve was opened into, and the side with room in it.
+//
+// Taken on SCREEN, which is where the label it aims has to clear the curve. That
+// used to be free — with one scale for both axes the transform is a similarity,
+// so a layout direction is a screen direction — and on a row layout it is not:
+// the two axes are bp and px and the arc leaves at a different angle in each.
+function arcOutward(
+  curves: BezierCurve[],
+  apex: { x: number; y: number },
+  scaleX: number,
+  scaleY: number,
+) {
   const first = curves[0]!
   const last = curves[curves.length - 1]!
-  const dx = apex.x - (first.x0 + last.x1) / 2
-  const dy = apex.y - (first.y0 + last.y1) / 2
+  const dx = (apex.x - (first.x0 + last.x1) / 2) * scaleX
+  const dy = (apex.y - (first.y0 + last.y1) / 2) * scaleY
   const len = Math.hypot(dx, dy)
   // A curve with no bow has no outward side; up is as good as any, and this is
   // unreachable for a deletion, whose bulge is what gives it extent at all.
@@ -228,14 +236,16 @@ function midpoint(segments: NodeSegment[]) {
   return { x: mid.x, y: mid.y }
 }
 
-// The node's own extent along its polyline, in layout units — what the label has
-// to fit inside, and what the caller scales into screen px.
-function drawnLength(segments: NodeSegment[]) {
+// The node's own extent along its polyline, IN SCREEN PX — what the label has
+// to fit inside. Measured through the transform rather than in layout units and
+// scaled afterwards, because on a row layout the two axes are in different units
+// and there is no single number to scale a mixed length by.
+function drawnLength(segments: NodeSegment[], scaleX: number, scaleY: number) {
   let total = 0
   for (let i = 1; i < segments.length; i++) {
     const a = segments[i - 1]!
     const b = segments[i]!
-    total += Math.hypot(b.x - a.x, b.y - a.y)
+    total += Math.hypot((b.x - a.x) * scaleX, (b.y - a.y) * scaleY)
   }
   return total
 }
@@ -245,7 +255,8 @@ export function graphLabels({
   nodeLengths,
   deletions,
   alleleDeletions,
-  scale,
+  scaleX,
+  scaleY,
   translateX,
   translateY,
   width,
@@ -260,7 +271,10 @@ export function graphLabels({
   // cannot: empty under a layout drawn at sequence scale, where a node's own
   // length IS what its drawn extent means. See AlleleDeletion.
   alleleDeletions?: AlleleDeletion[]
-  scale: number
+  // Screen px per layout unit, per axis. They are equal on an isotropic layout
+  // and differ on a row layout, whose y is already px (scaleY === 1).
+  scaleX: number
+  scaleY: number
   translateX: number
   translateY: number
   width: number
@@ -278,26 +292,31 @@ export function graphLabels({
   // there, and a reader who cannot read it has no other route to it.
   const candidates: GraphLabel[] = []
   for (const deletion of [...deletions].sort((a, b) => b.bp - a.bp)) {
-    const curves = deletionArcCurves(nodePositions, deletion, scale)
+    const curves = deletionArcCurves(
+      nodePositions,
+      deletion,
+      scaleX,
+      scaleY / scaleX,
+    )
     const apex = curves ? curveMidpoint(curves) : undefined
     if (curves && apex) {
       const { minX, minY, maxX, maxY } = curveBounds(curves)
-      const extent = Math.max(maxX - minX, maxY - minY)
-      if (extent * scale >= MIN_DELETION_LABEL_PX) {
+      // in screen px, so the two axes' units cannot be added by accident
+      const extent = Math.max((maxX - minX) * scaleX, (maxY - minY) * scaleY)
+      if (extent >= MIN_DELETION_LABEL_PX) {
         const text = `${formatBp(deletion.bp)} deletion`
         const box = labelBox(text, 0, 0)
-        const arcX = apex.x * scale + translateX
-        const arcY = apex.y * scale + translateY
+        const arcX = apex.x * scaleX + translateX
+        const arcY = apex.y * scaleY + translateY
         // The node rule, applied to an arc: a label wider than twice what it
         // names is a label with an arc attached. Under it the label stays
         // centred on the curve, which is what every arc big enough to hold its
         // own name already does.
-        const fits =
-          extent * scale >= (box.right - box.left) / MAX_LABEL_OVERHANG
+        const fits = extent >= (box.right - box.left) / MAX_LABEL_OVERHANG
         // Displaced by the SUPPORT distance, so the whole box clears the arc
         // whatever angle it leaves at, then the leader is stopped at the box's
         // real edge along the same ray.
-        const bow = arcOutward(curves, apex)
+        const bow = arcOutward(curves, apex, scaleX, scaleY)
         const offset = boxSupport(box, bow) + LEADER_GAP_PX
         const halfW = (box.right - box.left) / 2
         const halfH = (box.bottom - box.top) / 2
@@ -366,10 +385,10 @@ export function graphLabels({
     // the bar goes unnamed. The visible slice is what a reader has, so the
     // label rides the middle of that, and the fit test asks whether the words
     // fit what is SHOWN rather than what is drawn.
-    const left = Math.min(...points.map(p => p.x)) * scale + translateX
-    const right = Math.max(...points.map(p => p.x)) * scale + translateX
-    const top = Math.min(...points.map(p => p.y)) * scale + translateY
-    const bottom = Math.max(...points.map(p => p.y)) * scale + translateY
+    const left = Math.min(...points.map(p => p.x)) * scaleX + translateX
+    const right = Math.max(...points.map(p => p.x)) * scaleX + translateX
+    const top = Math.min(...points.map(p => p.y)) * scaleY + translateY
+    const bottom = Math.max(...points.map(p => p.y)) * scaleY + translateY
     const shownLeft = Math.max(left, 0)
     const shownRight = Math.min(right, width)
     const shownTop = Math.max(top, 0)
@@ -412,14 +431,14 @@ export function graphLabels({
     const text = formatBp(nodeLengths.get(id)!)
     const box = labelBox(text, 0, 0)
     if (
-      drawnLength(segments) * scale >=
+      drawnLength(segments, scaleX, scaleY) >=
       (box.right - box.left) / MAX_LABEL_OVERHANG
     ) {
       candidates.push({
         key: `node:${id}`,
         text,
-        x: x * scale + translateX,
-        y: y * scale + translateY,
+        x: x * scaleX + translateX,
+        y: y * scaleY + translateY,
         kind: 'node',
       })
     }

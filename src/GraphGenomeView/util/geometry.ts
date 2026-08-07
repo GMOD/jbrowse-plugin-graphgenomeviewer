@@ -295,6 +295,31 @@ export function bowAround(
   return reach < 0 ? -size : size
 }
 
+// Every measurement below — a chord length, a tangent projection, a bow — mixes
+// x and y in one `hypot`, so it needs the two axes to be in comparable units.
+// On a row layout they are not: x is reference bp and y is a row pitch in screen
+// px (LayoutResult.pixelRows), and the same drop of 20 is a fifth of a pane one
+// way and twenty bases the other. `yToX` is the conversion — how many x units
+// one y unit is worth ON SCREEN, i.e. scaleY / scaleX — so this function
+// normalizes y into x units on the way in and puts the answer back into layout
+// units on the way out.
+//
+// It is 1 for an isotropic layout (FMMM), where it multiplies and divides by
+// one and every number below is exactly what it was.
+function scaleYOf(points: NodeSegment[], yToX: number) {
+  return points.map(p => ({ x: p.x, y: p.y * yToX }))
+}
+
+function unscaleYOf(curves: BezierCurve[], yToX: number) {
+  for (const c of curves) {
+    c.y0 /= yToX
+    c.cy0 /= yToX
+    c.cy1 /= yToX
+    c.y1 /= yToX
+  }
+  return curves
+}
+
 export function computeEdgeCurves(
   fromSegments: NodeSegment[],
   toSegments: NodeSegment[],
@@ -319,7 +344,24 @@ export function computeEdgeCurves(
   // second thing to keep in step; that is exactly how the label and the arc once
   // came out in different corners of the drawing.
   bypassed: NodeSegment[] = [],
+  // y units per x unit on screen; see scaleYOf. 1 leaves this function exactly
+  // as it was.
+  yToX = 1,
 ): BezierCurve[] {
+  if (yToX !== 1) {
+    return unscaleYOf(
+      computeEdgeCurves(
+        scaleYOf(fromSegments, yToX),
+        scaleYOf(toSegments, yToX),
+        isSelfLoop,
+        offsetX,
+        offsetY * yToX,
+        scale,
+        scaleYOf(bypassed, yToX),
+      ),
+      yToX,
+    )
+  }
   const sides = isSelfLoop
     ? { from: 'end' as Side, to: 'start' as Side }
     : facingSides(fromSegments, toSegments)
@@ -446,9 +488,7 @@ export function computeEdgeCurves(
     // The spread takes the MAGNITUDE, not the signed bulge: it decides how open
     // the arch is, not which way it faces, and letting it flip swaps the two
     // control points past each other and folds the cubic into a cusp.
-    const bulge = bypassed.length
-      ? bowAround(p1x, p1y, p2x, p2y, bypassed)
-      : 0
+    const bulge = bypassed.length ? bowAround(p1x, p1y, p2x, p2y, bypassed) : 0
     const chordLen = dist === 0 ? 1 : dist
     const ux = (p2x - p1x) / chordLen
     const uy = (p2y - p1y) / chordLen

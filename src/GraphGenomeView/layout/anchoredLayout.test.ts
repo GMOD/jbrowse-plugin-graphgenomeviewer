@@ -1,4 +1,5 @@
 import { anchoredLayout } from './anchoredLayout'
+import { ROW_HEIGHT_PX } from './rowSpacing'
 import { parseGFA } from '../../gfa-core/index'
 import { convertGFAToGraph } from '../gfa/gfaConverter'
 import { anchorGraph } from '../pathAnchoring'
@@ -89,9 +90,9 @@ test('rows are the ranks present, not the raw rank', () => {
   const backboneY = pos['v1+']![0]!.y
   const altY = pos['v3+']![0]!.y
   expect(backboneY).toBe(0)
-  // one row down, where rank 1 would sit — not 23. Row spacing is 5% of this
-  // graph's own 8 bp backbone span, so one row is 0.4 and 23 would be 9.2.
-  expect(altY).toBeCloseTo(0.4)
+  // one row down, where rank 1 would sit — not 23. A row is ROW_HEIGHT_PX and
+  // does not depend on the graph, so 23 would be 460.
+  expect(altY).toBeCloseTo(ROW_HEIGHT_PX)
 })
 
 // The E. coli demo graph holds every rank from 0, where compaction is the

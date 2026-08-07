@@ -93,7 +93,7 @@ const RowLabels = observer(function RowLabels({
   return (
     <>
       {rowLabels.map(({ label, y }) => {
-        const screenY = y * model.scale + model.translateY
+        const screenY = y * model.scaleY + model.translateY
         return screenY >= 0 && screenY <= model.canvasHeight ? (
           <div
             key={label}
@@ -202,14 +202,15 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     nodeLengths: new Map(graph.nodes.map(n => [n.id, n.length])),
     deletions: model.deletions,
     alleleDeletions: model.alleleDeletions,
-    scale: model.scale,
+    scaleX: model.scaleX,
+    scaleY: model.scaleY,
     translateX: model.translateX,
     translateY: model.translateY,
     width: model.width,
     height: model.canvasHeight,
     // RowLabels paints over this overlay, so its boxes are occupied space
     reserved: model.rowLabels.map(({ label, y }) =>
-      rowLabelBox(label, y * model.scale + model.translateY),
+      rowLabelBox(label, y * model.scaleY + model.translateY),
     ),
   })
   // A label too wide for the arc it names is placed clear of it and tethered
@@ -414,8 +415,8 @@ const GraphCanvas = observer(function GraphCanvas({
 
   function screenToGraph(screenX: number, screenY: number) {
     return {
-      x: (screenX - model.translateX) / model.scale,
-      y: (screenY - model.translateY) / model.scale,
+      x: (screenX - model.translateX) / model.scaleX,
+      y: (screenY - model.translateY) / model.scaleY,
     }
   }
 
@@ -430,7 +431,14 @@ const GraphCanvas = observer(function GraphCanvas({
   function nodeAt(x: number, y: number) {
     const { nodePositions } = model
     return nodePositions
-      ? findHoveredNode(nodePositions, x, y, model.scale, model.viewportDirty)
+      ? findHoveredNode(
+          nodePositions,
+          x,
+          y,
+          model.scaleX,
+          model.viewportDirty,
+          model.scaleY / model.scaleX,
+        )
       : null
   }
 
@@ -458,7 +466,7 @@ const GraphCanvas = observer(function GraphCanvas({
     }
 
     if (model.draggingNode) {
-      model.moveNode(model.draggingNode, dx / model.scale, dy / model.scale)
+      model.moveNode(model.draggingNode, dx / model.scaleX, dy / model.scaleY)
     } else if (model.isPanning) {
       model.setTransform(
         model.scale,
@@ -477,10 +485,11 @@ const GraphCanvas = observer(function GraphCanvas({
               model.graph,
               x,
               y,
-              model.scale,
+              model.scaleX,
               model.drawPaths,
               model.viewportDirty,
               model.deletionEdgeIndexes,
+              model.scaleY / model.scaleX,
             ),
       )
     }

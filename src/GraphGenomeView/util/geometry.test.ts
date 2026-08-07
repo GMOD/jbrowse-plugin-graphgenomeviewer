@@ -241,3 +241,110 @@ describe('translateCurves matches computeEdgeCurves offset', () => {
     },
   )
 })
+
+// A row layout hands this function two axes in different units — x in reference
+// bp, y in screen px — so `yToX` (scaleY / scaleX) is what makes a chord length,
+// a tangent projection and a bow mean anything. The property that says it is
+// right is that the curve comes out the same ON SCREEN either way: laying the
+// same drawing out in one unit and scaling it, or laying it out in two and
+// converting, has to reach the same pixels.
+describe('anisotropic axes', () => {
+  const yToX = 200
+
+  // the same bubble twice: once with y already in x units, once with y in the
+  // units a row layout states it in (yToX times smaller)
+  const inXUnits = {
+    from: [
+      { x: 0, y: 0 },
+      { x: 1000, y: 0 },
+    ],
+    to: [
+      { x: 1400, y: 400 },
+      { x: 2000, y: 400 },
+    ],
+  }
+  const asRows = {
+    from: inXUnits.from.map(p => ({ x: p.x, y: p.y / yToX })),
+    to: inXUnits.to.map(p => ({ x: p.x, y: p.y / yToX })),
+  }
+
+  test('a curve is the same drawing whichever unit y arrived in', () => {
+    const flat = computeEdgeCurves(inXUnits.from, inXUnits.to, false, 0, 0, 1)
+    const rows = computeEdgeCurves(
+      asRows.from,
+      asRows.to,
+      false,
+      0,
+      0,
+      1,
+      [],
+      yToX,
+    )
+    expect(rows).toHaveLength(flat.length)
+    for (let i = 0; i < flat.length; i++) {
+      const f = flat[i]!
+      const r = rows[i]!
+      expect(r.x0).toBeCloseTo(f.x0)
+      expect(r.cx0).toBeCloseTo(f.cx0)
+      expect(r.cx1).toBeCloseTo(f.cx1)
+      expect(r.x1).toBeCloseTo(f.x1)
+      // y comes back in the layout's own unit, which is the drawn one over yToX
+      expect(r.y0 * yToX).toBeCloseTo(f.y0)
+      expect(r.cy0 * yToX).toBeCloseTo(f.cy0)
+      expect(r.cy1 * yToX).toBeCloseTo(f.cy1)
+      expect(r.y1 * yToX).toBeCloseTo(f.y1)
+    }
+  })
+
+  // The failure this catches is silent and large. A deletion's bow is sized off
+  // the run it passes around, in x units; applied to a y axis 200x finer without
+  // the conversion it is a 200x balloon, off the pane and taking the label with
+  // it. Both arcs here bow the same distance on screen.
+  test('a deletion arc bows the same distance on screen', () => {
+    const backbone = (y: number) => ({
+      from: [
+        { x: 0, y },
+        { x: 1000, y },
+      ],
+      to: [
+        { x: 9000, y },
+        { x: 10000, y },
+      ],
+      bypassed: [
+        { x: 1000, y },
+        { x: 9000, y },
+      ],
+    })
+    const flat = backbone(0)
+    const apexOf = (curves: ReturnType<typeof computeEdgeCurves>, k: number) =>
+      Math.abs(curvePointAt(curves[0]!, 0.5).y * k)
+
+    const bowFlat = apexOf(
+      computeEdgeCurves(flat.from, flat.to, false, 0, 0, 1, flat.bypassed),
+      1,
+    )
+    const bowRows = apexOf(
+      computeEdgeCurves(
+        flat.from,
+        flat.to,
+        false,
+        0,
+        0,
+        1,
+        flat.bypassed,
+        yToX,
+      ),
+      yToX,
+    )
+    expect(bowFlat).toBeGreaterThan(0)
+    expect(bowRows).toBeCloseTo(bowFlat)
+  })
+
+  // yToX === 1 is the isotropic layout, and it has to be the identity rather
+  // than merely close: every committed force-directed figure is that path.
+  test('yToX of 1 is byte-identical to no conversion at all', () => {
+    expect(
+      computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, 1, [], 1),
+    ).toEqual(computeEdgeCurves(inXUnits.from, inXUnits.to, false, 3, 7, 1))
+  })
+})

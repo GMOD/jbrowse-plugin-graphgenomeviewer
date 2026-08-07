@@ -72,10 +72,30 @@ function distanceToBezierCurve(px: number, py: number, c: BezierCurve) {
   )
 }
 
-function distanceToEdgeCurves(px: number, py: number, curves: BezierCurve[]) {
+function distanceToEdgeCurves(
+  px: number,
+  py: number,
+  curves: BezierCurve[],
+  yToX = 1,
+) {
   let minDist = Infinity
   for (const c of curves) {
-    const d = distanceToBezierCurve(px, py, c)
+    const d = distanceToBezierCurve(
+      px,
+      py,
+      yToX === 1
+        ? c
+        : {
+            x0: c.x0,
+            y0: c.y0 * yToX,
+            cx0: c.cx0,
+            cy0: c.cy0 * yToX,
+            cx1: c.cx1,
+            cy1: c.cy1 * yToX,
+            x1: c.x1,
+            y1: c.y1 * yToX,
+          },
+    )
     if (d < minDist) {
       minDist = d
     }
@@ -115,6 +135,7 @@ const edgeCache = new WeakMap<
     graph: Graph
     drawPaths: boolean
     scale: number
+    yToX: number
     version: number
     index: EdgeSpatialIndex
     deletions?: Map<number, string[]>
@@ -126,6 +147,7 @@ function getEdgeSpatialIndex(
   graph: Graph,
   drawPaths: boolean,
   scale: number,
+  yToX: number,
   version: number,
   deletions?: Map<number, string[]>,
 ) {
@@ -134,6 +156,7 @@ function getEdgeSpatialIndex(
     cached?.graph === graph &&
     cached.drawPaths === drawPaths &&
     cached.scale === scale &&
+    cached.yToX === yToX &&
     cached.version === version &&
     cached.deletions === deletions
   ) {
@@ -146,11 +169,13 @@ function getEdgeSpatialIndex(
     scale,
     undefined,
     deletions,
+    yToX,
   )
   edgeCache.set(nodePositions, {
     graph,
     drawPaths,
     scale,
+    yToX,
     version,
     index,
     deletions,
@@ -158,16 +183,28 @@ function getEdgeSpatialIndex(
   return index
 }
 
+// Every distance below is measured with y converted into x units by `yToX` (the
+// model's scaleY / scaleX), because on a row layout the two axes are bp and
+// screen px and a raw hypot over them is not a distance at all — 5 bp of x and
+// 5 px of y are nothing alike. The thresholds stay screen px over the x scale,
+// which is what they always were; on an isotropic layout yToX is 1 and this is
+// the arithmetic it has always done.
 export function findHoveredNode(
   nodePositions: Record<string, NodeSegment[]>,
   graphX: number,
   graphY: number,
   scale: number,
   version = 0,
+  yToX = 1,
 ) {
   const nodeThreshold = 5 / scale
   const index = getSpatialIndex(nodePositions, version)
-  const candidates = index.query(graphX, graphY, nodeThreshold)
+  const candidates = index.query(
+    graphX,
+    graphY,
+    nodeThreshold,
+    nodeThreshold / yToX,
+  )
 
   // The nearest candidate, not the first one inside the threshold. The threshold
   // is in world units (5 screen px), so when zoomed out it covers several nodes
@@ -179,11 +216,11 @@ export function findHoveredNode(
     const segments = nodePositions[nodeId]!
     const dist = distanceToSegment(
       graphX,
-      graphY,
+      graphY * yToX,
       segments[segmentIdx]!.x,
-      segments[segmentIdx]!.y,
+      segments[segmentIdx]!.y * yToX,
       segments[segmentIdx + 1]!.x,
-      segments[segmentIdx + 1]!.y,
+      segments[segmentIdx + 1]!.y * yToX,
     )
     if (dist < best) {
       best = dist
@@ -202,6 +239,7 @@ export function findHoveredEdge(
   drawPaths: boolean,
   version = 0,
   deletions?: Map<number, string[]>,
+  yToX = 1,
 ) {
   const edgeThreshold = 10 / scale
   const edgeIndex = getEdgeSpatialIndex(
@@ -209,10 +247,16 @@ export function findHoveredEdge(
     graph,
     drawPaths,
     scale,
+    yToX,
     version,
     deletions,
   )
-  const candidates = edgeIndex.query(graphX, graphY, edgeThreshold)
+  const candidates = edgeIndex.query(
+    graphX,
+    graphY,
+    edgeThreshold,
+    edgeThreshold / yToX,
+  )
 
   // Nearest, not first — same reason as findHoveredNode.
   let hovered: number | null = null
@@ -233,7 +277,7 @@ export function findHoveredEdge(
     let dist: number
 
     if (!drawPaths || numPaths === 0) {
-      dist = distanceToEdgeCurves(graphX, graphY, baseCurves)
+      dist = distanceToEdgeCurves(graphX, graphY * yToX, baseCurves, yToX)
     } else {
       const fromEnd = fromSegments[fromSegments.length - 1]!
       const toStart = toSegments[0]!
@@ -259,7 +303,7 @@ export function findHoveredEdge(
                 perpX * pathOffset,
                 perpY * pathOffset,
               )
-        const d = distanceToEdgeCurves(graphX, graphY, curves)
+        const d = distanceToEdgeCurves(graphX, graphY * yToX, curves, yToX)
         if (d < minDist) {
           minDist = d
         }

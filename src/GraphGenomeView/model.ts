@@ -152,14 +152,15 @@ function computeViewportBounds(model: {
   translateX: number
   translateY: number
   width: number
-  scale: number
+  scaleX: number
+  scaleY: number
   canvasHeight: number
 }) {
   const padding = 0.2
-  const minX = -model.translateX / model.scale
-  const minY = -model.translateY / model.scale
-  const maxX = (model.width - model.translateX) / model.scale
-  const maxY = (model.canvasHeight - model.translateY) / model.scale
+  const minX = -model.translateX / model.scaleX
+  const minY = -model.translateY / model.scaleY
+  const maxX = (model.width - model.translateX) / model.scaleX
+  const maxY = (model.canvasHeight - model.translateY) / model.scaleY
   const w = maxX - minX
   const h = maxY - minY
   return {
@@ -508,6 +509,12 @@ export default function stateModelFactory() {
         }
         return bounds
       },
+      // Whether the current layout states y in screen px rather than in the same
+      // units as x (LayoutResult.pixelRows). Everything that has to put the two
+      // axes in one expression reads this through scaleX/scaleY.
+      get pixelRows() {
+        return self.layoutResult?.pixelRows ?? false
+      },
       get zoomPercent() {
         return `${(self.scale * 100).toFixed(1)}%`
       },
@@ -530,17 +537,38 @@ export default function stateModelFactory() {
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
       },
-      // The pane is as tall as the drawing, rather than a fixed box the drawing
-      // floats in the middle of. Row spacing on the reference-anchored layouts
-      // is a fraction of the reference span, so those layouts have a pinned
-      // aspect ratio and can never fill a tall pane: measured on the ecoli
-      // slice, 178 px of rows sat in the old 600 px pane with 211 px of dead
-      // space above and below, and narrowing the pane made it worse.
+      // Screen px per layout unit, per axis. `scale` is the x zoom and the whole
+      // of what a user's wheel moves; y is a second question the layout answers
+      // for itself.
       //
-      // x is therefore what limits the fit, so the height follows from the
-      // x-fit scale — a function of `width` alone. It reads neither `scale` nor
-      // the height it is replacing, so zoomToFit consumes this without feeding
-      // back into it, and the pane does not resize as the user zooms.
+      // On a row layout the pitch is already in screen px (rowSpacing.ts), so
+      // scaleY is 1 and stays 1: rows are a track's row height, unchanged by
+      // zoom, and the backbone under them zooms the way the ruler above it does.
+      // On an isotropic layout (FMMM) x and y are one simulation space and one
+      // number scales both, exactly as before.
+      //
+      // Everything that mixes the two axes takes their ratio as `yToX`
+      // (scaleY / scaleX) — see computeEdgeCurves.
+      get scaleX() {
+        return self.scale
+      },
+      get scaleY() {
+        return self.pixelRows ? 1 : self.scale
+      },
+      // The pane is as tall as the drawing, rather than a fixed box the drawing
+      // floats in the middle of.
+      //
+      // A row layout says how tall it is outright: rows are px, so the drawing's
+      // height is the row count times the pitch and this is a sum, not a
+      // derivation. It used to be derived from the drawing's ASPECT RATIO
+      // against the x-fit scale, because y was in bp and a height in px did not
+      // exist until a scale was chosen — which is also why a ceiling had to be
+      // put on the row pitch to stop tall graphs from binding the fit on the
+      // wrong axis. Both are gone with the unit.
+      //
+      // An isotropic layout still has no height of its own and keeps the aspect
+      // derivation. It reads neither `scale` nor the height it is replacing, so
+      // zoomToFit consumes this without feeding back into it.
       get canvasHeight() {
         const bounds = self.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
@@ -552,7 +580,16 @@ export default function stateModelFactory() {
           MIN_CANVAS_HEIGHT,
           self.paneHeight ?? MAX_CANVAS_HEIGHT,
         )
-        return bounds && bounds.w > 0 && usableWidth > 0
+        if (!bounds) {
+          return ceiling
+        }
+        if (self.pixelRows) {
+          return Math.min(
+            ceiling,
+            Math.max(MIN_CANVAS_HEIGHT, bounds.h + FIT_PADDING * 2),
+          )
+        }
+        return bounds.w > 0 && usableWidth > 0
           ? Math.min(
               ceiling,
               Math.max(
@@ -840,7 +877,13 @@ export default function stateModelFactory() {
         const ratio = newScale / self.scale
         self.scale = newScale
         self.translateX = centerX - (centerX - self.translateX) * ratio
-        self.translateY = centerY - (centerY - self.translateY) * ratio
+        // y only follows when it is on the same scale. A row layout's y is
+        // screen px (scaleY === 1), so nothing about it changes as x zooms —
+        // moving translateY by the ratio there would slide the rows off under
+        // the cursor while their pitch stayed put.
+        if (!self.pixelRows) {
+          self.translateY = centerY - (centerY - self.translateY) * ratio
+        }
       },
       setViewportDirty() {
         self.viewportDirty++
@@ -866,28 +909,38 @@ export default function stateModelFactory() {
         // and persisting that transform into the session snapshot.
         if (
           bounds &&
-          (bounds.w > 0 || bounds.h > 0) &&
           usableWidth > 0 &&
-          usableHeight > 0
+          usableHeight > 0 &&
+          // A row layout needs x extent specifically: y cannot stand in for it
+          // there, having no scale left to solve for.
+          (bounds.w > 0 || (!self.pixelRows && bounds.h > 0))
         ) {
-          // Whichever axis binds, the leftover on the other is split evenly.
-          // For a row layout that is x, and canvasHeight is derived from the
-          // same x-fit, so the vertical leftover it centers is ~0.
+          // A row layout fits on x ALONE, which is the point of it: the pane is
+          // as tall as the rows are and the rows are as tall as they need to be,
+          // so there is no height to fit into and nothing that can make the
+          // backbone narrower than the pane it is supposed to line up with. That
+          // is the bug this axis change is for — past ~12 rows the drawing was
+          // taller than it was wide, the vertical axis bound the fit, and the
+          // backbone stopped matching the linear view above it.
+          //
+          // An isotropic layout still fits on whichever axis binds, and the
+          // leftover on the other is split evenly.
+          const fitX = bounds.w > 0 ? usableWidth / bounds.w : Infinity
+          const fitY = bounds.h > 0 ? usableHeight / bounds.h : Infinity
           const newScale = clampZoom(
-            Math.min(
-              bounds.w > 0 ? usableWidth / bounds.w : Infinity,
-              bounds.h > 0 ? usableHeight / bounds.h : Infinity,
-            ),
+            self.pixelRows ? fitX : Math.min(fitX, fitY),
           )
           self.scale = newScale
           self.translateX =
             FIT_PADDING -
             bounds.minX * newScale +
             (usableWidth - bounds.w * newScale) / 2
+          // scaleY, which a row layout pins at 1
+          const yScale = self.pixelRows ? 1 : newScale
           self.translateY =
             FIT_PADDING -
-            bounds.minY * newScale +
-            (usableHeight - bounds.h * newScale) / 2
+            bounds.minY * yScale +
+            (usableHeight - bounds.h * yScale) / 2
         }
       },
       clearRenderBatchMeta() {
@@ -1338,7 +1391,12 @@ export default function stateModelFactory() {
                 // geometry — the debounced viewportDirty bump drives the
                 // scale-dependent rebuild (flatness, arrow visibility,
                 // viewport culling), same as pan.
-                scale: untracked(() => self.scale),
+                scale: untracked(() => self.scaleX),
+                // How the two axes compare on screen, so an edge curve or a
+                // node normal is perpendicular to what a reader sees. Untracked
+                // with `scale` and for the same reason: it only ever changes
+                // when the zoom does.
+                yToX: untracked(() => self.scaleY / self.scaleX),
                 linearLayout: self.linearLayout,
                 viewportBounds: untracked(() => computeViewportBounds(self)),
                 // What the reference-position ramp spans — the cut region, or
@@ -1363,8 +1421,8 @@ export default function stateModelFactory() {
             }
             const dpr = window.devicePixelRatio || 1
             b.updateTransform({
-              scaleX: self.scale * dpr,
-              scaleY: self.scale * dpr,
+              scaleX: self.scaleX * dpr,
+              scaleY: self.scaleY * dpr,
               translateX: self.translateX * dpr,
               translateY: self.translateY * dpr,
               viewportWidth: self.width * dpr,

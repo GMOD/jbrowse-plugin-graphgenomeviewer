@@ -158,3 +158,40 @@ test('picks the nearest node when several are inside the threshold', () => {
   expect(findHoveredNode(positions, 1050, 0, 0.008)).toBe('near+')
   expect(findHoveredNode(positions, 550, 0, 0.008)).toBe('far+')
 })
+
+// On a row layout x is reference bp and y is screen px, and the hover slack is
+// screen px over the x scale — 500 bp at a 100 kb window. Fed straight into a
+// hypot over both axes that slack is also 500 ROWS, so every row within the
+// cursor's x band answered the hover and the nearest of them won: the cursor sat
+// on one haplotype and the drawing lit up another. `yToX` is what makes the two
+// comparable, and 5 px is 5 px on either axis once it is applied.
+describe('hover on a row layout', () => {
+  const ROWS = {
+    top: [
+      { x: 0, y: 0 },
+      { x: 100_000, y: 0 },
+    ],
+    next: [
+      { x: 0, y: 20 },
+      { x: 100_000, y: 20 },
+    ],
+  }
+  // 100 kb over ~1000 px, and rows already in px
+  const scaleX = 0.01
+  const yToX = 1 / scaleX
+
+  test('a cursor on a row hits that row', () => {
+    expect(findHoveredNode(ROWS, 50_000, 2, scaleX, 0, yToX)).toBe('top')
+    expect(findHoveredNode(ROWS, 50_000, 18, scaleX, 0, yToX)).toBe('next')
+  })
+
+  test('a cursor between the rows hits neither', () => {
+    expect(findHoveredNode(ROWS, 50_000, 10, scaleX, 0, yToX)).toBeNull()
+  })
+
+  test('the slack is still screen px along x', () => {
+    // 300 bp past the end is 3 px at this scale, and inside the 5 px slack
+    expect(findHoveredNode(ROWS, 100_300, 0, scaleX, 0, yToX)).toBe('top')
+    expect(findHoveredNode(ROWS, 101_000, 0, scaleX, 0, yToX)).toBeNull()
+  })
+})

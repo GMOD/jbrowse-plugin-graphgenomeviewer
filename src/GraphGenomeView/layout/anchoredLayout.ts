@@ -1,5 +1,5 @@
 import { placeOffReference } from './placeOffReference'
-import { rowSpacing as rowSpacingFor } from './rowSpacing'
+import { ROW_HEIGHT_PX } from './rowSpacing'
 import { backboneNodes, referenceSpan } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
@@ -14,8 +14,8 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 //      reference its allele replaces (placeOffReference).
 //   y  one row per stable rank *present in this subgraph*, the way lh3's own
 //      rGFA viewer (VRPG) does it: rank 0 is the reference line, higher ranks
-//      below it in order. Spacing comes from rowSpacing.ts, shared with the
-//      sample-row layout.
+//      below it in order. In SCREEN PIXELS, not bp — see rowSpacing.ts, shared
+//      with the sample-row layout.
 
 // Floor on the drawn span of an *off-reference* node, as a fraction of the
 // window. Node thickness is a constant number of screen pixels, so at a 50 kb
@@ -54,11 +54,10 @@ export function anchoredLayout(
 
   const span = referenceSpan(backbone, region)
   const rows = rankRows(graph)
-  const rowSpacing = rowSpacingFor(span, rows.size)
 
   const nodePositions: Record<string, NodeSegment[]> = {}
   for (const node of backbone) {
-    const y = (rows.get(0) ?? 0) * rowSpacing
+    const y = (rows.get(0) ?? 0) * ROW_HEIGHT_PX
     nodePositions[node.id] = [
       { x: node.stable.start, y },
       { x: node.stable.start + node.length, y },
@@ -68,7 +67,8 @@ export function anchoredLayout(
   const alleleDeletions = placeOffReference({
     graph,
     minSpan: span * MIN_OFF_REFERENCE_SPAN_FRACTION,
-    rowY: node => (rows.get(node.stable?.rank ?? 1) ?? rows.size) * rowSpacing,
+    rowY: node =>
+      (rows.get(node.stable?.rank ?? 1) ?? rows.size) * ROW_HEIGHT_PX,
     positions: nodePositions,
   })
 
@@ -77,8 +77,14 @@ export function anchoredLayout(
   // reader needs, and "Rank 0" alone reads as an ordinal with no meaning.
   const rowLabels: RowLabel[] = [...rows].map(([rank, row]) => ({
     label: rank === 0 ? 'Reference (rank 0)' : `Rank ${rank}`,
-    y: row * rowSpacing,
+    y: row * ROW_HEIGHT_PX,
   }))
 
-  return { nodePositions, rowLabels, referenceAxis: true, alleleDeletions }
+  return {
+    nodePositions,
+    rowLabels,
+    referenceAxis: true,
+    pixelRows: true,
+    alleleDeletions,
+  }
 }

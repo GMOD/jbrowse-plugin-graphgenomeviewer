@@ -7,6 +7,7 @@ import {
   drawnLengthFor,
   layoutScaling,
 } from './layout/drawnScale'
+import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 
 import type { Graph } from './types'
@@ -1554,5 +1555,108 @@ describe('layoutBounds on a reference axis', () => {
     expect(model.layoutBounds!.w).toBe(
       Math.max(...drawnX) - Math.min(...drawnX),
     )
+  })
+})
+
+// The two axes are two numbers, and only on a row layout do they differ. x is
+// reference bp and zooms; y is a row pitch in screen px and does not. Three
+// separate complaints were the one scale that used to drive both — see
+// rowSpacing.ts — and these are what each of them turns into.
+describe('a row layout draws y in pixels', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  // one rank-0 backbone of `spanBp`, plus `rankCount` alleles bridging it, each
+  // at its own rank, so the layout draws rankCount + 1 rows
+  function ranksGfa(rankCount: number, spanBp: number) {
+    return [
+      'H\tVN:Z:1.0',
+      `S\t1\t*\tLN:i:${spanBp / 4}\tSN:Z:chr\tSO:i:0\tSR:i:0`,
+      `S\t2\t*\tLN:i:${spanBp / 4}\tSN:Z:chr\tSO:i:${(spanBp * 3) / 4}\tSR:i:0`,
+      ...Array.from({ length: rankCount }, (_, i) => [
+        `S\ta${i}\t*\tLN:i:100\tSN:Z:alt${i}\tSO:i:0\tSR:i:${i + 1}`,
+        `L\t1\t+\ta${i}\t+\t0M`,
+        `L\ta${i}\t+\t2\t+\t0M`,
+      ]).flat(),
+    ].join('\n')
+  }
+
+  async function anchored(rankCount: number, spanBp = 100_000) {
+    const model = createAnchoredModel()
+    await model.loadGFA(ranksGfa(rankCount, spanBp), 'ranks')
+    model.zoomToFit()
+    return model
+  }
+
+  test('scaleY is pinned at 1 while scaleX carries the zoom', async () => {
+    const model = await anchored(3)
+    expect(model.pixelRows).toBe(true)
+    expect(model.scaleY).toBe(1)
+    expect(model.scaleX).toBe(model.scale)
+    expect(model.scaleX).toBeLessThan(0.1)
+  })
+
+  // ...and a force layout is one space with one scale, exactly as before.
+  test('an isotropic layout keeps one scale for both axes', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'force')
+    expect(model.pixelRows).toBe(false)
+    expect(model.scaleY).toBe(model.scale)
+  })
+
+  // The pane is the rows, plus one padding gap top and bottom. It used to be
+  // derived from the drawing's aspect ratio against the x-fit scale, which is
+  // why a two-row window over a megabase got a 46 px pitch and a twenty-row one
+  // got 8 px.
+  test('the pane is the row count times the pitch', async () => {
+    const model = await anchored(9)
+    expect(model.canvasHeight).toBe(9 * ROW_HEIGHT_PX + 80)
+  })
+
+  test('the pitch does not move with the window span', async () => {
+    const narrow = await anchored(9, 2_000)
+    const wide = await anchored(9, 4_000_000)
+    expect(wide.canvasHeight).toBe(narrow.canvasHeight)
+  })
+
+  // The bug this axis change is for, in the one configuration that can still
+  // show it: 41 rows is 800 px of drawing in a 600 px pane, and over a window
+  // narrow enough that the vertical overflow is the tighter of the two fits. A
+  // fit allowed to bind on y takes the tighter one and draws the backbone at
+  // 520 px of the 720 it has — out from under the linear view's x axis, which is
+  // the one thing a row layout is for. It binds on x, and the rows past the pane
+  // are panned to, the way a track's are.
+  test('rows past the pane do not shrink the drawing', async () => {
+    const model = await anchored(40, 800)
+    expect(model.layoutBounds!.h).toBe(40 * ROW_HEIGHT_PX)
+    expect(model.canvasHeight).toBe(600)
+    // the vertical fit is the tighter one, and is not the one taken
+    expect((model.canvasHeight - 80) / model.layoutBounds!.h).toBeLessThan(
+      (model.width - 80) / model.layoutBounds!.w,
+    )
+
+    const xs = Object.values(model.nodePositions!)
+      .flat()
+      .map(p => p.x * model.scaleX + model.translateX)
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(model.width - 80, 5)
+  })
+
+  // Rows are a track's row height, so zooming the sequence axis leaves them
+  // where they are — pitch and position both. Moving translateY by the zoom
+  // ratio would slide them out from under their own labels.
+  test('zooming x leaves the rows where they are', async () => {
+    const model = await anchored(5)
+    const rowsAt = () =>
+      model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
+    const before = rowsAt()
+    const scaleBefore = model.scaleX
+
+    model.zoom(4, model.width / 2, model.canvasHeight / 2)
+
+    expect(model.scaleX).toBeCloseTo(scaleBefore * 4, 10)
+    expect(rowsAt()).toEqual(before)
   })
 })

@@ -79,6 +79,7 @@ export function deletionArcCurves(
   nodePositions: Record<string, { x: number; y: number }[]>,
   deletion: DeletionEdge,
   scale: number,
+  yToX = 1,
 ) {
   const from = nodePositions[deletion.from]
   const to = nodePositions[deletion.to]
@@ -91,6 +92,7 @@ export function deletionArcCurves(
         0,
         scale,
         bypassedPoints(nodePositions, deletion.bypassed),
+        yToX,
       )
     : undefined
 }

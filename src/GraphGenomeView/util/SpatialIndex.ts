@@ -63,17 +63,22 @@ function addToGrid<T>(
   }
 }
 
+// The radius is per axis because the two axes need not be in the same units: a
+// row layout's x is bp and its y is screen px, so the same 5 px of slack is
+// hundreds of bp one way and 5 the other. Passing the x radius on both axes
+// would sweep every row in the band into the candidate set.
 function queryGrid<T>(
   cells: Map<number, Map<number, T[]>>,
   cellSize: number,
   x: number,
   y: number,
-  radius: number,
+  radiusX: number,
+  radiusY: number,
 ): T[] {
-  const cx0 = Math.floor((x - radius) / cellSize)
-  const cx1 = Math.floor((x + radius) / cellSize)
-  const cy0 = Math.floor((y - radius) / cellSize)
-  const cy1 = Math.floor((y + radius) / cellSize)
+  const cx0 = Math.floor((x - radiusX) / cellSize)
+  const cx1 = Math.floor((x + radiusX) / cellSize)
+  const cy0 = Math.floor((y - radiusY) / cellSize)
+  const cy1 = Math.floor((y + radiusY) / cellSize)
   const results: T[] = []
   const seen = new Set<T>()
   for (let cx = cx0; cx <= cx1; cx++) {
@@ -140,8 +145,8 @@ export class SpatialIndex {
     }
   }
 
-  query(x: number, y: number, radius: number) {
-    return queryGrid(this.cells, this.cellSize, x, y, radius)
+  query(x: number, y: number, radiusX: number, radiusY = radiusX) {
+    return queryGrid(this.cells, this.cellSize, x, y, radiusX, radiusY)
   }
 }
 
@@ -167,6 +172,9 @@ export class EdgeSpatialIndex {
     // interval and the bp. Bowing is part of the drawn geometry, so it has to be
     // part of the geometry hit detection uses.
     deletions?: Map<number, string[]>,
+    // y units per x unit as drawn, so the curves indexed here are the ones the
+    // renderer drew. See computeEdgeCurves.
+    yToX = 1,
   ) {
     const boxes: {
       ei: number
@@ -191,6 +199,7 @@ export class EdgeSpatialIndex {
           0,
           scale,
           bypassed ? bypassedPoints(nodePositions, bypassed) : [],
+          yToX,
         )
         this.edgeCurves.set(ei, curves)
 
@@ -237,7 +246,7 @@ export class EdgeSpatialIndex {
     return this.edgeCurves.get(ei)
   }
 
-  query(x: number, y: number, radius: number) {
-    return queryGrid(this.cells, this.cellSize, x, y, radius)
+  query(x: number, y: number, radiusX: number, radiusY = radiusX) {
+    return queryGrid(this.cells, this.cellSize, x, y, radiusX, radiusY)
   }
 }
