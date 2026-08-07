@@ -10,6 +10,7 @@ import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { graphLabels, rowLabelBox } from '../graphLabels'
+import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
 
@@ -110,19 +111,28 @@ const RowLabels = observer(function RowLabels({
 
 // Top RIGHT: the row labels own the left edge and the hover tooltip owns the
 // bottom right, so this is the one corner nothing else claims. A row-structured
-// layout draws its band across the middle, which is what the key is for.
-const pathLegendStyle = {
+// layout draws its band across the middle, which is what the keys are for. The
+// two keys stack rather than each claiming the corner, since a path-coloured
+// graph can also be reference-position coloured.
+const legendStackStyle = {
   position: 'absolute' as const,
   top: 6,
   right: 6,
+  display: 'flex',
+  flexDirection: 'column' as const,
+  alignItems: 'flex-end',
+  gap: 4,
+  pointerEvents: 'none' as const,
+  zIndex: 4,
+}
+
+const legendBoxStyle = {
   background: 'rgba(255,255,255,0.82)',
   padding: '4px 6px',
   borderRadius: 3,
   fontSize: 11,
   lineHeight: '15px',
   whiteSpace: 'nowrap' as const,
-  pointerEvents: 'none' as const,
-  zIndex: 4,
 }
 
 const pathLegendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
@@ -139,13 +149,55 @@ const PathLegend = observer(function PathLegend({
 }) {
   const { pathLegend } = model
   return pathLegend.length > 0 ? (
-    <div style={pathLegendStyle} data-testid="graph-path-legend">
+    <div style={legendBoxStyle} data-testid="graph-path-legend">
       {pathLegend.map(({ name, label, color }) => (
         <div key={name} style={pathLegendRowStyle}>
           <div style={{ ...pathSwatchStyle, backgroundColor: color }} />
           <span>{label}</span>
         </div>
       ))}
+    </div>
+  ) : null
+})
+
+// The reference-position ramp, as a strip labelled with the interval it runs
+// over. Nothing on screen used to say that red-to-magenta means left-to-right of
+// the cut window, so two tutorials carried that sentence in prose and a reader
+// arriving at a figure had no way to know it at all.
+//
+// The gradient is built from the same three numbers `getNodeColor` paints with
+// (hue 0 to REFERENCE_RAMP_MAX_HUE at 70%/50%), rather than from a picked pair
+// of hex stops, so it cannot come to describe a ramp the drawing stopped using.
+const rampStripStyle = {
+  width: 90,
+  height: 8,
+  borderRadius: 2,
+  background: `linear-gradient(to right, ${Array.from(
+    { length: 7 },
+    (_, i) =>
+      `hsl(${(i / 6) * REFERENCE_RAMP_MAX_HUE}, 70%, 50%) ${(i / 6) * 100}%`,
+  ).join(', ')})`,
+}
+
+const rampEndsStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 8,
+}
+
+const ReferenceRampLegend = observer(function ReferenceRampLegend({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const domain = model.referenceRampDomain
+  return domain ? (
+    <div style={legendBoxStyle} data-testid="graph-ramp-legend">
+      <div style={rampStripStyle} />
+      <div style={rampEndsStyle}>
+        <span>{domain.start.toLocaleString()}</span>
+        <span>{domain.end.toLocaleString()}</span>
+      </div>
     </div>
   ) : null
 })
@@ -561,7 +613,10 @@ const GraphCanvas = observer(function GraphCanvas({
 
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
-        <PathLegend model={model} />
+        <div style={legendStackStyle}>
+          <ReferenceRampLegend model={model} />
+          <PathLegend model={model} />
+        </div>
       </div>
 
       <HoverTooltips model={model} />

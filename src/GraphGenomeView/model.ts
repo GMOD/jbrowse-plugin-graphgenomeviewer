@@ -21,6 +21,7 @@ import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
+  computeReferenceRamp,
   extractColorSlice,
 } from './renderer/GeometryBuilder'
 import {
@@ -46,7 +47,7 @@ import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
 import type { BubbleSpread } from './bubbleSpreads'
-import type { ColorScheme } from './colorSchemes'
+import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type {
@@ -235,9 +236,13 @@ export default function stateModelFactory() {
           types.enumeration(LAYOUT_MODE_VALUES),
           'force',
         ),
+        // 'auto' rather than a colour, resolved by `effectiveColorScheme`. See
+        // COLOR_SCHEMES for why the default is not 'uniform' any more. A session
+        // that names a scheme keeps it — this only decides what an unstated one
+        // opens as.
         colorScheme: types.optional(
           types.enumeration(COLOR_SCHEME_VALUES),
-          'uniform',
+          'auto',
         ),
         // How far the force layout opens a bubble, which on a variation graph is
         // the difference between a legible drawing and a rope. See
@@ -448,6 +453,25 @@ export default function stateModelFactory() {
       get rampDomain() {
         return self.colorDomain ?? self.loadedRegion
       },
+      // The scheme the renderer actually paints with, which is the raw prop
+      // unless it is 'auto'. A bare getter returns a resolved value (root
+      // CLAUDE.md): every consumer of a colour reads this one, and the two
+      // dropdowns read `colorScheme` so "Auto" stays visible as the choice it
+      // is.
+      //
+      // 'auto' asks the GRAPH, not the layout. A hue along the reference is
+      // meaningful whenever the segments have reference coordinates —
+      // `anchoredBy` is exactly that question — and a force-directed drawing of
+      // an rGFA is the case that proves it: the layout has no reference axis and
+      // the ramp still says where on the reference each node came from, which is
+      // the only quantity a linear track beside it can be painted with too.
+      get effectiveColorScheme(): ResolvedColorScheme {
+        return self.colorScheme !== 'auto'
+          ? self.colorScheme
+          : self.graph?.anchoredBy
+            ? 'reference-position'
+            : 'uniform'
+      },
       get nodePositions() {
         return self.layoutResult?.nodePositions
       },
@@ -536,6 +560,26 @@ export default function stateModelFactory() {
       // a pass over the edges and the drawing rebuilds on every pan.
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
+      },
+      // The interval the reference-position ramp runs over, for the key beside
+      // the drawing, and undefined when no key should be drawn. Two tutorials
+      // carry "red to magenta is left to right of the cut window" as a sentence
+      // in prose because nothing on screen said it.
+      //
+      // The stated domain short-circuits the derived one on purpose: deriving it
+      // costs a neighbour walk per node (computeReferenceRamp), and a graph cut
+      // from a track always states one.
+      get referenceRampDomain() {
+        const graph = self.graph
+        if (self.effectiveColorScheme !== 'reference-position' || !graph) {
+          return undefined
+        }
+        const stated = self.rampDomain
+        if (stated && stated.end > stated.start) {
+          return { start: stated.start, end: stated.end }
+        }
+        const ramp = computeReferenceRamp(graph, undefined)
+        return { start: ramp.start, end: ramp.start + ramp.span }
       },
       // Screen px per layout unit, per axis. `scale` is the x zoom and the whole
       // of what a user's wheel moves; y is a second question the layout answers
@@ -1383,7 +1427,7 @@ export default function stateModelFactory() {
                 nodePositions: self.nodePositions,
                 graph: self.graph,
                 nodeById,
-                colorScheme: self.colorScheme,
+                colorScheme: self.effectiveColorScheme,
                 contigThickness: self.contigThickness,
                 connectorThickness: self.connectorThickness,
                 drawPaths: self.drawPaths,

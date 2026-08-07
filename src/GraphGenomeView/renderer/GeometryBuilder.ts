@@ -14,7 +14,7 @@ import {
   INSTANCE_STRIDE_F32,
 } from './shaders/graph.generated'
 
-import type { ColorScheme } from '../colorSchemes'
+import type { ResolvedColorScheme } from '../colorSchemes'
 import type { Graph, GraphNode, NodeSegment } from '../types'
 import type {
   EdgeCurveBatch,
@@ -172,7 +172,7 @@ export interface BuildOptions {
   nodePositions: Record<string, NodeSegment[]>
   graph: Graph
   nodeById: Map<string, GraphNode>
-  colorScheme: ColorScheme
+  colorScheme: ResolvedColorScheme
   contigThickness: number
   connectorThickness: number
   drawPaths: boolean
@@ -382,7 +382,7 @@ export function computeColorSchemeRange(graph: Graph) {
 export function getNodeColor(
   node: GraphNode,
   nodeIndex: number,
-  colorScheme: ColorScheme,
+  colorScheme: ResolvedColorScheme,
   range: ColorSchemeRange,
 ) {
   switch (colorScheme) {

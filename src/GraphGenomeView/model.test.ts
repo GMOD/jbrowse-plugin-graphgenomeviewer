@@ -1770,3 +1770,85 @@ describe('what the row axis draws, in pixels', () => {
     expect(tube(after)).toBeCloseTo(tube(before) * 3, 5)
   })
 })
+
+// The default used to be a colour, so a launched graph opened flat grey and both
+// tutorials spent a step saying "now pick a colour" — one figure drives that
+// click as part of the picture. 'auto' is a value the model resolves, the way
+// layoutModes' 'auto' is.
+describe('the auto color scheme', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  // no SN/SO/SR and no P/W records, so nothing gives a segment a coordinate
+  const UNANCHORED = 'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nL\t1\t+\t2\t+\t0M\n'
+
+  test('a graph with reference coordinates opens on the ramp', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+
+    expect(model.colorScheme).toBe('auto')
+    expect(model.effectiveColorScheme).toBe('reference-position')
+  })
+
+  // ...and the layout is not what decides it. This is the force drawing of an
+  // rGFA, which `pangenome/rgfa_segment_neighbourhood` is: the layout has no
+  // reference axis and the hue still says where on the reference each node came
+  // from, which is the only quantity the linear lane beside it can share.
+  test('a force layout of the same graph opens on the ramp too', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setLayoutMode('force')
+    await model.loadGFA(RGFA, 'rgfa')
+
+    expect(model.pixelRows).toBe(false)
+    expect(model.effectiveColorScheme).toBe('reference-position')
+  })
+
+  test('a graph with no coordinates at all stays uniform', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(UNANCHORED, 'plain')
+
+    expect(model.effectiveColorScheme).toBe('uniform')
+  })
+
+  test('a stated scheme is left alone', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    model.setColorScheme('depth')
+
+    expect(model.effectiveColorScheme).toBe('depth')
+  })
+
+  // The key beside the drawing, which is what retires the sentence two tutorials
+  // carry in prose. It exists only while the ramp is what is painted.
+  test('the ramp key spans the cut region, and only while the ramp is on', async () => {
+    rpcRespond()
+    const model = createModel()
+    applySnapshot(model, {
+      ...getSnapshot(model),
+      colorDomain: { start: 1000, end: 5000 },
+    })
+    await model.loadGFA(RGFA, 'rgfa')
+
+    expect(model.referenceRampDomain).toEqual({ start: 1000, end: 5000 })
+
+    model.setColorScheme('depth')
+    expect(model.referenceRampDomain).toBeUndefined()
+  })
+
+  // With no region stated it falls back to what was drawn, so a file-loaded
+  // graph gets a key too rather than a strip with nothing on its ends.
+  test('with no stated region the key spans what was drawn', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+
+    const domain = model.referenceRampDomain!
+    expect(domain.end).toBeGreaterThan(domain.start)
+  })
+})
