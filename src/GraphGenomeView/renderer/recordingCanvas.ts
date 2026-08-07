@@ -16,9 +16,18 @@ export interface RecordedDraws {
   fills: string[]
 }
 
+// `points` is every coordinate the renderer asked for, in BACKING-STORE pixels
+// — the far end of the whole pipeline. Counting draw calls says the renderer ran;
+// this says where it put things, which is the only way to check a transform
+// without a canvas backend to read pixels back from. `fillRect` is excluded: it
+// is the background clear, and its corners are the pane, not the drawing.
 export function recordingCanvas() {
   const strokes: string[] = []
   const fills: string[] = []
+  const points: { x: number; y: number }[] = []
+  const at = (x: number, y: number) => {
+    points.push({ x, y })
+  }
   const ctx = {
     canvas: { width: 800, height: 600, style: {} },
     fillStyle: '',
@@ -27,10 +36,21 @@ export function recordingCanvas() {
     lineCap: '',
     lineJoin: '',
     beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
+    moveTo: at,
+    lineTo: at,
     closePath: () => {},
-    bezierCurveTo: () => {},
+    bezierCurveTo: (
+      cx0: number,
+      cy0: number,
+      cx1: number,
+      cy1: number,
+      x: number,
+      y: number,
+    ) => {
+      at(cx0, cy0)
+      at(cx1, cy1)
+      at(x, y)
+    },
     fillRect: () => {},
     stroke: () => {
       strokes.push(ctx.strokeStyle)
@@ -43,5 +63,5 @@ export function recordingCanvas() {
   // context is a stand-in, which is the one cast this needs.
   const canvas = document.createElement('canvas')
   canvas.getContext = () => ctx as unknown as CanvasRenderingContext2D
-  return { canvas, strokes, fills }
+  return { canvas, strokes, fills, points }
 }

@@ -9,6 +9,9 @@ import {
 } from './layout/drawnScale'
 import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
+import { Canvas2DRenderer } from './renderer/Canvas2DRenderer'
+import { buildGeometry } from './renderer/GeometryBuilder'
+import { recordingCanvas } from './renderer/recordingCanvas'
 
 import type { Graph } from './types'
 
@@ -1658,5 +1661,112 @@ describe('a row layout draws y in pixels', () => {
 
     expect(model.scaleX).toBeCloseTo(scaleBefore * 4, 10)
     expect(rowsAt()).toEqual(before)
+  })
+})
+
+// The whole pipeline, ending in pixels: the layout, the geometry, the transform
+// and Canvas2DRenderer, asked where they actually put the drawing. The unit
+// tests above each pin one link; this is the one that would catch two of them
+// disagreeing, which is the failure mode a change to a shared axis has.
+describe('what the row axis draws, in pixels', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  // 4 rows: a rank-0 backbone over 0-100 kb, and one allele each at ranks 1-3
+  const FOUR_ROWS = [
+    'H\tVN:Z:1.0',
+    'S\t1\t*\tLN:i:25000\tSN:Z:chr\tSO:i:0\tSR:i:0',
+    'S\t2\t*\tLN:i:25000\tSN:Z:chr\tSO:i:75000\tSR:i:0',
+    ...[1, 2, 3].flatMap(rank => [
+      `S\ta${rank}\t*\tLN:i:500\tSN:Z:alt${rank}\tSO:i:0\tSR:i:${rank}`,
+      `L\t1\t+\ta${rank}\t+\t0M`,
+      `L\ta${rank}\t+\t2\t+\t0M`,
+    ]),
+  ].join('\n')
+
+  // render whatever transform the model is currently in, and report where the
+  // renderer put every coordinate
+  function render(model: ReturnType<typeof createAnchoredModel>) {
+    const { canvas, points } = recordingCanvas()
+    const renderer = new Canvas2DRenderer(canvas)
+    renderer.resize(model.width, model.canvasHeight)
+    renderer.uploadGeometry(
+      buildGeometry({
+        nodePositions: model.nodePositions!,
+        graph: model.graph!,
+        nodeById: model.nodeById!,
+        colorScheme: 'uniform',
+        contigThickness: 10,
+        connectorThickness: 4,
+        drawPaths: false,
+        scale: model.scaleX,
+        yToX: model.scaleY / model.scaleX,
+      }),
+    )
+    renderer.updateTransform({
+      scaleX: model.scaleX,
+      scaleY: model.scaleY,
+      translateX: model.translateX,
+      translateY: model.translateY,
+      viewportWidth: model.width,
+      viewportHeight: model.canvasHeight,
+    })
+    renderer.render([1, 1, 1, 1])
+    return points
+  }
+
+  async function fitted() {
+    const model = createAnchoredModel()
+    await model.loadGFA(FOUR_ROWS, 'four rows')
+    model.zoomToFit()
+    return model
+  }
+
+  const spread = (v: number[]) => Math.max(...v) - Math.min(...v)
+
+  test('the rows are one pitch apart and the pane holds them', async () => {
+    const model = await fitted()
+    const points = render(model)
+    expect(points.length).toBeGreaterThan(0)
+    const ys = points.map(p => p.y)
+
+    // three row gaps plus the tube's own thickness, top edge to bottom edge
+    expect(spread(ys)).toBeCloseTo(3 * ROW_HEIGHT_PX + model.contigThickness, 5)
+    // and it fits, which is what the pane is sized for
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0)
+    expect(Math.max(...ys)).toBeLessThanOrEqual(model.canvasHeight)
+  })
+
+  // The panel-alignment half: the backbone is drawn across the pane rather than
+  // squeezed into whatever the vertical fit left it. Plus the round cap at each
+  // end, which is half a tube past the coordinate it caps.
+  test('the backbone spans the pane', async () => {
+    const model = await fitted()
+    expect(spread(render(model).map(p => p.x))).toBeCloseTo(
+      model.width - 80 + model.contigThickness,
+      5,
+    )
+  })
+
+  // Zoom is an x-only gesture on this axis, so afterwards the rows are drawn in
+  // exactly the same pixels and only x has moved.
+  test('zooming x redraws the rows where they were', async () => {
+    const model = await fitted()
+    const before = render(model)
+
+    model.zoom(3, model.width / 2, model.canvasHeight / 2)
+    const after = render(model)
+
+    expect(spread(after.map(p => p.y))).toBeCloseTo(spread(before.map(p => p.y)), 5)
+    expect(Math.min(...after.map(p => p.y))).toBeCloseTo(
+      Math.min(...before.map(p => p.y)),
+      5,
+    )
+    // measured without the round caps, which are screen px and so do not zoom
+    const tube = (points: { x: number }[]) =>
+      spread(points.map(p => p.x)) - model.contigThickness
+    expect(tube(after)).toBeCloseTo(tube(before) * 3, 5)
   })
 })
