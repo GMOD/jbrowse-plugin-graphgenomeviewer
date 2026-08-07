@@ -4,9 +4,20 @@ import { sampleRowLayout } from './layout/sampleRowLayout'
 
 import type { Graph, LayoutResult } from './types'
 
-// The menu label for the Bandage force layout, shared so the docs' figure recipe
-// and the menu itself can't drift apart. Kept out of the components directory
-// because the recipe generator runs in Node and must not reach React.
+// The menu label for the Bandage force layout. This used to say it was shared
+// with a docs figure-recipe generator that must not reach React, and nothing
+// outside this file has imported it for some time, so the constant was carrying
+// a reason that had stopped being true.
+//
+// What does read these labels is jbrowse-components' `website/scripts/
+// check-menu-labels.ts`, which scans this `src/` for string literals and fails
+// when a documented `**Track menu → …**` path names one this plugin no longer
+// renders. That covers the three pangenome tutorials and the graph genome view
+// guide, whose labels are otherwise unguarded: the plugin deploys from here, so
+// a renamed dropdown changes every page walking a reader to it with no commit
+// in that repo to attribute the drift to. It matches on literals rather than on
+// this export, so keeping the label in a named constant is a readability choice
+// now, not the mechanism.
 export const FORCE_LAYOUT_LABEL = 'Force-directed layout'
 
 // One table drives the persisted enum, the toolbar dropdown, and the dispatch in
