@@ -35,6 +35,7 @@
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "vitest bench --run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "prepack": "pnpm build",
     "preversion": "pnpm lint",
