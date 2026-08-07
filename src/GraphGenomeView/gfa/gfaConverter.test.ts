@@ -1,5 +1,6 @@
 import { convertGFAToGraph } from './gfaConverter'
 import { parseGFA } from '../../gfa-core/index'
+import { pathLegend } from '../pathColors'
 
 
 test('converts simple GFA to graph with strand-specific nodes', () => {
@@ -133,7 +134,7 @@ W\tsample1\t0\tchr1\t0\t1000\t>A>B>C`)
   const graph = convertGFAToGraph(gfa)
 
   expect(graph.paths).toHaveLength(1)
-  expect(graph.paths![0]!.name).toBe('sample1#0')
+  expect(graph.paths![0]!.name).toBe('sample1#0#chr1')
   expect(graph.paths![0]!.nodeIds).toEqual(['A+', 'B+', 'C+'])
   expect(graph.paths![0]!.sample).toBe('sample1')
   expect(graph.paths![0]!.haplotype).toBe(0)
@@ -159,8 +160,8 @@ W\tw2\t1\tchr1\t*\t*\t>A>B`)
   const graph = convertGFAToGraph(gfa)
 
   const edge = graph.edges[0]!
-  expect(edge.pathIds).toContain('w1#0')
-  expect(edge.pathIds).toContain('w2#1')
+  expect(edge.pathIds).toContain('w1#0#chr1')
+  expect(edge.pathIds).toContain('w2#1#chr1')
 })
 
 test('handles getSubgraph output format (star sequences with LN tags)', () => {
@@ -284,7 +285,7 @@ W\tsample1\t0\tchr1\t0\t1000\t>A>B>C`)
 
   expect(graph.paths).toHaveLength(2)
   expect(graph.paths![0]!.name).toBe('ref')
-  expect(graph.paths![1]!.name).toBe('sample1#0')
+  expect(graph.paths![1]!.name).toBe('sample1#0#chr1')
   expect(graph.paths![1]!.sample).toBe('sample1')
 })
 
@@ -316,4 +317,56 @@ L\t1\t+\t2\t+\t0M
 P\tK12#1#chr\t1+,2+\t*`)
   const graph = convertGFAToGraph(gfa)
   expect(graph.nodes.find(n => n.name === '1')!.samples).toEqual(['Tagged.1'])
+})
+
+// One assembly walks one W record per contig, which is the ordinary
+// Minigraph-Cactus shape. Naming a path for the assembly rather than for the
+// record gave those two walks one identity: the edge map merged them, and the
+// legend drew one haplotype twice in two colours.
+test('two walks of one haplotype stay two paths', () => {
+  const gfa = parseGFA(`S\ts1\tACGTACGTAC
+S\ts2\tACGTACGTAC
+S\ts3\tACGTACGTAC
+S\ts4\tACGTACGTAC
+L\ts1\t+\ts2\t+\t0M
+L\ts3\t+\ts4\t+\t0M
+W\tHG1\t1\tchrA\t0\t20\t>s1>s2
+W\tHG1\t1\tchrB\t0\t20\t>s3>s4
+W\tHG2\t1\tchrA\t0\t20\t>s1>s2`)
+  const graph = convertGFAToGraph(gfa)
+
+  expect(graph.paths!.map(p => p.name)).toEqual([
+    'HG1#1#chrA',
+    'HG1#1#chrB',
+    'HG2#1#chrA',
+  ])
+  // and the names are the ones the coordinate walk uses, so the two lists
+  // describe the same records
+  expect(graph.anchorPaths!.map(p => p.name)).toEqual(
+    graph.paths!.map(p => p.name),
+  )
+  // the legend widens only far enough to tell them apart, and no two entries
+  // now share a label while carrying different colours
+  const legend = pathLegend(graph.paths!)
+  expect(legend.map(e => e.label)).toEqual([
+    'HG1#1#chrA',
+    'HG1#1#chrB',
+    'HG2#1#chrA',
+  ])
+})
+
+// A graph with one contig per haplotype is the case every shipped figure is, so
+// widening the name must not widen its labels.
+test('one contig per haplotype still labels by haplotype', () => {
+  const gfa = parseGFA(`S\ts1\tACGTACGTAC
+S\ts2\tACGTACGTAC
+L\ts1\t+\ts2\t+\t0M
+W\tHG1\t1\tchrM\t0\t20\t>s1>s2
+W\tHG1\t2\tchrM\t0\t20\t>s1>s2`)
+  const graph = convertGFAToGraph(gfa)
+
+  expect(pathLegend(graph.paths!).map(e => e.label)).toEqual([
+    'HG1#1',
+    'HG1#2',
+  ])
 })

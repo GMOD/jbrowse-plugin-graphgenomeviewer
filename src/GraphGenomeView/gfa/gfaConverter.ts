@@ -167,7 +167,18 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
 
   for (const walk of gfaGraph.walks) {
     const nodeIds = walk.segments.map(seg => nodeId(seg.id))
-    const name = `${walk.sample}#${walk.haplotype}`
+    // The full PanSN name, contig included, which is also what `anchorablePaths`
+    // above calls the same record. Dropping the contig made a path's name an
+    // ASSEMBLY's name, and one assembly walks one W record per contig: two walks
+    // of `HG00438#1` then shared an identity, so `edgeToPathsMap` merged them,
+    // `pathColors` (keyed by name) kept only the last colour written while the
+    // node stripes kept the first, and the key drew one haplotype twice in two
+    // colours. That is the ordinary Minigraph-Cactus shape, not a corner case.
+    //
+    // The legend narrows it back: `labelTiers` tries sample, then sample and
+    // haplotype, then the whole name, so a graph with one contig per haplotype
+    // is labelled exactly as before and only a colliding one widens.
+    const name = `${walk.sample}#${walk.haplotype}#${walk.contig}`
     paths.push({
       name,
       nodeIds,
