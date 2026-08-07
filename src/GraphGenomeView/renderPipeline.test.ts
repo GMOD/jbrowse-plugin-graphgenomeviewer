@@ -1,4 +1,5 @@
 import stateModelFactory from './model'
+import { MAX_PATH_COLORS } from './pathColors'
 
 import type { RenderBatch, Renderer } from './renderer/types'
 
@@ -165,4 +166,46 @@ test('a pan moves the viewport signal and a node drag moves the positions one', 
   model.moveNode('1+', 10, 10)
   await sleep(100)
   expect(model.positionsVersion).toBe(positions + 1)
+})
+
+// The three consumers of a path colour disagreed about how many paths is too
+// many: only the node stripes stopped. A Minigraph-Cactus cut writes one W
+// record per haplotype and walks every backbone link with all of them, so the
+// two that did not stop drew a stroke per path per edge — measured at 99,800
+// strokes and 64 ms of geometry for 200 paths over 499 links — under a key
+// hundreds of rows tall, naming stripes that were not drawn.
+function pathGFA(count: number) {
+  const paths = Array.from(
+    { length: count },
+    (_, i) => `P\tHG${i}#1#chr\t1+,2+\t*`,
+  ).join('\n')
+  return `H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nL\t1\t+\t2\t+\t0M\n${paths}\n`
+}
+
+async function pathModel(count: number) {
+  mockRpcCall.mockImplementation((_id: string, method: string) =>
+    method === 'GraphComputeLayout'
+      ? Promise.resolve({ result: WIDE_LAYOUT, duration: 5 })
+      : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const model = stateModelFactory().create({ type: 'GraphGenomeView' })
+  await model.loadGFA(pathGFA(count), 'paths')
+  model.setDrawPaths(true)
+  return model
+}
+
+test('at the colour cap the paths are drawn and named', async () => {
+  const model = await pathModel(MAX_PATH_COLORS)
+  expect(model.pathCount).toBe(MAX_PATH_COLORS)
+  expect(model.effectiveDrawPaths).toBe(true)
+  expect(model.pathLegend).toHaveLength(MAX_PATH_COLORS)
+})
+
+test('past it the whole of drawPaths resolves off, key included', async () => {
+  const model = await pathModel(MAX_PATH_COLORS + 1)
+  expect(model.pathCount).toBe(MAX_PATH_COLORS + 1)
+  // the switch keeps the user's choice; what the drawing does with it is here
+  expect(model.drawPaths).toBe(true)
+  expect(model.effectiveDrawPaths).toBe(false)
+  expect(model.pathLegend).toEqual([])
 })

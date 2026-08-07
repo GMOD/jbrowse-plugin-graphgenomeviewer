@@ -541,7 +541,9 @@ const GraphCanvas = observer(function GraphCanvas({
               x,
               y,
               model.axisScale,
-              model.drawPaths,
+              // resolved, so the hit index bounds the ribbons that are
+              // actually drawn — see effectiveDrawPaths
+              model.effectiveDrawPaths,
               model.positionsVersion,
               model.deletionEdgeIndexes,
             ),

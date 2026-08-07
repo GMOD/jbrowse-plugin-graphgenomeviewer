@@ -71,7 +71,11 @@ const DELETION_DASH_PX = 11
 // paths ... even coloring the length of the nodes using the per-sample colors").
 // A node is drawn at its own length, which is the one thing in the drawing that
 // does not shrink to a joint.
-const MAX_PATH_STRIPES = 16
+//
+// How many paths is too many to colour at all is not decided here — it is one
+// rule over the stripes, the ribbons and the key, so the model resolves it and
+// hands down the answer as `drawPaths`. See MAX_PATH_COLORS.
+//
 // A stripe below this many screen px is not a color, it is aliasing between
 // neighbouring stripes. Under it the node keeps its own scheme colour.
 // `contigThickness` is itself in screen px, so this bites on the path COUNT
@@ -181,6 +185,11 @@ export interface BuildOptions {
   colorScheme: ResolvedColorScheme
   contigThickness: number
   connectorThickness: number
+  // Whether to paint per path — the RESOLVED answer, not the raw view prop.
+  // Past MAX_PATH_COLORS a graph's paths are not drawable as colours at all and
+  // the model hands over `false`, which is the one place that decides it for
+  // the stripes, the ribbons and the key together. Same contract as
+  // `colorScheme` above, which arrives with 'auto' already resolved.
   drawPaths: boolean
   // Both scales together, and required. Every screen-metric constant here (dash
   // period, stripe width, arrowhead angle) divides by scaleX, and everything
@@ -827,8 +836,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
   // node, because `GraphNode.samples` collapses a sample's haplotypes together
   // and the legend does not.
   const nodePathSlots = new Map<string, number[]>()
-  const stripeNodes =
-    drawPaths && pathCount > 1 && pathCount <= MAX_PATH_STRIPES
+  const stripeNodes = drawPaths && pathCount > 1
   if (stripeNodes) {
     for (const [pathIdx, path] of graph.paths!.entries()) {
       for (const nodeId of new Set(path.nodeIds)) {

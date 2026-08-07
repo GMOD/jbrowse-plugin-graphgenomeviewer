@@ -18,6 +18,7 @@ import {
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 
+import { MAX_PATH_COLORS } from '../pathColors'
 import SubgraphContextSelect from './SubgraphContextSelect'
 import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
@@ -86,6 +87,19 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             path in legend order, so a path that skips a node leaves its lane
             empty
           </Typography>
+          {/* Why the switch is on and nothing changed. Past MAX_PATH_COLORS the
+              hues are a degree apart and the key is taller than the drawing, so
+              the setting resolves to off (see effectiveDrawPaths) — and a
+              control that silently does nothing is worse than one that says it
+              cannot. Left switchable rather than disabled: the graph can be
+              recut to fewer paths without touching this dialog. */}
+          {model.drawPaths && !model.effectiveDrawPaths ? (
+            <Typography variant="caption" color="warning.main">
+              {model.pathCount > MAX_PATH_COLORS
+                ? `Off: ${model.pathCount.toLocaleString()} paths is past the ${MAX_PATH_COLORS} this can tell apart`
+                : 'Off: this graph states no paths'}
+            </Typography>
+          ) : null}
         </div>
 
         {model.anchorPaths.length > 1 ? (

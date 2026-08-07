@@ -30,6 +30,35 @@ export function pathHueAt(index: number, count: number) {
 export const PATH_SATURATION = 0.7
 export const PATH_LIGHTNESS = 0.5
 
+// Past this many paths a graph cannot be drawn per path at all, and the WHOLE
+// of `drawPaths` goes off with it: the node stripes, the edge ribbons and the
+// key naming them.
+//
+// One number for all three because they are one statement, and they used to
+// disagree. Only the stripes were capped. So a Minigraph-Cactus cut, which
+// writes one W record per haplotype and walks every backbone link with all of
+// them, drew: no stripes at all, a key hundreds of rows tall, and one bezier
+// stroke per path per edge — measured at 99,800 strokes and 64 ms of geometry
+// for 200 paths over 499 links, against 2,495 strokes for the five-path pggb
+// cut the figures use. Every one of those is its own `beginPath`/`stroke` on
+// the Canvas2D backend, every frame.
+//
+// 16 is where the drawing stops SAYING anything, not where it stops being fast.
+// `pathHueAt` spreads the wheel evenly, so 16 hues are 22 degrees apart and
+// still tellable and 200 are one degree; the ribbon fan is PATH_RIBBON_SPACING
+// per path, so 16 of them is a legible fan and 200 is a band wider than the
+// nodes; and a key past about 16 rows is taller than the drawing beside it.
+// Above the cap the honest picture is the plain one — which is exactly what a
+// graph carrying no paths at all already draws.
+export const MAX_PATH_COLORS = 16
+
+// Whether this graph's paths can be drawn as colours. Resolve it once and hand
+// the answer down: the geometry, the hit index and the key each used to decide
+// for themselves, which is how they came to disagree.
+export function pathColorsLegible(pathCount: number) {
+  return pathCount > 0 && pathCount <= MAX_PATH_COLORS
+}
+
 export function pathCssColor(index: number, count: number) {
   return `hsl(${pathHueAt(index, count)}, ${PATH_SATURATION * 100}%, ${
     PATH_LIGHTNESS * 100

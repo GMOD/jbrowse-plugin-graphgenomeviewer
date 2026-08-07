@@ -16,7 +16,7 @@ import { convertGFAToGraph } from './gfa/gfaConverter'
 import { layoutScaling } from './layout/drawnScale'
 import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
-import { pathLegend } from './pathColors'
+import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
@@ -464,7 +464,22 @@ export default function stateModelFactory() {
       // with no colours in it is a legend for nothing.
       get pathLegend() {
         const paths = self.graph?.paths
-        return self.drawPaths && paths ? pathLegend(paths) : []
+        return self.drawPaths && paths && pathColorsLegible(paths.length)
+          ? pathLegend(paths)
+          : []
+      },
+      // Whether the drawing is actually painted per path, which is not the same
+      // question as whether the user asked for it: past MAX_PATH_COLORS the
+      // colours say nothing and cost a stroke per path per edge. A bare getter
+      // returning a resolved value, the same shape and for the same reason as
+      // `effectiveColorScheme` — every consumer of a path colour reads this
+      // one, so the geometry, the hit index and the key cannot disagree about
+      // whether there are any. The switch in the settings dialog reads the raw
+      // `drawPaths`, so the user's choice stays visible as the choice it is.
+      get effectiveDrawPaths() {
+        return (
+          self.drawPaths && pathColorsLegible(self.graph?.paths?.length ?? 0)
+        )
       },
       // The path x is currently drawn on, which is not necessarily the one
       // `referencePath` asked for: an unmatched name falls back rather than
@@ -1574,7 +1589,7 @@ export default function stateModelFactory() {
                 colorScheme: self.effectiveColorScheme,
                 contigThickness: self.contigThickness,
                 connectorThickness: self.connectorThickness,
-                drawPaths: self.drawPaths,
+                drawPaths: self.effectiveDrawPaths,
                 // Untracked, so a zoom does not eagerly rebuild geometry — the
                 // debounced viewportDirty bump drives the scale-dependent
                 // rebuild (flatness, arrow visibility, viewport culling), same
