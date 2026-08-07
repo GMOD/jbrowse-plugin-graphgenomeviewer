@@ -278,11 +278,17 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
       const node = view.graph.nodes.find(
         (n: { stable?: { rank: number } }) => n.stable?.rank === 0,
       )
+      // The middle of the middle SEGMENT, not the midpoint of the two
+      // endpoints. Under FMMM a node is a polyline of many points and its tube
+      // follows every bend, so the straight line between its ends runs off the
+      // drawing — this aimed into empty space and hovered nothing. A two-point
+      // node gives the same answer either way.
       const segments = view.nodePositions[node.id]
-      const first = segments[0]
-      const last = segments[segments.length - 1]
-      const midX = (first.x + last.x) / 2
-      const midY = (first.y + last.y) / 2
+      const i = Math.max(0, Math.floor((segments.length - 1) / 2))
+      const a = segments[i]
+      const b = segments[Math.min(i + 1, segments.length - 1)]
+      const midX = (a.x + b.x) / 2
+      const midY = (a.y + b.y) / 2
       return {
         nodeId: node.id as string,
         expected: {
@@ -290,8 +296,12 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
           start: node.stable.start as number,
           end: (node.stable.start + node.length) as number,
         },
-        x: rect.left + (midX * view.scale + view.translateX),
-        y: rect.top + (midY * view.scale + view.translateY),
+        // scaleX and scaleY, not one `scale`: a row layout draws y in screen
+        // px and x in reference bp, so the two axes carry different numbers and
+        // projecting y through the x zoom lands the pointer hundreds of rows
+        // off the node it was aimed at.
+        x: rect.left + (midX * view.scaleX + view.translateX),
+        y: rect.top + (midY * view.scaleY + view.translateY),
       }
     }, GRAPH_CANVAS)
 

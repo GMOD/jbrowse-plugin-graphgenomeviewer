@@ -109,10 +109,18 @@ describe.skipIf(!runE2E)('a pggb GFA anchored from its paths', () => {
   it('rows the same graph by strain', async () => {
     // Carriage, which is what the walk buys over rGFA: every strain that
     // traverses a segment is known, not just the one that first contributed it.
-    expect(await rowLabels(page, SAMPLE_ROWS_VIEW)).toEqual([
-      'K12',
+    //
+    // The reference keeps row 0; the rest are ordered by how much off-reference
+    // sequence each carries here, not by name, so this asserts membership and
+    // the reference's place rather than a fixed order. Which strain carries the
+    // most is a fact about the window, and pinning it here would make this test
+    // fail on a different cut of the same graph.
+    const labels = await rowLabels(page, SAMPLE_ROWS_VIEW)
+    expect(labels[0]).toBe('K12')
+    expect([...labels].sort()).toEqual([
       'CFT073',
       'IAI39',
+      'K12',
       'NCTC86',
       'Sakai',
     ])
