@@ -24,6 +24,7 @@ const runE2E = process.env.RUN_E2E === '1'
 // all, so before pathAnchoring the only layout it could get was FMMM.
 const ANCHORED_VIEW = 'graph_anchored'
 const SAMPLE_ROWS_VIEW = 'graph_sample_rows'
+const RIBBONS_VIEW = 'graph_ribbons'
 
 function config() {
   const gfaLocation = {
@@ -51,6 +52,19 @@ function config() {
           layoutMode: 'samplerows',
           referencePath: 'K12',
           colorScheme: 'depth',
+          gfaLocation,
+        },
+        // The one configuration no e2e loaded, and the one where the ribbon
+        // geometry runs at all: five P records, an anchored layout, and
+        // `drawPaths`. Grey with it, since depth is per node and carriage is
+        // per path and the two colourings fight.
+        {
+          id: RIBBONS_VIEW,
+          type: 'GraphGenomeView',
+          layoutMode: 'auto',
+          referencePath: 'K12',
+          colorScheme: 'grey',
+          drawPaths: true,
           gfaLocation,
         },
       ],
@@ -124,6 +138,40 @@ describe.skipIf(!runE2E)('a pggb GFA anchored from its paths', () => {
       'NCTC86',
       'Sakai',
     ])
+  }, 60_000)
+
+  // In an anchored layout consecutive segments abut, so every backbone link has
+  // a zero-length chord. The ribbon fan is perpendicular to that chord, and it
+  // used to give up when there was none: the whole chain drew with no edge
+  // geometry. This is the smoke half of that — the unit tests count the curves,
+  // this one says the path runs in a browser against a real 5-path GFA, which
+  // nothing did before.
+  it('draws a path-ribboned graph without falling over', async () => {
+    const state = await page.evaluate(id => {
+      const view = window.JBrowseSession.views.find(v => v.id === id)
+      return {
+        error: view.error ? String(view.error) : undefined,
+        drawPaths: view.drawPaths,
+        pathCount: view.pathCount,
+        legend: view.pathLegend.map(e => e.label),
+        rows: view.rowLabels.length,
+      }
+    }, RIBBONS_VIEW)
+
+    expect(state.error).toBeUndefined()
+    expect(state.drawPaths).toBe(true)
+    expect(state.pathCount).toBe(5)
+    // one swatch per path drawn, named the least of each path's own name that
+    // separates it from the others
+    expect([...state.legend].sort()).toEqual([
+      'CFT073',
+      'IAI39',
+      'K12',
+      'NCTC86',
+      'Sakai',
+    ])
+    expect(state.rows).toBe(2)
+    await screenshot(page, 'anchored-01-path-ribbons')
   }, 60_000)
 
   it('paints both canvases', async () => {
