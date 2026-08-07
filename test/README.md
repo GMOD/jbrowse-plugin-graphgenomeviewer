@@ -45,9 +45,8 @@ Two things learned building it, both worth not rediscovering:
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in only because it needs a jbrowse-web static build to serve. **The suite
-passes as of 2026-07-24**; the old `createSvgIcon` blocker is gone now that
-`graph_viz` has merged to `main`.
+Opt-in only because it needs a jbrowse-web static build to serve. **All 19 tests
+pass as of 2026-08-06.**
 
 Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 
@@ -55,9 +54,22 @@ Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 ```
 
-A build from the same checkout the plugin links against is the most faithful
-option, since that is what it compiles against. A stock
-`jbrowse create .test-jbrowse-nightly --nightly` should also work now, but has
+**A build from the same checkout the plugin links against is not merely the most
+faithful option, it is usually the only one that works**, and that is the single
+most expensive thing to rediscover here. The plugin compiles against a
+jbrowse-components checkout, so it calls core APIs as soon as they exist there —
+`contributeToExtensionPoint` (2026-08-05), `requireAssembly` (2026-08-04) — and
+an older host has none of them. The failure is that the plugin throws while
+INSTALLING, so every suite dies in setup with a minified
+`e.<something> is not a function` and the whole run reads as a plugin bug.
+
+A host dir is a copy, and nothing refreshes it: `.test-jbrowse-demos` sat at
+2026-07-24 for two weeks and every run against it was a lie. `setup.ts` now
+greps the served bundles for those API names and throws with the `cp -r` line if
+they are missing, so a stale host says so in one sentence instead of costing an
+afternoon. Add to `HOST_REQUIRES` when the plugin picks up another new API.
+
+A stock `jbrowse create .test-jbrowse-nightly --nightly` should also work now, but has
 not been verified to carry the merge -- that is the one thing still keeping the
 `e2e-tests` CI job disabled.
 
@@ -83,15 +95,16 @@ Without `RUN_E2E=1` the suite skips and exits clean, so it never blocks a run.
 - `SKIP_BUILD=1` — reuse an existing `dist/` instead of rebuilding the plugin.
 - `TEST_JBROWSE_VERSION` — names the default dir (`nightly` if unset).
 
-Verified on 2026-07-24 against a build copied from
+Verified on 2026-08-06 against a build copied from
 `~/src/jbrowse-components/products/jbrowse-web/build`:
 
 ```console
-cp -r ~/src/jbrowse-components/products/jbrowse-web/build .test-jbrowse-demos
-JBROWSE_TEST_DIR=$PWD/.test-jbrowse-demos RUN_E2E=1 pnpm test:e2e
+cp -r ~/src/jbrowse-components/products/jbrowse-web/build .test-jbrowse-local
+JBROWSE_TEST_DIR=$PWD/.test-jbrowse-local RUN_E2E=1 pnpm test:e2e
 ```
 
-All 11 tests pass. `launchAndHover` was also run four times on its own to check
-stability. Running all three suites together flaked **once** in
-`launchAndHover`'s setup under load and passed on re-run, which is why that
-setup now waits in named stages — a repeat should say which step stalled.
+All 19 tests pass. **Running the five suites together flakes**, about one test in
+five runs, and never the same one — `launchAndHover`'s setup once, `forceLayout`'s
+non-empty-canvas assertion once — and each passed on its own immediately after.
+They share one server and one machine, so treat a single failure as load until a
+second run agrees with it. Re-run the file alone before believing it.

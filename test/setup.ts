@@ -52,6 +52,45 @@ export async function waitForServer(port: number, timeout = 30_000) {
   throw new Error(`server on ${port} not up in ${timeout}ms: ${lastError}`)
 }
 
+// Core APIs the plugin compiles against that a JBrowse older than them cannot
+// provide. Both are recent and unreleased, and both fail the same expensive way:
+// the plugin throws while installing, every suite dies in setup with a minified
+// `e.<something> is not a function`, and the whole thing reads as a plugin bug.
+// A copied host dir is a snapshot nothing refreshes — `.test-jbrowse-demos` sat
+// at 2026-07-24 for two weeks — so this is checked rather than assumed.
+//
+// Grepping the served bundles is crude and exactly enough: the names are not
+// mangled (they are property accesses on PluginManager and assemblyManager), and
+// a false pass here just returns us to the old failure.
+const HOST_REQUIRES = [
+  ['contributeToExtensionPoint', 'core 2026-08-05'],
+  ['requireAssembly', 'core 2026-08-04'],
+] as const
+
+function assertHostIsCurrentEnough() {
+  const jsDir = path.join(TEST_JBROWSE_DIR, 'static', 'js')
+  if (!fs.existsSync(jsDir)) {
+    return
+  }
+  const bundles = fs
+    .readdirSync(jsDir)
+    .filter(f => f.endsWith('.js'))
+    .map(f => fs.readFileSync(path.join(jsDir, f), 'utf8'))
+  const missing = HOST_REQUIRES.filter(
+    ([name]) => !bundles.some(b => b.includes(name)),
+  )
+  if (missing.length > 0) {
+    throw new Error(
+      `The JBrowse at ${TEST_JBROWSE_DIR} is older than this plugin needs — ` +
+        `it has no ${missing.map(([name, since]) => `${name} (${since})`).join(', ')}. ` +
+        'Every suite would fail in setup with a minified "is not a function" ' +
+        'that looks like a plugin bug. Refresh it:\n' +
+        '  cp -r ~/src/jbrowse-components/products/jbrowse-web/build ' +
+        TEST_JBROWSE_DIR,
+    )
+  }
+}
+
 // The plugin bundle plus the hashed engine chunk are copied into the JBrowse
 // static dir, and the GFA test file is served alongside so the view can fetch
 // it over http exactly as a real deployment would.
@@ -71,6 +110,7 @@ export function setupJBrowse({
       `JBrowse dir missing at ${TEST_JBROWSE_DIR}. Run: jbrowse create ${TEST_JBROWSE_DIR} --nightly`,
     )
   }
+  assertHostIsCurrentEnough()
 
   const distDir = path.join(process.cwd(), 'dist')
   const skipBuild = process.env.SKIP_BUILD === '1'
