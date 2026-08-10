@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import CascadingMenuButton from '@jbrowse/core/ui/CascadingMenuButton'
+import { CascadingMenuButton } from '@jbrowse/core/ui'
 import DeleteIcon from '@mui/icons-material/Delete'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SettingsIcon from '@mui/icons-material/Settings'

@@ -1,4 +1,4 @@
-import RpcMethodType from '@jbrowse/core/pluggableElementTypes/RpcMethodType'
+import { RpcMethodType } from '@jbrowse/core/pluggableElementTypes'
 
 import loadBandage from './loadBandage'
 

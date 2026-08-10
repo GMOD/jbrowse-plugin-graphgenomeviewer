@@ -1,5 +1,4 @@
 import { Dialog } from '@jbrowse/core/ui'
-import { makeStyles } from '@jbrowse/core/util/tss-react'
 import {
   DialogActions,
   DialogContent,
@@ -17,6 +16,7 @@ import {
 } from '@mui/material'
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
+import { makeStyles } from 'tss-react/mui'
 
 import { MAX_PATH_COLORS } from '../pathColors'
 import SubgraphContextSelect from './SubgraphContextSelect'

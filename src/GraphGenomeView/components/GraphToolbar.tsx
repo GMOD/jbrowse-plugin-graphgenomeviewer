@@ -1,9 +1,9 @@
-import { makeStyles } from '@jbrowse/core/util/tss-react'
 import CropFreeIcon from '@mui/icons-material/CropFree'
 import ZoomInIcon from '@mui/icons-material/ZoomIn'
 import ZoomOutIcon from '@mui/icons-material/ZoomOut'
 import { IconButton, Tooltip, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
+import { makeStyles } from 'tss-react/mui'
 
 import ColorSchemeSelect from './ColorSchemeSelect'
 import GraphStats from './GraphStats'

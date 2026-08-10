@@ -1,5 +1,5 @@
 import { readConfObject } from '@jbrowse/core/configuration'
-import BaseViewModel from '@jbrowse/core/pluggableElementTypes/models/BaseViewModel'
+import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'

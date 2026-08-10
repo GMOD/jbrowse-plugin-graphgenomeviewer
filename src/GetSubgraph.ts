@@ -1,5 +1,5 @@
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
-import RpcMethodTypeWithRenameRegion from '@jbrowse/core/pluggableElementTypes/RpcMethodTypeWithRenameRegion'
+import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTypes'
 
 import type { Region } from '@jbrowse/core/util'
 

@@ -2,9 +2,9 @@ import { useState } from 'react'
 
 import { ErrorBanner, LoadingEllipses } from '@jbrowse/core/ui'
 import { openLocation } from '@jbrowse/core/util/io'
-import { makeStyles } from '@jbrowse/core/util/tss-react'
 import { Button, Paper, TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
+import { makeStyles } from 'tss-react/mui'
 
 import type { GraphGenomeViewModel } from '../model'
 
