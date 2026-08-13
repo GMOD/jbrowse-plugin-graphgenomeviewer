@@ -15,6 +15,15 @@ Emscripten SDK and an OGDF checkout, which is _not_ vendored: it is ~85 MB of
 build tree and compiles for far longer than this port does. `OGDF_DIR` defaults
 to `~/src/vendor/BandageNG/thirdparty/ogdf`.
 
+The script reuses `libOGDF.a` whenever one is already there, so the OGDF a given
+artifact was linked against can be much older than the Emscripten that linked
+it. That is fine and is worth knowing rather than worrying about: rebuilding
+OGDF from scratch under emcc 6.0.6, against a `libOGDF.a` built by whatever was
+current in October 2025, moved **no coordinate in any of the 90 digest cases**
+(2026-08-13, ~2 min on 16 cores). So a stale OGDF is not a suspect when a
+drawing changes — but `layout-digest.mjs` below is how to establish that again
+rather than assume it, and it is cheap enough to just run.
+
 `pnpm test:wasm` runs the committed artifact for real. Three things it guards:
 the file is minified glue that any reformatter (eslint --fix, prettier) will
 silently corrupt; **the layout is deterministic** — FMMM used to seed its
