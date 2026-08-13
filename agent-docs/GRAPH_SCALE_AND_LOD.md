@@ -29,7 +29,8 @@ one triangle per `fill()`.
 
 Which wall you hit first depends on the layout mode:
 
-- **Anchored / sample-rows** (O(n), local): rendering is the wall.
+- **Anchored / sample-rows** (O(n), local): rendering is the wall. This is the
+  one mode a GPU backend would help, and the only one — `IDEAS.md` scopes it.
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
   Fruchterman-Reingold is "still slow for 10k+ nodes". Ours is single-threaded
