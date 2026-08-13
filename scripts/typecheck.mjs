@@ -8,6 +8,17 @@
 //
 // Upstream errors are still printed, just not fatal.
 //
+// **`src/` is expected to be at zero, so treat any error here as new.** It was
+// not: 19 sat here for a while, all of them one root cause, and they made this
+// script exactly as useless as the note above warns about — nobody reads a
+// nineteen-line failure, and a real `Cannot find module '@jbrowse/render-core'`
+// hid in it long enough to ship a `pnpm build` that did not build. The cause
+// was `@jbrowse/mobx-state-tree` sitting a minor behind the copy `@jbrowse/core`
+// resolves, so `Instance<typeof someConfigSchema>` was unwrapping a `IType`
+// from the other version and gave up, taking every MST-typed thing in the
+// plugin with it. If a wall of errors appears here again, compare that version
+// against the linked checkout's before reading any of them.
+//
 // Runs TypeScript 7 explicitly, via the `typescript7` npm alias, because two
 // versions are installed on purpose and `npx tsc` would resolve the wrong one.
 // typescript-eslint does not support TS 7 yet

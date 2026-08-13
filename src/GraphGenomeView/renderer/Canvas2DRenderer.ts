@@ -1,3 +1,5 @@
+import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBackendBase'
+
 import {
   abgrToCssRgba,
   brightenAbgr,
@@ -22,8 +24,24 @@ const NORMAL_F32 = graphShader.FIELD_OFFSET_F32.normal
 const THICKNESS_F32 = graphShader.FIELD_OFFSET_F32.thickness
 const COLOR_F32 = graphShader.FIELD_OFFSET_F32.color
 
-export class Canvas2DRenderer implements Renderer {
-  private ctx: CanvasRenderingContext2D
+// Extends the shared Canvas2D base rather than standing alone, which is how
+// `setErrorHandler` arrives — `useRenderingBackend` requires it, and
+// renderingBackendBase.ts says why in the one place worth reading: it was
+// optional once, and the three backends that skipped it were the three
+// allocating the largest vertex buffers, whose over-limit errors reached
+// nobody. This view is squarely in that class (75 MB of buffers at 100k nodes,
+// agent-docs/GRAPH_SCALE_AND_LOD.md), so the intended route in is the right one
+// rather than a local stub.
+//
+// The base's no-op implementation is also the CORRECT one here and not a
+// placeholder: Canvas2D allocates no GPU resources, so there is no OOM channel
+// to forward. It exists so the hook can wire GPU and Canvas2D backends
+// uniformly, and it is what a future GPU backend for this view would replace
+// by extending GpuRenderingBackendBase instead (see GraphRenderer.ts).
+export class Canvas2DRenderer
+  extends Canvas2DRenderingBackendBase
+  implements Renderer
+{
   private transform: TransformUniform | null = null
   private subBatches: Record<SubBatchKey, SubBatch | null> = {
     nodes: null,
@@ -36,13 +54,10 @@ export class Canvas2DRenderer implements Renderer {
   private highlightedEdge: VertexRange | null = null
   private highlightFactor = 1
 
-  constructor(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      throw new Error('Canvas 2D not supported')
-    }
-    this.ctx = ctx
-  }
+  // The base acquires the 2D context through `acquireCanvas2D`, which names the
+  // committed context in the way when an element is re-initialised. A bare
+  // "Canvas 2D not supported" — what this used to throw — sends the reader
+  // looking for a missing browser feature instead.
 
   resize(width: number, height: number) {
     const dpr = window.devicePixelRatio || 1
@@ -209,7 +224,11 @@ export class Canvas2DRenderer implements Renderer {
     }
   }
 
-  dispose() {
+  override dispose() {
+    // A no-op on the base today — Canvas2D holds no GPU resources — but called
+    // rather than assumed, so this keeps working if the base ever acquires
+    // something to release.
+    super.dispose()
     this.subBatches = { nodes: null, arrows: null }
     this.edgeCurves = []
     this.edgeCurveRanges = new Map()
