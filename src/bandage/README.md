@@ -56,6 +56,21 @@ layout fails with "memory access out of bounds" until the tab is reloaded. That
 is why ownership here is `std::unique_ptr` rather than a matched `new`/`delete`:
 not tidiness, but bounding what a future throw can cost.
 
+## emcc is a lenient judge of includes
+
+`settings.h` called `ceil()` for years without including `<cmath>`. It compiled
+because emcc's libc++ pulls the header in transitively; libstdc++ does not, and
+the file was only ever compiled by emcc, so nothing said so. It surfaced when
+`scripts/profile/` compiled the identical sources with g++ and both translation
+units failed on that one line.
+
+The vendored OGDF needed the same fix for `<chrono>` (hunk 2 of
+`vendor/ogdf-emscripten.patch`), so this is a pattern rather than a one-off, and
+a header that is not self-contained is a latent break in any future toolchain
+bump. `g++ -fsyntax-only -Ivendor/ogdf/include -Ivendor/ogdf/build-wasm/include`
+over `src/graphlayout.cpp` is a seconds-long check for it that needs no native
+OGDF.
+
 ## Verifying a rebuild
 
 The artifact's bytes move for reasons that have nothing to do with the layout —
@@ -77,11 +92,19 @@ move anything; every line that does change is a figure that will need
 regenerating, and should be one you can name in advance.
 
 `.github/workflows/wasm-rebuild.yml` runs exactly this weekly, and puts the diff
-in the job summary. So the question it answers is not "did the bytes change" —
-they always do, Emscripten embeds its own version and the build path — but "does
-the committed engine still draw what its sources say it draws". It needs no
-checkout but this one now that OGDF is vendored, and no `pnpm install`: both
+in the job summary. So the question it answers is not "did the bytes change" but
+"does the committed engine still draw what its sources say it draws". It needs
+no checkout but this one now that OGDF is vendored, and no `pnpm install`: both
 scripts run on bare node.
+
+**On one host with one Emscripten the build is byte-reproducible**, which this
+file previously denied — it claimed Emscripten embeds the build path. It does
+not: the `<cmath>` regen (2026-08-13) was run from a worktree, i.e. a different
+absolute path to every source, and `git status` came back clean against an
+artifact built in the primary checkout. So for a change that is meant to be a
+no-op, an unmodified `bandage-layout.js` is the strongest confirmation available
+and comes for free; the digest is what you need when it _does_ differ, and
+across Emscripten versions, where the bytes genuinely do move.
 
 Upstream: https://github.com/cmdcolin/BandageNG-web (`bandage-layout-js/`)
 

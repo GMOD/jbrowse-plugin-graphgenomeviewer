@@ -10,6 +10,14 @@
 
 #pragma once
 
+// getNumberOfOgdfGraphEdges below calls ceil(). Nothing here included <cmath>
+// for it: emcc's libc++ pulls it in transitively, so the wasm build this file
+// exists for never noticed, and libstdc++ does not — which is how it surfaced,
+// as scripts/profile/ failing to compile the identical sources natively. Same
+// latent-include bug the vendored OGDF needed <chrono> for (hunk 2 of
+// vendor/ogdf-emscripten.patch).
+#include <cmath>
+
 // Simplified settings structure for layout computation only
 // Removes all Qt and GUI-related settings
 
