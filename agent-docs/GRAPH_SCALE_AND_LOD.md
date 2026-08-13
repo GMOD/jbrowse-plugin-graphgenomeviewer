@@ -227,6 +227,51 @@ After the flag, the near-field repulsion is the profile's floor: `f_rep_u_on_v`
 27.8%, `add_local_expansion` 13.3%, `calculate_neighbourcell_forces` 12.3% at
 q=4. Going past that means editing OGDF, with the merge cost that implies.
 
+### On real pangenome graphs the cost is linear in OGDF nodes (2026-08-13)
+
+Every layout number above this line was measured on a synthetic bubble chain —
+uniform degree 2, two node lengths. `scripts/bench-gfa-layout.mjs` runs the
+committed engine on actual files instead, one child process per case so a
+timeout or an abort is a row rather than a dead run. Four graphs, spanning the
+kinds this view is pointed at, at q=2 and the proportional spread:
+
+| graph                                | segs    | links   | mean deg | OGDF nodes | layout  | RSS     |
+| ------------------------------------ | ------- | ------- | -------- | ---------- | ------- | ------- |
+| `chrM.pan.4` (pggb)                  | 154     | 205     | 2.7      | 589        | 102 ms  | 73 MB   |
+| `hprc-v1.1-mc-grch38.chrM` (MC)      | 1,393   | 1,885   | 2.7      | 5,194      | 675 ms  | 92 MB   |
+| `31.chr22` (strangepg fixture)       | 5,001   | 13,998  | 5.6      | 19,065     | 5.3 s   | 137 MB  |
+| `22.hlasortof` (strangepg fixture)   | 118,663 | 146,811 | 2.5      | 440,790    | 111 s   | 1.04 GB |
+
+Nothing failed. **There is no cliff** — the 118k-segment graph is 441k OGDF
+nodes and 111 seconds, which is unusable but not a crash, and memory grows
+smoothly to a gigabyte.
+
+Cutting the HLA graph to increasing prefixes gives the shape, and it is close to
+linear in OGDF nodes across three orders of magnitude:
+
+| OGDF nodes | layout  | ms per OGDF node |
+| ---------- | ------- | ---------------- |
+| 3,621      | 580 ms  | 0.160            |
+| 18,158     | 2.97 s  | 0.164            |
+| 36,947     | 5.73 s  | 0.155            |
+| 92,051     | 17.7 s  | 0.192            |
+| 184,920    | 36.9 s  | 0.199            |
+| 440,790    | 111 s   | 0.252            |
+
+So the superlinearity FMMM is known for is mild at this scale — the exponent
+runs about 1.0 to 1.27, and the per-node cost only drifts up 1.6x while the
+graph grows 120x. **Mean degree moves it more than size does**: chr22 at 19,065
+OGDF nodes costs 0.28 ms each against the HLA graph's 0.164 at 18,158, and the
+difference between them is degree 5.6 against 2.3.
+
+Two things this settles. `bench-layout.mjs`'s bubble chain is not misleading —
+its 1,201-node proportional q=2 case is 4,407 OGDF nodes at 521 ms, i.e. 0.118
+ms per node, the same order as everything here. And IDEAS.md's "not obviously
+the bottleneck for anything" is too generous for **base-level** graphs: a 5,000
+segment pggb/MC window is already 3-5 s, which is past interactive. It stays
+academic only because of the legibility ceiling above — 5,000 nodes in a 900 px
+fit is 0.18 px each, so nobody can read the drawing that took 5 seconds.
+
 Two things follow, and both are now implemented or recorded:
 
 - **The floor on a node's drawn length is what hides the variation**, and it is
