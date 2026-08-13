@@ -272,6 +272,53 @@ segment pggb/MC window is already 3-5 s, which is past interactive. It stays
 academic only because of the legibility ceiling above — 5,000 nodes in a 900 px
 fit is 0.18 px each, so nobody can read the drawing that took 5 seconds.
 
+### The profile on a real graph, and what it says about a GPU (2026-08-13)
+
+The profile above was taken on the bubble chain. `scripts/profile/` rebuilds the
+same sources natively — `build.sh`, then `perf record` — so the split can be
+read on a real one. chr22 (5,001 segments, mean degree 5.6), which the native
+driver lays out in 4,484 ms against the engine's 5,343 ms, i.e. the usual ~20%
+native-vs-wasm gap. Self time, grouped by what a GPU port could and could not
+take:
+
+| group                                          | chr22 q=2 | chr22 q=4 | chain q=2 |
+| ---------------------------------------------- | --------- | --------- | --------- |
+| **near-field direct repulsion** (parallel)      | **54.3%** | **44.9%** | 41.7%     |
+| far-field multipole, tree passes                | 15.6%     | 27.6%     | ~12%      |
+| quadtree build + `PoolMemoryAllocator`          | 8.8%      | 9.9%      | ~8%       |
+| attractive/edge forces (parallel)               | 1.5%      | 2.4%      | -         |
+| `libm` (`atan2`, `hypot`, `log`)                | 4.9%      | 4.3%      | 7.8%      |
+
+Near-field is `f_rep_u_on_v` plus `calculate_neighbourcell_forces`; far-field is
+`add_local_expansion`, `transform_*_to_forces`, `well_separated` and the leaf
+expansions.
+
+**A real graph is more parallel than the synthetic one, not less** — 54% against
+42% at q=2, because degree 5.6 puts more pairs in each neighbour cell. Quality
+pushes the other way: q=4 raises the multipole precision `k` from 2 to 8, and
+`add_local_expansion` goes 6.1% to 14.3%, so the far-field tree work more than
+doubles its share.
+
+`__divdc3` is **absent at both qualities**, which is the check that
+`-fcx-limited-range` is live in this build. It was 22.4% at q=4 before it.
+
+So the Amdahl ceiling on porting the parallel part is **2.3x at q=2 and 1.9x at
+q=4** — 2.5x and 2.2x if the far-field force evaluation goes too — with a
+perfect port and zero transfer cost. FMMM rebuilds its quadtree every iteration
+and runs hundreds of them, so a real implementation pays a kernel launch and a
+sequential tree build per iteration against that ceiling.
+
+**What that buys, against the measurements above.** The 118k-segment graph goes
+from 111 s to perhaps 45 s: still unusable. A 5,000-segment base-level window
+goes from 5.3 s to ~2.3 s: still not interactive. And at the sizes the
+legibility ceiling actually permits — tens of nodes, where a drawing is
+readable — the layout is already under 100 ms. **A GPU port does not move the
+boundary between interactive and not at any graph size**, which is the reason
+this is recorded here, beside its numbers, rather than in IDEAS.md.
+
+The cheaper lever is in the table above: mean degree and `bubbleSpread` set the
+constant, and the quality knob is worth 4x on its own.
+
 Two things follow, and both are now implemented or recorded:
 
 - **The floor on a node's drawn length is what hides the variation**, and it is

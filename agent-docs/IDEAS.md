@@ -80,5 +80,16 @@ file, no merge debt — and the quality switch already moves them together.
 Decoupling them is a legitimate change that costs nothing structurally, though
 unlike the build flag it _does_ move figures.
 
-Worth opening only if a real graph is still too slow after the 1.5x. It was not
-obviously the bottleneck for anything when this was written.
+Worth opening only if a real graph is still too slow after the 1.5x.
+
+**Measured since, on real graphs** (GRAPH_SCALE_AND_LOD.md): a 5,000-segment
+base-level window is 3-5 s and a 118k-segment graph is 111 s, so "not the
+bottleneck for anything" was too generous — it is the bottleneck on base-level
+graphs, and only the legibility ceiling keeps that academic.
+
+**Running it on the GPU is not the way out, and that is measured too.** The
+near-field repulsion is 54% of a real q=2 layout, so the Amdahl ceiling on a
+perfect port is ~2.3x, against a quadtree that FMMM rebuilds every iteration.
+That takes 111 s to ~45 s and 5.3 s to ~2.3 s — neither crosses into
+interactive, and at the node counts a force layout is legible at, the layout is
+already under 100 ms.
