@@ -19,6 +19,13 @@ Replace `Canvas2DRenderer` with a GPU backend on the anchored / sample-rows
 path. The view has never plotted with the GPU; `createGraphRenderer` returns the
 Canvas2D backend unconditionally.
 
+**This is about drawing, not laying out.** Running FMMM itself on the GPU is a
+separate question with the opposite answer — measured, and recorded at the
+bottom of this file and in `GRAPH_SCALE_AND_LOD.md`: near-field repulsion is 54%
+of a real layout, so a perfect port ceilings at ~2.3x and never reaches
+interactive. The two share the word "GPU" and nothing else, and both have been
+asked.
+
 **The preparation is already done**, which is most of why this is attractive.
 `renderer/shaders/graph.generated.ts` is live today as a vertex buffer layout
 contract — `GeometryBuilder` packs with `INSTANCE_STRIDE_F32` /
@@ -87,7 +94,8 @@ base-level window is 3-5 s and a 118k-segment graph is 111 s, so "not the
 bottleneck for anything" was too generous — it is the bottleneck on base-level
 graphs, and only the legibility ceiling keeps that academic.
 
-**Running it on the GPU is not the way out, and that is measured too.** The
+**Running the layout on the GPU is not the way out, and that is measured too**
+(not to be confused with the rendering entry above, which is a live idea). The
 near-field repulsion is 54% of a real q=2 layout, so the Amdahl ceiling on a
 perfect port is ~2.3x, against a quadtree that FMMM rebuilds every iteration.
 That takes 111 s to ~45 s and 5.3 s to ~2.3 s — neither crosses into
