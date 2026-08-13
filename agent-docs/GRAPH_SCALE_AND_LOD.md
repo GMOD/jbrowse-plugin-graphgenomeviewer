@@ -79,13 +79,18 @@ between each pair of alleles), ms:
 
 | nodes | spread       | OGDF nodes | q=0 | q=2   | q=4    |
 | ----- | ------------ | ---------- | --- | ----- | ------ |
-| 121   | proportional | 447        | 95  | 98    | 345    |
-| 121   | wide         | 2,541      | 92  | 435   | 2,132  |
-| 1,201 | proportional | 4,407      | 153 | 612   | 3,426  |
-| 1,201 | open         | 7,607      | 245 | 1,196 | 6,100  |
-| 1,201 | wide         | 25,221     | 745 | 4,294 | 20,380 |
+| 121   | proportional | 447        | 97  | 86    | 213    |
+| 121   | wide         | 2,541      | 90  | 355   | 1,328  |
+| 1,201 | proportional | 4,407      | 165 | 561   | 2,385  |
+| 1,201 | open         | 7,607      | 242 | 961   | 3,583  |
+| 1,201 | wide         | 25,221     | 708 | 3,847 | 13,127 |
 
-So the two settings multiply: 'wide' at the highest quality is **33x**
+Re-measured after `-fcx-limited-range` (below), which is why the high-quality
+column is ~1.5x faster than this table first recorded. **Every engine timing
+elsewhere in this file predates that commit and is now an upper bound**, the
+chrM figures above included.
+
+So the two settings multiply: 'wide' at the highest quality is **23x**
 proportional at the default quality on the same graph. Both are legitimate
 choices — see BUBBLE_SPREADS for what each buys — but they are the reason a
 force layout is ever slow, and neither said so.
@@ -176,9 +181,10 @@ buys its extra precision largely in complex divides.
 
 #### `-fcx-limited-range` is worth 1.3-1.9x and moves nothing
 
-Not applied — this records the measurement and the argument, so it can be a
-deliberate commit. Built on both `libOGDF.a` and the engine TU, min of 5
-interleaved rounds, ms:
+**Applied**, on both `libOGDF.a` and the engine TU — `scripts/build-wasm.sh`
+carries the reasoning and stamps the flag into the OGDF build tree so a stale
+library cannot be linked into the committed artifact. The measurement that
+justified it, min of 5 interleaved rounds, ms:
 
 | case                          | base  | -fcx-limited-range |       |
 | ----------------------------- | ----- | ------------------ | ----- |
