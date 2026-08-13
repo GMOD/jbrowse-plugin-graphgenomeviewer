@@ -1219,14 +1219,32 @@ export default function stateModelFactory() {
             })
       }
 
+      // Which layout request is the live one. A layout is async and nothing in
+      // the UI waits for it, so several are routinely in flight: every control
+      // in the settings dialog fires `recomputeLayout` on change, and a force
+      // layout takes seconds where an anchored one is instant.
+      //
+      // The graph identity below is not enough to order them, because the
+      // competing requests are usually layouts of the SAME graph. Left to
+      // resolve order the last one to FINISH won rather than the last one
+      // asked for, so switching away from a slow force layout — to an anchored
+      // mode, a cheaper bubble spread, a lower quality — drew the abandoned
+      // one over the top of the chosen one seconds later, with the dropdown
+      // still naming the choice that was discarded.
+      let liveRequest = 0
+
       // Applied under a guard because a layout is async and the user can load a
-      // different graph while one is in flight; the stale result must not land.
+      // different graph, or ask for a different layout of it, while one is in
+      // flight; the stale result must not land.
       function* layoutInto(graph: Graph) {
+        const request = ++liveRequest
         const { result, duration } = yield* computeLayout(graph)
-        if (self.graph === graph) {
+        const live = self.graph === graph && request === liveRequest
+        if (live) {
           self.layoutResult = result
           self.setLayoutMs(duration)
         }
+        return live
       }
 
       function* parseAndLayout(text: string, name: string) {
@@ -1390,11 +1408,16 @@ export default function stateModelFactory() {
           self.setStatusMessage('Computing layout')
 
           try {
-            yield* layoutInto(graph)
+            // A superseded request leaves the spinner to the request that
+            // replaced it: clearing it here reports "done" while the layout the
+            // user actually asked for is still being computed, which is the
+            // common case when a cheap choice follows an expensive one.
+            if (yield* layoutInto(graph)) {
+              self.isLoading = false
+            }
           } catch (e) {
             console.error('[GraphGenomeView.recomputeLayout]', e)
             self.error = e
-          } finally {
             self.isLoading = false
           }
         }),

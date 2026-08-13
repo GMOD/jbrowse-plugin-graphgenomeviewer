@@ -606,6 +606,37 @@ describe('layoutMode', () => {
     expect(model.canAnchorLayout).toBe(false)
     expect(layoutCalls()).toHaveLength(1)
   })
+
+  // A force layout takes seconds and the dropdown does not wait for it, so the
+  // slow one is still in flight when the next choice is made. Whichever
+  // RESOLVES last used to win, which is the wrong one: the anchored layout
+  // lands instantly and the abandoned force result then painted over it, with
+  // the dropdown still reading "Anchored".
+  test('a superseded layout does not land after the one that replaced it', async () => {
+    let releaseForce: (() => void) | undefined
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? new Promise(resolve => {
+            releaseForce = () => {
+              resolve({ result: MOCK_LAYOUT, duration: 5 })
+            }
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    model.setLayoutMode('force')
+    const pending = model.loadGFA(RGFA, 'rgfa')
+
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    const anchored = model.layoutResult
+    expect(anchored).not.toEqual(MOCK_LAYOUT)
+
+    releaseForce!()
+    await pending
+
+    expect(model.layoutResult).toBe(anchored)
+  })
 })
 
 // pggb/odgi: no segment carries a coordinate, so the only ones in the file are
