@@ -36,6 +36,28 @@ const useStyles = makeStyles()({
 
 const qualityLabels = ['Lowest', 'Low', 'Medium', 'High', 'Highest'] as const
 
+// Why a control is on and the drawing did not move. Layout quality and bubble
+// spread are the engine's own inputs, and an anchored layout places a node from
+// its coordinates without ever reaching the engine — so on those layouts these
+// two settings do nothing, which the user guide has to state in prose because
+// the dialog did not. Same reason and same shape as the `drawPaths` warning
+// below. Left enabled rather than disabled: the setting is real and is what the
+// force layout will be drawn with, so it is worth being able to choose it
+// before switching, and the dropdown that makes it live is one row up in the
+// toolbar.
+const EngineOnly = observer(function EngineOnly({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  return model.hasGraph && !model.usesLayoutEngine ? (
+    <Typography variant="caption" color="warning.main">
+      No effect on this layout: only the force-directed layout is drawn by the
+      engine that reads this.
+    </Typography>
+  ) : null
+})
+
 const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
   model: GraphGenomeViewModel
   open: boolean
@@ -67,6 +89,12 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 />
               ))}
             </RadioGroup>
+            <Typography variant="caption" color="text.secondary">
+              FMMM&apos;s iteration budget, the same scale Bandage exposes.
+              Higher is slower: on a thousand-node cut the top setting is
+              seconds rather than tenths.
+            </Typography>
+            <EngineOnly model={model} />
           </FormControl>
         </div>
 
@@ -153,9 +181,10 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           </FormControl>
           <Typography variant="caption" color="text.secondary">
             How far the force layout opens a bubble. A pangenome allele is a few
-            bp, so at Bandage's own scale both arms land inside one node
+            bp, so at Bandage&apos;s own scale both arms land inside one node
             thickness and the graph draws as a rope.
           </Typography>
+          <EngineOnly model={model} />
         </div>
 
         <SubgraphContextSelect model={model} />

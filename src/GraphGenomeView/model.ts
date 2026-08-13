@@ -14,7 +14,11 @@ import { deletionEdges } from './deletionEdges'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { layoutScaling } from './layout/drawnScale'
-import { LAYOUT_MODE_VALUES, layoutModeByValue } from './layoutModes'
+import {
+  LAYOUT_MODE_VALUES,
+  layoutModeByValue,
+  modeUsesLayoutEngine,
+} from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
@@ -503,6 +507,20 @@ export default function stateModelFactory() {
       },
       get hasGraph() {
         return self.graph !== undefined
+      },
+      // Whether the drawing on screen is the FMMM engine's. False before there
+      // is a graph, since nothing is drawn by anything yet.
+      //
+      // Read by the settings that only the engine looks at: the layout quality
+      // and the bubble spread do nothing at all to an anchored drawing, which
+      // places a node from its coordinates, and the guide says so in prose
+      // precisely because the dialog did not. A control that silently does
+      // nothing is worse than one that says it cannot — the same rule the
+      // `drawPaths` switch already follows.
+      get usesLayoutEngine() {
+        return self.graph
+          ? modeUsesLayoutEngine(self.layoutMode, self.graph)
+          : false
       },
       // A rank-0 backbone to draw x against, whether the segments declared it
       // (rGFA) or a path walk derived it. Only a GFA with neither tags nor

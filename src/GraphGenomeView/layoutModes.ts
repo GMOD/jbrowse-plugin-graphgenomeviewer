@@ -45,7 +45,17 @@ export interface LayoutMode {
   // rest rather than hiding them, so the reason a mode is unavailable stays
   // visible instead of the menu silently changing shape between graphs
   available: (graph: Graph) => boolean
+  // whether `run` draws this graph itself, as opposed to handing off to the
+  // engine. Not the same question as `available` and not derivable from it:
+  // 'force' is available for every graph and draws none of them itself. The two
+  // coincide for the anchored modes, which is stated by sharing the predicate
+  // rather than by restating it.
+  drawsLocally: (graph: Graph) => boolean
 }
+
+const hasBackbone = (graph: Graph) => graph.nodes.some(isBackbone)
+const hasAlleles = (graph: Graph) =>
+  hasBackbone(graph) && graph.nodes.some(isOffReference)
 
 // `satisfies` rather than a `: LayoutMode[]` annotation: the annotation widened
 // every `value` to string, which collapsed LayoutModeValue to string and left the
@@ -57,7 +67,8 @@ export const LAYOUT_MODES = [
     description:
       'x is reference bp, one row per stable rank. Needs rGFA tags or a reference path.',
     run: anchoredLayout,
-    available: graph => graph.nodes.some(isBackbone),
+    available: hasBackbone,
+    drawsLocally: hasBackbone,
   },
   {
     value: 'samplerows',
@@ -65,8 +76,8 @@ export const LAYOUT_MODES = [
     description:
       'x is reference bp, one row per contributing assembly. Needs rGFA tags or a reference path.',
     run: sampleRowLayout,
-    available: graph =>
-      graph.nodes.some(isBackbone) && graph.nodes.some(isOffReference),
+    available: hasAlleles,
+    drawsLocally: hasAlleles,
   },
   {
     value: 'force',
@@ -74,12 +85,21 @@ export const LAYOUT_MODES = [
     description: 'OGDF FMMM, via the external Bandage engine.',
     run: () => undefined,
     available: () => true,
+    drawsLocally: () => false,
   },
 ] as const satisfies readonly LayoutMode[]
 
 export type LayoutModeValue = (typeof LAYOUT_MODES)[number]['value']
 
 export const LAYOUT_MODE_VALUES = LAYOUT_MODES.map(m => m.value)
+
+// Whether the drawing a mode produces for a graph comes from the FMMM engine.
+// The settings that only the engine reads — layout quality, bubble spread —
+// are shown against this, so a control that cannot do anything to the drawing
+// on screen says so instead of appearing to work.
+export function modeUsesLayoutEngine(value: string, graph: Graph) {
+  return !layoutModeByValue(value).drawsLocally(graph)
+}
 
 export function layoutModeByValue(value: string) {
   // An unknown value can only come from a snapshot written by a build that had

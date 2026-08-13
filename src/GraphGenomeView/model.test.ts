@@ -607,6 +607,32 @@ describe('layoutMode', () => {
     expect(layoutCalls()).toHaveLength(1)
   })
 
+  // What the settings dialog shows its engine-only controls against. An
+  // anchored layout never reaches the engine, so the quality and the bubble
+  // spread do nothing there; an anchored mode on a graph it cannot draw falls
+  // through to the engine, and they do.
+  test('usesLayoutEngine tracks which drawing the engine made', async () => {
+    rpcRespond()
+    const model = createModel()
+    expect(model.usesLayoutEngine).toBe(false)
+
+    await model.loadGFA(RGFA, 'rgfa')
+    expect(model.usesLayoutEngine).toBe(true)
+
+    model.setLayoutMode('auto')
+    expect(model.usesLayoutEngine).toBe(false)
+
+    // an rGFA with a backbone but nothing off it has no sample rows to draw,
+    // so that mode hands off like 'force' does
+    model.setLayoutMode('samplerows')
+    expect(model.usesLayoutEngine).toBe(false)
+    await model.loadGFA(
+      'H\tVN:Z:1.0\nS\t1\tACGT\tSN:Z:chr\tSO:i:0\tSR:i:0\n',
+      'backbone only',
+    )
+    expect(model.usesLayoutEngine).toBe(true)
+  })
+
   // Comparing the two drawings is the workflow the README leads with, and the
   // force half of it costs seconds. Going back to a layout already computed
   // for this graph re-runs nothing.
