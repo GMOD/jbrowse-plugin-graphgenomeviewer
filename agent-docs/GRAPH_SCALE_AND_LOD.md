@@ -143,6 +143,83 @@ at 1.16x and simd+lto at 1.20x on the two most expensive cases, which is
 entirely first-round tiering noise; min-of-5 collapsed both to 1.00x. Anything
 under ~10% here needs the extra rounds before it means anything.
 
+### Where the layout time actually goes (2026-08-13)
+
+Profiled rather than guessed, which is what turned up the finding below. The
+engine has no profiler of its own, so the layout path was driven by a native
+build — `graphlayout.cpp` and the vendored OGDF compiled with `g++ -O3 -g`, a
+`main()` reproducing `bench-layout.mjs`'s bubble chain, `perf record` under
+`sudo` (this box has `perf_event_paranoid=4`). Native and wasm run within ~20%
+of each other on the same case, so **attribution transfers but magnitudes do
+not** — see the divergence below.
+
+Self time, 1,201-node bubble chain, top entries:
+
+| symbol                             | prop q=2 | prop q=4  | wide q=2 |
+| ---------------------------------- | -------- | --------- | -------- |
+| `numexcept::f_rep_u_on_v`          | 28.4%    | 19.2%     | 21.9%    |
+| `__divdc3` (complex division)      | 7.5%     | **22.4%** | 6.3%     |
+| `calculate_neighbourcell_forces`   | 13.3%    | 11.4%     | 13.8%    |
+| `transform_local_exp_to_forces`    | 5.0%     | 5.1%      | 6.1%     |
+| `find_smallest_quad`               | 4.2%     | 3.0%      | 9.3%     |
+| `atan2` (from `std::log(complex)`) | 4.6%     | 3.2%      | 3.2%     |
+| `PoolMemoryAllocator::allocate`    | 3.5%     | 2.9%      | 4.9%     |
+
+Two things are load-bearing. The near-field direct repulsion — `f_rep_u_on_v`
+plus its caller `calculate_neighbourcell_forces` — is ~35% and is irreducible
+without touching OGDF. And **`__divdc3` is the compiler's out-of-line
+complex-division helper**, which at the highest quality is the single largest
+cost in the program. It is there because the multipole expansions divide by
+`(z_1 - z_0)^k` for k up to `precision()`, which the quality knob raises from 2
+to 8 (`NewMultipoleMethod.cpp`, `add_local_expansion`) — so the quality setting
+buys its extra precision largely in complex divides.
+
+#### `-fcx-limited-range` is worth 1.3-1.9x and moves nothing
+
+Not applied — this records the measurement and the argument, so it can be a
+deliberate commit. Built on both `libOGDF.a` and the engine TU, min of 5
+interleaved rounds, ms:
+
+| case                          | base  | -fcx-limited-range |       |
+| ----------------------------- | ----- | ------------------ | ----- |
+| 361 nodes, proportional q=2   | 181   | 143                | 1.27x |
+| 361 nodes, proportional q=4   | 986   | 550                | 1.79x |
+| 361 nodes, wide q=2           | 1,283 | 971                | 1.32x |
+| 1,201 nodes, proportional q=2 | 681   | 521                | 1.31x |
+| 1,201 nodes, proportional q=4 | 3,892 | 2,013              | 1.93x |
+| 1,201 nodes, open q=4         | 6,279 | 3,661              | 1.72x |
+| 1,201 nodes, wide q=2         | 4,985 | 3,085              | 1.62x |
+
+**The wasm gain is far larger than the native profile predicts** (native q=4 is
+2,701 to 2,087 ms, 1.29x, against 1.93x for the same case in wasm). `__divdc3`'s
+`logb`/`scalbn`/`fmax` are inline instructions natively and out-of-line calls in
+wasm, so the helper costs much more there. This is the one place the native
+profile understates rather than merely approximates: take attribution from it,
+take numbers from `bench-layout.mjs`.
+
+**The drawing does not move, and not by luck.** Emscripten's `__divdc3`
+(`emsdk/upstream/emscripten/system/lib/compiler-rt/lib/builtins/divdc3.c`)
+computes the same naive `(ac+bd)/(c²+d²)` that the flag inlines — it just scales
+`c` and `d` by `scalbn(±ilogbw)` first and unscales the result. Those are exact
+powers of two, so every rounding is the same one and the results are
+**bit-identical whenever no intermediate overflows or underflows**. Confirmed
+empirically both ways: all 90 `layout-digest.mjs` cases identical and finite,
+and 8 larger shapes than the digest covers (up to 2,401 nodes at q=4) identical
+with a max coordinate delta of exactly 0.
+
+Where it _would_ differ is precisely the case the scaling exists for: the naive
+denominator is `|z_1 - z_0|^(2k)`, so it needs `|z_1 - z_0|` outside roughly
+`[1e-19, 1e19]` at q=4 to leave double's range. The measured drawings have an
+extent of 1e4 to 1e5, so there are ~14 orders of magnitude of headroom, and the
+underflow end needs two quadtree box centers nearly coincident. It also drops
+complex multiplication's NaN-recovery path, which only fires on operands that
+are already inf or NaN. `layout-digest.mjs` prints a `finite` column, which is
+the check that would catch it.
+
+After the flag, the near-field repulsion is the profile's floor: `f_rep_u_on_v`
+27.8%, `add_local_expansion` 13.3%, `calculate_neighbourcell_forces` 12.3% at
+q=4. Going past that means editing OGDF, with the merge cost that implies.
+
 Two things follow, and both are now implemented or recorded:
 
 - **The floor on a node's drawn length is what hides the variation**, and it is
