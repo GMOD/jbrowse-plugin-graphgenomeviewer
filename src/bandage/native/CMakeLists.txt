@@ -16,6 +16,10 @@ if(NOT EMSCRIPTEN)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1")
+# Match the flag libOGDF.a is built with; scripts/build-wasm.sh says why. Both
+# have to agree, or the two halves of the engine divide complex numbers
+# differently.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcx-limited-range")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s MODULARIZE=1 -s EXPORT_ES6=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORT_NAME='createBandageLayoutModule'")
 # Not 'node', even though scripts/smoke-wasm.mjs drives the engine under node:
