@@ -112,11 +112,21 @@ option on the view overrides that if you need to host the engine elsewhere.
 sources change:
 
 ```console
-pnpm build:wasm   # needs emsdk + a BandageNG checkout (BANDAGE_DIR)
+pnpm build:wasm   # needs emsdk, nothing else
 ```
+
+Emscripten is the only thing you have to install. OGDF is vendored at
+`vendor/ogdf` (a stock checkout of it does not build for wasm at all — see
+[`vendor/README.md`](vendor/README.md)), so this works offline from a fresh
+clone of this repo alone. Roughly four minutes the first time, seconds after
+that.
 
 It compiles with `-sSINGLE_FILE=1`, embedding the wasm as base64 so the result is
 one self-contained ES module that esbuild can copy rather than bundle.
+
+A rebuild has to be checked against the drawing rather than against the file,
+since the artifact's bytes move for reasons the layout does not — see
+[`src/bandage/README.md`](src/bandage/README.md) for `scripts/layout-digest.mjs`.
 
 ## Testing
 

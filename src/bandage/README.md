@@ -10,19 +10,22 @@ compiled with `-sSINGLE_FILE=1`, so the wasm is embedded as base64 and the file
 is a self-contained ES module with no imports. That is what lets `esbuild` leave
 it alone and the plugin load it as a lazy chunk at runtime.
 
-Regenerate with `pnpm build:wasm` (`scripts/build-wasm.sh`). It needs the
-Emscripten SDK and an OGDF checkout, which is _not_ vendored: it is ~85 MB of
-build tree and compiles for far longer than this port does. `OGDF_DIR` defaults
-to `~/src/vendor/BandageNG/thirdparty/ogdf`.
+Regenerate with `pnpm build:wasm` (`scripts/build-wasm.sh`). The Emscripten SDK
+is the only thing you have to install: OGDF is **vendored** at `vendor/ogdf`
+(elderberry-202309, patched — see [`vendor/README.md`](../../vendor/README.md)),
+so there is no checkout to find, no network, and no version to get wrong. About
+four minutes from nothing on 16 cores, seconds once `libOGDF.a` exists.
 
-The script reuses `libOGDF.a` whenever one is already there, so the OGDF a given
-artifact was linked against can be much older than the Emscripten that linked
-it. That is fine and is worth knowing rather than worrying about: rebuilding
-OGDF from scratch under emcc 6.0.6, against a `libOGDF.a` built by whatever was
-current in October 2025, moved **no coordinate in any of the 90 digest cases**
-(2026-08-13, ~2 min on 16 cores). So a stale OGDF is not a suspect when a
-drawing changes — but `layout-digest.mjs` below is how to establish that again
-rather than assume it, and it is cheap enough to just run.
+`OGDF_DIR` still points it elsewhere if you are testing an upstream bump.
+
+### OGDF's own age is not a suspect
+
+The script reuses `libOGDF.a` whenever one is there, so the OGDF an artifact was
+linked against can be much older than the Emscripten that linked it. Measured
+rather than assumed: rebuilding OGDF from scratch under emcc 6.0.6, against a
+`libOGDF.a` built by whatever was current in October 2025, moved **no coordinate
+in any of the 90 digest cases** (2026-08-13). Reach for `layout-digest.mjs`
+below to establish that again rather than trusting this line.
 
 `pnpm test:wasm` runs the committed artifact for real. Three things it guards:
 the file is minified glue that any reformatter (eslint --fix, prettier) will
