@@ -95,11 +95,53 @@ exactly these three inputs, so a comparison that goes back to a drawing already
 computed pays nothing; and the settings dialog states the quality's cost and
 says outright when an anchored layout is ignoring both controls.
 
-**Fragmentation is not a cost.** `rotateComponentsAndCalculateBoundingRectangles`
-allocates two `NodeArray<DPoint>` sized to the whole graph once per connected
-component, which looks quadratic. It is not the wall: at 1,200 nodes, 1 component
-is 501 ms and 300 components is 228 ms, because FMMM is superlinear and splitting
-helps more than the allocation hurts. Do not "fix" it.
+**Fragmentation is not a cost.**
+`rotateComponentsAndCalculateBoundingRectangles` allocates two
+`NodeArray<DPoint>` sized to the whole graph once per connected component, which
+looks quadratic. It is not the wall: at 1,200 nodes, 1 component is 501 ms and
+300 components is 228 ms, because FMMM is superlinear and splitting helps more
+than the allocation hurts. Do not "fix" it.
+
+### SIMD and LTO buy nothing (2026-08-13)
+
+`-msimd128` and `-flto` are the cheap end of "make the engine faster" — build
+flags rather than a patch to the vendored OGDF, so they cost no merge debt at a
+version bump. Both were built and measured; **neither is worth taking.** Applied
+to both `libOGDF.a` and the engine translation unit, min of 5 interleaved
+rounds, ms:
+
+| case                          | base  | simd  | lto   | simd+lto |
+| ----------------------------- | ----- | ----- | ----- | -------- |
+| 361 nodes, proportional q=2   | 183   | 183   | 171   | 171      |
+| 361 nodes, proportional q=4   | 975   | 971   | 945   | 943      |
+| 361 nodes, wide q=2           | 1,209 | 1,213 | 1,141 | 1,134    |
+| 1,201 nodes, proportional q=2 | 644   | 647   | 609   | 608      |
+| 1,201 nodes, proportional q=4 | 3,548 | 3,533 | 3,449 | 3,643    |
+| 1,201 nodes, open q=4         | 5,567 | 5,602 | 5,648 | 5,462    |
+| 1,201 nodes, wide q=2         | 4,104 | 4,128 | 4,072 | 4,055    |
+
+SIMD is **1.00x on every case** — the flag does change the binary, so it is not
+inert at the compiler level, it just does not reach what FMMM spends its time
+on: the hot loops walk OGDF's `NodeArray`/`EdgeArray` structures through node
+and edge pointers rather than over contiguous doubles, and there is nothing
+there to vectorize. LTO is 0-7% and **costs 43 KB on the committed artifact**
+(441 KB to 484 KB), which is inlined base64 in a lazy chunk. That is a bad trade
+for 5%.
+
+**They are safe, though, which is the reusable part.** All three variants
+reproduced the committed drawing exactly — 90 of 90 `layout-digest.mjs` cases
+byte-identical to the baseline. So neither flag reorders FMMM's arithmetic, and
+if a future emcc makes either pay, it can be turned on without regenerating a
+single figure. Recheck with the recipe in `src/bandage/README.md`; a variant
+build is `CXXFLAGS=<flags>` on both cmake configures.
+
+The same run re-confirmed that a from-scratch rebuild under emcc 6.0.6 is
+digest-identical to the committed artifact.
+
+**Do not benchmark this with three rounds.** A min-of-3 first pass showed SIMD
+at 1.16x and simd+lto at 1.20x on the two most expensive cases, which is
+entirely first-round tiering noise; min-of-5 collapsed both to 1.00x. Anything
+under ~10% here needs the extra rounds before it means anything.
 
 Two things follow, and both are now implemented or recorded:
 
