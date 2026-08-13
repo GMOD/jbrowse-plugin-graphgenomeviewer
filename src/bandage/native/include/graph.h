@@ -105,6 +105,12 @@ public:
 
     AssemblyGraph() = default;
 
+    // Owns every node and edge by raw pointer, so a copy would delete each of
+    // them twice. Nothing copies one today — it is built once per call and
+    // passed by reference — and this is what keeps that true.
+    AssemblyGraph(const AssemblyGraph&) = delete;
+    AssemblyGraph& operator=(const AssemblyGraph&) = delete;
+
     ~AssemblyGraph() {
         for (auto& pair : nodes) {
             delete pair.second;

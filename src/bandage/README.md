@@ -15,12 +15,54 @@ Emscripten SDK and an OGDF checkout, which is _not_ vendored: it is ~85 MB of
 build tree and compiles for far longer than this port does. `OGDF_DIR` defaults
 to `~/src/vendor/BandageNG/thirdparty/ogdf`.
 
-`pnpm test:wasm` runs the committed artifact for real. Two things it guards: the
-file is minified glue that any reformatter (eslint --fix, prettier) will
-silently corrupt, and **the layout is deterministic** — FMMM used to seed its
+`pnpm test:wasm` runs the committed artifact for real. Three things it guards:
+the file is minified glue that any reformatter (eslint --fix, prettier) will
+silently corrupt; **the layout is deterministic** — FMMM used to seed its
 initial placement from `clock()`, which moved ~2% of the pixels in every
-force-directed screenshot between regens. The seed is fixed
-(`LayoutSettings::randomSeed`) and overridable per call with a `seed` option.
+force-directed screenshot between regens, and the seed is now fixed
+(`LayoutSettings::randomSeed`) and overridable per call with a `seed` option;
+and the linear layout draws a graph whose **segment names are not integers**.
+
+That last one is narrow on purpose. `determineLinearNodePositions` is the only
+code that reads a segment's name and the only code reached by `linearLayout`,
+and the smoke graph's segments were called `1`..`6`, so it never exercised the
+branch a minigraph rGFA takes. See `parseWholeInt` in `native/include/types.h`
+for what was hiding there.
+
+## Nothing in native/ may throw
+
+Emscripten builds with exception catching off by default, so `throw` is not
+caught, it is `abort()` — including a `throw` from inside a `try` with a
+`catch (...)` right there, because the handler is compiled away. A `std::stoi`
+wrapped in exactly that shape read as careful and took the module down on every
+graph whose segments were named `s1`.
+
+An abort is not contained either. The call that aborts leaks whatever it had
+allocated, so repeated ones exhaust the heap, and `loadBandage()` caches one
+module per worker — measured, about twenty aborted calls and every *later*
+layout fails with "memory access out of bounds" until the tab is reloaded. That
+is why ownership here is `std::unique_ptr` rather than a matched `new`/`delete`:
+not tidiness, but bounding what a future throw can cost.
+
+## Verifying a rebuild
+
+The artifact's bytes move for reasons that have nothing to do with the layout —
+a different Emscripten, a different build host — so diffing the file says
+nothing. Diff the **drawing**, which is what every committed figure is a
+function of:
+
+```console
+git show HEAD:src/bandage/bandage-layout.js > /tmp/old-engine.mjs
+node scripts/layout-digest.mjs /tmp/old-engine.mjs > /tmp/before.txt
+pnpm build:wasm
+node scripts/layout-digest.mjs > /tmp/after.txt
+diff /tmp/before.txt /tmp/after.txt
+```
+
+That hashes full-precision coordinates over five graph shapes against every
+option the view sends. Expect an empty diff for a change that was not meant to
+move anything; every line that does change is a figure that will need
+regenerating, and should be one you can name in advance.
 
 Upstream: https://github.com/cmdcolin/BandageNG-web (`bandage-layout-js/`)
 

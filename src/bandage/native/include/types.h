@@ -10,13 +10,10 @@
 
 #pragma once
 
+#include <charconv>
+#include <optional>
 #include <string>
-#include <vector>
-#include <unordered_map>
-#include <cmath>
-#include <algorithm>
-
-// Replace Qt types with standard C++ types
+#include <string_view>
 
 struct Point {
     double x;
@@ -30,73 +27,30 @@ struct Point {
     }
 };
 
-// Simple vector replacement for Qt's SmallVector
-template<typename T>
-using SmallVector = std::vector<T>;
-
-// String type
-using String = std::string;
-
-// Helper functions to match Qt behavior
-inline std::vector<std::string> split(const std::string& str, char delimiter) {
-    std::vector<std::string> result;
-    size_t start = 0;
-    size_t end = str.find(delimiter);
-
-    while (end != std::string::npos) {
-        result.push_back(str.substr(start, end - start));
-        start = end + 1;
-        end = str.find(delimiter, start);
-    }
-    result.push_back(str.substr(start));
-    return result;
-}
-
-inline std::string toLower(const std::string& str) {
-    std::string result = str;
-    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-    return result;
-}
-
-inline std::string toUpper(const std::string& str) {
-    std::string result = str;
-    std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-    return result;
-}
-
-inline bool contains(const std::string& str, const std::string& substr) {
-    return str.find(substr) != std::string::npos;
-}
-
-inline std::string left(const std::string& str, size_t n) {
-    return str.substr(0, n);
-}
-
-inline std::string right(const std::string& str, size_t n) {
-    if (n > str.length()) return str;
-    return str.substr(str.length() - n);
-}
-
-inline int toInt(const std::string& str, bool* ok = nullptr) {
-    try {
-        size_t pos;
-        int result = std::stoi(str, &pos);
-        if (ok) *ok = (pos == str.length());
-        return result;
-    } catch (...) {
-        if (ok) *ok = false;
-        return 0;
-    }
-}
-
-inline double toDouble(const std::string& str, bool* ok = nullptr) {
-    try {
-        size_t pos;
-        double result = std::stod(str, &pos);
-        if (ok) *ok = (pos == str.length());
-        return result;
-    } catch (...) {
-        if (ok) *ok = false;
-        return 0.0;
-    }
+// The whole string as an int, or nothing.
+//
+// **Nothing here may throw, and this is why.** Emscripten builds with
+// exception catching off by default (-sDISABLE_EXCEPTION_CATCHING), so a
+// `throw` does not unwind to a handler — it calls abort(). This used to be a
+// `std::stoi` wrapped in `catch (...)`, which reads as safe and is not: stoi
+// throws std::invalid_argument on any non-numeric string, the catch was
+// compiled away, and the whole module aborted.
+//
+// The one caller asks it whether a SEGMENT NAME is numeric, so the strings that
+// hit the failing path are the ordinary ones: minigraph names its segments
+// `s1`, `s2`, so every rGFA — the format this plugin is built around — took the
+// throw. That made the linear layout an abort on those graphs, and because each
+// aborted call leaked the graph it had built (bindings.cpp), about twenty of
+// them exhausted the worker's heap and left every LATER layout failing with
+// "memory access out of bounds" for as long as the module stayed cached.
+//
+// from_chars also declines a value too large for an int, where stoi threw
+// std::out_of_range and so aborted on a segment named with a 20-digit number.
+inline std::optional<int> parseWholeInt(std::string_view str) {
+    int value = 0;
+    const char* first = str.data();
+    const char* last = first + str.size();
+    auto [ptr, ec] = std::from_chars(first, last, value);
+    return ec == std::errc() && ptr == last ? std::optional<int>(value)
+                                            : std::nullopt;
 }

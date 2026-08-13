@@ -4,13 +4,13 @@
 #include <emscripten/val.h>
 #include "../include/graphlayout.h"
 #include "../include/settings.h"
-#include <sstream>
+#include <memory>
 
 using namespace emscripten;
 
 // Helper to create graph from JavaScript object
-AssemblyGraph* createGraphFromJS(const val& jsGraph) {
-    auto* graph = new AssemblyGraph();
+std::unique_ptr<AssemblyGraph> createGraphFromJS(const val& jsGraph) {
+    auto graph = std::make_unique<AssemblyGraph>();
 
     // Parse nodes
     val jsNodes = jsGraph["nodes"];
@@ -122,21 +122,24 @@ val computeLayout(val jsGraph, val jsOptions) {
         settings.randomSeed = jsOptions["seed"].as<int>();
     }
 
-    // Create graph from JavaScript input
-    AssemblyGraph* graph = createGraphFromJS(jsGraph);
+    // Owning, and declared BEFORE the layout that borrows it: GraphLayout holds
+    // a `const AssemblyGraph&`, so the graph has to outlive it, and reverse
+    // destruction order is what guarantees that.
+    //
+    // This was a raw `new` with a `delete` after the layout, which leaked the
+    // whole graph on any throw between the two — and there was one. `toInt`
+    // aborted on a non-numeric segment name (types.h), so every linear-layout
+    // call on a minigraph rGFA leaked its graph, and about twenty of them
+    // exhausted the heap and left the cached module unable to lay anything out
+    // at all. The name parse is fixed; this is what stops the next throw from
+    // costing a session.
+    auto graph = createGraphFromJS(jsGraph);
 
-    // Compute layout
     GraphLayout layoutResult = layout::layoutGraph(*graph, quality, linearLayout,
                                                    componentSeparation, aspectRatio,
                                                    &settings);
 
-    // Convert to JavaScript object
-    val result = layoutToJS(layoutResult);
-
-    // Clean up
-    delete graph;
-
-    return result;
+    return layoutToJS(layoutResult);
 }
 
 EMSCRIPTEN_BINDINGS(bandage_layout) {

@@ -191,7 +191,9 @@ static void determineLinearNodePositions(Graph& ogdfGraph,
                                         const LayoutSettings* settings) {
     std::vector<DeBruijnNode*> sortedDrawnNodes;
 
-    // Try numeric sorting first
+    // Try numeric sorting first. A pggb or odgi graph numbers its segments, so
+    // `10` sorts after `9` rather than before it; anything else — minigraph's
+    // `s1`, a named contig — falls through to the alphabetical pass below.
     std::vector<std::pair<int, DeBruijnNode*>> numericallySortedNodes;
     bool successfulIntConversion = true;
 
@@ -200,13 +202,12 @@ static void determineLinearNodePositions(Graph& ogdfGraph,
         if (!node->isDrawn())
             continue;
 
-        bool ok;
-        int nodeInt = toInt(node->getNameWithoutSign(), &ok);
-        if (!ok) {
+        std::optional<int> nodeInt = parseWholeInt(node->getNameWithoutSign());
+        if (!nodeInt) {
             successfulIntConversion = false;
             break;
         }
-        numericallySortedNodes.push_back({nodeInt, node});
+        numericallySortedNodes.push_back({*nodeInt, node});
     }
 
     if (successfulIntConversion) {
