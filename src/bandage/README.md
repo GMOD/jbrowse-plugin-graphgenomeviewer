@@ -76,6 +76,13 @@ option the view sends. Expect an empty diff for a change that was not meant to
 move anything; every line that does change is a figure that will need
 regenerating, and should be one you can name in advance.
 
+`.github/workflows/wasm-rebuild.yml` runs exactly this weekly, and puts the diff
+in the job summary. So the question it answers is not "did the bytes change" —
+they always do, Emscripten embeds its own version and the build path — but "does
+the committed engine still draw what its sources say it draws". It needs no
+checkout but this one now that OGDF is vendored, and no `pnpm install`: both
+scripts run on bare node.
+
 Upstream: https://github.com/cmdcolin/BandageNG-web (`bandage-layout-js/`)
 
 Both Bandage and OGDF are GPL, which is why this plugin is GPL-3.0-or-later.
