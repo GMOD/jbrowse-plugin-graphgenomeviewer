@@ -607,6 +607,58 @@ describe('layoutMode', () => {
     expect(layoutCalls()).toHaveLength(1)
   })
 
+  // Comparing the two drawings is the workflow the README leads with, and the
+  // force half of it costs seconds. Going back to a layout already computed
+  // for this graph re-runs nothing.
+  test('a force layout already computed for this graph is not recomputed', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setLayoutMode('force')
+    await model.loadGFA(RGFA, 'rgfa')
+    expect(layoutCalls()).toHaveLength(1)
+    const forceResult = model.layoutResult
+
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    expect(model.layoutResult).not.toBe(forceResult)
+
+    model.setLayoutMode('force')
+    await model.recomputeLayout()
+
+    expect(layoutCalls()).toHaveLength(1)
+    expect(model.layoutResult).toBe(forceResult)
+  })
+
+  // The engine reads the quality, the linear flag and the bubble spread. It
+  // does not read the reference path, so choosing one used to spend a full
+  // FMMM run redrawing the identical picture.
+  test('a setting the engine does not read costs no layout', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setLayoutMode('force')
+    await model.loadGFA(PGGB_GFA, 'pggb')
+    expect(layoutCalls()).toHaveLength(1)
+
+    model.setReferencePath('Sakai#1#chr')
+    await model.recomputeLayout()
+    expect(layoutCalls()).toHaveLength(1)
+
+    // ...but one it does read is a fresh layout
+    model.setBubbleSpread('wide')
+    await model.recomputeLayout()
+    expect(layoutCalls()).toHaveLength(2)
+  })
+
+  test('a reloaded graph does not reuse the old one’s layout', async () => {
+    rpcRespond()
+    const model = createModel()
+    model.setLayoutMode('force')
+    await model.loadGFA(RGFA, 'rgfa')
+    await model.loadGFA(RGFA, 'rgfa')
+
+    expect(layoutCalls()).toHaveLength(2)
+  })
+
   // A force layout takes seconds and the dropdown does not wait for it, so the
   // slow one is still in flight when the next choice is made. Whichever
   // RESOLVES last used to win, which is the wrong one: the anchored layout

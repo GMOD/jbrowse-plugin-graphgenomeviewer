@@ -181,6 +181,64 @@ function computeViewportBounds(model: {
   }
 }
 
+// Force layouts already computed for a graph, keyed by the view props the
+// engine reads. Every layout mode is local and costs a millisecond except this
+// one, which is seconds: measured on the committed engine, a 1,201-node bubble
+// chain is 0.6 s proportional, 4.3 s at 'Wide bubbles' and 3.4 s at the highest
+// quality.
+//
+// Worth keeping because a session revisits the same layout. The two drawings
+// answer different questions and the README's own figure is one subgraph in
+// both, so Anchored <-> Force is a round trip a reader makes repeatedly — and
+// every control in the settings dialog calls `recomputeLayout` on change
+// whether or not the current mode reads what it changed, which made picking a
+// reference path in force mode a multi-second re-run of an identical layout.
+// Both are hits.
+//
+// Entries are the live position objects rather than copies, which a node drag
+// mutates in place (see moveNode), so a layout comes back arranged the way it
+// was left rather than snapping back.
+//
+// Weak on the graph so nothing has to invalidate it: a graph is rebuilt by
+// every load and dropped by `clearGraph`, and its layouts go with it.
+const forceLayouts = new WeakMap<Graph, Map<string, LayoutResult>>()
+
+// Enough to hold the settings a comparison moves between; past that the oldest
+// goes, since a big graph's positions are megabytes.
+const FORCE_LAYOUT_CACHE_SIZE = 4
+
+function forceLayoutsOf(graph: Graph) {
+  let cache = forceLayouts.get(graph)
+  if (!cache) {
+    cache = new Map()
+    forceLayouts.set(graph, cache)
+  }
+  return cache
+}
+
+// Re-anchoring builds a new Graph, and the force layout of it is the same
+// drawing: `anchorFromPaths` rewrites each node's `stable` and `samples` and
+// touches neither the ids, the lengths, the depths nor the edges, which are all
+// the engine reads. So the layouts follow the graph they were computed for
+// rather than being thrown away with it.
+function inheritForceLayouts(from: Graph, to: Graph) {
+  const cache = forceLayouts.get(from)
+  if (cache && from !== to) {
+    forceLayouts.set(to, cache)
+  }
+}
+
+function remember(
+  cache: Map<string, LayoutResult>,
+  key: string,
+  result: LayoutResult,
+) {
+  if (cache.size >= FORCE_LAYOUT_CACHE_SIZE) {
+    cache.delete(cache.keys().next().value!)
+  }
+  cache.set(key, result)
+}
+
 // Recolor one node/edge/arrow's vertices. factor === 1 restores the base
 // colors (cheap subarray view); a larger factor brightens for hover/select.
 function applyHighlight<K extends string | number>(
@@ -877,8 +935,11 @@ export default function stateModelFactory() {
       // setLayoutMode. An rGFA is left alone — its coordinates are not derived.
       setReferencePath(name: string) {
         self.referencePath = name
-        if (self.graph?.anchoredBy === 'paths') {
-          self.graph = anchorFromPaths(self.graph, name)
+        const graph = self.graph
+        if (graph?.anchoredBy === 'paths') {
+          const reanchored = anchorFromPaths(graph, name)
+          inheritForceLayouts(graph, reanchored)
+          self.graph = reanchored
         }
       },
       setDrawPaths(draw: boolean) {
@@ -1198,6 +1259,14 @@ export default function stateModelFactory() {
         }) as Promise<{ result: LayoutResult; duration: number }>
       }
 
+      // The engine's inputs, and only those: the graph, plus what `callLayout`
+      // puts in `options`. The colour scheme, the reference path and the
+      // anchored modes' own settings are all absent because none of them
+      // reaches the engine.
+      function forceLayoutKey() {
+        return `${self.layoutQuality}|${self.linearLayout}|${self.bubbleSpread}`
+      }
+
       // Single dispatch point for every layout mode. A mode that returns a
       // result computed it locally; one that returns undefined can't draw this
       // graph and hands off to the remote FMMM engine, which is also how
@@ -1208,15 +1277,24 @@ export default function stateModelFactory() {
           graph,
           self.loadedRegion,
         )
-        return local
-          ? { result: local, duration: performance.now() - start }
-          : ((yield callLayout(
-              graph,
-              layoutScaling(graph, spreadFor(self.bubbleSpread)),
-            )) as {
-              result: LayoutResult
-              duration: number
-            })
+        if (local) {
+          return { result: local, duration: performance.now() - start }
+        }
+        const cache = forceLayoutsOf(graph)
+        const key = forceLayoutKey()
+        const hit = cache.get(key)
+        if (hit) {
+          return { result: hit, duration: performance.now() - start }
+        }
+        const { result, duration } = (yield callLayout(
+          graph,
+          layoutScaling(graph, spreadFor(self.bubbleSpread)),
+        )) as { result: LayoutResult; duration: number }
+        // Under the key read BEFORE the call: the settings that produced this
+        // drawing are not necessarily the ones on screen now, and filing it
+        // under the current ones would serve it up as a layout it is not.
+        remember(cache, key, result)
+        return { result, duration }
       }
 
       // Which layout request is the live one. A layout is async and nothing in
