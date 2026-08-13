@@ -715,6 +715,34 @@ describe('layoutMode', () => {
 
     expect(model.layoutResult).toBe(anchored)
   })
+
+  // Same ordering, on the failure path. The abandoned layout's error is not
+  // about the drawing the user is looking at.
+  test('a superseded layout that fails does not raise an error over the live one', async () => {
+    let failForce: (() => void) | undefined
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? new Promise((_resolve, reject) => {
+            failForce = () => {
+              reject(new Error('engine died'))
+            }
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    model.setLayoutMode('force')
+    const pending = model.loadGFA(RGFA, 'rgfa')
+
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    const anchored = model.layoutResult
+
+    failForce!()
+    await pending
+
+    expect(model.error).toBeUndefined()
+    expect(model.layoutResult).toBe(anchored)
+  })
 })
 
 // pggb/odgi: no segment carries a coordinate, so the only ones in the file are

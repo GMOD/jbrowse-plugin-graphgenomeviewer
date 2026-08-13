@@ -1334,11 +1334,24 @@ export default function stateModelFactory() {
       // flight; the stale result must not land.
       function* layoutInto(graph: Graph) {
         const request = ++liveRequest
-        const { result, duration } = yield* computeLayout(graph)
-        const live = self.graph === graph && request === liveRequest
+        const isLive = () => self.graph === graph && request === liveRequest
+        let computed
+        try {
+          computed = yield* computeLayout(graph)
+        } catch (e) {
+          // A discarded layout's failure is not the user's problem: the drawing
+          // they asked for is on screen or on its way, and raising a banner
+          // over it reports a graph as broken because a setting they moved on
+          // from could not be drawn.
+          if (!isLive()) {
+            return false
+          }
+          throw e
+        }
+        const live = isLive()
         if (live) {
-          self.layoutResult = result
-          self.setLayoutMs(duration)
+          self.layoutResult = computed.result
+          self.setLayoutMs(computed.duration)
         }
         return live
       }
