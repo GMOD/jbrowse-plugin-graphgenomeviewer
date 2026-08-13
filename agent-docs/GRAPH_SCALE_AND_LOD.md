@@ -67,6 +67,40 @@ there on a base-level graph is a _narrow window with many haplotypes_ — which 
 also why `pangenome/local_subgraph` (36 nodes over 561 bp) is the one existing
 force figure that reads well. Node count, not window size, is the axis.
 
+### What the two force-layout settings cost (2026-08-13)
+
+The engine's cost tracks the OGDF node count, not the graph's. Each graph node
+becomes `ceil(drawnLength / nodeSegmentLength) + 1` of them, so raising the
+floor on drawn length — which is what `bubbleSpread`'s 'open' and 'wide' do —
+subdivides **every** node, the non-branching chain included, not just the
+alleles it is meant to open. Measured on the committed engine over a bubble
+chain (`scripts/` has no fixture for this; the generator is a backbone segment
+between each pair of alleles), ms:
+
+| nodes | spread       | OGDF nodes | q=0 | q=2   | q=4    |
+| ----- | ------------ | ---------- | --- | ----- | ------ |
+| 121   | proportional | 447        | 95  | 98    | 345    |
+| 121   | wide         | 2,541      | 92  | 435   | 2,132  |
+| 1,201 | proportional | 4,407      | 153 | 612   | 3,426  |
+| 1,201 | open         | 7,607      | 245 | 1,196 | 6,100  |
+| 1,201 | wide         | 25,221     | 745 | 4,294 | 20,380 |
+
+So the two settings multiply: 'wide' at the highest quality is **33x**
+proportional at the default quality on the same graph. Both are legitimate
+choices — see BUBBLE_SPREADS for what each buys — but they are the reason a
+force layout is ever slow, and neither said so.
+
+Two consequences, both now in place. `model.ts` holds a per-graph cache keyed on
+exactly these three inputs, so a comparison that goes back to a drawing already
+computed pays nothing; and the settings dialog states the quality's cost and
+says outright when an anchored layout is ignoring both controls.
+
+**Fragmentation is not a cost.** `rotateComponentsAndCalculateBoundingRectangles`
+allocates two `NodeArray<DPoint>` sized to the whole graph once per connected
+component, which looks quadratic. It is not the wall: at 1,200 nodes, 1 component
+is 501 ms and 300 components is 228 ms, because FMMM is superlinear and splitting
+helps more than the allocation hurts. Do not "fix" it.
+
 Two things follow, and both are now implemented or recorded:
 
 - **The floor on a node's drawn length is what hides the variation**, and it is
