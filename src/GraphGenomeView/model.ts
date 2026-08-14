@@ -159,7 +159,10 @@ function assemblySampleResolver(session: AbstractSessionModel) {
 // `self`, which had each of them restating the `pixelRows ? 1 : scale` rule that
 // AxisScale exists to keep in one place.
 function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
-  return { scaleX: scale, scaleY: pixelRows ? 1 : scale }
+  // pixelRows rides along rather than being derived downstream: the deletion
+  // bow is capped in a row layout and not in the isotropic one, and `scaleY !==
+  // scaleX` coincides at one zoom level. See AxisScale.
+  return { scaleX: scale, scaleY: pixelRows ? 1 : scale, pixelRows }
 }
 
 function computeViewportBounds(model: {

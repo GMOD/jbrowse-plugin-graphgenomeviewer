@@ -272,7 +272,14 @@ describe('anisotropic axes', () => {
   }
 
   test('a curve is the same drawing whichever unit y arrived in', () => {
-    const flat = computeEdgeCurves(inXUnits.from, inXUnits.to, false, 0, 0, iso())
+    const flat = computeEdgeCurves(
+      inXUnits.from,
+      inXUnits.to,
+      false,
+      0,
+      0,
+      iso(),
+    )
     const rows = computeEdgeCurves(
       asRows.from,
       asRows.to,
@@ -332,13 +339,102 @@ describe('anisotropic axes', () => {
         false,
         0,
         0,
-      { scaleX: 1, scaleY: yToX },
+        { scaleX: 1, scaleY: yToX },
         flat.bypassed,
       ),
       yToX,
     )
     expect(bowFlat).toBeGreaterThan(0)
     expect(bowRows).toBeCloseTo(bowFlat)
+  })
+
+  // THE ROW-LAYOUT BOW IS CAPPED, and the numbers here are the shape of the
+  // failure it fixes rather than round ones: 84,683 bp is the CFHR3/CFHR1
+  // deletion and 0.5% is the zoom `pangenome/hprc_cfhr_deletion` draws at, so
+  // this is that figure's own arc. Uncapped it bows 148 px and its apex lands
+  // 111 px — 5.5 rows — into the rank rows below the backbone, which is the loop
+  // enclosing a dozen unrelated nodes that review called weird.
+  //
+  // `pixelRows` is what turns the cap on, and the pair of assertions is the
+  // point: the same geometry uncapped is more than twice as deep, so a flag that
+  // stopped arriving would be a visible regression rather than a rounding one.
+  test('a row layout caps a deletion bow that a simulation would not', () => {
+    const DELETED_BP = 84683
+    const ZOOM = 0.005
+    const backbone = {
+      from: [
+        { x: 0, y: 0 },
+        { x: 1000, y: 0 },
+      ],
+      to: [
+        { x: DELETED_BP, y: 0 },
+        { x: DELETED_BP + 1000, y: 0 },
+      ],
+      bypassed: [
+        { x: 1000, y: 0 },
+        { x: DELETED_BP, y: 0 },
+      ],
+    }
+    const apexOf = (axis: {
+      scaleX: number
+      scaleY: number
+      pixelRows?: boolean
+    }) =>
+      Math.abs(
+        curvePointAt(
+          computeEdgeCurves(
+            backbone.from,
+            backbone.to,
+            false,
+            0,
+            0,
+            axis,
+            backbone.bypassed,
+          )[0]!,
+          0.5,
+        ).y,
+      )
+
+    // MAX_ROW_BOW_PX is 3 rows of 20 px, and a cubic whose controls sit `b` off
+    // the chord reaches 3b/4 at its midpoint (APEX_FRACTION).
+    const capped = apexOf({ scaleX: ZOOM, scaleY: 1, pixelRows: true })
+    expect(capped).toBeCloseTo(0.75 * 3 * 20)
+
+    const uncapped = apexOf({ scaleX: ZOOM, scaleY: 1 })
+    expect(uncapped).toBeGreaterThan(2 * capped)
+  })
+
+  // The cap is a ceiling and not a size: a deletion small enough to bow less
+  // than it draws identically either way, which is what keeps the short arcs in
+  // the same figure where they already read correctly.
+  test('a bow under the cap is untouched by the flag', () => {
+    // the run spans 150, so the along-chord term is 52.5 — under the 60 px cap,
+    // which is the case this is about
+    const short = {
+      from: [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+      ],
+      to: [
+        { x: 200, y: 0 },
+        { x: 250, y: 0 },
+      ],
+      bypassed: [
+        { x: 50, y: 0 },
+        { x: 200, y: 0 },
+      ],
+    }
+    const curvesOf = (pixelRows?: boolean) =>
+      computeEdgeCurves(
+        short.from,
+        short.to,
+        false,
+        0,
+        0,
+        { scaleX: 1, scaleY: 1, pixelRows },
+        short.bypassed,
+      )
+    expect(curvesOf(true)).toEqual(curvesOf())
   })
 
   // yToX === 1 is the isotropic layout, and it has to be the identity rather

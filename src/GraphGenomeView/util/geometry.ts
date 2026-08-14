@@ -1,3 +1,5 @@
+import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
+
 import type { NodeSegment } from '../types'
 
 export function projectLine(
@@ -260,6 +262,28 @@ const BOW_CLEARANCE = 1.15
 // rule used, which is what keeps those figures where they are; clearance takes
 // over exactly when the run has gone somewhere the arc would otherwise miss.
 const ALONG_FRACTION = 0.35
+// The most bow a deletion gets in a ROW layout, in screen px, which is what y
+// already is there.
+//
+// A cap rather than a smaller fraction, because the fraction is the part that is
+// wrong: `span * ALONG_FRACTION` scales the bow with the amount of reference
+// skipped, and in a row layout the arc's own SPAN states that exactly — its two
+// feet are the deletion's two coordinates on the backbone — while the label
+// prints it in bp. So the bow carries no information there, and letting it grow
+// with the event turns a big deletion into a loop enclosing a dozen unrelated
+// nodes and edges while a small one stays the flat tie under the backbone that
+// reads correctly. Reported as "the dashed lines frankly look weird for the
+// 'deletion'" on `pangenome/hprc_cfhr_deletion`, whose 84.7 kb arc dived 5.5
+// rows into the rank rows while its 28.6 kb and 11.2 kb neighbours sat just
+// under the reference row: four deletions in one frame, drawn as four different
+// kinds of mark.
+//
+// Three rows: enough to clear the reference row's own tube and to read as an arc
+// across several hundred px of backbone, not enough to reach the second rank
+// row. The isotropic layout is NOT capped — there the run the arc bows around is
+// scattered rather than collinear, so the bow is what makes the bubble's two
+// arms comparable, which is the clearance term's whole job.
+const MAX_ROW_BOW_PX = 3 * ROW_HEIGHT_PX
 
 export function bowAround(
   p1x: number,
@@ -267,6 +291,9 @@ export function bowAround(
   p2x: number,
   p2y: number,
   toward: NodeSegment[],
+  // Ceiling on the returned magnitude, in the units this function is working in.
+  // Undefined leaves the bow uncapped; see MAX_ROW_BOW_PX.
+  maxBow?: number,
 ) {
   const chord = Math.hypot(p2x - p1x, p2y - p1y)
   const ux = chord === 0 ? 1 : (p2x - p1x) / chord
@@ -286,10 +313,11 @@ export function bowAround(
     maxAlong = Math.max(maxAlong, along)
   }
   const span = toward.length ? maxAlong - minAlong : 0
-  const size = Math.max(
+  const uncapped = Math.max(
     (Math.abs(reach) * BOW_CLEARANCE) / APEX_FRACTION,
     span * ALONG_FRACTION,
   )
+  const size = maxBow === undefined ? uncapped : Math.min(uncapped, maxBow)
   // A run that sits on the chord has no side of its own; the arc keeps the one
   // it has always taken there, so a collinear layout draws exactly as before.
   return reach < 0 ? -size : size
@@ -314,6 +342,19 @@ export function bowAround(
 export interface AxisScale {
   scaleX: number
   scaleY: number
+  // Whether the layout's y is already SCREEN PIXELS — true for the two row
+  // layouts, false for the isotropic simulation (see rowSpacing.ts and the
+  // model's axisScaleOf). It rides here rather than being threaded to each
+  // caller because the three functions that build a deletion's curve — the
+  // drawing, the hit index and the label that rides it — all take an `axis` and
+  // all three have to agree about the bow; a fourth parameter only some of them
+  // passed is how a label and its arc end up in different corners of the
+  // drawing, which has happened here before.
+  //
+  // NOT derivable as `scaleY !== scaleX`: on a row layout scaleY is pinned to 1
+  // and scaleX is the zoom, so the two coincide at one zoom level and anything
+  // keyed on the difference would silently stop applying there.
+  pixelRows?: boolean
 }
 
 // y in x units: what makes the two axes comparable. 1 on an isotropic layout
@@ -366,12 +407,11 @@ export function pathRibbonOffsets(
   spacing = PATH_RIBBON_SPACING,
 ) {
   const yToX = yToXOf(axis)
-  const dir =
-    drawnDirection(
-      fromSegments[fromSegments.length - 1]!,
-      toSegments[0]!,
-      yToX,
-    ) ??
+  const dir = drawnDirection(
+    fromSegments[fromSegments.length - 1]!,
+    toSegments[0]!,
+    yToX,
+  ) ??
     drawnDirection(fromSegments[0]!, fromSegments.at(-1)!, yToX) ??
     drawnDirection(toSegments[0]!, toSegments.at(-1)!, yToX) ?? { x: 1, y: 0 }
   const offsets: { x: number; y: number }[] = []
@@ -420,9 +460,14 @@ export function computeEdgeCurves(
   // second thing to keep in step; that is exactly how the label and the arc once
   // came out in different corners of the drawing.
   bypassed: NodeSegment[] = [],
+  // Only the recursion below passes this: the cap belongs to the layout, so it
+  // is read off `axis` at the top level and handed down already converted into
+  // the isotropic body's units.
+  maxBowIn?: number,
 ): BezierCurve[] {
   const scale = axis.scaleX
   const yToX = yToXOf(axis)
+  const maxBow = maxBowIn ?? (axis.pixelRows ? MAX_ROW_BOW_PX : undefined)
   if (yToX !== 1) {
     // Recur once with y already in x units, then put the answer back. The
     // isotropic body below is the only implementation, so an anisotropic
@@ -443,6 +488,9 @@ export function computeEdgeCurves(
         offsetY * yToX,
         { scaleX: scale, scaleY: scale },
         scaleYOf(bypassed, yToX),
+        // the cap is a y measure and the body works in x units, so it converts
+        // with everything else that crosses this boundary
+        maxBow === undefined ? undefined : maxBow * yToX,
       ),
       yToX,
     )
@@ -573,7 +621,9 @@ export function computeEdgeCurves(
     // The spread takes the MAGNITUDE, not the signed bulge: it decides how open
     // the arch is, not which way it faces, and letting it flip swaps the two
     // control points past each other and folds the cubic into a cusp.
-    const bulge = bypassed.length ? bowAround(p1x, p1y, p2x, p2y, bypassed) : 0
+    const bulge = bypassed.length
+      ? bowAround(p1x, p1y, p2x, p2y, bypassed, maxBow)
+      : 0
     const chordLen = dist === 0 ? 1 : dist
     const ux = (p2x - p1x) / chordLen
     const uy = (p2y - p1y) / chordLen
