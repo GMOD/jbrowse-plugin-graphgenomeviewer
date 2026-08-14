@@ -56,7 +56,7 @@
     "@eslint/js": "^10.0.1",
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
     "@jbrowse/cli": "^4.3.0",
-    "@jbrowse/mobx-state-tree": "^6.2.0",
+    "@jbrowse/mobx-state-tree": "^6.3.0",
     "@jbrowse/plugin-canvas": "link:../../jbrowse-components/plugins/canvas",
     "@jbrowse/plugin-linear-genome-view": "link:../../jbrowse-components/plugins/linear-genome-view",
     "@mui/icons-material": "^9.2.0",
