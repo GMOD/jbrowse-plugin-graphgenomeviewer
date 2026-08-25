@@ -31,6 +31,18 @@ function isLinearView(view: unknown): view is NavigableLinearView {
   )
 }
 
+// The view a graph was launched from is not always in `session.views`: a row of
+// a LinearSyntenyView, LinearComparativeView or BreakpointSplitView sits in
+// that view's own `views[]`, so the candidates are the session's views plus one
+// level of rows.
+function withRows(views: unknown[]) {
+  return views.flatMap(view =>
+    isRecord(view) && Array.isArray(view.views)
+      ? [view, ...view.views]
+      : [view],
+  )
+}
+
 // The linear view a "show me this" from the graph should move, rather than
 // opening a pane beside it. Three cases, in order:
 //
@@ -55,7 +67,7 @@ export function linearViewTarget({
   connectedViewId: string | undefined
   assemblyName: string
 }) {
-  const candidates = views
+  const candidates = withRows(views)
     .filter(view => isLinearView(view))
     .filter(view => view.assemblyNames.includes(assemblyName))
   const connected = candidates.find(view => view.id === connectedViewId)

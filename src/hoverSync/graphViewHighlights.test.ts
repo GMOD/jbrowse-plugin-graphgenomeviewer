@@ -69,3 +69,18 @@ test('several connected graph views each contribute a highlight', () => {
   ]
   expect(graphViewHighlights(views, 'lgv1').map(h => h.key)).toEqual(['a', 'b'])
 })
+
+// A graph launched from a synteny row pairs with the row's id. Graph views are
+// always top-level, so the row asking with its own id needs no walk into the
+// stack view's views[].
+test('a graph view paired with a row of a stack view draws on that row', () => {
+  const row = { id: 'row1', type: 'LinearGenomeView' }
+  const views = [
+    { id: 'synteny1', type: 'LinearSyntenyView', views: [row] },
+    graphView({ connectedViewId: 'row1', hoverHighlight: HIGHLIGHT }),
+  ]
+  expect(graphViewHighlights(views, 'row1')).toEqual([
+    { key: 'graph1', region: HIGHLIGHT },
+  ])
+  expect(graphViewHighlights(views, 'synteny1')).toEqual([])
+})
