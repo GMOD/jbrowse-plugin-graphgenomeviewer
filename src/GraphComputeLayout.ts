@@ -3,12 +3,16 @@ import { RpcMethodType } from '@jbrowse/core/pluggableElementTypes'
 import loadBandage from './loadBandage'
 
 import type { Graph, LayoutResult } from './GraphGenomeView/types'
+import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 
+// `sessionId` and `statusCallback` are the CALL's, not this payload's — core's
+// `EntriesDeclaringCallLevelFields` fails the build for a registry entry that
+// declares either, on the grounds that a field one method owns is a field the
+// other forty cannot be passed. `execute` still receives both, through
+// `RpcExecuteArgs`'s intersection with `RpcCallContext`.
 export interface GraphComputeLayoutArgs {
-  sessionId: string
   graph: { nodes: Graph['nodes']; edges: Graph['edges'] }
   options: Record<string, unknown>
-  statusCallback?: (message: string) => void
 }
 
 declare module '@jbrowse/core/rpc/RpcRegistry' {
@@ -20,10 +24,10 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
   }
 }
 
-export default class GraphComputeLayout extends RpcMethodType {
-  name = 'GraphComputeLayout'
+export default class GraphComputeLayout extends RpcMethodType<'GraphComputeLayout'> {
+  name = 'GraphComputeLayout' as const
 
-  async execute(args: GraphComputeLayoutArgs) {
+  async execute(args: RpcExecuteArgs<'GraphComputeLayout'>) {
     const { graph, options, statusCallback } = args
 
     statusCallback?.('Loading layout engine')

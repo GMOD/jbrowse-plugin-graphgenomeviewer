@@ -1,7 +1,11 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
-import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
+import {
+  getSession,
+  isSessionModelWithWidgets,
+  statusMessageText,
+} from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
@@ -1274,8 +1278,11 @@ export default function stateModelFactory() {
             linearLayout: self.linearLayout,
             ...scaling.opts,
           },
-          statusCallback: (message: string) => {
-            self.setStatusMessage(message)
+          // A StatusCallback takes an RpcStatus, not a string — it may be a
+          // bare label, a phase, or a phase that threw. `statusMessageText` is
+          // core's reader for the human-facing line.
+          statusCallback: status => {
+            self.setStatusMessage(statusMessageText(status) ?? '')
           },
         }) as Promise<{ result: LayoutResult; duration: number }>
       }
@@ -1703,11 +1710,14 @@ export default function stateModelFactory() {
           )
         }
 
-        self.attachRenderingBackend<Renderer>(backend, {
+        // The second argument is a SETUP THUNK, not the callbacks themselves:
+        // anything it closes over lives exactly as long as the callbacks that
+        // read it, which is what lets a per-backend memo work.
+        self.attachRenderingBackend<Renderer>(backend, () => ({
           // Autorun: rebuild geometry when graph data or display options
           // change. scale/translate are untracked so they don't trigger a full
           // rebuild — only the debounced viewportDirty flag does.
-          upload: b => {
+          upload: (b: Renderer) => {
             b.resize(self.width, self.canvasHeight)
             const nodeById = self.nodeById
             if (self.nodePositions && self.graph && nodeById) {
@@ -1748,10 +1758,16 @@ export default function stateModelFactory() {
                 performance.now() - geometryStart,
                 batch.nodes.vertexCount,
               )
+              return true
             }
+            // Nothing reached the backend, so the autorun may skip the redraw
+            // it would otherwise force. Safe despite the resize above: with no
+            // positions there is nothing to draw, which is the same case
+            // `render` below returns false for.
+            return false
           },
           // Autorun: re-render on pan/zoom/darkMode without rebuilding geometry
-          render: b => {
+          render: (b: Renderer) => {
             if (!self.nodePositions) {
               return false
             }
@@ -1767,7 +1783,7 @@ export default function stateModelFactory() {
             b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
             return true
           },
-        })
+        }))
       },
     }))
     .actions(self => ({

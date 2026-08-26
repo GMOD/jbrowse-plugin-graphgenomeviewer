@@ -34,8 +34,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
       '@jbrowse/mobx-state-tree':
-        specifier: ^6.3.0
-        version: 6.3.0(mobx@7.0.0)
+        specifier: ^6.5.1
+        version: 6.5.1(mobx@7.0.3)
       '@jbrowse/plugin-canvas':
         specifier: link:../../jbrowse-components/plugins/canvas
         version: link:../../jbrowse-components/plugins/canvas
@@ -88,11 +88,11 @@ importers:
         specifier: ^30.0.1
         version: 30.0.1
       mobx:
-        specifier: ^7.0.0
-        version: 7.0.0
+        specifier: ^7.0.3
+        version: 7.0.3
       mobx-react:
         specifier: ^10.0.0
-        version: 10.0.0(mobx@7.0.0)(react@19.2.8)
+        version: 10.0.0(mobx@7.0.3)(react@19.2.8)
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
@@ -567,8 +567,8 @@ packages:
     engines: {node: '>=18.3.0'}
     hasBin: true
 
-  '@jbrowse/mobx-state-tree@6.3.0':
-    resolution: {integrity: sha512-xaaN1Wk1GrsH2p+PNb9kqPNc7Vn/DhlpGQsDmpvkREPKf+eQdfyBiWl4s7yNhBLsXF+uYOaznfempMG0wsyA1w==}
+  '@jbrowse/mobx-state-tree@6.5.1':
+    resolution: {integrity: sha512-qhDUf7gCtduTz69oOWxkaOeY407mpjvBIENL/VuQGthkbwjBrnAbalhuBeq3/SbkCxD++KN8KXRm5/9yimqnTA==}
     engines: {node: '>=22', pnpm: '>=10'}
     peerDependencies:
       mobx: ^7.0.0
@@ -2411,8 +2411,8 @@ packages:
       mobx: ^7.0.0
       react: ^18 || ^19
 
-  mobx@7.0.0:
-    resolution: {integrity: sha512-J+hR/wq6RdBnB4QXQRqGrWL9vOOLKaYhXh0ooxLAW4AE72av10Y5+xiaxohUYmPZiUswfpxMjQooYqpWkv+Fxg==}
+  mobx@7.0.3:
+    resolution: {integrity: sha512-KopyyzqZ8xT1fqxFNl8ItKKMpGifRe2ySaNAHs80/cx0mL1bpJtJ46S+FSyzXKRjW0TODWj5zwq/Y9hUdJUy4w==}
 
   modern-tar@0.7.7:
     resolution: {integrity: sha512-t9VmxaqrmANnEOBhpSDI6HD192Ge48k8vmWqQQL7hSFEqHEYwZbbsu49+aKLWZeRvFs3j1pMhXOqqF4kPlvjkQ==}
@@ -3744,9 +3744,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jbrowse/mobx-state-tree@6.3.0(mobx@7.0.0)':
+  '@jbrowse/mobx-state-tree@6.5.1(mobx@7.0.3)':
     dependencies:
-      mobx: 7.0.0
+      mobx: 7.0.3
 
   '@jbrowse/quick-lru@7.3.5': {}
 
@@ -5609,18 +5609,18 @@ snapshots:
 
   mitt@3.0.1: {}
 
-  mobx-react-lite@5.0.0(mobx@7.0.0)(react@19.2.8):
+  mobx-react-lite@5.0.0(mobx@7.0.3)(react@19.2.8):
     dependencies:
-      mobx: 7.0.0
+      mobx: 7.0.3
       react: 19.2.8
 
-  mobx-react@10.0.0(mobx@7.0.0)(react@19.2.8):
+  mobx-react@10.0.0(mobx@7.0.3)(react@19.2.8):
     dependencies:
-      mobx: 7.0.0
-      mobx-react-lite: 5.0.0(mobx@7.0.0)(react@19.2.8)
+      mobx: 7.0.3
+      mobx-react-lite: 5.0.0(mobx@7.0.3)(react@19.2.8)
       react: 19.2.8
 
-  mobx@7.0.0: {}
+  mobx@7.0.3: {}
 
   modern-tar@0.7.7: {}
 

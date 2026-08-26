@@ -152,13 +152,21 @@ export function createTestEnvironment({
   )
   const trackConfigs = [trackConfig, bubbleTrackConfig]
 
+  const assemblyRegions = [
+    { refName: 'ctgA', start: 0, end: 50_000, assemblyName: 'volvox' },
+  ]
+
   const assembly = {
     initialized: true,
-    regions: [
-      { refName: 'ctgA', start: 0, end: 50_000, assemblyName: 'volvox' },
-    ],
+    regions: assemblyRegions,
     getCanonicalRefName: (refName: string) => refName,
     getGeneticCodeId: () => undefined,
+    // The LGV's `showsWholeChromosome` reads this (through `canShowCytobands`)
+    // as of jbrowse-components 33c15386b3, and a stub without it throws rather
+    // than reading as "no cytobands". Same answer as the real one: the region
+    // for a refName the assembly declares, undefined otherwise.
+    getRegionForRefName: (refName: string) =>
+      assemblyRegions.find(r => r.refName === refName),
     configuration: { sequence: undefined },
   }
 

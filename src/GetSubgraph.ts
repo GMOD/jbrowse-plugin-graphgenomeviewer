@@ -1,12 +1,16 @@
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTypes'
 
+import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 import type { Region } from '@jbrowse/core/util'
 
+// No `sessionId`, `stopToken` or `statusCallback` here: those belong to the
+// CALL, not to this payload, and core's `EntriesDeclaringCallLevelFields` fails
+// the build for a registry entry that declares one. `execute` still receives
+// them, because `RpcExecuteArgs` intersects `RpcCallContext` in.
 export interface GetSubgraphArgs {
   adapterConfig: Record<string, unknown>
   region: Region
-  sessionId: string
   opts?: { context?: number }
 }
 
@@ -42,12 +46,15 @@ function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {
 // broken while its own track looked fine. `assemblyNameToPanSN` covers the
 // sample half of a PanSN name only; the contig half is refName aliasing, which
 // the assembly already knows and this now consults.
-export default class GetSubgraph extends RpcMethodTypeWithRenameRegion {
-  name = 'GetSubgraph'
+export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgraph'> {
+  name = 'GetSubgraph' as const
 
-  async execute(args: GetSubgraphArgs, rpcDriverClassName: string) {
-    const { adapterConfig, region, sessionId, opts } =
-      await this.deserializeArguments(args, rpcDriverClassName)
+  // Parameterized by the registry key, not left at the default `string`: a bare
+  // RpcMethodTypeWithRenameRegion resolves RpcExecuteArgs to `unknown`, so
+  // `execute` type-checks against nothing at all. `invoke` has already run
+  // `deserializeArguments` by the time this is called, so it does not.
+  async execute(args: RpcExecuteArgs<'GetSubgraph'>) {
+    const { adapterConfig, region, sessionId, opts } = args
 
     const { dataAdapter } = await getAdapter(
       this.pluginManager,
