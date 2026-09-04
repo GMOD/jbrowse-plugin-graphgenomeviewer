@@ -22,10 +22,16 @@ function contributor(sample: string, rank: number, start = 1000): Contributor {
   }
 }
 
-function testSession(views: unknown[] = []) {
+// Plain objects rather than config models: readConfObject returns a non-MST
+// object's own fields unchanged, so this exercises the same read path.
+function track(props: Record<string, unknown>) {
+  return props as never
+}
+
+function testSession(views: unknown[] = [], tracks = [] as never[]) {
   const added: [string, Record<string, unknown> | undefined][] = []
   const session = {
-    tracks: [],
+    tracks,
     assemblies: [],
     assemblyNames: ['K12', 'Sakai'],
     views,
@@ -279,4 +285,93 @@ test('highlighting with no linear view on the assembly does nothing', () => {
     }),
   ).toBe(false)
   expect(added).toEqual([])
+})
+
+// The graph's own track is what makes the band readable: without it the panels
+// are bare rulers and the ribbons connect nothing a reader can match across.
+test('a synteny launch carries the graph track into the panels it covers', () => {
+  const { session, added } = testSession(
+    [],
+    [
+      track({
+        type: 'FeatureTrack',
+        trackId: 'hprc_minigraph_segments',
+        assemblyNames: ['hg38', 'hs1'],
+      }),
+    ],
+  )
+
+  launchSyntenyView({
+    session,
+    contributors: [contributor('hg38', 0), contributor('hs1', 1, 90000)],
+    trackId: 'hg38_hs1_synteny',
+    graphTrackId: 'hprc_minigraph_segments',
+  })
+
+  expect((added[0]?.[1]?.init as { views: unknown[] }).views).toEqual([
+    {
+      assembly: 'hg38',
+      loc: 'chr:1001-6000',
+      tracks: ['hprc_minigraph_segments'],
+    },
+    {
+      assembly: 'hs1',
+      loc: 'chr:90001-95000',
+      tracks: ['hprc_minigraph_segments'],
+    },
+  ])
+})
+
+// The narrow rule is what keeps the five-strain launch from filling with lanes:
+// the E. coli graph track names K12 alone, so four panels stay rulers.
+test('a synteny launch leaves out panels the graph track does not cover', () => {
+  const { session, added } = testSession(
+    [],
+    [
+      track({
+        type: 'FeatureTrack',
+        trackId: 'ecoli_minigraph_segments',
+        assemblyNames: ['K12'],
+      }),
+    ],
+  )
+
+  launchSyntenyView({
+    session,
+    contributors: [
+      contributor('K12', 0),
+      contributor('Sakai', 1, 90000),
+      contributor('CFT073', 2, 40000),
+    ],
+    trackId: 'ecoli_ava',
+    graphTrackId: 'ecoli_minigraph_segments',
+  })
+
+  expect((added[0]?.[1]?.init as { views: unknown[] }).views).toEqual([
+    {
+      assembly: 'K12',
+      loc: 'chr:1001-6000',
+      tracks: ['ecoli_minigraph_segments'],
+    },
+    { assembly: 'Sakai', loc: 'chr:90001-95000' },
+    { assembly: 'CFT073', loc: 'chr:40001-45000' },
+  ])
+})
+
+// A trackId the session no longer holds drops the lane rather than adding one
+// the panel would fail to load.
+test('a synteny launch ignores a graph track the session does not hold', () => {
+  const { session, added } = testSession()
+
+  launchSyntenyView({
+    session,
+    contributors: [contributor('K12', 0), contributor('Sakai', 1, 90000)],
+    trackId: 'ecoli_ava',
+    graphTrackId: 'gone',
+  })
+
+  expect((added[0]?.[1]?.init as { views: unknown[] }).views).toEqual([
+    { assembly: 'K12', loc: 'chr:1001-6000' },
+    { assembly: 'Sakai', loc: 'chr:90001-95000' },
+  ])
 })

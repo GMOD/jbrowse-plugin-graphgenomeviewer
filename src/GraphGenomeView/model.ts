@@ -1870,6 +1870,7 @@ export default function stateModelFactory() {
           session: getSession(self),
           contributors: self.launchableAssemblies,
           trackId,
+          graphTrackId: self.loadedTrackId || undefined,
         })
       },
     }))

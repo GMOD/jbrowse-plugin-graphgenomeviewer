@@ -1,3 +1,5 @@
+import { readConfObject } from '@jbrowse/core/configuration'
+
 import { locLabel, locString } from './contributors'
 import { linearViewTarget } from './linearViewTarget'
 
@@ -141,6 +143,24 @@ export function highlightInLinearView({
   return target !== undefined
 }
 
+// Which assemblies a track config says it covers, for deciding whether a panel
+// can draw it at all. A trackId naming nothing in the session reads as covering
+// nothing, so a stale id drops the lane rather than adding one the panel would
+// fail to load.
+function assemblyNamesOfTrack(
+  session: GraphLaunchSession,
+  trackId: string | undefined,
+) {
+  if (trackId === undefined) {
+    return []
+  }
+  const track = session.tracks.find(
+    t => readConfObject(t, 'trackId') === trackId,
+  )
+  const names: unknown = track ? readConfObject(track, 'assemblyNames') : []
+  return Array.isArray(names) ? names.filter(n => typeof n === 'string') : []
+}
+
 // One panel per contributing assembly, each framed on the locus that assembly
 // contributes here, with the graph's own reference panel on top.
 //
@@ -149,27 +169,41 @@ export function highlightInLinearView({
 // launch needs no mate discovery, no PAF lookup and no dialog. That is the whole
 // point of launching from the graph instead of from a linear view.
 //
-// Panels open with no tracks of their own, unlike the single-view launch, which
-// brings the assembly's annotation across (see launchTracks). Tried both: a gene
-// track per panel takes about 160px of a row that is otherwise a ruler, so on
-// five strains the annotation is most of the viewport and the ribbons — the
-// thing the launch exists to draw — are squeezed into the gaps. It is also what
-// `collapseEmptyRows` is here to prevent. Adding a track to one panel afterwards
-// is a click; unpicking five is not.
+// Panels carry THE GRAPH'S OWN TRACK and nothing else, which is a narrower rule
+// than the single-view launch's (see launchTracks, which scans the session for
+// the assembly's annotation). Tried that here: a gene track per panel takes
+// about 160px of a row that is otherwise a ruler, so on five strains the
+// annotation is most of the viewport and the ribbons — the thing the launch
+// exists to draw — are squeezed into the gaps, and `collapseEmptyRows` is here
+// to prevent exactly that.
+//
+// The graph's own track does not have that shape. It goes only in the panels
+// whose assembly its config declares, which is where the graph HAS coordinates:
+// the HPRC segments track names two, so both its panels get one lane, while the
+// E. coli one names K12 alone and a five-strain launch adds a single lane rather
+// than five. And it is the lane that makes the band readable, since the ribbons
+// otherwise connect two bare rulers and the reader has nothing to match across
+// them.
 export function launchSyntenyView({
   session,
   contributors,
   trackId,
+  graphTrackId,
 }: {
   session: GraphLaunchSession
   contributors: Contributor[]
   trackId?: string
+  graphTrackId?: string
 }) {
+  const graphTrackAssemblies = assemblyNamesOfTrack(session, graphTrackId)
   session.addView('LinearSyntenyView', {
     init: {
       views: contributors.map(c => ({
         assembly: c.sample,
         loc: locString(c),
+        ...(graphTrackId !== undefined && graphTrackAssemblies.includes(c.sample)
+          ? { tracks: [graphTrackId] }
+          : {}),
       })),
       // One entry per LEVEL, not one for the track. `init.tracks` is 2D — the
       // gap between views[i] and views[i+1] — and a flat `[trackId]` is read as

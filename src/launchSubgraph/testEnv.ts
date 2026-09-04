@@ -12,10 +12,12 @@ import {
   createBaseTrackModel,
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { types } from '@jbrowse/mobx-state-tree'
-import {
-  linearBasicDisplayConfigSchemaFactory,
-  linearBasicDisplayStateModelFactory,
-} from '@jbrowse/plugin-canvas'
+import { linearBasicDisplayConfigSchemaFactory } from '@jbrowse/plugin-canvas'
+// The state model factory is NOT on that barrel, and deliberately: a value edge
+// from there would keep the display model subgraph eager, which is the point of
+// the host's lazy display registration. Its own subpath is the way in, and it is
+// that module's default export.
+import linearBasicDisplayStateModelFactory from '@jbrowse/plugin-canvas/LinearBasicDisplay/stateModel'
 import {
   BaseLinearDisplayComponent,
   linearGenomeViewStateModelFactory,

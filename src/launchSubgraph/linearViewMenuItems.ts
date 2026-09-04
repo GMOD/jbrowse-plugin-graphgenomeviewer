@@ -34,65 +34,74 @@ export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
     'Core-extendPluggableElement',
     (pluggableElement: PluggableElementType) => {
       if (isLinearGenomeView(pluggableElement)) {
-        pluggableElement.stateModel = pluggableElement.stateModel.extend(
-          // Annotated rather than cast: the extension point hands over an
-          // IAnyModelType, and stating the model shape here is what types
-          // `getSelectedRegions`/`dynamicBlocks` below without an `as`.
-          (self: LinearGenomeViewModel) => {
-            const superMenuItems = self.menuItems
-            const superRubberBandMenuItems = self.rubberBandMenuItems
+        // extendStateModel, NOT `stateModel = stateModel.extend(...)`: see
+        // launchSubgraph/index.ts for what a synchronous read costs now that the
+        // host registers state models as lazy loaders.
+        pluggableElement.extendStateModel(stateModel =>
+          stateModel.extend(
+            // Annotated rather than cast: the extension point hands over an
+            // IAnyModelType, and stating the model shape here is what types
+            // `getSelectedRegions`/`dynamicBlocks` below without an `as`.
+            (self: LinearGenomeViewModel) => {
+              const superMenuItems = self.menuItems
+              const superRubberBandMenuItems = self.rubberBandMenuItems
 
-            // Graph tracks for this view's assembly. Empty means every item
-            // below is empty too, so a session with no graph data gains no menu
-            // clutter.
-            function tracks() {
-              const assemblyName = self.assemblyNames[0]
-              return assemblyName
-                ? subgraphTracks(pluginManager, getSession(self), assemblyName)
-                : []
-            }
+              // Graph tracks for this view's assembly. Empty means every item
+              // below is empty too, so a session with no graph data gains no menu
+              // clutter.
+              function tracks() {
+                const assemblyName = self.assemblyNames[0]
+                return assemblyName
+                  ? subgraphTracks(
+                      pluginManager,
+                      getSession(self),
+                      assemblyName,
+                    )
+                  : []
+              }
 
-            return {
-              views: {
-                menuItems() {
-                  const items = superMenuItems()
-                  for (const item of subgraphMenuItems({
-                    label: VISIBLE_LABEL,
-                    region: regionFromViewport(
-                      self.dynamicBlocks.contentBlocks,
-                    ),
-                    tracks: tracks(),
-                    session: getSession(self),
-                    connectedViewId: self.id,
-                  })) {
-                    pushLaunchViewMenuItem(items, item)
-                  }
-                  return items
-                },
-
-                // The rubberband menu is short and contextual, so these go in
-                // flat rather than under a "Launch view" submenu — that grouping
-                // earns its keep in the long track and view menus, not here.
-                rubberBandMenuItems() {
-                  return [
-                    ...superRubberBandMenuItems(),
-                    ...subgraphMenuItems({
-                      label: SELECTION_LABEL,
+              return {
+                views: {
+                  menuItems() {
+                    const items = superMenuItems()
+                    for (const item of subgraphMenuItems({
+                      label: VISIBLE_LABEL,
                       region: regionFromViewport(
-                        self.getSelectedRegions(
-                          self.leftOffset,
-                          self.rightOffset,
-                        ),
+                        self.dynamicBlocks.contentBlocks,
                       ),
                       tracks: tracks(),
                       session: getSession(self),
                       connectedViewId: self.id,
-                    }),
-                  ]
+                    })) {
+                      pushLaunchViewMenuItem(items, item)
+                    }
+                    return items
+                  },
+
+                  // The rubberband menu is short and contextual, so these go in
+                  // flat rather than under a "Launch view" submenu — that grouping
+                  // earns its keep in the long track and view menus, not here.
+                  rubberBandMenuItems() {
+                    return [
+                      ...superRubberBandMenuItems(),
+                      ...subgraphMenuItems({
+                        label: SELECTION_LABEL,
+                        region: regionFromViewport(
+                          self.getSelectedRegions(
+                            self.leftOffset,
+                            self.rightOffset,
+                          ),
+                        ),
+                        tracks: tracks(),
+                        session: getSession(self),
+                        connectedViewId: self.id,
+                      }),
+                    ]
+                  },
                 },
-              },
-            }
-          },
+              }
+            },
+          ),
         )
       }
       return pluggableElement
