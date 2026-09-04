@@ -1,3 +1,9 @@
+// LAUNCH_LABEL rather than the literal: the host renamed this submenu from
+// "Launch view" to "Launch" (packages/core/src/ui/launchViewMenu.ts says why),
+// and a hardcoded copy here fails as "the item was never added" rather than as
+// "the submenu is called something else".
+import { LAUNCH_LABEL } from '@jbrowse/core/ui'
+
 import {
   launchSubgraphView,
   regionAroundSegment,
@@ -15,7 +21,7 @@ const LABEL_SEGMENT = 'Graph genome view (this segment)'
 // pushLaunchViewMenuItem groups every "open another view" entry under one
 // "Launch view" submenu, so that is where these land.
 function launchItems(items: MenuItem[]) {
-  const item = items.find(i => 'label' in i && i.label === 'Launch view')
+  const item = items.find(i => 'label' in i && i.label === LAUNCH_LABEL)
   return item && 'subMenu' in item ? item.subMenu : []
 }
 

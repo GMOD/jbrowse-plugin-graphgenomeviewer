@@ -1,3 +1,8 @@
+// LAUNCH_LABEL rather than the literal: the host renamed this submenu from
+// "Launch view" to "Launch" (packages/core/src/ui/launchViewMenu.ts says why),
+// and a hardcoded copy here fails as "the item was never added" rather than as
+// "the submenu is called something else".
+import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { spreadFor } from './bubbleSpreads'
@@ -14,7 +19,6 @@ import { buildGeometry } from './renderer/GeometryBuilder'
 import { recordingCanvas } from './renderer/recordingCanvas'
 
 import type { Graph } from './types'
-
 
 const mockRpcCall = vi.fn()
 // The canonical assembly a name or alias resolves to, which is what
@@ -1338,7 +1342,7 @@ describe('launching out of the graph', () => {
       label?: string
       subMenu?: { label?: string }[]
     }[]
-    const launch = items.find(i => i.label === 'Launch view')
+    const launch = items.find(i => i.label === LAUNCH_LABEL)
     return (launch?.subMenu ?? []).map(i => i.label)
   }
 
@@ -1934,14 +1938,16 @@ describe('what the row axis draws, in pixels', () => {
     expect(points.length).toBeGreaterThan(0)
     // the node tubes, which is what a row pitch is about: the arc reaches above
     // them by design, so it is measured on its own below
-    const rowYs = model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
+    const rowYs = model.rowLabels.map(
+      r => r.y * model.scaleY + model.translateY,
+    )
 
     // three row gaps, and each tube half a thickness either side of its row
     expect(spread(rowYs)).toBeCloseTo(3 * ROW_HEIGHT_PX, 5)
     expect(Math.min(...rowYs) - model.contigThickness / 2).toBeGreaterThan(0)
-    expect(
-      Math.max(...rowYs) + model.contigThickness / 2,
-    ).toBeLessThan(model.canvasHeight)
+    expect(Math.max(...rowYs) + model.contigThickness / 2).toBeLessThan(
+      model.canvasHeight,
+    )
   })
 
   // The assertion that actually depends on both scales. A deletion's bow is
