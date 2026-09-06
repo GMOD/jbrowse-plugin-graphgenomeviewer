@@ -26,8 +26,8 @@ premises; this version keeps what survived. It is a proposal, not a decision.
 - The GBWT is the only representation whose size grows sublinearly with
   haplotype count, because haplotypes share runs. Any per-haplotype store is
   linear: measured on 32 base-level chr1 walks, delta-encoded steps compress to
-  0.162 bytes per step, which over the graph's 37 G steps (estimate from the
-  companion build log) is 6 to 8 GB per product at 464 haplotypes and 50 to 70
+  0.162 bytes per step, which over the graph's 38.4 G steps (measured in one
+  pass over the 63 GB GFA on the lab machine) is 6 to 8 GB per product at 464 haplotypes and 50 to 70
   GB at 4,000. That is the same scaling as the 16 kb per-path companion the
   draft wanted to retire, with no better constant.
 - `sv.gfa.gz` has no walks: 759,223 S lines, 1,107,199 L lines, nothing else.

@@ -166,14 +166,14 @@ So delta encoding is a real win, 14x over the GFA's own text under the same
 compressor, and the document's "most steps are +1" is half true: at every
 bubble the reference-following haplotype steps +2 past the alt node.
 
-Whole genome: the companion build log says 158,703,664 samples at 16,384 bp in
-both orientations, so total haplotype path length is ~1.3 Tbp; at 35.1 bp per
-step that is ~37 G steps. (The full pass over the 63 GB file is running on ada
-as this is written; see section 4 for the exact count if it landed.)
+Whole genome, measured (one gawk pass over the 63.6 GB file on ada, 94 min):
+53,150 W lines, 38,403,445,885 steps, 1,305,008,376,391 bp (34.0 bp per step),
+GRCh38 83,303,684 steps on 195 walks, CHM13 83,437,361 on 97; 139,520,381 S
+lines (3.42 Gbp), 193,378,549 L lines. The sample's per-step figures hold.
 
 | product, base level, 464 haplotypes | estimate |
 | --- | --- |
-| steps column, all haplotypes | 37 G x 0.162 B = 6.0 GB bgzip (4.3 GB zstd) |
+| steps column, all haplotypes | 38.4 G x 0.162 B = 6.2 GB bgzip (4.4 GB zstd) |
 | row overhead at 10 kb tiles | ~130M rows x ~14 B compressed = ~1.8 GB |
 | row overhead at 100 kb tiles | ~0.2 GB |
 | all-haplotype file | 6.2 to 8 GB |
@@ -328,10 +328,11 @@ private nodes, which brings back the node table question above.
 - "all-haplotype store, sv graph: under the 841 MB GFA": no sv walks exist;
   base level is 6 to 8 GB per product.
 - "build, sv graph, lab machine: minutes": the base-level GFA streams in
-  1,191 s on ada for the PIF (318 MB/s, 1.49 GB RSS holding the reference
-  index). Cutting 130M rows, sorting them twice (reference and haplotype
-  order), and writing 465 bgzip+tabix pairs is an hour or two, not minutes. The
-  E. coli case is minutes.
+  1,191 s on ada for the PIF, which parses 8 of 464 haplotypes' walks (318
+  MB/s, 1.49 GB RSS holding the reference index); a pass that touches every
+  W line's steps took 94 min today in gawk. Cutting ~130M rows from 38 G
+  steps, sorting them twice (reference and haplotype order), and writing 465
+  bgzip+tabix pairs is hours, not minutes. The E. coli case is minutes.
 - "AMY1 copy counts, 490 haplotype contigs: one query": one tabix query
   returns the rows; the copy count is undefined (section 2).
 - "KIV-2, eight haplotypes, under 1 s": plausible after the eight indexes are
@@ -376,7 +377,7 @@ private nodes, which brings back the node table question above.
 | published `gbz.db` through the reader | 53,150 paths, 233 samples, 464 haplotypes, 292 indexed paths (GRCh38 195 + CHM13 97), 139,520,381 nodes; contigs per haplotype min/median/p90/max 22/38/48/195; path fragments per haplotype 90/113/128/195 |
 | companion build log | 158,703,664 samples, 53,150 paths, 16,384 bp interval, ~1.3 Tbp of path |
 | base-level sample on ada (32 walks, chr1) | 25,927,110 steps over 909,881,321 bp; 35.1 bp/step; 92.6% on GRCh38 nodes; 52.4% +1 deltas; delta text bgzip 0.162 B/step, zstd -19 0.115 B/step; raw walk gzip 2.28 B/step |
-| base-level GFA whole-file W stats | full pass running on ada at review time (`~/walks_review/full.txt`); estimate from the sample: ~37 G steps, ~53,150 W lines |
+| base-level `gfa.gz`, whole file (ada, gawk, 94 min) | 53,150 W lines; 38,403,445,885 steps; 1,305,008,376,391 bp (34.0 bp/step); GRCh38 83,303,684 steps / 195 walks; CHM13 83,437,361 / 97; S 139,520,381 (3.42 Gbp); L 193,378,549 |
 | synthetic per-haplotype tile file, GRCh38 lengths | 10 kb tiles: 303,114 rows, `.tbi` 496,910 B; 100 kb tiles: `.tbi` 91,638 B |
 | `@gmod/tabix` 3.5.5 index loading | whole file (`indexFile.js` `readIndexBytes`) |
 | published v2.1 bucket, relevant sizes | `gfa.gz` 63.6 GB; `full.gfa.gz` 71.4 GB; `gbz` 5.49 GB; `full.gbz` 34.2 GB; `gbz.db` 10.05 GB; `paf` 18.5 GB (+ `paf.unfiltered.gz` 5.5 GB); `gaf.gz` 15.3 GB; `chrom-graphmap/*.gaf.gz` 14.9 GB; `sv.gfa.fa.gz` 0.8 GB; `pgbi.vcf.gz` 3.5 GB; `wave.vcf.gz` 2.3 GB; `raw.vcf.gz` 24.2 GB; `hapl` 21.4 GB |
