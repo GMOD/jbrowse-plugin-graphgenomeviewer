@@ -308,7 +308,64 @@ here" first. Ordering by similarity stays parked per
 `agent-docs/ideas/ordering-synteny-lanes-by-similarity.md`; densest-first is
 fine for a chosen set of eight.
 
-## Phase 6: move the tutorial to release 2.1
+## Phase 6: move the tutorial to release 2.1 (data and configs done 2026-09-06; figures pending)
+
+Done, jbrowse-components `f9c1c88162` and the fixtures commit after it:
+
+- Built from `hprc-v2.1-mc-grch38.sv.gfa.gz` (841,185,082 bytes, in
+  `~/src/hprc-gbz/v2.1/`) and hosted at `s3://jbrowse.org/demos/hprc/`:
+  `hprc-v2.1-mc-grch38.{segs,links,ref.segs,ref.links,bubbles,alleles,tier10000.segs,tier10000.links}.bed.gz`
+  with `.tbi`. 759,223 segments, 2,214,398 link rows, 129,611 bubbles (414
+  clamped, 245 inversion-flagged), 206,016 alleles (111,408 ins, 90,204 del,
+  4,404 sub), 3,442 tier bubbles at 10 kb. The hosted `README.txt` describes
+  them; the v2.0 files stay hosted unchanged. `build_rgfa_tabix.sh` needs gawk:
+  BSD awk ran the links join 25 minutes without finishing.
+- The tutorial, `demos/hprc/config.json` (deployed),
+  `demos/hprc_multiway/config.json` (NOT deployed: its swapped track opens on
+  `lanes`, which the hosted app ignores until jbrowse-components with
+  `44e771ef80` is deployed, so it would open on 464 lanes), the figure spec and
+  the `test_data/graphgenomeview` fixtures read v2.1 everywhere: rGFA prefix,
+  bubbles, alleles, tier, wave and pgbi callsets. The TAF and the MAF summary
+  stay on v2.0 (v2.1 publishes a 53 GB MAF and no TAF); the tutorial says so in
+  one sentence. The v2.1 wave and pgbi have 232 and 231 samples, same as v2.0.
+- Spec ids renamed by coordinate: `CHM13_NODE` s504955 to s460574 (141,710 bp
+  now, bubble 28 segments over 928 bp, allele 145,411 bp), the KIV-2 anchor
+  s110051+ to s338849+ (identical interval), `MHC_TIER_BUBBLE` s101110 to
+  s329829. `CFHR_DELETED` moved to chr1:196,759,450-196,844,134 (84,684 bp).
+  AMY1's bubble is chr1:103,620,901-103,732,636 (108 segments, alleles 17,531 to
+  300,264 bp). The 1q21.1 inversion bubble keeps its flag and interval (235
+  segments now, was 62).
+
+Not done, and why:
+
+- **The MHC class II figures and their captions.** The bubble changed:
+  chr6:32,486,309-32,575,299, 254 segments, 205 kb longest allele, against
+  v2.0's 91 segments and 78 kb over 32,486,309-32,550,924. The 12,021 bp
+  landmark s101145 is eleven segments in v2.1 (s329875 to s329885), the 1,775 bp
+  HG01433#2 allele s318599 across HLA-DRB5 is now NA20809#2's s348700+
+  (CM094351.1:32,495,296-32,497,076, 1,780 bp, rank 10, attached from s329874+
+  ending at 32,517,416 to s329886+ starting at 32,529,437), and the bubble's
+  non-reference segments are mostly HG01071#1 (64 segments, 121.5 kb) rather
+  than HG01433#2. So `HPRC_ALLELE`, `MHC_LANDMARK_NODES`, `TOUR_NODE`, the
+  "which haplotype to load" thread (HG01433.2's GenArk assembly, its CAT slice
+  `test_data/graphgenomeview/hprc_mhc_HG01433.2.genes.gff3.gz`, the
+  `hprc_haplotype.json` fixture, `hprc_out_to_haplotype` and the tour in
+  `website/scripts/videos/pangenome.ts`) and the tutorial captions at "The
+  Layout dropdown", "Sample rows" and "Open in HG01433.2" are a re-authoring on
+  the new graph, not a rename. Run
+  `node website/scripts/probe-graph-nodes.ts pangenome/hprc_mhc_layout_force --view=1`
+  (it pastes `test_data/graphgenomeview/hprc.json`, now v2.1) for the cut's ids,
+  choose the allele and the ring, then reshoot every rGFA figure and re-film the
+  two clips.
+- **The multiway PIF rebuild** (`build_hprc_multiway_synteny.sh` from the v2.1
+  base-level GFA, 63.6 GB): this machine has 15 GB free, so it needs a streaming
+  variant (curl into pigz, no file) or another machine. Until then
+  `hprc_multiway_gfa.pif.gz` and the `.gfa.chrom.sizes` are v2.0-derived, which
+  coordinates do not mind.
+- `hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we serve points at
+  it once the multiway config deploys.
+
+The original plan for the phase:
 
 Repo: jbrowse-components, hosted files at `s3://jbrowse.org/demos/hprc/` and
 `s3://jbrowse.org/demos/hprc_multiway/`.
