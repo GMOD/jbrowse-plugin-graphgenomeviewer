@@ -44,6 +44,30 @@ export function haplotypePrefix(name: PathName) {
   return `${name.sample}#${name.haplotype}`
 }
 
+export interface GbzHaplotype {
+  prefix: string
+  sample: string
+  haplotype: number
+  contigs: string[]
+  isReference: boolean
+}
+
+/**
+ * `haplotypes` narrows a fetch to the PanSN prefixes listed, at sample
+ * (`HG002`) or haplotype (`HG002#1`) depth; undefined is every haplotype.
+ */
+export interface GbzFeatureOptions extends BaseOptions {
+  haplotypes?: string[]
+}
+
+function haplotypeWanted(name: PathName, wanted: string[] | undefined) {
+  const prefix = haplotypePrefix(name)
+  return (
+    wanted === undefined ||
+    wanted.some(candidate => panSNMatchesPrefix(prefix, candidate))
+  )
+}
+
 export class NodeLimitError extends Error {
   override name = 'NodeLimitError'
 
@@ -220,6 +244,34 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       : undefined
   }
 
+  /**
+   * Every haplotype the graph carries a walk for, `sample#haplotype` with its
+   * contigs, from the Paths scan the adapter already makes; the lane picker's
+   * source list. Reference samples are included and flagged.
+   */
+  async getHaplotypes(opts: BaseOptions = {}): Promise<GbzHaplotype[]> {
+    const { db, referenceSamples } = await this.graph(opts)
+    const byPrefix = new Map<string, GbzHaplotype>()
+    for (const path of await db.paths()) {
+      const prefix = haplotypePrefix(path.name)
+      const entry = byPrefix.get(prefix)
+      if (entry) {
+        if (!entry.contigs.includes(path.name.contig)) {
+          entry.contigs.push(path.name.contig)
+        }
+      } else {
+        byPrefix.set(prefix, {
+          prefix,
+          sample: path.name.sample,
+          haplotype: path.name.haplotype,
+          contigs: [path.name.contig],
+          isReference: referenceSamples.includes(path.name.sample),
+        })
+      }
+    }
+    return [...byPrefix.values()]
+  }
+
   async getHeader(opts: BaseOptions = {}) {
     const { referenceSample, referenceSamples } = await this.graph(opts)
     return { hasCoarseTier: false, referenceSample, referenceSamples }
@@ -264,7 +316,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
   }
 
-  getFeatures(region: Region, opts: BaseOptions = {}) {
+  getFeatures(region: Region, opts: GbzFeatureOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor } = await this.graph(opts)
       if (!db.hasHaplotypeIndex) {
@@ -298,7 +350,11 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
           if (
             alignment.resolved &&
             (targetPrefix === undefined ||
-              panSNMatchesPrefix(haplotypePrefix(alignment.name), targetPrefix))
+              panSNMatchesPrefix(
+                haplotypePrefix(alignment.name),
+                targetPrefix,
+              )) &&
+            haplotypeWanted(alignment.name, opts.haplotypes)
           ) {
             const feature = fragmentFeature({
               alignment,

@@ -214,6 +214,27 @@ test('context does not add records', async () => {
   expect(narrow.length).toBeGreaterThanOrEqual(wide.length)
 })
 
+test('the graph lists its haplotypes with their contigs, and a fetch can be narrowed to some of them', async () => {
+  const adapter = makeAdapter()
+  const haplotypes = await adapter.getHaplotypes()
+  expect(haplotypes.length).toBeGreaterThan(50)
+  const grch38 = haplotypes.find(h => h.prefix === 'GRCh38#0')
+  expect(grch38?.isReference).toBe(true)
+  expect(grch38?.contigs).toContain('chr6')
+  const hg00621 = haplotypes.filter(h => h.sample === 'HG00621')
+  expect(hg00621.map(h => h.haplotype).sort()).toEqual([1, 2])
+  const all = await feats(adapter, window)
+  const some = await feats(adapter, window, {
+    haplotypes: ['HG00621', 'HG00438#1'],
+  })
+  const lanes = new Set(some.map(f => mateOf(f).assemblyName))
+  expect(some.length).toBeGreaterThan(0)
+  expect(some.length).toBeLessThan(all.length)
+  expect(
+    [...lanes].every(l => l.startsWith('HG00621#') || l === 'HG00438#1'),
+  ).toBe(true)
+})
+
 test('the node limit fails a window rather than reading it whole, naming a zoom that fits', async () => {
   await expect(feats(makeAdapter({ nodeLimit: 2 }), window)).rejects.toThrow(
     /nodeLimit \(2\) graph nodes; zoom in to about \d+ bp/,
