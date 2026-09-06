@@ -1,4 +1,5 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
+import { types } from '@jbrowse/mobx-state-tree'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -57,6 +58,38 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
         uri: '/path/to/graph.gbz.db',
         locationType: 'UriLocation',
       },
+    },
+    /**
+     * #slot
+     * A companion database written by `gbz-haplotype-index --output`, holding
+     * the `HaplotypeSamples` and `HaplotypeLengths` tables for a graph database
+     * that does not carry them itself, such as the one HPRC publishes. Empty
+     * means the graph database carries the tables.
+     */
+    haplotypeIndexLocation: {
+      type: 'fileLocation',
+      defaultValue: {
+        uri: '',
+        locationType: 'UriLocation',
+      },
+    },
+    /**
+     * #slot
+     * How the graph view's subgraph is extended past the nodes the reference
+     * window touches. `contained` adds every top-level snarl with both
+     * boundary nodes in the window, which is what brings back the bubbles a
+     * reference-only walk leaves out; `overlapping` also follows snarls that
+     * leave the window, which can pull in a whole large deletion; `none` leaves
+     * only the bp `context`.
+     */
+    subgraphSnarls: {
+      type: 'stringEnum',
+      model: types.enumeration('SnarlOutput', [
+        'none',
+        'contained',
+        'overlapping',
+      ]),
+      defaultValue: 'contained',
     },
     /**
      * #slot

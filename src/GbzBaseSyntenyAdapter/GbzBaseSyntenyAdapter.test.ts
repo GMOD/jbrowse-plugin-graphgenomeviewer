@@ -226,3 +226,54 @@ test('a lane name resolves at haplotype depth before sample depth', () => {
     'hg002_p',
   )
 })
+
+const gfaLines = (gfa: string, kind: string) =>
+  gfa.split('\n').filter(line => line.startsWith(`${kind}\t`))
+
+test('getSubgraph cuts the window as GFA with the reference walk first and every haplotype PanSN-named', async () => {
+  const gfa = await makeAdapter().getSubgraph(window)
+  expect(gfaLines(gfa, 'H')[0]).toBe('H\tVN:Z:1.1\tRS:Z:GRCh38')
+  expect(gfaLines(gfa, 'S').length).toBeGreaterThan(30)
+  expect(gfaLines(gfa, 'L').length).toBeGreaterThan(30)
+  const walks = gfaLines(gfa, 'W').map(line => line.split('\t'))
+  expect(walks.length).toBeGreaterThan(40)
+  expect(walks[0]!.slice(1, 5)).toEqual(['GRCh38', '0', 'chr6', '31499826'])
+  for (const walk of walks) {
+    expect(walk[2]).toMatch(/^\d+$/)
+    expect(walk[1]).not.toBe('unknown')
+    expect(walk[6]).toMatch(/^([<>]\d+)+$/)
+  }
+})
+
+test('getSubgraph with contained snarls holds more nodes than the reference walk alone', async () => {
+  const region = { ...window, start: 31500000, end: 31501000 }
+  const withSnarls = await makeAdapter().getSubgraph(region)
+  const without = await makeAdapter({ subgraphSnarls: 'none' }).getSubgraph(
+    region,
+  )
+  expect(gfaLines(withSnarls, 'S').length).toBeGreaterThan(
+    gfaLines(without, 'S').length,
+  )
+})
+
+test('a companion haplotype index names the walks the same way', async () => {
+  const companion = makeAdapter({
+    haplotypeIndexLocation: {
+      localPath: require.resolve('./test_data/micb-kir3dl1.haplotype-index.db'),
+      locationType: 'LocalPathLocation',
+    },
+  })
+  const [a, b] = await Promise.all([
+    makeAdapter().getSubgraph(window as never),
+    companion.getSubgraph(window as never),
+  ])
+  expect(b).toBe(a)
+  const fa = await feats(companion, window)
+  expect(fa.length).toBeGreaterThan(40)
+})
+
+test('getSubgraph outside every reference fragment is empty', async () => {
+  expect(
+    await makeAdapter().getSubgraph({ ...window, start: 100, end: 200 }),
+  ).toBe('')
+})

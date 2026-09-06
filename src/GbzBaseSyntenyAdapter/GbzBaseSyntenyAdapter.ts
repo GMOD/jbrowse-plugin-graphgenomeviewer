@@ -16,7 +16,7 @@ import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { GbzPath, HaplotypeAlignment, PathName } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
-import type { Region } from '@jbrowse/core/util/types'
+import type { FileLocation, Region } from '@jbrowse/core/util/types'
 
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'
@@ -140,12 +140,16 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   private graph = cachedSetup({
     label: 'Opening pangenome database',
     setup: async () => {
+      const indexLocation: FileLocation = this.getConf('haplotypeIndexLocation')
+      const hasCompanion = !('uri' in indexLocation) || indexLocation.uri !== ''
       const db = await GBZBase.open(
         openLocation(this.getConf('gbzDbLocation'), this.pluginManager),
+        hasCompanion
+          ? {
+              haplotypeIndex: openLocation(indexLocation, this.pluginManager),
+            }
+          : {},
       )
-      if (!db.hasHaplotypeIndex) {
-        throw new NoHaplotypeIndexError()
-      }
       const anchor = this.getConf('assemblyNames')[0]
       if (anchor === undefined) {
         throw new Error(
@@ -208,9 +212,47 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return [...new Set(contigs)]
   }
 
+  /**
+   * The graph view's cut of the window: the reference walk, every top-level
+   * snarl contained in it, and one W line per haplotype walk, PanSN-named
+   * when the database (or its companion) carries the haplotype index and
+   * `unknown#N` otherwise. The reference walk is the first W line, which is
+   * the one the view anchors on by default.
+   */
+  async getSubgraph(region: Region, opts: { context?: number } = {}) {
+    const { db } = await this.graph()
+    const { refName, start, end } = region
+    const fragment = (await this.referenceFragments(refName, {})).find(
+      f => f.path.name.fragment <= start && start < f.end,
+    )
+    if (!fragment) {
+      return ''
+    }
+    const { sample, contig, haplotype } = fragment.path.name
+    const subgraph = await subgraphInInterval(
+      db,
+      { sample, contig, haplotype },
+      start,
+      Math.min(end, fragment.end),
+      {
+        context: opts.context ?? this.getConf('context'),
+        snarls: this.getConf('subgraphSnarls'),
+        haplotypes: 'all',
+        limit: this.getConf('nodeLimit'),
+      },
+    )
+    if (db.hasHaplotypeIndex) {
+      await subgraph.identifyPaths()
+    }
+    return subgraph.toGFA(false, { names: 'resolved' })
+  }
+
   getFeatures(region: Region, opts: BaseOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor } = await this.graph(opts)
+      if (!db.hasHaplotypeIndex) {
+        throw new NoHaplotypeIndexError()
+      }
       const { assemblyName, refName, start, end } = region
       // a window on a haplotype lane has no direct answer: the display
       // composes lane-to-lane links through the anchor
