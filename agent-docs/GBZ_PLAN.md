@@ -308,7 +308,7 @@ here" first. Ordering by similarity stays parked per
 `agent-docs/ideas/ordering-synteny-lanes-by-similarity.md`; densest-first is
 fine for a chosen set of eight.
 
-## Phase 6: move the tutorial to release 2.1 (data and configs done 2026-09-06; figures pending)
+## Phase 6: move the tutorial to release 2.1 (done 2026-09-06)
 
 Done, jbrowse-components `f9c1c88162` and the fixtures commit after it:
 
@@ -363,16 +363,16 @@ Figures and clips, done 2026-09-06 (jbrowse-components `83286514a0` and
 
 Not done, and why:
 
-- **The multiway PIF rebuild** runs on the lab machine: `ssh ada`, work dir
-  `~/hprc_multiway` (scripts rsynced from jbrowse-components `scripts/`,
-  `build/` holds the 63.6 GB `hprc-v2.1-mc-grch38.gfa.gz` download at ~7 MB/s
-  since 08:31 local, then the python unpack; `build.log`). The script fails at
-  `jb make-pif` there (no node), which is expected: rsync
-  `build/hprc_multiway_gfa.paf`, `build/parts/gfa.sizes/`,
-  `build/contig_lengths.fai` into a local `hprc_multiway_build/` and rerun
-  `bash scripts/build_hprc_multiway_synteny.sh` here, which reuses the PAF and
-  does make-pif, the CAT annotations and config.json; then `UPLOAD=1` (never
-  overwrites an object) and deploy `demos/hprc_multiway/config.json`.
+- **The multiway PIF rebuild is done** (2026-09-06, on `ada`): the 63.6 GB v2.1
+  base-level GFA streamed through `gfa_to_pairwise_paf.py` in 1,191 s (318 MB/s;
+  336 anchors, 606 chains, 2.69 Gbp of `=`), `make-pif` on the lab machine's
+  `@jbrowse/cli@5.0.0-beta.2`, and `hprc_multiway_gfa.pif.gz` (128,126,873
+  bytes), its `.csi`, the eight `.gfa.chrom.sizes` and `README_gfa.txt` are
+  deployed to `demos/hprc_multiway/` with CloudFront invalidations; the
+  generated config's references are a subset of the checked-in one, which adds
+  the GBZ track, so the config is unchanged. The build directory stays at
+  `ada:~/hprc_multiway/build` (the GFA included). `hprc_multiway_graph.pif.gz`,
+  the TAF route, stays v2.0 by the same decision as the MAF summary.
 - `demos/hprc_multiway/config.json` is deployed (2026-09-06, after the
   jbrowse-components push whose CI deployed jbrowse-web with the lane picker),
   so nothing we serve points at `hprc-chr20.gbz.db` any more.
