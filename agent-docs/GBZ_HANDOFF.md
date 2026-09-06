@@ -164,7 +164,33 @@ so `identifyPaths` walks node by node (capped at `4 * interval`); each step is a
 B-tree lookup. The 10 kb C4 window shows the same effect in miniature, 3,937
 steps because the window itself is under the interval.
 
-So the lever is a page-level cell-offset cache in the reader (`cellOffset` and
+**The companion reads 340 MB for that one window, and the pager cannot fix it.**
+`--stats` in 2.1.0 reports the companion's own pager, and it is where everything
+goes: the graph database is 37 fetches and 4.9 MB, the companion 5,202 fetches
+and 340,918,272 bytes. Hosted that window is 241.6 s, with the identical
+companion counters from local disk at 64.5 s, so the 177 s gap is those fetches
+crossing the network. Shrinking the block size does not help, because the byte
+volume is what is invariant:
+
+| block size | companion fetches | companion bytes | time, local |
+| --- | --- | --- | --- |
+| 65536 | 5,202 | 340,918,272 | 64.5 s |
+| 16384 | 20,782 | 340,492,288 | 69.5 s |
+| 8192 | 41,555 | 340,418,560 | 82.7 s |
+
+340 MB over 78,506 identification steps is ~4.3 KB per step, about one SQLite
+page each: the steps land on distinct B-tree leaves, so there is no locality for
+a pager or a larger block to exploit, and a smaller block only multiplies
+requests. The lever is fewer steps, not cheaper ones: a denser companion for
+repeat regions (interval 4096 quarters the walk but scales the 6.99 GB file), or
+reusing one anchor across the sibling fragments of the same haplotype, which the
+`starts`/`chain` path in `identifyPaths` already half does and which would take
+1,912 walks down toward 464.
+
+The earlier reading below stands for the local case, where the same 340 MB has
+to be decoded rather than fetched.
+
+So the second lever is a page-level cell-offset cache in the reader (`cellOffset` and
 `tableRowid` recompute per lookup what is constant per page), not a denser
 index and not an adapter setting. A denser companion would cut the miss rate but
 scales the 6.99 GB file linearly, and the config lever fails outright:
