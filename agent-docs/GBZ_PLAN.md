@@ -122,14 +122,23 @@ requests, 1.5 MB), against 233.7 s on 2.2.0, so the "AMY1 under 30 s" target
 below is met before the rest of this phase starts. The levers are now the ones
 the handoff's "package gaps" named, and the order is:
 
+- A fresh `node --cpu-prof` of MHC class II (companion local, 68.7 s sampled
+  under the profiler against 25 s without), self time: `extractPaths` 37.2%,
+  idle 13.4%, `subgraphInInterval` 11.7% (its inlined extension helpers),
+  `editsAgainst` 9.4%, GC 5.2%, `alignment` 4.2%, `pathLen` 2.2%,
+  `identifyPaths` 1.0%, `tableRowid` 0.6%. The B-tree reader is no longer a
+  lever, and the cell-offset cache the handoff proposed is withdrawn. The
+  lever is `extractPaths`: at 43,540 nodes it walks every GBWT position of
+  every record twice (the `hasPredecessor` pass and the walks), pushes one
+  `{node, offset}` object per node per path (about 14M allocations, which is
+  the GC), and keeps every position of every fragment though identification
+  needs a fragment's positions only to scan for in-window samples and its
+  last position to step out. Store positions as two typed arrays per path, or
+  look samples up by node while walking and keep only first and last.
 - Prefetch the Nodes leaf pages for each run of handles in the window instead
   of fetching them as the context extension reaches them. Small windows are
-  bound by sequential request latency (C4 10 kb is 37 graph requests), large
-  ones by the same requests plus record decoding. Take a fresh CPU profile
-  first; the old one is the scan.
-- `tableRowid` on table leaf pages still recomputes cell offsets per lookup,
-  and the 78k graph record lookups at AMY1 and the record fetches of every
-  window go through it. Cache the cell offset array per decoded page.
+  bound by sequential request latency (C4 10 kb is 15 graph requests and
+  5.3 s hosted, 0.4 s of it CPU), large ones by `extractPaths` above.
 - Register a discarded twin's positions so a walk landing on one links the
   canonical sibling and stops crossing its nodes. Worth about a tenth of AMY1's
   steps and nothing elsewhere; it needs the twin's positions kept, so do it
