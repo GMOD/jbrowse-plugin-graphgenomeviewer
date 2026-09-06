@@ -373,9 +373,16 @@ Not done, and why:
   `bash scripts/build_hprc_multiway_synteny.sh` here, which reuses the PAF and
   does make-pif, the CAT annotations and config.json; then `UPLOAD=1` (never
   overwrites an object) and deploy `demos/hprc_multiway/config.json`.
-- `demos/hprc_multiway/config.json` is committed but NOT deployed: its swapped
-  track opens on `lanes`, which the hosted app ignores until jbrowse-components
-  with `44e771ef80` is deployed, so it would open on 464 lanes.
+- `demos/hprc_multiway/config.json` is deployed (2026-09-06, after the
+  jbrowse-components push whose CI deployed jbrowse-web with the lane picker),
+  so nothing we serve points at `hprc-chr20.gbz.db` any more.
+- The lab machine (`ssh ada`) has node 24 via fnm and
+  `@jbrowse/cli@5.0.0-beta.2` (`make-pif` included) at `~/.local/share/fnm`; put
+  fnm's env on PATH before the multiway script so `jbrowse` is found.
+- Colin's call the same day: no plugin pins anywhere. The screenshot fixtures
+  name the plugin's unversioned `esmUrl` like the demos, and
+  `check-live-configs.ts` refuses a pin in either place; a plugin publish may
+  move the graph figures, and `pnpm figures:report` is where that is read.
 - `hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we serve points at
   it once the multiway config deploys.
 
