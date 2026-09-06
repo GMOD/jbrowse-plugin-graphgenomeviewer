@@ -412,7 +412,27 @@ Repo: jbrowse-components, hosted files at `s3://jbrowse.org/demos/hprc/` and
   slot on the swapped track so the hosted demo opens on a chosen set rather than
   464 lanes; the picker takes it from there.
 
-## Phase 7: the GBZ figures
+## Phase 7: the GBZ figures (CFH done 2026-09-06; LPA and AMY1 need a sample filter first)
+
+Done: `pangenome/hprc_gbz_cfhr_lanes` (jbrowse-components `264077f08a`, spec in
+`website/scripts/specs/synteny.ts` beside `hprc_cfhr_lane_stack`): the CFH
+window's eight lanes from `hprc_v2_1_gbz_lanes` in the hosted config, same
+`rowOrder` as the gene-table stack, captured against the hosted graph and
+companion. Each lane draws its haplotype's CAT genes because the eight
+assemblies are in the session. The caption cites the reader's oracle test
+(upstream gbz-base's own query output) as the control, not
+`gfa_to_pairwise_paf.py`; nothing measures the two against each other yet.
+
+Found while scoping the next two: the graph view's Sample rows layout draws one
+row per assembly with a node in the cut, and a GBZ cut carries every haplotype's
+W line, so at KIV-2 that is 464 rows. Both remaining figures need the graph view
+to take a sample set (the display's `lanes`, or a `samples` option on
+`getSubgraph` that keeps only those W lines and the nodes they visit), which is
+plugin work in `launchSubgraph`/`GetSubgraph` before any spec is written. AMY1
+also needs the copy-count measurement below defined and implemented (count an
+AMY1-unit marker node's visits per W line).
+
+The plan for the phase as first written:
 
 Repo: jbrowse-components, specs in `website/scripts/specs/graph-hprc.ts`, hosted
 config `demos/hprc/config.json`. After Phases 3, 5 and 6; AMY1 after Phase 2 as
