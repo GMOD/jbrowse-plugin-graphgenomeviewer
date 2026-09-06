@@ -352,11 +352,19 @@ Not done, and why:
   `hprc_haplotype.json` fixture, `hprc_out_to_haplotype` and the tour in
   `website/scripts/videos/pangenome.ts`) and the tutorial captions at "The
   Layout dropdown", "Sample rows" and "Open in HG01433.2" are a re-authoring on
-  the new graph, not a rename. Run
-  `node website/scripts/probe-graph-nodes.ts pangenome/hprc_mhc_layout_force --view=1`
-  (it pastes `test_data/graphgenomeview/hprc.json`, now v2.1) for the cut's ids,
-  choose the allele and the ring, then reshoot every rGFA figure and re-film the
-  two clips.
+  the new graph, not a rename. Probed 2026-09-06 on the v2.1 fixture
+  (`node website/scripts/probe-graph-nodes.ts pangenome/hprc_mhc_layout_force --view=1`,
+  which pastes `test_data/graphgenomeview/hprc.json`): the force cut is 191
+  nodes, 121 of them GRCh38 (78.6 kb), 45 HG01071#1 (97.0 kb, its longest
+  s346648+ at 46,904 bp, rank 3), 15 HG00099#1, 5 NA20809#2 including s348700+;
+  the longest reference node is s329836+ (9,394 bp at 32,491,283, the node v2.0
+  had as s101116). So the candidate story is HG01071 haplotype 1 as the
+  haplotype to load (hifiasm hic; accession in the release 2 assembly index) and
+  either the 46.9 kb HG01071#1 allele or the 1.8 kb NA20809#2 DRB5 allele as the
+  node the menu opens on; what `Highlight in hg38` writes for an allele
+  attaching across eleven reference segments has to be seen in a capture before
+  the caption is written. Choose, reshoot every rGFA figure, and re-film the two
+  clips.
 - **The multiway PIF rebuild** (`build_hprc_multiway_synteny.sh` from the v2.1
   base-level GFA, 63.6 GB): this machine has 15 GB free, so it needs a streaming
   variant (curl into pigz, no file) or another machine. Until then
