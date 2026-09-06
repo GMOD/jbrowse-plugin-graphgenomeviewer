@@ -34,8 +34,10 @@ const runE2E = process.env.RUN_E2E === '1'
 const GRAPH_CANVAS = '[data-testid="graph-genome-canvas"]'
 
 // pushLaunchViewMenuItem groups every "open another view" entry under this one
-// submenu, so a track/view menu item is one level down.
-const LAUNCH_SUBMENU = 'Launch view'
+// submenu, so a track/view menu item is one level down. The host renamed it
+// from "Launch view" to "Launch" (core's LAUNCH_LABEL); rows are matched by
+// substring, so this spelling finds either.
+const LAUNCH_SUBMENU = 'Launch'
 
 describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
   let browser: Browser
@@ -261,9 +263,7 @@ describe.skipIf(!runE2E)('subgraph launch and hover sync', () => {
     expect(graph.effectiveColorScheme).toBe('reference-position')
     // ...and the key that says what the ramp spans is on screen with it, which
     // is the half a reader needs and no assertion on the model can see
-    expect(
-      await page.$('[data-testid="graph-ramp-legend"]'),
-    ).not.toBeNull()
+    expect(await page.$('[data-testid="graph-ramp-legend"]')).not.toBeNull()
   }, 240_000)
 
   // ------------------------------------------------------------------ hover sync
