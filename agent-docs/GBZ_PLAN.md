@@ -336,40 +336,46 @@ Done, jbrowse-components `f9c1c88162` and the fixtures commit after it:
   300,264 bp). The 1q21.1 inversion bubble keeps its flag and interval (235
   segments now, was 62).
 
+Figures and clips, done 2026-09-06 (jbrowse-components `83286514a0` and
+`758b30a558`, plugin 0.2.0 and 0.3.0):
+
+- The MHC story keeps the HLA-DRB5 allele, now NA20809 haplotype 2's s348700+.
+  The haplotype the page loads is NA20809.2 from GenArk (GCA_044166615.1) with
+  the graph's `NA20809#2` among its aliases, its CAT slice replaces HG01433's in
+  `test_data/graphgenomeview`, and CAT puts HLA-DRB9 and HLA-DRB6 either side of
+  the allele with no DRB5 model. Plugin 0.2.0 is what makes that resolve: a
+  node's contributor is its haplotype (`sample#hap`) where the rGFA names one,
+  looked up before the sample, and the details widget names
+  `contributingHaplotype`. Plugin 0.3.0 fixes the synteny launch against JBrowse
+  4's lazy view state models (`launchView`).
+- The ring is on the allele in both layout halves (no single 12 kb node
+  remains); the anchored half labels it a 10.2 kb deletion, and the caption says
+  so. The graph-versus-callset figure marks the 2.1 wave record at
+  chr6:32,517,422 (12,014 bp REF, its 1.8 kb alleles a 10,246 bp deletion in 46
+  of 437 haplotypes); vcfwave nests it at LV=1, so that figure's filter admits
+  it by position. The LPA pill anchors to the canvas corner, the KIV-2 box
+  follows the 2.1 bubble (chr6:160,616,002-160,646,753, 29 segments), and the
+  haplotype launch zooms out six clicks so the flanking genes show.
+- Every `pangenome/hprc*` figure regenerated (14) and all four HPRC clips
+  re-filmed, pushed with `pnpm figures:push --filter pangenome/hprc`;
+  `check-captions`, `check-video-specs`, `check-figure-refs`,
+  `check-config-blocks` and `check-gallery-links` pass.
+
 Not done, and why:
 
-- **The MHC class II figures and their captions.** The bubble changed:
-  chr6:32,486,309-32,575,299, 254 segments, 205 kb longest allele, against
-  v2.0's 91 segments and 78 kb over 32,486,309-32,550,924. The 12,021 bp
-  landmark s101145 is eleven segments in v2.1 (s329875 to s329885), the 1,775 bp
-  HG01433#2 allele s318599 across HLA-DRB5 is now NA20809#2's s348700+
-  (CM094351.1:32,495,296-32,497,076, 1,780 bp, rank 10, attached from s329874+
-  ending at 32,517,416 to s329886+ starting at 32,529,437), and the bubble's
-  non-reference segments are mostly HG01071#1 (64 segments, 121.5 kb) rather
-  than HG01433#2. So `HPRC_ALLELE`, `MHC_LANDMARK_NODES`, `TOUR_NODE`, the
-  "which haplotype to load" thread (HG01433.2's GenArk assembly, its CAT slice
-  `test_data/graphgenomeview/hprc_mhc_HG01433.2.genes.gff3.gz`, the
-  `hprc_haplotype.json` fixture, `hprc_out_to_haplotype` and the tour in
-  `website/scripts/videos/pangenome.ts`) and the tutorial captions at "The
-  Layout dropdown", "Sample rows" and "Open in HG01433.2" are a re-authoring on
-  the new graph, not a rename. Probed 2026-09-06 on the v2.1 fixture
-  (`node website/scripts/probe-graph-nodes.ts pangenome/hprc_mhc_layout_force --view=1`,
-  which pastes `test_data/graphgenomeview/hprc.json`): the force cut is 191
-  nodes, 121 of them GRCh38 (78.6 kb), 45 HG01071#1 (97.0 kb, its longest
-  s346648+ at 46,904 bp, rank 3), 15 HG00099#1, 5 NA20809#2 including s348700+;
-  the longest reference node is s329836+ (9,394 bp at 32,491,283, the node v2.0
-  had as s101116). So the candidate story is HG01071 haplotype 1 as the
-  haplotype to load (hifiasm hic; accession in the release 2 assembly index) and
-  either the 46.9 kb HG01071#1 allele or the 1.8 kb NA20809#2 DRB5 allele as the
-  node the menu opens on; what `Highlight in hg38` writes for an allele
-  attaching across eleven reference segments has to be seen in a capture before
-  the caption is written. Choose, reshoot every rGFA figure, and re-film the two
-  clips.
-- **The multiway PIF rebuild** (`build_hprc_multiway_synteny.sh` from the v2.1
-  base-level GFA, 63.6 GB): this machine has 15 GB free, so it needs a streaming
-  variant (curl into pigz, no file) or another machine. Until then
-  `hprc_multiway_gfa.pif.gz` and the `.gfa.chrom.sizes` are v2.0-derived, which
-  coordinates do not mind.
+- **The multiway PIF rebuild** runs on the lab machine: `ssh ada`, work dir
+  `~/hprc_multiway` (scripts rsynced from jbrowse-components `scripts/`,
+  `build/` holds the 63.6 GB `hprc-v2.1-mc-grch38.gfa.gz` download at ~7 MB/s
+  since 08:31 local, then the python unpack; `build.log`). The script fails at
+  `jb make-pif` there (no node), which is expected: rsync
+  `build/hprc_multiway_gfa.paf`, `build/parts/gfa.sizes/`,
+  `build/contig_lengths.fai` into a local `hprc_multiway_build/` and rerun
+  `bash scripts/build_hprc_multiway_synteny.sh` here, which reuses the PAF and
+  does make-pif, the CAT annotations and config.json; then `UPLOAD=1` (never
+  overwrites an object) and deploy `demos/hprc_multiway/config.json`.
+- `demos/hprc_multiway/config.json` is committed but NOT deployed: its swapped
+  track opens on `lanes`, which the hosted app ignores until jbrowse-components
+  with `44e771ef80` is deployed, so it would open on 464 lanes.
 - `hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we serve points at
   it once the multiway config deploys.
 
