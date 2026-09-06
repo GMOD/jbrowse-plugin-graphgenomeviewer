@@ -419,7 +419,24 @@ Repo: jbrowse-components, hosted files at `s3://jbrowse.org/demos/hprc/` and
   slot on the swapped track so the hosted demo opens on a chosen set rather than
   464 lanes; the picker takes it from there.
 
-## Phase 7: the GBZ figures (CFH done 2026-09-06; LPA and AMY1 need a sample filter first)
+## Phase 7: the GBZ figures (CFH and KIV-2 done 2026-09-06; AMY1 needs its measurement)
+
+KIV-2 done the same day as a static cut (jbrowse-components `7bc3d238f9`,
+`pangenome/hprc_kiv2_gbz_walks`, tutorial section `#gbz-graph-cut`):
+`gbz-base-query --keep` (reader 2.4.0) writes the reference walk, the eight
+named walks and only the nodes they visit, 15,808 nodes in 1.6 MB, hosted at
+`demos/hprc/hprc-v2.1-mc-grch38.kiv2.eight-haplotypes.gfa`, and the view loads
+it through `gfaLocation` in Sample rows. What it shows is attribution by first
+visit among the eight, not carriage: `sampleRowLayout` places each node once,
+in the row of the first walk that visits it (`anchorNode`, first visit wins),
+and keeps the full visitor list only as the node's `samples`. A layout that
+places a node in every carrying row is the change that makes it a carriage
+figure, and the caption says so until it exists. Found on the way and fixed
+the same day: named W lines ran against the haplotype for about half the walks
+(reader `add1f2f`), and the graph view sent its hop count to the GBZ adapter as
+bp context (plugin `0cb66d7`, not yet released). The direction for the live
+route is `HAPLOTYPE_WALKS_VISION.md`.
+
 
 Done: `pangenome/hprc_gbz_cfhr_lanes` (jbrowse-components `264077f08a`, spec in
 `website/scripts/specs/synteny.ts` beside `hprc_cfhr_lane_stack`): the CFH
