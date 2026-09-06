@@ -375,3 +375,28 @@ test('a synteny launch ignores a graph track the session does not hold', () => {
     { assembly: 'Sakai', loc: 'chr:90001-95000' },
   ])
 })
+
+// JBrowse 4 registers LinearSyntenyView's state model lazily and addView throws
+// until it is loaded, which broke every synteny launch out of the graph; the
+// session's launchView loads it first, and an older core without one still
+// gets addView.
+test('a synteny launch goes through launchView where the session has it', async () => {
+  const { session, added } = testSession()
+  const launched: [string, Record<string, unknown> | undefined][] = []
+  launchSyntenyView({
+    session: {
+      ...session,
+      launchView: (type: string, snapshot?: Record<string, unknown>) => {
+        launched.push([type, snapshot])
+        return Promise.resolve({ id: 'lazy-1' })
+      },
+    },
+    contributors: [
+      { ...K12_LOCATION, rank: 0, nodeCount: 1 },
+      { ...K12_LOCATION, sample: 'Sakai', rank: 1, nodeCount: 1 },
+    ],
+    trackId: 'ava',
+  })
+  expect(launched.map(([type]) => type)).toEqual(['LinearSyntenyView'])
+  expect(added).toEqual([])
+})
