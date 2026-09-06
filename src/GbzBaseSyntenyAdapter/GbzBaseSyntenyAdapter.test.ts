@@ -175,8 +175,9 @@ test('the reference contigs are the anchor refNames; a haplotype prefix lists it
 })
 
 test('the reference sample comes from the anchor prefix, the tag, or the slot', async () => {
-  expect(await makeAdapter().getHeader()).toEqual({
+  expect(await makeAdapter().getHeader()).toMatchObject({
     hasCoarseTier: false,
+    anchorAssemblyName: 'hg38',
     referenceSample: 'GRCh38',
     referenceSamples: ['CHM13', 'GRCh38'],
   })
@@ -214,6 +215,26 @@ test('context does not add records', async () => {
   expect(narrow.length).toBeGreaterThanOrEqual(wide.length)
 })
 
+test('the header declares every haplotype but the reference as a lane, named the way its features are', async () => {
+  const { lanes } = await makeAdapter({
+    assemblyNames: ['hg38', 'HG00621.1'],
+    assemblyNameToPanSN: { hg38: 'GRCh38#0', 'HG00621.1': 'HG00621#1' },
+  }).getHeader()
+  expect(lanes.length).toBeGreaterThan(50)
+  expect(lanes.some(l => l.group === 'GRCh38')).toBe(false)
+  expect(lanes.find(l => l.label === 'CHM13#0')).toEqual({
+    name: 'CHM13#0',
+    label: 'CHM13#0',
+    group: 'CHM13',
+  })
+  expect(lanes.find(l => l.label === 'HG00621#1')).toEqual({
+    name: 'HG00621.1',
+    label: 'HG00621#1',
+    group: 'HG00621',
+  })
+  expect(lanes.find(l => l.label === 'HG00621#2')?.name).toBe('HG00621#2')
+})
+
 test('the graph lists its haplotypes with their contigs, and a fetch can be narrowed to some of them', async () => {
   const adapter = makeAdapter()
   const haplotypes = await adapter.getHaplotypes()
@@ -233,6 +254,17 @@ test('the graph lists its haplotypes with their contigs, and a fetch can be narr
   expect(
     [...lanes].every(l => l.startsWith('HG00621#') || l === 'HG00438#1'),
   ).toBe(true)
+  const mapped = makeAdapter({
+    assemblyNames: ['hg38', 'HG00621.1'],
+    assemblyNameToPanSN: { hg38: 'GRCh38#0', 'HG00621.1': 'HG00621#1' },
+  })
+  const byAssemblyName = await feats(mapped, window, {
+    haplotypes: ['HG00621.1'],
+  })
+  expect(byAssemblyName.length).toBeGreaterThan(0)
+  expect(
+    new Set(byAssemblyName.map(f => mateOf(f).assemblyName)),
+  ).toEqual(new Set(['HG00621.1']))
 })
 
 test('the node limit fails a window rather than reading it whole, naming a zoom that fits', async () => {

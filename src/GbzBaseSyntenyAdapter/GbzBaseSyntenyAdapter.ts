@@ -40,7 +40,7 @@ export class NoReferenceSampleError extends Error {
   }
 }
 
-export function haplotypePrefix(name: PathName) {
+export function haplotypePrefix(name: Pick<PathName, 'sample' | 'haplotype'>) {
   return `${name.sample}#${name.haplotype}`
 }
 
@@ -53,8 +53,21 @@ export interface GbzHaplotype {
 }
 
 /**
- * `haplotypes` narrows a fetch to the PanSN prefixes listed, at sample
- * (`HG002`) or haplotype (`HG002#1`) depth; undefined is every haplotype.
+ * One lane the header declares, in the shape MultiWaySyntenyDisplay's lane
+ * picker reads: `name` is the lane's assembly name, the same string the
+ * fetched features' mates carry, `label` its PanSN prefix and `group` its
+ * sample, so a diploid sample's two lanes sit together
+ */
+export interface GbzHeaderLane {
+  name: string
+  label: string
+  group: string
+}
+
+/**
+ * `haplotypes` narrows a fetch to the lanes listed: PanSN prefixes at sample
+ * (`HG002`) or haplotype (`HG002#1`) depth, or assembly names the config maps
+ * to one; undefined is every haplotype.
  */
 export interface GbzFeatureOptions extends BaseOptions {
   haplotypes?: string[]
@@ -112,7 +125,7 @@ export function nodeLimitError(
  */
 export function laneAssemblyName(
   asmByPrefix: Record<string, string>,
-  name: PathName,
+  name: Pick<PathName, 'sample' | 'haplotype'>,
 ) {
   const prefix = haplotypePrefix(name)
   return asmByPrefix[prefix] ?? asmByPrefix[name.sample] ?? prefix
@@ -272,9 +285,31 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return [...byPrefix.values()]
   }
 
+  /**
+   * `lanes` is every haplotype but the reference sample's own, which is the
+   * anchor rather than a lane, declared up front so the display can offer the
+   * whole graph's haplotypes before a fetch has placed any of them.
+   */
   async getHeader(opts: BaseOptions = {}) {
-    const { referenceSample, referenceSamples } = await this.graph(opts)
-    return { hasCoarseTier: false, referenceSample, referenceSamples }
+    const { anchor, referenceSample, referenceSamples } = await this.graph(opts)
+    const asmByPrefix = assemblyByPanSNPrefix(this)
+    const lanes: GbzHeaderLane[] = []
+    for (const haplotype of await this.getHaplotypes(opts)) {
+      if (haplotype.sample !== referenceSample) {
+        lanes.push({
+          name: laneAssemblyName(asmByPrefix, haplotype),
+          label: haplotype.prefix,
+          group: haplotype.sample,
+        })
+      }
+    }
+    return {
+      hasCoarseTier: false,
+      anchorAssemblyName: anchor,
+      referenceSample,
+      referenceSamples,
+      lanes,
+    }
   }
 
   async getRefNames(opts: BaseOptions = {}) {
@@ -328,6 +363,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       if (assemblyName === anchor) {
         const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
         const asmByPrefix = assemblyByPanSNPrefix(this)
+        const wantedPrefixes = opts.haplotypes?.map(lane =>
+          resolvePanSNPrefix(this, lane),
+        )
         const query = await this.referenceQuery(refName, opts)
         const nodeLimit: number = this.getConf('nodeLimit')
         const alignments = query
@@ -354,7 +392,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
                 haplotypePrefix(alignment.name),
                 targetPrefix,
               )) &&
-            haplotypeWanted(alignment.name, opts.haplotypes)
+            haplotypeWanted(alignment.name, wantedPrefixes)
           ) {
             const feature = fragmentFeature({
               alignment,
