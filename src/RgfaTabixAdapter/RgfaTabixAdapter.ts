@@ -29,7 +29,7 @@ export interface SubgraphOptions {
   // immediate neighbours, each round costing one tabix query per off-reference
   // segment newly reached. One round is what closes a bubble, so it is the
   // default the view asks for; see the frontier in getSubgraph.
-  context?: number
+  hops?: number
 }
 
 // What a hop follows: alleles, never the backbone. A rank-0 segment reached
@@ -188,7 +188,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   // which typically sit on a different stable sequence (a rank>0 bubble) and so
   // are not reachable by any coordinate query on this region.
   async getSubgraph(region: Region, opts: SubgraphOptions = {}) {
-    const { context = 0 } = opts
+    const { hops = 0 } = opts
     const segments = new Map<string, RgfaSegment>()
     const links = new Map<string, RgfaLink>()
     const tabixRefName = await this.resolve(region)
@@ -224,7 +224,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       let frontier = offReference(
         await addLinksOver(tabixRefName, region.start, region.end),
       )
-      for (let hop = 0; hop < context; hop++) {
+      for (let hop = 0; hop < hops; hop++) {
         // One hop's queries are independent of each other, so they go out
         // together rather than one round-trip at a time. Their callbacks share
         // the segment and link maps, which is safe because only one of them runs

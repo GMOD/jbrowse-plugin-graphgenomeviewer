@@ -1,7 +1,6 @@
 import PluginManager from '@jbrowse/core/PluginManager'
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 
-
 import GetSubgraph from './GetSubgraph'
 import { convertGFAToGraph } from './GraphGenomeView/gfa/gfaConverter'
 import { anchoredLayout } from './GraphGenomeView/layout/anchoredLayout'
@@ -53,10 +52,10 @@ test('forwards the region and context to the adapter', async () => {
   })
 
   const result = await makeMethod().execute(
-    { ...makeArgs(), opts: { context: 2 } },
+    { ...makeArgs(), opts: { hops: 2 } },
     'MainThreadRpcDriver',
   )
-  expect(getSubgraph).toHaveBeenCalledWith(region, { context: 2 })
+  expect(getSubgraph).toHaveBeenCalledWith(region, { hops: 2 })
   expect(result).toBe('H\tVN:Z:1.0')
 })
 

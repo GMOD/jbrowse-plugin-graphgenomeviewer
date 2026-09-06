@@ -119,7 +119,7 @@ test('getSubgraph context adds another hop', async () => {
       .map(l => l.split('\t')[1]!)
 
   const near = ids(await adapter.getSubgraph(k12))
-  const far = ids(await adapter.getSubgraph(k12, { context: 1 }))
+  const far = ids(await adapter.getSubgraph(k12, { hops: 1 }))
   expect(far.length).toBeGreaterThan(near.length)
   expect(far).toEqual(expect.arrayContaining(near))
 })
@@ -158,7 +158,12 @@ function makePggbAdapter() {
   )
 }
 
-const is5 = { refName: 'chr', assemblyName: 'K12', start: 1299260, end: 1300800 }
+const is5 = {
+  refName: 'chr',
+  assemblyName: 'K12',
+  start: 1299260,
+  end: 1300800,
+}
 
 // The lane this exists for: color a linear track by how many haplotypes carry
 // each segment. Before this the tag column reached the graph view's node popup

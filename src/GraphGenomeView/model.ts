@@ -94,10 +94,10 @@ const VIEWPORT_DEBOUNCE_MS = 150
 // This bounds the *fetch*, and it is the only cap that can be applied before one
 // happens. It is a poor proxy for cost, because cost tracks node count, so the
 // number is chosen against the density of the graphs it can actually guard: a
-// region is only ever fetched through `getSubgraph`, which only RgfaTabixAdapter
-// implements, so every graph reaching this check is an rGFA. Both measured rGFAs
-// are sparse, and at 5 Mb both land at or under the ~2k nodes that redraw in
-// under 10 ms (see agent-docs/GRAPH_SCALE_AND_LOD.md):
+// region is fetched through `getSubgraph`, and the rGFA cut is what this number
+// was chosen against (the GBZ cut is base-level and has its own `nodeLimit`,
+// which trips long before 5 Mb). Both measured rGFAs are sparse, and at 5 Mb
+// both land at or under the ~2k nodes that redraw in under 10 ms (see agent-docs/GRAPH_SCALE_AND_LOD.md):
 //
 //   HPRC MC GRCh38   ~7,000 bp/segment   whole 4.9 Mb MHC   1,173 nodes
 //   ecoli minigraph   3,078 bp/segment   whole 4.6 Mb genome 2,415 nodes
@@ -1416,7 +1416,7 @@ export default function stateModelFactory() {
           end: number
         },
         opts: {
-          context?: number
+          hops?: number
         } = {},
       ) {
         const regionSize = region.end - region.start
@@ -1442,7 +1442,7 @@ export default function stateModelFactory() {
           const gfaText = (yield rpcManager.call(sessionId, 'GetSubgraph', {
             adapterConfig,
             region,
-            opts: { context: opts.context },
+            opts: { hops: opts.hops },
           })) as string
           self.setFetchMs(performance.now() - fetchStart)
           if (!gfaText) {
@@ -1477,7 +1477,7 @@ export default function stateModelFactory() {
           : undefined
         if (track && region) {
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
-            context: self.subgraphContext,
+            hops: self.subgraphContext,
           })
         }
       }
@@ -1512,7 +1512,7 @@ export default function stateModelFactory() {
           self.loadedTrackId = opts.trackId ?? ''
           self.loadedRegion = opts.trackId ? region : undefined
           yield* doSubgraphLoad(adapterConfig, region, {
-            context: self.subgraphContext,
+            hops: self.subgraphContext,
           })
         }),
         // Cut on attach only — a graph already on screen is either the user's

@@ -1,9 +1,9 @@
 # Vision: haplotype access at HPRC scale
 
 Written 2026-09-06 after Phase 7 of `GBZ_PLAN.md` stalled on a sample filter,
-and rewritten the same day after the review in `HAPLOTYPE_WALKS_REVIEW.md`.
-The first draft proposed replacing the GBZ route with a precomputed walk store
-built from the sv graph. The review measured it and the draft was wrong on its
+and rewritten the same day after the review in `HAPLOTYPE_WALKS_REVIEW.md`. The
+first draft proposed replacing the GBZ route with a precomputed walk store built
+from the sv graph. The review measured it and the draft was wrong on its
 premises; this version keeps what survived. It is a proposal, not a decision.
 
 ## What we want
@@ -27,8 +27,8 @@ premises; this version keeps what survived. It is a proposal, not a decision.
   haplotype count, because haplotypes share runs. Any per-haplotype store is
   linear: measured on 32 base-level chr1 walks, delta-encoded steps compress to
   0.162 bytes per step, which over the graph's 37 G steps (estimate from the
-  companion build log) is 6 to 8 GB per product at 464 haplotypes and 50 to
-  70 GB at 4,000. That is the same scaling as the 16 kb per-path companion the
+  companion build log) is 6 to 8 GB per product at 464 haplotypes and 50 to 70
+  GB at 4,000. That is the same scaling as the 16 kb per-path companion the
   draft wanted to retire, with no better constant.
 - `sv.gfa.gz` has no walks: 759,223 S lines, 1,107,199 L lines, nothing else.
   The only published walks are the base-level GFA's, in a different node id
@@ -69,8 +69,8 @@ Phase 4's first bullet, costed and moved to the front.
   walks visit, so the fetch shrinks with the selection too.
 - **`haplotypes` reaches the query.** `getSubgraphForRange` and
   `getAlignmentsForRange` take the set and walk only those paths; the adapter
-  passes the display's selection through; the graph view's `GetSubgraph`
-  carries it, and Sample rows draws the chosen set.
+  passes the display's selection through; the graph view's `GetSubgraph` carries
+  it, and Sample rows draws the chosen set.
 - **What the per-path samples still cover.** A haplotype whose contig starts or
   ends inside the window, or that touches the reference only between two
   anchors, has no visit at an anchor. Those keep today's per-path samples and
@@ -80,12 +80,12 @@ Phase 4's first bullet, costed and moved to the front.
 
 Targets to measure, both files hosted:
 
-| measurement | target |
-| --- | --- |
+| measurement                      | target                               |
+| -------------------------------- | ------------------------------------ |
 | companion with anchors at 128 kb | under 8 GB total, anchors under 1 GB |
-| KIV-2, eight haplotypes | under 1 s after the first open |
-| KIV-2, all 464 | no worse than today's 8.5 s |
-| AMY1, eight haplotypes | under 2 s |
+| KIV-2, eight haplotypes          | under 1 s after the first open       |
+| KIV-2, all 464                   | no worse than today's 8.5 s          |
+| AMY1, eight haplotypes           | under 2 s                            |
 
 If eight lands under a second and 464 holds, the walk store's only remaining
 argument is an all-haplotype parse against `extractPaths` at thousands of
@@ -94,8 +94,8 @@ haplotypes, and that decision can wait for a graph with thousands.
 ## Unblock the figures now
 
 Phase 7 waits on a sample filter for two figures. A static cut per tutorial
-locus, `gbz-base-query --format gfa --alignments` written once from the hosted
-pair and read by a trivial adapter, gives every figure at zero runtime cost and
+locus, `gbz-base-query --format gfa --keep` for the chosen haplotypes written
+once from the hosted pair and loaded through the view's `gfaLocation`, gives every figure at zero runtime cost and
 is the honest reproduction story for a figure anyway. It does not generalise to
 arbitrary windows and the tutorial does not need it to.
 
@@ -103,10 +103,10 @@ arbitrary windows and the tutorial does not need it to.
 
 Nothing yet demonstrates a per-haplotype copy count from walks at either graph
 level. At sv level minigraph credits extra repeat copies to a first contributor
-as inserted alleles, so a haplotype's count is length arithmetic over the
-branch it takes; at base level the extra copies revisit GRCh38 nodes, so a count
-is visits of a marker node per walk with a monotone chaining rule. Pick one,
-show it on one haplotype by hand, then write the spec.
+as inserted alleles, so a haplotype's count is length arithmetic over the branch
+it takes; at base level the extra copies revisit GRCh38 nodes, so a count is
+visits of a marker node per walk with a monotone chaining rule. Pick one, show
+it on one haplotype by hand, then write the spec.
 
 ## Decide what the graph view draws
 
@@ -121,14 +121,14 @@ The first is available now.
 
 Sizes, if it is ever built: base level 6 to 8 GB per product at 464 haplotypes
 (all-haplotype file, per-haplotype files, haplotype-coordinate sort), with a
-build of an hour or two on the lab machine, about 1,900 objects per reference
-on S3, a full rebuild per graph release, and a policy in the adapter for which
+build of an hour or two on the lab machine, about 1,900 objects per reference on
+S3, a full rebuild per graph release, and a policy in the adapter for which
 product a given selection size reads. Per-haplotype tabix works with
 `@gmod/tabix` (it loads a whole index: 0.1 to 0.5 MB per haplotype at 100 kb to
-10 kb tiles). Rows cut at reference nodes are correct by overlap for
-inversions, private stretches and revisits, but a lane still needs monotone
-chaining at query time and a scoring rule stated, since the reader's `align()`
-and `gfa_to_pairwise_paf.py` emit different CIGARs for the same walks by design.
+10 kb tiles). Rows cut at reference nodes are correct by overlap for inversions,
+private stretches and revisits, but a lane still needs monotone chaining at
+query time and a scoring rule stated, since the reader's `align()` and
+`gfa_to_pairwise_paf.py` emit different CIGARs for the same walks by design.
 
 ## Order of work
 

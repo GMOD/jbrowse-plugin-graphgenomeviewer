@@ -331,7 +331,7 @@ describe('refetchIfNeeded guard conditions', () => {
     expect(mockRpcCall).toHaveBeenCalledWith(
       expect.any(String),
       'GetSubgraph',
-      expect.objectContaining({ opts: { context: 2 } }),
+      expect.objectContaining({ opts: { hops: 2 } }),
     )
   })
 
@@ -355,7 +355,7 @@ describe('refetchIfNeeded guard conditions', () => {
     expect(mockRpcCall).toHaveBeenCalledWith(
       expect.any(String),
       'GetSubgraph',
-      expect.objectContaining({ opts: { context: 1 } }),
+      expect.objectContaining({ opts: { hops: 1 } }),
     )
   })
 

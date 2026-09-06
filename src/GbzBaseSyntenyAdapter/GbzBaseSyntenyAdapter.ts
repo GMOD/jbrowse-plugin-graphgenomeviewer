@@ -336,17 +336,22 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * `unknown#N` otherwise. The reference walk is the first W line, which is
    * the one the view anchors on by default.
    */
-  async getSubgraph(region: Region, opts: { context?: number } = {}) {
+  async getSubgraph(region: Region) {
     const { db } = await this.graph()
     const { refName, start, end } = region
     const query = await this.referenceQuery(refName, {})
+    const nodeLimit: number = this.getConf('nodeLimit')
     const subgraph = query
-      ? await db.getSubgraphForRange(query, start, end, {
-          context: opts.context ?? this.getConf('context'),
-          snarls: this.getConf('subgraphSnarls'),
-          haplotypes: 'all',
-          limit: this.getConf('nodeLimit'),
-        })
+      ? await db
+          .getSubgraphForRange(query, start, end, {
+            context: this.getConf('context'),
+            snarls: this.getConf('subgraphSnarls'),
+            haplotypes: 'all',
+            limit: nodeLimit,
+          })
+          .catch((error: unknown) => {
+            throw nodeLimitError(error, nodeLimit, end - start) ?? error
+          })
       : undefined
     return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
   }

@@ -11,7 +11,7 @@ import type { Region } from '@jbrowse/core/util'
 export interface GetSubgraphArgs {
   adapterConfig: Record<string, unknown>
   region: Region
-  opts?: { context?: number }
+  opts?: { hops?: number }
 }
 
 declare module '@jbrowse/core/rpc/RpcRegistry' {
@@ -23,10 +23,12 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
   }
 }
 
-// Adapters that can cut a local subgraph out of a graph file implement this;
-// RgfaTabixAdapter is the one that does today.
+// Adapters that can cut a local subgraph out of a graph file implement this:
+// RgfaTabixAdapter and GbzBaseSyntenyAdapter today. `hops` is how far past the
+// window a cut follows links, which only the rGFA cut reads; the GBZ cut has
+// its own bp `context` slot.
 interface SubgraphAdapter {
-  getSubgraph(region: Region, opts?: { context?: number }): Promise<string>
+  getSubgraph(region: Region, opts?: { hops?: number }): Promise<string>
 }
 
 function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {
