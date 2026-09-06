@@ -1,4 +1,4 @@
-import { GBZBase, subgraphInInterval } from '@gmod/gbz-base'
+import { GBZBase } from '@gmod/gbz-base'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { updateStatus } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
@@ -13,7 +13,7 @@ import {
 } from '../synteny/panSNAssemblies.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
-import type { GbzPath, HaplotypeAlignment, PathName } from '@gmod/gbz-base'
+import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
@@ -100,15 +100,11 @@ export function fragmentFeature({
   refName: string
   lane: string
 }) {
-  const { name, hapStart, hapEnd, refStart, refEnd, strand, cigar } = alignment
-  if (
-    name === undefined ||
-    hapStart === undefined ||
-    hapEnd === undefined ||
-    refEnd <= refStart
-  ) {
+  const { refStart, refEnd, strand, cigar } = alignment
+  if (!alignment.resolved || refEnd <= refStart) {
     return undefined
   } else {
+    const { name, hapStart, hapEnd } = alignment
     const id = fragmentId(name, alignment)
     const data: SimpleFeatureSerialized = {
       uniqueId: id,
@@ -129,11 +125,6 @@ export function fragmentFeature({
     }
     return new SyntenyFeature(data)
   }
-}
-
-interface ReferenceFragment {
-  path: GbzPath
-  end: number
 }
 
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
@@ -168,26 +159,29 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     },
   })
 
-  private async referenceFragments(refName: string, opts: BaseOptions) {
+  /**
+   * The indexed reference path a window on `refName` resolves against, or
+   * undefined when the reference sample has no indexed path by that contig.
+   * gbz-base spans the path's fragments itself from here.
+   */
+  private async referenceQuery(
+    refName: string,
+    opts: BaseOptions,
+  ): Promise<PathQuery | undefined> {
     const { db, referenceSample } = await this.graph(opts)
-    const paths = (await db.paths()).filter(
-      path =>
-        path.isIndexed &&
-        path.name.sample === referenceSample &&
-        path.name.contig === refName,
+    const path = (await db.paths()).find(
+      p =>
+        p.isIndexed &&
+        p.name.sample === referenceSample &&
+        p.name.contig === refName,
     )
-    return Promise.all(
-      paths.map(async (path): Promise<ReferenceFragment> => {
-        const length = await db.haplotypeLength(path.handle)
-        return {
-          path,
-          end:
-            length === undefined
-              ? Number.POSITIVE_INFINITY
-              : path.name.fragment + length,
+    return path
+      ? {
+          sample: path.name.sample,
+          contig: refName,
+          haplotype: path.name.haplotype,
         }
-      }),
-    )
+      : undefined
   }
 
   async getHeader(opts: BaseOptions = {}) {
@@ -222,29 +216,16 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   async getSubgraph(region: Region, opts: { context?: number } = {}) {
     const { db } = await this.graph()
     const { refName, start, end } = region
-    const fragment = (await this.referenceFragments(refName, {})).find(
-      f => f.path.name.fragment <= start && start < f.end,
-    )
-    if (!fragment) {
-      return ''
-    }
-    const { sample, contig, haplotype } = fragment.path.name
-    const subgraph = await subgraphInInterval(
-      db,
-      { sample, contig, haplotype },
-      start,
-      Math.min(end, fragment.end),
-      {
-        context: opts.context ?? this.getConf('context'),
-        snarls: this.getConf('subgraphSnarls'),
-        haplotypes: 'all',
-        limit: this.getConf('nodeLimit'),
-      },
-    )
-    if (db.hasHaplotypeIndex) {
-      await subgraph.identifyPaths()
-    }
-    return subgraph.toGFA(false, { names: 'resolved' })
+    const query = await this.referenceQuery(refName, {})
+    const subgraph = query
+      ? await db.getSubgraphForRange(query, start, end, {
+          context: opts.context ?? this.getConf('context'),
+          snarls: this.getConf('subgraphSnarls'),
+          haplotypes: 'all',
+          limit: this.getConf('nodeLimit'),
+        })
+      : undefined
+    return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
   }
 
   getFeatures(region: Region, opts: BaseOptions = {}) {
@@ -259,43 +240,33 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       if (assemblyName === anchor) {
         const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
         const asmByPrefix = assemblyByPanSNPrefix(this)
-        const context = this.getConf('context')
-        const limit = this.getConf('nodeLimit')
-        for (const fragment of await this.referenceFragments(refName, opts)) {
-          const lo = Math.max(start, fragment.path.name.fragment)
-          const hi = Math.min(end, fragment.end)
-          if (hi > lo) {
-            const { sample, contig, haplotype } = fragment.path.name
-            const subgraph = await updateStatus(
-              `Reading graph ${refName}:${lo}-${hi}`,
+        const query = await this.referenceQuery(refName, opts)
+        const alignments = query
+          ? await updateStatus(
+              `Reading graph ${refName}:${start}-${end}`,
               opts.statusCallback,
               () =>
-                subgraphInInterval(db, { sample, contig, haplotype }, lo, hi, {
-                  context,
+                db.getAlignmentsForRange(query, start, end, {
+                  context: this.getConf('context'),
                   haplotypes: 'all',
-                  limit,
+                  limit: this.getConf('nodeLimit'),
                 }),
             )
-            await updateStatus('Naming haplotypes', opts.statusCallback, () =>
-              subgraph.identifyPaths(),
-            )
-            for (const alignment of subgraph.alignments()) {
-              const { name } = alignment
-              if (
-                name !== undefined &&
-                (targetPrefix === undefined ||
-                  panSNMatchesPrefix(haplotypePrefix(name), targetPrefix))
-              ) {
-                const feature = fragmentFeature({
-                  alignment,
-                  assemblyName,
-                  refName,
-                  lane: laneAssemblyName(asmByPrefix, name),
-                })
-                if (feature !== undefined) {
-                  observer.next(feature)
-                }
-              }
+          : []
+        for (const alignment of alignments) {
+          if (
+            alignment.resolved &&
+            (targetPrefix === undefined ||
+              panSNMatchesPrefix(haplotypePrefix(alignment.name), targetPrefix))
+          ) {
+            const feature = fragmentFeature({
+              alignment,
+              assemblyName,
+              refName,
+              lane: laneAssemblyName(asmByPrefix, alignment.name),
+            })
+            if (feature !== undefined) {
+              observer.next(feature)
             }
           }
         }

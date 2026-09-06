@@ -193,9 +193,9 @@ through.
 - **Adapter gaps**: `context` defaults to 0, which the tables argue against for
   human graphs; `mateShape: 'grouped'` is not implemented; `nodeLimit` is a hard
   failure with no coarse fallback, and a whole-chromosome view stays on a PIF;
-  no `identity` field because gbz-base's `M` is match-or-mismatch;
-  `alignments()` leaves `hapStart`/`hapEnd` optional, so an unresolved fragment
-  is dropped rather than drawn.
+  no `identity` field because gbz-base's `M` is match-or-mismatch; since
+  gbz-base 2.0.0 an alignment record is a union on `resolved`, and the adapter
+  still drops an unresolved fragment rather than drawing it anonymously.
 - **Package gaps**: the 1 Mb cost above is edit computation, not I/O, so the
   lever is the per-path alignment against the reference; small queries are bound
   by sequential request latency, and prefetching the Nodes leaf pages for the
