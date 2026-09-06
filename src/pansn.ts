@@ -20,3 +20,16 @@ export function panSNContig(refName: string) {
       ? parts[1]!
       : refName
 }
+
+// Whether a PanSN name belongs to a prefix at either depth: `grape#1#chr1`
+// matches `grape` and `grape#1`, not `grape#2` or `grapefruit`. An undefined
+// prefix is "no assembly supplied", which nothing belongs to.
+export function panSNMatchesPrefix(
+  refName: string,
+  prefix: string | undefined,
+) {
+  return (
+    prefix !== undefined &&
+    (refName === prefix || refName.startsWith(prefix + SEP))
+  )
+}

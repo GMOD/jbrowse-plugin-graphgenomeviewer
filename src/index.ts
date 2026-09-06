@@ -2,6 +2,7 @@ import Plugin from '@jbrowse/core/Plugin'
 import { isAbstractMenuManager } from '@jbrowse/core/util'
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
+import GbzBaseSyntenyAdapterF from './GbzBaseSyntenyAdapter/index'
 import GetSubgraph from './GetSubgraph'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
@@ -29,6 +30,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
     GraphHoverSyncF(pluginManager)
     RgfaTabixAdapterF(pluginManager)
     MinigraphBubbleAdapterF(pluginManager)
+    GbzBaseSyntenyAdapterF(pluginManager)
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
   }
