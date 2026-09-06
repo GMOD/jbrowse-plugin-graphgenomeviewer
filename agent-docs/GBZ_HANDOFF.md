@@ -19,22 +19,21 @@ TypeScript.
 It opens the database through `openLocation` (range requests), locates the
 anchor window on the reference sample's indexed path (`referenceSample`, or the
 anchor's `assemblyNameToPanSN` prefix, or the database's one
-`gbwt_reference_samples` entry), runs `subgraphInInterval` and
-`identifyPaths`, and emits one `SyntenyFeature` per haplotype fragment: anchor
-coordinates from `refStart`/`refEnd`, the fragment's CIGAR, the mate at
-`hapStart`/`hapEnd` on the haplotype's own contig, and the lane labelled
-`sample#haplotype` unless a listed assembly maps to it. Ids are the walk's GBWT
-position at its first node in the window, so a refetch of one window re-keys
-nothing. A window on a haplotype lane answers nothing, so the display composes
-lane links through the anchor. `getHeader` says `hasCoarseTier: false`, and
-`nodeLimit` fails a window that would read a whole chromosome.
+`gbwt_reference_samples` entry), runs `subgraphInInterval` and `identifyPaths`,
+and emits one `SyntenyFeature` per haplotype fragment: anchor coordinates from
+`refStart`/`refEnd`, the fragment's CIGAR, the mate at `hapStart`/`hapEnd` on
+the haplotype's own contig, and the lane labelled `sample#haplotype` unless a
+listed assembly maps to it. Ids are the walk's GBWT position at its first node
+in the window, so a refetch of one window re-keys nothing. A window on a
+haplotype lane answers nothing, so the display composes lane links through the
+anchor. `getHeader` says `hasCoarseTier: false`, and `nodeLimit` fails a window
+that would read a whole chromosome.
 
-`getSubgraph(region)` returns GFA (reference walk first, contained snarls,
-PanSN W lines) and the adapter type declares `adapterCapabilities:
-['getSubgraph']`, so the graph view's launch menu offers a
-`GbzBaseSyntenyAdapter` track and one opened `.gbz.db` serves both the graph
-view and the lanes. Slots `haplotypeIndexLocation` and `subgraphSnarls` go with
-it.
+`getSubgraph(region)` returns GFA (reference walk first, contained snarls, PanSN
+W lines) and the adapter type declares `adapterCapabilities: ['getSubgraph']`,
+so the graph view's launch menu offers a `GbzBaseSyntenyAdapter` track and one
+opened `.gbz.db` serves both the graph view and the lanes. Slots
+`haplotypeIndexLocation` and `subgraphSnarls` go with it.
 
 `scripts/gfa_to_pairwise_paf.py` in jbrowse-components is the offline version of
 the same walk, and its jest cases plus the E. coli and HPRC agreement numbers in
@@ -53,13 +52,13 @@ the companion index is for. Note it is **v2.1**, while the tutorial's rGFA
 tracks are the top-level **v2.0** `sv.gfa` projections; segment ids differ,
 coordinates are both GRCh38.
 
-`https://jbrowse.org/demos/ivg/hprc/hprc-chr20.gbz.db` is HPRC release 1.1
-(46 samples, 232 MB) and now carries `HaplotypeSamples` (2,602,582 rows,
-interval 4096, both orientations) and `HaplotypeLengths` (919). Verified before
-upload: 10 kb windows at 20, 40 and 50 Mb name every fragment across 89 to 90
-haplotypes in about 0.2 s from disk, and 25 sampled identifications at 30 Mb
-agree with an independent backward GBWT walk (`scripts/verify-chr20.ts` in the
-package). It covers none of the tutorial's loci.
+`https://jbrowse.org/demos/ivg/hprc/hprc-chr20.gbz.db` is HPRC release 1.1 (46
+samples, 232 MB) and now carries `HaplotypeSamples` (2,602,582 rows, interval
+4096, both orientations) and `HaplotypeLengths` (919). Verified before upload:
+10 kb windows at 20, 40 and 50 Mb name every fragment across 89 to 90 haplotypes
+in about 0.2 s from disk, and 25 sampled identifications at 30 Mb agree with an
+independent backward GBWT walk (`scripts/verify-chr20.ts` in the package). It
+covers none of the tutorial's loci.
 
 `demos/hprc_multiway/config.json` in jbrowse-components (`74e6d95294`, deployed)
 has a second synteny track, `hprc_chr20_gbz`, on that chr20 database, anchored
@@ -73,21 +72,21 @@ plugin by `esmUrl`.
 **Snarl mode decides how many walks a haplotype becomes** (HPRC v2.1 remote,
 context 0, `haplotypes: 'all'`):
 
-| window | mode | nodes | fragments | distinct | time |
-| --- | --- | --- | --- | --- | --- |
-| C4 chr6:31.95-32.01 Mb (60 kb) | contained | 2,703 | 8,083 | 741 | 3.2 s |
-| same | overlapping | 4,184 | 464 | 375 | 2.4 s |
-| same | contained, context 100 | 4,186 | 464 | 374 | 2.0 s |
-| C4 10 kb (31.98-31.99) | contained | 321 | 2,712 | 213 | 0.3 s |
-| same | overlapping | 1,120 | 464 | 191 | 0.4 s |
-| LPA KIV-2 chr6:160.58-160.62 Mb | contained | 3,492 | 18,130 | 749 | 4.2 s |
-| same | overlapping | 24,547 | 465 | 474 | 20.6 s |
-| AMY1 bubble chr1:103.61-103.73 Mb | overlapping | 15,411 | 490 | 482 | 17.7 s |
-| MHC class II chr6:32.50-32.56 Mb | contained | 12,277 | 994,914 | 8,372 | 11 s |
+| window                            | mode                   | nodes  | fragments | distinct | time   |
+| --------------------------------- | ---------------------- | ------ | --------- | -------- | ------ |
+| C4 chr6:31.95-32.01 Mb (60 kb)    | contained              | 2,703  | 8,083     | 741      | 3.2 s  |
+| same                              | overlapping            | 4,184  | 464       | 375      | 2.4 s  |
+| same                              | contained, context 100 | 4,186  | 464       | 374      | 2.0 s  |
+| C4 10 kb (31.98-31.99)            | contained              | 321    | 2,712     | 213      | 0.3 s  |
+| same                              | overlapping            | 1,120  | 464       | 191      | 0.4 s  |
+| LPA KIV-2 chr6:160.58-160.62 Mb   | contained              | 3,492  | 18,130    | 749      | 4.2 s  |
+| same                              | overlapping            | 24,547 | 465       | 474      | 20.6 s |
+| AMY1 bubble chr1:103.61-103.73 Mb | overlapping            | 15,411 | 490       | 482      | 17.7 s |
+| MHC class II chr6:32.50-32.56 Mb  | contained              | 12,277 | 994,914   | 8,372    | 11 s   |
 
 464 fragments is one walk per haplotype: `overlapping` (or a bp context) is what
-makes a haplotype one W line, at the price of every node in the snarl (the
-KIV-2 repeat is 24k nodes). `contained` keeps the window small and breaks each
+makes a haplotype one W line, at the price of every node in the snarl (the KIV-2
+repeat is 24k nodes). `contained` keeps the window small and breaks each
 haplotype into fragments wherever it leaves the window's nodes; carriage per
 node (`carriedBy`) is still right, but **Sample rows** continuity and the W
 count suffer. MHC class II at 60 kb sits inside a snarl far larger than the
@@ -96,24 +95,24 @@ the next optimisation if it matters.
 
 **A window on HPRC chr20, 90 haplotypes, local file:**
 
-| window | context | nodes  | records | time   |
-| ------ | ------- | ------ | ------- | ------ |
-| 100 kb | 0       | 1,374  | 9,083   | 0.6 s  |
-| 100 kb | 100     | 2,093  | 102     | 0.4 s  |
-| 100 kb | 1000    | 2,160  | 102     | 0.5 s  |
-| 300 kb | 1000    | 5,808  | 102     | 1.6 s  |
-| 500 kb | 1000    | 10,613 | 106     | 4.1 s  |
-| 1 Mb   | 0       | 14,675 | 87,291  | 39 s   |
-| 1 Mb   | 100     | 22,861 | 381     | 17 s   |
-| 1 Mb   | 1000    | 22,973 | 116     | 17 s   |
+| window | context | nodes  | records | time  |
+| ------ | ------- | ------ | ------- | ----- |
+| 100 kb | 0       | 1,374  | 9,083   | 0.6 s |
+| 100 kb | 100     | 2,093  | 102     | 0.4 s |
+| 100 kb | 1000    | 2,160  | 102     | 0.5 s |
+| 300 kb | 1000    | 5,808  | 102     | 1.6 s |
+| 500 kb | 1000    | 10,613 | 106     | 4.1 s |
+| 1 Mb   | 0       | 14,675 | 87,291  | 39 s  |
+| 1 Mb   | 100     | 22,861 | 381     | 17 s  |
+| 1 Mb   | 1000    | 22,973 | 116     | 17 s  |
 
 Over HTTP the 100 kb window is 16 range requests, 1 MB, 2.6 s. Two things
 follow. `context: 0` is the wrong default for a human graph: every private
 bubble splits a walk, so a 100 kb window is 9,000 records where 100 would do,
 and the adapter's slot default is still 0. And time grows faster than linearly
 in nodes with the record count flat, so it is the per-path edit computation over
-a longer reference, not fetching; the demo sets `nodeLimit: 12000` (about
-500 kb, 4 s) so a zoom-out fails with the limit's message instead of holding the
+a longer reference, not fetching; the demo sets `nodeLimit: 12000` (about 500
+kb, 4 s) so a zoom-out fails with the limit's message instead of holding the
 display's first-load phase for 17 s. Identification is free once the side tables
 exist (0 steps at context 1000).
 
@@ -139,50 +138,50 @@ unchanged. The rest of this section stays as the record of the wrong turn.
 
 The six windows on `fd91599` with both files hosted, `--alignments --stats`
 timed around the whole process (startup and writing the JSON included), same
-node, record and request counts as the 2.1.0 rows below except AMY1's
-companion side:
+node, record and request counts as the 2.1.0 rows below except AMY1's companion
+side:
 
-| locus | time | graph requests | companion requests, bytes |
-| --- | --- | --- | --- |
-| C4 10 kb | 5.3 s | 15 | 8, 0.5 MB |
-| C4 60 kb | 6.2 s | 17 | 9, 0.6 MB |
-| CFH | 15.0 s | 28 | 17, 1.1 MB |
-| LPA KIV-2 | 21.0 s | 36 | 14, 0.9 MB |
-| MHC class II | 37.0 s | 49 | 11, 0.7 MB |
-| AMY1 | 16.3 s | 37 | 24, 1.5 MB |
+| locus        | time   | graph requests | companion requests, bytes |
+| ------------ | ------ | -------------- | ------------------------- |
+| C4 10 kb     | 5.3 s  | 15             | 8, 0.5 MB                 |
+| C4 60 kb     | 6.2 s  | 17             | 9, 0.6 MB                 |
+| CFH          | 15.0 s | 28             | 17, 1.1 MB                |
+| LPA KIV-2    | 21.0 s | 36             | 14, 0.9 MB                |
+| MHC class II | 37.0 s | 49             | 11, 0.7 MB                |
+| AMY1         | 16.3 s | 37             | 24, 1.5 MB                |
 
-Only AMY1's code path changed (5,202 requests and 325 MB became 24 and
-1.5 MB); the spread against the 2.1.0 row for the others is run-to-run network
-variance on identical request counts.
+Only AMY1's code path changed (5,202 requests and 325 MB became 24 and 1.5 MB);
+the spread against the 2.1.0 row for the others is run-to-run network variance
+on identical request counts.
 
 The same six on `ad48851` (typed-array path extraction, twin skipping, and a
 one-request prefetch of the reference walk's Nodes range), same setup:
 
-| locus | time | graph requests | companion requests |
-| --- | --- | --- | --- |
-| C4 10 kb | 7.2 s | 15 | 8 |
-| C4 60 kb | 5.1 s | 15 | 9 |
-| CFH | 9.0 s | 15 | 17 |
-| LPA KIV-2 | 8.8 s | 15 | 14 |
-| MHC class II | 13.2 s | 21 | 11 |
-| AMY1 | 17.2 s | 29 | 24 |
+| locus        | time   | graph requests | companion requests |
+| ------------ | ------ | -------------- | ------------------ |
+| C4 10 kb     | 7.2 s  | 15             | 8                  |
+| C4 60 kb     | 5.1 s  | 15             | 9                  |
+| CFH          | 9.0 s  | 15             | 17                 |
+| LPA KIV-2    | 8.8 s  | 15             | 14                 |
+| MHC class II | 13.2 s | 21             | 11                 |
+| AMY1         | 17.2 s | 29             | 24                 |
 
 Node and record counts unchanged. The C4 rows and AMY1 are inside the day's
-network variance (C4 10 kb ran 5.3 s an hour earlier on identical requests);
-the three large windows are what the commit was for.
+network variance (C4 10 kb ran 5.3 s an hour earlier on identical requests); the
+three large windows are what the commit was for.
 
 Measured on the published v2.1 database with the hosted companion index
 (`https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.db`,
 interval 16384, 6.99 GB), context 1000, contained snarls, both files over HTTP:
 
-| locus | window | nodes | records | ident. steps | time |
-| --- | --- | --- | --- | --- | --- |
-| C4 | chr6:31.98-31.99 Mb (10 kb) | 1,173 | 463 | 3,937 | 5.4 s |
-| C4 | chr6:31.95-32.01 Mb (60 kb) | 4,236 | 463 | 0 | 7.1 s |
-| CFH | chr1:196.64-196.90 Mb | 16,372 | 465 | 0 | 16.4 s |
-| LPA KIV-2 | chr6:160.525-160.655 Mb | 27,438 | 464 | 0 | 20.7 s |
-| MHC class II | chr6:32.51-32.60 Mb | 43,540 | 463 | 0 | 31.1 s |
-| AMY1 | chr1:103.69-103.78 Mb | 12,240 | 1,912 | 78,506 | 283 s |
+| locus        | window                      | nodes  | records | ident. steps | time   |
+| ------------ | --------------------------- | ------ | ------- | ------------ | ------ |
+| C4           | chr6:31.98-31.99 Mb (10 kb) | 1,173  | 463     | 3,937        | 5.4 s  |
+| C4           | chr6:31.95-32.01 Mb (60 kb) | 4,236  | 463     | 0            | 7.1 s  |
+| CFH          | chr1:196.64-196.90 Mb       | 16,372 | 465     | 0            | 16.4 s |
+| LPA KIV-2    | chr6:160.525-160.655 Mb     | 27,438 | 464     | 0            | 20.7 s |
+| MHC class II | chr6:32.51-32.60 Mb         | 43,540 | 463     | 0            | 31.1 s |
+| AMY1         | chr1:103.69-103.78 Mb       | 12,240 | 1,912   | 78,506       | 283 s  |
 
 Re-measured on 2.1.0 the same six are 5.1, 5.8, 12.3, 15.5, 25.2 and 233.7 s,
 with identical node, record and step counts. The companion reads there are 8, 9,
@@ -196,17 +195,17 @@ AMY1. Step counts are transport-independent and identical either way.
 A CPU profile says that is wrong.** `node --cpu-prof` over the 115 s local run,
 self time:
 
-| % | frame |
-| --- | --- |
-| 22.6 | `cellOffset` (sqlite/btree.js) |
-| 10.0 | `tableRowid` (btree) |
+| %         | frame                          |
+| --------- | ------------------------------ |
+| 22.6      | `cellOffset` (sqlite/btree.js) |
+| 10.0      | `tableRowid` (btree)           |
 | 7.4 + 5.8 | `page`, `block` (sqlite/pager) |
-| 5.3 | `identifyPaths` |
-| 4.8 | `indexScanFrom` (btree) |
-| 4.3 | `decodeRecord` |
-| 3.4 | `extractPaths` |
-| 2.1 | `haplotypeSamplesInRange` |
-| **0.9** | `edits`, the alignment |
+| 5.3       | `identifyPaths`                |
+| 4.8       | `indexScanFrom` (btree)        |
+| 4.3       | `decodeRecord`                 |
+| 3.4       | `extractPaths`                 |
+| 2.1       | `haplotypeSamplesInRange`      |
+| **0.9**   | `edits`, the alignment         |
 
 Over half the run is the pure-TypeScript SQLite B-tree reader re-deriving page
 cell offsets, driven by the per-node record lookups that identification makes.
@@ -225,10 +224,10 @@ crossing the network. Shrinking the block size does not help, because the byte
 volume is what is invariant:
 
 | block size | companion fetches | companion bytes | time, local |
-| --- | --- | --- | --- |
-| 65536 | 5,202 | 340,918,272 | 64.5 s |
-| 16384 | 20,782 | 340,492,288 | 69.5 s |
-| 8192 | 41,555 | 340,418,560 | 82.7 s |
+| ---------- | ----------------- | --------------- | ----------- |
+| 65536      | 5,202             | 340,918,272     | 64.5 s      |
+| 16384      | 20,782            | 340,492,288     | 69.5 s      |
+| 8192       | 41,555            | 340,418,560     | 82.7 s      |
 
 **Scatter, not step count, is what costs.** The 10 kb C4 window settles it from
 the other side: it is under the sampling interval too and takes 3,937 steps, and
@@ -247,39 +246,39 @@ walks down toward 464 and is the same 4x a denser companion buys without adding
 The earlier reading below stands for the local case, where the same 340 MB has
 to be decoded rather than fetched.
 
-So the second lever is a page-level cell-offset cache in the reader (`cellOffset` and
-`tableRowid` recompute per lookup what is constant per page), not a denser
-index and not an adapter setting. A denser companion would cut the miss rate but
-scales the 6.99 GB file linearly, and the config lever fails outright:
-`context` 5000, `context` 20000 and `overlapping` snarls each exhaust a 4 GB JS
-heap at AMY1 after ~130 s without returning. `nodeLimit` does not catch it
-either, since 12,240 nodes is under any limit that lets MHC class II's 43,540
-through.
+So the second lever is a page-level cell-offset cache in the reader
+(`cellOffset` and `tableRowid` recompute per lookup what is constant per page),
+not a denser index and not an adapter setting. A denser companion would cut the
+miss rate but scales the 6.99 GB file linearly, and the config lever fails
+outright: `context` 5000, `context` 20000 and `overlapping` snarls each exhaust
+a 4 GB JS heap at AMY1 after ~130 s without returning. `nodeLimit` does not
+catch it either, since 12,240 nodes is under any limit that lets MHC class II's
+43,540 through.
 
 ## Still owed
 
 - **Host the whole-genome haplotype index for HPRC v2.1.** It exists:
   `~/src/hprc-gbz/hprc-v2.1-mc-grch38.haplotype-index.db` (7.0 GB, built
-  2026-09-05 with `--interval 16384`, 158.7M samples over all 53,150 paths,
-  no `haplotype_index_nodes` tag because it predates that check). Sanity
-  checked 2026-09-06 against the published database over HTTP with
-  `bin/query.js <url> --haplotype-index <file> --sample GRCh38 --contig chr6
-  --interval 31500000..31501000 --context 0 --alignments --stats`: 2,526
-  records from 232 samples, none unresolved, 13 range requests (3.3 MB) to the
-  graph and 7 (0.4 MB) to the index. Whether 16384 is dense enough for the
-  tutorial windows is still unmeasured; hosting to `s3://jbrowse.org/demos/hprc/`
-  is Colin's call.
+  2026-09-05 with `--interval 16384`, 158.7M samples over all 53,150 paths, no
+  `haplotype_index_nodes` tag because it predates that check). Sanity checked
+  2026-09-06 against the published database over HTTP with
+  `bin/query.js <url> --haplotype-index <file> --sample GRCh38 --contig chr6 --interval 31500000..31501000 --context 0 --alignments --stats`:
+  2,526 records from 232 samples, none unresolved, 13 range requests (3.3 MB) to
+  the graph and 7 (0.4 MB) to the index. Whether 16384 is dense enough for the
+  tutorial windows is still unmeasured; hosting to
+  `s3://jbrowse.org/demos/hprc/` is Colin's call.
 - **Tutorial figures on `pangenome_hprc.md`**, which currently says reading the
   `.gbz` haplotype walks "is a vg job": the graph cut from the GBZ at LPA KIV-2
   or AMY1 in **Sample rows** as carriage rather than attribution, and the
   haplotype lanes under GRCh38 at the same locus. Specs go in
   `website/scripts/specs/graph-hprc.ts`.
-- **Adapter gaps**: `context` defaults to 0, which the tables argue against for
-  human graphs; `mateShape: 'grouped'` is not implemented; `nodeLimit` is a hard
-  failure with no coarse fallback, and a whole-chromosome view stays on a PIF;
-  no `identity` field because gbz-base's `M` is match-or-mismatch; since
+- **Adapter gaps**: `mateShape: 'grouped'` is not implemented; `nodeLimit` is
+  a hard failure with no coarse fallback, and a whole-chromosome view stays on
+  a PIF; no `identity` field because gbz-base's `M` is match-or-mismatch; since
   gbz-base 2.0.0 an alignment record is a union on `resolved`, and the adapter
   still drops an unresolved fragment rather than drawing it anonymously.
+  (`context` defaulting to 0 was on this list; it is 1000 since 2026-09-06 and
+  no longer decides the record count, see `GBZ_PLAN.md` Phase 3.)
 - **Package gaps**: the 1 Mb cost above is edit computation, not I/O, so the
   lever is the per-path alignment against the reference; small queries are bound
   by sequential request latency, and prefetching the Nodes leaf pages for the
@@ -298,15 +297,16 @@ gbwt-rs cannot be built for `wasm32`: its `simple-sds` dependency serializes
 32-bit target, and the maintainer closed the fix (gbwt-rs PR 14). On `wasm64`
 `usize` is 8 bytes and that class of bug is gone; the one thing that still fails
 is `zstd-sys`, because there is no libc for wasm64. The shim swaps it for
-`ruzstd` on wasm targets only, behind the same `zstd::stream::{Encoder,
-Decoder}` names the two call sites use. Native builds keep real zstd.
+`ruzstd` on wasm targets only, behind the same
+`zstd::stream::{Encoder, Decoder}` names the two call sites use. Native builds
+keep real zstd.
 
-Measured: with the shim, `cargo +nightly build -Z build-std=std,panic_abort
---target wasm64-unknown-unknown` produces a 258 KB cdylib that loads
-`micb-kir3dl1.gbz` (2891 nodes, 169 paths) and a GBZ v3 file in Node 24 in about
-5 ms. It matters for the in-memory route only: bacterial graphs, a `vg chunk`,
-desktop or MCP-driven local tooling. It does not help gbz-base, whose bundled
-SQLite has no wasm64 libc either.
+Measured: with the shim,
+`cargo +nightly build -Z build-std=std,panic_abort --target wasm64-unknown-unknown`
+produces a 258 KB cdylib that loads `micb-kir3dl1.gbz` (2891 nodes, 169 paths)
+and a GBZ v3 file in Node 24 in about 5 ms. It matters for the in-memory route
+only: bacterial graphs, a `vg chunk`, desktop or MCP-driven local tooling. It
+does not help gbz-base, whose bundled SQLite has no wasm64 libc either.
 
 No PR was opened: on the wasm target the shim writes GBZ v3's compressed
 sequences through ruzstd's encoder, which failed this crate's round-trip tests
