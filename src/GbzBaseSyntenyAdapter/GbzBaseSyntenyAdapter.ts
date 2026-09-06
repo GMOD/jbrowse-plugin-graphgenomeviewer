@@ -44,6 +44,42 @@ export function haplotypePrefix(name: PathName) {
   return `${name.sample}#${name.haplotype}`
 }
 
+export class NodeLimitError extends Error {
+  override name = 'NodeLimitError'
+
+  constructor(limit: number, windowBp: number, fitsBp: number) {
+    super(
+      `this ${windowBp.toLocaleString()} bp window reads more than nodeLimit (${limit.toLocaleString()}) graph nodes; zoom in to about ${fitsBp.toLocaleString()} bp or raise nodeLimit`,
+    )
+  }
+}
+
+/**
+ * gbz-base reports the node limit with how far along the reference the walk
+ * had got when it tripped; a window that fits is that far, with a margin, or
+ * half the window when the limit tripped while extending past the reference.
+ */
+export function nodeLimitError(
+  error: unknown,
+  limit: number,
+  windowBp: number,
+) {
+  const isLimit =
+    error instanceof Error &&
+    (error.name === 'SubgraphLimitError' ||
+      /^Subgraph size limit of \d+ nodes exceeded/.test(error.message))
+  if (!isLimit) {
+    return undefined
+  } else {
+    const walked = (error as { walkedBp?: unknown }).walkedBp
+    const fits =
+      typeof walked === 'number' && walked > 0
+        ? Math.floor(walked * 0.8)
+        : Math.floor(windowBp / 2)
+    return new NodeLimitError(limit, windowBp, Math.max(fits, 1))
+  }
+}
+
 /**
  * The lane a haplotype draws on: the JBrowse assembly the config maps to it at
  * haplotype or sample depth, else its own PanSN prefix. The fallback stays at
@@ -241,16 +277,21 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
         const asmByPrefix = assemblyByPanSNPrefix(this)
         const query = await this.referenceQuery(refName, opts)
+        const nodeLimit: number = this.getConf('nodeLimit')
         const alignments = query
           ? await updateStatus(
               `Reading graph ${refName}:${start}-${end}`,
               opts.statusCallback,
               () =>
-                db.getAlignmentsForRange(query, start, end, {
-                  context: this.getConf('context'),
-                  haplotypes: 'all',
-                  limit: this.getConf('nodeLimit'),
-                }),
+                db
+                  .getAlignmentsForRange(query, start, end, {
+                    context: this.getConf('context'),
+                    haplotypes: 'all',
+                    limit: nodeLimit,
+                  })
+                  .catch((error: unknown) => {
+                    throw nodeLimitError(error, nodeLimit, end - start) ?? error
+                  }),
             )
           : []
         for (const alignment of alignments) {

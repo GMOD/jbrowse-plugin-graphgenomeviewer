@@ -214,9 +214,9 @@ test('context does not add records', async () => {
   expect(narrow.length).toBeGreaterThanOrEqual(wide.length)
 })
 
-test('the node limit fails a window rather than reading it whole', async () => {
+test('the node limit fails a window rather than reading it whole, naming a zoom that fits', async () => {
   await expect(feats(makeAdapter({ nodeLimit: 2 }), window)).rejects.toThrow(
-    /limit/,
+    /nodeLimit \(2\) graph nodes; zoom in to about \d+ bp/,
   )
 })
 
