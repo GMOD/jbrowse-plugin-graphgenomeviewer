@@ -1,4 +1,4 @@
-import { panSNContig, panSNSample } from '../pansn.ts'
+import { panSNContig, panSNHaplotype, panSNSample } from '../pansn.ts'
 
 // A segment as it appears in segs.bed.gz, and as it is repeated inside every
 // links.bed.gz row: `stableName start end segmentId rank [tags]`. The first
@@ -122,7 +122,12 @@ export function buildRefNameLookup(tabixRefNames: string[]) {
     lookup.set(name, name)
     const sample = panSNSample(name)
     if (sample !== name) {
-      lookup.set(qualifiedKey(sample, panSNContig(name)), name)
+      const contig = panSNContig(name)
+      lookup.set(qualifiedKey(sample, contig), name)
+      const haplotype = panSNHaplotype(name)
+      if (haplotype !== undefined) {
+        lookup.set(qualifiedKey(haplotype, contig), name)
+      }
     }
   }
   return lookup

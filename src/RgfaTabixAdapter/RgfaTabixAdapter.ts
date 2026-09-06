@@ -4,7 +4,7 @@ import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
-import { panSNContig, panSNSample } from '../pansn.ts'
+import { panSNContig, panSNMatchesPrefix } from '../pansn.ts'
 import { resolvePanSNPrefix } from '../util.ts'
 import {
   buildRefNameLookup,
@@ -123,7 +123,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     const names = await this.segments.getReferenceSequenceNames(opts)
     const prefix = resolvePanSNPrefix(this, opts.assemblyName)
     const contigs = names
-      .filter(n => panSNSample(n) === prefix)
+      .filter(n => panSNMatchesPrefix(n, prefix))
       .map(n => panSNContig(n))
     return contigs.length > 0 ? contigs : names
   }

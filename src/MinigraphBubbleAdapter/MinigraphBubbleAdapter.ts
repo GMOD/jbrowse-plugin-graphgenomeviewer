@@ -8,7 +8,7 @@ import {
   buildRefNameLookup,
   resolveRefName,
 } from '../RgfaTabixAdapter/rgfaBed.ts'
-import { panSNContig, panSNSample } from '../pansn.ts'
+import { panSNContig, panSNMatchesPrefix } from '../pansn.ts'
 import { resolvePanSNPrefix } from '../util.ts'
 import {
   bubbleDescription,
@@ -53,7 +53,7 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
     const names = await this.bubbles.getReferenceSequenceNames(opts)
     const prefix = resolvePanSNPrefix(this, opts.assemblyName)
     const contigs = names
-      .filter(n => panSNSample(n) === prefix)
+      .filter(n => panSNMatchesPrefix(n, prefix))
       .map(n => panSNContig(n))
     return contigs.length > 0 ? contigs : names
   }

@@ -1,7 +1,9 @@
 import {
+  buildRefNameLookup,
   formatSubgraph,
   parseLinkLine,
   parseSegmentLine,
+  resolveRefName,
   segmentSamples,
 } from './rgfaBed.ts'
 
@@ -86,9 +88,7 @@ test('link rows carry each endpoint tags', () => {
 // An older six-column file from build_pggb_tabix.sh wrote a bare comma list
 // rather than a tag. It must not be emitted as a malformed GFA tag.
 test('a link row with no tag columns parses as untagged', () => {
-  const link = parseLinkLine(
-    'c\t0\t10\ts1+\ts2+\tc\t0\t10\t0\tc\t10\t20\t1',
-  )
+  const link = parseLinkLine('c\t0\t10\ts1+\ts2+\tc\t0\t10\t0\tc\t10\t20\t1')
   expect(link.sourceSegment.tags).toBe('')
   expect(link.targetSegment.tags).toBe('')
 })
@@ -150,12 +150,29 @@ test('segmentSamples finds the tag beside other tags', () => {
 // survives the round trip.
 test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
   const { parseGFA } = await import('../gfa-core/index.ts')
-  const { convertGFAToGraph } = await import(
-    '../GraphGenomeView/gfa/gfaConverter.ts'
-  )
+  const { convertGFAToGraph } =
+    await import('../GraphGenomeView/gfa/gfaConverter.ts')
   const segment = parseSegmentLine(
     'K12#1#chr\t1004477\t1004500\ts119690\t0\tSM:Z:K12.1,Sakai.1,NCTC86.1',
   )
   const graph = convertGFAToGraph(parseGFA(subgraphOf([segment])))
   expect(graph.nodes[0]!.samples).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
+})
+
+test('a PanSN stable name resolves under its sample and under its haplotype', () => {
+  const lookup = buildRefNameLookup([
+    'GRCh38#0#chr6',
+    'NA20809#2#CM094351.1',
+    'chrM',
+  ])
+  expect(resolveRefName(lookup, 'GRCh38', 'chr6')).toBe('GRCh38#0#chr6')
+  expect(resolveRefName(lookup, 'GRCh38#0', 'chr6')).toBe('GRCh38#0#chr6')
+  expect(resolveRefName(lookup, 'NA20809#2', 'CM094351.1')).toBe(
+    'NA20809#2#CM094351.1',
+  )
+  expect(resolveRefName(lookup, 'NA20809', 'CM094351.1')).toBe(
+    'NA20809#2#CM094351.1',
+  )
+  expect(resolveRefName(lookup, 'hg38', 'chrM')).toBe('chrM')
+  expect(resolveRefName(lookup, 'NA20809#1', 'CM094351.1')).toBeUndefined()
 })

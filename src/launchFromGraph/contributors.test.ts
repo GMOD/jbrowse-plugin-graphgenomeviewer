@@ -5,6 +5,7 @@ import {
   locString,
   nodeOwnLocation,
   resolveContributors,
+  resolveLocationAssembly,
 } from './contributors'
 
 import type { Graph, GraphNode } from '../GraphGenomeView/types'
@@ -32,6 +33,7 @@ function graph(nodes: GraphNode[]): Graph {
 test('a node states its own assembly and coordinates', () => {
   expect(nodeOwnLocation(node('s1', 'CFT073#1#chr', 1044024, 226, 2))).toEqual({
     sample: 'CFT073',
+    haplotype: 'CFT073#1',
     refName: 'chr',
     start: 1044024,
     end: 1044250,
@@ -60,6 +62,7 @@ test('contributors are the assemblies named on the segments, reference first', (
   expect(contributors.map(c => c.sample)).toEqual(['K12', 'CFT073', 'Sakai'])
   expect(contributors[0]).toEqual({
     sample: 'K12',
+    haplotype: 'K12#1',
     refName: 'chr',
     start: 1000,
     end: 2500,
@@ -82,6 +85,7 @@ test('a distant second locus does not widen a contributor to cover both', () => 
   ).filter(c => c.sample === 'Sakai')
   expect(sakai).toEqual({
     sample: 'Sakai',
+    haplotype: 'Sakai#1',
     refName: 'chr',
     start: 50000,
     end: 51000,
@@ -128,10 +132,9 @@ test('a contributor resolves through an assembly alias, under its own name', () 
   )
   const resolve = (sample: string) =>
     sample === 'CHM13' ? 'hs1' : sample === 'GRCh38' ? 'hg38' : undefined
-  expect(resolveContributors(contributors, resolve).map(c => c.sample)).toEqual([
-    'hg38',
-    'hs1',
-  ])
+  expect(resolveContributors(contributors, resolve).map(c => c.sample)).toEqual(
+    ['hg38', 'hs1'],
+  )
   // and the locus travels with it, rather than being dropped on rename
   expect(
     resolveContributors(contributors, resolve).find(c => c.sample === 'hs1'),
@@ -139,7 +142,56 @@ test('a contributor resolves through an assembly alias, under its own name', () 
 })
 
 test('a locstring is 1-based inclusive', () => {
+  expect(locString({ sample: 'K12', refName: 'chr', start: 0, end: 100 })).toBe(
+    'chr:1-100',
+  )
+})
+
+// HPRC release 2.1 names every node `sample#hap#contig`, so one sample is two
+// contributors, and a session holding both haplotypes opens the right one; a
+// haplotype loaded under its bare sample name still resolves, at sample depth.
+test('a haplotype-named graph contributes per haplotype, resolved at that depth before the sample', () => {
+  const contributors = contributingAssemblies(
+    graph([
+      node('s1', 'GRCh38#0#chr6', 32517112, 304, 0),
+      node('s2', 'NA20809#2#CM094351.1', 32495296, 1780, 10),
+      node('s3', 'NA20809#1#CM094300.1', 32495000, 900, 11),
+    ]),
+  )
+  expect(contributors.map(c => [c.sample, c.haplotype])).toEqual([
+    ['GRCh38', 'GRCh38#0'],
+    ['NA20809', 'NA20809#1'],
+    ['NA20809', 'NA20809#2'],
+  ])
+  const byHaplotype = (sample: string) =>
+    ({ 'NA20809#2': 'NA20809.2', 'NA20809#1': 'NA20809.1', GRCh38: 'hg38' })[
+      sample
+    ]
   expect(
-    locString({ sample: 'K12', refName: 'chr', start: 0, end: 100 }),
-  ).toBe('chr:1-100')
+    resolveContributors(contributors, byHaplotype).map(c => c.sample),
+  ).toEqual(['hg38', 'NA20809.1', 'NA20809.2'])
+  const bySample = (sample: string) =>
+    sample === 'NA20809' ? 'NA20809' : sample === 'GRCh38' ? 'hg38' : undefined
+  expect(
+    resolveContributors(contributors, bySample).map(c => [c.sample, c.refName]),
+  ).toEqual([
+    ['hg38', 'chr6'],
+    ['NA20809', 'CM094300.1'],
+    ['NA20809', 'CM094351.1'],
+  ])
+  expect(
+    resolveLocationAssembly(byHaplotype, {
+      sample: 'NA20809',
+      haplotype: 'NA20809#2',
+    }),
+  ).toBe('NA20809.2')
+  expect(
+    resolveLocationAssembly(bySample, {
+      sample: 'NA20809',
+      haplotype: 'NA20809#2',
+    }),
+  ).toBe('NA20809')
+  expect(
+    resolveLocationAssembly(bySample, { sample: 'K12', haplotype: undefined }),
+  ).toBeUndefined()
 })

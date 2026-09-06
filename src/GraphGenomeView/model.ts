@@ -41,6 +41,7 @@ import {
   contributingAssemblies,
   nodeOwnLocation,
   resolveContributors,
+  resolveLocationAssembly,
 } from '../launchFromGraph/contributors'
 import { graphLaunchMenuItems } from '../launchFromGraph/graphMenuItems'
 import {
@@ -899,7 +900,10 @@ export default function stateModelFactory() {
         const node = self.nodeById?.get(nodeId)
         const own = node ? nodeOwnLocation(node) : undefined
         const ownAssembly = own
-          ? assemblySampleResolver(getSession(self))(own.sample)
+          ? resolveLocationAssembly(
+              assemblySampleResolver(getSession(self)),
+              own,
+            )
           : undefined
         const region = self.loadedRegion
         const nodeById = self.nodeById
@@ -918,6 +922,7 @@ export default function stateModelFactory() {
               ? {
                   location: paddedLocation({
                     sample: region.assemblyName,
+                    haplotype: undefined,
                     refName: region.refName,
                     ...span,
                   }),
@@ -1060,6 +1065,10 @@ export default function stateModelFactory() {
                   // stable name. On an HPRC graph this is the only thing that
                   // says which of 400-odd haplotypes an allele came from.
                   contributingAssembly: nodeOwnLocation(node)?.sample,
+                  // and the haplotype, where the graph's names state one:
+                  // the assembly to load to open this node on its own
+                  // coordinates
+                  contributingHaplotype: nodeOwnLocation(node)?.haplotype,
                   // Every assembly that traverses it, which is a different
                   // question and one only a path GFA can answer. Absent on an
                   // rGFA rather than approximated, so the two are never

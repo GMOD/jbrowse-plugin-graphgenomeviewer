@@ -9,6 +9,15 @@ export function panSNSample(refName: string) {
   return refName.split(SEP)[0]!
 }
 
+// The haplotype a three-part PanSN name belongs to, `sample#hap`, which is the
+// assembly that contributed it where one sample is two haplotypes (HPRC release
+// 2.1 names every node `NA20809#2#CM094351.1`); undefined for a name that
+// states no haplotype.
+export function panSNHaplotype(refName: string) {
+  const parts = refName.split(SEP)
+  return parts.length >= 3 ? `${parts[0]}${SEP}${parts[1]}` : undefined
+}
+
 // Strip the PanSN prefix to recover the assembly's own refName: `sample#hap#chr1`
 // -> `chr1`, `sample#chr1` -> `chr1`. A contig that itself contains the
 // separator is assumed not to occur (PanSN uses `#` only as the delimiter).
