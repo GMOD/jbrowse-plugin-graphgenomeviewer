@@ -121,6 +121,58 @@ Also: overlapping mode on chr20:30.0-30.1 Mb added 25,887 nodes; the companion
 tool's from-db and GBZ routes write identical tables (checksummed on
 micb-kir3dl1); micb at interval 1000 is 176 KB.
 
+## Where an expensive window's time actually goes (2026-09-06)
+
+Measured on the published v2.1 database with the hosted companion index
+(`https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.db`,
+interval 16384, 6.99 GB), context 1000, contained snarls, both files over HTTP:
+
+| locus | window | nodes | records | ident. steps | time |
+| --- | --- | --- | --- | --- | --- |
+| C4 | chr6:31.98-31.99 Mb (10 kb) | 1,173 | 463 | 3,937 | 5.4 s |
+| C4 | chr6:31.95-32.01 Mb (60 kb) | 4,236 | 463 | 0 | 7.1 s |
+| CFH | chr1:196.64-196.90 Mb | 16,372 | 465 | 0 | 16.4 s |
+| LPA KIV-2 | chr6:160.525-160.655 Mb | 27,438 | 464 | 0 | 20.7 s |
+| MHC class II | chr6:32.51-32.60 Mb | 43,540 | 463 | 0 | 31.1 s |
+| AMY1 | chr1:103.69-103.78 Mb | 12,240 | 1,912 | 78,506 | 283 s |
+
+With the companion on local disk the same rows are 4.5, 4.8, 10.8, 14.0, 23.0
+and 95.5 s, so the hosted index roughly doubles a normal window and triples
+AMY1. Step counts are transport-independent and identical either way.
+
+**The earlier note in this file blamed AMY1 on "the per-path edit computation".
+A CPU profile says that is wrong.** `node --cpu-prof` over the 115 s local run,
+self time:
+
+| % | frame |
+| --- | --- |
+| 22.6 | `cellOffset` (sqlite/btree.js) |
+| 10.0 | `tableRowid` (btree) |
+| 7.4 + 5.8 | `page`, `block` (sqlite/pager) |
+| 5.3 | `identifyPaths` |
+| 4.8 | `indexScanFrom` (btree) |
+| 4.3 | `decodeRecord` |
+| 3.4 | `extractPaths` |
+| 2.1 | `haplotypeSamplesInRange` |
+| **0.9** | `edits`, the alignment |
+
+Over half the run is the pure-TypeScript SQLite B-tree reader re-deriving page
+cell offsets, driven by the per-node record lookups that identification makes.
+The causal chain is: the amylase repeat fragments each haplotype into ~4 pieces;
+a fragment shorter than the 16 kb sampling interval holds no recorded position,
+so `identifyPaths` walks node by node (capped at `4 * interval`); each step is a
+B-tree lookup. The 10 kb C4 window shows the same effect in miniature, 3,937
+steps because the window itself is under the interval.
+
+So the lever is a page-level cell-offset cache in the reader (`cellOffset` and
+`tableRowid` recompute per lookup what is constant per page), not a denser
+index and not an adapter setting. A denser companion would cut the miss rate but
+scales the 6.99 GB file linearly, and the config lever fails outright:
+`context` 5000, `context` 20000 and `overlapping` snarls each exhaust a 4 GB JS
+heap at AMY1 after ~130 s without returning. `nodeLimit` does not catch it
+either, since 12,240 nodes is under any limit that lets MHC class II's 43,540
+through.
+
 ## Still owed
 
 - **A whole-genome haplotype index for HPRC v2.1.**
