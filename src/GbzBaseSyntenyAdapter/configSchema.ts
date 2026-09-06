@@ -78,9 +78,12 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
      * How the graph view's subgraph is extended past the nodes the reference
      * window touches. `contained` adds every top-level snarl with both
      * boundary nodes in the window, which is what brings back the bubbles a
-     * reference-only walk leaves out; `overlapping` also follows snarls that
-     * leave the window, which can pull in a whole large deletion; `none` leaves
-     * only the bp `context`.
+     * reference-only walk leaves out; a haplotype still breaks into a new W
+     * line wherever it leaves the window's nodes (a 60 kb C4 window on the
+     * HPRC graph: 2,703 nodes, 8,083 walks for 464 haplotypes). `overlapping`
+     * also follows snarls that leave the window, so every haplotype is one
+     * walk (464), at the price of every node in those snarls (4,184 there,
+     * 24,547 across the KIV-2 repeat). `none` leaves only the bp `context`.
      */
     subgraphSnarls: {
       type: 'stringEnum',
