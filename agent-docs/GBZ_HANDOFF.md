@@ -123,6 +123,38 @@ micb-kir3dl1); micb at interval 1000 is 176 KB.
 
 ## Where an expensive window's time actually goes (2026-09-06)
 
+**Superseded later the same day: the cost was one companion range scan, not
+scattered seeks.** Phase 1 of `GBZ_PLAN.md` instrumented every chain. The AMY1
+subgraph's 12,240 nodes have ids in three clusters between 5.0M and 19.8M, with
+gaps of 6.9M and 7.8M nodes between them, and `identifyPaths` loaded the
+window's samples with one index scan from its smallest handle to its largest:
+7,878,652 rows, 340 MB, 49 s, of which 6,766 sat on subgraph nodes. The per-step
+companion seeks were 351. gbz-base-js `fd91599` scans per run of consecutive
+handles instead: 5 scans, 8,792 rows, 1.5 MB, identification in 1.2 s instead of
+64 s, the same 1,912 records, 12.7 s end to end with the companion on disk and
+9.9 s of that fetching the subgraph. The profile below is therefore a profile of
+decoding 7.9M index rows through `byRowid`, and the block-size table measures
+that scan three times. The other five windows were one scan already and are
+unchanged. The rest of this section stays as the record of the wrong turn.
+
+The six windows on `fd91599` with both files hosted, `--alignments --stats`
+timed around the whole process (startup and writing the JSON included), same
+node, record and request counts as the 2.1.0 rows below except AMY1's
+companion side:
+
+| locus | time | graph requests | companion requests, bytes |
+| --- | --- | --- | --- |
+| C4 10 kb | 5.3 s | 15 | 8, 0.5 MB |
+| C4 60 kb | 6.2 s | 17 | 9, 0.6 MB |
+| CFH | 15.0 s | 28 | 17, 1.1 MB |
+| LPA KIV-2 | 21.0 s | 36 | 14, 0.9 MB |
+| MHC class II | 37.0 s | 49 | 11, 0.7 MB |
+| AMY1 | 16.3 s | 37 | 24, 1.5 MB |
+
+Only AMY1's code path changed (5,202 requests and 325 MB became 24 and
+1.5 MB); the spread against the 2.1.0 row for the others is run-to-run network
+variance on identical request counts.
+
 Measured on the published v2.1 database with the hosted companion index
 (`https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.db`,
 interval 16384, 6.99 GB), context 1000, contained snarls, both files over HTTP:
