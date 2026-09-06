@@ -207,12 +207,22 @@ test('the reference sample comes from the anchor prefix, the tag, or the slot', 
   expect(fa.some(f => mateOf(f).assemblyName === 'GRCh38#0')).toBe(true)
 })
 
-test('context does not add records', async () => {
+// One record per haplotype contig through the window, at any context: gbz-base
+// joins the pieces of a walk that leaves the window's nodes and comes back.
+// HG03516#2 carries this window on two contigs (JAGYYS010000003.1 forward and
+// JAGYYS010000196.1 reverse), and those are two walks, so 89 lanes are 90
+// records
+test('context does not decide the record count: one record per haplotype contig at 0 and at 1000', async () => {
+  const walks = (fs: Awaited<ReturnType<typeof feats>>) =>
+    new Set(fs.map(f => `${mateOf(f).assemblyName}/${mateOf(f).refName}`))
   const wide = await feats(makeAdapter({ context: 1000 }), window)
-  const lanes = new Set(wide.map(f => mateOf(f).assemblyName))
-  expect(wide.length).toBeGreaterThanOrEqual(lanes.size)
+  expect(wide.length).toBe(walks(wide).size)
+  expect(new Set(wide.map(f => mateOf(f).assemblyName)).size).toBe(
+    wide.length - 1,
+  )
   const narrow = await feats(makeAdapter(), window)
-  expect(narrow.length).toBeGreaterThanOrEqual(wide.length)
+  expect(narrow.length).toBe(wide.length)
+  expect(walks(narrow)).toEqual(walks(wide))
 })
 
 test('the header declares every haplotype but the reference as a lane, named the way its features are', async () => {
