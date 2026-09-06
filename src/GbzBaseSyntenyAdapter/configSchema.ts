@@ -11,7 +11,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * haplotype-versus-reference alignments, the shape `MultiWaySyntenyDisplay`
  * draws as one lane per haplotype. A window on the reference is located on the
  * graph's reference path, every haplotype's walk through the nodes it covers
- * is recovered, and each run of shared nodes becomes one alignment record with
+ * is recovered and named, and each haplotype becomes one alignment record with
  * a CIGAR, so the graph is read through HTTP range requests with no offline
  * conversion. The database has to carry the `HaplotypeSamples` and
  * `HaplotypeLengths` side tables that `gbz-haplotype-index` (shipped with
@@ -117,14 +117,20 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * Graph context around the reference walk, in bp. At 0 a haplotype's walk
-     * breaks into a new record at every bubble it takes a private path through;
-     * a positive context keeps such a walk one record with the bubble as a
-     * mismatch or indel in its CIGAR, at the cost of reading more nodes.
+     * Graph context around the reference walk, in bp, on top of
+     * `subgraphSnarls`. Since `@gmod/gbz-base` joins the pieces of a walk that
+     * leaves the window's nodes and comes back (the private stretch becomes the
+     * record's insertion, the skipped reference its deletion), a lane's record
+     * count is one per haplotype at any context; what context trades is nodes
+     * read against pieces to identify and join. A window inside a snarl far
+     * larger than itself (MHC class II on the HPRC graph, 90 kb) is 1.1M pieces
+     * at 0 and 464 walks at 1000, three times faster; a window whose private
+     * stretches are short bubbles costs about the same either way. For the
+     * graph view's cut it is simply how far past the window the cut extends.
      */
     context: {
       type: 'number',
-      defaultValue: 0,
+      defaultValue: 1000,
       advanced: true,
     },
     /**

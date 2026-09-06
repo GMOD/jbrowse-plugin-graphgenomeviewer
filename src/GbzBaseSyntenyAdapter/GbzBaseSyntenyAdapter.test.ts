@@ -23,6 +23,7 @@ function makeAdapter(conf: Record<string, unknown> = {}) {
       gbzDbLocation: loc(),
       assemblyNames: ['hg38'],
       assemblyNameToPanSN: { hg38: 'GRCh38#0' },
+      context: 0,
       ...conf,
     }),
   )
@@ -205,11 +206,12 @@ test('the reference sample comes from the anchor prefix, the tag, or the slot', 
   expect(fa.some(f => mateOf(f).assemblyName === 'GRCh38#0')).toBe(true)
 })
 
-test('a positive context keeps a bubble inside one record', async () => {
-  const split = await feats(makeAdapter(), window)
-  const joined = await feats(makeAdapter({ context: 100 }), window)
-  expect(joined.length).toBeLessThan(split.length)
-  expect(joined.length).toBeGreaterThan(0)
+test('context does not add records', async () => {
+  const wide = await feats(makeAdapter({ context: 1000 }), window)
+  const lanes = new Set(wide.map(f => mateOf(f).assemblyName))
+  expect(wide.length).toBeGreaterThanOrEqual(lanes.size)
+  const narrow = await feats(makeAdapter(), window)
+  expect(narrow.length).toBeGreaterThanOrEqual(wide.length)
 })
 
 test('the node limit fails a window rather than reading it whole', async () => {
