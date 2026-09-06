@@ -119,26 +119,37 @@ After `fd91599` the six windows with the companion on disk are 4.1, 4.1, 12.1,
 subgraph, 1.2 s identification, 1.6 s alignment; MHC class II: 43,540 nodes).
 With both files hosted AMY1 is 16.3 s (37 graph requests, 24 companion
 requests, 1.5 MB), against 233.7 s on 2.2.0, so the "AMY1 under 30 s" target
-below is met before the rest of this phase starts. The levers are now the ones
-the handoff's "package gaps" named, and the order is:
+below is met before the rest of this phase starts. After `ad48851` the six
+hosted are 7.2, 5.1, 9.0, 8.8, 13.2 and 17.2 s (the handoff has the table);
+the two C4 windows and AMY1 are inside the network noise of the day, the three
+large windows halved or better.
 
-- A fresh `node --cpu-prof` of MHC class II (companion local, 68.7 s sampled
-  under the profiler against 25 s without), self time: `extractPaths` 37.2%,
-  idle 13.4%, `subgraphInInterval` 11.7% (its inlined extension helpers),
-  `editsAgainst` 9.4%, GC 5.2%, `alignment` 4.2%, `pathLen` 2.2%,
-  `identifyPaths` 1.0%, `tableRowid` 0.6%. The B-tree reader is no longer a
-  lever, and the cell-offset cache the handoff proposed is withdrawn. The
-  lever is `extractPaths`: at 43,540 nodes it walks every GBWT position of
-  every record twice (the `hasPredecessor` pass and the walks), pushes one
-  `{node, offset}` object per node per path (about 14M allocations, which is
-  the GC), and keeps every position of every fragment though identification
-  needs a fragment's positions only to scan for in-window samples and its
-  last position to step out. Store positions as two typed arrays per path, or
-  look samples up by node while walking and keep only first and last.
-- Prefetch the Nodes leaf pages for each run of handles in the window instead
-  of fetching them as the context extension reaches them. Small windows are
-  bound by sequential request latency (C4 10 kb is 15 graph requests and
-  5.3 s hosted, 0.4 s of it CPU), large ones by `extractPaths` above.
+- Done in `ad48851`. A fresh `node --cpu-prof` of MHC class II put
+  `extractPaths` at 37% self time and `tableRowid` at 0.6%, so the cell-offset
+  cache the handoff proposed is withdrawn. `extractPaths` pushed one
+  `{node, offset}` object per node per path and walked every twin in full
+  before `pathIsCanonical` discarded it; at 43,540 nodes and 19.7M GBWT
+  positions that was 47 s per phase timing. It now walks typed successor
+  arrays, records forward-start walks directly, and skips a reverse record's
+  starts outright when every one of them is the twin of a canonical walk that
+  ended on the flipped handle, which a per-record count settles without a
+  walk (disabled when the reference position sits on a reverse record, the
+  CHM13 against-orientation case): 2.8 s, same paths. Positions are now
+  `path[k]` and `offsets[k]`.
+- Done in `ad48851`. The reference walk fetched Nodes leaf pages one sequential
+  request at a time (49 at MHC). `ReferenceIndex` gives the handle at the
+  window's end, so `prefetchReferenceWalk` fetches the rowid range in one
+  request before the walk: 23 requests, 1.4 s after a 0.7 s prefetch. A
+  generic sequential read-ahead in `tableRowid` was tried first and dropped:
+  it cut MHC to 37 requests but added 4 to C4 and 9 to AMY1, because the
+  context extension and identification lookups are not sequential in handle
+  order.
+- What remains per window with the companion local, phase timings at MHC
+  class II: Paths scan 2.7 s (one per `GBZBase`, no name index on `Paths`),
+  reference walk 1.4 s, `extractPaths` 2.8 s (memory-bound steps over 19.7M
+  positions), alignments 3.2 s (`sharedWeight`, `orderedMatches` and
+  `editsAgainst` each do two Map lookups per node). The alignment pass is
+  Phase 3's territory.
 - Register a discarded twin's positions so a walk landing on one links the
   canonical sibling and stops crossing its nodes. Worth about a tenth of AMY1's
   steps and nothing elsewhere; it needs the twin's positions kept, so do it

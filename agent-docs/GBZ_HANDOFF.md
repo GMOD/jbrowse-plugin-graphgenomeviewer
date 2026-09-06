@@ -155,6 +155,22 @@ Only AMY1's code path changed (5,202 requests and 325 MB became 24 and
 1.5 MB); the spread against the 2.1.0 row for the others is run-to-run network
 variance on identical request counts.
 
+The same six on `ad48851` (typed-array path extraction, twin skipping, and a
+one-request prefetch of the reference walk's Nodes range), same setup:
+
+| locus | time | graph requests | companion requests |
+| --- | --- | --- | --- |
+| C4 10 kb | 7.2 s | 15 | 8 |
+| C4 60 kb | 5.1 s | 15 | 9 |
+| CFH | 9.0 s | 15 | 17 |
+| LPA KIV-2 | 8.8 s | 15 | 14 |
+| MHC class II | 13.2 s | 21 | 11 |
+| AMY1 | 17.2 s | 29 | 24 |
+
+Node and record counts unchanged. The C4 rows and AMY1 are inside the day's
+network variance (C4 10 kb ran 5.3 s an hour earlier on identical requests);
+the three large windows are what the commit was for.
+
 Measured on the published v2.1 database with the hosted companion index
 (`https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.db`,
 interval 16384, 6.99 GB), context 1000, contained snarls, both files over HTTP:
