@@ -210,16 +210,17 @@ through.
 
 ## Still owed
 
-- **A whole-genome haplotype index for HPRC v2.1.**
-  `gbz-haplotype-index --interval 16384 --output
-  hprc-v2.1-mc-grch38.haplotype-index.db hprc-v2.1-mc-grch38.gbz` over the
-  5.5 GB GBZ in `~/src/hprc-gbz/` (16 threads, ~4.5 GB RSS, roughly 170M sample
-  rows, a few GB of SQLite). When it exists: sanity check against the published
-  database with `bin/query.js <url> --haplotype-index <file> --sample GRCh38
-  --contig chr6 --interval 31500000..31501000 --context 0 --snarls --alignments
-  --stats`, which should print PanSN names rather than `unknown`; time
-  `identifyPaths` on the tutorial windows to decide whether 16384 is dense
-  enough; hosting to `s3://jbrowse.org/demos/hprc/` is Colin's call.
+- **Host the whole-genome haplotype index for HPRC v2.1.** It exists:
+  `~/src/hprc-gbz/hprc-v2.1-mc-grch38.haplotype-index.db` (7.0 GB, built
+  2026-09-05 with `--interval 16384`, 158.7M samples over all 53,150 paths,
+  no `haplotype_index_nodes` tag because it predates that check). Sanity
+  checked 2026-09-06 against the published database over HTTP with
+  `bin/query.js <url> --haplotype-index <file> --sample GRCh38 --contig chr6
+  --interval 31500000..31501000 --context 0 --alignments --stats`: 2,526
+  records from 232 samples, none unresolved, 13 range requests (3.3 MB) to the
+  graph and 7 (0.4 MB) to the index. Whether 16384 is dense enough for the
+  tutorial windows is still unmeasured; hosting to `s3://jbrowse.org/demos/hprc/`
+  is Colin's call.
 - **Tutorial figures on `pangenome_hprc.md`**, which currently says reading the
   `.gbz` haplotype walks "is a vg job": the graph cut from the GBZ at LPA KIV-2
   or AMY1 in **Sample rows** as carriage rather than attribution, and the
