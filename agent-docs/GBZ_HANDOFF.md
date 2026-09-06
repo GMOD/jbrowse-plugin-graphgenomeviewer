@@ -272,13 +272,12 @@ catch it either, since 12,240 nodes is under any limit that lets MHC class II's
   or AMY1 in **Sample rows** as carriage rather than attribution, and the
   haplotype lanes under GRCh38 at the same locus. Specs go in
   `website/scripts/specs/graph-hprc.ts`.
-- **Adapter gaps**: `mateShape: 'grouped'` is not implemented; `nodeLimit` is
-  a hard failure with no coarse fallback, and a whole-chromosome view stays on
-  a PIF; no `identity` field because gbz-base's `M` is match-or-mismatch; since
-  gbz-base 2.0.0 an alignment record is a union on `resolved`, and the adapter
-  still drops an unresolved fragment rather than drawing it anonymously.
-  (`context` defaulting to 0 was on this list; it is 1000 since 2026-09-06 and
-  no longer decides the record count, see `GBZ_PLAN.md` Phase 3.)
+- **Adapter gaps**: `nodeLimit` has no coarse fallback, so a whole-chromosome
+  view stays on a PIF (the failure now names a window that fits); no `identity`
+  field because gbz-base's `M` is match-or-mismatch; an unresolved fragment is
+  dropped, which `GBZ_PLAN.md` Phase 3 argues is the only option without
+  haplotype coordinates. (`context` defaulting to 0 and `mateShape: 'grouped'`
+  were on this list; see the plan's Phase 3 for why neither is a gap now.)
 - **Package gaps**: the 1 Mb cost above is edit computation, not I/O, so the
   lever is the per-path alignment against the reference; small queries are bound
   by sequential request latency, and prefetching the Nodes leaf pages for the
