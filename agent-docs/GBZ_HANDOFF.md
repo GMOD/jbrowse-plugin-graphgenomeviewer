@@ -136,6 +136,10 @@ interval 16384, 6.99 GB), context 1000, contained snarls, both files over HTTP:
 | MHC class II | chr6:32.51-32.60 Mb | 43,540 | 463 | 0 | 31.1 s |
 | AMY1 | chr1:103.69-103.78 Mb | 12,240 | 1,912 | 78,506 | 283 s |
 
+Re-measured on 2.1.0 the same six are 5.1, 5.8, 12.3, 15.5, 25.2 and 233.7 s,
+with identical node, record and step counts. The companion reads there are 8, 9,
+17, 14 and 11 requests under 1.1 MB, against AMY1's 5,202 and 325 MB.
+
 With the companion on local disk the same rows are 4.5, 4.8, 10.8, 14.0, 23.0
 and 95.5 s, so the hosted index roughly doubles a normal window and triples
 AMY1. Step counts are transport-independent and identical either way.
@@ -178,14 +182,19 @@ volume is what is invariant:
 | 16384 | 20,782 | 340,492,288 | 69.5 s |
 | 8192 | 41,555 | 340,418,560 | 82.7 s |
 
-340 MB over 78,506 identification steps is ~4.3 KB per step, about one SQLite
-page each: the steps land on distinct B-tree leaves, so there is no locality for
-a pager or a larger block to exploit, and a smaller block only multiplies
-requests. The lever is fewer steps, not cheaper ones: a denser companion for
-repeat regions (interval 4096 quarters the walk but scales the 6.99 GB file), or
+**Scatter, not step count, is what costs.** The 10 kb C4 window settles it from
+the other side: it is under the sampling interval too and takes 3,937 steps, and
+reads the companion in 8 requests, about 490 steps per request. AMY1 gets 15.
+Its 1,912 fragments belong to 464 different haplotypes at unrelated positions,
+so a block serves almost nothing before the next lookup lands elsewhere, where a
+normal window's walks stay in a handful of blocks. That is also why no block
+size helps.
+
+So the lever is removing the scattered lookups rather than making them cheaper:
 reusing one anchor across the sibling fragments of the same haplotype, which the
-`starts`/`chain` path in `identifyPaths` already half does and which would take
-1,912 walks down toward 464.
+`starts`/`chain` path in `identifyPaths` already half does, would take 1,912
+walks down toward 464 and is the same 4x a denser companion buys without adding
+21 GB to a hosted file.
 
 The earlier reading below stands for the local case, where the same 340 MB has
 to be decoded rather than fetched.
