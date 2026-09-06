@@ -161,63 +161,67 @@ or better.
 Repo: gbz-base-js (`cf9b8b8`), then the plugin (`context` redocumented, default
 1000), then the tutorial's prose once the plugin depends on the release.
 
-What landed. After identification `alignments()` sorts the resolved fragments
-of one path by haplotype coordinate and joins consecutive pairs that are
+What landed. After identification `alignments()` sorts the resolved fragments of
+one path by haplotype coordinate and joins consecutive pairs that are
 same-strand and monotone on both axes; the gap is `hapStart(B) - hapEnd(A)`
 against `refStart(B) - refEnd(A)` (reversed for `-`), scored by the same
 mismatch-or-indel rule `align()` applies to a diverging stretch, without
-sequences (the private nodes are outside the subgraph; a SNP bubble still
-comes out `1M`, matching the oracle). Pairs that fail stay separate, as do
-unresolved fragments; `distinct` output is not joined. `start` and `path` of a
-joined record follow the walk's orientation so the walk-back check still
-holds. The CHM13 against-orientation window on chr20 is now one `395M` record
-in each direction where it was `102M` plus pieces.
+sequences (the private nodes are outside the subgraph; a SNP bubble still comes
+out `1M`, matching the oracle). Pairs that fail stay separate, as do unresolved
+fragments; `distinct` output is not joined. `start` and `path` of a joined
+record follow the walk's orientation so the walk-back check still holds. The
+CHM13 against-orientation window on chr20 is now one `395M` record in each
+direction where it was `102M` plus pieces.
 
 Measured, graph hosted, companion local, contained snarls:
 
-| window | context 0 fragments | records | context 1000 records | agree |
-| --- | --- | --- | --- | --- |
-| C4 10 kb | 2,711 | 463 | 463 | 463 of 463 |
-| C4 60 kb | 8,083 | 463 | 463 | 463 of 463 |
-| CFH | 4,099 | 465 | 465 | 465 of 465 |
-| LPA KIV-2 | 465 | 464 | 464 | 463 of 464 |
-| MHC class II | 1,141,750 | 463 | 463 | |
-| AMY1 | 30,314 | 1,371 (478 haplotypes) | 1,395 (490) | |
+| window       | context 0 fragments | records                | context 1000 records | agree      |
+| ------------ | ------------------- | ---------------------- | -------------------- | ---------- |
+| C4 10 kb     | 2,711               | 463                    | 463                  | 463 of 463 |
+| C4 60 kb     | 8,083               | 463                    | 463                  | 463 of 463 |
+| CFH          | 4,099               | 465                    | 465                  | 465 of 465 |
+| LPA KIV-2    | 465                 | 464                    | 464                  | 463 of 464 |
+| MHC class II | 1,141,750           | 463                    | 463                  |            |
+| AMY1         | 30,314              | 1,371 (478 haplotypes) | 1,395 (490)          |            |
 
-"agree" is the haplotype coordinate read off the CIGAR at three reference
-points inside both records, for every `+` haplotype; the one LPA disagreement
-is an equal-weight gap placed differently in a repeat. AMY1's twelve missing
+"agree" is the haplotype coordinate read off the CIGAR at three reference points
+inside both records, for every `+` haplotype; the one LPA disagreement is an
+equal-weight gap placed differently in a repeat. AMY1's twelve missing
 haplotypes at context 0 share no node with the reference in the window.
 
-**`context` stays, and the plan's "retire it" is withdrawn.** The prediction
-was that context 0 becomes the fastest setting once records are joined. It is
-not: MHC class II sits inside a snarl far larger than the window, so context 0
-is 1.1M pieces to extract, identify and align, 41 s against 13 s at 1000, for
-the same 463 records. Elsewhere the two are within noise (CFH 8.7 against
-11.8 s, AMY1 11.1 against 12.6 s) after `editsAgainst` stopped aligning an
-empty path slice against the whole remaining reference per piece. So context
-trades nodes read against pieces joined, the record count no longer depends on
-it, and the adapter's slot says exactly that with default 1000 (the handoff's
-"defaults to 0" gap). The `AlignmentOptions` type is unchanged, so this is not
-a major version.
+**`context` stays, and the plan's "retire it" is withdrawn.** The prediction was
+that context 0 becomes the fastest setting once records are joined. It is not:
+MHC class II sits inside a snarl far larger than the window, so context 0 is
+1.1M pieces to extract, identify and align, 41 s against 13 s at 1000, for the
+same 463 records. Elsewhere the two are within noise (CFH 8.7 against 11.8 s,
+AMY1 11.1 against 12.6 s) after `editsAgainst` stopped aligning an empty path
+slice against the whole remaining reference per piece. So context trades nodes
+read against pieces joined, the record count no longer depends on it, and the
+adapter's slot says exactly that with default 1000 (the handoff's "defaults to
+0" gap). The `AlignmentOptions` type is unchanged, so this is not a major
+version.
 
 Still to do in this phase:
 
-- Publish gbz-base (the join is a minor, 2.3.0), bump the plugin's dependency,
-  and then make the plugin's "context does not add records" test assert
-  equality with the lane count; today it runs against 2.2.0 and can only
-  assert `>=`.
+- Publish gbz-base (five commits since v2.2.0, the join is a minor: 2.3.0;
+  `npm version minor` runs git-cliff and then `npm publish`), bump the plugin's
+  dependency from `^2.1.0`, and then make the plugin's "context does not add
+  records" test assert equality with the lane count; today it runs against 2.1.0
+  from npm and can only assert `>=`. Publishing is Colin's.
 - The tutorial's `#gbz-window-cost` paragraph says context decides the record
-  count (8,082 against 463). True of the deployed plugin until that bump; then
-  rewrite it around what context trades and regenerate the table from one run.
-- Draw unresolved fragments anonymously rather than dropping them, honour
-  `mateShape: 'grouped'` (the display sends it, the adapter ignores it), and
-  turn the hard `nodeLimit` failure into a message naming the zoom that would
-  fit.
-- `identity` is still missing: the CIGAR's `M` is match-or-mismatch and the
-  join scores gaps without sequences. Sequence-level identity would need the
-  private nodes fetched, which identification already does for the pieces
-  whose chain walked; measure before deciding.
+  count (8,082 against 463), and its AMY1 row still reads 234 s and 325 MB. True
+  of the deployed plugin until that bump; then rewrite it around what context
+  trades and regenerate the table from one run.
+- `identity` is still missing: the CIGAR's `M` is match-or-mismatch and the join
+  scores gaps without sequences. Sequence-level identity would need the private
+  nodes fetched, which identification already does for the pieces whose chain
+  walked; measure before deciding.
+
+Closed since the first draft: the `nodeLimit` failure names a window that fits
+(`b8ba3b1`, off gbz-base's `walkedBp`); `mateShape: 'grouped'` needs no adapter
+work, since `groupFeatures` reads the ungrouped shape and the records are one
+per haplotype now; an unresolved fragment stays dropped, because without
+haplotype coordinates it has no mate to draw.
 
 ## Phase 4: a companion whose geometry matches the queries
 
@@ -261,23 +265,44 @@ on the reference.
   degrades to today's behaviour without them. Rebuild and rehost the index and
   record the build in `scripts/build_hprc_gbz_index.sh`.
 
-## Phase 5: lane selection at 464 haplotypes
+## Phase 5: lane selection at 464 haplotypes (done 2026-09-06)
 
-Repo: the plugin (adapter surface) and jbrowse-components (display). This has to
-land before any hosted config points a multi-way lane track at the v2.1 graph
-without a fixed lane set.
+Repo: the plugin (`157bb5e`, and the header lanes the same day) and
+jbrowse-components (`MultiWaySyntenyDisplay`, `44e771ef80`). A hosted config can
+now point a multi-way lane track at the v2.1 graph and open on a fixed set.
 
-- Adapter: a method returning the graph's haplotypes as `sample#haplotype` with
-  their contigs, from the Paths scan it already does; and a fetch-time haplotype
-  filter through `opts`, the pattern `targetAssemblyName` uses.
-- Display: a lane picker on the shared tree sidebar (`TreeSidebarMixin`, the
-  home MAF and variant tracks use), lanes as sources, with the chosen set held
-  as display state so it survives a refetch and is shareable in a session.
-  Ordering by similarity stays parked per
-  `agent-docs/ideas/ordering-synteny-lanes-by-similarity.md`; densest-first is
-  fine for a chosen set of eight.
-- The wave VCF genotype matrix as the cheap answer to "which haplotypes differ
-  here" feeds the picker later; the picker itself does not need it.
+What landed:
+
+- Adapter: `getHaplotypes()` lists every `sample#haplotype` with its contigs
+  from the Paths scan; `opts.haplotypes` narrows a fetch to PanSN prefixes at
+  sample or haplotype depth, or to assembly names the config maps to one; and
+  `getHeader()` declares `lanes` (every haplotype but the reference sample's
+  own, `name` the lane's assembly name as the features' mates carry it, `label`
+  the PanSN prefix, `group` the sample) plus `anchorAssemblyName`. The adapter
+  type declares `adapterCapabilities: ['headerLanes']`.
+- Display: `selectedLanes` is a display property (session state, so a shared
+  session carries it), narrowing `rowAssemblies` beside `rowOrder` and
+  `hiddenLanes`; the config slot `lanes` is what a hosted track opens on until
+  the reader chooses. The universe the picker offers is the header's declared
+  lanes plus any lane the window places; an adapter with the `headerLanes`
+  capability has its `CoreGetInfo` header read even without a tier slot
+  (`installLodTierInfoFetch`'s new `alsoWhen`). The picker is a dialog off the
+  track menu ("Choose lanes...", with "Every lane" as the way back): filter,
+  tick or untick what is shown, lanes grouped by sample with the unplaced ones
+  greyed. Ticking every lane writes no selection.
+- The selection is applied in the display and not sent with the fetch,
+  deliberately: a walk has to be identified before anyone knows whose it is, so
+  a fetch-time filter saves no query time, and a local filter means a selection
+  change redraws without a 5 to 13 s refetch. What the selection saves is the
+  display's per-lane work, the lane-gene and lane-link fetches above all.
+
+What stays parked: the shared tree sidebar (`TreeSidebarMixin`) as the picker's
+home, with lanes as sources and cluster-by-identity as its run; the lane stack
+has its own geometry and headers, so that is a larger fit than the picker was,
+and it wants the wave VCF genotype matrix as the cheap "which haplotypes differ
+here" first. Ordering by similarity stays parked per
+`agent-docs/ideas/ordering-synteny-lanes-by-similarity.md`; densest-first is
+fine for a chosen set of eight.
 
 ## Phase 6: move the tutorial to release 2.1
 
@@ -308,9 +333,9 @@ Repo: jbrowse-components, hosted files at `s3://jbrowse.org/demos/hprc/` and
   chr20 database from every config we serve. That swap works because the
   multiway lanes are release 2 assemblies (`HG00097.1` and so on) and the v2.1
   graph's PanSN prefixes map to them through `assemblyNameToPanSN`, where the
-  chr20 graph's contigs were release 1 accessions. Until Phase 5 lands, gate the
-  swapped track's lanes through `assemblyNames` so the hosted demo is not 464
-  lanes.
+  chr20 graph's contigs were release 1 accessions. Set the display's `lanes`
+  slot on the swapped track so the hosted demo opens on a chosen set rather than
+  464 lanes; the picker takes it from there.
 
 ## Phase 7: the GBZ figures
 
@@ -357,7 +382,8 @@ Repo: jbrowse-components, `pangenome_cactus.md` and
 ## Phase 9: the hosted entry points
 
 - genomes.jbrowse.org's HPRC page gains "Haplotype lanes from the graph" beside
-  the graph launch, opening the Phase 7 CFH set. Needs Phase 5.
+  the graph launch, opening the Phase 7 CFH set through the display's `lanes`
+  slot.
 - The CHM13-referenced `gbz.db` gets a companion and the hs1 section opens the
   same locus from it. Lowest priority; it is the same build a second time.
 
@@ -369,4 +395,5 @@ Repo: jbrowse-components, `pangenome_cactus.md` and
 - No building on the release 1.1 chr20 database.
 - No GBZ figure before the v2.1 move.
 - No companion format change before Phase 1's numbers exist.
-- No hosted multi-way GBZ track without a fixed lane set until Phase 5 exists.
+- No hosted multi-way GBZ track without a fixed lane set (the display's `lanes`
+  slot).

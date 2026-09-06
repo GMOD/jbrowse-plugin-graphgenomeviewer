@@ -282,9 +282,10 @@ catch it either, since 12,240 nodes is under any limit that lets MHC class II's
   lever is the per-path alignment against the reference; small queries are bound
   by sequential request latency, and prefetching the Nodes leaf pages for the
   window's handle range would cut the 16 requests of a 100 kb window.
-- **89 lanes is not a lane stack** any more than 464 are; the demo shows the
-  graph-native read, and the lane-selection provider the design record parks is
-  what makes it usable.
+- **89 lanes is not a lane stack** any more than 464 are. Since 2026-09-06 the
+  display has a lane picker over the header's declared lanes and a `lanes`
+  config slot (`GBZ_PLAN.md` Phase 5); the hosted chr20 track still declares no
+  `lanes`, so it opens on all 89 until its config is updated.
 
 ## The ruzstd shim, and why it is not a PR
 
