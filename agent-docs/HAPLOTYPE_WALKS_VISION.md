@@ -95,9 +95,10 @@ haplotypes, and that decision can wait for a graph with thousands.
 
 Phase 7 waits on a sample filter for two figures. A static cut per tutorial
 locus, `gbz-base-query --format gfa --keep` for the chosen haplotypes written
-once from the hosted pair and loaded through the view's `gfaLocation`, gives every figure at zero runtime cost and
-is the honest reproduction story for a figure anyway. It does not generalise to
-arbitrary windows and the tutorial does not need it to.
+once from the hosted pair and loaded through the view's `gfaLocation`, gives
+every figure at zero runtime cost and is the honest reproduction story for a
+figure anyway. It does not generalise to arbitrary windows and the tutorial does
+not need it to.
 
 ## Define the copy count before making AMY1 a target
 
@@ -132,10 +133,17 @@ query time and a scoring rule stated, since the reader's `align()` and
 
 ## Order of work
 
-- Static cuts for the six tutorial loci; shoot KIV-2 and CFH from them.
+- Static cuts for the six tutorial loci; shoot KIV-2 and CFH from them. KIV-2
+  and CFH are done (`GBZ_PLAN.md`, Phase 7).
 - Copy-count measurement defined and shown by hand; then the AMY1 figure.
-- Anchored rows in `tools/haplotype-index`, the per-path walk in the reader,
-  `haplotypes` through the two range queries; rebuild and rehost the companion;
-  measure against the table above.
-- Selection through the adapter and the graph view's `GetSubgraph`.
+- Anchored rows in `tools/haplotype-index`, the per-path walk in the reader;
+  rebuild and rehost the companion; measure against the table above.
+- The set through the two range queries, the adapter and the graph view's
+  `GetSubgraph`: landed 2026-09-06 as reader 2.5.0's `keep` predicate and plugin
+  0.4.0's `haplotypes`, ahead of the anchored rows, because the
+  post-identification filter was cheap to add and the plumbing is the same
+  either way. What it buys today at KIV-2 is the alignment and the output (0.63
+  s to 0.02 s, 45.5 MB to 1.56 MB of GFA, 21,721 to 15,808 nodes), a fifth of
+  the 6 s window; the fetch and identification it cannot touch are what the
+  anchored rows are for, and the table's "under 1 s" target still waits on them.
 - Retire Phase 9's CHM13 companion as a separate item; it is the same file.

@@ -427,16 +427,33 @@ KIV-2 done the same day as a static cut (jbrowse-components `7bc3d238f9`,
 named walks and only the nodes they visit, 15,808 nodes in 1.6 MB, hosted at
 `demos/hprc/hprc-v2.1-mc-grch38.kiv2.eight-haplotypes.gfa`, and the view loads
 it through `gfaLocation` in Sample rows. What it shows is attribution by first
-visit among the eight, not carriage: `sampleRowLayout` places each node once,
-in the row of the first walk that visits it (`anchorNode`, first visit wins),
-and keeps the full visitor list only as the node's `samples`. A layout that
-places a node in every carrying row is the change that makes it a carriage
-figure, and the caption says so until it exists. Found on the way and fixed
-the same day: named W lines ran against the haplotype for about half the walks
-(reader `add1f2f`), and the graph view sent its hop count to the GBZ adapter as
-bp context (plugin `0cb66d7`, not yet released). The direction for the live
-route is `HAPLOTYPE_WALKS_VISION.md`.
+visit among the eight, not carriage: `sampleRowLayout` places each node once, in
+the row of the first walk that visits it (`anchorNode`, first visit wins), and
+keeps the full visitor list only as the node's `samples`. A layout that places a
+node in every carrying row is the change that makes it a carriage figure, and
+the caption says so until it exists. Found on the way and fixed the same day:
+named W lines ran against the haplotype for about half the walks (reader
+`add1f2f`), and the graph view sent its hop count to the GBZ adapter as bp
+context (plugin `0cb66d7`). The direction for the live route is
+`HAPLOTYPE_WALKS_VISION.md`.
 
+Later the same day the live route got its set: reader 2.5.0 takes a `keep`
+predicate on both range queries (applied after identification, so the fetch and
+the naming are unchanged and only the alignment and the output shrink), and
+plugin 0.4.0 carries `haplotypes` through `GetSubgraph`, persists it on the view
+as `subgraphHaplotypes`, reads it from the GBZ track's display `lanes` slot at
+launch and edits it in the graph settings dialog; the lanes' own fetch passes
+the same predicate. Measured at the KIV-2 window (chr6:160616002..160646753,
+context 1000, contained snarls, graph hosted, companion local): 464 haplotypes
+are 21,721 nodes, 465 W lines, 45.5 MB of GFA and 0.63 s of alignment; the eight
+are 15,808 nodes, 9 W lines, 1.56 MB and 0.02 s, with the 4.3-5.4 s fetch and
+0.2 s identification the same, so the window goes from 6.0-6.6 s to 4.6-5.8 s,
+about a fifth. The rest waits on the vision's reference-anchored companion. Also
+in 2.5.0: a `--forward-only` companion is refused at open, since it names only
+half the walks; in 0.4.0: a cut asked for on a haplotype lane's window is
+refused with a message naming the anchor instead of "Adapter returned no GFA".
+The bundle at the unversioned esmUrl is 0.4.0, so the hosted multiway demo
+launches its graph view on the eight lanes its config names.
 
 Done: `pangenome/hprc_gbz_cfhr_lanes` (jbrowse-components `264077f08a`, spec in
 `website/scripts/specs/synteny.ts` beside `hprc_cfhr_lane_stack`): the CFH
