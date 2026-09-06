@@ -201,17 +201,21 @@ adapter's slot says exactly that with default 1000 (the handoff's "defaults to
 0" gap). The `AlignmentOptions` type is unchanged, so this is not a major
 version.
 
+Closed 2026-09-06, after Phase 5: `@gmod/gbz-base` 2.3.0 is on npm (tag
+`v2.3.0`, published by the tag workflow), the plugin depends on it and is
+released as 0.1.0 and deployed to the demo bucket (bundle `1f5a17a155f7`), and
+the plugin's record-count test asserts equality: one record per haplotype CONTIG
+at any context, since HG03516#2 carries the micb window on two contigs and those
+are two walks (90 records over 89 lanes). The tutorial's `#gbz-window-cost`
+section is rewritten around what context trades, with the table from one 2.3.0
+run (jbrowse-components `56d0746a00`; hosted, context 1000, contained snarls:
+7.5, 5.0, 8.1, 8.5, 12.7 and 12.8 s; AMY1 is 1,395 records from 1,912 pieces, 24
+companion requests), and the tutorial's GBZ track lists the eight lanes in the
+display's `lanes` slot. `context` 20000 and `overlapping` snarls at AMY1 still
+exhaust a 4 GB heap after about a minute on 2.3.0, remeasured.
+
 Still to do in this phase:
 
-- Publish gbz-base (five commits since v2.2.0, the join is a minor: 2.3.0;
-  `npm version minor` runs git-cliff and then `npm publish`), bump the plugin's
-  dependency from `^2.1.0`, and then make the plugin's "context does not add
-  records" test assert equality with the lane count; today it runs against 2.1.0
-  from npm and can only assert `>=`. Publishing is Colin's.
-- The tutorial's `#gbz-window-cost` paragraph says context decides the record
-  count (8,082 against 463), and its AMY1 row still reads 234 s and 325 MB. True
-  of the deployed plugin until that bump; then rewrite it around what context
-  trades and regenerate the table from one run.
 - `identity` is still missing: the CIGAR's `M` is match-or-mismatch and the join
   scores gaps without sequences. Sequence-level identity would need the private
   nodes fetched, which identification already does for the pieces whose chain

@@ -154,6 +154,19 @@ Only AMY1's code path changed (5,202 requests and 325 MB became 24 and 1.5 MB);
 the spread against the 2.1.0 row for the others is run-to-run network variance
 on identical request counts.
 
+The same six on the released 2.3.0 (`v2.3.0`, the join included), both files
+hosted, timed around the whole command; records are one per haplotype contig
+now, so AMY1's 1,912 pieces are 1,395 records:
+
+| locus        | time   | records | graph requests | companion requests |
+| ------------ | ------ | ------- | -------------- | ------------------ |
+| C4 10 kb     | 7.5 s  | 463     | 15             | 8                  |
+| C4 60 kb     | 5.0 s  | 463     | 15             | 9                  |
+| CFH          | 8.1 s  | 465     | 15             | 17                 |
+| LPA KIV-2    | 8.5 s  | 464     | 15             | 14                 |
+| MHC class II | 12.7 s | 463     | 21             | 11                 |
+| AMY1         | 12.8 s | 1,395   | 29             | 24                 |
+
 The same six on `ad48851` (typed-array path extraction, twin skipping, and a
 one-request prefetch of the reference walk's Nodes range), same setup:
 
