@@ -34,8 +34,14 @@ export function subgraphMenuItems({
   let items: MenuItem[] = []
   if (region && tracks.length > 0) {
     const problem = subgraphRegionProblem(region)
-    const launch = (trackId: string) => () => {
-      launchSubgraphView({ session, region, trackId, connectedViewId })
+    const launch = (track: SubgraphTrack) => () => {
+      launchSubgraphView({
+        session,
+        region,
+        trackId: track.trackId,
+        connectedViewId,
+        haplotypes: track.haplotypes,
+      })
     }
     items =
       tracks.length === 1
@@ -45,7 +51,7 @@ export function subgraphMenuItems({
               icon: BubbleChartIcon,
               disabled: problem !== undefined,
               disabledHelpText: problem,
-              onClick: launch(tracks[0]!.trackId),
+              onClick: launch(tracks[0]!),
             },
           ]
         : [
@@ -57,7 +63,7 @@ export function subgraphMenuItems({
                 label: track.name,
                 disabled: problem !== undefined,
                 disabledHelpText: problem,
-                onClick: launch(track.trackId),
+                onClick: launch(track),
               })),
             },
           ]

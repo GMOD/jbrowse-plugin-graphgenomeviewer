@@ -194,3 +194,20 @@ test('the widest block wins on bp, so an oversized straddle still trips the cap'
   expect(region?.refName).toBe('ctgB')
   expect(subgraphRegionProblem(region!)).toMatch(/zoom in/)
 })
+
+// The set is a snapshot prop like the region, so the launched view re-sends it
+// on every cut; a launch that names none leaves the prop unset.
+test('the launch carries the haplotype set into the view snapshot', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session } = createDisplay()
+  const region = { refName: 'ctgA', assemblyName: 'volvox', start: 0, end: 100 }
+  launchSubgraphView({
+    session,
+    region,
+    trackId: 'graph_track',
+    haplotypes: ['HG002#1'],
+  })
+  launchSubgraphView({ session, region, trackId: 'graph_track' })
+  expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual(['HG002#1'])
+  expect(session.addedViews[1]![1].subgraphHaplotypes).toBeUndefined()
+})

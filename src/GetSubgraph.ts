@@ -8,10 +8,20 @@ import type { Region } from '@jbrowse/core/util'
 // CALL, not to this payload, and core's `EntriesDeclaringCallLevelFields` fails
 // the build for a registry entry that declares one. `execute` still receives
 // them, because `RpcExecuteArgs` intersects `RpcCallContext` in.
+// `hops` is how far past the window a cut follows links, which only the rGFA
+// cut reads; the GBZ cut has its own bp `context` slot. `haplotypes` is the
+// set the cut is for, lane assembly names or PanSN prefixes, which only the GBZ
+// cut reads: it keeps those walks and the nodes they visit. Undefined or empty
+// is every haplotype.
+export interface SubgraphCutOptions {
+  hops?: number
+  haplotypes?: string[]
+}
+
 export interface GetSubgraphArgs {
   adapterConfig: Record<string, unknown>
   region: Region
-  opts?: { hops?: number }
+  opts?: SubgraphCutOptions
 }
 
 declare module '@jbrowse/core/rpc/RpcRegistry' {
@@ -24,11 +34,9 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
 }
 
 // Adapters that can cut a local subgraph out of a graph file implement this:
-// RgfaTabixAdapter and GbzBaseSyntenyAdapter today. `hops` is how far past the
-// window a cut follows links, which only the rGFA cut reads; the GBZ cut has
-// its own bp `context` slot.
+// RgfaTabixAdapter and GbzBaseSyntenyAdapter today.
 interface SubgraphAdapter {
-  getSubgraph(region: Region, opts?: { hops?: number }): Promise<string>
+  getSubgraph(region: Region, opts?: SubgraphCutOptions): Promise<string>
 }
 
 function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {

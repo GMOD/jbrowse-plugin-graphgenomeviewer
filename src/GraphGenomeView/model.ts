@@ -391,6 +391,10 @@ export default function stateModelFactory() {
             end: number
           }>(),
         ),
+        // The haplotypes the cut is for, lane assembly names or PanSN
+        // prefixes, beside the region so a re-cut asks for the same set;
+        // undefined is every haplotype. Only the GBZ cut reads it.
+        subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
         // How far the cut follows links past the segments the region's own
         // links name, defaulting to one hop because at 0 the drawing is wrong
         // rather than merely sparse. A detour that leaves the backbone before
@@ -995,6 +999,11 @@ export default function stateModelFactory() {
       setSubgraphContext(hops: number) {
         self.subgraphContext = hops
       },
+      // Same contract: the caller refetches, since the set describes the next
+      // cut and the graph on screen was cut for the old one.
+      setSubgraphHaplotypes(haplotypes: string[] | undefined) {
+        self.subgraphHaplotypes = haplotypes
+      },
       // Same contract as setSubgraphContext: describes how the NEXT cut is
       // gated, so the caller refetches. See the prop for why a session is
       // allowed to move this and the launch menus are not.
@@ -1417,6 +1426,7 @@ export default function stateModelFactory() {
         },
         opts: {
           hops?: number
+          haplotypes?: string[]
         } = {},
       ) {
         const regionSize = region.end - region.start
@@ -1442,7 +1452,7 @@ export default function stateModelFactory() {
           const gfaText = (yield rpcManager.call(sessionId, 'GetSubgraph', {
             adapterConfig,
             region,
-            opts: { hops: opts.hops },
+            opts: { hops: opts.hops, haplotypes: opts.haplotypes },
           })) as string
           self.setFetchMs(performance.now() - fetchStart)
           if (!gfaText) {
@@ -1478,6 +1488,7 @@ export default function stateModelFactory() {
         if (track && region) {
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
             hops: self.subgraphContext,
+            haplotypes: self.subgraphHaplotypes,
           })
         }
       }
@@ -1513,6 +1524,7 @@ export default function stateModelFactory() {
           self.loadedRegion = opts.trackId ? region : undefined
           yield* doSubgraphLoad(adapterConfig, region, {
             hops: self.subgraphContext,
+            haplotypes: self.subgraphHaplotypes,
           })
         }),
         // Cut on attach only — a graph already on screen is either the user's

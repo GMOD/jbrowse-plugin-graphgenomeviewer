@@ -13,7 +13,11 @@ import {
   regionFromViewport,
 } from './launchSubgraphView'
 import { subgraphMenuItems } from './subgraphMenuItems'
-import { adapterCanCutSubgraph, subgraphTracks } from './subgraphTracks'
+import {
+  adapterCanCutSubgraph,
+  displayLanes,
+  subgraphTracks,
+} from './subgraphTracks'
 
 import type { SubgraphTrack } from './subgraphTracks'
 import type PluginManager from '@jbrowse/core/PluginManager'
@@ -39,7 +43,13 @@ function canCutSubgraph(
 // The graph track a launch from this display draws from, when the display's own
 // track is the graph. One entry, so the menu offers no choice that isn't one.
 function ownTrack(track: AbstractTrackModel): SubgraphTrack[] {
-  return [{ trackId: getConf(track, 'trackId'), name: getConf(track, 'name') }]
+  return [
+    {
+      trackId: getConf(track, 'trackId'),
+      name: getConf(track, 'name'),
+      haplotypes: displayLanes(track.configuration),
+    },
+  ]
 }
 
 export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
@@ -80,6 +90,7 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                           region,
                           trackId: getConf(track, 'trackId'),
                           connectedViewId: view.id,
+                          haplotypes: displayLanes(track.configuration),
                         })
                       }
                     },

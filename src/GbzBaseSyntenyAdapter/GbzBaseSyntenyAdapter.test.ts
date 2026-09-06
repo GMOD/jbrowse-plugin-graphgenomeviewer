@@ -272,9 +272,9 @@ test('the graph lists its haplotypes with their contigs, and a fetch can be narr
     haplotypes: ['HG00621.1'],
   })
   expect(byAssemblyName.length).toBeGreaterThan(0)
-  expect(
-    new Set(byAssemblyName.map(f => mateOf(f).assemblyName)),
-  ).toEqual(new Set(['HG00621.1']))
+  expect(new Set(byAssemblyName.map(f => mateOf(f).assemblyName))).toEqual(
+    new Set(['HG00621.1']),
+  )
 })
 
 test('the node limit fails a window rather than reading it whole, naming a zoom that fits', async () => {
@@ -335,6 +335,46 @@ test('a companion haplotype index names the walks the same way', async () => {
   expect(b).toBe(a)
   const fa = await feats(companion, window)
   expect(fa.length).toBeGreaterThan(40)
+})
+
+// The set reaches gbz-base as its keep predicate, so the cut is the chosen
+// walks and the nodes they visit: fewer S lines, not just fewer W lines. Lane
+// names resolve through assemblyNameToPanSN the way getFeatures's do.
+test('getSubgraph for a haplotype set keeps those walks, the reference, and only their nodes', async () => {
+  const adapter = makeAdapter({
+    assemblyNames: ['hg38', 'hg01106_p'],
+    assemblyNameToPanSN: { hg38: 'GRCh38#0', hg01106_p: 'HG01106#1' },
+  })
+  const whole = await adapter.getSubgraph(window)
+  const kept = await adapter.getSubgraph(window, {
+    haplotypes: ['hg01106_p', 'HG01106#2'],
+  })
+  const samples = (gfa: string) =>
+    gfaLines(gfa, 'W').map(line => line.split('\t').slice(1, 3).join('#'))
+  expect(samples(kept)[0]).toBe('GRCh38#0')
+  expect(samples(kept).slice(1).sort()).toEqual(['HG01106#1', 'HG01106#2'])
+  expect(gfaLines(kept, 'S').length).toBeLessThan(gfaLines(whole, 'S').length)
+  expect(gfaLines(kept, 'S').length).toBeGreaterThan(0)
+  expect(await adapter.getSubgraph(window, { haplotypes: [] })).toBe(whole)
+})
+
+test('getFeatures for a haplotype set answers the same records as filtering the whole window', async () => {
+  const all = await feats(makeAdapter(), window)
+  const some = await feats(makeAdapter(), window, { haplotypes: ['HG01106'] })
+  const ids = (fs: { id: () => string }[]) => fs.map(f => f.id()).sort()
+  expect(some.length).toBe(2)
+  expect(ids(some)).toEqual(
+    ids(all.filter(f => mateOf(f).assemblyName.startsWith('HG01106#'))),
+  )
+})
+
+// A lane's window is in its own contig's coordinates, which the graph is not
+// indexed on; the adapter says so rather than answering '' for the view to
+// report as "no GFA".
+test('getSubgraph refuses a window on a haplotype lane with a message naming the anchor', async () => {
+  await expect(
+    makeAdapter().getSubgraph({ ...window, assemblyName: 'HG01106#1' }),
+  ).rejects.toThrow(/cut on its reference, hg38; a window on HG01106#1/)
 })
 
 test('getSubgraph outside every reference fragment is empty', async () => {

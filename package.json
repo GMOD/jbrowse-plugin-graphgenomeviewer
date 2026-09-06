@@ -46,7 +46,7 @@
   },
   "private": true,
   "dependencies": {
-    "@gmod/gbz-base": "^2.3.0",
+    "@gmod/gbz-base": "^2.5.0",
     "@gmod/tabix": "^3.5.5",
     "@jbrowse/cigar-utils": "link:../../jbrowse-components/packages/cigar-utils",
     "@jbrowse/core": "link:../../jbrowse-components/packages/core",

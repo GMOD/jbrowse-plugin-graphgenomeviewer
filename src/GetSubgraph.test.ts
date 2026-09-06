@@ -59,6 +59,24 @@ test('forwards the region and context to the adapter', async () => {
   expect(result).toBe('H\tVN:Z:1.0')
 })
 
+// The set rides in `opts` as plain JSON: serializeArguments renames the region
+// and leaves the rest alone, so what the view sends is what the adapter gets.
+test('forwards the haplotype set to the adapter', async () => {
+  const getSubgraph = vi.fn().mockResolvedValue('H\tVN:Z:1.1')
+  mockGetAdapter.mockResolvedValue({
+    dataAdapter: { getSubgraph },
+  })
+
+  await makeMethod().execute(
+    { ...makeArgs(), opts: { hops: 1, haplotypes: ['HG002#1', 'HG005'] } },
+    'MainThreadRpcDriver',
+  )
+  expect(getSubgraph).toHaveBeenCalledWith(region, {
+    hops: 1,
+    haplotypes: ['HG002#1', 'HG005'],
+  })
+})
+
 // The bug this pins: a launch passes the region in the *assembly's* spelling,
 // and hg38 on every GRCh38 FASTA jbrowse.org hosts calls chr6 `6`, while an HPRC
 // graph's stable names are `GRCh38#0#chr6`. Renaming is what closes that gap, and

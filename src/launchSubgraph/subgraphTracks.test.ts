@@ -1,4 +1,8 @@
-import { adapterCanCutSubgraph, subgraphTracks } from './subgraphTracks'
+import {
+  adapterCanCutSubgraph,
+  displayLanes,
+  subgraphTracks,
+} from './subgraphTracks'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 
@@ -86,4 +90,37 @@ test('an unregistered adapter type is skipped, not thrown on', () => {
       RGFA_TRACK,
     ]),
   ).toEqual(['graph'])
+})
+
+// A launch from a linear view has no display of the graph track in scope, so
+// the set it cuts for is the track config's own lane selection: the `lanes`
+// slot a hosted config sets on its MultiWaySyntenyDisplay.
+test('a track whose display names lanes launches for that set', () => {
+  const lanes = ['HG00097.1', 'HG00099.1']
+  const gbz = track({
+    trackId: 'gbz',
+    name: 'graph',
+    assemblyNames: ['hg38'],
+    adapter: { type: 'RgfaTabixAdapter' },
+    displays: [
+      { type: 'LinearBasicDisplay' },
+      { type: 'MultiWaySyntenyDisplay', lanes },
+    ],
+  })
+  expect(displayLanes(gbz)).toEqual(lanes)
+  expect(
+    subgraphTracks(pluginManager, { tracks: [gbz], assemblies: [] }, 'hg38'),
+  ).toEqual([{ trackId: 'gbz', name: 'graph', haplotypes: lanes }])
+})
+
+test('a track with no lane selection launches for every haplotype', () => {
+  expect(displayLanes(RGFA_TRACK)).toBeUndefined()
+  expect(
+    displayLanes(
+      track({
+        trackId: 'x',
+        displays: [{ type: 'MultiWaySyntenyDisplay', lanes: [] }],
+      }),
+    ),
+  ).toBeUndefined()
 })

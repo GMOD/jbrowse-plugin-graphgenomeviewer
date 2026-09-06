@@ -88,6 +88,7 @@ export function launchSubgraphView({
   region,
   trackId,
   connectedViewId,
+  haplotypes,
 }: {
   session: SubgraphLaunchSession
   region: SubgraphRegion
@@ -95,6 +96,9 @@ export function launchSubgraphView({
   // The linear view being launched from. Pairs the two views for the hover
   // sync — see hoverSync/graphViewHighlights.
   connectedViewId?: string
+  // The set the cut is for, from the track's own lane selection; undefined is
+  // every haplotype. See subgraphHaplotypes on the view.
+  haplotypes?: string[] | undefined
 }) {
   const regionSize = region.end - region.start
   if (regionSize > MAX_GRAPH_REGION_BP) {
@@ -107,6 +111,7 @@ export function launchSubgraphView({
       displayName: `Graph — ${regionLabel(region)}`,
       loadedTrackId: trackId,
       loadedRegion: region,
+      subgraphHaplotypes: haplotypes,
       connectedViewId,
     })
   }

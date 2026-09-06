@@ -13,6 +13,7 @@ import {
 } from '../synteny/panSNAssemblies.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
+import type { SubgraphCutOptions } from '../GetSubgraph.ts'
 import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
@@ -79,6 +80,16 @@ function haplotypeWanted(name: PathName, wanted: string[] | undefined) {
     wanted === undefined ||
     wanted.some(candidate => panSNMatchesPrefix(prefix, candidate))
   )
+}
+
+export class HaplotypeWindowError extends Error {
+  override name = 'HaplotypeWindowError'
+
+  constructor(assemblyName: string, anchor: string) {
+    super(
+      `the graph is cut on its reference, ${anchor}; a window on ${assemblyName} has no reference coordinates to cut at. Open the graph from a ${anchor} view, and find this haplotype's lane there`,
+    )
+  }
 }
 
 export class NodeLimitError extends Error {
@@ -330,17 +341,42 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   }
 
   /**
+   * The predicate gbz-base applies after naming the walks, from the lanes a
+   * fetch asks for: the walks it rejects are neither aligned nor written, and
+   * a cut drops the nodes only they visit. Undefined when every haplotype is
+   * wanted, so the reader skips the pass.
+   */
+  private keepPredicate(haplotypes: string[] | undefined) {
+    const wantedPrefixes =
+      haplotypes === undefined || haplotypes.length === 0
+        ? undefined
+        : haplotypes.map(lane => resolvePanSNPrefix(this, lane))
+    return wantedPrefixes === undefined
+      ? undefined
+      : (name: PathName) => haplotypeWanted(name, wantedPrefixes)
+  }
+
+  /**
    * The graph view's cut of the window: the reference walk, every top-level
    * snarl contained in it, and one W line per haplotype walk, PanSN-named
    * when the database (or its companion) carries the haplotype index and
    * `unknown#N` otherwise. The reference walk is the first W line, which is
-   * the one the view anchors on by default.
+   * the one the view anchors on by default. With `haplotypes` the W lines are
+   * that set's and the nodes those walks visit, the reference walk kept.
+   *
+   * Only a window on the anchor can be cut: a haplotype lane's coordinates
+   * are its own contig's, and the graph is indexed for random access on the
+   * reference sample's paths alone.
    */
-  async getSubgraph(region: Region) {
-    const { db } = await this.graph()
-    const { refName, start, end } = region
+  async getSubgraph(region: Region, opts: SubgraphCutOptions = {}) {
+    const { db, anchor } = await this.graph()
+    const { assemblyName, refName, start, end } = region
+    if (assemblyName !== anchor) {
+      throw new HaplotypeWindowError(assemblyName, anchor)
+    }
     const query = await this.referenceQuery(refName, {})
     const nodeLimit: number = this.getConf('nodeLimit')
+    const keep = this.keepPredicate(opts.haplotypes)
     const subgraph = query
       ? await db
           .getSubgraphForRange(query, start, end, {
@@ -348,6 +384,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             snarls: this.getConf('subgraphSnarls'),
             haplotypes: 'all',
             limit: nodeLimit,
+            ...(keep === undefined ? {} : { keep }),
           })
           .catch((error: unknown) => {
             throw nodeLimitError(error, nodeLimit, end - start) ?? error
@@ -368,9 +405,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       if (assemblyName === anchor) {
         const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
         const asmByPrefix = assemblyByPanSNPrefix(this)
-        const wantedPrefixes = opts.haplotypes?.map(lane =>
-          resolvePanSNPrefix(this, lane),
-        )
+        const keep = this.keepPredicate(opts.haplotypes)
         const query = await this.referenceQuery(refName, opts)
         const nodeLimit: number = this.getConf('nodeLimit')
         const alignments = query
@@ -383,6 +418,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
                     context: this.getConf('context'),
                     haplotypes: 'all',
                     limit: nodeLimit,
+                    ...(keep === undefined ? {} : { keep }),
                   })
                   .catch((error: unknown) => {
                     throw nodeLimitError(error, nodeLimit, end - start) ?? error
@@ -393,11 +429,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
           if (
             alignment.resolved &&
             (targetPrefix === undefined ||
-              panSNMatchesPrefix(
-                haplotypePrefix(alignment.name),
-                targetPrefix,
-              )) &&
-            haplotypeWanted(alignment.name, wantedPrefixes)
+              panSNMatchesPrefix(haplotypePrefix(alignment.name), targetPrefix))
           ) {
             const feature = fragmentFeature({
               alignment,

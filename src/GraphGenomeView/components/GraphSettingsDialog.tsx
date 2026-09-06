@@ -20,6 +20,7 @@ import { makeStyles } from 'tss-react/mui'
 
 import { MAX_PATH_COLORS } from '../pathColors'
 import SubgraphContextSelect from './SubgraphContextSelect'
+import SubgraphHaplotypesField from './SubgraphHaplotypesField'
 import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
 
@@ -188,6 +189,8 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
         </div>
 
         <SubgraphContextSelect model={model} />
+
+        <SubgraphHaplotypesField model={model} />
 
         <div className={classes.section}>
           <FormControl className={classes.formControl}>

@@ -7,6 +7,9 @@ import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 export interface SubgraphTrack {
   trackId: string
   name: string
+  // The lanes one of the track's displays is configured to draw, which is the
+  // set a launched cut is for; undefined when no display names any.
+  haplotypes: string[] | undefined
 }
 
 export interface TrackScanSession {
@@ -35,6 +38,29 @@ export function adapterCanCutSubgraph(
   )
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+// The `lanes` slot of the track's displays (MultiWaySyntenyDisplay's chosen
+// set), the first non-empty one. A launch from a linear view has no display of
+// the graph track in scope, so the config is where its selection lives.
+export function displayLanes(track: AnyConfigurationModel) {
+  const displays: unknown = readConfObject(track, 'displays')
+  const sets = Array.isArray(displays)
+    ? displays.flatMap((display: unknown) =>
+        typeof display === 'object' &&
+        display !== null &&
+        'lanes' in display &&
+        isStringArray(display.lanes) &&
+        display.lanes.length > 0
+          ? [display.lanes]
+          : [],
+      )
+    : []
+  return sets[0]
+}
+
 // Tracks anywhere in the session that can cut a subgraph on `assemblyName`, so
 // the launch can be offered from a linear view that doesn't have the graph track
 // in it. The entry point no longer has to be the graph track's own menu — which
@@ -58,7 +84,11 @@ export function subgraphTracks(
       'type' in adapter &&
       adapterCanCutSubgraph(pluginManager, adapter.type)
     ) {
-      found.push({ trackId, name: getTrackName(track, session) })
+      found.push({
+        trackId,
+        name: getTrackName(track, session),
+        haplotypes: displayLanes(track),
+      })
     }
   }
   return found

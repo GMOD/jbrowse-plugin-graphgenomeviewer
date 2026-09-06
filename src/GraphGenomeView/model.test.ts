@@ -335,6 +335,44 @@ describe('refetchIfNeeded guard conditions', () => {
     )
   })
 
+  // The set rides on the snapshot beside the region, so a launched or restored
+  // view cuts for the haplotypes it was opened on rather than all of them.
+  test('passes the stored haplotype set to the cut, and a changed one to a re-cut', async () => {
+    rpcRespond()
+    const model = createModel()
+    applySnapshot(model, {
+      ...getSnapshot(model),
+      loadedTrackId: 'rgfa-track',
+      loadedRegion: TEST_REGION,
+      subgraphHaplotypes: ['HG002#1', 'HG005#2'],
+    })
+    mockSession.tracks = [TEST_TRACK]
+
+    await model.refetchIfNeeded()
+
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({
+        opts: { hops: 1, haplotypes: ['HG002#1', 'HG005#2'] },
+      }),
+    )
+    expect(getSnapshot(model).subgraphHaplotypes).toEqual([
+      'HG002#1',
+      'HG005#2',
+    ])
+
+    mockRpcCall.mockClear()
+    model.setSubgraphHaplotypes(undefined)
+    await model.reloadSubgraph()
+
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({ opts: { hops: 1, haplotypes: undefined } }),
+    )
+  })
+
   // The one difference between the two entry points: widening the cut has to
   // re-cut a graph that is already on screen, which is exactly what
   // refetchIfNeeded declines to do.
