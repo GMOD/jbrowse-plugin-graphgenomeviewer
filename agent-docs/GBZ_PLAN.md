@@ -528,8 +528,11 @@ about a fifth. The rest waits on the vision's reference-anchored companion. Also
 in 2.5.0: a `--forward-only` companion is refused at open, since it names only
 half the walks; in 0.4.0: a cut asked for on a haplotype lane's window is
 refused with a message naming the anchor instead of "Adapter returned no GFA".
-The bundle at the unversioned esmUrl is 0.4.0, so the hosted multiway demo
-launches its graph view on the eight lanes its config names.
+The bundle at the unversioned esmUrl is 0.5.0 (reader 2.6.0, deployed
+2026-09-07, pinnable at `817cc4bde8c8/`), and the hosted `demos/hprc` and
+`demos/hprc_multiway` configs name the anchored companion, so the hosted
+multiway demo launches its graph view on the eight lanes its config names and
+walks only those.
 
 Done: `pangenome/hprc_gbz_cfhr_lanes` (jbrowse-components `264077f08a`, spec in
 `website/scripts/specs/synteny.ts` beside `hprc_cfhr_lane_stack`): the CFH
