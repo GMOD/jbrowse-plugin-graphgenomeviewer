@@ -137,7 +137,11 @@ query time and a scoring rule stated, since the reader's `align()` and
   and CFH are done (`GBZ_PLAN.md`, Phase 7).
 - Copy-count measurement defined and shown by hand; then the AMY1 figure.
 - Anchored rows in `tools/haplotype-index`, the per-path walk in the reader;
-  rebuild and rehost the companion; measure against the table above.
+  rebuild and rehost the companion; measure against the table above. Done
+  2026-09-07 as reader 2.6.0 and the `.anchored.db` companion; the numbers and
+  the two design corrections it took (the most-visited node rather than the
+  node containing the multiple, and samples that run with the reference only)
+  are in `GBZ_PLAN.md`, Phase 4.
 - The set through the two range queries, the adapter and the graph view's
   `GetSubgraph`: landed 2026-09-06 as reader 2.5.0's `keep` predicate and plugin
   0.4.0's `haplotypes`, ahead of the anchored rows, because the

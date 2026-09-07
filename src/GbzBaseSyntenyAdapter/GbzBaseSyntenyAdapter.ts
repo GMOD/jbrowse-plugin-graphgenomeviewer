@@ -18,6 +18,7 @@ import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
+import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'
@@ -70,7 +71,7 @@ export interface GbzHeaderLane {
  * (`HG002`) or haplotype (`HG002#1`) depth, or assembly names the config maps
  * to one; undefined is every haplotype.
  */
-export interface GbzFeatureOptions extends BaseOptions {
+export interface GbzFeatureOptions extends ComparativeOptions {
   haplotypes?: string[]
 }
 
@@ -341,10 +342,12 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   }
 
   /**
-   * The predicate gbz-base applies after naming the walks, from the lanes a
-   * fetch asks for: the walks it rejects are neither aligned nor written, and
-   * a cut drops the nodes only they visit. Undefined when every haplotype is
-   * wanted, so the reader skips the pass.
+   * The predicate gbz-base builds a window for, from the lanes a fetch asks
+   * for. With a companion that carries anchor rows the reader walks only the
+   * wanted haplotypes from the anchor before the window and never names the
+   * rest; without them it names every walk and drops the ones the predicate
+   * rejects. Either way a cut holds those walks, the reference, and the nodes
+   * they visit. Undefined when every haplotype is wanted.
    */
   private keepPredicate(haplotypes: string[] | undefined) {
     const wantedPrefixes =

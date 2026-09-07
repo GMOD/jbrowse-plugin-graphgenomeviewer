@@ -227,10 +227,86 @@ work, since `groupFeatures` reads the ungrouped shape and the records are one
 per haplotype now; an unresolved fragment stays dropped, because without
 haplotype coordinates it has no mate to draw.
 
-## Phase 4: a companion whose geometry matches the queries
+## Phase 4: a companion whose geometry matches the queries (anchors done 2026-09-07)
 
 Repo: gbz-base-js (`tools/haplotype-index` and the reader), then the plugin and
 the display. Measure Phases 1 to 3 first; this is a format change.
+
+What landed, 2026-09-07 (reader 2.6.0, the first bullet below in its final
+form):
+
+- `gbz-haplotype-index --anchor-spacing S` (default 131,072) writes a
+  `HaplotypeAnchors` table: per indexed reference path and multiple k of S, one
+  anchor node, and every path's visit through an anchor node goes into
+  `HaplotypeSamples` in both orientations. The anchor for k = 0 is the path's
+  first node; for k >= 1 it is the node with the most GBWT positions among those
+  overlapping `[kS - S/2, kS)`, first on a tie. The first build of the day used
+  "the node containing kS" and measured badly: at MHC class II that node had 249
+  rows for 464 haplotypes, so most of the eight bypassed it, and at AMY1 it sat
+  inside the amylase bubble and all eight did. Picking the most-visited node of
+  the half spacing before the multiple is what makes the anchor one nearly every
+  haplotype of the region passes. HPRC v2.1: 45,557 anchors on 44,646 nodes over
+  the 292 GRCh38 and CHM13 paths, companion about 7.9 GB against 7.0 without,
+  hosted as `hprc-v2.1-mc-grch38.haplotype-index.anchored.db` (the same name the
+  first build had; that object was overwritten, since no config pointed at it).
+- The reader (`subgraphForHaplotypes`, taken by both range queries when `keep`
+  is set and `haplotypes` is `all`) looks up the anchor for
+  `floor(windowStart / S) * S`, walks the reference from that node to a margin
+  past the window to map its nodes, reads the rows at the anchor node, and walks
+  each wanted path from its row with `lf()` through the window: identity and
+  coordinate from the row, no chain walk, no index scan, and the subgraph is the
+  nodes those walks visit. A wanted contig with no row at the anchor is found
+  from its per-path samples on the window's nodes, and here the second bug of
+  the day: a sample can be the path's other orientation, on the flipped handle
+  of a reference node, and a walk from it leaves the window backwards (HG00099#1
+  at MHC ran 30,334 steps to the bound that way). The reader now keeps only
+  samples whose orientation runs with the reference, decided by the handle for a
+  sample on a reference node and by a forward probe to the first mapped node
+  otherwise. The third, found on the rebuilt companion: at AMY1 the anchor node
+  sits in a duplicated stretch, HG01109#1 visits it twice, and the reader walked
+  both rows, the second 30,233 steps to the bound, which threw the window to the
+  sampled route. It now walks a path's visits nearest the reference's own row
+  first (GBWT rows are ordered by the sequence before them) and stops at the
+  first that goes through the window, so a path fails only when no visit does. A
+  walk that still cannot be completed makes the whole window fall back to the
+  sampled route, and `--stats` says why. A companion without the table, or
+  `haplotypes: 'distinct'`, takes the sampled route and trims it, as 2.5.0 did.
+- Measured, both files hosted, context 1000, contained snarls, the tutorial's
+  eight against all 464, on a fresh open after a warm-up window elsewhere and
+  again cached (`scripts/measure-windows.mjs` in gbz-base-js):
+
+| Window       | Set   | Open       | Route    | Records | Nodes  | Graph           | Companion       | Time   |
+| ------------ | ----- | ---------- | -------- | ------- | ------ | --------------- | --------------- | ------ |
+| KIV-2 30 kb  | eight | after open | anchored | 8       | 3,140  | 9 req, 2.23 MB  | 9 req, 0.59 MB  | 3.08 s |
+| KIV-2 30 kb  | eight | cached     | anchored | 8       | 3,140  | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 0.38 s |
+| KIV-2 30 kb  | all   | after open | sampled  | 464     | 21,721 | 7 req, 1.57 MB  | 9 req, 0.59 MB  | 3.75 s |
+| KIV-2 30 kb  | all   | cached     | sampled  | 464     | 21,721 | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 2.17 s |
+| KIV-2 130 kb | eight | after open | anchored | 8       | 7,383  | 11 req, 2.62 MB | 13 req, 0.85 MB | 2.87 s |
+| KIV-2 130 kb | eight | cached     | anchored | 8       | 7,383  | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 0.51 s |
+| KIV-2 130 kb | all   | after open | sampled  | 464     | 27,438 | 8 req, 1.90 MB  | 14 req, 0.92 MB | 4.80 s |
+| KIV-2 130 kb | all   | cached     | sampled  | 464     | 27,438 | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 3.74 s |
+| AMY1         | eight | after open | anchored | 13      | 8,164  | 28 req, 3.21 MB | 15 req, 0.98 MB | 6.11 s |
+| AMY1         | eight | cached     | anchored | 13      | 8,164  | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 0.48 s |
+| AMY1         | all   | after open | sampled  | 1,395   | 12,240 | 23 req, 2.23 MB | 23 req, 1.51 MB | 8.43 s |
+| AMY1         | all   | cached     | sampled  | 1,395   | 12,240 | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 3.00 s |
+| MHC class II | eight | after open | anchored | 8       | 31,008 | 11 req, 4.06 MB | 10 req, 0.66 MB | 5.46 s |
+| MHC class II | eight | cached     | anchored | 8       | 31,008 | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 0.97 s |
+| MHC class II | all   | after open | sampled  | 463     | 43,540 | 12 req, 2.62 MB | 8 req, 0.52 MB  | 9.59 s |
+| MHC class II | all   | cached     | sampled  | 463     | 43,540 | 0 req, 0.00 MB  | 0 req, 0.00 MB  | 9.16 s |
+
+Every eight-haplotype window takes the anchored route with no fallback. Against
+the vision's targets: cached, eight at KIV-2 30 kb is 0.38 s and AMY1 0.48 s,
+well under them; after a fresh open the same windows are 3.1 s and 6.1 s, spent
+in the 9 to 28 graph requests and 9 to 15 companion requests the reference walk,
+the rows and the walks make, so the after-open target is not met and what
+remains is round trips, not work. All 464 are no worse than before at every
+window.
+
+- Not done from the list below: the coarse table and the bitmap. The coarse
+  table is the next thing the anchors make cheap, since every anchor's rows
+  already give each haplotype's coordinate per 128 kb of reference.
+
+The plan as first written:
 
 Samples today sit every 16 kb along each path, in both orientations. Windows are
 on the reference.

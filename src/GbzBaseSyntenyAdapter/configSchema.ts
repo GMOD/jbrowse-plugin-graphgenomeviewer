@@ -63,8 +63,10 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
      * #slot
      * A companion database written by `gbz-haplotype-index --output`, holding
      * the `HaplotypeSamples` and `HaplotypeLengths` tables for a graph database
-     * that does not carry them itself, such as the one HPRC publishes. Empty
-     * means the graph database carries the tables.
+     * that does not carry them itself, such as the one HPRC publishes. One
+     * built with anchor rows (the tool's default) lets a fetch for a chosen
+     * set of lanes walk only those haplotypes. Empty means the graph database
+     * carries the tables.
      */
     haplotypeIndexLocation: {
       type: 'fileLocation',
