@@ -181,15 +181,8 @@ describe.skipIf(!runE2E)('a pggb GFA anchored from its paths', () => {
       ] as HTMLCanvasElement[]
       return canvases.filter(canvas => {
         const ctx = canvas.width > 50 ? canvas.getContext('2d') : null
-        const data = ctx?.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height,
-        ).data
-        return (
-          !!data && data.some((v, i) => i % 4 === 3 && v > 0)
-        )
+        const data = ctx?.getImageData(0, 0, canvas.width, canvas.height).data
+        return !!data && data.some((v, i) => i % 4 === 3 && v > 0)
       }).length
     })
     expect(painted).toBeGreaterThanOrEqual(2)

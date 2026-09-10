@@ -185,13 +185,12 @@ const carriageOpts = {
 }
 
 // distinct colors used anywhere in a node's vertex range
-function nodeColors(
-  batch: ReturnType<typeof buildGeometry>,
-  nodeId: string,
-) {
+function nodeColors(batch: ReturnType<typeof buildGeometry>, nodeId: string) {
   const range = batch.nodeVertexRanges.get(nodeId)!
   return new Set(
-    Array.from(batch.nodes.colors.slice(range.start, range.start + range.count)),
+    Array.from(
+      batch.nodes.colors.slice(range.start, range.start + range.count),
+    ),
   )
 }
 
@@ -206,7 +205,9 @@ test('drawPaths stripes a node once per path that visits it', () => {
   // and B+'s two are the same two colors A+ has, not a re-numbered pair: the
   // slot is fixed by the path's position in the legend, so a gap lands in the
   // same place on every node
-  expect([...nodeColors(batch, 'B+')].every(c => nodeColors(batch, 'A+').has(c))).toBe(true)
+  expect(
+    [...nodeColors(batch, 'B+')].every(c => nodeColors(batch, 'A+').has(c)),
+  ).toBe(true)
 })
 
 test('stripes divide the node width rather than inflating it', () => {
@@ -254,8 +255,12 @@ test('the stripe offset is in world units, so zoom does not fan them apart', () 
   }
   // the stripes are laid across a width stated in screen px, so in world units
   // they must spread twice as far when the view is drawn at half the zoom
-  const near = buildGeometry({ ...carriageOpts, drawPaths: true, axis: iso()})
-  const far = buildGeometry({ ...carriageOpts, drawPaths: true, axis: iso(0.5)})
+  const near = buildGeometry({ ...carriageOpts, drawPaths: true, axis: iso() })
+  const far = buildGeometry({
+    ...carriageOpts,
+    drawPaths: true,
+    axis: iso(0.5),
+  })
   expect(yAt(far, 'A+')).toBeCloseTo(yAt(near, 'A+') * 2, 5)
 })
 
@@ -356,7 +361,9 @@ test('viewport culling skips off-screen nodes', () => {
 // wider than the window with both of its endpoints outside it. Culling on
 // endpoint containment dropped exactly the segment those layouts exist to show.
 test('viewport culling keeps a node spanning the whole viewport', () => {
-  const nodes = [{ id: 'backbone+', name: 'backbone', length: 50_000, depth: 1 }]
+  const nodes = [
+    { id: 'backbone+', name: 'backbone', length: 50_000, depth: 1 },
+  ]
   const batch = buildGeometry({
     nodePositions: {
       'backbone+': [
@@ -598,7 +605,16 @@ describe('endTangent', () => {
   // tangent to read and the chord is the only direction available.
   test('falls back to the chord when the control point is on the endpoint', () => {
     expect(
-      endTangent({ x0: 0, y0: 0, cx0: 0, cy0: 0, cx1: 10, cy1: 10, x1: 10, y1: 10 }),
+      endTangent({
+        x0: 0,
+        y0: 0,
+        cx0: 0,
+        cy0: 0,
+        cx1: 10,
+        cy1: 10,
+        x1: 10,
+        y1: 10,
+      }),
     ).toBeCloseTo(Math.atan2(10, 10), 6)
   })
 })

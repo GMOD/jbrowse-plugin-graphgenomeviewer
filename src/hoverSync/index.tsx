@@ -16,7 +16,9 @@ import type { LinearGenomeViewModel } from '@jbrowse/plugin-linear-genome-view'
 const POINT = 'LinearGenomeView-TracksContainerComponent'
 
 function highlightFor(model: LinearGenomeViewModel) {
-  return <GraphNodeHighlight key="graphgenomeview-hover-highlight" model={model} />
+  return (
+    <GraphNodeHighlight key="graphgenomeview-hover-highlight" model={model} />
+  )
 }
 
 // The `props` an accumulating point hands a callback, at the untyped boundary

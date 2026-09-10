@@ -235,12 +235,12 @@ committed engine on actual files instead, one child process per case so a
 timeout or an abort is a row rather than a dead run. Four graphs, spanning the
 kinds this view is pointed at, at q=2 and the proportional spread:
 
-| graph                                | segs    | links   | mean deg | OGDF nodes | layout  | RSS     |
-| ------------------------------------ | ------- | ------- | -------- | ---------- | ------- | ------- |
-| `chrM.pan.4` (pggb)                  | 154     | 205     | 2.7      | 589        | 102 ms  | 73 MB   |
-| `hprc-v1.1-mc-grch38.chrM` (MC)      | 1,393   | 1,885   | 2.7      | 5,194      | 675 ms  | 92 MB   |
-| `31.chr22` (strangepg fixture)       | 5,001   | 13,998  | 5.6      | 19,065     | 5.3 s   | 137 MB  |
-| `22.hlasortof` (strangepg fixture)   | 118,663 | 146,811 | 2.5      | 440,790    | 111 s   | 1.04 GB |
+| graph                              | segs    | links   | mean deg | OGDF nodes | layout | RSS     |
+| ---------------------------------- | ------- | ------- | -------- | ---------- | ------ | ------- |
+| `chrM.pan.4` (pggb)                | 154     | 205     | 2.7      | 589        | 102 ms | 73 MB   |
+| `hprc-v1.1-mc-grch38.chrM` (MC)    | 1,393   | 1,885   | 2.7      | 5,194      | 675 ms | 92 MB   |
+| `31.chr22` (strangepg fixture)     | 5,001   | 13,998  | 5.6      | 19,065     | 5.3 s  | 137 MB  |
+| `22.hlasortof` (strangepg fixture) | 118,663 | 146,811 | 2.5      | 440,790    | 111 s  | 1.04 GB |
 
 Nothing failed. **There is no cliff** — the 118k-segment graph is 441k OGDF
 nodes and 111 seconds, which is unusable but not a crash, and memory grows
@@ -249,14 +249,14 @@ smoothly to a gigabyte.
 Cutting the HLA graph to increasing prefixes gives the shape, and it is close to
 linear in OGDF nodes across three orders of magnitude:
 
-| OGDF nodes | layout  | ms per OGDF node |
-| ---------- | ------- | ---------------- |
-| 3,621      | 580 ms  | 0.160            |
-| 18,158     | 2.97 s  | 0.164            |
-| 36,947     | 5.73 s  | 0.155            |
-| 92,051     | 17.7 s  | 0.192            |
-| 184,920    | 36.9 s  | 0.199            |
-| 440,790    | 111 s   | 0.252            |
+| OGDF nodes | layout | ms per OGDF node |
+| ---------- | ------ | ---------------- |
+| 3,621      | 580 ms | 0.160            |
+| 18,158     | 2.97 s | 0.164            |
+| 36,947     | 5.73 s | 0.155            |
+| 92,051     | 17.7 s | 0.192            |
+| 184,920    | 36.9 s | 0.199            |
+| 440,790    | 111 s  | 0.252            |
 
 So the superlinearity FMMM is known for is mild at this scale — the exponent
 runs about 1.0 to 1.27, and the per-node cost only drifts up 1.6x while the
@@ -281,13 +281,13 @@ driver lays out in 4,484 ms against the engine's 5,343 ms, i.e. the usual ~20%
 native-vs-wasm gap. Self time, grouped by what a GPU port could and could not
 take:
 
-| group                                          | chr22 q=2 | chr22 q=4 | chain q=2 |
-| ---------------------------------------------- | --------- | --------- | --------- |
-| **near-field direct repulsion** (parallel)      | **54.3%** | **44.9%** | 41.7%     |
-| far-field multipole, tree passes                | 15.6%     | 27.6%     | ~12%      |
-| quadtree build + `PoolMemoryAllocator`          | 8.8%      | 9.9%      | ~8%       |
-| attractive/edge forces (parallel)               | 1.5%      | 2.4%      | -         |
-| `libm` (`atan2`, `hypot`, `log`)                | 4.9%      | 4.3%      | 7.8%      |
+| group                                      | chr22 q=2 | chr22 q=4 | chain q=2 |
+| ------------------------------------------ | --------- | --------- | --------- |
+| **near-field direct repulsion** (parallel) | **54.3%** | **44.9%** | 41.7%     |
+| far-field multipole, tree passes           | 15.6%     | 27.6%     | ~12%      |
+| quadtree build + `PoolMemoryAllocator`     | 8.8%      | 9.9%      | ~8%       |
+| attractive/edge forces (parallel)          | 1.5%      | 2.4%      | -         |
+| `libm` (`atan2`, `hypot`, `log`)           | 4.9%      | 4.3%      | 7.8%      |
 
 Near-field is `f_rep_u_on_v` plus `calculate_neighbourcell_forces`; far-field is
 `add_local_expansion`, `transform_*_to_forces`, `well_separated` and the leaf
@@ -311,10 +311,10 @@ sequential tree build per iteration against that ceiling.
 **What that buys, against the measurements above.** The 118k-segment graph goes
 from 111 s to perhaps 45 s: still unusable. A 5,000-segment base-level window
 goes from 5.3 s to ~2.3 s: still not interactive. And at the sizes the
-legibility ceiling actually permits — tens of nodes, where a drawing is
-readable — the layout is already under 100 ms. **A GPU port does not move the
-boundary between interactive and not at any graph size**, which is the reason
-this is recorded here, beside its numbers, rather than in IDEAS.md.
+legibility ceiling actually permits — tens of nodes, where a drawing is readable
+— the layout is already under 100 ms. **A GPU port does not move the boundary
+between interactive and not at any graph size**, which is the reason this is
+recorded here, beside its numbers, rather than in IDEAS.md.
 
 The cheaper lever is in the table above: mean degree and `bubbleSpread` set the
 constant, and the quality knob is worth 4x on its own.

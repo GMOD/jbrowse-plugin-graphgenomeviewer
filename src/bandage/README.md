@@ -51,7 +51,7 @@ graph whose segments were named `s1`.
 
 An abort is not contained either. The call that aborts leaks whatever it had
 allocated, so repeated ones exhaust the heap, and `loadBandage()` caches one
-module per worker — measured, about twenty aborted calls and every *later*
+module per worker — measured, about twenty aborted calls and every _later_
 layout fails with "memory access out of bounds" until the tab is reloaded. That
 is why ownership here is `std::unique_ptr` rather than a matched `new`/`delete`:
 not tidiness, but bounding what a future throw can cost.

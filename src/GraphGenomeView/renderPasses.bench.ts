@@ -82,7 +82,10 @@ for (const backbone of [1000, 5000]) {
   const nodeLengths = new Map(graph.nodes.map(n => [n.id, n.length]))
   const deletions = deletionEdges(graph)
   const bypassed = new Map(deletions.map(d => [d.edgeIndex, d.bypassed]))
-  const referenceRamp = computeReferenceRamp(graph, { start: 0, end: pos(graph) })
+  const referenceRamp = computeReferenceRamp(graph, {
+    start: 0,
+    end: pos(graph),
+  })
 
   describe(`${graph.nodes.length} nodes / ${graph.edges.length} edges`, () => {
     // The pan case: same layout, same zoom, a new translate. Everything a frame

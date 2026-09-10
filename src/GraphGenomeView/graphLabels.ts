@@ -594,7 +594,13 @@ export function graphLabels({
     if (drawn >= (halfW * 2) / MAX_LABEL_OVERHANG) {
       const screenX = x * scaleX + translateX
       candidates.push({
-        label: { key: `node:${id}`, text, x: screenX, y: screenY, kind: 'node' },
+        label: {
+          key: `node:${id}`,
+          text,
+          x: screenX,
+          y: screenY,
+          kind: 'node',
+        },
         box: boxAt(halfW, screenX, screenY),
       })
     }

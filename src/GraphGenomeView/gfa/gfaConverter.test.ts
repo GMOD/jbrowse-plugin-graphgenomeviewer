@@ -2,7 +2,6 @@ import { convertGFAToGraph } from './gfaConverter'
 import { parseGFA } from '../../gfa-core/index'
 import { pathLegend } from '../pathColors'
 
-
 test('converts simple GFA to graph with strand-specific nodes', () => {
   const gfa = parseGFA(`S\t1\tACGT
 S\t2\tGGCC
@@ -290,7 +289,8 @@ W\tsample1\t0\tchr1\t0\t1000\t>A>B>C`)
 })
 
 test('reads carriage off the SM tag, per haplotype', () => {
-  const gfa = parseGFA(`S\t1\tACGT\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\tSM:Z:K12.1,Sakai.1
+  const gfa =
+    parseGFA(`S\t1\tACGT\tSN:Z:K12#1#chr\tSO:i:0\tSR:i:0\tSM:Z:K12.1,Sakai.1
 S\t2\tGGCC\tSN:Z:K12#1#chr\tSO:i:4\tSR:i:0
 L\t1\t+\t2\t+\t0M`)
   const graph = convertGFAToGraph(gfa)
@@ -365,8 +365,5 @@ W\tHG1\t1\tchrM\t0\t20\t>s1>s2
 W\tHG1\t2\tchrM\t0\t20\t>s1>s2`)
   const graph = convertGFAToGraph(gfa)
 
-  expect(pathLegend(graph.paths!).map(e => e.label)).toEqual([
-    'HG1#1',
-    'HG1#2',
-  ])
+  expect(pathLegend(graph.paths!).map(e => e.label)).toEqual(['HG1#1', 'HG1#2'])
 })

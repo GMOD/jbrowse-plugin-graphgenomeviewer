@@ -89,7 +89,5 @@ test('a version bump re-derives positions mutated in place', () => {
 test('an edge with an unplaced endpoint has no curve', () => {
   const positions = layout()
   delete positions['b+']
-  expect(
-    baseEdgeCurves(positions, graph, iso, undefined, 0).has(0),
-  ).toBe(false)
+  expect(baseEdgeCurves(positions, graph, iso, undefined, 0).has(0)).toBe(false)
 })

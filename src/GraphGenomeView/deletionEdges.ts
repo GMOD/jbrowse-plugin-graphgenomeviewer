@@ -5,7 +5,6 @@ import type { AnchoredNode } from './anchoredNodes'
 import type { Graph } from './types'
 import type { AxisScale } from './util/geometry'
 
-
 // A deletion is the one kind of variation this view could not draw, and the
 // reason is structural rather than cosmetic: extra sequence is a *node*, so it
 // gets a tube, a colour and a hover. Missing sequence is an **edge** — a link

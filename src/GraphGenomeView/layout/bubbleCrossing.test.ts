@@ -55,7 +55,10 @@ function polyline(curves: BezierCurve[]) {
   return pts
 }
 
-interface Point { x: number; y: number }
+interface Point {
+  x: number
+  y: number
+}
 
 // Proper (non-touching) segment intersection. Touching is excluded on purpose:
 // an entry and an exit edge legitimately share a backbone point when the allele

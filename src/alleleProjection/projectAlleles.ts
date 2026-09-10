@@ -236,9 +236,7 @@ function runOffsets(
   adj: Map<string, string[]>,
 ) {
   const dist = runDistances(members, entry, adj)
-  const ordered = [...members].sort(
-    (a, b) => dist.get(a.id)! - dist.get(b.id)!,
-  )
+  const ordered = [...members].sort((a, b) => dist.get(a.id)! - dist.get(b.id)!)
   const rank = new Map(ordered.map((m, i) => [m.id, i]))
   const byId = new Map(members.map(m => [m.id, m]))
   const offsets = new Map<string, number>()

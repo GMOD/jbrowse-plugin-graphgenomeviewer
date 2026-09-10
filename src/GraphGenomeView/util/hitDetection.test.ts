@@ -107,7 +107,9 @@ describe('findHoveredEdge', () => {
   })
 
   test('misses when far from all lanes', () => {
-    expect(findHoveredEdge(nodePositions, graph, 100, 200, iso(), true)).toBeNull()
+    expect(
+      findHoveredEdge(nodePositions, graph, 100, 200, iso(), true),
+    ).toBeNull()
   })
 
   test('drawPaths=false still hits on centerline', () => {
@@ -184,17 +186,57 @@ describe('hover on a row layout', () => {
   const yToX = 1 / scaleX
 
   test('a cursor on a row hits that row', () => {
-    expect(findHoveredNode(ROWS, 50_000, 2, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('top')
-    expect(findHoveredNode(ROWS, 50_000, 18, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('next')
+    expect(
+      findHoveredNode(
+        ROWS,
+        50_000,
+        2,
+        { scaleX: scaleX, scaleY: scaleX * yToX },
+        0,
+      ),
+    ).toBe('top')
+    expect(
+      findHoveredNode(
+        ROWS,
+        50_000,
+        18,
+        { scaleX: scaleX, scaleY: scaleX * yToX },
+        0,
+      ),
+    ).toBe('next')
   })
 
   test('a cursor between the rows hits neither', () => {
-    expect(findHoveredNode(ROWS, 50_000, 10, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBeNull()
+    expect(
+      findHoveredNode(
+        ROWS,
+        50_000,
+        10,
+        { scaleX: scaleX, scaleY: scaleX * yToX },
+        0,
+      ),
+    ).toBeNull()
   })
 
   test('the slack is still screen px along x', () => {
     // 300 bp past the end is 3 px at this scale, and inside the 5 px slack
-    expect(findHoveredNode(ROWS, 100_300, 0, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBe('top')
-    expect(findHoveredNode(ROWS, 101_000, 0, { scaleX: scaleX, scaleY: scaleX * (yToX) }, 0)).toBeNull()
+    expect(
+      findHoveredNode(
+        ROWS,
+        100_300,
+        0,
+        { scaleX: scaleX, scaleY: scaleX * yToX },
+        0,
+      ),
+    ).toBe('top')
+    expect(
+      findHoveredNode(
+        ROWS,
+        101_000,
+        0,
+        { scaleX: scaleX, scaleY: scaleX * yToX },
+        0,
+      ),
+    ).toBeNull()
   })
 })

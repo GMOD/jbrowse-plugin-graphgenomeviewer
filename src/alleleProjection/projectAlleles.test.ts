@@ -4,7 +4,6 @@ import { parsePanSN, projectAlleles } from './projectAlleles'
 import { convertGFAToGraph } from '../GraphGenomeView/gfa/gfaConverter'
 import { parseGFA } from '../gfa-core/index'
 
-
 // The real four-strain minigraph slice, not invented coordinates: K12 is the
 // rank-0 backbone, Sakai/CFT073/NCTC86 contribute ranks 1-3.
 function ecoliGraph() {

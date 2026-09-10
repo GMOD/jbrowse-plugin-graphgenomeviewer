@@ -13,7 +13,10 @@ const PORT = process.env.PORT ? +process.env.PORT : 9000
 function createGlobalMap(jbrowseGlobals) {
   return {
     ...Object.fromEntries(
-      jbrowseGlobals.map(g => [g, { varName: `JBrowseExports["${g}"]`, type: 'cjs' }]),
+      jbrowseGlobals.map(g => [
+        g,
+        { varName: `JBrowseExports["${g}"]`, type: 'cjs' },
+      ]),
     ),
     // v4+ package name, but JBrowse exports it as 'mobx-state-tree' for back-compat.
     '@jbrowse/mobx-state-tree': {

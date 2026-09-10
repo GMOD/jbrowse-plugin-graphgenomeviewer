@@ -298,15 +298,7 @@ export class EdgeSpatialIndex {
 
     this.cellSize = resolveCellSize(cellSize, boxes, extentX, extentY)
     for (const b of boxes) {
-      addToGrid(
-        this.cells,
-        this.cellSize,
-        b.minX,
-        b.minY,
-        b.maxX,
-        b.maxY,
-        b.ei,
-      )
+      addToGrid(this.cells, this.cellSize, b.minX, b.minY, b.maxX, b.maxY, b.ei)
     }
   }
 

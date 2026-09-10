@@ -32,7 +32,10 @@ test('splits an odgi extract range suffix off the path name', () => {
 // A stable name may contain colons of its own, so only a trailing digit range
 // is a range; `chr:1-1000` as a whole sequence name would otherwise be halved.
 test('a name with no range starts at zero', () => {
-  expect(pathOrigin('GRCh38#0#chr6')).toEqual({ name: 'GRCh38#0#chr6', start: 0 })
+  expect(pathOrigin('GRCh38#0#chr6')).toEqual({
+    name: 'GRCh38#0#chr6',
+    start: 0,
+  })
   expect(pathOrigin('sample#1#scaffold:alt')).toEqual({
     name: 'sample#1#scaffold:alt',
     start: 0,
@@ -195,9 +198,18 @@ test('a reverse traversal accumulates forward along the path', () => {
     'P\tK12#1#chr:100-111\t3-,2-,1-\t*\n'
   const graph = anchorGraph(convertGFAToGraph(parseGFA(gfa)), 'K12')
 
-  expect(nodeNamed(graph, '3').stable).toMatchObject({ start: 100, strand: '-' })
-  expect(nodeNamed(graph, '2').stable).toMatchObject({ start: 104, strand: '-' })
-  expect(nodeNamed(graph, '1').stable).toMatchObject({ start: 106, strand: '-' })
+  expect(nodeNamed(graph, '3').stable).toMatchObject({
+    start: 100,
+    strand: '-',
+  })
+  expect(nodeNamed(graph, '2').stable).toMatchObject({
+    start: 104,
+    strand: '-',
+  })
+  expect(nodeNamed(graph, '1').stable).toMatchObject({
+    start: 106,
+    strand: '-',
+  })
 })
 
 // W records state their start as a field rather than in the name, and name the

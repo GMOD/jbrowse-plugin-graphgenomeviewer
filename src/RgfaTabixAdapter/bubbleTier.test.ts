@@ -78,7 +78,7 @@ test('the tier is a connected alternating chain', async () => {
   const graph = parseGFA(gfa)
   const rank = new Map(graph.nodes.map(n => [n.id, n.tags.ct]))
   expect(graph.links.length).toBe(113)
-  expect(graph.links.every(l => rank.get(l.source) !== rank.get(l.target))).toBe(
-    true,
-  )
+  expect(
+    graph.links.every(l => rank.get(l.source) !== rank.get(l.target)),
+  ).toBe(true)
 })

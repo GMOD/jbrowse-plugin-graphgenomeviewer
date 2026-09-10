@@ -1,15 +1,18 @@
 ---
 status: Accepted
-summary: "GraphGenomeView keeps both an anchored (reference-axis) and a force-directed layout; node drawn-length is derived per graph by Bandage-style scaling, not a fixed constant"
+summary:
+  'GraphGenomeView keeps both an anchored (reference-axis) and a force-directed
+  layout; node drawn-length is derived per graph by Bandage-style scaling, not a
+  fixed constant'
 ---
 
 # ADR-041: GraphGenomeView keeps two layout modes, and derives node length per graph
 
 ## Status
 
-Accepted (2026-07). Covers the layout decisions in `plugins/graph`. The `adr-027`
-citations that used to stand in for this were stale (that ADR was removed in
-9d8102f0b5) and have been dropped from the source. See
+Accepted (2026-07). Covers the layout decisions in `plugins/graph`. The
+`adr-027` citations that used to stand in for this were stale (that ADR was
+removed in 9d8102f0b5) and have been dropped from the source. See
 `agent-docs/RGFA_GRAPH_HANDOFF.md` for the shipped state and the Bandage
 comparison recipe.
 
@@ -17,12 +20,12 @@ comparison recipe.
 
 A pangenome subgraph can be drawn two ways, and they answer different questions.
 
-**Anchored.** rGFA tags every segment `SN`/`SO`/`SR` (gfatools `doc/rGFA.md`), so
-a minigraph graph states its own backbone. x is reference bp, y is one row per
-stable rank present in the window. This is lh3's VRPG layout. It needs no layout
-engine, runs in about a millisecond, and reproduces exactly for a given window,
-which is what lets a graph view sit under a linear view of the same locus and
-line up column for column.
+**Anchored.** rGFA tags every segment `SN`/`SO`/`SR` (gfatools `doc/rGFA.md`),
+so a minigraph graph states its own backbone. x is reference bp, y is one row
+per stable rank present in the window. This is lh3's VRPG layout. It needs no
+layout engine, runs in about a millisecond, and reproduces exactly for a given
+window, which is what lets a graph view sit under a linear view of the same
+locus and line up column for column.
 
 **Force-directed.** OGDF's FMMM through the Bandage WASM engine. x and y mean
 nothing; the drawing shows the graph's shape. This is the picture people
@@ -76,13 +79,13 @@ about 9 px long against a 12 px thick tube: wider than it was long.
 Costs accepted:
 
 - Force mode is not content-stable. FMMM seeds itself per run and the engine
-  exposes no seed, so every regen lands a different equally-valid layout. Figures
-  in that mode carry `diffThreshold: 1` and are regenerated deliberately with
-  `--force`.
+  exposes no seed, so every regen lands a different equally-valid layout.
+  Figures in that mode carry `diffThreshold: 1` and are regenerated deliberately
+  with `--force`.
 - The anchored floor overstates short alleles slightly. It is a floor, so longer
   nodes are unaffected, and 1.5% is small against the 5% row spacing.
-- Two modes is more surface than one, including a persisted `layoutMode` prop and
-  a figure-recipe click-path.
+- Two modes is more surface than one, including a persisted `layoutMode` prop
+  and a figure-recipe click-path.
 
 ## Alternatives rejected
 
@@ -94,20 +97,21 @@ next to the reference.
 "these don't convey the classic Bandage diagrams people are used to". Correct in
 topology, misleading in shape.
 
-**Sublinear (log/sqrt) node-length compression.** Would make the sparse arcs more
-compact, but is a deliberate departure from what Bandage does, so the rendering
-could no longer be validated against it. Rejected on those grounds rather than on
-appearance; revisit only with a reason that survives the comparison.
+**Sublinear (log/sqrt) node-length compression.** Would make the sparse arcs
+more compact, but is a deliberate departure from what Bandage does, so the
+rendering could no longer be validated against it. Rejected on those grounds
+rather than on appearance; revisit only with a reason that survives the
+comparison.
 
-**Per-strand nodes.** Node ids carry `+`/`-` (`s322+`) and the converter emits one
-node per segment on its canonical strand. Drawing both strands would double every
-node and is easy to "fix" back into; don't.
+**Per-strand nodes.** Node ids carry `+`/`-` (`s322+`) and the converter emits
+one node per segment on its canonical strand. Drawing both strands would double
+every node and is easy to "fix" back into; don't.
 
 ## Validation
 
 `Bandage image` on byte-identical GFA, via
 `plugins/comparative-adapters/scripts/dump-subgraph.ts`. Bandage draws these
 graphs the same sparse way we do; the sprawl is a property of a pangenome window
-(a few multi-kb backbone segments plus many sub-kb alleles), not of the renderer.
-The unit guard is the drawn-length *ratio* in `model.test.ts`, not the constant,
-which is free to be retuned.
+(a few multi-kb backbone segments plus many sub-kb alleles), not of the
+renderer. The unit guard is the drawn-length _ratio_ in `model.test.ts`, not the
+constant, which is free to be retuned.

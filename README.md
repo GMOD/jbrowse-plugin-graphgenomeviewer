@@ -9,18 +9,18 @@ from a linear genome view.
 The HLA class II locus of the HPRC human pangenome, the same subgraph in two
 layouts:
 
-| Anchored (rGFA, reference-aligned)     | Force-directed (Bandage)         |
-| -------------------------------------- | -------------------------------- |
+| Anchored (rGFA, reference-aligned)       | Force-directed (Bandage)           |
+| ---------------------------------------- | ---------------------------------- |
 | ![Anchored layout](img/anchored_hla.png) | ![Force layout](img/force_hla.png) |
 
 Left: rank-0 backbone drawn at its GRCh38 offsets with each rank on its own row,
-under the bubble and segment feature tracks it was launched from. Right: the same
-subgraph laid out by the Bandage force engine, the shape people recognize.
+under the bubble and segment feature tracks it was launched from. Right: the
+same subgraph laid out by the Bandage force engine, the shape people recognize.
 
 It ships three layouts:
 
-- **Anchored** (rGFA only): x is reference bp, one row per stable rank, read from
-  the file so it renders instantly and aligns under a linear view.
+- **Anchored** (rGFA only): x is reference bp, one row per stable rank, read
+  from the file so it renders instantly and aligns under a linear view.
 - **Sample rows** (rGFA only): x is reference bp, one row per contributing
   assembly.
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
@@ -41,9 +41,9 @@ layouts are pure TypeScript and need no external engine.
 
 Requires [pnpm](https://pnpm.io/installation).
 
-This plugin depends on `@jbrowse/render-core`, which is not yet published to npm,
-so it is consumed via a `link:` to a sibling `jbrowse-components` checkout. Clone
-both side by side:
+This plugin depends on `@jbrowse/render-core`, which is not yet published to
+npm, so it is consumed via a `link:` to a sibling `jbrowse-components` checkout.
+Clone both side by side:
 
 ```
 ~/src/jbrowse-components/     # provides @jbrowse/render-core
@@ -95,14 +95,14 @@ nowhere to put a digest. For a deployment that needs pinned, tamper-evident
 bytes, serve the plugin from an immutable, version-pinned url on a host you
 control. The engine chunk is already immutable by content hash.
 
-The engine is a lazy chunk: it is only fetched the first time someone selects the
-force-directed layout, so sessions that use the anchored or sample-row layouts
-never download it. Its url is not configured anywhere — `loadBandage` is a plain
-dynamic `import()`, so the browser resolves the chunk relative to the plugin
-module's own url (`import.meta.url`, defined on the main thread and in the RPC
-worker alike). That is why the whole `dist/` has to be served together, and it is
-also why there is nothing to point elsewhere: to host the engine on another
-origin, rebuild with the chunk emitted there.
+The engine is a lazy chunk: it is only fetched the first time someone selects
+the force-directed layout, so sessions that use the anchored or sample-row
+layouts never download it. Its url is not configured anywhere — `loadBandage` is
+a plain dynamic `import()`, so the browser resolves the chunk relative to the
+plugin module's own url (`import.meta.url`, defined on the main thread and in
+the RPC worker alike). That is why the whole `dist/` has to be served together,
+and it is also why there is nothing to point elsewhere: to host the engine on
+another origin, rebuild with the chunk emitted there.
 
 ### Rebuilding the engine
 
@@ -120,12 +120,13 @@ Emscripten is the only thing you have to install. OGDF is vendored at
 clone of this repo alone. Roughly four minutes the first time, seconds after
 that.
 
-It compiles with `-sSINGLE_FILE=1`, embedding the wasm as base64 so the result is
-one self-contained ES module that esbuild can copy rather than bundle.
+It compiles with `-sSINGLE_FILE=1`, embedding the wasm as base64 so the result
+is one self-contained ES module that esbuild can copy rather than bundle.
 
 A rebuild has to be checked against the drawing rather than against the file,
 since the artifact's bytes move for reasons the layout does not — see
-[`src/bandage/README.md`](src/bandage/README.md) for `scripts/layout-digest.mjs`.
+[`src/bandage/README.md`](src/bandage/README.md) for
+`scripts/layout-digest.mjs`.
 
 ## Testing
 

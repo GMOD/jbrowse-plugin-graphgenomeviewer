@@ -1,11 +1,7 @@
 import { placeOffReference } from './placeOffReference'
 import { ROW_HEIGHT_PX } from './rowSpacing'
 import { parsePanSN } from '../../alleleProjection/projectAlleles'
-import {
-  backboneNodes,
-  isOffReference,
-  referenceSpan,
-} from '../anchoredNodes'
+import { backboneNodes, isOffReference, referenceSpan } from '../anchoredNodes'
 
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 

@@ -208,7 +208,8 @@ export function launchSyntenyView({
       views: contributors.map(c => ({
         assembly: c.sample,
         loc: locString(c),
-        ...(graphTrackId !== undefined && graphTrackAssemblies.includes(c.sample)
+        ...(graphTrackId !== undefined &&
+        graphTrackAssemblies.includes(c.sample)
           ? { tracks: [graphTrackId] }
           : {}),
       })),

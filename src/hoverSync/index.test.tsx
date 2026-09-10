@@ -22,7 +22,10 @@ const lgv = () => ({ id: 'lgv1', getHighlightCoords: () => undefined })
 // enough of a pluginManager to record a registration; the two halves differ only
 // in which method the host offers
 function modernHost() {
-  const calls: { name: string; callback: (props: { model: unknown }) => unknown }[] = []
+  const calls: {
+    name: string
+    callback: (props: { model: unknown }) => unknown
+  }[] = []
   return {
     calls,
     manager: {
@@ -42,7 +45,10 @@ function modernHost() {
 function releasedHost() {
   const calls: {
     name: string
-    callback: (entries: ReactNode[], props: Record<string, unknown>) => ReactNode[]
+    callback: (
+      entries: ReactNode[],
+      props: Record<string, unknown>,
+    ) => ReactNode[]
   }[] = []
   return {
     calls,

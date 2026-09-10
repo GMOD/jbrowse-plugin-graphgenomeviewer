@@ -16,16 +16,16 @@ from that same index** standing in for any track that marks where variation is
 but cannot cut a graph (the bubble track is the real case). Every screenshot it
 writes to `test-screenshots/` is a real browser frame:
 
-| screenshot                                   | shows                                                                 |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| `demo-00-linear-view-with-graph-track`       | the rGFA segments drawn as features, PanSN names resolved             |
+| screenshot                                   | shows                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| `demo-00-linear-view-with-graph-track`       | the rGFA segments drawn as features, PanSN names resolved                 |
 | `demo-01-rubberband-menu`                    | a real shift-drag selection offering "Graph genome view (this selection)" |
-| `demo-02-subgraph-launched-from-selection`   | the subgraph fetched and drawn, paired to the linear view             |
-| `demo-03-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span         |
-| `demo-04-linear-hover-selects-graph-node`    | hovering the linear view selects the covering graph node              |
-| `demo-05-cross-track-context-menu`           | the launch offered from the track that _can't_ cut a graph            |
-| `demo-06-cross-track-launched`               | that launch cutting from the graph track instead                      |
-| `demo-07-over-cap-region`                    | past 100 kb the item is disabled with the size as its reason          |
+| `demo-02-subgraph-launched-from-selection`   | the subgraph fetched and drawn, paired to the linear view                 |
+| `demo-03-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span             |
+| `demo-04-linear-hover-selects-graph-node`    | hovering the linear view selects the covering graph node                  |
+| `demo-05-cross-track-context-menu`           | the launch offered from the track that _can't_ cut a graph                |
+| `demo-06-cross-track-launched`               | that launch cutting from the graph track instead                          |
+| `demo-07-over-cap-region`                    | past 100 kb the item is disabled with the size as its reason              |
 
 Two things learned building it, both worth not rediscovering:
 
@@ -69,9 +69,9 @@ greps the served bundles for those API names and throws with the `cp -r` line if
 they are missing, so a stale host says so in one sentence instead of costing an
 afternoon. Add to `HOST_REQUIRES` when the plugin picks up another new API.
 
-A stock `jbrowse create .test-jbrowse-nightly --nightly` should also work now, but has
-not been verified to carry the merge -- that is the one thing still keeping the
-`e2e-tests` CI job disabled.
+A stock `jbrowse create .test-jbrowse-nightly --nightly` should also work now,
+but has not been verified to carry the merge -- that is the one thing still
+keeping the `e2e-tests` CI job disabled.
 
 > **The harness writes into `JBROWSE_TEST_DIR`** -- `config.json`, `test.gfa`
 > and `plugin/`. Give it a copy, not a build you care about.
@@ -103,8 +103,9 @@ cp -r ~/src/jbrowse-components/products/jbrowse-web/build .test-jbrowse-local
 JBROWSE_TEST_DIR=$PWD/.test-jbrowse-local RUN_E2E=1 pnpm test:e2e
 ```
 
-All 19 tests pass. **Running the five suites together flakes**, about one test in
-five runs, and never the same one — `launchAndHover`'s setup once, `forceLayout`'s
-non-empty-canvas assertion once — and each passed on its own immediately after.
-They share one server and one machine, so treat a single failure as load until a
-second run agrees with it. Re-run the file alone before believing it.
+All 19 tests pass. **Running the five suites together flakes**, about one test
+in five runs, and never the same one — `launchAndHover`'s setup once,
+`forceLayout`'s non-empty-canvas assertion once — and each passed on its own
+immediately after. They share one server and one machine, so treat a single
+failure as load until a second run agrees with it. Re-run the file alone before
+believing it.

@@ -156,7 +156,11 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
             typeof i.label === 'string' &&
             i.label.includes('Linear synteny view')
           ) {
-            return { label: i.label, disabled: i.disabled, help: i.disabledHelpText }
+            return {
+              label: i.label,
+              disabled: i.disabled,
+              help: i.disabledHelpText,
+            }
           }
           const nested = i.subMenu ? find(i.subMenu) : undefined
           if (nested) {
@@ -321,7 +325,9 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     await page.evaluate(
       ([viewId, text]: string[]) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
-        const find = (items: unknown[]): { onClick?: () => void } | undefined => {
+        const find = (
+          items: unknown[],
+        ): { onClick?: () => void } | undefined => {
           for (const raw of items) {
             const i = raw as {
               label?: unknown
