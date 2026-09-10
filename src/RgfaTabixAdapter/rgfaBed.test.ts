@@ -1,9 +1,7 @@
 import {
-  buildRefNameLookup,
   formatSubgraph,
   parseLinkLine,
   parseSegmentLine,
-  resolveRefName,
   segmentSamples,
 } from './rgfaBed.ts'
 
@@ -157,22 +155,4 @@ test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
   )
   const graph = convertGFAToGraph(parseGFA(subgraphOf([segment])))
   expect(graph.nodes[0]!.samples).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
-})
-
-test('a PanSN stable name resolves under its sample and under its haplotype', () => {
-  const lookup = buildRefNameLookup([
-    'GRCh38#0#chr6',
-    'NA20809#2#CM094351.1',
-    'chrM',
-  ])
-  expect(resolveRefName(lookup, 'GRCh38', 'chr6')).toBe('GRCh38#0#chr6')
-  expect(resolveRefName(lookup, 'GRCh38#0', 'chr6')).toBe('GRCh38#0#chr6')
-  expect(resolveRefName(lookup, 'NA20809#2', 'CM094351.1')).toBe(
-    'NA20809#2#CM094351.1',
-  )
-  expect(resolveRefName(lookup, 'NA20809', 'CM094351.1')).toBe(
-    'NA20809#2#CM094351.1',
-  )
-  expect(resolveRefName(lookup, 'hg38', 'chrM')).toBe('chrM')
-  expect(resolveRefName(lookup, 'NA20809#1', 'CM094351.1')).toBeUndefined()
 })

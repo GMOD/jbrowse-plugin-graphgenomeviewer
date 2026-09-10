@@ -1,18 +1,8 @@
-import { TabixIndexedFile } from '@gmod/tabix'
 import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
-import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
-import {
-  buildRefNameLookup,
-  resolveRefName,
-} from '../RgfaTabixAdapter/rgfaBed.ts'
-import {
-  panSNContig,
-  panSNMatchesPrefix,
-  resolvePanSNPrefix,
-} from '../pansn.ts'
+import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import {
   bubbleDescription,
   bubbleLabel,
@@ -29,7 +19,12 @@ import type { Region } from '@jbrowse/core/util/types'
 export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<MinigraphBubbleAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
 
-  private readonly bubbles: TabixIndexedFile
+  private readonly bubbles
+  // `gfatools bubble` names each row after the graph's stable sequence, so a
+  // Minigraph-Cactus graph produces PanSN rows (`GRCh38#0#chr6`) where a plain
+  // minigraph graph produces bare ones (`chr6`). Same resolution the segment
+  // adapter does, through the same `assemblyNameToPanSN` slot.
+  private readonly refNames
 
   public constructor(
     config: MinigraphBubbleAdapterConfig,
@@ -37,57 +32,12 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
     pluginManager?: PluginManager,
   ) {
     super(config, getSubAdapter, pluginManager)
-    const pm = this.pluginManager
-    this.bubbles = new TabixIndexedFile({
-      filehandle: openLocation(this.getConf('bubblesLocation'), pm),
-      ...openTabixIndexFilehandle(
-        this.getConf(['index', 'location']),
-        this.getConf(['index', 'indexType']),
-        pm,
-      ),
-      chunkCacheSize: 50 * 2 ** 20,
-    })
+    this.bubbles = openTabixSlot(this, 'bubblesLocation', 'index')
+    this.refNames = new PanSNRefNames(this.bubbles, this)
   }
 
-  // Assembly-facing names, for the same reason as the segment adapter: a
-  // Minigraph-Cactus graph's bubbles are PanSN, and reporting them raw makes
-  // JBrowse skip the track for `chr6`.
   async getRefNames(opts: BaseOptions = {}) {
-    const names = await this.bubbles.getReferenceSequenceNames(opts)
-    const prefix = resolvePanSNPrefix(this, opts.assemblyName)
-    const contigs = names
-      .filter(n => panSNMatchesPrefix(n, prefix))
-      .map(n => panSNContig(n))
-    return contigs.length > 0 ? contigs : names
-  }
-
-  // `gfatools bubble` names each row after the graph's stable sequence, so a
-  // Minigraph-Cactus graph produces PanSN rows (`GRCh38#0#chr6`) where a plain
-  // minigraph graph produces bare ones (`chr6`). Same resolution the segment
-  // adapter does, via the same `assemblyNameToPanSN` slot.
-  private refNameLookupCache: Promise<Map<string, string>> | undefined
-
-  private refNameLookup(opts?: BaseOptions) {
-    // The failure is cleared from the cache so a later query retries. Caching the
-    // rejected promise made one network blip permanently empty the track — every
-    // subsequent region resolved against the same failed lookup.
-    this.refNameLookupCache ??= this.bubbles
-      .getReferenceSequenceNames(opts)
-      .then(names => buildRefNameLookup(names))
-      .catch((e: unknown) => {
-        this.refNameLookupCache = undefined
-        throw e
-      })
-    return this.refNameLookupCache
-  }
-
-  private async resolve(region: Region, opts?: BaseOptions) {
-    const lookup = await this.refNameLookup(opts)
-    return resolveRefName(
-      lookup,
-      resolvePanSNPrefix(this, region.assemblyName),
-      region.refName,
-    )
+    return this.refNames.assemblyRefNames(opts)
   }
 
   public async hasDataForRefName() {
@@ -97,7 +47,7 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
   getFeatures(query: Region, opts: BaseOptions = {}) {
     const { statusCallback = () => {} } = opts
     return ObservableCreate<Feature>(async observer => {
-      const tabixRefName = await this.resolve(query, opts)
+      const tabixRefName = await this.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         await updateStatus('Downloading bubbles', statusCallback, () =>
           this.bubbles.getLines(tabixRefName, query.start, query.end, {

@@ -1,21 +1,13 @@
-import { TabixIndexedFile } from '@gmod/tabix'
 import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
-import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
+import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import {
-  panSNContig,
-  panSNMatchesPrefix,
-  resolvePanSNPrefix,
-} from '../pansn.ts'
-import {
-  buildRefNameLookup,
   formatSubgraph,
   linkKey,
   parseLinkLine,
   parseSegmentLine,
-  resolveRefName,
   segmentSamples,
 } from './rgfaBed.ts'
 
@@ -74,9 +66,11 @@ function offReference(segments: RgfaSegment[]) {
 export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
 
-  private readonly segments: TabixIndexedFile
-  private readonly links: TabixIndexedFile
-  private refNameLookupP?: Promise<Map<string, string>>
+  private readonly segments
+  private readonly links
+  // Off the SEGMENT index: it is the one that names every stable sequence the
+  // graph is anchored to, where the link index only names those a link touches.
+  private readonly refNames
 
   public constructor(
     config: RgfaTabixAdapterConfig,
@@ -84,75 +78,23 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     pluginManager?: PluginManager,
   ) {
     super(config, getSubAdapter, pluginManager)
-    const pm = this.pluginManager
-    const open = (
-      location: 'segmentsLocation' | 'linksLocation',
-      index: 'segmentsIndex' | 'linksIndex',
-    ) =>
-      new TabixIndexedFile({
-        filehandle: openLocation(this.getConf(location), pm),
-        ...openTabixIndexFilehandle(
-          this.getConf([index, 'location']),
-          this.getConf([index, 'indexType']),
-          pm,
-        ),
-        chunkCacheSize: 50 * 2 ** 20,
-      })
-
-    this.segments = open('segmentsLocation', 'segmentsIndex')
-    this.links = open('linksLocation', 'linksIndex')
+    this.segments = openTabixSlot(this, 'segmentsLocation', 'segmentsIndex')
+    this.links = openTabixSlot(this, 'linksLocation', 'linksIndex')
+    this.refNames = new PanSNRefNames(this.segments, this)
   }
 
-  // The stable sequences the graph is anchored to, read once from the segment
-  // index and keyed for both PanSN and bare spellings.
-  private async refNameLookup(opts?: BaseOptions) {
-    this.refNameLookupP ??= this.segments
-      .getReferenceSequenceNames(opts)
-      .then(names => buildRefNameLookup(names))
-      .catch((e: unknown) => {
-        this.refNameLookupP = undefined
-        throw e
-      })
-    return this.refNameLookupP
-  }
-
-  // Report the names the *assembly* uses, not the graph's own. A minigraph
-  // graph's stable names are already bare (`chr6`) and pass straight through;
-  // a Minigraph-Cactus graph's are PanSN, and returning `GRCh38#0#chr6` here
-  // makes JBrowse decide the track has no data for `chr6` and never query it —
-  // the graph view still worked, because it resolves per region rather than
-  // through this list, which is exactly how the empty tracks were spotted.
   async getRefNames(opts: BaseOptions = {}) {
-    const names = await this.segments.getReferenceSequenceNames(opts)
-    const prefix = resolvePanSNPrefix(this, opts.assemblyName)
-    const contigs = names
-      .filter(n => panSNMatchesPrefix(n, prefix))
-      .map(n => panSNContig(n))
-    return contigs.length > 0 ? contigs : names
+    return this.refNames.assemblyRefNames(opts)
   }
 
   public async hasDataForRefName() {
     return true
   }
 
-  // The rGFA's own stable name for a region, or undefined when the graph has no
-  // sequence answering to it.
-  // The graph's stable names may be PanSN (`GRCh38#0#chr1`), in which case the
-  // assembly name is not the sample prefix; `assemblyNameToPanSN` maps the two,
-  // the same slot and helper the all-vs-all PAF adapters use.
-  private async resolve(region: Region, opts?: BaseOptions) {
-    const lookup = await this.refNameLookup(opts)
-    return resolveRefName(
-      lookup,
-      resolvePanSNPrefix(this, region.assemblyName),
-      region.refName,
-    )
-  }
-
   getFeatures(query: Region, opts: BaseOptions = {}) {
     const { statusCallback = () => {} } = opts
     return ObservableCreate<Feature>(async observer => {
-      const tabixRefName = await this.resolve(query, opts)
+      const tabixRefName = await this.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         await updateStatus('Downloading segments', statusCallback, () =>
           this.segments.getLines(tabixRefName, query.start, query.end, {
@@ -194,7 +136,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     const { hops = 0 } = opts
     const segments = new Map<string, RgfaSegment>()
     const links = new Map<string, RgfaLink>()
-    const tabixRefName = await this.resolve(region)
+    const tabixRefName = await this.refNames.resolve(region)
 
     const addLinksOver = async (
       refName: string,

@@ -1,5 +1,3 @@
-import { panSNContig, panSNHaplotype, panSNSample } from '../pansn.ts'
-
 // A segment as it appears in segs.bed.gz, and as it is repeated inside every
 // links.bed.gz row: `stableName start end segmentId rank [tags]`. The first
 // five are the SN/SO/SR tags rGFA already carries, projected to BED by
@@ -111,41 +109,6 @@ export function linkKey(link: RgfaLink) {
 // Both endpoints of a link are written into every row, so the same link is
 // indexed under each endpoint's stable sequence and arrives twice for a region
 // covering both. Callers dedupe on linkKey.
-
-// The stable sequences in these files are usually PanSN (`K12#1#chr`) while the
-// assembly asking for them uses the bare contig (`chr` in assembly `K12`). One
-// map answers both spellings: the raw tabix name, plus a sample+contig key for
-// PanSN names.
-export function buildRefNameLookup(tabixRefNames: string[]) {
-  const lookup = new Map<string, string>()
-  for (const name of tabixRefNames) {
-    lookup.set(name, name)
-    const sample = panSNSample(name)
-    if (sample !== name) {
-      const contig = panSNContig(name)
-      lookup.set(qualifiedKey(sample, contig), name)
-      const haplotype = panSNHaplotype(name)
-      if (haplotype !== undefined) {
-        lookup.set(qualifiedKey(haplotype, contig), name)
-      }
-    }
-  }
-  return lookup
-}
-
-// A tab can occur in neither half — both come out of BED columns.
-function qualifiedKey(assemblyName: string, refName: string) {
-  return `${assemblyName}\t${refName}`
-}
-
-export function resolveRefName(
-  lookup: Map<string, string>,
-  assemblyName: string,
-  refName: string,
-) {
-  const qualified = lookup.get(qualifiedKey(assemblyName, refName))
-  return qualified === undefined ? lookup.get(refName) : qualified
-}
 
 // Segments carry no sequence here — the BED records only their span — so every
 // S-line is written with `*` and an LN tag, which is what the GFA spec asks for
