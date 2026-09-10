@@ -71,6 +71,14 @@ jobs:
       - name: Lint
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: pnpm lint
+      # Formatting drifts silently otherwise: `pnpm format` is the only thing
+      # that writes it and nothing was checking that anyone had run it, so 35
+      # files were out by whitespace before this landed. It goes beside lint
+      # rather than into it because prettier and eslint disagree about who owns
+      # layout and the repo lets prettier win.
+      - name: Format
+        working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
+        run: pnpm format:check
       - name: Unit tests
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: pnpm test
