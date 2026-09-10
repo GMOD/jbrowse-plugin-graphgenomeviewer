@@ -1,3 +1,5 @@
+import type { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
+
 // PanSN naming convention: `sample#haplotype#contig`. Shared by the all-vs-all
 // PAF adapters (in-memory and tabix-indexed), which anchor on the sample prefix
 // and strip it to recover each assembly's own refName.
@@ -41,4 +43,60 @@ export function panSNMatchesPrefix(
     prefix !== undefined &&
     (refName === prefix || refName.startsWith(prefix + SEP))
   )
+}
+
+// How a config maps the session's assembly names onto the PanSN spelling a
+// graph uses, and back. Every adapter here declares an `assemblyNameToPanSN`
+// slot for it — the graph says `GRCh38#0` where the assembly is `hg38` — so
+// resolving a name is the same question in all of them, and it used to be
+// answered by two copies of these functions in two directories.
+//
+// `?? {}` so an adapter whose schema lacks the slot identity-maps rather than
+// throwing a TypeError deep inside a query.
+function assemblyNameToPanSN(adapter: BaseFeatureDataAdapter) {
+  return (adapter.getConf('assemblyNameToPanSN') ?? {}) as Record<
+    string,
+    string
+  >
+}
+
+// One assembly name as its PanSN sample prefix, identity when the config maps
+// it to nothing. Overloaded rather than widened: undefined passes through, so a
+// caller can express "no anchor/target supplied", and a caller that has a name
+// gets a `string` back instead of having to re-assert one.
+export function resolvePanSNPrefix(
+  adapter: BaseFeatureDataAdapter,
+  name: string,
+): string
+export function resolvePanSNPrefix(
+  adapter: BaseFeatureDataAdapter,
+  name: string | undefined,
+): string | undefined
+export function resolvePanSNPrefix(
+  adapter: BaseFeatureDataAdapter,
+  name: string | undefined,
+) {
+  return name === undefined
+    ? undefined
+    : (assemblyNameToPanSN(adapter)[name] ?? name)
+}
+
+const asmByPrefixCache = new WeakMap<
+  BaseFeatureDataAdapter,
+  Record<string, string>
+>()
+
+// The inverse: PanSN prefix -> the assembly name this session loads it as, for
+// naming the lane a haplotype draws on.
+export function assemblyByPanSNPrefix(adapter: BaseFeatureDataAdapter) {
+  let out = asmByPrefixCache.get(adapter)
+  if (out === undefined) {
+    const map = assemblyNameToPanSN(adapter)
+    out = {}
+    for (const asm of adapter.getConf('assemblyNames') as string[]) {
+      out[map[asm] ?? asm] = asm
+    }
+    asmByPrefixCache.set(adapter, out)
+  }
+  return out
 }

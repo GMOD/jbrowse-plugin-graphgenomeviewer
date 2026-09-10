@@ -8,8 +8,11 @@ import {
   buildRefNameLookup,
   resolveRefName,
 } from '../RgfaTabixAdapter/rgfaBed.ts'
-import { panSNContig, panSNMatchesPrefix } from '../pansn.ts'
-import { resolvePanSNPrefix } from '../util.ts'
+import {
+  panSNContig,
+  panSNMatchesPrefix,
+  resolvePanSNPrefix,
+} from '../pansn.ts'
 import {
   bubbleDescription,
   bubbleLabel,
@@ -82,7 +85,7 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
     const lookup = await this.refNameLookup(opts)
     return resolveRefName(
       lookup,
-      resolvePanSNPrefix(this, region.assemblyName) ?? region.assemblyName,
+      resolvePanSNPrefix(this, region.assemblyName),
       region.refName,
     )
   }

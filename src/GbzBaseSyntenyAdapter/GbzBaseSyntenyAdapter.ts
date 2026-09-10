@@ -4,13 +4,14 @@ import { updateStatus } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
-import { panSNMatchesPrefix, panSNSample } from '../pansn.ts'
-import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
-import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 import {
   assemblyByPanSNPrefix,
+  panSNMatchesPrefix,
+  panSNSample,
   resolvePanSNPrefix,
-} from '../synteny/panSNAssemblies.ts'
+} from '../pansn.ts'
+import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
+import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphCutOptions } from '../GetSubgraph.ts'

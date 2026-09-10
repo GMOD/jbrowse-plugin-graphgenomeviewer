@@ -4,8 +4,11 @@ import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
-import { panSNContig, panSNMatchesPrefix } from '../pansn.ts'
-import { resolvePanSNPrefix } from '../util.ts'
+import {
+  panSNContig,
+  panSNMatchesPrefix,
+  resolvePanSNPrefix,
+} from '../pansn.ts'
 import {
   buildRefNameLookup,
   formatSubgraph,
@@ -141,7 +144,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     const lookup = await this.refNameLookup(opts)
     return resolveRefName(
       lookup,
-      resolvePanSNPrefix(this, region.assemblyName) ?? region.assemblyName,
+      resolvePanSNPrefix(this, region.assemblyName),
       region.refName,
     )
   }
