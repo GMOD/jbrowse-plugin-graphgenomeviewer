@@ -4,11 +4,29 @@ import type { GraphNode } from '../GraphGenomeView/types'
 
 // What a LinearGenomeView writes to `session.hovered` on every mousemove (see
 // LinearGenomeViewContainer): the bp under the cursor, plus the feature under it
-// if the topmost track had one. Neither field names the source view, so a graph
-// view filters by whether the position falls inside the region it was cut from.
+// if the topmost track had one. Nothing names the source VIEW, so a graph view
+// filters by whether the position falls in the region it was cut from — but the
+// position does name the source ASSEMBLY, and that turns out to be the half
+// that matters.
 export interface LgvHover {
   refName: string
   coord: number
+  // The assembly the hovered view is showing. `hoverPosition` is a
+  // `PxToBpResult`, i.e. the displayed region the pointer landed in spread flat,
+  // so this is that region's own `assemblyName`.
+  //
+  // Read because refName alone does not identify a locus in a session holding
+  // several assemblies, which is every session these graphs are launched in. A
+  // PanSN name reduces to a bare contig — the E. coli pangenome loads five
+  // strains each with one refName `chr`, and HPRC's hg38 and a GenArk haplotype
+  // both call it `chr6` — so a synteny stack's rows all answer to the same
+  // name at unrelated coordinates. Without this the hover on ANY row lit up a
+  // node in the graph, and the node then published its own reference interval
+  // back into every linear view.
+  //
+  // Optional because the channel is typed `unknown` and read structurally: a
+  // hover that states no assembly is taken at its word rather than dropped.
+  assemblyName?: string
   featureName?: string
 }
 
@@ -30,13 +48,15 @@ function isFeatureLike(value: unknown): value is FeatureLike {
 export function readLgvHover(hovered: unknown): LgvHover | undefined {
   let result: LgvHover | undefined
   if (isRecord(hovered) && isRecord(hovered.hoverPosition)) {
-    const { refName, coord } = hovered.hoverPosition
+    const { refName, coord, assemblyName } = hovered.hoverPosition
     if (typeof refName === 'string' && typeof coord === 'number') {
       const feature = hovered.hoverFeature
       const name = isFeatureLike(feature) ? feature.get('name') : undefined
       result = {
         refName,
         coord,
+        assemblyName:
+          typeof assemblyName === 'string' ? assemblyName : undefined,
         featureName: typeof name === 'string' ? name : undefined,
       }
     }
@@ -44,11 +64,22 @@ export function readLgvHover(hovered: unknown): LgvHover | undefined {
   return result
 }
 
+// Whether a hover is one this graph can answer: the same assembly, the same
+// stable sequence, and inside the window the cut was made for.
+//
+// The assembly is checked FIRST and is the whole reason this is not just a
+// coordinate test. See LgvHover.assemblyName: a graph cut from K12 and a
+// synteny row on Sakai both call their sequence `chr`, so on refName and
+// coordinate alone every row of the stack matched and the graph highlighted a
+// K12 node at Sakai's offset. A hover that names no assembly still passes,
+// which is what a hand-written channel writer and the older LGVs get.
 export function hoverInRegion(
   hover: LgvHover,
-  region: { refName: string; start: number; end: number },
+  region: { refName: string; assemblyName: string; start: number; end: number },
 ) {
   return (
+    (hover.assemblyName === undefined ||
+      hover.assemblyName === region.assemblyName) &&
     hover.refName === region.refName &&
     hover.coord >= region.start &&
     hover.coord <= region.end

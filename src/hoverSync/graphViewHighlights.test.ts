@@ -84,3 +84,43 @@ test('a graph view paired with a row of a stack view draws on that row', () => {
   ])
   expect(graphViewHighlights(views, 'synteny1')).toEqual([])
 })
+
+// The other half of the same guard `hoverInRegion` applies on the way in.
+// `getHighlightCoords` canonicalizes a refName against the region's own
+// assembly and then lays it out against the drawing view's displayed regions,
+// never asking whether the two are the same assembly — so a band handed to the
+// wrong view is drawn, at somebody else's coordinates.
+//
+// An unpaired graph broadcasts by the rule above, and a synteny stack's rows
+// are LGVs on different assemblies. The five E. coli strains each hold one
+// refName `chr`, so a K12 cut painted its interval across every row.
+describe("the drawing view has to be on the highlight's assembly", () => {
+  const unpaired = [graphView({ hoverHighlight: HIGHLIGHT })]
+
+  test('a view showing that assembly draws the band', () => {
+    expect(graphViewHighlights(unpaired, 'lgv1', ['hg38'])).toHaveLength(1)
+  })
+
+  test('a row of the stack on another assembly draws nothing', () => {
+    expect(graphViewHighlights(unpaired, 'lgv1', ['HG002#1'])).toEqual([])
+  })
+
+  test('a view holding several assemblies draws it if any of them matches', () => {
+    expect(
+      graphViewHighlights(unpaired, 'lgv1', ['HG002#1', 'hg38']),
+    ).toHaveLength(1)
+  })
+
+  // Both fallbacks: a caller that does not state the view's assemblies, and a
+  // highlight that states none of its own. Either way this is the behaviour
+  // every existing snapshot already has.
+  test('an unstated assembly on either side broadcasts as before', () => {
+    expect(graphViewHighlights(unpaired, 'lgv1')).toHaveLength(1)
+    const noAssembly = [
+      graphView({
+        hoverHighlight: { ...HIGHLIGHT, assemblyName: undefined },
+      }),
+    ]
+    expect(graphViewHighlights(noAssembly, 'lgv1', ['Sakai'])).toHaveLength(1)
+  })
+})

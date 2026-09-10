@@ -45,12 +45,42 @@ function isConnected(view: Record<string, unknown>, linearViewId: string) {
   return connectedViewId === undefined || connectedViewId === linearViewId
 }
 
+// ...and whether the view can mean anything by it. `getHighlightCoords`
+// canonicalizes a refName against the region's OWN assembly and then lays it
+// out against this view's displayed regions, without ever asking whether the
+// two are the same assembly — so a band handed to the wrong view is drawn, at
+// coordinates that belong to somebody else's genome.
+//
+// That is not hypothetical for an unpaired graph, which by the rule above
+// matches every linear view in the session. A synteny stack's rows are LGVs on
+// different assemblies, and a PanSN name reduces to a bare contig: the five
+// E. coli strains each have one refName `chr`, so a graph cut from K12 painted
+// its K12 interval across Sakai's row and CFT073's at their own offsets. With
+// the assembly checked the reference row keeps the band and the rest correctly
+// draw nothing.
+//
+// A region stating no assembly still passes — `readRegion` leaves it optional,
+// and the fallback is the behaviour every existing snapshot has.
+function isOnAssembly(
+  region: HighlightRegion,
+  assemblyNames: string[] | undefined,
+) {
+  return (
+    region.assemblyName === undefined ||
+    assemblyNames === undefined ||
+    assemblyNames.includes(region.assemblyName)
+  )
+}
+
 // The highlights a linear view should draw for the graph views connected to it.
 // Reads `session.views` structurally: the members it needs are declared by
 // GraphGenomeView, not by the AbstractViewModel the session array is typed as.
 export function graphViewHighlights(
   views: unknown[],
   linearViewId: string,
+  // the drawing view's own assemblies, so a band is only drawn where its
+  // coordinates mean something — see isOnAssembly
+  linearAssemblyNames?: string[],
 ): GraphViewHighlight[] {
   const highlights: GraphViewHighlight[] = []
   for (const view of views) {
@@ -60,7 +90,7 @@ export function graphViewHighlights(
       isConnected(view, linearViewId)
     ) {
       const region = readRegion(view.hoverHighlight)
-      if (region) {
+      if (region && isOnAssembly(region, linearAssemblyNames)) {
         highlights.push({
           key: typeof view.id === 'string' ? view.id : 'graph',
           region,

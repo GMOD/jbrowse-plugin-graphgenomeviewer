@@ -50,9 +50,11 @@ const GraphNodeHighlight = observer(function GraphNodeHighlight({
   const { views } = getSession(model)
   return (
     <>
-      {graphViewHighlights([...views], model.id).map(({ key, region }) => (
-        <Highlight key={`graph-hover-${key}`} model={model} region={region} />
-      ))}
+      {graphViewHighlights([...views], model.id, model.assemblyNames).map(
+        ({ key, region }) => (
+          <Highlight key={`graph-hover-${key}`} model={model} region={region} />
+        ),
+      )}
     </>
   )
 })
