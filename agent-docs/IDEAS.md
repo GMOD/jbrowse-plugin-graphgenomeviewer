@@ -13,6 +13,20 @@ stays beside the measurement that rejected it — `GRAPH_SCALE_AND_LOD.md` has t
 "do not fix it" notes, and they are more useful next to their numbers than in a
 list of aspirations. And anything already decided is an ADR.
 
+## The graph following the linear view beside it
+
+Its own file, `FOLLOW_THE_LINEAR_VIEW.md`, because the measurement and the cost
+run past what an entry here holds — and because the answer turns on two facts
+(an anchored graph's x axis already IS the linear view's; a graph cut cannot be
+extrapolated, so `SyntenyFollow`'s two-pass structure only half transfers)
+rather than on a number.
+
+The number, for the entry's own sake: an rGFA re-cut is **~1.3 s and flat in
+window size**, which is what makes a margin nearly free and the feature
+plausible; a GBZ re-cut is **up to 12 s**, which is what keeps it off that
+route. It also wants a decision this repo has not made — which linear views a
+graph is related to — and that is the smaller half, described there.
+
 ## GPU rendering, for anchored layouts only
 
 Replace `Canvas2DRenderer` with a GPU backend on the anchored / sample-rows
