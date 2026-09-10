@@ -8,6 +8,7 @@ import {
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
 import {
+  SUBGRAPH_REGION_LABEL,
   launchSubgraphView,
   regionAroundSegment,
   regionFromViewport,
@@ -78,7 +79,7 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                 if (canCutSubgraph(pluginManager, track)) {
                   const view = getContainingView(self) as LinearGenomeViewModel
                   pushLaunchViewMenuItem(items, {
-                    label: 'Graph genome view (this region)',
+                    label: SUBGRAPH_REGION_LABEL,
                     icon: BubbleChartIcon,
                     onClick: () => {
                       const region = regionFromViewport(

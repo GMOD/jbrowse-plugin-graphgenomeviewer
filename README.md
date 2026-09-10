@@ -90,20 +90,19 @@ Load the plugin from any JBrowse 2 config with an `esmUrl`:
 ```
 
 Note: ESM plugins are loaded via a dynamic `import()`, which cannot carry a
-subresource-integrity hash the way a UMD `<script integrity>` can. For a
-deployment that needs pinned, tamper-evident bytes, serve the plugin from an
-immutable, version-pinned url on a host you control.
-
-Generate the digest with
-`openssl dgst -sha384 -binary FILE | openssl base64 -A`. The engine chunk is
-already immutable by content hash, so it needs no separate pin.
+subresource-integrity hash the way a UMD `<script integrity>` can — there is
+nowhere to put a digest. For a deployment that needs pinned, tamper-evident
+bytes, serve the plugin from an immutable, version-pinned url on a host you
+control. The engine chunk is already immutable by content hash.
 
 The engine is a lazy chunk: it is only fetched the first time someone selects the
 force-directed layout, so sessions that use the anchored or sample-row layouts
-never download it. Its URL is derived from the plugin's own URL above, which is
-why the two files need to sit together — the layout RPC runs in a web worker and
-resolves the location from the plugin definition JBrowse passes in. A `layoutUrl`
-option on the view overrides that if you need to host the engine elsewhere.
+never download it. Its url is not configured anywhere — `loadBandage` is a plain
+dynamic `import()`, so the browser resolves the chunk relative to the plugin
+module's own url (`import.meta.url`, defined on the main thread and in the RPC
+worker alike). That is why the whole `dist/` has to be served together, and it is
+also why there is nothing to point elsewhere: to host the engine on another
+origin, rebuild with the chunk emitted there.
 
 ### Rebuilding the engine
 

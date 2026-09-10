@@ -801,10 +801,10 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
-      // The reference interval of the hovered node, for a connected linear view
-      // to highlight. Only a graph cut from a track has one: a whole-file import
-      // has no region, and its stable names need not name anything in a loaded
-      // assembly.
+      // Which of `graph.edges` are deletions, and what each one bypasses, keyed
+      // the way the geometry and the hit index address an edge. One map per
+      // graph rather than per rebuild, since both of those take it on every
+      // pan.
       get deletionEdgeIndexes() {
         return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
       },
@@ -824,6 +824,10 @@ export default function stateModelFactory() {
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },
+      // The reference interval of the hovered node, for a connected linear view
+      // to highlight. Only a graph cut from a track has one: a whole-file import
+      // has no region, and its stable names need not name anything in a loaded
+      // assembly.
       get hoverHighlight() {
         let result:
           | {

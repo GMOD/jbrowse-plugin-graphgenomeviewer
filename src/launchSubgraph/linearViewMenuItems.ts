@@ -1,7 +1,7 @@
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 
-import { regionFromViewport } from './launchSubgraphView'
+import { SUBGRAPH_REGION_LABEL, regionFromViewport } from './launchSubgraphView'
 import { subgraphMenuItems } from './subgraphMenuItems'
 import { subgraphTracks } from './subgraphTracks'
 
@@ -10,10 +10,6 @@ import type { PluggableElementType } from '@jbrowse/core/pluggableElementTypes'
 import type ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import type { LinearGenomeViewModel } from '@jbrowse/plugin-linear-genome-view'
 
-// Same phrasing as the track menu's item for the same extent, which said
-// "(this region)" while this one said "(visible region)" — one thing, two
-// names, and the tutorials only ever documented the first.
-const VISIBLE_LABEL = 'Graph genome view (this region)'
 const SELECTION_LABEL = 'Graph genome view (this selection)'
 
 function isLinearGenomeView(elt: { name: string }): elt is ViewType {
@@ -65,7 +61,7 @@ export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
                   menuItems() {
                     const items = superMenuItems()
                     for (const item of subgraphMenuItems({
-                      label: VISIBLE_LABEL,
+                      label: SUBGRAPH_REGION_LABEL,
                       region: regionFromViewport(
                         self.dynamicBlocks.contentBlocks,
                       ),

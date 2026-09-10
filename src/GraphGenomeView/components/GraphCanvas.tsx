@@ -96,8 +96,14 @@ const RowLabels = observer(function RowLabels({
       {rowLabels.map(({ label, y }) => {
         const screenY = y * model.scaleY + model.translateY
         return screenY >= 0 && screenY <= model.canvasHeight ? (
+          // Keyed on the row, not on the label: two rows can carry the same
+          // words. The sample-row layout names row 0 for the assembly the
+          // backbone comes from and the rows below it for the samples
+          // contributing alleles, and a diploid reference is in both lists —
+          // one haplotype is the reference path, the other walks alleles of its
+          // own, and `parsePanSN` reduces both to one sample name.
           <div
-            key={label}
+            key={y}
             data-testid="graph-row-label"
             style={{ ...rowLabelStyle, top: screenY }}
           >

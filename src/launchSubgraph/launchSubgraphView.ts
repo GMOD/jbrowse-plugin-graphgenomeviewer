@@ -9,6 +9,18 @@ export interface SubgraphLaunchSession {
   notify: (message: string, level?: NotificationLevel) => void
 }
 
+// The launch item's wording, shared by the two places that offer the same
+// extent: the linear view's own menu and a graph track's track menu. They said
+// "(visible region)" and "(this region)" for one thing until they were made to
+// agree, and the tutorials only ever documented the second — so one constant
+// holds the agreement rather than a comment on one of the two copies asking
+// for it.
+//
+// Still a literal in `src/`, which is what jbrowse-components'
+// `website/scripts/check-menu-labels.ts` scans to catch a documented
+// `**Track menu → …**` path naming a dropdown this plugin no longer renders.
+export const SUBGRAPH_REGION_LABEL = 'Graph genome view (this region)'
+
 export interface SubgraphRegion {
   refName: string
   assemblyName: string
