@@ -1956,6 +1956,7 @@ describe('what the row axis draws, in pixels', () => {
       translateY: model.translateY,
       viewportWidth: model.width,
       viewportHeight: model.canvasHeight,
+      dpr: 1,
     })
     renderer.render([1, 1, 1, 1])
     return points

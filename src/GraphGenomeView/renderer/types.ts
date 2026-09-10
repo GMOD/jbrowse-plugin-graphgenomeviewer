@@ -51,6 +51,23 @@ export interface TransformUniform {
   translateY: number
   viewportWidth: number
   viewportHeight: number
+  // Backing-store pixels per css pixel, from render-core's `getDpr()`. Every
+  // other field here is already multiplied by it, because a position goes
+  // through the transform; a THICKNESS does not — the mesh expands
+  // `normal * thickness` AFTER the transform (Canvas2DRenderer.renderSubBatch,
+  // and graph.slang's `normal * thickness / scale`) — so the renderer has to
+  // apply the ratio to that half of the expansion itself. render-core's own
+  // marks carry the same quantity as a `devicePixelRatio` shader uniform, for
+  // the same reason.
+  //
+  // Required rather than defaulted, for the reason AxisScale is one object: a
+  // caller that omits it draws a picture that is right on one class of display
+  // and wrong on the other, and reports nothing either way. Every screen-metric
+  // constant in the geometry builder is quoted in css px — the dash period, the
+  // path-stripe floor, the arrowhead, both thicknesses — and only the dash
+  // period survived a 2x display, because it is the one of them that reaches
+  // the drawing through a position rather than through a thickness.
+  dpr: number
 }
 
 export interface Renderer {

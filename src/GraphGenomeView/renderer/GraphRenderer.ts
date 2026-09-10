@@ -18,6 +18,13 @@ import { Canvas2DRenderer } from './Canvas2DRenderer'
 // it has to happen in the `.slang`, which lives in neither repo today: only the
 // generated module's vertex LAYOUT constants are in use, and its WGSL/GLSL is
 // dead code until this function returns something that runs it.
+//
+// **And a second thing, from the same cancellation.** `scale` arrives already
+// multiplied by the device ratio, so once it cancels, `normal * thickness` is
+// left in BACKING-STORE px while a thickness is quoted in css px — the drawing
+// then comes out 1/dpr of its weight on a hidpi display. Canvas2DRenderer
+// takes `TransformUniform.dpr` for exactly this term; the shader needs the
+// same factor, i.e. `normal * thickness * dpr / scale`.
 export function createGraphRenderer(canvas: HTMLCanvasElement) {
   return Promise.resolve(new Canvas2DRenderer(canvas))
 }

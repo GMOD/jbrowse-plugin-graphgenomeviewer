@@ -1,3 +1,4 @@
+import { syncCanvasSize } from '@jbrowse/render-core/canvas2dUtils'
 import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBackendBase'
 
 import {
@@ -59,12 +60,14 @@ export class Canvas2DRenderer
   // "Canvas 2D not supported" — what this used to throw — sends the reader
   // looking for a missing browser feature instead.
 
+  // render-core's, not a local `width * devicePixelRatio`: it clamps the
+  // backing store at MAX_CANVAS_DIM_PX — past which a browser throws
+  // `InvalidStateError: Canvas exceeds max size` rather than degrading — reads
+  // the ratio through `getDpr()` so this agrees with the transform the model
+  // builds, and writes the css size independently of the backing size, which is
+  // the part hand-rolled versions get wrong once a clamp engages.
   resize(width: number, height: number) {
-    const dpr = window.devicePixelRatio || 1
-    this.ctx.canvas.width = width * dpr
-    this.ctx.canvas.height = height * dpr
-    this.ctx.canvas.style.width = `${width}px`
-    this.ctx.canvas.style.height = `${height}px`
+    syncCanvasSize(this.ctx.canvas, width, height)
   }
 
   uploadGeometry(batch: RenderBatch) {
@@ -80,9 +83,7 @@ export class Canvas2DRenderer
 
   setEdgeHighlight(edgeIndex: number | null, factor: number) {
     this.highlightedEdge =
-      edgeIndex === null
-        ? null
-        : (this.edgeCurveRanges.get(edgeIndex) ?? null)
+      edgeIndex === null ? null : (this.edgeCurveRanges.get(edgeIndex) ?? null)
     this.highlightFactor = factor
   }
 
@@ -130,7 +131,8 @@ export class Canvas2DRenderer
   }
 
   private renderEdgeCurves() {
-    if (!this.transform || this.edgeCurves.length === 0) {
+    const t = this.transform
+    if (!t || this.edgeCurves.length === 0) {
       return
     }
     const ctx = this.ctx
@@ -149,10 +151,10 @@ export class Canvas2DRenderer
         ctx.strokeStyle = abgrToCssRgba(color)
         lastColor = color
       }
-      // thickness is the half-width in backing-store pixels (mesh path
-      // expands by `normal * thickness` after `position * scaleX`, with no
-      // extra dpr scaling). Stroke is the full width.
-      ctx.lineWidth = e.thickness * 2
+      // thickness is the half-width in CSS pixels, so it takes the device
+      // ratio the transform already carries — the mesh path below expands the
+      // same way. Stroke is the full width.
+      ctx.lineWidth = e.thickness * 2 * t.dpr
       ctx.beginPath()
       const first = e.curves[0]!
       const [sx, sy] = this.px(first.x0, first.y0)
@@ -175,6 +177,13 @@ export class Canvas2DRenderer
     const ctx = this.ctx
     const t = this.transform
     const { vertexData, vertexDataU32, indices } = batch
+    // The mesh states its thickness in css px and expands it AFTER the
+    // transform, so this is the one term the dpr-scaled transform does not
+    // reach. Without it every tube, connector and arrowhead came out 1/dpr of
+    // its intended weight on a hidpi display while the positions between them
+    // were right — a whole drawing drawn hairline, and the path stripes half
+    // as wide as the slots they sit in, since a slot's OFFSET is a position.
+    const dpr = t.dpr
 
     let lastColor = -1
     for (let i = 0, indicesLen = indices.length; i < indicesLen; i += 3) {
@@ -187,27 +196,33 @@ export class Canvas2DRenderer
 
       const x0 =
         vertexData[b0 + POS_F32]! * t.scaleX +
-        vertexData[b0 + NORMAL_F32]! * vertexData[b0 + THICKNESS_F32]! +
+        vertexData[b0 + NORMAL_F32]! * vertexData[b0 + THICKNESS_F32]! * dpr +
         t.translateX
       const y0 =
         vertexData[b0 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b0 + NORMAL_F32 + 1]! * vertexData[b0 + THICKNESS_F32]! +
+        vertexData[b0 + NORMAL_F32 + 1]! *
+          vertexData[b0 + THICKNESS_F32]! *
+          dpr +
         t.translateY
       const x1 =
         vertexData[b1 + POS_F32]! * t.scaleX +
-        vertexData[b1 + NORMAL_F32]! * vertexData[b1 + THICKNESS_F32]! +
+        vertexData[b1 + NORMAL_F32]! * vertexData[b1 + THICKNESS_F32]! * dpr +
         t.translateX
       const y1 =
         vertexData[b1 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b1 + NORMAL_F32 + 1]! * vertexData[b1 + THICKNESS_F32]! +
+        vertexData[b1 + NORMAL_F32 + 1]! *
+          vertexData[b1 + THICKNESS_F32]! *
+          dpr +
         t.translateY
       const x2 =
         vertexData[b2 + POS_F32]! * t.scaleX +
-        vertexData[b2 + NORMAL_F32]! * vertexData[b2 + THICKNESS_F32]! +
+        vertexData[b2 + NORMAL_F32]! * vertexData[b2 + THICKNESS_F32]! * dpr +
         t.translateX
       const y2 =
         vertexData[b2 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b2 + NORMAL_F32 + 1]! * vertexData[b2 + THICKNESS_F32]! +
+        vertexData[b2 + NORMAL_F32 + 1]! *
+          vertexData[b2 + THICKNESS_F32]! *
+          dpr +
         t.translateY
 
       const c = vertexDataU32[b0 + COLOR_F32]!

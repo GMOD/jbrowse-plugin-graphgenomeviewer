@@ -14,6 +14,10 @@
 export interface RecordedDraws {
   strokes: string[]
   fills: string[]
+  // The lineWidth each stroke went out with, parallel to `strokes`. An edge is
+  // the one thing this renderer draws as a stroke rather than as a mesh, so its
+  // weight is not visible in `points` the way a node's cap overhang is.
+  lineWidths: number[]
 }
 
 // `points` is every coordinate the renderer asked for, in BACKING-STORE pixels
@@ -24,6 +28,7 @@ export interface RecordedDraws {
 export function recordingCanvas() {
   const strokes: string[] = []
   const fills: string[] = []
+  const lineWidths: number[] = []
   const points: { x: number; y: number }[] = []
   const at = (x: number, y: number) => {
     points.push({ x, y })
@@ -54,6 +59,7 @@ export function recordingCanvas() {
     fillRect: () => {},
     stroke: () => {
       strokes.push(ctx.strokeStyle)
+      lineWidths.push(ctx.lineWidth)
     },
     fill: () => {
       fills.push(ctx.fillStyle)
@@ -63,5 +69,5 @@ export function recordingCanvas() {
   // context is a stand-in, which is the one cast this needs.
   const canvas = document.createElement('canvas')
   canvas.getContext = () => ctx as unknown as CanvasRenderingContext2D
-  return { canvas, strokes, fills, points }
+  return { canvas, strokes, fills, lineWidths, points }
 }

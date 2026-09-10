@@ -9,6 +9,7 @@ import {
 import { openLocation } from '@jbrowse/core/util/io'
 import { addDisposer, flow, isAlive, types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
+import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
@@ -1792,7 +1793,14 @@ export default function stateModelFactory() {
             if (!self.nodePositions) {
               return false
             }
-            const dpr = window.devicePixelRatio || 1
+            // getDpr(), never a bare `devicePixelRatio`: it is capped at
+            // MAX_DPR so this canvas costs what every other canvas in the app
+            // costs on a 3x display (the square of the ratio, i.e. 9x the
+            // pixels of 1x against the 4x everything else pays), and it is the
+            // same read `syncCanvasSize` sizes the backing store with — two
+            // call sites reading the global separately can disagree, and then
+            // the geometry lands at a different scale from the canvas under it.
+            const dpr = getDpr()
             b.updateTransform({
               scaleX: self.scaleX * dpr,
               scaleY: self.scaleY * dpr,
@@ -1800,6 +1808,11 @@ export default function stateModelFactory() {
               translateY: self.translateY * dpr,
               viewportWidth: self.width * dpr,
               viewportHeight: self.canvasHeight * dpr,
+              // Handed over rather than read again by the backend: the
+              // thicknesses in the vertex buffer are css px and are expanded
+              // after this transform, so they need the same ratio the fields
+              // above were already multiplied by. See TransformUniform.dpr.
+              dpr,
             })
             b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
             return true

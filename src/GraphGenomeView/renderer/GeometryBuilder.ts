@@ -84,7 +84,10 @@ const MIN_PATH_STRIPE_PX = 1.2
 // Guards the screen-px-to-world division below against a degenerate transform.
 const MIN_SCALE_FOR_OFFSET = 1e-6
 
-// Half-extent of an arrowhead, in world units before the view transform.
+// Half-extent of an arrowhead, in SCREEN px: it reaches the mesh as a
+// `thickness`, and a thickness is expanded after the transform (see
+// TransformUniform), so an arrowhead is the same size at every zoom. It was
+// documented as world units, which would make it grow with the drawing.
 const ARROWHEAD_SIZE = 12
 
 // Per-point unit normals of a polyline, mitred at the interior joints so a bend

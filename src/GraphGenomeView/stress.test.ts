@@ -195,6 +195,7 @@ function countDrawCalls(batch: ReturnType<typeof buildGeometry>) {
     translateY: 0,
     viewportWidth: 800,
     viewportHeight: 600,
+    dpr: 1,
   })
   renderer.render([1, 1, 1, 1])
   return { strokes: strokes.length, fills: fills.length }

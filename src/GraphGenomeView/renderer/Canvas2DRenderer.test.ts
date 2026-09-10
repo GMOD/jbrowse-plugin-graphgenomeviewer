@@ -8,8 +8,14 @@ import type { TransformUniform } from './types'
 const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
 
 function makeRenderer() {
-  const { canvas, strokes, fills } = recordingCanvas()
-  return { renderer: new Canvas2DRenderer(canvas), strokes, fills }
+  const { canvas, strokes, fills, lineWidths, points } = recordingCanvas()
+  return {
+    renderer: new Canvas2DRenderer(canvas),
+    strokes,
+    fills,
+    lineWidths,
+    points,
+  }
 }
 
 const TRANSFORM: TransformUniform = {
@@ -19,6 +25,7 @@ const TRANSFORM: TransformUniform = {
   translateY: 0,
   viewportWidth: 800,
   viewportHeight: 600,
+  dpr: 1,
 }
 
 // three nodes in a row wired A -> B -> C, so edge 0 and edge 1 are distinct
@@ -133,4 +140,40 @@ test('uploading a new batch drops the previous highlight', () => {
 
   expect(strokes).toHaveLength(2)
   expect(strokes[0]).toBe(strokes[1])
+})
+
+// A thickness is quoted in CSS pixels and expanded AFTER the transform, so it
+// is the one term the dpr-scaled transform does not reach. Left alone, every
+// tube, connector and arrowhead came out 1/dpr of its weight on a hidpi
+// display, with the positions between them correct — measurable here as the
+// round cap's overhang past the node's own coordinates.
+//
+// Asserted as "twice the backing-store pixels at twice the ratio", which is the
+// same drawing in css px. The whole point is that a figure does not change
+// weight with the machine it is opened on.
+describe('a thickness is css pixels, whatever the device ratio', () => {
+  function drawnWidth(dpr: number) {
+    const { renderer, points, lineWidths } = makeRenderer()
+    renderer.uploadGeometry(batchOf2Edges())
+    renderer.updateTransform({ ...TRANSFORM, scaleX: dpr, scaleY: dpr, dpr })
+    renderer.render([1, 1, 1, 1])
+    const xs = points.map(p => p.x)
+    return {
+      spanPx: Math.max(...xs) - Math.min(...xs),
+      lineWidth: lineWidths[0]!,
+    }
+  }
+
+  test('a node mesh scales its caps with the ratio', () => {
+    // three 10-unit nodes over a 90-unit span, plus half a tube of cap at each
+    // end: contigThickness 10, so 100 units at ratio 1
+    expect(drawnWidth(1).spanPx).toBeCloseTo(100, 5)
+    expect(drawnWidth(2).spanPx).toBeCloseTo(200, 5)
+  })
+
+  test('a stroked edge scales its width with the ratio', () => {
+    // connectorThickness 4 is a half-width of 2, so a 4 px stroke at ratio 1
+    expect(drawnWidth(1).lineWidth).toBeCloseTo(4, 5)
+    expect(drawnWidth(2).lineWidth).toBeCloseTo(8, 5)
+  })
 })
