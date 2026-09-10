@@ -1,4 +1,12 @@
 import {
+  abgrAlpha,
+  abgrBlue,
+  abgrGreen,
+  abgrRed,
+  packAbgr,
+} from '@jbrowse/core/util/colorBits'
+
+import {
   REFERENCE_RAMP_MAX_HUE,
   brightenColors,
   buildGeometry,
@@ -7,13 +15,6 @@ import {
   extractColorSlice,
   hslToRgb,
 } from './GeometryBuilder'
-import {
-  abgrAlpha,
-  abgrBlue,
-  abgrGreen,
-  abgrRed,
-  packAbgr,
-} from './colorBits'
 import {
   FIELD_OFFSET_F32,
   INSTANCE_STRIDE_F32,

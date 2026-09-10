@@ -1,4 +1,6 @@
-import { brightenAbgr, packAbgr } from './colorBits'
+import { packAbgr } from '@jbrowse/core/util/colorBits'
+
+import { brightenAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
 import {
   PATH_LIGHTNESS,

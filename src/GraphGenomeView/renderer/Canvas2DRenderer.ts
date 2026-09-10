@@ -1,11 +1,12 @@
-import { syncCanvasSize } from '@jbrowse/render-core/canvas2dUtils'
-import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBackendBase'
-
 import {
   abgrToCssRgba,
-  brightenAbgr,
   normalizedRgbToCssRgba,
-} from './colorBits'
+} from '@jbrowse/core/util/colorBits'
+import { syncCanvasSize } from '@jbrowse/render-core/canvas2dUtils'
+import { makeAbgrFill } from '@jbrowse/render-core/marks/colorFill'
+import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBackendBase'
+
+import { brightenAbgr } from './colorBits'
 import * as graphShader from './shaders/graph.generated'
 import { SUB_BATCH_KEYS } from './types'
 
@@ -184,8 +185,12 @@ export class Canvas2DRenderer
     // were right — a whole drawing drawn hairline, and the path stripes half
     // as wide as the slots they sit in, since a slot's OFFSET is a position.
     const dpr = t.dpr
+    // render-core's run tracker rather than a local `lastColor`: a painting is
+    // mostly runs of one colour, and both the string and the context write cost
+    // more than the comparison. Same reasoning this held itself, from the module
+    // that already states it.
+    const fill = makeAbgrFill(ctx)
 
-    let lastColor = -1
     for (let i = 0, indicesLen = indices.length; i < indicesLen; i += 3) {
       const i0 = indices[i]!
       const i1 = indices[i + 1]!
@@ -225,11 +230,7 @@ export class Canvas2DRenderer
           dpr +
         t.translateY
 
-      const c = vertexDataU32[b0 + COLOR_F32]!
-      if (c !== lastColor) {
-        ctx.fillStyle = abgrToCssRgba(c)
-        lastColor = c
-      }
+      fill(vertexDataU32[b0 + COLOR_F32]!)
       ctx.beginPath()
       ctx.moveTo(x0, y0)
       ctx.lineTo(x1, y1)
