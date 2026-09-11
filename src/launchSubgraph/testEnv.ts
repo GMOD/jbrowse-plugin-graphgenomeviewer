@@ -34,7 +34,8 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
 // drift with it. Modelled on plugins/canvas's own LinearBasicDisplay testEnv.
 export function createTestEnvironment({
   subgraphCapable = true,
-}: { subgraphCapable?: boolean } = {}) {
+  graphAssemblyNames = ['volvox'],
+}: { subgraphCapable?: boolean; graphAssemblyNames?: string[] } = {}) {
   console.warn = vi.fn()
   console.error = vi.fn()
   const pluginManager = new PluginManager()
@@ -137,7 +138,7 @@ export function createTestEnvironment({
       type: 'FeatureTrack',
       trackId: 'graph_track',
       name: 'rGFA segments',
-      assemblyNames: ['volvox'],
+      assemblyNames: graphAssemblyNames,
       adapter: { type: 'TestGraphAdapter' },
     },
     { pluginManager },

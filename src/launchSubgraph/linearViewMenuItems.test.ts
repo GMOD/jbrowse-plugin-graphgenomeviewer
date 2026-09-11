@@ -113,6 +113,21 @@ test('an over-cap region disables the item instead of hiding it', () => {
   expect(session.addedViews).toHaveLength(0)
 })
 
+// A graph is cut on its reference, the first assembly its track names, so a
+// view of another one gets the reason rather than a cut in the wrong frame.
+test('a view of a non-reference assembly disables the item and names the reference', () => {
+  const { createDisplay } = createTestEnvironment({
+    graphAssemblyNames: ['hg38', 'volvox'],
+  })
+  const { session, view } = createDisplay()
+  const item = find(launchItems(view.menuItems()), LABEL_VISIBLE)
+  expect(item).toMatchObject({ disabled: true })
+  expect(item && 'disabledHelpText' in item && item.disabledHelpText).toMatch(
+    /cut on its reference, hg38/,
+  )
+  expect(session.addedViews).toHaveLength(0)
+})
+
 // The bubble track marks exactly where haplotypes diverge, which is the most
 // natural thing to right-click — but its adapter reads a summary index and
 // cannot cut a graph, so the launch has to come from the graph track instead.

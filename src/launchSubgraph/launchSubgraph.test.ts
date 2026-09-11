@@ -115,6 +115,37 @@ test('no segment launch item without a right-clicked feature', () => {
   expect(labels(display.contextMenuItems())).not.toContain(LABEL_SEGMENT)
 })
 
+// The track menu goes through the same builder as the view menu, so both
+// refuse a region the same way: greyed out with the reason, before the click.
+test('the track menu greys the item out on a non-reference assembly', () => {
+  const { createDisplay } = createTestEnvironment({
+    graphAssemblyNames: ['hg38', 'volvox'],
+  })
+  const { display } = createDisplay()
+  const item = launchItems(display.trackMenuItems()).find(
+    i => 'label' in i && i.label === LABEL_REGION,
+  )
+  expect(item).toMatchObject({ disabled: true })
+})
+
+test('the track menu greys the item out past the cap', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { view, display } = createDisplay()
+  view.setDisplayedRegions([
+    {
+      assemblyName: 'volvox',
+      refName: 'ctgA',
+      start: 0,
+      end: MAX_GRAPH_REGION_BP * 3,
+    },
+  ])
+  view.showAllRegions()
+  const item = launchItems(display.trackMenuItems()).find(
+    i => 'label' in i && i.label === LABEL_REGION,
+  )
+  expect(item).toMatchObject({ disabled: true })
+})
+
 test('a region past the cap notifies instead of opening a view', () => {
   const { createDisplay } = createTestEnvironment()
   const { session } = createDisplay()

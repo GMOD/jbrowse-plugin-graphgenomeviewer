@@ -55,6 +55,10 @@ import {
 import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
+import {
+  graphReferenceAssembly,
+  offReferenceProblem,
+} from '../launchSubgraph/subgraphTracks'
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
@@ -1405,6 +1409,9 @@ export default function stateModelFactory() {
         // expensive: the layout, the geometry and the per-frame draw calls all
         // scale with this number. The whole-file import path had no cap at all,
         // so a chromosome-scale GFA would parse and then freeze the tab.
+        if (graph.nodes.length === 0) {
+          throw new Error(`No graph segments in ${name}`)
+        }
         if (graph.nodes.length > self.maxGraphNodes) {
           throw new Error(
             `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Zoom in to a smaller region, or raise maxGraphNodes on this view.`,
@@ -1418,6 +1425,22 @@ export default function stateModelFactory() {
         self.clearInteractionState()
         self.setStatusMessage('Computing layout')
         yield* layoutInto(graph)
+      }
+
+      // Which load is the live one, for the reason liveRequest orders layouts:
+      // every change in the settings dialog re-cuts, a remote cut takes seconds,
+      // and the last one to finish is not the last one asked for.
+      let liveLoad = 0
+
+      function beginLoad() {
+        const load = ++liveLoad
+        return () => load === liveLoad
+      }
+
+      function loadedTrack() {
+        return self.loadedTrackId
+          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
+          : undefined
       }
 
       // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
@@ -1434,16 +1457,26 @@ export default function stateModelFactory() {
           haplotypes?: string[]
         } = {},
       ) {
+        const isLive = beginLoad()
+        const track = loadedTrack()
         const regionSize = region.end - region.start
-        if (regionSize > self.maxRegionBp) {
-          // One mode only: past the size cap the graph view declines rather
-          // than degrading to a non-graph rectangle rendering. Large-region and
-          // full-genome comparison is a linear synteny view instead.
+        // Past the size cap the graph view declines rather than degrading to a
+        // non-graph rectangle rendering; large-region and full-genome
+        // comparison is a linear synteny view instead.
+        const refusal =
+          (track &&
+            offReferenceProblem(
+              graphReferenceAssembly(track),
+              region.assemblyName,
+            )) ??
+          (regionSize > self.maxRegionBp
+            ? `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.maxRegionBp)})`
+            : undefined)
+        if (refusal !== undefined) {
           self.graph = undefined
           self.layoutResult = undefined
-          self.error = new Error(
-            `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.maxRegionBp)})`,
-          )
+          self.isLoading = false
+          self.error = new Error(refusal)
           return
         }
         self.isLoading = true
@@ -1459,6 +1492,9 @@ export default function stateModelFactory() {
             region,
             opts: { hops: opts.hops, haplotypes: opts.haplotypes },
           })) as string
+          if (!isLive()) {
+            return
+          }
           self.setFetchMs(performance.now() - fetchStart)
           if (!gfaText) {
             throw new Error(
@@ -1468,10 +1504,14 @@ export default function stateModelFactory() {
           const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
           yield* parseAndLayout(gfaText, label)
         } catch (e) {
-          console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
-          self.error = e
+          if (isLive()) {
+            console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
+            self.error = e
+          }
         } finally {
-          self.isLoading = false
+          if (isLive()) {
+            self.isLoading = false
+          }
         }
       }
 
@@ -1487,9 +1527,7 @@ export default function stateModelFactory() {
       // just read.
       function* cutFromLoadedTrack() {
         const region = self.loadedRegion
-        const track = self.loadedTrackId
-          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
-          : undefined
+        const track = loadedTrack()
         if (track && region) {
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
             hops: self.subgraphContext,
@@ -1500,6 +1538,7 @@ export default function stateModelFactory() {
 
       return {
         loadGFA: flow(function* (text: string, name = 'Imported GFA') {
+          const isLive = beginLoad()
           self.loadedTrackId = ''
           self.loadedRegion = undefined
           self.isLoading = true
@@ -1507,10 +1546,14 @@ export default function stateModelFactory() {
           try {
             yield* parseAndLayout(text, name)
           } catch (e) {
-            console.error('[GraphGenomeView.loadGFA]', e)
-            self.error = e
+            if (isLive()) {
+              console.error('[GraphGenomeView.loadGFA]', e)
+              self.error = e
+            }
           } finally {
-            self.isLoading = false
+            if (isLive()) {
+              self.isLoading = false
+            }
           }
         }),
         loadFromTabixSubgraph: flow(function* (

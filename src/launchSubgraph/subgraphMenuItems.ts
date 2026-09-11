@@ -1,6 +1,7 @@
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
 import { launchSubgraphView, subgraphRegionProblem } from './launchSubgraphView'
+import { offReferenceProblem } from './subgraphTracks'
 
 import type {
   SubgraphLaunchSession,
@@ -15,9 +16,10 @@ import type { MenuItem } from '@jbrowse/core/ui'
 // of one is a needless extra click. Several become a submenu naming each track,
 // since which graph the subgraph comes from is then a real choice.
 //
-// A region past the cap yields a *disabled* item rather than none: an item that
-// vanishes teaches the user nothing, while one greyed out with the size in its
-// tooltip says what to do about it.
+// A region a track can't be cut at, past the cap or off the graph's reference,
+// yields a *disabled* item rather than none: an item that vanishes teaches the
+// user nothing, while one greyed out with the reason in its tooltip says what
+// to do about it.
 export function subgraphMenuItems({
   label,
   region,
@@ -33,27 +35,28 @@ export function subgraphMenuItems({
 }): MenuItem[] {
   let items: MenuItem[] = []
   if (region && tracks.length > 0) {
-    const problem = subgraphRegionProblem(region)
-    const launch = (track: SubgraphTrack) => () => {
-      launchSubgraphView({
-        session,
-        region,
-        trackId: track.trackId,
-        connectedViewId,
-        haplotypes: track.haplotypes,
-      })
+    const sizeProblem = subgraphRegionProblem(region)
+    const entry = (track: SubgraphTrack) => {
+      const problem =
+        offReferenceProblem(track.referenceAssembly, region.assemblyName) ??
+        sizeProblem
+      return {
+        disabled: problem !== undefined,
+        disabledHelpText: problem,
+        onClick: () => {
+          launchSubgraphView({
+            session,
+            region,
+            trackId: track.trackId,
+            connectedViewId,
+            haplotypes: track.haplotypes,
+          })
+        },
+      }
     }
     items =
       tracks.length === 1
-        ? [
-            {
-              label,
-              icon: BubbleChartIcon,
-              disabled: problem !== undefined,
-              disabledHelpText: problem,
-              onClick: launch(tracks[0]!),
-            },
-          ]
+        ? [{ label, icon: BubbleChartIcon, ...entry(tracks[0]!) }]
         : [
             {
               label,
@@ -61,9 +64,7 @@ export function subgraphMenuItems({
               type: 'subMenu',
               subMenu: tracks.map(track => ({
                 label: track.name,
-                disabled: problem !== undefined,
-                disabledHelpText: problem,
-                onClick: launch(track),
+                ...entry(track),
               })),
             },
           ]

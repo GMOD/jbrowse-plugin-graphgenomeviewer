@@ -124,13 +124,18 @@ test('getSubgraph context adds another hop', async () => {
   expect(far).toEqual(expect.arrayContaining(near))
 })
 
-test('getSubgraph returns a bare header outside the graph', async () => {
-  const gfa = await makeAdapter().getSubgraph({
-    ...k12,
-    assemblyName: 'volvox',
-    refName: 'ctgA',
-  })
-  expect(gfa).toBe('H\tVN:Z:1.0')
+// A bare header drew as an empty pane with no error, which is what a missing
+// assemblyNameToPanSN entry (hs1 without CHM13) looked like.
+test('getSubgraph refuses a sequence the index does not hold, saying how to map one', async () => {
+  await expect(
+    makeAdapter().getSubgraph({
+      ...k12,
+      assemblyName: 'volvox',
+      refName: 'ctgA',
+    }),
+  ).rejects.toThrow(
+    /volvox ctgA is not in this graph's index.*assemblyNameToPanSN/,
+  )
 })
 
 // The carriage half of the index, which no rGFA has: built by

@@ -159,29 +159,32 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       return reached
     }
 
-    if (tabixRefName !== undefined) {
-      await this.segments.getLines(tabixRefName, region.start, region.end, {
-        lineCallback: line => {
-          const segment = parseSegmentLine(line)
-          segments.set(segment.id, segment)
-        },
-      })
-      let frontier = offReference(
-        await addLinksOver(tabixRefName, region.start, region.end),
+    if (tabixRefName === undefined) {
+      throw new Error(
+        `${region.assemblyName} ${region.refName} is not in this graph's index; a graph with PanSN names (GRCh38#0#chr1) needs ${region.assemblyName} mapped to its prefix in assemblyNameToPanSN`,
       )
-      for (let hop = 0; hop < hops; hop++) {
-        // One hop's queries are independent of each other, so they go out
-        // together rather than one round-trip at a time. Their callbacks share
-        // the segment and link maps, which is safe because only one of them runs
-        // at a time, and the output is sorted at the end regardless of the order
-        // they arrive in.
-        const reached = await Promise.all(
-          frontier.map(segment =>
-            addLinksOver(segment.refName, segment.start, segment.end),
-          ),
-        )
-        frontier = offReference(reached.flat())
-      }
+    }
+    await this.segments.getLines(tabixRefName, region.start, region.end, {
+      lineCallback: line => {
+        const segment = parseSegmentLine(line)
+        segments.set(segment.id, segment)
+      },
+    })
+    let frontier = offReference(
+      await addLinksOver(tabixRefName, region.start, region.end),
+    )
+    for (let hop = 0; hop < hops; hop++) {
+      // One hop's queries are independent of each other, so they go out
+      // together rather than one round-trip at a time. Their callbacks share
+      // the segment and link maps, which is safe because only one of them runs
+      // at a time, and the output is sorted at the end regardless of the order
+      // they arrive in.
+      const reached = await Promise.all(
+        frontier.map(segment =>
+          addLinksOver(segment.refName, segment.start, segment.end),
+        ),
+      )
+      frontier = offReference(reached.flat())
     }
 
     return formatSubgraph(segments, links)

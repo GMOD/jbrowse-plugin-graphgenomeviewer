@@ -5,18 +5,16 @@ import {
   getContainingView,
   getSession,
 } from '@jbrowse/core/util'
-import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
 import {
   SUBGRAPH_REGION_LABEL,
-  launchSubgraphView,
   regionAroundSegment,
   regionFromViewport,
 } from './launchSubgraphView'
 import { subgraphMenuItems } from './subgraphMenuItems'
 import {
   adapterCanCutSubgraph,
-  displayLanes,
+  subgraphTrack,
   subgraphTracks,
 } from './subgraphTracks'
 
@@ -43,13 +41,17 @@ function canCutSubgraph(
 
 // The graph track a launch from this display draws from, when the display's own
 // track is the graph. One entry, so the menu offers no choice that isn't one.
-function ownTrack(track: AbstractTrackModel): SubgraphTrack[] {
+function ownTrack(
+  track: AbstractTrackModel,
+  view: LinearGenomeViewModel,
+): SubgraphTrack[] {
   return [
-    {
-      trackId: getConf(track, 'trackId'),
-      name: getConf(track, 'name'),
-      haplotypes: displayLanes(track.configuration),
-    },
+    subgraphTrack(
+      track.configuration,
+      getConf(track, 'trackId'),
+      getSession(track),
+      view,
+    ),
   ]
 }
 
@@ -78,24 +80,17 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                 const track = getContainingTrack(self)
                 if (canCutSubgraph(pluginManager, track)) {
                   const view = getContainingView(self) as LinearGenomeViewModel
-                  pushLaunchViewMenuItem(items, {
+                  for (const item of subgraphMenuItems({
                     label: SUBGRAPH_REGION_LABEL,
-                    icon: BubbleChartIcon,
-                    onClick: () => {
-                      const region = regionFromViewport(
-                        view.dynamicBlocks.contentBlocks,
-                      )
-                      if (region) {
-                        launchSubgraphView({
-                          session: getSession(self),
-                          region,
-                          trackId: getConf(track, 'trackId'),
-                          connectedViewId: view.id,
-                          haplotypes: displayLanes(track.configuration),
-                        })
-                      }
-                    },
-                  })
+                    region: regionFromViewport(
+                      view.dynamicBlocks.contentBlocks,
+                    ),
+                    tracks: ownTrack(track, view),
+                    session: getSession(self),
+                    connectedViewId: view.id,
+                  })) {
+                    pushLaunchViewMenuItem(items, item)
+                  }
                 }
                 return items
               },
@@ -130,11 +125,12 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                         end: info.item.endBp,
                       }),
                       tracks: own
-                        ? ownTrack(track)
+                        ? ownTrack(track, view)
                         : subgraphTracks(
                             pluginManager,
                             getSession(self),
                             displayedRegion.assemblyName,
+                            view,
                           ),
                       session: getSession(self),
                       connectedViewId: view.id,

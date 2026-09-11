@@ -42,6 +42,8 @@ export function paddedLocation(
 //     the PanSN sample there resolves to nothing and the graph offers no way out
 //     at all. `loadedRegion` is authoritative — the adapter resolved that
 //     assembly to that stable sequence to cut the subgraph in the first place.
+//     The backbone's `haplotype` (`GRCh38#0`) goes with it, since
+//     resolveLocationAssembly tries that before the sample.
 //   - the *locus*. The cut region is what the user framed in the linear view, and
 //     it is the span every other panel of a synteny launch is compared against;
 //     the union of backbone segments differs from it whenever the window ends
@@ -62,6 +64,7 @@ export function withReferenceRegion(
           ? {
               ...c,
               sample: region.assemblyName,
+              haplotype: undefined,
               refName: region.refName,
               start: region.start,
               end: region.end,

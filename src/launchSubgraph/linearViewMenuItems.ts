@@ -52,6 +52,7 @@ export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
                       pluginManager,
                       getSession(self),
                       assemblyName,
+                      self,
                     )
                   : []
               }
