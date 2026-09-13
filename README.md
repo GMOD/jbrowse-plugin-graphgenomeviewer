@@ -32,9 +32,12 @@ more than GRCh38 through the array:
 ![HG00133's walk lifted out of the KIV-2 cut](img/force_kiv2_walk.png)
 
 MHC class II, where one 254-segment superbubble covers the DRB haplotype block
-and a run of small indels follows it:
+and a run of small indels follows it. The session's gene track is drawn onto the
+graph: exons as dark stretches along the backbone nodes that carry them, and
+each gene's name pinned under the backbone at its midpoint, so the superbubble
+reads as HLA-DRB5's and the indels as HLA-DRB6's and HLA-DRB1's:
 
-![MHC class II, force-directed](img/force_mhc.png)
+![MHC class II, force-directed, with genes on the backbone](img/force_mhc.png)
 
 The KIV-2 window as a **variant map**, the reference as one line with one typed
 glyph per bubble:

@@ -546,6 +546,25 @@ _The compress spread, HG00133 lifted: its private array copies are the one full
 loop, the other haplotypes' loops are ghosts, and the 22.2 kb deletion arc it
 does not take is a faint dash._
 
+**Genes on the backbone.** PangyPlot pins genes along its reference spine and
+BandageNG paints BED features onto nodes; the graph here has the coordinates for
+both, since every backbone node states its reference interval. The view reads
+the session's annotation track for the cut's assembly over the window
+(`genes/geneFeatures.ts`, the first gene-bearing track whose name says
+annotation, or the one `geneTrackId` names) and draws each gene's exons as dark
+stretches along the backbone nodes that carry them, with the name pinned under
+the backbone at the gene's midpoint (`genes/genePins.ts`). A backbone node names
+its sequence the graph's way, `GRCh38#0#chr6`, and the gene track the assembly's
+way, `chr6`, so the match is on the contig. An allele has no coordinates and
+shows no exon. A popped bubble keeps its genes, so the KIV-2 array's backbone
+copies carry LPA's kringle exons inside the pop.
+
+![MHC class II with HLA-DRB5, DRB6 and DRB1 pinned](../img/force_mhc.png)
+
+_MHC class II from the rGFA index: the superbubble is HLA-DRB5's, the indels
+along the backbone are HLA-DRB6's and HLA-DRB1's, which no earlier figure could
+say._
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's
