@@ -88,6 +88,22 @@ const MAX_CANVAS_HEIGHT = 600
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
 const VARIANT_MAP_HEIGHT = 340
+
+const SEGMENTS_SUFFIX = '.segs.bed.gz'
+
+// The rGFA index prefix an adapter config names, from either spelling the
+// config schema accepts: the `uri` shorthand or an explicit segments location.
+function bubblePrefix(adapterConfig: Record<string, unknown>) {
+  if (typeof adapterConfig.uri === 'string') {
+    return adapterConfig.uri
+  }
+  const segments = adapterConfig.segmentsLocation as
+    { uri?: string } | undefined
+  const uri = segments?.uri
+  return typeof uri === 'string' && uri.endsWith(SEGMENTS_SUFFIX)
+    ? uri.slice(0, -SEGMENTS_SUFFIX.length)
+    : undefined
+}
 // Gap between the drawing and the edge of the pane, on all four sides.
 const FIT_PADDING = 40
 const HOVER_BRIGHTEN = 1.4
@@ -661,9 +677,12 @@ export default function stateModelFactory() {
               maxY = Math.max(maxY, seg.y)
             }
           }
-          const region = self.layoutResult.referenceAxis
-            ? self.loadedRegion
-            : undefined
+          // A popped bubble is a look inside one interval of the window, so it
+          // fits to what it drew rather than to the window it came from.
+          const region =
+            self.layoutResult.referenceAxis && !self.poppedFrom
+              ? self.loadedRegion
+              : undefined
           if (region && region.end > region.start) {
             minX = region.start
             maxX = region.end
@@ -1502,23 +1521,12 @@ export default function stateModelFactory() {
         isLive: () => boolean,
       ) {
         self.bubbles = undefined
-        const segments = adapterConfig.segmentsLocation as
-          { uri?: string; baseUri?: string } | undefined
-        const uri = segments?.uri
-        if (
-          adapterConfig.type !== 'RgfaTabixAdapter' ||
-          typeof uri !== 'string' ||
-          !uri.endsWith('.segs.bed.gz')
-        ) {
+        // The track config arrives as written, so the prefix is either the
+        // `uri` shorthand or the segments location it expands to.
+        const prefix = bubblePrefix(adapterConfig)
+        if (adapterConfig.type !== 'RgfaTabixAdapter' || prefix === undefined) {
           return
         }
-        const bubblesUri = `${uri.slice(0, -'.segs.bed.gz'.length)}.bubbles.bed.gz`
-        const baseUri = segments?.baseUri
-        const location = (u: string) => ({
-          uri: u,
-          baseUri,
-          locationType: 'UriLocation',
-        })
         try {
           const features = (yield getSession(self).rpcManager.call(
             'graph',
@@ -1526,11 +1534,8 @@ export default function stateModelFactory() {
             {
               adapterConfig: {
                 type: 'MinigraphBubbleAdapter',
-                bubblesLocation: location(bubblesUri),
-                index: {
-                  indexType: 'TBI',
-                  location: location(`${bubblesUri}.tbi`),
-                },
+                uri: `${prefix}.bubbles.bed.gz`,
+                baseUri: adapterConfig.baseUri,
                 assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
               },
               regions: [region],

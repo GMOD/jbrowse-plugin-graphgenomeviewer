@@ -30,6 +30,7 @@ const backButtonStyle = {
   top: 8,
   zIndex: 5,
   background: 'rgba(255,255,255,0.9)',
+  textTransform: 'none' as const,
 }
 
 const LABEL_ROW_PX = 15

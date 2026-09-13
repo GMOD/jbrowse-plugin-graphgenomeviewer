@@ -66,6 +66,7 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
                   type: 'bubble',
                   score: bubble.segmentCount,
                   segmentCount: bubble.segmentCount,
+                  pathCount: bubble.pathCount,
                   inversion: bubble.inversion,
                   shortestAlleleLength: bubble.shortestAlleleLength,
                   longestAlleleLength: bubble.longestAlleleLength,
