@@ -130,7 +130,7 @@ test('a track on screen launches for the lanes its display draws', () => {
         displays: [
           {
             laneSelection: ['HG00128.1', 'HG00133.1'],
-            drawsLane: (name: string) => name !== 'HG00133.1',
+            hiddenLanes: ['HG00133.1'],
           },
         ],
       },

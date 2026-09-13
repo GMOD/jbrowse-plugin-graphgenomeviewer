@@ -28,7 +28,7 @@ export interface LaunchingView {
 
 interface LaneSelectingDisplay {
   laneSelection: readonly string[] | undefined
-  drawsLane: (assemblyName: string) => boolean
+  hiddenLanes: readonly string[]
 }
 
 // Whether an adapter declares it can cut a local subgraph. Discovery is by
@@ -61,7 +61,7 @@ function isLaneSelecting(display: unknown): display is LaneSelectingDisplay {
     typeof display === 'object' &&
     display !== null &&
     'laneSelection' in display &&
-    'drawsLane' in display
+    'hiddenLanes' in display
   )
 }
 
@@ -102,7 +102,7 @@ function lanesToCut(
     .find(t => readConfObject(t.configuration, 'trackId') === trackId)
     ?.displays.find(isLaneSelecting)
   return shown
-    ? shown.laneSelection?.filter(name => shown.drawsLane(name))
+    ? shown.laneSelection?.filter(name => !shown.hiddenLanes.includes(name))
     : trackLanes(track)
 }
 
