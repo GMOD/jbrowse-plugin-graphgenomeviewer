@@ -1727,11 +1727,7 @@ export default function stateModelFactory() {
           }
           const label = `${classifyBubble(bubble).label} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
-          self.layoutMode = (LAYOUT_MODE_VALUES as readonly string[]).includes(
-            'ordered',
-          )
-            ? ('ordered' as LayoutModeValue)
-            : 'auto'
+          self.layoutMode = 'ordered'
           self.clearInteractionState()
           self.userMovedViewport = false
           self.isLoading = true
