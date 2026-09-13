@@ -22,6 +22,7 @@ const LABEL_PX = 11
 const LABEL_CHAR_PX = 6.2
 const LABEL_PAD = 4
 const HALO_FACTOR = 3.4
+const LEGEND_CORNER_PX = 240
 
 const BubbleHalos = observer(function BubbleHalos({
   model,
@@ -48,18 +49,19 @@ const BubbleHalos = observer(function BubbleHalos({
   const halo = contigThickness * HALO_FACTOR
   // Biggest bubbles label first; one whose box lands on a placed label keeps
   // its tooltip only.
-  // the Back button of a popped graph owns the top-left corner
-  const placed: { x0: number; x1: number; y0: number; y1: number }[] =
-    model.poppedFrom
-      ? [
-          {
-            x0: 0,
-            x1: 60 + model.poppedFrom.label.length * LABEL_CHAR_PX * 1.2,
-            y0: 0,
-            y1: 44,
-          },
-        ]
-      : []
+  // the legends own the top-right corner, and the Back button of a popped
+  // graph the top-left
+  const placed: { x0: number; x1: number; y0: number; y1: number }[] = [
+    { x0: width - LEGEND_CORNER_PX, x1: width, y0: 0, y1: 60 },
+  ]
+  if (model.poppedFrom) {
+    placed.push({
+      x0: 0,
+      x1: 60 + model.poppedFrom.label.length * LABEL_CHAR_PX * 1.2,
+      y0: 0,
+      y1: 44,
+    })
+  }
   const labels = [...bubbleHalos]
     .sort((a, b) => b.members - a.members)
     .flatMap(h => {
