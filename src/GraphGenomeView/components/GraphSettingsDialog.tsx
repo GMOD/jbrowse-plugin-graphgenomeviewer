@@ -150,6 +150,44 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           </Typography>
         </div>
 
+        <div className={classes.section}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={model.showGenes}
+                onChange={e => {
+                  model.setShowGenes(e.target.checked)
+                }}
+              />
+            }
+            label="Genes on the backbone"
+          />
+          <Typography variant="caption" color="text.secondary">
+            Exons along the reference nodes that carry them and each gene's name
+            at its midpoint, from the assembly's annotation track
+          </Typography>
+          {model.geneTrackChoices.length > 1 ? (
+            <FormControl className={classes.formControl} sx={{ mt: 1 }}>
+              <InputLabel>Gene track</InputLabel>
+              <Select
+                value={model.geneTrack?.trackId ?? ''}
+                label="Gene track"
+                data-testid="graph-gene-track-select"
+                onChange={e => {
+                  model.setGeneTrackId(e.target.value)
+                  void model.reloadSubgraph()
+                }}
+              >
+                {model.geneTrackChoices.map(({ trackId, name }) => (
+                  <MenuItem key={trackId} value={trackId}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : null}
+        </div>
+
         {model.anchorPaths.length > 1 ? (
           <div className={classes.section}>
             <FormControl className={classes.formControl}>

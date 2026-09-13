@@ -24,9 +24,12 @@ import {
 import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
-import { anchorFromPaths, anchorGraph } from './pathAnchoring'
-import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
-import { parseGFA } from '../gfa-core/index'
+import {
+  GENE_ADAPTER_TYPES,
+  geneModelsFrom,
+  pickGeneTrack,
+} from './genes/geneFeatures'
+import { genePins } from './genes/genePins'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
 import { mergeRuns, splitRuns } from './layout/mergeRuns'
@@ -38,7 +41,9 @@ import {
   modeUsesLayoutEngine,
 } from './layoutModes'
 import { NODE_WIDTH_VALUES } from './nodeWidths'
+import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
+import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
@@ -46,6 +51,7 @@ import {
   extractColorSlice,
 } from './renderer/GeometryBuilder'
 import { walkHighlight } from './walkHighlight'
+import { parseGFA } from '../gfa-core/index'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -86,6 +92,7 @@ import type {
 } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
+import type { GeneModel } from './genes/geneFeatures'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
@@ -361,6 +368,12 @@ export default function stateModelFactory() {
         // Whether the node layouts draw each bubble as a halo along its nodes
         // with a label that opens it. The variant map draws glyphs instead.
         showBubbles: types.optional(types.boolean, true),
+        // The session's genes drawn onto the backbone: exons along the nodes
+        // that carry them, names pinned at their midpoints. See genes/.
+        showGenes: types.optional(types.boolean, true),
+        // Which track the genes come from; empty picks the assembly's
+        // annotation track (pickGeneTrack).
+        geneTrackId: types.optional(types.string, ''),
         // One walk, by its path name, lifted out of the drawing: its nodes and
         // links keep their ink and the rest fades. Empty lifts none.
         highlightedPath: types.optional(types.string, ''),
@@ -477,6 +490,8 @@ export default function stateModelFactory() {
       // one beside its segments. Undefined for a graph with no index, which the
       // variant map draws from `derivedBubbles` instead.
       indexBubbles: undefined as MinigraphBubble[] | undefined,
+      // the genes over the cut window, read once per cut from the gene track
+      geneFeatures: undefined as GeneModel[] | undefined,
       // The graphs the open bubble was popped out of, outermost first, each
       // with what closing back to it restores without a refetch. A stack so a
       // popped superbubble can be mapped and popped again.
@@ -789,6 +804,40 @@ export default function stateModelFactory() {
       },
       // The same bubbles over every other layout, as halos along their nodes.
       // Reads positionsVersion so a dragged node takes its halo with it.
+      // The session's gene-bearing tracks on the cut's assembly, for the
+      // picker and for the automatic choice.
+      get geneTrackChoices() {
+        const region = self.loadedRegion
+        if (!region) {
+          return []
+        }
+        return getSession(self)
+          .tracks.filter(t =>
+            (readConfObject(t, 'assemblyNames') as string[]).includes(
+              region.assemblyName,
+            ),
+          )
+          .map(t => ({
+            trackId: t.trackId as string,
+            name: readConfObject(t, 'name') as string,
+            adapterType: (readConfObject(t, 'adapter') as { type: string })
+              .type,
+          }))
+          .filter(t => GENE_ADAPTER_TYPES.has(t.adapterType))
+      },
+      // Exons and names on the backbone, in layout units. Reads
+      // positionsVersion so a dragged node takes its exons with it.
+      get genePins() {
+        void self.positionsVersion
+        const positions = self.layoutResult?.nodePositions
+        return self.showGenes &&
+          self.layoutMode !== 'variants' &&
+          self.graph &&
+          self.geneFeatures &&
+          positions
+          ? genePins(self.graph, self.geneFeatures, positions)
+          : []
+      },
       get bubbleHalos() {
         void self.positionsVersion
         const positions = self.layoutResult?.nodePositions
@@ -909,6 +958,9 @@ export default function stateModelFactory() {
       // the way the geometry and the hit index address an edge. One map per
       // graph rather than per rebuild, since both of those take it on every
       // pan.
+      get geneTrack() {
+        return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
+      },
       get deletionEdgeIndexes() {
         return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
       },
@@ -1131,6 +1183,12 @@ export default function stateModelFactory() {
       },
       setShowBubbles(show: boolean) {
         self.showBubbles = show
+      },
+      setShowGenes(show: boolean) {
+        self.showGenes = show
+      },
+      setGeneTrackId(trackId: string) {
+        self.geneTrackId = trackId
       },
       setHighlightedPath(name: string) {
         self.highlightedPath = name
@@ -1596,6 +1654,7 @@ export default function stateModelFactory() {
         }
         self.graph = graph
         self.indexBubbles = undefined
+        self.geneFeatures = undefined
         self.popStack = []
         // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
         // are ids, so all three address the graph being replaced here. Carrying
@@ -1677,6 +1736,45 @@ export default function stateModelFactory() {
         }
       }
 
+      // The genes over the cut, from the session's annotation track for the
+      // assembly, so the backbone can carry its exons and names. A window with
+      // no such track, or a track that fails, leaves the graph unlabelled.
+      function* loadGenes(
+        region: {
+          refName: string
+          assemblyName: string
+          start: number
+          end: number
+        },
+        isLive: () => boolean,
+      ) {
+        const track = self.geneTrack
+        if (!track) {
+          return
+        }
+        const config = getSession(self).tracks.find(
+          t => t.trackId === track.trackId,
+        )
+        if (!config) {
+          return
+        }
+        try {
+          const features = (yield getSession(self).rpcManager.call(
+            'graph',
+            'CoreGetFeatures',
+            {
+              adapterConfig: readConfObject(config, 'adapter'),
+              regions: [region],
+            },
+          )) as Feature[]
+          if (isLive()) {
+            self.geneFeatures = geneModelsFrom(features)
+          }
+        } catch (e) {
+          console.warn('[GraphGenomeView] no genes for this graph', e)
+        }
+      }
+
       // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
       function* doSubgraphLoad(
         adapterConfig: Record<string, unknown>,
@@ -1738,6 +1836,7 @@ export default function stateModelFactory() {
           const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
           yield* parseAndLayout(gfaText, label)
           yield* loadBubbles(adapterConfig, region, isLive)
+          yield* loadGenes(region, isLive)
         } catch (e) {
           if (isLive()) {
             console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)

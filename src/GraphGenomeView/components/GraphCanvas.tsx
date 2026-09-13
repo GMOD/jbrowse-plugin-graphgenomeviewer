@@ -8,6 +8,7 @@ import { observer } from 'mobx-react'
 
 import BubbleHalos from './BubbleHalos'
 import BubbleOverlay from './BubbleOverlay'
+import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -652,6 +653,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
         <BubbleHalos model={model} />
+        <GenePins model={model} />
         <BubbleOverlay model={model} />
         <div style={legendStackStyle}>
           <ReferenceRampLegend model={model} />

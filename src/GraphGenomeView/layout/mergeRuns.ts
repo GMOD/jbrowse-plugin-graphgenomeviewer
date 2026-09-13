@@ -149,6 +149,24 @@ export function splitRuns(
   return out
 }
 
+// The stretch of a polyline between two fractions of its arc length, with the
+// ends interpolated. What splitRuns cuts a run with, and what the gene pins cut
+// a backbone node with to place an exon.
+export function polylineSlice(line: NodeSegment[], from: number, to: number) {
+  if (line.length === 0) {
+    return []
+  }
+  const arc = [0]
+  for (let i = 1; i < line.length; i++) {
+    arc.push(
+      arc[i - 1]! +
+        Math.hypot(line[i]!.x - line[i - 1]!.x, line[i]!.y - line[i - 1]!.y),
+    )
+  }
+  const total = arc.at(-1)!
+  return slice(line, arc, from * total, to * total)
+}
+
 function pointAt(line: NodeSegment[], arc: number[], s: number): NodeSegment {
   if (s <= 0) {
     return { ...line[0]! }
