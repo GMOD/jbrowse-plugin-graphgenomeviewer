@@ -48,7 +48,18 @@ const BubbleHalos = observer(function BubbleHalos({
   const halo = contigThickness * HALO_FACTOR
   // Biggest bubbles label first; one whose box lands on a placed label keeps
   // its tooltip only.
-  const placed: { x0: number; x1: number; y0: number; y1: number }[] = []
+  // the Back button of a popped graph owns the top-left corner
+  const placed: { x0: number; x1: number; y0: number; y1: number }[] =
+    model.poppedFrom
+      ? [
+          {
+            x0: 0,
+            x1: 60 + model.poppedFrom.label.length * LABEL_CHAR_PX * 1.2,
+            y0: 0,
+            y1: 44,
+          },
+        ]
+      : []
   const labels = [...bubbleHalos]
     .sort((a, b) => b.members - a.members)
     .flatMap(h => {
