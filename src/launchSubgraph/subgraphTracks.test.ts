@@ -1,7 +1,7 @@
 import {
   adapterCanCutSubgraph,
-  displayLanes,
   subgraphTracks,
+  trackLanes,
 } from './subgraphTracks'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
@@ -92,22 +92,16 @@ test('an unregistered adapter type is skipped, not thrown on', () => {
   ).toEqual(['graph'])
 })
 
-// A track that is not on screen in the launching view cuts for its config's
-// lane selection: the `lanes` slot a hosted config sets on its
-// MultiWaySyntenyDisplay.
-test('a track whose display names lanes launches for that set', () => {
-  const lanes = ['HG00097.1', 'HG00099.1']
+// A track not on screen in the launching view cuts for the lanes its lane
+// display would open on: the assemblies it names after the reference, not all
+// 464 haplotypes of the graph.
+test('a track off screen launches for the assemblies it names after its reference', () => {
   const gbz = track({
     trackId: 'gbz',
     name: 'graph',
-    assemblyNames: ['hg38'],
+    assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
     adapter: { type: 'RgfaTabixAdapter' },
-    displays: [
-      { type: 'LinearBasicDisplay' },
-      { type: 'MultiWaySyntenyDisplay', lanes },
-    ],
   })
-  expect(displayLanes(gbz)).toEqual(lanes)
   expect(
     subgraphTracks(pluginManager, { tracks: [gbz], assemblies: [] }, 'hg38'),
   ).toEqual([
@@ -115,23 +109,31 @@ test('a track whose display names lanes launches for that set', () => {
       trackId: 'gbz',
       name: 'graph',
       referenceAssembly: 'hg38',
-      haplotypes: lanes,
+      haplotypes: ['HG00097.1', 'HG00099.1'],
     },
   ])
 })
 
-// On screen, the lanes the display draws win over the config that seeded them.
+// On screen, the lanes the display draws win over the config that seeded them,
+// and a lane hidden there is left out of the cut.
 test('a track on screen launches for the lanes its display draws', () => {
   const gbz = track({
     trackId: 'gbz',
     name: 'graph',
-    assemblyNames: ['hg38'],
+    assemblyNames: ['hg38', 'HG00097.1'],
     adapter: { type: 'RgfaTabixAdapter' },
-    displays: [{ type: 'MultiWaySyntenyDisplay', lanes: ['HG00097.1'] }],
   })
   const view = {
     tracks: [
-      { configuration: gbz, displays: [{ laneSelection: ['HG00128.1'] }] },
+      {
+        configuration: gbz,
+        displays: [
+          {
+            laneSelection: ['HG00128.1', 'HG00133.1'],
+            drawsLane: (name: string) => name !== 'HG00133.1',
+          },
+        ],
+      },
     ],
   }
   const [found] = subgraphTracks(
@@ -158,14 +160,6 @@ test('a track reports the first assembly it names as the one it is cut on', () =
   expect(found?.referenceAssembly).toBe('hg38')
 })
 
-test('a track with no lane selection launches for every haplotype', () => {
-  expect(displayLanes(RGFA_TRACK)).toBeUndefined()
-  expect(
-    displayLanes(
-      track({
-        trackId: 'x',
-        displays: [{ type: 'MultiWaySyntenyDisplay', lanes: [] }],
-      }),
-    ),
-  ).toBeUndefined()
+test('a track naming only its reference launches for every haplotype', () => {
+  expect(trackLanes(RGFA_TRACK)).toBeUndefined()
 })

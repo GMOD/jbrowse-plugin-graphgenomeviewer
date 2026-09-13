@@ -28,6 +28,7 @@ export interface LaunchingView {
 
 interface LaneSelectingDisplay {
   laneSelection: readonly string[] | undefined
+  drawsLane: (assemblyName: string) => boolean
 }
 
 // Whether an adapter declares it can cut a local subgraph. Discovery is by
@@ -59,26 +60,17 @@ function isLaneSelecting(display: unknown): display is LaneSelectingDisplay {
   return (
     typeof display === 'object' &&
     display !== null &&
-    'laneSelection' in display
+    'laneSelection' in display &&
+    'drawsLane' in display
   )
 }
 
-// The `lanes` slot of the track's displays (MultiWaySyntenyDisplay's configured
-// set), the first non-empty one.
-export function displayLanes(track: AnyConfigurationModel) {
-  const displays: unknown = readConfObject(track, 'displays')
-  const sets = Array.isArray(displays)
-    ? displays.flatMap((display: unknown) =>
-        typeof display === 'object' &&
-        display !== null &&
-        'lanes' in display &&
-        isStringArray(display.lanes) &&
-        display.lanes.length > 0
-          ? [display.lanes]
-          : [],
-      )
-    : []
-  return sets[0]
+// The assemblies the track names after its reference, which is what core's
+// MultiWaySyntenyDisplay opens a lane-declaring source on.
+export function trackLanes(track: AnyConfigurationModel) {
+  const assemblyNames: unknown = readConfObject(track, 'assemblyNames')
+  const lanes = isStringArray(assemblyNames) ? assemblyNames.slice(1) : []
+  return lanes.length > 0 ? lanes : undefined
 }
 
 // A graph is cut on the first assembly its track names, the rule
@@ -99,9 +91,8 @@ export function offReferenceProblem(
     : `The graph is cut on its reference, ${referenceAssembly}: open it from a view of ${referenceAssembly}`
 }
 
-// The lanes the track draws in `view`, which is the reader's pick from Choose
-// lanes... where there is one: the config's `lanes` only seed it. A track not
-// on screen there has its config to go by.
+// The lanes the track draws in `view`: the ones in force there less any the
+// reader hid. A track not on screen there has its own assemblies to go by.
 function lanesToCut(
   track: AnyConfigurationModel,
   trackId: string,
@@ -111,8 +102,8 @@ function lanesToCut(
     .find(t => readConfObject(t.configuration, 'trackId') === trackId)
     ?.displays.find(isLaneSelecting)
   return shown
-    ? shown.laneSelection && [...shown.laneSelection]
-    : displayLanes(track)
+    ? shown.laneSelection?.filter(name => shown.drawsLane(name))
+    : trackLanes(track)
 }
 
 export function subgraphTrack(

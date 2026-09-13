@@ -206,6 +206,9 @@ export function createTestEnvironment({
       get assemblies() {
         return []
       },
+      get views() {
+        return self.view ? [self.view] : []
+      },
       getDisplayTypeDefault(displayType: string, slot: string): unknown {
         return self.displayTypeDefaults[displayType]?.[slot]
       },

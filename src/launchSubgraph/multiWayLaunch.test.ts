@@ -133,9 +133,12 @@ function createEnv(trackLanes: string[] = []) {
         connectionInstances: [],
         addedViews: [] as [string, Record<string, unknown>][],
       }))
-      .views(() => ({
+      .views(self => ({
         get assemblies() {
           return []
+        },
+        get views() {
+          return self.view ? [self.view] : []
         },
       }))
       .actions(self => ({
@@ -215,6 +218,13 @@ test('a launch cuts for the pick where the track names no lanes', () => {
   display.setSelectedLanes(['HG00128.1'])
   launchRegion(view)
   expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual(['HG00128.1'])
+})
+
+test('a lane hidden on the track is left out of the cut', () => {
+  const { session, view, display } = createEnv(['HG00097.1', 'HG00099.1'])
+  display.hideLane('HG00097.1')
+  launchRegion(view)
+  expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual(['HG00099.1'])
 })
 
 test("with no pick a launch cuts for the track's lanes", () => {
