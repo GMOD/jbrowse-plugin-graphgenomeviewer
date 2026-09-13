@@ -24,3 +24,19 @@ test('a reserved box keeps labels out of a corner', () => {
   )
   expect(placed).toEqual([])
 })
+
+test('a stacking label steps down past a taken spot', () => {
+  const placed = placeLabels(
+    [
+      { item: 'a', x: 100, y: 50, text: 'first' },
+      { item: 'b', x: 100, y: 50, text: 'second', stack: 3 },
+      { item: 'c', x: 100, y: 50, text: 'third', stack: 3 },
+    ],
+    frame,
+  )
+  expect(placed.map(p => [p.item, p.y])).toEqual([
+    ['a', 50],
+    ['b', 69],
+    ['c', 88],
+  ])
+})

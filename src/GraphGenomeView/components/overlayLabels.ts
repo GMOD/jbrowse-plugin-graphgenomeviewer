@@ -18,6 +18,9 @@ export interface LabelCandidate<T> {
   x: number
   y: number
   text: string
+  // how many rows down to try when the spot is taken, for a label that is
+  // worth a column beside its neighbours rather than dropping
+  stack?: number
 }
 
 export interface PlacedLabel<T> extends LabelCandidate<T> {
@@ -39,25 +42,32 @@ export function placeLabels<T>(
 ): PlacedLabel<T>[] {
   const placed = [...reserved]
   const out: PlacedLabel<T>[] = []
+  const row = LABEL_PX + LABEL_PAD * 2
   for (const c of candidates) {
     const w = labelWidth(c.text)
-    const box = {
-      x0: c.x - w / 2,
-      x1: c.x + w / 2,
-      y0: c.y - LABEL_PX - LABEL_PAD,
-      y1: c.y + LABEL_PAD,
+    for (let tries = 0; tries <= (c.stack ?? 0); tries++) {
+      const y = c.y + tries * row
+      const box = {
+        x0: c.x - w / 2,
+        x1: c.x + w / 2,
+        y0: y - LABEL_PX - LABEL_PAD,
+        y1: y + LABEL_PAD,
+      }
+      if (
+        box.x1 < 0 ||
+        box.x0 > frame.width ||
+        box.y1 < 0 ||
+        box.y0 > frame.height
+      ) {
+        break
+      }
+      if (placed.some(p => overlaps(p, box))) {
+        continue
+      }
+      placed.push(box)
+      out.push({ ...c, y, w })
+      break
     }
-    if (
-      box.x1 < 0 ||
-      box.x0 > frame.width ||
-      box.y1 < 0 ||
-      box.y0 > frame.height ||
-      placed.some(p => overlaps(p, box))
-    ) {
-      continue
-    }
-    placed.push(box)
-    out.push({ ...c, w })
   }
   return out
 }

@@ -25,6 +25,8 @@ const svgStyle = {
 
 const HALO_FACTOR = 3.4
 const LEGEND_CORNER_PX = 240
+// routes whose own stretches are drawn on top of each other stack their chips
+const ROUTE_STACK = 8
 
 const BubbleHalos = observer(function BubbleHalos({
   model,
@@ -80,7 +82,13 @@ const BubbleHalos = observer(function BubbleHalos({
       ...byBubble.flatMap(h =>
         h.routes.map(r => {
           const { x, y } = screen(r.at)
-          return { item: { halo: h, route: r }, x, y: y + 4, text: r.text }
+          return {
+            item: { halo: h, route: r },
+            x,
+            y: y + 4,
+            text: r.text,
+            stack: ROUTE_STACK,
+          }
         }),
       ),
     ]
