@@ -82,6 +82,47 @@ every stroke's half-width would stretch by about a hundred. The fix is `/ scale`
 benchmark an anchored layout at 10k nodes against Canvas2D. The interface makes
 that a real experiment rather than a commitment.
 
+## Pick a tier by zoom, and expand a bubble on click
+
+The view picks a tier by `bpPerPx`, the way PIF's two tiers already do in
+jbrowse-components (`agent-docs/reference/SYNTENY_LOD.md`) — config is a prefix
+per tier plus its bp range, and there is no new rendering mode. Then
+**expand-on-click** (PangyPlot's `/pop`): the tier node id _is_ the bubble's
+source segment, so expanding is a fine-index query over the same span with no
+cross-reference to maintain. This retires `maxRegionBp`, which is the interim
+mechanism.
+
+A graph loaded through `gfaLocation` has no tier to switch to, so its
+coarsening has to happen in the view: `COARSEN_TRIVIAL_BUBBLES.md`.
+
+## Draw a node once per carrier
+
+`sampleRowLayout` emits one position per node id and the renderer keys geometry
+by that id, so real multi-row carriage needs synthetic per-carrier ids plus hit
+detection resolving them back.
+
+## A requested row set on the rGFA route
+
+`subgraphHaplotypes` names the haplotypes a cut is for, and only the GBZ cut
+reads it. On the rGFA route rows still come from whoever contributed to the
+window, so a graph cannot be lined up row-for-row with a genotype matrix of
+chosen donors. An explicit list (empty rows included) would make the two panels
+comparable, pin the order across windows, and let the graph label `HG00642.1`
+where the callset labels `HG00642 HP0`.
+
+## Hops that reach donor rows without indexing every donor contig
+
+A reference-only segs/links pair was built and does _not_ serve a graph cut:
+`subgraphContext` defaults to 1 hop, and a hop follows allele interiors, which
+are indexed under exactly the donor contigs the small pair drops — so pointing
+the cut at it silently returns the context-0 graph with no error to notice
+(measured on C4: context 0 agrees at 30/36, context 1 and 2 differ). The small
+pair is for a segments track drawn on the reference. What would do it is making
+the hop reach donor rows without indexing every donor contig — a third small
+file keyed by segment id for allele interiors, or a link row carrying enough
+interior that no second query is needed. Producer plus adapter change, not a
+config swap.
+
 ## Past the build flag: FMMM's near-field repulsion
 
 `-fcx-limited-range` took 1.3-1.9x off the force layout by inlining complex

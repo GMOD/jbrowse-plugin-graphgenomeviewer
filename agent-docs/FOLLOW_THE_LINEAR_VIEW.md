@@ -120,6 +120,13 @@ Sketch, all of it in the view model:
   equivalent guard and writes `self.graph` from whichever returns. The comment
   above `liveRequest` is the account of what that looks like on screen, and the
   fix is the same shape one level up.
+- **The anisotropy does not belong in the transform uniform**, even though the
+  uniform has carried `scaleX`/`scaleY` all along. Most of the drawing mixes the
+  axes in a single `hypot` — a chord length, a tangent projection, a deletion's
+  bow, a mitred normal, an arrowhead's angle, a hover distance — and each is
+  nonsense once x is bp and y is px, so the conversion (`yToX`) happens where
+  the geometry is built. `geometry.test.ts` asserts `yToX === 1` is the
+  identity, which is what keeps the committed FMMM figures byte-stable.
 - **The pane resizes under the cursor.** `canvasHeight` derives from
   `layoutBounds`, so a re-cut whose row count changed moves the pane while the
   user is dragging the view above it. `paneHeight` is the existing lever;
