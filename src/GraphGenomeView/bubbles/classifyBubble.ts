@@ -47,6 +47,11 @@ function routes(count: number) {
 }
 
 export function classifyBubble(b: MinigraphBubble): BubbleClass {
+  const c = classifyShape(b)
+  return b.partial ? { ...c, label: `${c.label}, reaches outside the cut` } : c
+}
+
+function classifyShape(b: MinigraphBubble): BubbleClass {
   const refSpan = b.end - b.start
   const {
     shortestAlleleLength: shortest,

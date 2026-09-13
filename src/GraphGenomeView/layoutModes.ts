@@ -94,7 +94,7 @@ export const LAYOUT_MODES = [
     value: 'variants',
     label: 'Variant map',
     description:
-      'The reference as a line with one typed glyph per bubble from the bubble index: SNP, indel, deletion, inversion, repeat array. Click a glyph to open the graph inside it.',
+      'The reference as a line with one typed glyph per bubble, from the bubble index or from the graph itself: SNP, indel, deletion, inversion, repeat array. Click a glyph to open the graph inside it.',
     run: variantMapLayout,
     available: hasBackbone,
     drawsLocally: hasBackbone,

@@ -376,6 +376,72 @@ Both screenshots are the real view over the hosted HPRC release 2.1 index, cut
 by the view itself. Not yet built: carriage as thickness, the per-haplotype
 panel, and gene pins.
 
+## Bubbles from the graph itself
+
+The variant map needed an index next to the rGFA. Three kinds of graph have
+none: a GBZ cut (base-level integer ids, W lines, no `gfatools bubble` rows), a
+pggb or odgi GFA loaded as a file, and the subgraph a popped bubble shows. The
+`gbz-base` reader does not help here: the database stores the top-level chain
+decomposition only as `next` pointers on boundary node records, used to extract
+`contained` or `overlapping` snarls, with no rows, no reference intervals and no
+nesting (`~/src/gmod/gbz-base-js/src/subgraph.ts`, `860-932`).
+
+The layered order already carries the decomposition. A backbone node alone in a
+layer that no edge jumps over is a bubble boundary, the window's first and last
+backbone nodes are boundaries whatever their layers hold, and what lies between
+two consecutive boundaries is a bubble. Route statistics come from the walks
+when the graph has them (bp between the two boundary nodes along each walk,
+distinct step sequences as routes), otherwise from a DP over the layered DAG. A
+bubble whose reference chain is broken inside the cut, a flank the hop reached
+from an allele, is marked partial. `bubbles/bubblesFromGraph.ts` is the port,
+and the view's `bubbles` fall back to it wherever no index rows arrived.
+Measured with the shipped code:
+
+| graph                                |  nodes | bubbles |   time | against the index                                                                                                     |
+| ------------------------------------ | -----: | ------: | -----: | --------------------------------------------------------------------------------------------------------------------- |
+| MHC class II rGFA cut                |    279 |      11 |   3 ms | the same deletions, insertions, the 6- and 8-allele sites and the 49-route repeat; the DRB superbubble marked partial |
+| KIV-2 rGFA cut                       |     58 |       7 |   2 ms | the six rows, with the array and the microsatellite beside it merged because an edge spans their shared anchor        |
+| KIV-2 GBZ cut, eight haplotypes      | 15,808 |      21 | 128 ms | no index exists; 20 SNPs and small indels in the flank, the array as one bubble of 9 routes from 32 kb to 148 kb      |
+| E. coli pggb window, P lines         |     54 |      14 |   2 ms | no index exists                                                                                                       |
+| 1q21.1 inversion superbubble, popped |    221 |       1 |   3 ms | an inversion reverses the reference order inside it, so every interior backbone node is spanned: one bubble           |
+
+The GBZ result is checked by conservation: for every haplotype, the sum over
+bubbles of walk bp minus reference span equals the walk's excess over the
+reference, 0 for GRCh38, 22.2 kb for HG00097, 116.4 kb for HG00133. Before the
+window ends counted as boundaries the array fell into no bubble at all and those
+sums were zero; `bubblesFromGraph.test.ts` carries that check on a synthetic
+graph.
+
+![KIV-2 GBZ cut, bubbles derived from the graph](img/kiv2-gbz-derived.png)
+
+_The eight-haplotype GBZ cut with no index: the array as one bubble, its route
+lengths the haplotypes' own._
+
+Two limits. The decomposition is chain-level: nested bubbles and an inverted
+stretch come out as one bubble each, which is what the chain of a snarl tree
+looks like before descending, and popping is how to descend. And the strand a
+path first visits a node with is not an inversion (a pggb path walking the
+window backwards made eleven SNPs read as inversions in a first draft), so
+derived bubbles do not claim one.
+
+This is what makes the variant map a property of any anchored graph rather than
+of one hosted file, and what makes popping recursive: the popped subgraph gets
+its own bubbles, and `popStack` in the model holds every level a reader
+descended through, so each closes back to the one above it.
+
+## Carriage, collapsed
+
+The eight-haplotype KIV-2 GBZ cut carries walks, so every node's carriage is
+countable in one pass (the reader survey confirms there is no coverage column;
+walks are the source, and 30,000 steps for the window is microseconds). Merging
+unbranching runs with identical carriage takes 15,808 nodes to 4,919, still far
+past the legibility ceiling; the base-level graph is bushy with SNPs. Drawn
+ordered with thickness by haplotype count it is a strip with the array as one
+thick detour, which says less than the per-haplotype bars did. Carriage as
+thickness is worth having as a colour-scheme-sized option for small cuts, but
+the readout for a repeat array is the per-haplotype panel, not a node drawing.
+`scripts/layout-lab/collapse.mjs` is the experiment.
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's

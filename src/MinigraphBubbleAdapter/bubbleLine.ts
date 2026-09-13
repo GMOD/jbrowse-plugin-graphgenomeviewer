@@ -21,6 +21,9 @@ export interface MinigraphBubble {
   segments: string
   shortestAllele: string | undefined
   longestAllele: string | undefined
+  // Set on a bubble derived from the graph itself (bubblesFromGraph.ts) whose
+  // reference route leaves the cut, so its lengths are a floor, not a fact.
+  partial?: boolean
 }
 
 // gfatools writes `*` for a zero-length allele (a pure insertion has no

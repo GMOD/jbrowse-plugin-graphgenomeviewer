@@ -14,11 +14,11 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
+import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
-import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { layoutScaling } from './layout/drawnScale'
@@ -31,6 +31,7 @@ import {
 } from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
+import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
@@ -453,13 +454,18 @@ export default function stateModelFactory() {
       graph: undefined as Graph | undefined,
       layoutResult: undefined as LayoutResult | undefined,
       // The bubble index rows over the cut window, when the source track has
-      // one beside its segments. What the variant map draws.
-      bubbles: undefined as MinigraphBubble[] | undefined,
-      // The whole window, kept while one bubble is open so it can be closed
-      // again without a refetch.
-      poppedFrom: undefined as
-        | { graph: Graph; layoutMode: LayoutModeValue; label: string }
-        | undefined,
+      // one beside its segments. Undefined for a graph with no index, which the
+      // variant map draws from `derivedBubbles` instead.
+      indexBubbles: undefined as MinigraphBubble[] | undefined,
+      // The graphs the open bubble was popped out of, outermost first, each
+      // with what closing back to it restores without a refetch. A stack so a
+      // popped superbubble can be mapped and popped again.
+      popStack: [] as {
+        graph: Graph
+        layoutMode: LayoutModeValue
+        label: string
+        indexBubbles: MinigraphBubble[] | undefined
+      }[],
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       error: undefined as unknown,
@@ -682,7 +688,7 @@ export default function stateModelFactory() {
           // A popped bubble is a look inside one interval of the window, so it
           // fits to what it drew rather than to the window it came from.
           const region =
-            self.layoutResult.referenceAxis && !self.poppedFrom
+            self.layoutResult.referenceAxis && self.popStack.length === 0
               ? self.loadedRegion
               : undefined
           if (region && region.end > region.start) {
@@ -712,6 +718,25 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
+      get poppedFrom() {
+        return self.popStack.at(-1)
+      },
+      // The bubbles the graph itself states, for a graph with no index: a GBZ
+      // cut, a pggb file, the inside of a popped bubble.
+      get derivedBubbles() {
+        return self.graph ? bubblesFromGraph(self.graph) : []
+      },
+    }))
+    .views(self => ({
+      // What the variant map draws. Index rows win where both exist: gfatools
+      // measured every allele, the layered order only bounds them.
+      get bubbles() {
+        return self.indexBubbles?.length
+          ? self.indexBubbles
+          : self.derivedBubbles
+      },
+    }))
+    .views(self => ({
       get nodeNeighbors() {
         return self.graph ? buildNeighbors(self.graph) : undefined
       },
@@ -725,11 +750,8 @@ export default function stateModelFactory() {
       // variant map draws them; a bubble is meaningless on a force layout,
       // whose x is not the reference.
       get bubbleGlyphs() {
-        const bubbles =
-          self.layoutMode === 'variants' && !self.poppedFrom
-            ? self.bubbles
-            : undefined
-        return (bubbles ?? []).map(bubble => ({
+        const bubbles = self.layoutMode === 'variants' ? self.bubbles : []
+        return bubbles.map(bubble => ({
           bubble,
           ...classifyBubble(bubble),
         }))
@@ -1502,6 +1524,8 @@ export default function stateModelFactory() {
           )
         }
         self.graph = graph
+        self.indexBubbles = undefined
+        self.popStack = []
         // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
         // are ids, so all three address the graph being replaced here. Carrying
         // them over points the tooltip and the highlight at whatever now happens
@@ -1529,9 +1553,9 @@ export default function stateModelFactory() {
 
       // The bubble index that the hosted HPRC build keeps beside its segments,
       // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
-      // window. A graph whose source has no such file draws no variant map,
-      // which is the ordinary case for a graph of one's own, so a failure here
-      // is not the graph's problem.
+      // window. A graph whose source has no such file, the ordinary case for a
+      // graph of one's own, keeps its derived bubbles, so a failure here is not
+      // the graph's problem.
       function* loadBubbles(
         adapterConfig: Record<string, unknown>,
         region: {
@@ -1542,7 +1566,6 @@ export default function stateModelFactory() {
         },
         isLive: () => boolean,
       ) {
-        self.bubbles = undefined
         // The track config arrives as written, so the prefix is either the
         // `uri` shorthand or the segments location it expands to.
         const prefix = bubblePrefix(adapterConfig)
@@ -1564,7 +1587,7 @@ export default function stateModelFactory() {
             },
           )) as Feature[]
           if (isLive()) {
-            self.bubbles = features.map(f => ({
+            self.indexBubbles = features.map(f => ({
               refName: region.refName,
               start: f.get('start'),
               end: f.get('end'),
@@ -1643,7 +1666,6 @@ export default function stateModelFactory() {
           }
           const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
           yield* parseAndLayout(gfaText, label)
-          self.poppedFrom = undefined
           yield* loadBubbles(adapterConfig, region, isLive)
         } catch (e) {
           if (isLive()) {
@@ -1730,8 +1752,9 @@ export default function stateModelFactory() {
           yield* cutFromLoadedTrack()
         }),
         // Open one bubble: the graph becomes the segments the bubble row names,
-        // drawn layered when that mode is present and anchored otherwise. The
-        // window stays behind it, one click away.
+        // drawn layered. The graph it came from stays behind it, one click
+        // away, and the popped graph gets its own derived bubbles, so a
+        // superbubble opens progressively.
         popBubble: flow(function* (bubble: MinigraphBubble) {
           const graph = self.graph
           if (!graph) {
@@ -1742,11 +1765,16 @@ export default function stateModelFactory() {
           if (sub.nodes.length === 0) {
             return
           }
-          self.poppedFrom ??= {
-            graph,
-            layoutMode: self.layoutMode,
-            label: graph.name,
-          }
+          self.popStack = [
+            ...self.popStack,
+            {
+              graph,
+              layoutMode: self.layoutMode,
+              label: graph.name,
+              indexBubbles: self.indexBubbles,
+            },
+          ]
+          self.indexBubbles = undefined
           const label = `${classifyBubble(bubble).label} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
           self.layoutMode = 'ordered'
@@ -1769,9 +1797,10 @@ export default function stateModelFactory() {
           if (!from) {
             return
           }
-          self.poppedFrom = undefined
+          self.popStack = self.popStack.slice(0, -1)
           self.graph = from.graph
           self.layoutMode = from.layoutMode
+          self.indexBubbles = from.indexBubbles
           self.clearInteractionState()
           self.userMovedViewport = false
           self.isLoading = true

@@ -62,10 +62,17 @@ export function referenceOrder(graph: Graph) {
     )
 }
 
-export function orderedLayout(graph: Graph): LayoutResult | undefined {
-  if (!graph.nodes.some(isBackbone)) {
-    return undefined
-  }
+export interface LayeredGraph {
+  layers: string[][]
+  layerOf: Map<string, number>
+  // predecessors in layer order, for the y sweep
+  preds: Map<string, string[]>
+}
+
+// The layered DAG the ordered layout draws and the bubble decomposition reads
+// (bubbles/bubblesFromGraph.ts), from one function so the two cannot disagree
+// about which nodes share a layer.
+export function layerGraph(graph: Graph): LayeredGraph {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const order = referenceOrder(graph)
   const key = new Map(order.map((id, i) => [id, i]))
@@ -98,13 +105,13 @@ export function orderedLayout(graph: Graph): LayoutResult | undefined {
   }
 
   // Longest-path layering; the key order is a topological order of this DAG.
-  const layer = new Map<string, number>()
+  const layerOf = new Map<string, number>()
   for (const id of order) {
     let l = 0
     for (const p of preds.get(id)!) {
-      l = Math.max(l, layer.get(p)! + 1)
+      l = Math.max(l, layerOf.get(p)! + 1)
     }
-    layer.set(id, l)
+    layerOf.set(id, l)
   }
   // Then each allele slides right to centre between the layer its predecessors
   // force and the one its successors allow, so a short allele sits in the
@@ -117,17 +124,27 @@ export function orderedLayout(graph: Graph): LayoutResult | undefined {
     }
     let minSucc = Infinity
     for (const t of s) {
-      minSucc = Math.min(minSucc, layer.get(t)!)
+      minSucc = Math.min(minSucc, layerOf.get(t)!)
     }
-    const lo = layer.get(id)!
+    const lo = layerOf.get(id)!
     const hi = Math.max(lo, minSucc - 1)
-    layer.set(id, Math.floor((lo + hi) / 2))
+    layerOf.set(id, Math.floor((lo + hi) / 2))
   }
 
   const layers: string[][] = []
   for (const id of order) {
-    ;(layers[layer.get(id)!] ??= []).push(id)
+    ;(layers[layerOf.get(id)!] ??= []).push(id)
   }
+  return { layers, layerOf, preds }
+}
+
+export function orderedLayout(graph: Graph): LayoutResult | undefined {
+  if (!graph.nodes.some(isBackbone)) {
+    return undefined
+  }
+  const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  const isRef = (id: string) => isBackbone(byId.get(id)!)
+  const { layers, layerOf: layer, preds } = layerGraph(graph)
 
   const layerWidth = layers.map(ids => {
     let w = 0

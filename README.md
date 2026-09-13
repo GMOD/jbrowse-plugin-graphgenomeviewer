@@ -27,8 +27,9 @@ haplotype block and a run of small indels follows it:
 
 It ships five layouts:
 
-- **Variant map** (rGFA with a bubble index): the reference as a line, one typed
-  glyph per bubble, click to open a bubble's graph.
+- **Variant map** (rGFA or a reference path): the reference as a line, one typed
+  glyph per bubble, click to open a bubble's graph, and again for a bubble
+  inside it.
 - **Ordered** (rGFA or a reference path): x is reference order rather than bp,
   so every node gets room and a bubble reads as a lens. Scrolls sideways.
 - **Anchored** (rGFA or a reference path): x is reference bp, one row per stable
@@ -37,9 +38,11 @@ It ships five layouts:
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
   [Bandage](https://github.com/rrwick/Bandage).
 
-The bubble index is `gfatools bubble` output beside the rGFA index
+The bubbles come from `gfatools bubble` output beside the rGFA index
 (`<prefix>.bubbles.bed.gz`), which HPRC's hosted graph has and
-`scripts/build_rgfa_tabix.sh` in jbrowse-components writes.
+`scripts/build_rgfa_tabix.sh` in jbrowse-components writes, or, for a graph with
+no index, a GBZ cut, a pggb file or a popped bubble, from the graph itself off
+the ordered layout's layering.
 
 ### Demonstration loci
 

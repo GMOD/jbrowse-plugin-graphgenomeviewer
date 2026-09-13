@@ -2218,12 +2218,51 @@ describe('popping a bubble', () => {
     expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2', '3'])
     expect(model.poppedFrom?.graph).toBe(window)
     expect(Object.keys(model.nodePositions!).sort()).toEqual(['1+', '2+', '3+'])
-    // no glyphs over an open bubble
+    // the ordered layout draws the nodes, not glyphs
     expect(model.bubbleGlyphs).toEqual([])
 
     await model.unpopBubble()
     expect(model.graph).toBe(window)
     expect(model.layoutMode).toBe('variants')
+    expect(model.poppedFrom).toBeUndefined()
+  })
+
+  // Without an index beside the source the map comes from the graph itself,
+  // and a popped graph gets its own, so a superbubble opens in steps.
+  const RGFA_BUBBLE = RGFA + 'L\t3\t+\t2\t+\t0M\n'
+
+  test('a graph with no index maps its own bubbles', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    model.setLayoutMode('variants')
+    await model.loadGFA(RGFA_BUBBLE, 'rgfa')
+    expect(model.indexBubbles).toBeUndefined()
+    expect(model.bubbleGlyphs.map(g => [g.label, g.bubble.segments])).toEqual([
+      ['insertion, up to 4 bp', '1,3,2'],
+    ])
+  })
+
+  test('pops nest, and each level maps what it holds', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    model.setLayoutMode('variants')
+    await model.loadGFA(RGFA_BUBBLE, 'rgfa')
+    const window = model.graph!
+
+    await model.popBubble(model.bubbles[0]!)
+    const inner = model.graph!
+    expect(model.popStack.map(p => p.graph)).toEqual([window])
+    model.setLayoutMode('variants')
+    expect(model.bubbleGlyphs.map(g => g.bubble.segments)).toEqual(['1,3,2'])
+
+    await model.popBubble(model.bubbles[0]!)
+    expect(model.popStack.map(p => p.graph)).toEqual([window, inner])
+
+    await model.unpopBubble()
+    expect(model.graph).toBe(inner)
+    expect(model.layoutMode).toBe('variants')
+    await model.unpopBubble()
+    expect(model.graph).toBe(window)
     expect(model.poppedFrom).toBeUndefined()
   })
 
