@@ -531,6 +531,21 @@ A popped bubble keeps the walks that pass through it, sliced to its nodes, so
 the bubbles derived inside a popped superbubble still read their routes off the
 haplotypes and width still says carriage.
 
+**One walk lifted out.** Bandage's path highlight, with the walks a GBZ cut
+carries: the Walk picker names one path, its nodes keep their colour and its
+links draw dark and heavy, and everything else fades to a fifth of its alpha, so
+the route reads as one stroke under any colour scheme. The readout beside the
+legend gives the walk's steps and bp against the reference walk. On the
+eight-haplotype KIV-2 cut, HG00133 reads 12,383 steps and 149,390 bp, 116,430 bp
+over GRCh38, the same excess the conservation check measured last round from the
+bubbles alone.
+
+![HG00133's walk lifted out of the KIV-2 cut](../img/force_kiv2_walk.png)
+
+_The compress spread, HG00133 lifted: its private array copies are the one full
+loop, the other haplotypes' loops are ghosts, and the 22.2 kb deletion arc it
+does not take is a faint dash._
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's

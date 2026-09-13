@@ -25,6 +25,12 @@ thicker the more of them carry it, Bandage's depth as width:
 
 ![KIV-2 over gbz-base, eight haplotypes, force-directed](img/force_kiv2_gbz.png)
 
+Picking one walk lifts it out of the drawing. HG00133's route through the window
+keeps its ink and the other haplotypes fade; the readout says it carries 116 kb
+more than GRCh38 through the array:
+
+![HG00133's walk lifted out of the KIV-2 cut](img/force_kiv2_walk.png)
+
 MHC class II, where one 254-segment superbubble covers the DRB haplotype block
 and a run of small indels follows it:
 
@@ -40,7 +46,9 @@ It ships five layouts:
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
   [Bandage](https://github.com/rrwick/Bandage), seeded along the reference and
   turned to read left to right. The engine lays out unbranching runs rather than
-  nodes, so a base-level cut of 15,000 nodes draws in a few seconds.
+  nodes, so a base-level cut of 15,000 nodes draws in a few seconds. The Walk
+  picker lifts one haplotype out: its route keeps its ink, the rest fades, and a
+  readout gives its length against the reference.
 - **Variant map** (rGFA or a reference path): the reference as a line, one typed
   glyph per bubble, click to open a bubble's graph, and again for a bubble
   inside it.
