@@ -475,6 +475,54 @@ thickness is worth having as a colour-scheme-sized option for small cuts, but
 the readout for a repeat array is the per-haplotype panel, not a node drawing.
 `scripts/layout-lab/collapse.mjs` is the experiment.
 
+## The graph as the picture
+
+The variant map answers "what varies here" on a line, and a line is what a
+linear track already is. What only the graph view can show is the graph: the
+kringle array as loops, a superbubble as a knot, a deletion as a bare edge
+around what it skips. So the force layout is the view's picture, and three
+changes make it carry what the map learned. Measured 2026-09-13, in the real
+view over the hosted HPRC 2.1 data.
+
+**Bubbles as halos.** Every node layout draws each bubble as a translucent
+stroke along its own nodes, in layout units so one transform moves it with the
+canvas, with the map's label at its highest node; the label opens the bubble in
+the same layout, and a popped graph derives its own. The two anchors a bubble
+hangs between are left out, so neighbours do not touch. On the 58-node KIV-2
+rGFA cut: six halos, the array's knot labelled "129 routes, 3.0 kb–175 kb:
+repeat array", a 942 bp deletion and a 1.2 kb insertion each a small halo on the
+backbone.
+
+![KIV-2, force-directed, bubbles as halos](../img/force_kiv2.png)
+
+![The KIV-2 array popped, force-directed](../img/force_kiv2_popped.png)
+
+**Runs, not nodes, to the engine.** A base-level cut is thousands of nodes in
+unbranching chains. `mergeRuns` hands FMMM one node per run and splits the
+polyline back onto the members by drawn length, so nothing downstream sees the
+merged graph. The eight-haplotype KIV-2 GBZ cut of 15,808 nodes is 4,919 runs:
+seeded FMMM at quality 2 in node takes 2.5 s against 7.3 s, and the drawing is
+the same shape. In the view, the 200 kb-context cut loads, lays out and draws in
+17 s end to end, the reading included.
+
+**Depth as width.** A node draws thicker by the square root of its depth against
+the length-weighted mean, clamped to 0.3 to 3, Bandage's rule. A converter
+derives depth from the walks when a GFA carries no `dp` tag, so on a GBZ cut it
+is carriage: the reference all nine haplotypes walk is fat, a haplotype's
+private array copies are thin. An rGFA cut has one depth everywhere and draws as
+before.
+
+![KIV-2 over gbz-base, eight haplotypes, force-directed](../img/force_kiv2_gbz.png)
+
+_The 15,808-node cut, 21 halos: the array as one superbubble of 9 routes, the
+private copies as the loops, 20 SNPs and small indels along the backbone. The
+proportional length law lets the 100 kb private runs set the frame; the compress
+spread pulls them in._
+
+A popped bubble keeps the walks that pass through it, sliced to its nodes, so
+the bubbles derived inside a popped superbubble still read their routes off the
+haplotypes and width still says carriage.
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's

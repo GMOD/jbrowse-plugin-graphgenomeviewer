@@ -6,27 +6,36 @@ from a linear genome view.
 
 ## Screenshots
 
-The LPA KIV-2 window of the HPRC release 2 graph as a **variant map**: the
-GRCh38 backbone as one line, coloured by position the way the rGFA segments
-track above it is, and one glyph per bubble from the graph's own bubble index,
-typed and sized from the bubble's routes.
+The LPA KIV-2 window of the HPRC release 2 graph in the **force-directed
+layout**: the GRCh38 backbone runs left to right, coloured by position the way
+the rGFA segments track above it is, and the kringle repeat array is the knot of
+loops in the middle. Each bubble the graph holds is haloed along its own nodes
+and labelled by what it is; the label opens the bubble on its own.
+
+![KIV-2, force-directed, with its bubbles marked](img/force_kiv2.png)
+
+Clicking the array's label opens its 29 segments in the same layout, with a
+button back to the window. A popped graph derives its own bubbles, so a
+superbubble opens level by level:
+
+![The KIV-2 array popped open](img/force_kiv2_popped.png)
+
+Over a gbz-base database the cut carries the haplotypes' walks, and a node draws
+thicker the more of them carry it, Bandage's depth as width:
+
+![KIV-2 over gbz-base, eight haplotypes, force-directed](img/force_kiv2_gbz.png)
+
+The same window as a **variant map**, the reference as one line with one typed
+glyph per bubble:
 
 ![Variant map of KIV-2](img/variant_map_kiv2.png)
 
-Six variable sites: a 1.2 kb insertion, a 3-allele site, a 4.4 kb and a 942 bp
-deletion, the kringle repeat array with 129 distinct routes from 3 kb to 175 kb,
-and an 11-allele microsatellite. Clicking the array opens the graph inside it,
-in the **Ordered** layout, with a button back to the window:
-
-![The KIV-2 array popped open](img/popped_kiv2.png)
-
-The same map of MHC class II, where one 254-segment superbubble covers the DRB
-haplotype block and a run of small indels follows it:
-
-![Variant map of MHC class II](img/variant_map_mhc.png)
-
 It ships five layouts:
 
+- **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
+  [Bandage](https://github.com/rrwick/Bandage), seeded along the reference and
+  turned to read left to right. The engine lays out unbranching runs rather than
+  nodes, so a base-level cut of 15,000 nodes draws in a few seconds.
 - **Variant map** (rGFA or a reference path): the reference as a line, one typed
   glyph per bubble, click to open a bubble's graph, and again for a bubble
   inside it.
@@ -35,14 +44,13 @@ It ships five layouts:
 - **Anchored** (rGFA or a reference path): x is reference bp, one row per stable
   rank, aligned under a linear view.
 - **Sample rows**: x is reference bp, one row per contributing assembly.
-- **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
-  [Bandage](https://github.com/rrwick/Bandage).
 
 The bubbles come from `gfatools bubble` output beside the rGFA index
 (`<prefix>.bubbles.bed.gz`), which HPRC's hosted graph has and
 `scripts/build_rgfa_tabix.sh` in jbrowse-components writes, or, for a graph with
 no index, a GBZ cut, a pggb file or a popped bubble, from the graph itself off
-the ordered layout's layering.
+the ordered layout's layering. Every node layout marks them as halos; the
+variant map draws them as glyphs.
 
 ### Demonstration loci
 

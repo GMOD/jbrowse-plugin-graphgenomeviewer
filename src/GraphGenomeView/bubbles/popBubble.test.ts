@@ -32,5 +32,24 @@ describe('bubbleSubgraph', () => {
       { from: 's2+', to: 's4+' },
     ])
     expect(sub.anchoredBy).toBe('tags')
+    expect(sub.paths).toBeUndefined()
+  })
+
+  it('keeps each walk to the steps it takes inside the bubble', () => {
+    const sub = bubbleSubgraph(
+      {
+        ...graph,
+        paths: [
+          { name: 'ref', nodeIds: ['s1+', 's2+', 's3+', 's4+'] },
+          { name: 'alt', nodeIds: ['s1+', 's2+', 's4+'] },
+          { name: 'elsewhere', nodeIds: ['s1+'] },
+        ],
+      },
+      ['s2', 's3', 's4'],
+    )
+    expect(sub.paths).toEqual([
+      { name: 'ref', nodeIds: ['s2+', 's3+', 's4+'] },
+      { name: 'alt', nodeIds: ['s2+', 's4+'] },
+    ])
   })
 })
