@@ -43,5 +43,8 @@ export function depthWidthFactor(node: GraphNode, mean: number) {
   if (!(mean > 0) || !(node.depth > 0)) {
     return 1
   }
-  return Math.min(MAX_FACTOR, Math.max(MIN_FACTOR, Math.sqrt(node.depth / mean)))
+  return Math.min(
+    MAX_FACTOR,
+    Math.max(MIN_FACTOR, Math.sqrt(node.depth / mean)),
+  )
 }

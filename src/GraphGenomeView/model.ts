@@ -14,12 +14,13 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
-import { NODE_WIDTH_VALUES } from './nodeWidths'
+import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
+import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
@@ -31,7 +32,7 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from './layoutModes'
-import { anchorFromPaths, anchorGraph } from './pathAnchoring'
+import { NODE_WIDTH_VALUES } from './nodeWidths'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
@@ -352,6 +353,9 @@ export default function stateModelFactory() {
           types.enumeration(NODE_WIDTH_VALUES),
           'depth',
         ),
+        // Whether the node layouts draw each bubble as a halo along its nodes
+        // with a label that opens it. The variant map draws glyphs instead.
+        showBubbles: types.optional(types.boolean, true),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
         // reference, so this is a choice; empty means "infer", which is the
@@ -754,15 +758,26 @@ export default function stateModelFactory() {
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
       },
-      // Each bubble in the window with what it is, for the overlay. Only the
-      // variant map draws them; a bubble is meaningless on a force layout,
-      // whose x is not the reference.
+      // Each bubble in the window with what it is, for the variant map's
+      // glyphs on the reference line.
       get bubbleGlyphs() {
         const bubbles = self.layoutMode === 'variants' ? self.bubbles : []
         return bubbles.map(bubble => ({
           bubble,
           ...classifyBubble(bubble),
         }))
+      },
+      // The same bubbles over every other layout, as halos along their nodes.
+      // Reads positionsVersion so a dragged node takes its halo with it.
+      get bubbleHalos() {
+        void self.positionsVersion
+        const positions = self.layoutResult?.nodePositions
+        return self.showBubbles &&
+          self.layoutMode !== 'variants' &&
+          self.graph &&
+          positions
+          ? bubbleHalos(self.graph, self.bubbles, positions)
+          : []
       },
       // Every node's midpoint on the reference plus the interval the hue ramps
       // over — what `reference-position` paints from, and undefined under every
@@ -1093,6 +1108,9 @@ export default function stateModelFactory() {
       },
       setNodeWidth(width: NodeWidth) {
         self.nodeWidth = width
+      },
+      setShowBubbles(show: boolean) {
+        self.showBubbles = show
       },
       // Undefined restores the built-in ceiling. Nothing recomputes: the pane
       // reads canvasHeight and the drawing is placed by zoomToFit, which the
@@ -1462,7 +1480,10 @@ export default function stateModelFactory() {
         )) as { result: LayoutResult; duration: number }
         const scaling = layoutScaling(graph, spread)
         const drawn = new Map(
-          scaling.nodes.map(n => [n.id, drawnNodeLength(scaling.opts, n.length)]),
+          scaling.nodes.map(n => [
+            n.id,
+            drawnNodeLength(scaling.opts, n.length),
+          ]),
         )
         const positions = splitRuns(
           result.nodePositions,
@@ -1779,9 +1800,10 @@ export default function stateModelFactory() {
           yield* cutFromLoadedTrack()
         }),
         // Open one bubble: the graph becomes the segments the bubble row names,
-        // drawn layered. The graph it came from stays behind it, one click
-        // away, and the popped graph gets its own derived bubbles, so a
-        // superbubble opens progressively.
+        // drawn in the layout the reader is in, or force-directed from the
+        // variant map. The graph it came from stays behind it, one click away,
+        // and the popped graph gets its own derived bubbles, so a superbubble
+        // opens progressively.
         popBubble: flow(function* (bubble: MinigraphBubble) {
           const graph = self.graph
           if (!graph) {
@@ -1804,7 +1826,9 @@ export default function stateModelFactory() {
           self.indexBubbles = undefined
           const label = `${classifyBubble(bubble).label} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
-          self.layoutMode = 'ordered'
+          if (self.layoutMode === 'variants') {
+            self.layoutMode = 'force'
+          }
           self.clearInteractionState()
           self.userMovedViewport = false
           self.isLoading = true

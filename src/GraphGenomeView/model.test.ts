@@ -2204,7 +2204,7 @@ describe('popping a bubble', () => {
     longestAllele: undefined,
   }
 
-  test('opens the bubble ordered and comes back to the window', async () => {
+  test('opens the bubble force-directed and comes back to the window', async () => {
     rpcRespond()
     const model = createAnchoredModel()
     model.setLayoutMode('variants')
@@ -2214,11 +2214,18 @@ describe('popping a bubble', () => {
     expect(Object.keys(model.nodePositions!)).toEqual(['1+', '2+'])
 
     await model.popBubble(bubble)
-    expect(model.layoutMode).toBe('ordered')
+    expect(model.layoutMode).toBe('force')
     expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2', '3'])
     expect(model.poppedFrom?.graph).toBe(window)
-    expect(Object.keys(model.nodePositions!).sort()).toEqual(['1+', '2+', '3+'])
-    // the ordered layout draws the nodes, not glyphs
+    const laidOut = mockRpcCall.mock.calls
+      .filter(c => c[1] === 'GraphComputeLayout')
+      .at(-1)![2] as { graph: { nodes: { id: string }[] } }
+    expect(laidOut.graph.nodes.map(n => n.id).sort()).toEqual([
+      '1+',
+      '2+',
+      '3+',
+    ])
+    // a node layout draws the nodes, with halos rather than glyphs
     expect(model.bubbleGlyphs).toEqual([])
 
     await model.unpopBubble()
@@ -2240,6 +2247,19 @@ describe('popping a bubble', () => {
     expect(model.bubbleGlyphs.map(g => [g.label, g.bubble.segments])).toEqual([
       ['insertion, up to 4 bp', '1,3,2'],
     ])
+  })
+
+  test('a node layout marks each bubble along its own nodes', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    model.setLayoutMode('ordered')
+    await model.loadGFA(RGFA_BUBBLE, 'rgfa')
+    expect(model.bubbleGlyphs).toEqual([])
+    expect(
+      model.bubbleHalos.map(h => [h.label, h.members, h.path.startsWith('M')]),
+    ).toEqual([['insertion, up to 4 bp', 1, true]])
+    model.setShowBubbles(false)
+    expect(model.bubbleHalos).toEqual([])
   })
 
   test('pops nest, and each level maps what it holds', async () => {

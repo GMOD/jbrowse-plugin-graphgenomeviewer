@@ -38,7 +38,10 @@ export function mergeRuns(graph: Graph): MergedRuns {
   const runs = new Map<string, string[]>()
   for (const node of graph.nodes) {
     const pred = inOf.get(node.id)
-    if (runOf.has(node.id) || (pred?.length === 1 && joins(pred[0]!, node.id))) {
+    if (
+      runOf.has(node.id) ||
+      (pred?.length === 1 && joins(pred[0]!, node.id))
+    ) {
       continue
     }
     const run = [node.id]

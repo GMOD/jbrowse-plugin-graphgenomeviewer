@@ -6,6 +6,7 @@ import InfoIcon from '@mui/icons-material/Info'
 import { LinearProgress, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 
+import BubbleHalos from './BubbleHalos'
 import BubbleOverlay from './BubbleOverlay'
 import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -624,6 +625,7 @@ const GraphCanvas = observer(function GraphCanvas({
 
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
+        <BubbleHalos model={model} />
         <BubbleOverlay model={model} />
         <div style={legendStackStyle}>
           <ReferenceRampLegend model={model} />

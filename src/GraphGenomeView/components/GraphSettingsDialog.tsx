@@ -132,6 +132,24 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           ) : null}
         </div>
 
+        <div className={classes.section}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={model.showBubbles}
+                onChange={e => {
+                  model.setShowBubbles(e.target.checked)
+                }}
+              />
+            }
+            label="Mark bubbles"
+          />
+          <Typography variant="caption" color="text.secondary">
+            A halo along the nodes of each bubble, labelled by what it is, with
+            the label opening the bubble on its own
+          </Typography>
+        </div>
+
         {model.anchorPaths.length > 1 ? (
           <div className={classes.section}>
             <FormControl className={classes.formControl}>
