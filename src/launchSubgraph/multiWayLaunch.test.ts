@@ -29,7 +29,7 @@ const LABEL = 'Graph genome view (this region)'
 // LinearGenomeView. It comes from the sibling checkout the link: deps already
 // require (CI clones the same layout), because the launch reads the lane pick
 // off that display by duck type and only the real one pins the contract.
-function createEnv(configLanes?: string[]) {
+function createEnv(trackLanes: string[] = []) {
   console.warn = vi.fn()
   console.error = vi.fn()
   const pluginManager = new PluginManager()
@@ -93,13 +93,12 @@ function createEnv(configLanes?: string[]) {
       type: 'SyntenyTrack',
       trackId: 'gbz_lanes',
       name: 'GBZ lanes',
-      assemblyNames: ['volvox', 'HG00097.1', 'HG00099.1', 'HG00128.1'],
+      assemblyNames: ['volvox', ...trackLanes],
       adapter: { type: 'GbzBaseSyntenyAdapter' },
       displays: [
         {
           type: 'MultiWaySyntenyDisplay',
           displayId: 'gbz_lanes-MultiWaySyntenyDisplay',
-          ...(configLanes ? { lanes: configLanes } : {}),
         },
       ],
     },
@@ -204,21 +203,21 @@ test("the GBZ cut is on the linear view's menu, not the lane track's", () => {
   expect(allLabels(display.trackMenuItems())).not.toContain(LABEL)
 })
 
-test('a launch cuts for the lanes the reader picked over the config lanes', () => {
+test("a launch cuts for the lanes the reader picked over the track's lanes", () => {
   const { session, view, display } = createEnv(['HG00097.1', 'HG00099.1'])
   display.setSelectedLanes(['HG00128.1'])
   launchRegion(view)
   expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual(['HG00128.1'])
 })
 
-test('a launch cuts for the pick where the config names no lanes', () => {
+test('a launch cuts for the pick where the track names no lanes', () => {
   const { session, view, display } = createEnv()
   display.setSelectedLanes(['HG00128.1'])
   launchRegion(view)
   expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual(['HG00128.1'])
 })
 
-test('with no pick a launch cuts for the config lanes', () => {
+test("with no pick a launch cuts for the track's lanes", () => {
   const { session, view } = createEnv(['HG00097.1', 'HG00099.1'])
   launchRegion(view)
   expect(session.addedViews[0]![1].subgraphHaplotypes).toEqual([
