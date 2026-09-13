@@ -87,8 +87,8 @@ const GenePins = observer(function GenePins({
               fill="none"
               stroke={EXON_COLOR}
               strokeOpacity={0.9}
-              strokeWidth={contigThickness * 0.45}
-              strokeLinecap="butt"
+              strokeWidth={contigThickness * 0.55}
+              strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
             />
           ) : null,

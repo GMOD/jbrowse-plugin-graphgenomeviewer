@@ -92,6 +92,13 @@ test('exons land on the backbone stretch they cover, and the name at the midpoin
   expect(pin!.covered).toBe(1)
 })
 
+test('a PanSN-named backbone still carries a gene named by its contig', () => {
+  const pansn = convertGFAToGraph(
+    parseGFA(GFA.replaceAll('SN:Z:chr1', 'SN:Z:GRCh38#0#chr1')),
+  )
+  expect(genePins(pansn, geneModelsFrom([gene]), positions)).toHaveLength(1)
+})
+
 test('a gene on another sequence pins nothing', () => {
   expect(
     genePins(graph, geneModelsFrom([{ ...gene, refName: 'chr2' }]), positions),

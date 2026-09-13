@@ -20,6 +20,13 @@ export interface GenePin {
   covered: number
 }
 
+// A backbone node names its sequence the way the graph does, `GRCh38#0#chr6`,
+// and a gene the way the assembly does, `chr6`; the contig is the part they
+// share.
+function contig(name: string) {
+  return name.split('#').at(-1)!
+}
+
 function round(v: number) {
   return Math.round(v * 100) / 100
 }
@@ -50,7 +57,7 @@ export function genePins(
     let covered = 0
     const mid = (gene.start + gene.end) / 2
     for (const node of backbone) {
-      if (node.stable.refName !== gene.refName) {
+      if (contig(node.stable.refName) !== contig(gene.refName)) {
         continue
       }
       const nodeStart = node.stable.start
