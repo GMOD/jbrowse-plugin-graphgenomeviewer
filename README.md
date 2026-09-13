@@ -25,7 +25,12 @@ thicker the more of them carry it, Bandage's depth as width:
 
 ![KIV-2 over gbz-base, eight haplotypes, force-directed](img/force_kiv2_gbz.png)
 
-The same window as a **variant map**, the reference as one line with one typed
+MHC class II, where one 254-segment superbubble covers the DRB haplotype block
+and a run of small indels follows it:
+
+![MHC class II, force-directed](img/force_mhc.png)
+
+The KIV-2 window as a **variant map**, the reference as one line with one typed
 glyph per bubble:
 
 ![Variant map of KIV-2](img/variant_map_kiv2.png)

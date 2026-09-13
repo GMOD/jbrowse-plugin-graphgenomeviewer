@@ -519,6 +519,14 @@ private copies as the loops, 20 SNPs and small indels along the backbone. The
 proportional length law lets the 100 kb private runs set the frame; the compress
 spread pulls them in._
 
+![The same cut under the compress spread](img/kiv2-gbz-force-compress.png)
+
+![MHC class II, force-directed, 13 halos](../img/force_mhc.png)
+
+_MHC class II from the rGFA index: the DRB superbubble haloed along its 254
+segments, the 49-route repeat and the indels each their own halo, the two long
+deletion arcs leaving the frame as before._
+
 A popped bubble keeps the walks that pass through it, sliced to its nodes, so
 the bubbles derived inside a popped superbubble still read their routes off the
 haplotypes and width still says carriage.
