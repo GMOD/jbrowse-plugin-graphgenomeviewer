@@ -10,8 +10,8 @@ Four changes came out of it, in the order they are worth building:
    left to right in the same direction as the linear view above it.
 2. **Seed FMMM from reference coordinates.** Backbone end to end along x,
    alleles at their anchors, `KeepPositions`, and no component rotation. This
-   removes the curl that turns every long reference run into a C or a spiral,
-   and it is faster than random placement. About 40 lines of C++ in the engine.
+   removes the curl that turns every long reference run into a C or a spiral, at
+   the same cost as random placement. About 40 lines of C++ in the engine.
 3. **A reference-ordered layered layout.** The tube map's skeleton without its
    lanes: x is reference order, node width is log bp, y is a lane. 2 ms on 279
    nodes. Bubbles read as lenses, a SNP allele gets the same room as a 10 kb
@@ -110,30 +110,50 @@ a loop hanging under the position it belongs to._
 
 _MHC class II, 279 nodes, seeded. The shipped layout of this cut is an L._
 
-Measured against random placement on the same cuts (native build of the same
-OGDF, within about 20% of the wasm engine):
+The cost is the same as random placement. In one native binary, min of three
+runs, seeded against random: KIV-2 39 against 37 ms, MHC class II 112 against
+108 ms, KIR 77 against 78 ms. (An earlier draft called it faster by comparing
+the native seeded run to the wasm random one; the review caught that.)
 
-| Locus | Nodes | Shipped force | Seeded FMMM |
-| ----- | ----: | ------------: | ----------: |
-| C4    |    34 |         35 ms |       21 ms |
-| AMY1  |    42 |         41 ms |       24 ms |
-| CFH   |    44 |         52 ms |       28 ms |
-| KIV-2 |    58 |         57 ms |       33 ms |
-| KIR   |   154 |        151 ms |       87 ms |
-| MHC   |   279 |        150 ms |       94 ms |
+How much of the seed FMMM keeps is less than it looks. OGDF applies the initial
+placement only at the coarsest level of its multilevel scheme and re-derives
+every finer level from the coarse solution with jitter, and its `minGraphSize`
+is 50 OGDF nodes, so every real cut is coarsened. What survives is the coarse
+shape of the backbone, which is exactly the property wanted; the allele y
+offsets are discarded, which is why the seed function can be simpler than the
+lab's and why the drawings wave. `singleLevel` would honour every seed exactly
+and is the cheaper cure for the waviness than more iterations. Untested.
 
-Faster because FMMM starts near a minimum. Two limits stay. Above roughly 300
-nodes on screen the drawing is a rope whatever the seed, because node thickness
-is constant in pixels and zoom-to-fit gives each node under 3 px
-(`agent-docs/GRAPH_SCALE_AND_LOD.md`). And a window whose alleles close a large
-cycle, a haplotype bypassing most of the window, still draws the cycle.
+Two limits stay. Above roughly 300 nodes on screen the drawing is a rope
+whatever the seed, because node thickness is constant in pixels and zoom-to-fit
+gives each node under 3 px (`agent-docs/GRAPH_SCALE_AND_LOD.md`). And a window
+whose alleles close a large cycle, a haplotype bypassing most of the window,
+still draws the cycle.
 
-The engine change: `bindings.cpp` reads an optional `x`/`y` per node;
-`addToOgdfGraph` takes them as the chain's start, which is the code path
-`linearLayout` already has; `layoutGraph` takes a flag to skip
-`reassembleDrawings`' rotation; `drawnScale.ts` computes the seeds from
-`stable`. `layout-digest.mjs` gains the seeded cases and every force figure of
-an anchored graph regenerates, deliberately.
+The engine change, with what the review added:
+
+- `bindings.cpp` reads an optional `x`/`y` per node and `addToOgdfGraph` takes
+  them as the chain's start, the code path `linearLayout` already has.
+- The rotation is cut in two places: `stepsForRotatingComponents(0)` on the FMMM
+  instance and skipping the rotation in `reassembleDrawings`, while keeping its
+  MAAR packing, since a cut can arrive in several components (KIR does).
+- Seeds come from the same `LayoutScaling` the model already hands the engine,
+  not from bp: under the `compress` bubble spread a node's `length` crosses the
+  RPC as drawn units times 1000 with a matching `nodeLengthPerMegabase`, so a
+  seed computed from bp would misplace every chain.
+- `forceLayoutKey` gains the reference path. Today it omits it because the path
+  never reaches the engine; with seeds it does, and without the key a
+  re-anchored graph would be served a stale layout.
+- `linearLayout` is superseded for anchored graphs and its two remaining
+  readers, the settings menu and the arrow threshold in `GeometryBuilder`, need
+  a decision. `LayoutMode.run` has no channel for seeds, so the mode interface
+  grows one.
+- `layout-digest.mjs` gains the seeded cases and every force figure of an
+  anchored graph regenerates, deliberately.
+
+The native driver reproduces the engine's graph construction exactly (chains,
+lengths, self-loop rule) but lays components in a row rather than packing them,
+so a multi-component cut differs in component placement only.
 
 ## Experiment 3: a reference-ordered layered layout
 
@@ -164,10 +184,22 @@ the same drawn room as a 3 kb segment beside it and a bubble is a lens rather
 than a bar under a line. It gives up lining up under a linear view column for
 column. The row layouts stay for the figures that need that.
 
+Two things the lab's pictures understate. The lab renderer draws every link
+straight, so a deletion edge runs along the reference line and hides; the view
+bows a deletion arc around the backbone it bypasses (`deletionEdges.ts`), and on
+this layout the bypassed run sits between the arc's endpoints, so the arcs come
+out better than under random FMMM. And the log widths give up the bp
+comparability the arc's size relies on, so the arc reads as topology, not as a
+length. The review also found alleles landing on the reference lane in layers
+with no backbone node; the lane is now reserved everywhere.
+
 OGDF's own `SugiyamaLayout` was tried for the same job. It draws bubbles well
 but does not know rank 0, so its cycle removal wraps the backbone into two rows
-on the HLA cut, and it would grow the wasm engine from 307 KB to 1.88 MB, since
-`OptimalRanking` pulls in COIN-OR's LP solver. The JS layout needs neither.
+on the HLA cut. Compiled to wasm, the lab driver grows from 307 KB to 1.88 MB
+with Sugiyama, both raw wasm; the shipped engine embeds its wasm as base64, so
+the shipped cost would be around 2.6 MB. Most of that is `OptimalRanking`'s
+COIN-OR LP solver, and a longest-path-only build would be far smaller. The JS
+layout needs none of it.
 
 ## Experiment 4: haplotype lanes
 
@@ -187,6 +219,134 @@ laid out in 3.3 s and produced a 226,000 px wide strip. The port is
 `generateSingleLaneAssignment` (about 450 lines), plus lane geometry in
 `LayoutResult` and a lane-band pass in `GeometryBuilder`. The license is MIT.
 
+## Does the picture mean anything?
+
+Take the KIV-2 window and ask what a geneticist wants from it. The kringle IV
+type 2 array is a tandem repeat of a 5.5 kb unit whose copy number varies from
+about 6 to more than 40 and sets LPA expression and cardiovascular risk. The
+questions are: how many copies does each haplotype carry, how does that compare
+with GRCh38, and what else varies in the window. Now look at what any node
+layout of the 58-node cut answers. The seeded force layout shows a rainbow line
+with a charcoal knot at 160.62 Mb; the knot has loops, and each loop is a
+segment carrying extra copies, but nothing says how many copies, for whom, or
+how often. Every allele is the same charcoal whether one haplotype or four
+hundred carry it. A 68 kb allele dominates the picture because node length is
+proportional to bp, while a common 1 bp variant is a speck. The layout changes
+above make the drawing tidier; they do not make it answer the question. Neither
+does the anchored layout, and neither does Bandage, whose whole vocabulary is
+node length, depth and colour.
+
+Three devices, each built from data the plugin already has or can fetch, do
+answer it. All three were prototyped on the same cuts.
+
+### A variant map from the bubble decomposition
+
+`gfatools bubble` is already hosted beside the segments
+(`hprc-v2.1-mc-grch38.bubbles.bed.gz`, the source of the bubbles track) and
+states, per bubble, the reference interval, the member segments, the number of
+distinct routes, an inversion flag and the shortest and longest route in bp.
+From those numbers alone each bubble classifies as SNP, substitution, insertion,
+deletion, inversion, repeat array or superbubble, with its size. Drawn as one
+glyph per bubble on the reference line, height by allele length, a window reads
+as a sentence rather than a topology:
+
+![KIV-2 variant map](img/kiv2-variants.png)
+
+_KIV-2: an insertion of up to 1.2 kb, a 3-allele site, a 4.4 kb and a 942 bp
+deletion, the array with 129 distinct routes from 3 kb to 175 kb, and an
+11-allele microsatellite. The 58-node graph says all of this and none of it
+legibly._
+
+![MHC class II variant map](img/mhc-variants.png)
+
+_MHC class II: one superbubble of 254 segments covering the DRB haplotype block,
+whose distinct-route count overflows a 32-bit integer, then a run of indels and
+a 49-route complex site. The superbubble is where a reader would pop the graph
+open; the indels need no graph at all._
+
+The route count is combinatorial, not a haplotype count, and says so when it
+saturates. AMY1's superbubble carries the inversion flag, C4's two bubbles are
+the RCCX modules (66 kb, 21 routes and 39 kb, 10 routes), CFH's 361-route bubble
+is the CFHR3/CFHR1 region with a 0 bp route, the deletion.
+`scripts/layout-lab/bubbles.mjs` draws these from the hosted file in a second.
+
+### Pop one bubble
+
+PangyPlot's central device is this: the graph opens as bubble chains and a click
+pops one bubble down to its segments. The hosted bubble rows carry the member
+ids, so popping is a cut, not a layout problem. The KIV-2 array's 29 segments in
+the layered layout and in seeded FMMM:
+
+![KIV-2 array popped](img/kiv2-array-popped.png)
+
+_Top: the array bubble alone, layered. Seven alleles hang off a reference of
+fourteen segments and every edge is readable. Bottom: the same 29 nodes under
+FMMM, already a tangle. Below about thirty nodes the force layout has nothing
+left to offer over a layered one._
+
+### How much each haplotype carries
+
+The base-level Minigraph-Cactus graph does not revisit reference nodes through a
+repeat array, so copy number is not a visit count; it is the sequence a walk
+spends between the bubble's flanking reference nodes. On the hosted
+eight-haplotype KIV-2 GBZ cut:
+
+![KIV-2 copies per haplotype](img/kiv2-copies.png)
+
+_GRCh38 carries 31 kb through the array, about six units; HG00133 carries 147
+kb, about 27. This one chart is the biology of the locus, and no node layout can
+show it. It needs walks, which the GBZ route supplies and the rGFA cut does
+not._
+
+The same walks give carriage per node: of the cut's 15,808 nodes, 1,259 are
+private to one haplotype and 213 are shared by all nine. Bandage draws node
+width from depth for exactly this reason, and the tube map draws ribbon width
+from path frequency; the plugin's converter already stores traversals as
+`depth`, so allele thickness by carriage is a colour-scheme-sized change once
+the cut carries paths.
+
+### What the other viewers do, and do not
+
+- **PangyPlot** (`~/src/vendor/pangyplot`): bubble chains from BubbleGun as the
+  primary abstraction, progressive popping, a two-tier level of detail from a
+  chromosome skeleton to force-laid bubbles, a reference spine mapping bp to
+  layout and back, gene pins along it, haplotype path tracing from a GBWT, and
+  colour by segment count, length, on/off reference or position. No variant
+  typing, no allele frequency.
+- **BandageNG**: node width by depth, nine colour schemes including CSV and tag
+  columns, stacked labels, path and BLAST-hit highlighting with fractional ends,
+  BED overlays, and scope around paths or walks. Everything is a property of a
+  node; nothing is a property of a variant.
+- **sequenceTubeMap**: haplotype ribbons with width by frequency, BED features
+  painted on tracks, a Sankey view with band width by read count, base-level
+  mismatch glyphs, a bp ruler.
+
+None types a bubble as SNP, indel, SV or repeat with its size. None encodes how
+many haplotypes take each branch of a bubble. None shows per-haplotype sequence
+through a repeat. Those three are the additions that would move the view from
+showing topology to showing variation, and each has its data source: bubble rows
+for typing, walks for frequency and carried length, both already hosted.
+
+### What to build, revised
+
+The layout work above still stands as the base layer, but the order of value is
+now:
+
+1. **A bubble layer on the reference axis**, drawn from the bubbles index, with
+   the type and size label as the primary text and the node graph inside a
+   bubble shown on click, laid out layered. The rGFA track already fetches the
+   rows; the view needs the glyph, the classifier and the pop.
+2. **Carriage as thickness and frequency as colour** for any cut with paths,
+   which today means the GBZ route, and a bubble-level "N of M haplotypes take
+   this branch" from the same walks.
+3. **A per-haplotype panel for a selected bubble**: sequence carried, copies at
+   a stated unit, presence or absence, sortable, the genotype-matrix surface
+   `HAPLOTYPE_WALKS_VISION.md` already argued for.
+4. **Gene pins along the backbone** from the session's annotation track, so a
+   bubble reads as "inside HLA-DRB5" rather than at a coordinate.
+5. Then the layout changes: orientation, seeds, the layered mode for whatever is
+   popped open.
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's
@@ -195,6 +355,16 @@ laid out in 3.3 s and produced a 226,000 px wide strip. The port is
 - Renaming nodes so Bandage's `linearLayout` sorts them in reference order. It
   works, but the component rotation then tips the line diagonal, so the engine
   needs the rotate flag either way.
+
+## Review
+
+A second model reviewed the lab code and every claim above against the sources,
+running the timings again in one binary. It confirmed the orientation fit, the
+layered layout's acyclicity and layer invariants (no duplicate positions, no
+shared backbone layers, every edge left to right on eight graphs), the
+legibility ceiling and the wasm sizes. It refuted the speed claim, found the
+reserved-lane bug, and supplied the multilevel explanation and the four engine
+integration points listed under experiment 2. Its notes are folded in above.
 
 ## Reproduce
 
