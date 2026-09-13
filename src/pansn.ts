@@ -87,13 +87,17 @@ const asmByPrefixCache = new WeakMap<
 >()
 
 // The inverse: PanSN prefix -> the assembly name this session loads it as, for
-// naming the lane a haplotype draws on.
+// naming the lane a haplotype draws on. A mapped assembly counts whether or not
+// `assemblyNames` also lists it.
 export function assemblyByPanSNPrefix(adapter: BaseFeatureDataAdapter) {
   let out = asmByPrefixCache.get(adapter)
   if (out === undefined) {
     const map = assemblyNameToPanSN(adapter)
     out = {}
-    for (const asm of adapter.getConf('assemblyNames') as string[]) {
+    for (const asm of new Set([
+      ...Object.keys(map),
+      ...(adapter.getConf('assemblyNames') as string[]),
+    ])) {
       out[map[asm] ?? asm] = asm
     }
     asmByPrefixCache.set(adapter, out)

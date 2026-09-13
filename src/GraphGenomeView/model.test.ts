@@ -1469,6 +1469,32 @@ describe('launching out of the graph', () => {
     })
   })
 
+  // The track's assemblyNameToPanSN already says which assembly a PanSN prefix
+  // is, for its own features, so the graph cut from it reads the same map and
+  // the assembly needs no alias restating it.
+  test('a haplotype the track maps is openable with no alias', async () => {
+    mockSession.assemblyNames = ['hg38', 'HG02717.1']
+    mockSession.tracks = [
+      {
+        trackId: 'rgfa-track',
+        adapter: {
+          type: 'RgfaTabixAdapter',
+          assemblyNameToPanSN: { hg38: 'GRCh38', 'HG02717.1': 'HG02717#1' },
+        },
+      },
+    ]
+    const model = await loadedGraph(HPRC_RGFA)
+
+    expect(model.launchableAssemblies.map(c => c.sample)).toEqual([
+      'hg38',
+      'HG02717.1',
+    ])
+    expect(model.nodeLaunchTargets('3+').own).toEqual({
+      assembly: 'HG02717.1',
+      location: expect.objectContaining({ refName: 'chr6' }),
+    })
+  })
+
   // The same graph with no CHM13 assembly loaded: the donor node falls back to
   // the reference projection, which is the HPRC default.
   test('a donor with no assembly, aliased or otherwise, is not openable', async () => {

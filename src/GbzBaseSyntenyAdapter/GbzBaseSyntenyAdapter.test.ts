@@ -102,6 +102,19 @@ test('a listed haplotype assembly labels its lane', async () => {
   expect(fa.some(f => mateOf(f).assemblyName === prefix)).toBe(false)
 })
 
+test('a mapped haplotype assembly labels its lane without a second listing', async () => {
+  const [first] = await feats(makeAdapter(), window)
+  const prefix = mateOf(first!).assemblyName
+  const adapter = makeAdapter({
+    assemblyNames: ['hg38'],
+    assemblyNameToPanSN: { hg38: 'GRCh38#0', hap_a: prefix },
+  })
+  const fa = await feats(adapter, window)
+  expect(fa.some(f => mateOf(f).assemblyName === 'hap_a')).toBe(true)
+  const { lanes } = await adapter.getHeader()
+  expect(lanes.find(l => l.label === prefix)?.name).toBe('hap_a')
+})
+
 test('ids are the same across two fetches of one window', async () => {
   const adapter = makeAdapter()
   const ids = async () => (await feats(adapter, window)).map(f => f.id()).sort()

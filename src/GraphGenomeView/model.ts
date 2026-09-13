@@ -74,7 +74,6 @@ import type { Graph, GraphNode, LayoutResult } from './types'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
-import type { AbstractSessionModel } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
@@ -147,21 +146,6 @@ const MAX_ZOOM = 100
 
 function clampZoom(zoom: number) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom))
-}
-
-// A node's PanSN sample as an assembly this session can open, or undefined. The
-// graph's spelling and the assembly's need not agree — HPRC writes `CHM13` where
-// the assembly is UCSC's `hs1` — and `assemblyManager` is what knows the aliases,
-// so resolution goes through it and returns the canonical name.
-//
-// `has` before `get`, deliberately: `get` reports an unknown name to
-// `Core-handleUnrecognizedAssembly`, which asks every installed plugin to go
-// supply it, and this is a probe run for hundreds of haplotypes per graph.
-function assemblySampleResolver(session: AbstractSessionModel) {
-  return (sample: string) =>
-    session.assemblyManager.has(sample)
-      ? (session.assemblyManager.get(sample)?.name ?? sample)
-      : undefined
 }
 
 // The zoom as a pair of axis scales. One expression, read by all three getters
@@ -879,6 +863,38 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
+      // A node's PanSN sample as an assembly this session can open, or
+      // undefined. The graph's spelling and the assembly's need not agree:
+      // HPRC writes `CHM13` where the assembly is UCSC's `hs1`. The track the
+      // graph was cut from states that pairing in its `assemblyNameToPanSN`,
+      // so its map is read first, then `assemblyManager`'s names and aliases.
+      //
+      // `has` before `get`, deliberately: `get` reports an unknown name to
+      // `Core-handleUnrecognizedAssembly`, which asks every installed plugin to
+      // go supply it, and this is a probe run for hundreds of haplotypes per
+      // graph.
+      get assemblyResolver() {
+        const { assemblyManager, tracks } = getSession(self)
+        const track = tracks.find(t => t.trackId === self.loadedTrackId)
+        const adapter = track
+          ? (readConfObject(track, 'adapter') as {
+              assemblyNameToPanSN?: Record<string, string>
+            })
+          : undefined
+        const byPrefix = new Map(
+          Object.entries(adapter?.assemblyNameToPanSN ?? {}).map(
+            ([asm, prefix]) => [prefix, asm],
+          ),
+        )
+        const loaded = (name: string | undefined) =>
+          name !== undefined && assemblyManager.has(name)
+            ? (assemblyManager.get(name)?.name ?? name)
+            : undefined
+        return (sample: string) =>
+          loaded(byPrefix.get(sample)) ?? loaded(sample)
+      },
+    }))
+    .views(self => ({
       // The contributors a view can actually be opened on: those naming an
       // assembly this session has loaded. Every strain of an E. coli pangenome
       // demo is its own assembly, so all of them resolve; an HPRC graph names
@@ -887,7 +903,7 @@ export default function stateModelFactory() {
       get launchableAssemblies() {
         return resolveContributors(
           withReferenceRegion(self.contributingAssemblies, self.loadedRegion),
-          assemblySampleResolver(getSession(self)),
+          self.assemblyResolver,
         )
       },
       // Whether there is a linear view this graph may draw a highlight into —
@@ -913,10 +929,7 @@ export default function stateModelFactory() {
         const node = self.nodeById?.get(nodeId)
         const own = node ? nodeOwnLocation(node) : undefined
         const ownAssembly = own
-          ? resolveLocationAssembly(
-              assemblySampleResolver(getSession(self)),
-              own,
-            )
+          ? resolveLocationAssembly(self.assemblyResolver, own)
           : undefined
         const region = self.loadedRegion
         const nodeById = self.nodeById

@@ -38,10 +38,10 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     /**
      * #slot
      * The first entry is the anchor: the JBrowse assembly the graph's reference
-     * sample is loaded as. Further entries are haplotypes also loaded as
-     * JBrowse assemblies, named by their PanSN prefix (`HG002#1`) or mapped to
-     * it through `assemblyNameToPanSN`; a haplotype not listed is still a lane,
-     * labelled by its PanSN prefix.
+     * sample is loaded as. Further entries are haplotypes loaded as JBrowse
+     * assemblies under their PanSN prefix (`HG002#1`); one loaded under another
+     * name only needs its `assemblyNameToPanSN` entry. A haplotype named in
+     * neither is still a lane, labelled by its PanSN prefix.
      */
     assemblyNames: {
       type: 'stringArray',
