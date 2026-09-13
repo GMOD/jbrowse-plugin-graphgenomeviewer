@@ -33,14 +33,15 @@ using OGDFGraphLayout = std::unordered_map<DeBruijnNode*, std::vector<ogdf::node
 // FMM layout implementation
 class FMMGraphLayout {
 public:
-    FMMGraphLayout(int graphLayoutQuality, bool useLinearLayout,
+    FMMGraphLayout(int graphLayoutQuality, bool keepPositions,
                    double graphLayoutComponentSeparation, double aspectRatio,
-                   int randomSeed)
+                   int randomSeed, bool rotateComponents)
         : m_graphLayoutQuality(graphLayoutQuality),
-          m_useLinearLayout(useLinearLayout),
+          m_keepPositions(keepPositions),
           m_graphLayoutComponentSeparation(graphLayoutComponentSeparation),
           m_aspectRatio(aspectRatio),
-          m_randomSeed(randomSeed) {
+          m_randomSeed(randomSeed),
+          m_rotateComponents(rotateComponents) {
         init();
     }
 
@@ -56,8 +57,13 @@ public:
         m_layout.allowedPositions(ogdf::FMMMOptions::AllowedPositions::All);
         m_layout.pageRatio(m_aspectRatio);
         m_layout.minDistCC(m_graphLayoutComponentSeparation);
-        m_layout.stepsForRotatingComponents(50);
-        m_layout.initialPlacementForces(m_useLinearLayout ?
+        // FMMM packs even a single component, and the packing may tip it 90
+        // degrees; with seeds that would undo the orientation they stated.
+        m_layout.stepsForRotatingComponents(m_rotateComponents ? 50 : 0);
+        if (!m_rotateComponents) {
+            m_layout.tipOverCCs(ogdf::FMMMOptions::TipOver::None);
+        }
+        m_layout.initialPlacementForces(m_keepPositions ?
                                        ogdf::FMMMOptions::InitialPlacementForces::KeepPositions :
                                        ogdf::FMMMOptions::InitialPlacementForces::RandomRandIterNr);
 
@@ -96,10 +102,11 @@ public:
 
 private:
     int m_graphLayoutQuality;
-    bool m_useLinearLayout;
+    bool m_keepPositions;
     double m_graphLayoutComponentSeparation;
     double m_aspectRatio;
     int m_randomSeed;
+    bool m_rotateComponents;
     FMMMLayout m_layout;
 };
 
@@ -119,6 +126,16 @@ static void addToOgdfGraph(DeBruijnNode* node,
     int numberOfGraphNodes = numberOfGraphEdges + 1;
     double drawnLengthPerEdge = drawnNodeLength / numberOfGraphEdges;
 
+    // A seeded chain starts where the caller put it and spans exactly its
+    // drawn length, so seeds laid end to end meet. The linear layout keeps its
+    // own nodeSegmentLength step: that path is what every linear figure was
+    // drawn with.
+    bool seeded = !linearLayout && node->hasSeed();
+    if (seeded) {
+        xPos = node->seedX;
+        yPos = node->seedY;
+    }
+
     ogdf::node newNode;
     ogdf::node previousNode = nullptr;
     for (int i = 0; i < numberOfGraphNodes; ++i) {
@@ -129,6 +146,10 @@ static void addToOgdfGraph(DeBruijnNode* node,
             GA.x(newNode) = xPos;
             GA.y(newNode) = yPos;
             xPos += settings->nodeSegmentLength;
+        } else if (seeded) {
+            GA.x(newNode) = xPos;
+            GA.y(newNode) = yPos;
+            xPos += drawnLengthPerEdge;
         }
 
         GA.width(newNode) = settings->edgeLength;
@@ -448,15 +469,26 @@ static List<fmmm::Rectangle> rotateComponentsAndCalculateBoundingRectangles(
 static void reassembleDrawings(GraphAttributes& GA,
                               double componentSeparation,
                               double aspectRatio,
-                              const Array<List<ogdf::node>>& nodesInCC) {
-    auto R = rotateComponentsAndCalculateBoundingRectangles(GA, nodesInCC,
-                                                            componentSeparation, aspectRatio);
+                              const Array<List<ogdf::node>>& nodesInCC,
+                              bool rotateComponents) {
+    // Without rotation the components are still packed: a cut can arrive in
+    // several (KIR does), and stacking them is what keeps them apart.
+    List<fmmm::Rectangle> R;
+    if (rotateComponents) {
+        R = rotateComponentsAndCalculateBoundingRectangles(GA, nodesInCC,
+                                                           componentSeparation, aspectRatio);
+    } else {
+        for (int i = 0; i < nodesInCC.size(); i++) {
+            R.pushBack(calculateBoundingRectangle(GA, nodesInCC[i], componentSeparation, i));
+        }
+    }
 
     double aspect_ratio_area, bounding_rectangles_area;
     fmmm::MAARPacking().pack_rectangles_using_Best_Fit_strategy(
         R, aspectRatio,
         ogdf::FMMMOptions::PreSort::DecreasingHeight,
-        ogdf::FMMMOptions::TipOver::NoGrowingRow,
+        rotateComponents ? ogdf::FMMMOptions::TipOver::NoGrowingRow
+                         : ogdf::FMMMOptions::TipOver::None,
         aspect_ratio_area, bounding_rectangles_area);
 
     for (const auto& r : R) {
@@ -506,11 +538,20 @@ GraphLayout layoutGraph(const AssemblyGraph& graph,
     for (auto v : G.nodes)
         nodesInCC[componentNumber[v]].pushBack(v);
 
+    bool anySeed = false;
+    for (const auto& pair : graph.nodes) {
+        if (pair.second->isDrawn() && pair.second->hasSeed()) {
+            anySeed = true;
+            break;
+        }
+    }
+    bool keepPositions = useLinearLayout || anySeed;
+
     // Layout each component
     for (int i = 0; i < numberOfComponents; i++) {
-        FMMGraphLayout layouter(graphLayoutQuality, useLinearLayout,
+        FMMGraphLayout layouter(graphLayoutQuality, keepPositions,
                                componentSeparation, aspectRatio,
-                               settings->randomSeed);
+                               settings->randomSeed, settings->rotateComponents);
 
         GraphCopy GC;
         EdgeArray<double> cedgeLengths(GC);
@@ -541,7 +582,8 @@ GraphLayout layoutGraph(const AssemblyGraph& graph,
         }
     }
 
-    reassembleDrawings(GA, componentSeparation, aspectRatio, nodesInCC);
+    reassembleDrawings(GA, componentSeparation, aspectRatio, nodesInCC,
+                       settings->rotateComponents);
 
     // Convert to GraphLayout
     GraphLayout result(graph);

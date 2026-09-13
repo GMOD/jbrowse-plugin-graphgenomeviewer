@@ -35,6 +35,16 @@ force-directed screenshot between regens, and the seed is now fixed
 (`LayoutSettings::randomSeed`) and overridable per call with a `seed` option;
 and the linear layout draws a graph whose **segment names are not integers**.
 
+A node may also carry an `x`/`y`. The engine reads it as where that node's chain
+starts (`addToOgdfGraph`) and switches FMMM to `KeepPositions`, so a
+reference-anchored graph can hand it the backbone laid along x and the alleles
+under their anchors (`layout/referenceSeeds.ts`). Send `rotateComponents: false`
+with them: FMMM otherwise turns each component to the angle of least area, and
+packing may tip it a further 90 degrees, which would throw away the orientation
+the seeds stated. Off, the components are still packed, just not turned. A graph
+with no seeds and the option absent draws exactly as before, which
+`layout-digest.mjs` checks; its `seeded` rows cover the new path.
+
 That last one is narrow on purpose. `determineLinearNodePositions` is the only
 code that reads a segment's name and the only code reached by `linearLayout`,
 and the smoke graph's segments were called `1`..`6`, so it never exercised the

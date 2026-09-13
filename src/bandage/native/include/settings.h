@@ -54,6 +54,11 @@ struct LayoutSettings {
     // differs from the last one by a couple of percent.
     int randomSeed = 1;
 
+    // FMMM's area-minimising rotation of each component, and the 90-degree tip
+    // MAAR packing may add. Off when the caller seeded positions, since a
+    // rotation would throw away the orientation the seeds stated.
+    bool rotateComponents = true;
+
     LayoutSettings() = default;
 };
 

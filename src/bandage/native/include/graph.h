@@ -61,10 +61,16 @@ public:
     bool drawn;
     DeBruijnNode* reverseComplement;
     std::vector<DeBruijnEdge*> edges;
+    // Where FMMM starts this node's chain, when the caller has an opinion:
+    // reference-anchored graphs seed the backbone along x so the layout keeps
+    // its coarse shape instead of curling (docs/layout-experiments.md).
+    bool seeded;
+    double seedX;
+    double seedY;
 
     DeBruijnNode(const std::string& name_, unsigned length_, float depth_)
         : name(name_), length(length_), depth(depth_), drawn(false),
-          reverseComplement(nullptr) {}
+          reverseComplement(nullptr), seeded(false), seedX(0.0), seedY(0.0) {}
 
     std::string getName() const { return name; }
     std::string getNameWithoutSign() const {
@@ -80,6 +86,12 @@ public:
     void setAsNotDrawn() { drawn = false; }
     DeBruijnNode* getReverseComplement() const { return reverseComplement; }
     void setReverseComplement(DeBruijnNode* rc) { reverseComplement = rc; }
+    bool hasSeed() const { return seeded; }
+    void setSeed(double x, double y) {
+        seeded = true;
+        seedX = x;
+        seedY = y;
+    }
 
     std::vector<DeBruijnNode*> getUpstreamNodes() const {
         std::vector<DeBruijnNode*> result;

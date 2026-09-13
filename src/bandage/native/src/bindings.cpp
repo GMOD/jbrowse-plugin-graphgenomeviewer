@@ -4,6 +4,7 @@
 #include <emscripten/val.h>
 #include "../include/graphlayout.h"
 #include "../include/settings.h"
+#include <cmath>
 #include <memory>
 
 using namespace emscripten;
@@ -24,6 +25,19 @@ std::unique_ptr<AssemblyGraph> createGraphFromJS(const val& jsGraph) {
 
         auto* n = graph->addNode(id, nodeLength, depth);
         n->setAsDrawn(); // Assume all input nodes should be drawn
+
+        // Optional seed. A missing property reads as undefined, so isNumber()
+        // is the whole presence check; the finite test keeps a NaN from
+        // reaching FMMM, which has no way to report one.
+        val x = node["x"];
+        val y = node["y"];
+        if (x.isNumber() && y.isNumber()) {
+            double seedX = x.as<double>();
+            double seedY = y.as<double>();
+            if (std::isfinite(seedX) && std::isfinite(seedY)) {
+                n->setSeed(seedX, seedY);
+            }
+        }
     }
 
     // Set up reverse complements (assuming +/- naming convention)
@@ -120,6 +134,9 @@ val computeLayout(val jsGraph, val jsOptions) {
     }
     if (jsOptions.hasOwnProperty("seed")) {
         settings.randomSeed = jsOptions["seed"].as<int>();
+    }
+    if (jsOptions.hasOwnProperty("rotateComponents")) {
+        settings.rotateComponents = jsOptions["rotateComponents"].as<bool>();
     }
 
     // Owning, and declared BEFORE the layout that borrows it: GraphLayout holds

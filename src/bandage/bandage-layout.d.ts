@@ -1,8 +1,9 @@
+import type { LayoutNode } from '../GraphGenomeView/layout/referenceSeeds'
 import type { Graph, LayoutResult } from '../GraphGenomeView/types'
 
 export interface BandageModule {
   computeLayout(
-    graph: { nodes: Graph['nodes']; edges: Graph['edges'] },
+    graph: { nodes: LayoutNode[]; edges: Graph['edges'] },
     options: Record<string, unknown>,
   ): LayoutResult
 }
