@@ -39,6 +39,15 @@ const MIN_TOTAL_GRAPH_LENGTH = 500
 // see BUBBLE_SPREADS, which is how a view asks for more.
 const BANDAGE_MINIMUM_NODE_LENGTH = 5
 
+// The engine's own rule (`settings.h`, `getDrawnNodeLength`), so a seed computed
+// here spans exactly the chain the engine builds from the same numbers.
+export function drawnNodeLength(opts: BandageScaleOpts, length: number) {
+  return Math.max(
+    (opts.nodeLengthPerMegabase * length) / 1_000_000,
+    opts.minimumNodeLength,
+  )
+}
+
 export function bandageAutoScale(
   graph: Graph,
   // Floor on a node's drawn length, in the same FMMM units as the scale below.

@@ -349,7 +349,8 @@ now:
 
 ## Shipped the same day
 
-Two of the four are in the plugin, as layout modes:
+Three of the four are in the plugin, two as layout modes and one inside the
+force layout:
 
 - **Variant map** (`layoutMode: 'variants'`, `layout/variantMapLayout.ts`,
   `components/BubbleOverlay.tsx`, `bubbles/classifyBubble.ts`). The layout
@@ -361,6 +362,11 @@ Two of the four are in the plugin, as layout modes:
   `unpopBubble` restores the window. The pane reserves height for the glyphs.
 - **Ordered** (`layoutMode: 'ordered'`, `layout/orderedLayout.ts`), the port of
   the layered prototype with the reserved reference lane.
+- **The seeded engine.** For a graph with a backbone, `force` now sends every
+  node an `x`/`y` from `layout/referenceSeeds.ts` with the engine option
+  `rotateComponents: false`, and `layout/orientToReference.ts` turns the result
+  so the reference reads left to right. `forceLayoutKey` carries the reference
+  path, since the seeds depend on it. `linearLayout` is untouched.
 
 ![Variant map of KIV-2 in the view](../img/variant_map_kiv2.png)
 
@@ -368,7 +374,7 @@ Two of the four are in the plugin, as layout modes:
 
 Both screenshots are the real view over the hosted HPRC release 2.1 index, cut
 by the view itself. Not yet built: carriage as thickness, the per-haplotype
-panel, gene pins, and the engine seeds.
+panel, and gene pins.
 
 ## What did not help
 

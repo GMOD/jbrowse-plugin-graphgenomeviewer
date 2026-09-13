@@ -605,6 +605,13 @@ describe('layoutMode', () => {
     return mockRpcCall.mock.calls.filter(c => c[1] === 'GraphComputeLayout')
   }
 
+  function layoutArgs(index: number) {
+    return layoutCalls()[index]![2] as {
+      graph: { nodes: { x?: number; y?: number }[] }
+      options: Record<string, unknown>
+    }
+  }
+
   test('auto lays an rGFA out from the file, with no layout RPC', async () => {
     rpcRespond()
     const model = createAnchoredModel()
@@ -615,13 +622,25 @@ describe('layoutMode', () => {
     expect(model.layoutResult).toBeDefined()
   })
 
-  test('force sends an rGFA to the layout engine instead', async () => {
+  // Seeded, and with the component rotation off, so FMMM keeps the reference
+  // running along x rather than curling it (referenceSeeds.ts).
+  test('force sends an rGFA to the layout engine instead, seeded', async () => {
     rpcRespond()
     const model = createModel()
     model.setLayoutMode('force')
     await model.loadGFA(RGFA, 'rgfa')
 
     expect(layoutCalls()).toHaveLength(1)
+    const { graph, options } = layoutArgs(0)
+    expect(graph.nodes).toHaveLength(3)
+    expect(
+      graph.nodes.every(
+        n => typeof n.x === 'number' && typeof n.y === 'number',
+      ),
+    ).toBe(true)
+    expect(options.rotateComponents).toBe(false)
+    // MOCK_LAYOUT already reads left to right, so the orientation pass is a
+    // no-op on it
     expect(model.layoutResult).toEqual(MOCK_LAYOUT)
   })
 
@@ -640,13 +659,16 @@ describe('layoutMode', () => {
     expect(model.layoutResult).not.toEqual(MOCK_LAYOUT)
   })
 
-  test('a plain GFA has no anchored option to offer', async () => {
+  test('a plain GFA has no anchored option to offer, and no seeds', async () => {
     rpcRespond()
     const model = createModel()
     await model.loadGFA(SIMPLE_GFA, 'plain')
 
     expect(model.canAnchorLayout).toBe(false)
     expect(layoutCalls()).toHaveLength(1)
+    const { graph, options } = layoutArgs(0)
+    expect(graph.nodes.some(n => 'x' in n || 'y' in n)).toBe(false)
+    expect('rotateComponents' in options).toBe(false)
   })
 
   // What the settings dialog shows its engine-only controls against. An
@@ -697,9 +719,9 @@ describe('layoutMode', () => {
     expect(model.layoutResult).toBe(forceResult)
   })
 
-  // The engine reads the quality, the linear flag and the bubble spread. It
-  // does not read the reference path, so choosing one used to spend a full
-  // FMMM run redrawing the identical picture.
+  // The engine reads the quality, the linear flag, the bubble spread and, for
+  // an anchored graph, the seeds, which follow the reference path. It never
+  // reads the colour scheme, so choosing one costs no FMMM run.
   test('a setting the engine does not read costs no layout', async () => {
     rpcRespond()
     const model = createModel()
@@ -707,14 +729,18 @@ describe('layoutMode', () => {
     await model.loadGFA(PGGB_GFA, 'pggb')
     expect(layoutCalls()).toHaveLength(1)
 
-    model.setReferencePath('Sakai#1#chr')
+    model.setColorScheme('uniform')
     await model.recomputeLayout()
     expect(layoutCalls()).toHaveLength(1)
 
-    // ...but one it does read is a fresh layout
-    model.setBubbleSpread('wide')
+    // re-anchoring moves every seed, so it is a fresh layout
+    model.setReferencePath('Sakai#1#chr')
     await model.recomputeLayout()
     expect(layoutCalls()).toHaveLength(2)
+
+    model.setBubbleSpread('wide')
+    await model.recomputeLayout()
+    expect(layoutCalls()).toHaveLength(3)
   })
 
   test('a reloaded graph does not reuse the old one’s layout', async () => {

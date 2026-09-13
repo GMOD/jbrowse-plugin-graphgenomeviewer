@@ -12,7 +12,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
-import { backboneNodes, backboneSpan } from './anchoredNodes'
+import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
 import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
@@ -22,6 +22,8 @@ import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { layoutScaling } from './layout/drawnScale'
+import { orientToReference } from './layout/orientToReference'
+import { seededNodes } from './layout/referenceSeeds'
 import {
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
@@ -1354,18 +1356,28 @@ export default function stateModelFactory() {
       // `scaling.nodes` rather than the graph's own: under a compressing
       // drawn-length law a node's `length` crosses this boundary as a drawn
       // length, which is all the engine ever reads it as.
+      //
+      // An anchored graph also carries a seed per node, the backbone along x,
+      // and asks the engine not to rotate components: FMMM then keeps the
+      // reference's coarse shape instead of curling it into a C
+      // (docs/layout-experiments.md, experiment 2).
       function callLayout(graph: Graph, scaling: LayoutScaling) {
         const session = getSession(self)
         const { rpcManager } = session
         // Stable grouping key for the layout RPC; a view has no display-level
         // rpcSessionId. `rpcManager.call` injects sessionId into the args.
         const sessionId = 'graph'
+        const anchored = graph.nodes.some(isBackbone)
         return rpcManager.call(sessionId, 'GraphComputeLayout', {
-          graph: { nodes: scaling.nodes, edges: graph.edges },
+          graph: {
+            nodes: anchored ? seededNodes(graph, scaling) : scaling.nodes,
+            edges: graph.edges,
+          },
           options: {
             quality: self.layoutQuality,
             linearLayout: self.linearLayout,
             ...scaling.opts,
+            ...(anchored ? { rotateComponents: false } : {}),
           },
           // A StatusCallback takes an RpcStatus, not a string — it may be a
           // bare label, a phase, or a phase that threw. `statusMessageText` is
@@ -1377,11 +1389,12 @@ export default function stateModelFactory() {
       }
 
       // The engine's inputs, and only those: the graph, plus what `callLayout`
-      // puts in `options`. The colour scheme, the reference path and the
-      // anchored modes' own settings are all absent because none of them
-      // reaches the engine.
-      function forceLayoutKey() {
-        return `${self.layoutQuality}|${self.linearLayout}|${self.bubbleSpread}`
+      // puts in `options`. The reference path is there because the seeds are a
+      // function of it; the colour scheme and the anchored modes' own settings
+      // are absent because none of them reaches the engine.
+      function forceLayoutKey(graph: Graph) {
+        const anchored = graph.nodes.some(isBackbone)
+        return `${self.layoutQuality}|${self.linearLayout}|${self.bubbleSpread}|${anchored}|${graph.referencePath ?? ''}`
       }
 
       // Single dispatch point for every layout mode. A mode that returns a
@@ -1398,7 +1411,7 @@ export default function stateModelFactory() {
           return { result: local, duration: performance.now() - start }
         }
         const cache = forceLayoutsOf(graph)
-        const key = forceLayoutKey()
+        const key = forceLayoutKey(graph)
         const hit = cache.get(key)
         if (hit) {
           return { result: hit, duration: performance.now() - start }
@@ -1407,11 +1420,20 @@ export default function stateModelFactory() {
           graph,
           layoutScaling(graph, spreadFor(self.bubbleSpread)),
         )) as { result: LayoutResult; duration: number }
+        // Turned so the reference reads left to right, like the linear view
+        // above it. Before `remember`, so the cache hands back the drawing as
+        // it was shown.
+        const oriented = graph.nodes.some(isBackbone)
+          ? {
+              ...result,
+              nodePositions: orientToReference(graph, result.nodePositions),
+            }
+          : result
         // Under the key read BEFORE the call: the settings that produced this
         // drawing are not necessarily the ones on screen now, and filing it
         // under the current ones would serve it up as a layout it is not.
-        remember(cache, key, result)
-        return { result, duration }
+        remember(cache, key, oriented)
+        return { result: oriented, duration }
       }
 
       // Which layout request is the live one. A layout is async and nothing in

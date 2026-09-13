@@ -2,6 +2,7 @@ import { RpcMethodType } from '@jbrowse/core/pluggableElementTypes'
 
 import loadBandage from './loadBandage'
 
+import type { LayoutNode } from './GraphGenomeView/layout/referenceSeeds'
 import type { Graph, LayoutResult } from './GraphGenomeView/types'
 import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 
@@ -11,7 +12,9 @@ import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 // other forty cannot be passed. `execute` still receives both, through
 // `RpcExecuteArgs`'s intersection with `RpcCallContext`.
 export interface GraphComputeLayoutArgs {
-  graph: { nodes: Graph['nodes']; edges: Graph['edges'] }
+  // a node may carry an `x`/`y` seed, which the engine reads as where its
+  // chain starts (referenceSeeds.ts)
+  graph: { nodes: LayoutNode[]; edges: Graph['edges'] }
   options: Record<string, unknown>
 }
 
