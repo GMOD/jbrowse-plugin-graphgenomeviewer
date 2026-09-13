@@ -1,5 +1,6 @@
 import { isBackbone, isOffReference } from './anchoredNodes'
 import { anchoredLayout } from './layout/anchoredLayout'
+import { orderedLayout } from './layout/orderedLayout'
 import { sampleRowLayout } from './layout/sampleRowLayout'
 import { variantMapLayout } from './layout/variantMapLayout'
 
@@ -79,6 +80,15 @@ export const LAYOUT_MODES = [
     run: sampleRowLayout,
     available: hasAlleles,
     drawsLocally: hasAlleles,
+  },
+  {
+    value: 'ordered',
+    label: 'Ordered',
+    description:
+      'x is reference order, not bp: every node gets room, bubbles read as lenses. Needs rGFA tags or a reference path.',
+    run: orderedLayout,
+    available: hasBackbone,
+    drawsLocally: hasBackbone,
   },
   {
     value: 'variants',
