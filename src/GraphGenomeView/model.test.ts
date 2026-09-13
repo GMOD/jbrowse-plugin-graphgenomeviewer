@@ -1366,6 +1366,10 @@ describe('launching out of the graph', () => {
     end: 31000020,
   }
 
+  // `loadedGraph` mocks only `GetSubgraph`, so the background layout RPC these
+  // tests don't care about rejects and logs — expected noise, not a signal.
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     mockRpcCall.mockReset()
     mockSession.tracks = []
@@ -1373,6 +1377,11 @@ describe('launching out of the graph', () => {
     mockSession.assemblyAliases = {}
     mockSession.views = []
     mockSession.addedViews = []
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
   })
 
   function launchLabels(model: { menuItems: () => unknown[] }) {
