@@ -1,7 +1,10 @@
 import { isBackbone } from '../anchoredNodes'
 import { layerGraph } from '../layout/orderedLayout'
 
-import type { MinigraphBubble } from '../../MinigraphBubbleAdapter/bubbleLine'
+import type {
+  BubbleRoute,
+  MinigraphBubble,
+} from '../../MinigraphBubbleAdapter/bubbleLine'
 import type { AnchoredNode } from '../anchoredNodes'
 import type { Graph } from '../types'
 
@@ -151,6 +154,7 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
       shortestAllele: undefined,
       longestAllele: undefined,
       partial,
+      routes: walked?.routes,
     })
   }
   return bubbles
@@ -165,9 +169,9 @@ function walkRoutes(
   walkIndex: Map<string, number>[],
   startId: string,
   endId: string,
-): (Routes & { left: number }) | undefined {
+): (Routes & { left: number; routes: BubbleRoute[] }) | undefined {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
-  const seen = new Set<string>()
+  const seen = new Map<string, BubbleRoute>()
   let min = Infinity
   let max = -Infinity
   let left = 0
@@ -185,9 +189,14 @@ function walkRoutes(
     for (const id of steps) {
       bp += byId.get(id)?.length ?? 0
     }
-    seen.add(steps.join(','))
+    const key = steps.join(',')
+    const route = seen.get(key) ?? { steps, bp, walks: [] }
+    route.walks.push(p.name)
+    seen.set(key, route)
     min = Math.min(min, bp)
     max = Math.max(max, bp)
   })
-  return seen.size || left ? { min, max, n: seen.size, left } : undefined
+  return seen.size || left
+    ? { min, max, n: seen.size, left, routes: [...seen.values()] }
+    : undefined
 }

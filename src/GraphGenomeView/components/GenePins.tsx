@@ -1,5 +1,8 @@
 import { observer } from 'mobx-react'
 
+import LabelChip from './LabelChip'
+import { LABEL_PX, placeLabels } from './overlayLabels'
+
 import type { GraphGenomeViewModel } from '../model'
 
 // The session's genes drawn onto the graph: exons as dark stretches along the
@@ -18,9 +21,6 @@ const svgStyle = {
 }
 
 const EXON_COLOR = '#1c1c22'
-const LABEL_PX = 11
-const LABEL_CHAR_PX = 6.4
-const LABEL_PAD = 4
 
 const GenePins = observer(function GenePins({
   model,
@@ -40,34 +40,17 @@ const GenePins = observer(function GenePins({
     canvasHeight,
     contigThickness,
   } = model
-  const placed: { x0: number; x1: number; y0: number; y1: number }[] = []
-  const labels = [...genePins]
-    .sort((a, b) => b.gene.end - b.gene.start - (a.gene.end - a.gene.start))
-    .flatMap(pin => {
-      const x = pin.at.x * scaleX + translateX
-      const y = pin.at.y * scaleY + translateY + contigThickness + 18
-      const text = pin.covered < 0.98 ? `${pin.gene.name} …` : pin.gene.name
-      const w = text.length * LABEL_CHAR_PX + LABEL_PAD * 2
-      const box = {
-        x0: x - w / 2,
-        x1: x + w / 2,
-        y0: y - LABEL_PX,
-        y1: y + LABEL_PAD,
-      }
-      if (
-        box.x1 < 0 ||
-        box.x0 > width ||
-        box.y1 < 0 ||
-        box.y0 > canvasHeight ||
-        placed.some(
-          p => box.x0 < p.x1 && box.x1 > p.x0 && box.y0 < p.y1 && box.y1 > p.y0,
-        )
-      ) {
-        return []
-      }
-      placed.push(box)
-      return [{ pin, x, y, w, text }]
-    })
+  const labels = placeLabels(
+    [...genePins]
+      .sort((a, b) => b.gene.end - b.gene.start - (a.gene.end - a.gene.start))
+      .map(pin => ({
+        item: pin,
+        x: pin.at.x * scaleX + translateX,
+        y: pin.at.y * scaleY + translateY + contigThickness + 18,
+        text: pin.covered < 0.98 ? `${pin.gene.name} …` : pin.gene.name,
+      })),
+    { width, height: canvasHeight },
+  )
 
   return (
     <svg
@@ -94,12 +77,8 @@ const GenePins = observer(function GenePins({
           ) : null,
         )}
       </g>
-      {labels.map(({ pin, x, y, w, text }) => (
-        <g
-          key={`${pin.gene.name}-${pin.gene.start}-label`}
-          data-testid="graph-gene-pin-label"
-        >
-          <title>{`${pin.gene.name} ${pin.gene.refName}:${pin.gene.start.toLocaleString()}-${pin.gene.end.toLocaleString()}${pin.covered < 0.98 ? ', runs past the cut' : ''}`}</title>
+      {labels.map(({ item: pin, x, y, w, text }) => (
+        <g key={`${pin.gene.name}-${pin.gene.start}-label`}>
           <line
             x1={x}
             x2={x}
@@ -109,26 +88,16 @@ const GenePins = observer(function GenePins({
             strokeWidth={0.8}
             strokeOpacity={0.6}
           />
-          <rect
-            x={x - w / 2}
-            y={y - LABEL_PX}
-            width={w}
-            height={LABEL_PX + LABEL_PAD}
-            rx={2}
-            fill="rgba(255,255,255,0.85)"
-          />
-          <text
+          <LabelChip
             x={x}
             y={y}
-            fontSize={LABEL_PX}
-            fontFamily="sans-serif"
-            fontStyle="italic"
-            fontWeight={600}
-            fill={EXON_COLOR}
-            textAnchor="middle"
-          >
-            {text}
-          </text>
+            w={w}
+            text={text}
+            color={EXON_COLOR}
+            italic
+            title={`${pin.gene.name} ${pin.gene.refName}:${pin.gene.start.toLocaleString()}-${pin.gene.end.toLocaleString()}${pin.covered < 0.98 ? ', runs past the cut' : ''}`}
+            testId="graph-gene-pin-label"
+          />
         </g>
       ))}
     </svg>

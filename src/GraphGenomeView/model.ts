@@ -845,7 +845,12 @@ export default function stateModelFactory() {
           self.layoutMode !== 'variants' &&
           self.graph &&
           positions
-          ? bubbleHalos(self.graph, self.bubbles, positions)
+          ? bubbleHalos(self.graph, self.bubbles, positions, name => {
+              const labels = new Map(
+                self.walkChoices.map(c => [c.name, c.label]),
+              )
+              return labels.get(name) ?? name
+            })
           : []
       },
       // Every node's midpoint on the reference plus the interval the hue ramps

@@ -1,12 +1,17 @@
 import { observer } from 'mobx-react'
 
+import LabelChip from './LabelChip'
+import { LABEL_CHAR_PX, placeLabels } from './overlayLabels'
 import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
 
+import type { LabelCandidate } from './overlayLabels'
+import type { BubbleHalo, RouteLabel } from '../bubbles/bubbleHalos'
 import type { GraphGenomeViewModel } from '../model'
 
 // The bubbles over a node drawing: each a translucent halo along its nodes,
-// drawn once in layout units and moved with the canvas by one transform, and
-// a label at its highest node that opens the bubble. The halo itself takes no
+// drawn once in layout units and moved with the canvas by one transform, a
+// label at its highest node that opens the bubble, and a chip on each route
+// the walks take through it naming who takes it. The halo itself takes no
 // pointer events, so the nodes under it still hover and drag.
 
 const svgStyle = {
@@ -18,9 +23,6 @@ const svgStyle = {
   zIndex: 2,
 }
 
-const LABEL_PX = 11
-const LABEL_CHAR_PX = 6.2
-const LABEL_PAD = 4
 const HALO_FACTOR = 3.4
 const LEGEND_CORNER_PX = 240
 
@@ -30,10 +32,6 @@ const BubbleHalos = observer(function BubbleHalos({
   model: GraphGenomeViewModel
 }) {
   const { bubbleHalos, walkHighlight } = model
-  // a lifted walk dims the bubbles it never enters, halo and label alike
-  const dimmed = (nodeIds: string[]) =>
-    walkHighlight !== undefined &&
-    !nodeIds.some(id => walkHighlight.nodeIds.has(id))
   if (bubbleHalos.length === 0) {
     return null
   }
@@ -47,47 +45,50 @@ const BubbleHalos = observer(function BubbleHalos({
     contigThickness,
   } = model
   const halo = contigThickness * HALO_FACTOR
-  // Biggest bubbles label first; one whose box lands on a placed label keeps
-  // its tooltip only.
+  const screen = (p: { x: number; y: number }) => ({
+    x: p.x * scaleX + translateX,
+    y: p.y * scaleY + translateY,
+  })
+  // a lifted walk dims the bubbles it never enters and the routes it does not
+  // take, halo and chip alike
+  const dimmedBubble = (h: BubbleHalo) =>
+    walkHighlight !== undefined &&
+    !h.nodeIds.some(id => walkHighlight.nodeIds.has(id))
+  const dimmedRoute = (r: RouteLabel) =>
+    walkHighlight !== undefined && !r.route.walks.includes(walkHighlight.name)
+
   // the legends own the top-right corner, and the Back button of a popped
   // graph the top-left
-  const placed: { x0: number; x1: number; y0: number; y1: number }[] = [
-    { x0: width - LEGEND_CORNER_PX, x1: width, y0: 0, y1: 60 },
-  ]
+  const reserved = [{ x0: width - LEGEND_CORNER_PX, x1: width, y0: 0, y1: 60 }]
   if (model.poppedFrom) {
-    placed.push({
+    reserved.push({
       x0: 0,
       x1: 60 + model.poppedFrom.label.length * LABEL_CHAR_PX * 1.2,
       y0: 0,
       y1: 44,
     })
   }
-  const labels = [...bubbleHalos]
-    .sort((a, b) => b.members - a.members)
-    .flatMap(h => {
-      const x = h.top.x * scaleX + translateX
-      const y = h.top.y * scaleY + translateY - halo / 2 - 6
-      const w = h.label.length * LABEL_CHAR_PX + LABEL_PAD * 2
-      const box = {
-        x0: x - w / 2,
-        x1: x + w / 2,
-        y0: y - LABEL_PX - LABEL_PAD,
-        y1: y + LABEL_PAD,
-      }
-      if (
-        box.x1 < 0 ||
-        box.x0 > width ||
-        box.y1 < 0 ||
-        box.y0 > canvasHeight ||
-        placed.some(
-          p => box.x0 < p.x1 && box.x1 > p.x0 && box.y0 < p.y1 && box.y1 > p.y0,
-        )
-      ) {
-        return []
-      }
-      placed.push(box)
-      return [{ h, x, y, w }]
-    })
+  // bubble labels place first, biggest bubble first, above the halo; route
+  // chips place after them, on the far point of their loops
+  const byBubble = [...bubbleHalos].sort((a, b) => b.members - a.members)
+  const candidates: LabelCandidate<{ halo: BubbleHalo; route?: RouteLabel }>[] =
+    [
+      ...byBubble.map(h => {
+        const { x, y } = screen(h.top)
+        return { item: { halo: h }, x, y: y - halo / 2 - 6, text: h.label }
+      }),
+      ...byBubble.flatMap(h =>
+        h.routes.map(r => {
+          const { x, y } = screen(r.at)
+          return { item: { halo: h, route: r }, x, y: y + 4, text: r.text }
+        }),
+      ),
+    ]
+  const labels = placeLabels(
+    candidates,
+    { width, height: canvasHeight },
+    reserved,
+  )
 
   return (
     <svg
@@ -107,7 +108,7 @@ const BubbleHalos = observer(function BubbleHalos({
               d={h.path}
               fill="none"
               stroke={BUBBLE_KIND_COLORS[h.kind]}
-              strokeOpacity={dimmed(h.nodeIds) ? 0.06 : 0.22}
+              strokeOpacity={dimmedBubble(h) ? 0.06 : 0.22}
               strokeWidth={halo}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -115,45 +116,37 @@ const BubbleHalos = observer(function BubbleHalos({
             />
           ))}
       </g>
-      {labels.map(({ h, x, y, w }) => {
-        const color = BUBBLE_KIND_COLORS[h.kind]
-        return (
-          <g
+      {labels.map(({ item: { halo: h, route }, x, y, w, text }) =>
+        route ? (
+          <LabelChip
+            key={`${h.bubble.start}-${h.bubble.end}-${route.route.steps[0]}`}
+            x={x}
+            y={y}
+            w={w}
+            text={text}
+            color={BUBBLE_KIND_COLORS[h.kind]}
+            small
+            dimmed={dimmedRoute(route)}
+            title={`${route.route.walks.length} walk(s): ${route.route.walks.join(', ')}`}
+            testId="graph-route-label"
+          />
+        ) : (
+          <LabelChip
             key={`${h.bubble.start}-${h.bubble.end}-label`}
-            style={{
-              pointerEvents: 'auto',
-              cursor: 'pointer',
-              opacity: dimmed(h.nodeIds) ? 0.35 : 1,
-            }}
-            data-testid="graph-bubble-halo-label"
+            x={x}
+            y={y}
+            w={w}
+            text={text}
+            color={BUBBLE_KIND_COLORS[h.kind]}
+            dimmed={dimmedBubble(h)}
+            title={`${h.label}\n${h.bubble.segmentCount} segments · click to open`}
+            testId="graph-bubble-halo-label"
             onClick={() => {
               void model.popBubble(h.bubble)
             }}
-          >
-            <title>{`${h.label}\n${h.bubble.segmentCount} segments · click to open`}</title>
-            <rect
-              x={x - w / 2}
-              y={y - LABEL_PX - LABEL_PAD + 2}
-              width={w}
-              height={LABEL_PX + LABEL_PAD * 2 - 2}
-              rx={3}
-              fill="rgba(255,255,255,0.85)"
-              stroke={color}
-              strokeWidth={1}
-            />
-            <text
-              x={x}
-              y={y}
-              fontSize={LABEL_PX}
-              fontFamily="sans-serif"
-              fill={color}
-              textAnchor="middle"
-            >
-              {h.label}
-            </text>
-          </g>
-        )
-      })}
+          />
+        ),
+      )}
     </svg>
   )
 })

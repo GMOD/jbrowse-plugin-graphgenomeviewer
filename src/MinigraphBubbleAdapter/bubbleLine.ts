@@ -24,6 +24,16 @@ export interface MinigraphBubble {
   // Set on a bubble derived from the graph itself (bubblesFromGraph.ts) whose
   // reference route leaves the cut, so its lengths are a floor, not a fact.
   partial?: boolean
+  // Every distinct route the walks take through a derived bubble, with the
+  // walks that take it. Only a graph with walks can state this.
+  routes?: BubbleRoute[]
+}
+
+export interface BubbleRoute {
+  // the node ids between the bubble's two ends, in walk order
+  steps: string[]
+  bp: number
+  walks: string[]
 }
 
 // gfatools writes `*` for a zero-length allele (a pure insertion has no

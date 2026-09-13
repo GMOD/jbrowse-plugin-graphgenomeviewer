@@ -1,8 +1,11 @@
-import { bubbleSegmentIds, classifyBubble } from './classifyBubble'
+import { bubbleSegmentIds, classifyBubble, formatBp } from './classifyBubble'
 import { isBackbone } from '../anchoredNodes'
 
 import type { BubbleKind } from './classifyBubble'
-import type { MinigraphBubble } from '../../MinigraphBubbleAdapter/bubbleLine'
+import type {
+  BubbleRoute,
+  MinigraphBubble,
+} from '../../MinigraphBubbleAdapter/bubbleLine'
 import type { Graph, NodeSegment } from '../types'
 
 // A bubble drawn over the graph itself: a wide translucent stroke along the
@@ -18,48 +21,55 @@ export interface BubbleHalo {
   path: string
   // where the label goes: the highest point of the halo, in layout units
   top: NodeSegment
-  // how far the bubble's nodes spread, in layout units, so a label can be
-  // placed on a node of the bubble rather than on the whole drawing
   members: number
   // the ids of those nodes, so a lifted walk can say which bubbles it enters
   nodeIds: string[]
   // the bubble is the whole drawing, as a popped bubble's own row is: its
   // label still names it, but a halo around everything marks nothing
   whole: boolean
+  // each route the walks take off the backbone, named for the haplotypes that
+  // take it, at the point of the route farthest from the bubble's ends
+  routes: RouteLabel[]
+}
+
+export interface RouteLabel {
+  route: BubbleRoute
+  at: NodeSegment
+  text: string
 }
 
 const WHOLE_FRACTION = 0.9
+const NAMED_WALKS = 2
 
 export function bubbleHalos(
   graph: Graph,
   bubbles: MinigraphBubble[],
   positions: Record<string, NodeSegment[]>,
+  walkLabel: (name: string) => string = name => name,
 ): BubbleHalo[] {
-  const idByName = new Map(graph.nodes.map(n => [n.name, n]))
+  const byName = new Map(graph.nodes.map(n => [n.name, n]))
+  const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const halos: BubbleHalo[] = []
   for (const bubble of bubbles) {
     const parts: string[] = []
     let top: NodeSegment | undefined
-    let members = 0
     const nodeIds: string[] = []
+    const ends: NodeSegment[] = []
     for (const name of bubbleSegmentIds(bubble)) {
-      const node = idByName.get(name)
+      const node = byName.get(name)
       const line = node && positions[node.id]
-      if (
-        !node ||
-        !line?.length ||
-        (isBackbone(node) &&
-          (node.stable.start < bubble.start || node.stable.start >= bubble.end))
-      ) {
+      if (!node || !line?.length) {
         continue
       }
-      members++
+      if (
+        isBackbone(node) &&
+        (node.stable.start < bubble.start || node.stable.start >= bubble.end)
+      ) {
+        ends.push(line[Math.floor(line.length / 2)]!)
+        continue
+      }
       nodeIds.push(node.id)
-      parts.push(
-        line
-          .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
-          .join(''),
-      )
+      parts.push(pathOf(line))
       if (line.length === 1) {
         parts.push(`L${round(line[0]!.x)},${round(line[0]!.y)}`)
       }
@@ -72,19 +82,60 @@ export function bubbleHalos(
     if (!top) {
       continue
     }
+    const anchor = ends.length
+      ? {
+          x: ends.reduce((s, p) => s + p.x, 0) / ends.length,
+          y: ends.reduce((s, p) => s + p.y, 0) / ends.length,
+        }
+      : top
+    const routes: RouteLabel[] = []
+    for (const route of bubble.routes ?? []) {
+      if (!route.steps.some(id => !isBackbone(byId.get(id)!))) {
+        continue
+      }
+      let at: NodeSegment | undefined
+      let far = -1
+      for (const id of route.steps) {
+        for (const p of positions[id] ?? []) {
+          const d = Math.hypot(p.x - anchor.x, p.y - anchor.y)
+          if (d > far) {
+            far = d
+            at = p
+          }
+        }
+      }
+      if (at) {
+        routes.push({ route, at, text: routeText(route, walkLabel) })
+      }
+    }
     halos.push({
       bubble,
       ...classifyBubble(bubble),
       path: parts.join(''),
       top,
-      members,
+      members: nodeIds.length,
       nodeIds,
-      whole: members >= WHOLE_FRACTION * graph.nodes.length,
+      whole: nodeIds.length >= WHOLE_FRACTION * graph.nodes.length,
+      routes,
     })
   }
   return halos
 }
 
+function routeText(route: BubbleRoute, walkLabel: (name: string) => string) {
+  const names = [...new Set(route.walks.map(walkLabel))].sort()
+  const shown = names.slice(0, NAMED_WALKS).join(', ')
+  const more =
+    names.length > NAMED_WALKS ? ` +${names.length - NAMED_WALKS}` : ''
+  return `${shown}${more} · ${formatBp(route.bp)}`
+}
+
 function round(v: number) {
   return Math.round(v * 100) / 100
+}
+
+function pathOf(line: NodeSegment[]) {
+  return line
+    .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
+    .join('')
 }
