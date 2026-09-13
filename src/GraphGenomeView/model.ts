@@ -14,6 +14,7 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
+import { NODE_WIDTH_VALUES } from './nodeWidths'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
@@ -21,7 +22,8 @@ import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
-import { layoutScaling } from './layout/drawnScale'
+import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
+import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
 import { seededNodes } from './layout/referenceSeeds'
 import {
@@ -69,6 +71,7 @@ import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
+import type { NodeWidth } from './nodeWidths'
 import type {
   RenderBatch,
   Renderer,
@@ -343,6 +346,11 @@ export default function stateModelFactory() {
         bubbleSpread: types.optional(
           types.enumeration(BUBBLE_SPREAD_VALUES),
           'auto',
+        ),
+        // Node thickness by depth, Bandage's own device; see NODE_WIDTHS.
+        nodeWidth: types.optional(
+          types.enumeration(NODE_WIDTH_VALUES),
+          'depth',
         ),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
@@ -1083,6 +1091,9 @@ export default function stateModelFactory() {
       setBubbleSpread(spread: BubbleSpread) {
         self.bubbleSpread = spread
       },
+      setNodeWidth(width: NodeWidth) {
+        self.nodeWidth = width
+      },
       // Undefined restores the built-in ceiling. Nothing recomputes: the pane
       // reads canvasHeight and the drawing is placed by zoomToFit, which the
       // caller runs if it wants the drawing refitted into the new pane.
@@ -1438,19 +1449,35 @@ export default function stateModelFactory() {
         if (hit) {
           return { result: hit, duration: performance.now() - start }
         }
+        // The engine lays out the runs, not the nodes: a base-level cut is
+        // thousands of nodes in unbranching chains, and one chain per run is
+        // the same drawing at a third of the time. Members take their share of
+        // the run's polyline by drawn length, so the picture is per node again
+        // before anything else sees it.
+        const spread = spreadFor(self.bubbleSpread)
+        const merged = mergeRuns(graph)
         const { result, duration } = (yield callLayout(
-          graph,
-          layoutScaling(graph, spreadFor(self.bubbleSpread)),
+          merged.graph,
+          layoutScaling(merged.graph, spread),
         )) as { result: LayoutResult; duration: number }
+        const scaling = layoutScaling(graph, spread)
+        const drawn = new Map(
+          scaling.nodes.map(n => [n.id, drawnNodeLength(scaling.opts, n.length)]),
+        )
+        const positions = splitRuns(
+          result.nodePositions,
+          merged.runs,
+          id => drawn.get(id) ?? 0,
+        )
         // Turned so the reference reads left to right, like the linear view
         // above it. Before `remember`, so the cache hands back the drawing as
         // it was shown.
-        const oriented = graph.nodes.some(isBackbone)
-          ? {
-              ...result,
-              nodePositions: orientToReference(graph, result.nodePositions),
-            }
-          : result
+        const oriented = {
+          ...result,
+          nodePositions: graph.nodes.some(isBackbone)
+            ? orientToReference(graph, positions)
+            : positions,
+        }
         // Under the key read BEFORE the call: the settings that produced this
         // drawing are not necessarily the ones on screen now, and filing it
         // under the current ones would serve it up as a layout it is not.
@@ -2030,6 +2057,7 @@ export default function stateModelFactory() {
                 contigThickness: self.contigThickness,
                 connectorThickness: self.connectorThickness,
                 drawPaths: self.effectiveDrawPaths,
+                nodeWidth: self.nodeWidth,
                 // Untracked, so a zoom does not eagerly rebuild geometry — the
                 // debounced viewportDirty bump drives the scale-dependent
                 // rebuild (flatness, arrow visibility, viewport culling), same

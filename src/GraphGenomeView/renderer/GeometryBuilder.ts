@@ -2,6 +2,7 @@ import { packAbgr } from '@jbrowse/core/util/colorBits'
 
 import { brightenAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
+import { depthWidthFactor, meanDepth } from '../nodeWidths'
 import {
   PATH_LIGHTNESS,
   PATH_SATURATION,
@@ -23,6 +24,7 @@ import {
 } from './shaders/graph.generated'
 
 import type { ResolvedColorScheme } from '../colorSchemes'
+import type { NodeWidth } from '../nodeWidths'
 import type { Graph, GraphNode, NodeSegment } from '../types'
 import type {
   EdgeCurveBatch,
@@ -196,6 +198,8 @@ export interface BuildOptions {
   // the stripes, the ribbons and the key together. Same contract as
   // `colorScheme` above, which arrives with 'auto' already resolved.
   drawPaths: boolean
+  // thicker by depth, or every node at `contigThickness`; see nodeWidths.ts
+  nodeWidth?: NodeWidth
   // Both scales together, and required. Every screen-metric constant here (dash
   // period, stripe width, arrowhead angle) divides by scaleX, and everything
   // that mixes the axes needs their ratio; taking them as one value is what
@@ -771,6 +775,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     contigThickness,
     connectorThickness,
     drawPaths,
+    nodeWidth = 'uniform',
     axis,
     linearLayout,
     viewportBounds,
@@ -778,6 +783,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     deletions,
     version = 0,
   } = options
+  const depthNorm = nodeWidth === 'depth' ? meanDepth(graph) : 0
   const scale = axis.scaleX
   const yToX = yToXOf(axis)
   // The offset-zero curve of every edge, from the one place that derives it —
@@ -1006,7 +1012,10 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       colorScheme,
       colorRange,
     )
-    const nodeThickness = contigThickness / 2
+    const width =
+      contigThickness *
+      (nodeWidth === 'depth' ? depthWidthFactor(node, depthNorm) : 1)
+    const nodeThickness = width / 2
 
     const startVert = nodeMesh.vertexCount
     // The node's drawn width is the same either way: the stripes divide it
@@ -1019,7 +1028,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     // places a stripe has to be taken back into world units, or the stripes
     // fan apart as you zoom in and collapse into one as you zoom out.
     const slots = nodePathSlots.get(nodeId)
-    const slotWidth = contigThickness / pathCount
+    const slotWidth = width / pathCount
     if (slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
       const normals = pointNormalsOf(segments, yToX)
       const worldPerScreenPx = 1 / Math.max(scale, MIN_SCALE_FOR_OFFSET)

@@ -23,6 +23,7 @@ import SubgraphContextSelect from './SubgraphContextSelect'
 import SubgraphHaplotypesField from './SubgraphHaplotypesField'
 import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
+import { NODE_WIDTHS } from '../nodeWidths'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -186,6 +187,32 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             thickness and the graph draws as a rope.
           </Typography>
           <EngineOnly model={model} />
+        </div>
+
+        <div className={classes.section}>
+          <FormControl className={classes.formControl}>
+            <InputLabel>Node width</InputLabel>
+            <Select
+              value={model.nodeWidth}
+              label="Node width"
+              data-testid="graph-node-width-select"
+              onChange={e => {
+                model.setNodeWidth(e.target.value)
+              }}
+            >
+              {NODE_WIDTHS.map(({ value, label, description }) => (
+                <MenuItem key={value} value={value}>
+                  <Tooltip title={description} placement="right">
+                    <span>{label}</span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Typography variant="caption" color="text.secondary">
+            Bandage&apos;s depth as width. In a cut with walks, depth is how
+            many haplotypes carry the node.
+          </Typography>
         </div>
 
         <SubgraphContextSelect model={model} />
