@@ -100,6 +100,7 @@ const MIN_SCALE_FOR_OFFSET = 1e-6
 // TransformUniform), so an arrowhead is the same size at every zoom. It was
 // documented as world units, which would make it grow with the drawing.
 const ARROWHEAD_SIZE = 12
+const MIN_ARROW_SCALE = 0.45
 
 // Per-point unit normals of a polyline, mitred at the interior joints so a bend
 // keeps a constant drawn width. Shared by addPolyline, which expands a stroke
@@ -872,7 +873,10 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     }
   }
 
-  const showArrows = scale > (linearLayout ? 1 : 0.1)
+  // An arrowhead at every joint of a few hundred short nodes is a serration
+  // along the whole drawing, so heads wait for a zoom where a node is longer
+  // than its head.
+  const showArrows = scale > (linearLayout ? 1 : MIN_ARROW_SCALE)
 
   for (let ei = 0; ei < graph.edges.length; ei++) {
     const edge = graph.edges[ei]!

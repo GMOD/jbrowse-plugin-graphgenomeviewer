@@ -23,7 +23,12 @@ export interface BubbleHalo {
   members: number
   // the ids of those nodes, so a lifted walk can say which bubbles it enters
   nodeIds: string[]
+  // the bubble is the whole drawing, as a popped bubble's own row is: its
+  // label still names it, but a halo around everything marks nothing
+  whole: boolean
 }
+
+const WHOLE_FRACTION = 0.9
 
 export function bubbleHalos(
   graph: Graph,
@@ -74,6 +79,7 @@ export function bubbleHalos(
       top,
       members,
       nodeIds,
+      whole: members >= WHOLE_FRACTION * graph.nodes.length,
     })
   }
   return halos

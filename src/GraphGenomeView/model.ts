@@ -16,7 +16,11 @@ import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
 import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
-import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
+import {
+  BUBBLE_KIND_NAMES,
+  bubbleSegmentIds,
+  classifyBubble,
+} from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
@@ -1843,7 +1847,7 @@ export default function stateModelFactory() {
             },
           ]
           self.indexBubbles = undefined
-          const label = `${classifyBubble(bubble).label} at ${bubble.refName}:${bubble.start.toLocaleString()}`
+          const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
           if (self.layoutMode === 'variants') {
             self.layoutMode = 'force'

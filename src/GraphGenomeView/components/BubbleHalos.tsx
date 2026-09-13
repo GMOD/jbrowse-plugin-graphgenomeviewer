@@ -97,19 +97,21 @@ const BubbleHalos = observer(function BubbleHalos({
       <g
         transform={`translate(${translateX} ${translateY}) scale(${scaleX} ${scaleY})`}
       >
-        {bubbleHalos.map(h => (
-          <path
-            key={`${h.bubble.start}-${h.bubble.end}`}
-            d={h.path}
-            fill="none"
-            stroke={BUBBLE_KIND_COLORS[h.kind]}
-            strokeOpacity={dimmed(h.nodeIds) ? 0.06 : 0.22}
-            strokeWidth={halo}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+        {bubbleHalos
+          .filter(h => !h.whole)
+          .map(h => (
+            <path
+              key={`${h.bubble.start}-${h.bubble.end}`}
+              d={h.path}
+              fill="none"
+              stroke={BUBBLE_KIND_COLORS[h.kind]}
+              strokeOpacity={dimmed(h.nodeIds) ? 0.06 : 0.22}
+              strokeWidth={halo}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
       </g>
       {labels.map(({ h, x, y, w }) => {
         const color = BUBBLE_KIND_COLORS[h.kind]

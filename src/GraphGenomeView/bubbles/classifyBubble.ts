@@ -113,6 +113,18 @@ export const BUBBLE_KIND_COLORS: Record<BubbleKind, string> = {
   complex: '#8e3fbf',
 }
 
+// The kind as a short name, for a place that has no room for the label
+export const BUBBLE_KIND_NAMES: Record<BubbleKind, string> = {
+  snp: 'SNP',
+  substitution: 'substitution',
+  insertion: 'insertion',
+  deletion: 'deletion',
+  inversion: 'inversion',
+  repeat: 'repeat array',
+  superbubble: 'superbubble',
+  complex: 'site',
+}
+
 export function bubbleSegmentIds(b: MinigraphBubble) {
   return b.segments.split(',').filter(Boolean)
 }

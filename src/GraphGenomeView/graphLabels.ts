@@ -61,6 +61,11 @@ import type { AxisScale, BezierCurve } from './util/geometry'
 // way, and it is the same quantity the node rule below uses.
 const MIN_DELETION_LABEL_PX = 26
 
+// One node label per this much pane, and never fewer than a handful: at a
+// 1400 by 600 pane that is about twenty.
+const PX_PER_NODE_LABEL = 40_000
+const MIN_NODE_LABELS = 8
+
 // A deletion clearing that floor still need not be able to CARRY its label: the
 // text is a fixed 26 characters however small the event's arc is, so at the LPA
 // KIV-2 locus `skips 27.7 kb of reference` came out four times the width of the
@@ -606,12 +611,28 @@ export function graphLabels({
     }
   }
 
+  // Node labels are rationed to the pane's area: a base-level cut of hundreds
+  // of short nodes fits a length on most of them at a moderate zoom, and a
+  // drawing where every node states its length is a table with a graph under
+  // it. Biggest first, so the ration goes to the alleles that carry sequence;
+  // zooming in gives more area to fewer nodes and the labels come back.
+  const nodeBudget = Math.max(
+    MIN_NODE_LABELS,
+    Math.floor((width * height) / PX_PER_NODE_LABEL),
+  )
   const placed: Box[] = [...(reserved ?? [])]
   const labels: GraphLabel[] = []
+  let nodeLabels = 0
   for (const { label, box } of candidates) {
+    if (label.kind === 'node' && nodeLabels >= nodeBudget) {
+      continue
+    }
     if (onScreen(box, width, height) && !placed.some(p => overlaps(p, box))) {
       placed.push(box)
       labels.push(label)
+      if (label.kind === 'node') {
+        nodeLabels++
+      }
     }
   }
   return labels
