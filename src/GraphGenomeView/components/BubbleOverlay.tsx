@@ -34,6 +34,8 @@ const backButtonStyle = {
 }
 
 const LABEL_ROW_PX = 15
+const MAX_LABEL_ROWS = 8
+const LEGEND_PX = 150
 const LABEL_CHAR_PX = 6.2
 const MIN_GLYPH_PX = 10
 
@@ -67,28 +69,35 @@ const BubbleOverlay = observer(function BubbleOverlay({
   const { scaleX, translateX, translateY, width, canvasHeight } = model
   const lineY = translateY
   const X = (bp: number) => bp * scaleX + translateX
-  // labels stack above the tallest glyph; both share the room above the line
-  const labelRows = Math.min(bubbleGlyphs.length, 6)
-  const labelBand = labelRows * LABEL_ROW_PX + 8
-  const room = Math.max(24, lineY - labelBand - 6)
-
+  // Labels stack in rows above the tallest glyph, biggest bubbles first so a
+  // crowded window keeps the labels that matter; one that finds no row is left
+  // to its tooltip rather than written over another.
+  const maxRows = Math.max(
+    2,
+    Math.min(MAX_LABEL_ROWS, Math.floor((lineY - 60) / LABEL_ROW_PX)),
+  )
   const glyphs = [...bubbleGlyphs].sort(
     (a, b) => b.bubble.end - b.bubble.start - (a.bubble.end - a.bubble.start),
   )
   const rowEnd: number[] = []
-  const labels = [...bubbleGlyphs]
-    .sort((a, b) => a.bubble.start - b.bubble.start)
-    .map(g => {
-      const bx = (X(g.bubble.start) + X(g.bubble.end)) / 2
-      const half = (g.label.length * LABEL_CHAR_PX) / 2
-      const cx = Math.min(Math.max(bx, half + 4), width - half - 4)
-      let row = 0
-      while ((rowEnd[row] ?? -Infinity) > cx - half - 10) {
-        row++
-      }
-      rowEnd[row] = cx + half
-      return { g, bx, cx, y: 14 + (row % labelRows) * LABEL_ROW_PX }
-    })
+  const labels = glyphs.flatMap(g => {
+    const bx = (X(g.bubble.start) + X(g.bubble.end)) / 2
+    if (bx < 0 || bx > width) {
+      return []
+    }
+    const half = (g.label.length * LABEL_CHAR_PX) / 2
+    // the top-right corner is the legend's
+    const cx = Math.min(Math.max(bx, half + 4), width - LEGEND_PX - half)
+    const row = rowEnd.findIndex(end => end < cx - half - 10)
+    const at = row === -1 ? rowEnd.length : row
+    if (at >= maxRows) {
+      return []
+    }
+    rowEnd[at] = cx + half
+    return [{ g, bx, cx, y: 14 + at * LABEL_ROW_PX }]
+  })
+  // glyphs take whatever the rows actually used leave above the line
+  const room = Math.max(24, lineY - rowEnd.length * LABEL_ROW_PX - 14)
 
   return (
     <>

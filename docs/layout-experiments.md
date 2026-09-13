@@ -347,6 +347,29 @@ now:
 5. Then the layout changes: orientation, seeds, the layered mode for whatever is
    popped open.
 
+## Shipped the same day
+
+Two of the four are in the plugin, as layout modes:
+
+- **Variant map** (`layoutMode: 'variants'`, `layout/variantMapLayout.ts`,
+  `components/BubbleOverlay.tsx`, `bubbles/classifyBubble.ts`). The layout
+  places only the backbone at its bp; the overlay reads the bubble index beside
+  the rGFA prefix (`<prefix>.bubbles.bed.gz`) through the existing
+  `MinigraphBubbleAdapter` over the cut window and draws one glyph per bubble,
+  typed and sized by `classifyBubble`. Clicking a glyph runs `popBubble`, which
+  cuts the bubble's segments out of the loaded graph and lays them out ordered;
+  `unpopBubble` restores the window. The pane reserves height for the glyphs.
+- **Ordered** (`layoutMode: 'ordered'`, `layout/orderedLayout.ts`), the port of
+  the layered prototype with the reserved reference lane.
+
+![Variant map of KIV-2 in the view](../img/variant_map_kiv2.png)
+
+![The KIV-2 array popped open, in the Ordered layout](../img/popped_kiv2.png)
+
+Both screenshots are the real view over the hosted HPRC release 2.1 index, cut
+by the view itself. Not yet built: carriage as thickness, the per-haplotype
+panel, gene pins, and the engine seeds.
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's

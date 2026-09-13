@@ -6,25 +6,40 @@ from a linear genome view.
 
 ## Screenshots
 
-The HLA class II locus of the HPRC human pangenome, the same subgraph in two
-layouts:
+The LPA KIV-2 window of the HPRC release 2 graph as a **variant map**: the
+GRCh38 backbone as one line, coloured by position the way the rGFA segments
+track above it is, and one glyph per bubble from the graph's own bubble index,
+typed and sized from the bubble's routes.
 
-| Anchored (rGFA, reference-aligned)       | Force-directed (Bandage)           |
-| ---------------------------------------- | ---------------------------------- |
-| ![Anchored layout](img/anchored_hla.png) | ![Force layout](img/force_hla.png) |
+![Variant map of KIV-2](img/variant_map_kiv2.png)
 
-Left: rank-0 backbone drawn at its GRCh38 offsets with each rank on its own row,
-under the bubble and segment feature tracks it was launched from. Right: the
-same subgraph laid out by the Bandage force engine, the shape people recognize.
+Six variable sites: a 1.2 kb insertion, a 3-allele site, a 4.4 kb and a 942 bp
+deletion, the kringle repeat array with 129 distinct routes from 3 kb to 175 kb,
+and an 11-allele microsatellite. Clicking the array opens the graph inside it,
+in the **Ordered** layout, with a button back to the window:
 
-It ships three layouts:
+![The KIV-2 array popped open](img/popped_kiv2.png)
 
-- **Anchored** (rGFA only): x is reference bp, one row per stable rank, read
-  from the file so it renders instantly and aligns under a linear view.
-- **Sample rows** (rGFA only): x is reference bp, one row per contributing
-  assembly.
+The same map of MHC class II, where one 254-segment superbubble covers the DRB
+haplotype block and a run of small indels follows it:
+
+![Variant map of MHC class II](img/variant_map_mhc.png)
+
+It ships five layouts:
+
+- **Variant map** (rGFA with a bubble index): the reference as a line, one typed
+  glyph per bubble, click to open a bubble's graph.
+- **Ordered** (rGFA or a reference path): x is reference order rather than bp,
+  so every node gets room and a bubble reads as a lens. Scrolls sideways.
+- **Anchored** (rGFA or a reference path): x is reference bp, one row per stable
+  rank, aligned under a linear view.
+- **Sample rows**: x is reference bp, one row per contributing assembly.
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
   [Bandage](https://github.com/rrwick/Bandage).
+
+The bubble index is `gfatools bubble` output beside the rGFA index
+(`<prefix>.bubbles.bed.gz`), which HPRC's hosted graph has and
+`scripts/build_rgfa_tabix.sh` in jbrowse-components writes.
 
 ### Demonstration loci
 

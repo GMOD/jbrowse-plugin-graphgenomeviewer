@@ -92,8 +92,8 @@ source segment, so expanding is a fine-index query over the same span with no
 cross-reference to maintain. This retires `maxRegionBp`, which is the interim
 mechanism.
 
-A graph loaded through `gfaLocation` has no tier to switch to, so its
-coarsening has to happen in the view: `COARSEN_TRIVIAL_BUBBLES.md`.
+A graph loaded through `gfaLocation` has no tier to switch to, so its coarsening
+has to happen in the view: `COARSEN_TRIVIAL_BUBBLES.md`.
 
 ## Draw a node once per carrier
 

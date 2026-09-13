@@ -2157,3 +2157,57 @@ describe('the auto color scheme', () => {
     expect(domain.end).toBeGreaterThan(domain.start)
   })
 })
+
+describe('popping a bubble', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = []
+  })
+
+  const bubble = {
+    refName: 'chr',
+    start: 4,
+    end: 4,
+    segmentCount: 3,
+    pathCount: 2,
+    inversion: false,
+    shortestAlleleLength: 0,
+    longestAlleleLength: 4,
+    segments: '1,3,2',
+    shortestAllele: undefined,
+    longestAllele: undefined,
+  }
+
+  test('opens the bubble ordered and comes back to the window', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    model.setLayoutMode('variants')
+    await model.loadGFA(RGFA, 'rgfa')
+    const window = model.graph!
+    // the variant map places the backbone only
+    expect(Object.keys(model.nodePositions!)).toEqual(['1+', '2+'])
+
+    await model.popBubble(bubble)
+    expect(model.layoutMode).toBe('ordered')
+    expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2', '3'])
+    expect(model.poppedFrom?.graph).toBe(window)
+    expect(Object.keys(model.nodePositions!).sort()).toEqual(['1+', '2+', '3+'])
+    // no glyphs over an open bubble
+    expect(model.bubbleGlyphs).toEqual([])
+
+    await model.unpopBubble()
+    expect(model.graph).toBe(window)
+    expect(model.layoutMode).toBe('variants')
+    expect(model.poppedFrom).toBeUndefined()
+  })
+
+  test('a bubble naming no segment of the graph is ignored', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    const window = model.graph
+    await model.popBubble({ ...bubble, segments: 'x,y' })
+    expect(model.graph).toBe(window)
+    expect(model.poppedFrom).toBeUndefined()
+  })
+})
