@@ -21,6 +21,8 @@ export interface BubbleHalo {
   // how far the bubble's nodes spread, in layout units, so a label can be
   // placed on a node of the bubble rather than on the whole drawing
   members: number
+  // the ids of those nodes, so a lifted walk can say which bubbles it enters
+  nodeIds: string[]
 }
 
 export function bubbleHalos(
@@ -34,6 +36,7 @@ export function bubbleHalos(
     const parts: string[] = []
     let top: NodeSegment | undefined
     let members = 0
+    const nodeIds: string[] = []
     for (const name of bubbleSegmentIds(bubble)) {
       const node = idByName.get(name)
       const line = node && positions[node.id]
@@ -46,6 +49,7 @@ export function bubbleHalos(
         continue
       }
       members++
+      nodeIds.push(node.id)
       parts.push(
         line
           .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
@@ -69,6 +73,7 @@ export function bubbleHalos(
       path: parts.join(''),
       top,
       members,
+      nodeIds,
     })
   }
   return halos

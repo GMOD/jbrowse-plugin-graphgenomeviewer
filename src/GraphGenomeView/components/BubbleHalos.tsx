@@ -28,7 +28,11 @@ const BubbleHalos = observer(function BubbleHalos({
 }: {
   model: GraphGenomeViewModel
 }) {
-  const { bubbleHalos } = model
+  const { bubbleHalos, walkHighlight } = model
+  // a lifted walk dims the bubbles it never enters, halo and label alike
+  const dimmed = (nodeIds: string[]) =>
+    walkHighlight !== undefined &&
+    !nodeIds.some(id => walkHighlight.nodeIds.has(id))
   if (bubbleHalos.length === 0) {
     return null
   }
@@ -88,7 +92,7 @@ const BubbleHalos = observer(function BubbleHalos({
             d={h.path}
             fill="none"
             stroke={BUBBLE_KIND_COLORS[h.kind]}
-            strokeOpacity={0.22}
+            strokeOpacity={dimmed(h.nodeIds) ? 0.06 : 0.22}
             strokeWidth={halo}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -101,7 +105,11 @@ const BubbleHalos = observer(function BubbleHalos({
         return (
           <g
             key={`${h.bubble.start}-${h.bubble.end}-label`}
-            style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+            style={{
+              pointerEvents: 'auto',
+              cursor: 'pointer',
+              opacity: dimmed(h.nodeIds) ? 0.35 : 1,
+            }}
             data-testid="graph-bubble-halo-label"
             onClick={() => {
               void model.popBubble(h.bubble)
