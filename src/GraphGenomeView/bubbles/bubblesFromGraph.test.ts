@@ -123,6 +123,21 @@ describe('bubblesFromGraph', () => {
     expect(classifyBubble(snp!).label).toBe('SNP, reaches outside the cut')
   })
 
+  // A GBZ cut at 1 kb of context hands a haplotype's walk through a repeat
+  // array over as pieces, and a piece that enters the bubble and ends is a
+  // route the cut did not keep.
+  it('marks a bubble a walk leaves as partial, its lengths a floor', () => {
+    const piece = { name: 'hap3', nodeIds: ['r3+', 'r4+', 'k+'] }
+    const [, ins] = bubblesFromGraph({
+      ...walked,
+      paths: [...walks, piece],
+    })
+    expect(ins!.partial).toBe(true)
+    expect([ins!.pathCount, ins!.longestAlleleLength]).toEqual([3, 30])
+    expect(classifyBubble(ins!).label).toMatch(/reaches outside the cut$/)
+    expect(bubblesFromGraph(walked)[1]!.partial).toBe(false)
+  })
+
   it('finds nothing in a graph with no backbone', () => {
     expect(
       bubblesFromGraph({ name: 'g', nodes: [node('x', 5, 0, 1)], edges: [] }),

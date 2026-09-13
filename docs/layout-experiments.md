@@ -429,6 +429,39 @@ of one hosted file, and what makes popping recursive: the popped subgraph gets
 its own bubbles, and `popStack` in the model holds every level a reader
 descended through, so each closes back to the one above it.
 
+### The GBZ route in the view, and what its cut keeps
+
+The view over the hosted gbz-base database, with the eight tutorial lanes
+selected, draws the same 20 flank sites at KIV-2 but reads the array as two
+bubbles of 4 and 1 routes, 22 kb and 5.5 kb, where the 200 kb-context lab cut
+above reads one bubble of 9 routes up to 148 kb. The adapter's cut is the
+reference walk plus 1 kb of `context`, and each haplotype's walk comes back as
+pieces where it leaves those nodes: 21 W lines for 9 haplotypes, each haplotype
+missing a private run of 11 kb to 105 kb, which is its extra array copies.
+`subgraphSnarls` does not help here, and not because the database lacks chains
+(it carries 34.8M chain links, and the array is one top-level snarl from 1.2 kb
+to 32.0 kb into the window whose `--between` extraction is 12,414 nodes): with a
+haplotype selection the reader takes `subgraphForHaplotypes`, whose anchor walk
+never calls `extractSnarls` (`~/src/gmod/gbz-base-js/src/query.ts`, `74-125`),
+so the option only applies to a cut of every haplotype. A 200 kb context closes
+the array on this route, at 15,808 nodes and 2.4 s.
+
+![KIV-2 over gbz-base at 1 kb of context](img/kiv2-gbz-view-1kb.png)
+
+_The view's GBZ cut at the default 1 kb context: the array as two truncated
+bubbles, now labelled as reaching outside the cut._
+
+![KIV-2 over gbz-base at 200 kb of context](img/kiv2-gbz-view-200kb.png)
+
+_The same track with `context: 200000`: one bubble, 9 routes, 32 kb to 148 kb,
+the haplotypes' own lengths._
+
+A derived bubble now says when this happened. A walk piece that enters the
+bubble and ends before its other boundary is a route the cut did not keep, so
+the bubble is marked partial, "reaches outside the cut", and its lengths read as
+a floor. The remedy is a `context` on the track that covers the longest allele,
+or the snarl extension on the kept-haplotype path upstream.
+
 ## Carriage, collapsed
 
 The eight-haplotype KIV-2 GBZ cut carries walks, so every node's carriage is

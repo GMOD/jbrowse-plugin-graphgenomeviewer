@@ -114,6 +114,10 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
     }
     const walked = walkIndex && walkRoutes(graph, walkIndex, start.id, end.id)
     const routes = walked ?? best.get(end.id) ?? { min: 0, max: 0, n: 0 }
+    // A walk that enters the bubble and never reaches its other end left the
+    // cut: a GBZ cut of a repeat array at 1 kb of context splits each
+    // haplotype's walk into pieces, and the routes seen are then a floor.
+    const walksLeave = walked !== undefined && walked.left > 0
 
     const refStart = start.stable.start + start.length
     const refEnd = end.stable.start
@@ -124,10 +128,11 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
       ...interior.filter(id => isBackbone(byId.get(id)!)),
       end.id,
     ]
-    const partial = chain.some(
+    const chainBroken = chain.some(
       (id, k) => k > 0 && !linked.has(`${chain[k - 1]}>${id}`),
     )
-    const fallback = partial && !walked
+    const partial = chainBroken || walksLeave
+    const fallback = chainBroken && !walked
     bubbles.push({
       refName: start.stable.refName,
       start: refStart,
@@ -153,21 +158,26 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
 
 // For every walk that passes both boundary nodes, the bp between them and the
 // step sequence, so routes are distinct sequences and lengths are the true
-// haplotype lengths.
+// haplotype lengths. `left` counts the walks that pass one boundary and end
+// before the other.
 function walkRoutes(
   graph: Graph,
   walkIndex: Map<string, number>[],
   startId: string,
   endId: string,
-): Routes | undefined {
+): (Routes & { left: number }) | undefined {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const seen = new Set<string>()
   let min = Infinity
   let max = -Infinity
+  let left = 0
   graph.paths!.forEach((p, k) => {
     const i0 = walkIndex[k]!.get(startId)
     const i1 = walkIndex[k]!.get(endId)
     if (i0 === undefined || i1 === undefined) {
+      if (i0 !== undefined || i1 !== undefined) {
+        left++
+      }
       return
     }
     const steps = p.nodeIds.slice(Math.min(i0, i1) + 1, Math.max(i0, i1))
@@ -179,5 +189,5 @@ function walkRoutes(
     min = Math.min(min, bp)
     max = Math.max(max, bp)
   })
-  return seen.size ? { min, max, n: seen.size } : undefined
+  return seen.size || left ? { min, max, n: seen.size, left } : undefined
 }
