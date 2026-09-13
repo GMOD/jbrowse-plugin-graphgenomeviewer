@@ -14,8 +14,11 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
+import { bubbleSegmentIds, classifyBubble } from './bubbles/classifyBubble'
+import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
+import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { layoutScaling } from './layout/drawnScale'
@@ -26,7 +29,6 @@ import {
 } from './layoutModes'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
-import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
@@ -71,9 +73,11 @@ import type {
   VertexRange,
 } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
+import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
+import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
@@ -83,6 +87,7 @@ const MAX_CANVAS_HEIGHT = 600
 // Floor, so a window holding only backbone — one row, no height at all — still
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
+const VARIANT_MAP_HEIGHT = 340
 // Gap between the drawing and the edge of the pane, on all four sides.
 const FIT_PADDING = 40
 const HOVER_BRIGHTEN = 1.4
@@ -429,6 +434,14 @@ export default function stateModelFactory() {
     .volatile(() => ({
       graph: undefined as Graph | undefined,
       layoutResult: undefined as LayoutResult | undefined,
+      // The bubble index rows over the cut window, when the source track has
+      // one beside its segments. What the variant map draws.
+      bubbles: undefined as MinigraphBubble[] | undefined,
+      // The whole window, kept while one bubble is open so it can be closed
+      // again without a refetch.
+      poppedFrom: undefined as
+        | { graph: Graph; layoutMode: LayoutModeValue; label: string }
+        | undefined,
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       error: undefined as unknown,
@@ -687,6 +700,19 @@ export default function stateModelFactory() {
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
       },
+      // Each bubble in the window with what it is, for the overlay. Only the
+      // variant map draws them; a bubble is meaningless on a force layout,
+      // whose x is not the reference.
+      get bubbleGlyphs() {
+        const bubbles =
+          self.layoutMode === 'variants' && !self.poppedFrom
+            ? self.bubbles
+            : undefined
+        return (bubbles ?? []).map(bubble => ({
+          bubble,
+          ...classifyBubble(bubble),
+        }))
+      },
       // Every node's midpoint on the reference plus the interval the hue ramps
       // over — what `reference-position` paints from, and undefined under every
       // other scheme so the walk is never run for a colouring that ignores it.
@@ -772,10 +798,14 @@ export default function stateModelFactory() {
           return ceiling
         }
         if (self.pixelRows) {
-          return Math.min(
-            ceiling,
-            Math.max(MIN_CANVAS_HEIGHT, bounds.h + FIT_PADDING * 2),
-          )
+          // The variant map's drawing is one line; its glyphs and labels are
+          // painted above it by the overlay and need the room a row layout
+          // would give to rows.
+          const floor =
+            self.layoutMode === 'variants'
+              ? VARIANT_MAP_HEIGHT
+              : MIN_CANVAS_HEIGHT
+          return Math.min(ceiling, Math.max(floor, bounds.h + FIT_PADDING * 2))
         }
         return bounds.w > 0 && usableWidth > 0
           ? Math.min(
@@ -1456,6 +1486,76 @@ export default function stateModelFactory() {
           : undefined
       }
 
+      // The bubble index that the hosted HPRC build keeps beside its segments,
+      // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
+      // window. A graph whose source has no such file draws no variant map,
+      // which is the ordinary case for a graph of one's own, so a failure here
+      // is not the graph's problem.
+      function* loadBubbles(
+        adapterConfig: Record<string, unknown>,
+        region: {
+          refName: string
+          assemblyName: string
+          start: number
+          end: number
+        },
+        isLive: () => boolean,
+      ) {
+        self.bubbles = undefined
+        const segments = adapterConfig.segmentsLocation as
+          { uri?: string; baseUri?: string } | undefined
+        const uri = segments?.uri
+        if (
+          adapterConfig.type !== 'RgfaTabixAdapter' ||
+          typeof uri !== 'string' ||
+          !uri.endsWith('.segs.bed.gz')
+        ) {
+          return
+        }
+        const bubblesUri = `${uri.slice(0, -'.segs.bed.gz'.length)}.bubbles.bed.gz`
+        const baseUri = segments?.baseUri
+        const location = (u: string) => ({
+          uri: u,
+          baseUri,
+          locationType: 'UriLocation',
+        })
+        try {
+          const features = (yield getSession(self).rpcManager.call(
+            'graph',
+            'CoreGetFeatures',
+            {
+              adapterConfig: {
+                type: 'MinigraphBubbleAdapter',
+                bubblesLocation: location(bubblesUri),
+                index: {
+                  indexType: 'TBI',
+                  location: location(`${bubblesUri}.tbi`),
+                },
+                assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
+              },
+              regions: [region],
+            },
+          )) as Feature[]
+          if (isLive()) {
+            self.bubbles = features.map(f => ({
+              refName: region.refName,
+              start: f.get('start'),
+              end: f.get('end'),
+              segmentCount: f.get('segmentCount') as number,
+              pathCount: (f.get('pathCount') as number | undefined) ?? 0,
+              inversion: f.get('inversion') as boolean,
+              shortestAlleleLength: f.get('shortestAlleleLength') as number,
+              longestAlleleLength: f.get('longestAlleleLength') as number,
+              segments: f.get('segments') as string,
+              shortestAllele: undefined,
+              longestAllele: undefined,
+            }))
+          }
+        } catch (e) {
+          console.warn('[GraphGenomeView] no bubble index for this graph', e)
+        }
+      }
+
       // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
       function* doSubgraphLoad(
         adapterConfig: Record<string, unknown>,
@@ -1516,6 +1616,8 @@ export default function stateModelFactory() {
           }
           const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
           yield* parseAndLayout(gfaText, label)
+          self.poppedFrom = undefined
+          yield* loadBubbles(adapterConfig, region, isLive)
         } catch (e) {
           if (isLive()) {
             console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
@@ -1599,6 +1701,65 @@ export default function stateModelFactory() {
         // rather than to how it is drawn (subgraphContext).
         reloadSubgraph: flow(function* () {
           yield* cutFromLoadedTrack()
+        }),
+        // Open one bubble: the graph becomes the segments the bubble row names,
+        // drawn layered when that mode is present and anchored otherwise. The
+        // window stays behind it, one click away.
+        popBubble: flow(function* (bubble: MinigraphBubble) {
+          const graph = self.graph
+          if (!graph) {
+            return
+          }
+          const isLive = beginLoad()
+          const sub = bubbleSubgraph(graph, bubbleSegmentIds(bubble))
+          if (sub.nodes.length === 0) {
+            return
+          }
+          self.poppedFrom ??= {
+            graph,
+            layoutMode: self.layoutMode,
+            label: graph.name,
+          }
+          const label = `${classifyBubble(bubble).label} at ${bubble.refName}:${bubble.start.toLocaleString()}`
+          self.graph = { ...sub, name: label }
+          self.layoutMode = (LAYOUT_MODE_VALUES as readonly string[]).includes(
+            'ordered',
+          )
+            ? ('ordered' as LayoutModeValue)
+            : 'auto'
+          self.clearInteractionState()
+          self.userMovedViewport = false
+          self.isLoading = true
+          try {
+            if (yield* layoutInto(self.graph)) {
+              self.isLoading = false
+            }
+          } catch (e) {
+            if (isLive()) {
+              self.error = e
+              self.isLoading = false
+            }
+          }
+        }),
+        unpopBubble: flow(function* () {
+          const from = self.poppedFrom
+          if (!from) {
+            return
+          }
+          self.poppedFrom = undefined
+          self.graph = from.graph
+          self.layoutMode = from.layoutMode
+          self.clearInteractionState()
+          self.userMovedViewport = false
+          self.isLoading = true
+          try {
+            if (yield* layoutInto(from.graph)) {
+              self.isLoading = false
+            }
+          } catch (e) {
+            self.error = e
+            self.isLoading = false
+          }
         }),
         recomputeLayout: flow(function* () {
           const graph = self.graph

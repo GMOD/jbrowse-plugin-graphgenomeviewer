@@ -1,6 +1,7 @@
 import { isBackbone, isOffReference } from './anchoredNodes'
 import { anchoredLayout } from './layout/anchoredLayout'
 import { sampleRowLayout } from './layout/sampleRowLayout'
+import { variantMapLayout } from './layout/variantMapLayout'
 
 import type { Graph, LayoutResult } from './types'
 
@@ -78,6 +79,15 @@ export const LAYOUT_MODES = [
     run: sampleRowLayout,
     available: hasAlleles,
     drawsLocally: hasAlleles,
+  },
+  {
+    value: 'variants',
+    label: 'Variant map',
+    description:
+      'The reference as a line with one typed glyph per bubble from the bubble index: SNP, indel, deletion, inversion, repeat array. Click a glyph to open the graph inside it.',
+    run: variantMapLayout,
+    available: hasBackbone,
+    drawsLocally: hasBackbone,
   },
   {
     value: 'force',
