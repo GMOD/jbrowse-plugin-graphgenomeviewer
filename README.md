@@ -26,6 +26,26 @@ It ships three layouts:
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
   [Bandage](https://github.com/rrwick/Bandage).
 
+### Demonstration loci
+
+Six HPRC release 2 windows, the ones the
+[HPRC tutorials](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc/) walk
+through, are the standing test set for layout screenshots. Each cuts to under
+300 nodes and shows a different kind of variation:
+
+| Locus        | Window                         | What it shows                       |
+| ------------ | ------------------------------ | ----------------------------------- |
+| LPA KIV-2    | `chr6:160,525,000-160,655,000` | the kringle repeat, copy per loop   |
+| MHC class II | `chr6:32,510,000-32,600,000`   | DRB haplotypes, dozens of alleles   |
+| AMY1         | `chr1:103,690,000-103,780,000` | amylase copy number                 |
+| C4           | `chr6:31,980,000-32,050,000`   | one bubble over the C4 duplication  |
+| CFH          | `chr1:196,640,000-196,900,000` | an 84 kb deletion as a bare edge    |
+| KIR          | `chr19:54,750,000-54,840,000`  | the KIR cluster, densest of the six |
+
+[docs/layout-experiments.md](docs/layout-experiments.md) draws all six in every
+layout the plugin has and in the ones proposed to replace them, and
+`scripts/layout-lab/` reproduces the figures.
+
 ## License (GPL-3.0)
 
 This plugin is **GPL-3.0-or-later**. The force-directed layout is computed by a
