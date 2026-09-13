@@ -168,6 +168,32 @@ const PathLegend = observer(function PathLegend({
   ) : null
 })
 
+// What the lifted walk carries through the window, against the reference walk
+// where the graph has one: the number the array's loops are drawn for.
+const WalkReadout = observer(function WalkReadout({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const h = model.walkHighlight
+  if (!h) {
+    return null
+  }
+  const label = model.walkChoices.find(c => c.name === h.name)?.label ?? h.name
+  const delta =
+    h.referenceBp === undefined
+      ? ''
+      : h.bp === h.referenceBp
+        ? ', the reference length'
+        : `, ${h.bp > h.referenceBp ? '+' : '−'}${Math.abs(h.bp - h.referenceBp).toLocaleString()} bp against the reference`
+  return (
+    <div style={legendBoxStyle} data-testid="graph-walk-readout">
+      <strong>{label}</strong>: {h.steps.toLocaleString()} steps,{' '}
+      {h.bp.toLocaleString()} bp{delta}
+    </div>
+  )
+})
+
 // The reference-position ramp, as a strip labelled with the interval it runs
 // over. Nothing on screen used to say that red-to-magenta means left-to-right of
 // the cut window, so two tutorials carried that sentence in prose and a reader
@@ -630,6 +656,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <div style={legendStackStyle}>
           <ReferenceRampLegend model={model} />
           <PathLegend model={model} />
+          <WalkReadout model={model} />
         </div>
       </div>
 

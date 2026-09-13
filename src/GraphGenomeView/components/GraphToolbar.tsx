@@ -9,6 +9,7 @@ import ColorSchemeSelect from './ColorSchemeSelect'
 import GraphStats from './GraphStats'
 import LayoutSelect from './LayoutSelect'
 import SettingsMenu from './SettingsMenu'
+import WalkSelect from './WalkSelect'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -40,6 +41,7 @@ const GraphToolbar = observer(function GraphToolbar({
     <div className={classes.toolbar}>
       <LayoutSelect model={model} />
       <ColorSchemeSelect model={model} />
+      <WalkSelect model={model} />
       <Tooltip title="Zoom in">
         <IconButton
           size="small"

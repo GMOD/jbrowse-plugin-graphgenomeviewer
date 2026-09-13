@@ -1,6 +1,6 @@
 import { packAbgr } from '@jbrowse/core/util/colorBits'
 
-import { brightenAbgr } from './colorBits'
+import { brightenAbgr, fadeAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
 import { depthWidthFactor, meanDepth } from '../nodeWidths'
 import {
@@ -26,6 +26,7 @@ import {
 import type { ResolvedColorScheme } from '../colorSchemes'
 import type { NodeWidth } from '../nodeWidths'
 import type { Graph, GraphNode, NodeSegment } from '../types'
+import type { WalkHighlight } from '../walkHighlight'
 import type {
   EdgeCurveBatch,
   RenderBatch,
@@ -56,6 +57,12 @@ const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0
 // position and only that.
 const EDGE_DELETION_COLOR = packAbgr(24, 24, 28, 240)
 const DELETION_THICKNESS_FACTOR = 2.2
+// A highlighted walk's links: darker than a plain link and heavier, so the
+// route reads as one stroke through the faded rest. The alpha the rest fades
+// to keeps every colour scheme's hues, only dimmer, on any background.
+const EDGE_WALK_COLOR = packAbgr(30, 30, 36, 245)
+const WALK_EDGE_THICKNESS_FACTOR = 1.8
+const FADED_ALPHA = 0.18
 // Dash period in screen px, so a dashed arc looks the same at any zoom. Dashes
 // are geometry rather than a stroke style, because only one of the two backends
 // has one; see dashCurves.
@@ -200,6 +207,9 @@ export interface BuildOptions {
   drawPaths: boolean
   // thicker by depth, or every node at `contigThickness`; see nodeWidths.ts
   nodeWidth?: NodeWidth
+  // one walk lifted out: its nodes keep their colour and its links draw dark
+  // and heavy, everything else fades to a fraction of its alpha
+  highlight?: WalkHighlight
   // Both scales together, and required. Every screen-metric constant here (dash
   // period, stripe width, arrowhead angle) divides by scaleX, and everything
   // that mixes the axes needs their ratio; taking them as one value is what
@@ -776,6 +786,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     connectorThickness,
     drawPaths,
     nodeWidth = 'uniform',
+    highlight,
     axis,
     linearLayout,
     viewportBounds,
@@ -876,8 +887,11 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const isSelfLoop = edge.from === edge.to
     const bypassed = deletions?.get(ei)
     const isDeletion = bypassed !== undefined
+    const onWalk = highlight?.edgeIndexes.has(ei) ?? false
     const edgeThickness =
-      (connectorThickness / 2) * (isDeletion ? DELETION_THICKNESS_FACTOR : 1)
+      (connectorThickness / 2) *
+      (isDeletion ? DELETION_THICKNESS_FACTOR : 1) *
+      (onWalk ? WALK_EDGE_THICKNESS_FACTOR : 1)
     // One stroke per path crossing the edge, fanned off it. The only variant
     // that is not the shared curve, and the only reason this loop still builds
     // one at all.
@@ -902,7 +916,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     // So one head per edge, in the edge's own colour rather than a ribbon's,
     // since choosing a ribbon's would privilege one haplotype for a fact that
     // belongs to none of them. `undefined` means this call draws no head.
-    const edgeColor = isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR
+    const plainEdgeColor = isDeletion ? EDGE_DELETION_COLOR : EDGE_DEFAULT_COLOR
+    const edgeColor = !highlight
+      ? plainEdgeColor
+      : onWalk
+        ? EDGE_WALK_COLOR
+        : fadeAbgr(plainEdgeColor, FADED_ALPHA)
     const buildSingleEdge = (
       offsetX: number,
       offsetY: number,
@@ -974,10 +993,13 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       const arrowRibbon = Math.floor((numPaths - 1) / 2)
       for (let pathIdx = 0; pathIdx < numPaths; pathIdx++) {
         const offset = offsets[pathIdx]!
+        const ribbonColor = pathColorByName(edge.pathIds![pathIdx]!)
         buildSingleEdge(
           offset.x,
           offset.y,
-          pathColorByName(edge.pathIds![pathIdx]!),
+          highlight && edge.pathIds![pathIdx] !== highlight.name
+            ? fadeAbgr(ribbonColor, FADED_ALPHA)
+            : ribbonColor,
           pathIdx === arrowRibbon ? edgeColor : undefined,
         )
       }
@@ -1006,12 +1028,16 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       continue
     }
 
-    const color = getNodeColor(
+    const own = getNodeColor(
       node,
       nodeIndexMap.get(nodeId) ?? 0,
       colorScheme,
       colorRange,
     )
+    const color =
+      highlight && !highlight.nodeIds.has(nodeId)
+        ? fadeAbgr(own, FADED_ALPHA)
+        : own
     const width =
       contigThickness *
       (nodeWidth === 'depth' ? depthWidthFactor(node, depthNorm) : 1)

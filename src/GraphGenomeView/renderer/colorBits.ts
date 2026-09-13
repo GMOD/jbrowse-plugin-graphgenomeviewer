@@ -22,6 +22,17 @@ import {
 
 // Scale a packed color's channels, clamped at full brightness and leaving alpha
 // alone. factor === 1 returns the color unchanged.
+// The same colour at a fraction of its alpha, so a faded node reads as the
+// same ink through it on any background.
+export function fadeAbgr(c: number, alpha: number) {
+  return packAbgr(
+    abgrRed(c),
+    abgrGreen(c),
+    abgrBlue(c),
+    Math.round(abgrAlpha(c) * alpha),
+  )
+}
+
 export function brightenAbgr(c: number, factor: number) {
   return packAbgr(
     Math.min(255, Math.round(abgrRed(c) * factor)),

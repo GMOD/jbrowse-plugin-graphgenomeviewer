@@ -21,6 +21,7 @@ import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
+import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { parseGFA } from '../gfa-core/index'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
@@ -34,13 +35,13 @@ import {
 } from './layoutModes'
 import { NODE_WIDTH_VALUES } from './nodeWidths'
 import { pathColorsLegible, pathLegend } from './pathColors'
-import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import {
   brightenColors,
   buildGeometry,
   computeReferenceRamp,
   extractColorSlice,
 } from './renderer/GeometryBuilder'
+import { walkHighlight } from './walkHighlight'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -356,6 +357,9 @@ export default function stateModelFactory() {
         // Whether the node layouts draw each bubble as a halo along its nodes
         // with a label that opens it. The variant map draws glyphs instead.
         showBubbles: types.optional(types.boolean, true),
+        // One walk, by its path name, lifted out of the drawing: its nodes and
+        // links keep their ink and the rest fades. Empty lifts none.
+        highlightedPath: types.optional(types.string, ''),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
         // reference, so this is a choice; empty means "infer", which is the
@@ -593,6 +597,18 @@ export default function stateModelFactory() {
         return self.drawPaths && paths && pathColorsLegible(paths.length)
           ? pathLegend(paths)
           : []
+      },
+      // Every walk the graph carries, named for a picker, whatever the count.
+      get walkChoices() {
+        const paths = self.graph?.paths
+        return paths?.length ? pathLegend(paths) : []
+      },
+      // The lifted walk, or undefined when none is named or the graph on
+      // screen does not carry the one that was.
+      get walkHighlight() {
+        return self.graph && self.highlightedPath
+          ? walkHighlight(self.graph, self.highlightedPath)
+          : undefined
       },
       // Whether the drawing is actually painted per path, which is not the same
       // question as whether the user asked for it: past MAX_PATH_COLORS the
@@ -1111,6 +1127,9 @@ export default function stateModelFactory() {
       },
       setShowBubbles(show: boolean) {
         self.showBubbles = show
+      },
+      setHighlightedPath(name: string) {
+        self.highlightedPath = name
       },
       // Undefined restores the built-in ceiling. Nothing recomputes: the pane
       // reads canvasHeight and the drawing is placed by zoomToFit, which the
@@ -2082,6 +2101,7 @@ export default function stateModelFactory() {
                 connectorThickness: self.connectorThickness,
                 drawPaths: self.effectiveDrawPaths,
                 nodeWidth: self.nodeWidth,
+                highlight: self.walkHighlight,
                 // Untracked, so a zoom does not eagerly rebuild geometry — the
                 // debounced viewportDirty bump drives the scale-dependent
                 // rebuild (flatness, arrow visibility, viewport culling), same
