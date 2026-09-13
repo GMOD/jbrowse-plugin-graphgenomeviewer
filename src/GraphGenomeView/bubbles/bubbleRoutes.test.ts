@@ -64,3 +64,47 @@ test('a route off the backbone is labelled for its carriers at its far point', (
     ['HG3 · 1 bp', { x: 15, y: -8 }],
   ])
 })
+
+// Two routes share a3, and each has a node of its own; the chip goes on the
+// node of its own even though the shared one is farther out.
+const SHARED = `S\tv1\tAAAA
+S\tv3\tGGG
+S\ta1\tTT
+S\ta2\tCC
+S\ta3\tGGGG
+L\tv1\t+\ta1\t+\t0M
+L\tv1\t+\ta2\t+\t0M
+L\ta1\t+\ta3\t+\t0M
+L\ta2\t+\ta3\t+\t0M
+L\ta3\t+\tv3\t+\t0M
+L\tv1\t+\tv3\t+\t0M
+W\tref\t0\tchr\t0\t7\t>v1>v3
+W\tHG1\t1\tchr\t0\t13\t>v1>a1>a3>v3
+W\tHG2\t1\tchr\t0\t13\t>v1>a2>a3>v3`
+
+test('a chip sits on the stretch a route does not share', () => {
+  const shared = anchorGraph(convertGFAToGraph(parseGFA(SHARED)), 'ref')
+  const positions = {
+    'v1+': [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ],
+    'v3+': [
+      { x: 20, y: 0 },
+      { x: 30, y: 0 },
+    ],
+    'a1+': [{ x: 12, y: 10 }],
+    'a2+': [{ x: 12, y: -10 }],
+    'a3+': [{ x: 15, y: 60 }],
+  }
+  const [halo] = bubbleHalos(
+    shared,
+    bubblesFromGraph(shared),
+    positions,
+    name => name.split('#')[0]!,
+  )
+  expect(halo!.routes.map(r => [r.text, r.at])).toEqual([
+    ['HG1 · 6 bp', { x: 12, y: 10 }],
+    ['HG2 · 6 bp', { x: 12, y: -10 }],
+  ])
+})

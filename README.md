@@ -20,8 +20,11 @@ superbubble opens level by level:
 
 ![The KIV-2 array popped open](img/force_kiv2_popped.png)
 
-Over a gbz-base database the cut carries the haplotypes' walks, and a node draws
-thicker the more of them carry it, Bandage's depth as width:
+Over a gbz-base database the cut carries the haplotypes' walks. A node draws
+thicker the more of them carry it, Bandage's depth as width, and every route
+through a bubble is labelled at the far point of its loop for the haplotypes
+that take it and how long it is, so the array reads as one copy count per
+haplotype:
 
 ![KIV-2 over gbz-base, eight haplotypes, force-directed](img/force_kiv2_gbz.png)
 

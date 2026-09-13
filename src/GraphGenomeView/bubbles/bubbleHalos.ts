@@ -88,14 +88,29 @@ export function bubbleHalos(
           y: ends.reduce((s, p) => s + p.y, 0) / ends.length,
         }
       : top
+    // A chip goes on the stretch that is the route's own: among the nodes the
+    // fewest other routes share, the point farthest from the bubble's ends.
+    // Routes through a repeat array share most of their copies, and the far
+    // point of a shared copy would put every chip on one loop.
+    const sharing = new Map<string, number>()
+    for (const route of bubble.routes ?? []) {
+      for (const id of new Set(route.steps)) {
+        sharing.set(id, (sharing.get(id) ?? 0) + 1)
+      }
+    }
     const routes: RouteLabel[] = []
     for (const route of bubble.routes ?? []) {
-      if (!route.steps.some(id => !isBackbone(byId.get(id)!))) {
+      const off = route.steps.filter(id => !isBackbone(byId.get(id)!))
+      if (off.length === 0) {
         continue
       }
+      const rarest = Math.min(...off.map(id => sharing.get(id)!))
       let at: NodeSegment | undefined
       let far = -1
-      for (const id of route.steps) {
+      for (const id of off) {
+        if (sharing.get(id) !== rarest) {
+          continue
+        }
         for (const p of positions[id] ?? []) {
           const d = Math.hypot(p.x - anchor.x, p.y - anchor.y)
           if (d > far) {

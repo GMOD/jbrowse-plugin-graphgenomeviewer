@@ -565,6 +565,17 @@ _MHC class II from the rGFA index: the superbubble is HLA-DRB5's, the indels
 along the backbone are HLA-DRB6's and HLA-DRB1's, which no earlier figure could
 say._
 
+**Whose loop is whose.** A derived bubble on a graph with walks now keeps every
+distinct route through it with the walks that take it (`BubbleRoute` on the
+bubble, from `walkRoutes`), and the halo overlay puts a chip at the far point of
+each route off the backbone naming the carriers and the route's length:
+`HG00133 · 149 kb` on the array's biggest loop. That is the lifted walk's
+readout for every haplotype at once, on the drawing. A lifted walk dims the
+chips of the routes it does not take. The three overlays share one label
+placement and one chip (`components/overlayLabels.ts`, `LabelChip.tsx`).
+
+![KIV-2 over gbz-base, each loop named for its haplotype](../img/force_kiv2_gbz.png)
+
 ## What did not help
 
 - FMMM's force model, repulsion method and iteration counts, left at Bandage's
