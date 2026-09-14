@@ -23,6 +23,42 @@ const ON_REFERENCE = '#2f8fd6'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
 
+const legendBoxStyle = {
+  background: 'rgba(255,255,255,0.82)',
+  padding: '4px 6px',
+  borderRadius: 3,
+  fontSize: 11,
+  lineHeight: '15px',
+  whiteSpace: 'nowrap' as const,
+}
+const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
+const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
+
+// What the two bar colours mean, in the legend stack with the other keys. The
+// reference row is named, so "the reference" here reads as that row.
+export const WalkRowsLegend = observer(function WalkRowsLegend({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const bars = model.walkRowBars
+  if (!bars) {
+    return null
+  }
+  return (
+    <div style={legendBoxStyle} data-testid="graph-walk-rows-legend">
+      <div style={legendRowStyle}>
+        <div style={{ ...swatchStyle, backgroundColor: ON_REFERENCE }} />
+        <span>sequence {bars.reference.label} also carries</span>
+      </div>
+      <div style={legendRowStyle}>
+        <div style={{ ...swatchStyle, backgroundColor: OFF_REFERENCE }} />
+        <span>sequence it does not</span>
+      </div>
+    </div>
+  )
+})
+
 function kb(bp: number) {
   return `${(bp / 1000).toFixed(bp < 10_000 ? 1 : 0)} kb`
 }

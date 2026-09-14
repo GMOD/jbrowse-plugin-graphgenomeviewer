@@ -8,7 +8,7 @@ import { observer } from 'mobx-react'
 import BubbleHalos from './BubbleHalos'
 import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
-import WalkRowsOverlay from './WalkRowsOverlay'
+import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import GraphToolbar from './GraphToolbar'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -701,6 +701,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <div style={legendStackStyle}>
           <ReferenceRampLegend model={model} />
           <PathLegend model={model} />
+          <WalkRowsLegend model={model} />
           <WalkReadout model={model} />
         </div>
 
