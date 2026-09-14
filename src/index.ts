@@ -4,6 +4,7 @@ import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
 import GbzBaseSyntenyAdapterF from './GbzBaseSyntenyAdapter/index'
 import GetSubgraph from './GetSubgraph'
+import GraphAddTrackWorkflowF from './GraphAddTrackWorkflow/index'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
 import LaunchGraphGenomeViewF from './LaunchGraphGenomeView'
@@ -31,6 +32,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
     RgfaTabixAdapterF(pluginManager)
     MinigraphBubbleAdapterF(pluginManager)
     GbzBaseSyntenyAdapterF(pluginManager)
+    GraphAddTrackWorkflowF(pluginManager)
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
   }
