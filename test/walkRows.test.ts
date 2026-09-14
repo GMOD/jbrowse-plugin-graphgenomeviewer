@@ -75,7 +75,7 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
   it('draws one bar per haplotype, longest first, with its excess over GRCh38', async () => {
     const labels = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="graph-row-label"]')].map(
-        el => el.textContent!.trim(),
+        el => el.textContent.trim(),
       ),
     )
     expect(labels[0]).toBe('GRCh38#0')

@@ -40,6 +40,7 @@ import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
 import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
 import { seededNodes } from './layout/referenceSeeds'
+import { walkRows } from './layout/walkRows'
 import {
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
@@ -826,8 +827,12 @@ export default function stateModelFactory() {
       // Links that skip reference sequence, i.e. the deletions this graph
       // holds. Computed once per graph rather than per geometry rebuild: it is
       // a pass over the edges and the drawing rebuilds on every pan.
+      // Walk rows state what each walk skips as its own bar length, so the arcs
+      // over the backbone would only say it again, across the bars.
       get deletions() {
-        return self.graph ? deletionEdges(self.graph) : []
+        return self.graph && self.layoutMode !== 'walkrows'
+          ? deletionEdges(self.graph)
+          : []
       },
       // One bar per haplotype walk on its own bp axis, for the walk-rows
       // overlay. Empty under every other layout.
@@ -886,6 +891,7 @@ export default function stateModelFactory() {
         const positions = self.layoutResult?.nodePositions
         return self.showBubbles &&
           self.layoutMode !== 'variants' &&
+          self.layoutMode !== 'walkrows' &&
           self.graph &&
           positions
           ? bubbleHalos(self.graph, self.bubbles, positions, name => {

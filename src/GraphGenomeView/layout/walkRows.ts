@@ -109,7 +109,7 @@ export function walkRows(
       const len = lengthOf.get(id) ?? 0
       const shared = onReference.has(id)
       const last = runs.at(-1)
-      if (last && last.onReference === shared) {
+      if (last?.onReference === shared) {
         last.bp += len
       } else {
         runs.push({ start: bp, bp: len, onReference: shared })
