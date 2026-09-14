@@ -103,7 +103,7 @@ export function buildTrackConfig(args: {
     assemblyNames: [assembly],
     adapter: buildAdapterConfig(args),
     ...(choice === 'RgfaTabixAdapter'
-      ? { displayDefaults: { color: STABLE_RANK_COLOR } }
+      ? { displayDefaults: { color: STABLE_RANK_COLOR, showLabels: 'none' } }
       : {}),
   }
 }

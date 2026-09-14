@@ -48,6 +48,7 @@ describe('buildTrackConfig', () => {
       },
       displayDefaults: {
         color: "jexl:feature.rank==0 ? 'rgb(52,152,219)' : 'rgb(237,137,44)'",
+        showLabels: 'none',
       },
     })
   })
