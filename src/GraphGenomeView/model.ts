@@ -31,6 +31,11 @@ import {
 } from './genes/geneFeatures'
 import { genePins } from './genes/genePins'
 import { convertGFAToGraph } from './gfa/gfaConverter'
+import {
+  paintSourceLane,
+  referencePositionColor,
+  sourceLaneDisplay,
+} from './laneRamp'
 import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
 import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
@@ -2023,6 +2028,34 @@ export default function stateModelFactory() {
     .actions(self => ({
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
+          // Autorun: paint the lane this graph was cut from in the graph's own
+          // reference-position ramp, so a block above and its node below share
+          // a hue with nothing configured. Follows the domain, so a re-cut or
+          // an opened bubble moves the lane's ramp with the drawing.
+          addDisposer(
+            self,
+            autorun(() => {
+              const domain = self.rampDomain
+              const trackId = self.loadedTrackId
+              if (
+                domain &&
+                trackId &&
+                self.effectiveColorScheme === 'reference-position'
+              ) {
+                const display = untracked(() =>
+                  sourceLaneDisplay(
+                    getSession(self).views,
+                    self.connectedViewId,
+                    trackId,
+                  ),
+                )
+                if (display) {
+                  paintSourceLane(display, referencePositionColor(domain))
+                }
+              }
+            }),
+          )
+
           // Autorun: keep the view fitted to the graph until the user moves it.
           // Reads layoutResult plus (via zoomToFit) width/canvasHeight, so it
           // re-fires — and re-fits — as the layout arrives and the canvas is

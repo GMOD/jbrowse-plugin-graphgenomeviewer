@@ -18,9 +18,6 @@ export const GRAPH_FILE_FIELDS: Record<GraphFileChoice, string> = {
 
 const SEGMENTS_SUFFIX = '.segs.bed.gz'
 
-export const STABLE_RANK_COLOR =
-  "jexl:feature.rank==0 ? 'rgb(52,152,219)' : 'rgb(237,137,44)'"
-
 function locationName(loc: FileLocation) {
   return 'uri' in loc ? loc.uri : 'localPath' in loc ? loc.localPath : ''
 }
@@ -103,7 +100,7 @@ export function buildTrackConfig(args: {
     assemblyNames: [assembly],
     adapter: buildAdapterConfig(args),
     ...(choice === 'RgfaTabixAdapter'
-      ? { displayDefaults: { color: STABLE_RANK_COLOR, showLabels: 'none' } }
+      ? { displayDefaults: { showLabels: 'none' } }
       : {}),
   }
 }

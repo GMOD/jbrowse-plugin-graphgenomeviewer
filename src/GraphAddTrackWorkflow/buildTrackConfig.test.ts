@@ -46,10 +46,7 @@ describe('buildTrackConfig', () => {
         },
         assemblyNameToPanSN: { hg38: 'GRCh38' },
       },
-      displayDefaults: {
-        color: "jexl:feature.rank==0 ? 'rgb(52,152,219)' : 'rgb(237,137,44)'",
-        showLabels: 'none',
-      },
+      displayDefaults: { showLabels: 'none' },
     })
   })
 
@@ -90,7 +87,7 @@ describe('buildTrackConfig', () => {
     ).toThrow('.segs.bed.gz')
   })
 
-  it('builds a bubble track with a CSI override and no color default', () => {
+  it('builds a bubble track with a CSI override and no display defaults', () => {
     const conf = buildTrackConfig({
       choice: 'MinigraphBubbleAdapter',
       loc: {
