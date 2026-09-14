@@ -50,6 +50,7 @@ import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
+import { walkRows } from './layout/walkRows'
 import { walkHighlight } from './walkHighlight'
 import { parseGFA } from '../gfa-core/index'
 import {
@@ -772,6 +773,11 @@ export default function stateModelFactory() {
             minX = region.start
             maxX = region.end
           }
+          const extent = self.layoutResult.extent
+          if (extent) {
+            maxX = Math.max(maxX, extent.maxX)
+            maxY = Math.max(maxY, extent.maxY)
+          }
           bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
         }
         return bounds
@@ -822,6 +828,13 @@ export default function stateModelFactory() {
       // a pass over the edges and the drawing rebuilds on every pan.
       get deletions() {
         return self.graph ? deletionEdges(self.graph) : []
+      },
+      // One bar per haplotype walk on its own bp axis, for the walk-rows
+      // overlay. Empty under every other layout.
+      get walkRowBars() {
+        return self.layoutMode === 'walkrows' && self.graph
+          ? walkRows(self.graph, self.loadedRegion)
+          : undefined
       },
       // Each bubble in the window with what it is, for the variant map's
       // glyphs on the reference line.

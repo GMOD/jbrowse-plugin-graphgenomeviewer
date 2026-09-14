@@ -127,4 +127,8 @@ export interface LayoutResult {
   // one says what y is MEASURED IN, and a future layout could set either
   // without the other.
   pixelRows?: boolean
+  // How far a drawing reaches past its nodes, when an overlay draws rows the
+  // renderer has no node for (walk rows). The fit and the pane height take the
+  // wider of this and the nodes.
+  extent?: { maxX: number; maxY: number }
 }

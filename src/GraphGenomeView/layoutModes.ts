@@ -3,6 +3,7 @@ import { anchoredLayout } from './layout/anchoredLayout'
 import { orderedLayout } from './layout/orderedLayout'
 import { sampleRowLayout } from './layout/sampleRowLayout'
 import { variantMapLayout } from './layout/variantMapLayout'
+import { walkRowLayout } from './layout/walkRowLayout'
 
 import type { Graph, LayoutResult } from './types'
 
@@ -56,6 +57,8 @@ export interface LayoutMode {
 }
 
 const hasBackbone = (graph: Graph) => graph.nodes.some(isBackbone)
+const hasWalks = (graph: Graph) =>
+  hasBackbone(graph) && (graph.paths?.length ?? 0) > 1
 const hasAlleles = (graph: Graph) =>
   hasBackbone(graph) && graph.nodes.some(isOffReference)
 
@@ -80,6 +83,15 @@ export const LAYOUT_MODES = [
     run: sampleRowLayout,
     available: hasAlleles,
     drawsLocally: hasAlleles,
+  },
+  {
+    value: 'walkrows',
+    label: 'Walk rows',
+    description:
+      "x is each walk's own bp: one bar per haplotype, sequence the reference also carries in blue and sequence it does not in purple, so a repeat expansion reads as bar length. Needs W or P lines.",
+    run: walkRowLayout,
+    available: hasWalks,
+    drawsLocally: hasWalks,
   },
   {
     value: 'ordered',
