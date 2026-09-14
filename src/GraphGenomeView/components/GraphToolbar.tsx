@@ -8,6 +8,7 @@ import { makeStyles } from 'tss-react/mui'
 import ColorSchemeSelect from './ColorSchemeSelect'
 import GraphStats from './GraphStats'
 import LayoutSelect from './LayoutSelect'
+import RepeatSelect from './RepeatSelect'
 import SettingsMenu from './SettingsMenu'
 import WalkSelect from './WalkSelect'
 
@@ -42,6 +43,7 @@ const GraphToolbar = observer(function GraphToolbar({
       <LayoutSelect model={model} />
       <ColorSchemeSelect model={model} />
       <WalkSelect model={model} />
+      <RepeatSelect model={model} />
       <Tooltip title="Zoom in">
         <IconButton
           size="small"

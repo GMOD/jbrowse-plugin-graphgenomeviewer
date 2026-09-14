@@ -1,0 +1,59 @@
+import {
+  pickRepeatTrack,
+  repeatArraysFrom,
+  repeatUnitOf,
+} from './repeatFeatures'
+
+const base = { refName: 'chr6', start: 160616002, end: 160646753 }
+
+test('UCSC simpleRepeat / TRF: period wins over the consensus sequence', () => {
+  const f = { ...base, period: 5548, sequence: 'ACGT', name: 'trf' }
+  expect(repeatUnitOf(f)).toBe(5548)
+  expect(repeatArraysFrom([f])[0]!.name).toBe('trf')
+})
+
+test('TRGT catalogue: first of MOTIFS, named by TRID', () => {
+  const f = { ...base, TRID: 'HTT', MOTIFS: 'CAG,CCG', STRUC: '(CAG)n(CCG)n' }
+  expect(repeatUnitOf(f)).toBe(3)
+  expect(repeatArraysFrom([f])[0]).toMatchObject({ name: 'HTT', motif: 'CAG' })
+})
+
+test('ExpansionHunter and HipSTR VCF records read INFO', () => {
+  const eh = {
+    ...base,
+    INFO: { RU: 'GGCCCC', REPID: 'C9ORF72', END: 160646753 },
+  }
+  expect(repeatUnitOf(eh)).toBe(6)
+  expect(repeatArraysFrom([eh])[0]!.name).toBe('C9ORF72')
+  const hipstr = { ...base, INFO: { PERIOD: [4], START: 1 } }
+  expect(repeatUnitOf(hipstr)).toBe(4)
+})
+
+test('vamos motifs and an unnamed array fall back to a motif or locus name', () => {
+  const vamos = { ...base, motifs: ['ATCGATCG', 'ATCGATCC'] }
+  expect(repeatArraysFrom([vamos])[0]!.name).toBe('(ATCGATCG)n')
+  const period = { ...base, period: 5548 }
+  expect(repeatArraysFrom([period])[0]!.name).toBe(
+    'chr6:160,616,003-160,646,753',
+  )
+})
+
+test('a feature stating no unit is left out, and rows sort by start', () => {
+  const arrays = repeatArraysFrom([
+    { ...base, start: 5000, end: 6000, period: 2 },
+    { ...base, name: 'no unit' },
+    { ...base, start: 100, end: 200, motif: 'CAG' },
+  ])
+  expect(arrays.map(a => a.start)).toEqual([100, 5000])
+})
+
+test('the repeat track is the named one, else one whose name says repeats', () => {
+  const tracks = [
+    { trackId: 'genes', name: 'NCBI RefSeq', adapterType: 'Gff3TabixAdapter' },
+    { trackId: 'simple', name: 'Simple Repeats', adapterType: 'BigBedAdapter' },
+    { trackId: 'bed', name: 'other', adapterType: 'BedAdapter' },
+  ]
+  expect(pickRepeatTrack(tracks, '')?.trackId).toBe('simple')
+  expect(pickRepeatTrack(tracks, 'bed')?.trackId).toBe('bed')
+  expect(pickRepeatTrack([tracks[2]!], '')).toBeUndefined()
+})

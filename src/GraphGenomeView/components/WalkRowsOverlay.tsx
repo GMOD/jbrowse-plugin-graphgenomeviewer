@@ -63,11 +63,35 @@ function kb(bp: number) {
   return `${(bp / 1000).toFixed(bp < 10_000 ? 1 : 0)} kb`
 }
 
-function readout(bp: number, referenceBp: number, complete: boolean) {
+function units(bp: number, unit: number | undefined) {
+  return unit ? ` ≈ ${Math.round(bp / unit)} units` : ''
+}
+
+function readout(
+  bp: number,
+  referenceBp: number,
+  complete: boolean,
+  unit: number | undefined,
+) {
   const delta = bp - referenceBp
   const against =
     delta === 0 ? '' : ` (${delta > 0 ? '+' : '−'}${kb(Math.abs(delta))})`
-  return `${kb(bp)}${against}${complete ? '' : ' · partial walk'}`
+  return `${kb(bp)}${units(bp, unit)}${against}${complete ? '' : ' · partial walk'}`
+}
+
+// One separator per unit along a bar, so copies are countable, dropped when a
+// unit is under a few px. The reference bar is the canvas's, so it gets none.
+const MIN_TILE_PX = 3
+
+function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
+  if (unit * (X(unit) - X(0)) < MIN_TILE_PX) {
+    return []
+  }
+  const xs: number[] = []
+  for (let k = unit; k < bp; k += unit) {
+    xs.push(k)
+  }
+  return xs
 }
 
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
@@ -82,7 +106,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   const { scaleX, scaleY, translateX, translateY, width, canvasHeight } = model
   const X = (bp: number) => bp * scaleX + translateX
   const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
-  const { origin, reference, rows } = walkRowBars
+  const { origin, unit, reference, rows } = walkRowBars
   return (
     <svg
       style={svgStyle}
@@ -98,6 +122,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         fill="#333"
       >
         {kb(reference.bp)}
+        {units(reference.bp, unit)}
       </text>
       {rows.map((row, i) => {
         const y = Y(i + 1)
@@ -116,6 +141,19 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                 fill={run.onReference ? ON_REFERENCE : OFF_REFERENCE}
               />
             ))}
+            {unit
+              ? tileSeparators(row.bp, unit, bp => bp * scaleX).map(k => (
+                  <line
+                    key={k}
+                    x1={X(origin + k)}
+                    x2={X(origin + k)}
+                    y1={y - BAR_PX / 2}
+                    y2={y + BAR_PX / 2}
+                    stroke="white"
+                    strokeWidth={1}
+                  />
+                ))
+              : null}
             <text
               x={X(origin + row.bp) + 6}
               y={y + 4}
@@ -123,7 +161,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
               fontFamily="sans-serif"
               fill="#333"
             >
-              {readout(row.bp, reference.bp, row.complete)}
+              {readout(row.bp, reference.bp, row.complete, unit)}
             </text>
           </g>
         )

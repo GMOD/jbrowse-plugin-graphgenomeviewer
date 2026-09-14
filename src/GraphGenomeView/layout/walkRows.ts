@@ -36,6 +36,8 @@ export interface WalkRow {
 export interface WalkRows {
   // reference bp the rows' bars start at, so a row's x is origin + run.start
   origin: number
+  // repeat unit in bp when a repeat annotation supplied one; the bars tile by it
+  unit?: number
   reference: WalkRow
   // every other walk, longest first
   rows: WalkRow[]
@@ -69,6 +71,7 @@ function sliceBetween(
 export function walkRows(
   graph: Graph,
   region?: { start: number; end: number },
+  unit?: number,
 ): WalkRows | undefined {
   const paths = graph.paths ?? []
   // `referencePath` is the anchor name, which pathOrigin has already stripped
@@ -132,6 +135,7 @@ export function walkRows(
   const origin = before !== undefined && region ? region.start : referenceStart
   return {
     origin,
+    unit,
     reference: rowOf(reference),
     rows: paths
       .filter(p => p !== reference)

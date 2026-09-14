@@ -51,7 +51,11 @@ import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
-import { walkRows } from './layout/walkRows'
+import {
+  REPEAT_ADAPTER_TYPES,
+  pickRepeatTrack,
+  repeatArraysFrom,
+} from './repeats/repeatFeatures'
 import { walkHighlight } from './walkHighlight'
 import { parseGFA } from '../gfa-core/index'
 import {
@@ -90,6 +94,7 @@ import type { Renderer } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { GeneModel } from './genes/geneFeatures'
+import type { RepeatArray } from './repeats/repeatFeatures'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { MenuItem } from '@jbrowse/core/ui'
@@ -381,6 +386,12 @@ export default function stateModelFactory() {
         // Which track the genes come from; empty picks the assembly's
         // annotation track (pickGeneTrack).
         geneTrackId: types.optional(types.string, ''),
+        // Which track the walk rows read tandem repeat arrays from; empty
+        // picks a track whose name says repeats (pickRepeatTrack).
+        repeatTrackId: types.optional(types.string, ''),
+        // The array the walk rows measure between and tile by, as
+        // RepeatArray.key; empty measures the whole window untiled.
+        repeatKey: types.optional(types.string, ''),
         // One walk, by its path name, lifted out of the drawing: its nodes and
         // links keep their ink and the rest fades. Empty lifts none.
         highlightedPath: types.optional(types.string, ''),
@@ -499,6 +510,8 @@ export default function stateModelFactory() {
       indexBubbles: undefined as MinigraphBubble[] | undefined,
       // the genes over the cut window, read once per cut from the gene track
       geneFeatures: undefined as GeneModel[] | undefined,
+      // the tandem repeat arrays over the cut window, from the repeat track
+      repeatArrays: undefined as RepeatArray[] | undefined,
       // The graphs the open bubble was popped out of, outermost first, each
       // with what closing back to it restores without a refetch. A stack so a
       // popped superbubble can be mapped and popped again.
@@ -821,40 +834,7 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
-      get nodeNeighbors() {
-        return self.graph ? buildNeighbors(self.graph) : undefined
-      },
-      // Links that skip reference sequence, i.e. the deletions this graph
-      // holds. Computed once per graph rather than per geometry rebuild: it is
-      // a pass over the edges and the drawing rebuilds on every pan.
-      // Walk rows state what each walk skips as its own bar length, so the arcs
-      // over the backbone would only say it again, across the bars.
-      get deletions() {
-        return self.graph && self.layoutMode !== 'walkrows'
-          ? deletionEdges(self.graph)
-          : []
-      },
-      // One bar per haplotype walk on its own bp axis, for the walk-rows
-      // overlay. Empty under every other layout.
-      get walkRowBars() {
-        return self.layoutMode === 'walkrows' && self.graph
-          ? walkRows(self.graph, self.loadedRegion)
-          : undefined
-      },
-      // Each bubble in the window with what it is, for the variant map's
-      // glyphs on the reference line.
-      get bubbleGlyphs() {
-        const bubbles = self.layoutMode === 'variants' ? self.bubbles : []
-        return bubbles.map(bubble => ({
-          bubble,
-          ...classifyBubble(bubble),
-        }))
-      },
-      // The same bubbles over every other layout, as halos along their nodes.
-      // Reads positionsVersion so a dragged node takes its halo with it.
-      // The session's gene-bearing tracks on the cut's assembly, for the
-      // picker and for the automatic choice.
-      get geneTrackChoices() {
+      get assemblyTrackChoices() {
         const region = self.loadedRegion
         if (!region) {
           return []
@@ -871,8 +851,70 @@ export default function stateModelFactory() {
             adapterType: (readConfObject(t, 'adapter') as { type: string })
               .type,
           }))
-          .filter(t => GENE_ADAPTER_TYPES.has(t.adapterType))
       },
+    }))
+    .views(self => ({
+      get geneTrackChoices() {
+        return self.assemblyTrackChoices.filter(t =>
+          GENE_ADAPTER_TYPES.has(t.adapterType),
+        )
+      },
+      // The session's feature tracks a repeat annotation could be, for the
+      // picker; which one is read is pickRepeatTrack's choice.
+      get repeatTrackChoices() {
+        return self.assemblyTrackChoices.filter(t =>
+          REPEAT_ADAPTER_TYPES.has(t.adapterType),
+        )
+      },
+      // The arrays over the window that state a unit, for the Repeat picker.
+      get repeatChoices() {
+        return self.repeatArrays ?? []
+      },
+    }))
+    .views(self => ({
+      get repeatTrack() {
+        return pickRepeatTrack(self.repeatTrackChoices, self.repeatTrackId)
+      },
+      get selectedRepeat() {
+        return self.repeatChoices.find(r => r.key === self.repeatKey)
+      },
+    }))
+    .views(self => ({
+      get nodeNeighbors() {
+        return self.graph ? buildNeighbors(self.graph) : undefined
+      },
+      // Links that skip reference sequence, i.e. the deletions this graph
+      // holds. Computed once per graph rather than per geometry rebuild: it is
+      // a pass over the edges and the drawing rebuilds on every pan.
+      // Walk rows state what each walk skips as its own bar length, so the arcs
+      // over the backbone would only say it again, across the bars.
+      get deletions() {
+        return self.graph && self.layoutMode !== 'walkrows'
+          ? deletionEdges(self.graph)
+          : []
+      },
+      // One bar per haplotype walk on its own bp axis, for the walk-rows
+      // overlay. Empty under every other layout.
+      get walkRowBars() {
+        if (self.layoutMode !== 'walkrows' || !self.graph) {
+          return undefined
+        }
+        const repeat = self.selectedRepeat
+        return repeat
+          ? walkRows(self.graph, repeat, repeat.unit)
+          : walkRows(self.graph, self.loadedRegion)
+      },
+      // Each bubble in the window with what it is, for the variant map's
+      // glyphs on the reference line.
+      get bubbleGlyphs() {
+        const bubbles = self.layoutMode === 'variants' ? self.bubbles : []
+        return bubbles.map(bubble => ({
+          bubble,
+          ...classifyBubble(bubble),
+        }))
+      },
+      // The same bubbles over every other layout, as halos along their nodes.
+      // Reads positionsVersion so a dragged node takes its halo with it.
       // Exons and names on the backbone, in layout units. Reads
       // positionsVersion so a dragged node takes its exons with it.
       get genePins() {
@@ -1249,6 +1291,12 @@ export default function stateModelFactory() {
       },
       setGeneTrackId(trackId: string) {
         self.geneTrackId = trackId
+      },
+      setRepeatTrackId(trackId: string) {
+        self.repeatTrackId = trackId
+      },
+      setRepeatKey(key: string) {
+        self.repeatKey = key
       },
       setHighlightedPath(name: string) {
         self.highlightedPath = name
@@ -1709,6 +1757,7 @@ export default function stateModelFactory() {
         self.graph = graph
         self.indexBubbles = undefined
         self.geneFeatures = undefined
+        self.repeatArrays = undefined
         self.popStack = []
         // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
         // are ids, so all three address the graph being replaced here. Carrying
@@ -1835,6 +1884,44 @@ export default function stateModelFactory() {
         }
       }
 
+      // The tandem repeat arrays over the cut, from the session's repeat
+      // track, for the walk rows to measure between and tile by.
+      function* loadRepeats(
+        region: {
+          refName: string
+          assemblyName: string
+          start: number
+          end: number
+        },
+        isLive: () => boolean,
+      ) {
+        const track = self.repeatTrack
+        if (!track) {
+          return
+        }
+        const config = getSession(self).tracks.find(
+          t => t.trackId === track.trackId,
+        )
+        if (!config) {
+          return
+        }
+        try {
+          const features = (yield getSession(self).rpcManager.call(
+            'graph',
+            'CoreGetFeatures',
+            {
+              adapterConfig: readConfObject(config, 'adapter'),
+              regions: [region],
+            },
+          )) as Feature[]
+          if (isLive()) {
+            self.repeatArrays = repeatArraysFrom(features)
+          }
+        } catch (e) {
+          console.warn('[GraphGenomeView] no repeats for this graph', e)
+        }
+      }
+
       // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
       function* doSubgraphLoad(
         adapterConfig: Record<string, unknown>,
@@ -1901,6 +1988,7 @@ export default function stateModelFactory() {
           }
           yield* loadBubbles(adapterConfig, region, isLive)
           yield* loadGenes(region, isLive)
+          yield* loadRepeats(region, isLive)
         } catch (e) {
           if (isLive()) {
             console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
@@ -1989,6 +2077,7 @@ export default function stateModelFactory() {
         }),
         loadGFAFromLocation: flow(function* (location: FileLocation) {
           self.setStatusMessage('Fetching GFA')
+          const stated = self.loadedRegion
           yield* loadWholeGFA(
             'uri' in location
               ? (location.uri.split('/').pop() ?? 'GFA')
@@ -1996,6 +2085,10 @@ export default function stateModelFactory() {
             signal =>
               openLocation(location).readFile({ encoding: 'utf8', signal }),
           )
+          if (stated && self.graph) {
+            self.loadedRegion = stated
+            yield* loadRepeats(stated, () => true)
+          }
         }),
         loadFromTabixSubgraph: flow(function* (
           adapterConfig: Record<string, unknown>,
@@ -2027,6 +2120,14 @@ export default function stateModelFactory() {
         // rather than to how it is drawn (subgraphContext).
         reloadSubgraph: flow(function* () {
           yield* cutFromLoadedTrack()
+        }),
+        // Re-read the repeat track alone, for a track change or a graph that
+        // came from a whole file beside a stated region.
+        reloadRepeats: flow(function* () {
+          const region = self.loadedRegion
+          if (region) {
+            yield* loadRepeats(region, () => true)
+          }
         }),
         // Open one bubble: the graph becomes the segments the bubble row names,
         // drawn in the layout the reader is in, or force-directed from the

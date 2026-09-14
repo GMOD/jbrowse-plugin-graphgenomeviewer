@@ -186,6 +186,26 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               </Select>
             </FormControl>
           ) : null}
+          {model.repeatTrackChoices.length > 1 ? (
+            <FormControl className={classes.formControl} sx={{ mt: 1 }}>
+              <InputLabel>Repeat track</InputLabel>
+              <Select
+                value={model.repeatTrack?.trackId ?? ''}
+                label="Repeat track"
+                data-testid="graph-repeat-track-select"
+                onChange={e => {
+                  model.setRepeatTrackId(e.target.value)
+                  void model.reloadRepeats()
+                }}
+              >
+                {model.repeatTrackChoices.map(({ trackId, name }) => (
+                  <MenuItem key={trackId} value={trackId}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : null}
         </div>
 
         {model.anchorPaths.length > 1 ? (
