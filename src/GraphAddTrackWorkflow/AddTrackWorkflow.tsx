@@ -129,6 +129,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
           setSample(event.target.value)
         }}
         label="Sample name in the graph"
+        slotProps={{ htmlInput: { 'data-testid': 'graph-sample-input' } }}
         helperText="Optional. The PanSN prefix the graph gives this assembly, e.g. GRCh38 for HPRC's GRCh38#0#chr1; leave blank when the graph's stable names are bare"
         placeholder="GRCh38"
         fullWidth
@@ -137,6 +138,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
         className={classes.field}
         value={trackName}
         helperText="Track name"
+        slotProps={{ htmlInput: { 'data-testid': 'graph-track-name-input' } }}
         onChange={event => {
           setTrackName(event.target.value)
         }}
