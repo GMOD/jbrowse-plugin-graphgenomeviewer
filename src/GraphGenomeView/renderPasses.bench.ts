@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe, test } from 'vitest'
 
 import { deletionEdges } from './deletionEdges'
 import { graphLabels } from './graphLabels'
@@ -21,6 +21,9 @@ import type { Graph, GraphNode, NodeSegment } from './types'
 // So a millisecond in `graphLabels` costs about ten times what a millisecond in
 // `buildGeometry` does, and both are budgeted against the ~10 ms that
 // agent-docs/GRAPH_SCALE_AND_LOD.md measures a redraw of a 1-2k node cut at.
+//
+// Vitest 5 moved `bench` from a top-level export to a test-context fixture:
+// each measurement is a `test()` that awaits `bench(name, fn).run()`.
 
 // A bubble-chain rGFA: a rank-0 backbone with an alt allele and a bare deletion
 // edge hanging off every other segment. Both anchored layouts draw this shape,
@@ -91,63 +94,75 @@ for (const backbone of [1000, 5000]) {
     // The pan case: same layout, same zoom, a new translate. Everything a frame
     // can reuse is reused, so this is the number that has to stay small.
     let tx = VIEWPORT.translateX
-    bench('graphLabels (pan)', () => {
-      graphLabels({
-        nodePositions,
-        nodeLengths,
-        deletions,
-        axis: AXIS,
-        ...VIEWPORT,
-        translateX: tx++ % 80,
-      })
+    test('graphLabels (pan)', async ({ bench }) => {
+      await bench('graphLabels (pan)', () => {
+        graphLabels({
+          nodePositions,
+          nodeLengths,
+          deletions,
+          axis: AXIS,
+          ...VIEWPORT,
+          translateX: tx++ % 80,
+        })
+      }).run()
     })
 
     // The drag case: the positions moved in place, so nothing carries over.
     let version = 0
-    bench('graphLabels (drag)', () => {
-      graphLabels({
-        nodePositions,
-        nodeLengths,
-        deletions,
-        axis: AXIS,
-        ...VIEWPORT,
-        version: ++version,
-      })
+    test('graphLabels (drag)', async ({ bench }) => {
+      await bench('graphLabels (drag)', () => {
+        graphLabels({
+          nodePositions,
+          nodeLengths,
+          deletions,
+          axis: AXIS,
+          ...VIEWPORT,
+          version: ++version,
+        })
+      }).run()
     })
 
-    bench('buildGeometry', () => {
-      buildGeometry({
-        nodePositions,
-        graph,
-        nodeById,
-        colorScheme: 'reference-position',
-        contigThickness: 10,
-        connectorThickness: 4,
-        drawPaths: false,
-        axis: AXIS,
-        referenceRamp,
-        deletions: bypassed,
-      })
+    test('buildGeometry', async ({ bench }) => {
+      await bench('buildGeometry', () => {
+        buildGeometry({
+          nodePositions,
+          graph,
+          nodeById,
+          colorScheme: 'reference-position',
+          contigThickness: 10,
+          connectorThickness: 4,
+          drawPaths: false,
+          axis: AXIS,
+          referenceRamp,
+          deletions: bypassed,
+        })
+      }).run()
     })
 
     // Once per graph, feeding the pass above.
-    bench('computeReferenceRamp', () => {
-      computeReferenceRamp(graph, { start: 0, end: pos(graph) })
+    test('computeReferenceRamp', async ({ bench }) => {
+      await bench('computeReferenceRamp', () => {
+        computeReferenceRamp(graph, { start: 0, end: pos(graph) })
+      }).run()
     })
 
-    bench('SpatialIndex (nodes)', () => {
-      void new SpatialIndex(nodePositions)
+    test('SpatialIndex (nodes)', async ({ bench }) => {
+      await bench('SpatialIndex (nodes)', () => {
+        new SpatialIndex(nodePositions)
+      }).run()
     })
 
-    bench('EdgeSpatialIndex', () => {
-      void new EdgeSpatialIndex(
-        nodePositions,
-        graph,
-        false,
-        AXIS,
-        undefined,
-        bypassed,
-      )
+    test('EdgeSpatialIndex', async ({ bench }) => {
+      await bench('EdgeSpatialIndex', () => {
+        new EdgeSpatialIndex(
+          nodePositions,
+          graph,
+          false,
+          AXIS,
+          undefined,
+          bypassed,
+        )
+      }).run()
     })
   })
 }

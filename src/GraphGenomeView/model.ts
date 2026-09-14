@@ -129,6 +129,11 @@ const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
 
+// MobX tracks every observable read while a computed or autorun runs, so
+// passing values here registers them as dependencies without otherwise using
+// them.
+function dependOn(..._values: unknown[]) {}
+
 // Hard size cap for the single-mode graph view. Past it the view declines with a
 // "zoom in" message rather than switching to a degraded rendering mode — one mode
 // only, since the large-region case is a linear synteny view, not a graph.
@@ -828,7 +833,7 @@ export default function stateModelFactory() {
       // Exons and names on the backbone, in layout units. Reads
       // positionsVersion so a dragged node takes its exons with it.
       get genePins() {
-        void self.positionsVersion
+        dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
         return self.showGenes &&
           self.layoutMode !== 'variants' &&
@@ -839,7 +844,7 @@ export default function stateModelFactory() {
           : []
       },
       get bubbleHalos() {
-        void self.positionsVersion
+        dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
         return self.showBubbles &&
           self.layoutMode !== 'variants' &&
@@ -2103,9 +2108,7 @@ export default function stateModelFactory() {
           addDisposer(
             self,
             autorun(() => {
-              void self.scale
-              void self.translateX
-              void self.translateY
+              dependOn(self.scale, self.translateX, self.translateY)
               if (firstViewport) {
                 firstViewport = false
               } else {
@@ -2197,8 +2200,7 @@ export default function stateModelFactory() {
               // The window moved (debounced pan/zoom), or the positions did (a
               // node drag, coalesced to a frame). Both change the drawing;
               // everything below reads them untracked or not at all.
-              void self.viewportDirty
-              void self.positionsVersion
+              dependOn(self.viewportDirty, self.positionsVersion)
               const geometryStart = performance.now()
               const batch = buildGeometry({
                 nodePositions: self.nodePositions,

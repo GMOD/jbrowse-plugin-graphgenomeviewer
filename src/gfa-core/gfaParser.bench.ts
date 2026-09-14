@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe, test } from 'vitest'
 
 import { parseGFA } from './gfaParser'
 
@@ -8,6 +8,9 @@ import { parseGFA } from './gfaParser'
 // segments and links, while a Minigraph-Cactus graph puts one haplotype's whole
 // chromosome walk in a single W field, so its cost is nearly all in
 // `parseWalkBody`.
+//
+// Vitest 5 moved `bench` from a top-level export to a test-context fixture:
+// each measurement is a `test()` that awaits `bench(name, fn).run()`.
 
 function segments(count: number) {
   return Array.from(
@@ -37,12 +40,16 @@ describe('parseGFA', () => {
     (_, i) =>
       `S\ts${i}\t*\tLN:i:${100 + (i % 900)}\tSN:Z:chr1\tSO:i:${i * 100}\tSR:i:${i % 3}`,
   ).join('\n')}\n${links(19_999)}`
-  bench('rGFA, 20k tagged segments', () => {
-    parseGFA(rgfa)
+  test('rGFA, 20k tagged segments', async ({ bench }) => {
+    await bench('rGFA, 20k tagged segments', () => {
+      parseGFA(rgfa)
+    }).run()
   })
 
   const walked = `H\tVN:Z:1.1\n${segments(20_000)}\n${links(19_999)}\n${walk(200_000)}`
-  bench('GFA1 with a 200k-step W record', () => {
-    parseGFA(walked)
+  test('GFA1 with a 200k-step W record', async ({ bench }) => {
+    await bench('GFA1 with a 200k-step W record', () => {
+      parseGFA(walked)
+    }).run()
   })
 })
