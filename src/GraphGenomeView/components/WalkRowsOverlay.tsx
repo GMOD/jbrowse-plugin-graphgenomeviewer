@@ -124,7 +124,10 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         y={y + 4}
         fontSize={11}
         fontFamily="sans-serif"
-        fill={fits ? '#333' : 'white'}
+        fill="#333"
+        stroke={fits ? undefined : 'white'}
+        strokeWidth={fits ? undefined : 3}
+        paintOrder="stroke"
         textAnchor={fits ? 'start' : 'end'}
       >
         {text}
