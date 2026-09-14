@@ -396,8 +396,8 @@ export default function stateModelFactory() {
         // attributes, which is what browser tests assert against, so hiding the
         // text costs no coverage.
         showPerf: types.optional(types.boolean, false),
-        contigThickness: types.optional(types.number, 10),
-        connectorThickness: types.optional(types.number, 4),
+        contigThickness: types.optional(types.number, 6),
+        connectorThickness: types.optional(types.number, 2),
         darkMode: types.optional(types.boolean, false),
         scale: types.optional(types.number, 1),
         translateX: types.optional(types.number, 0),
