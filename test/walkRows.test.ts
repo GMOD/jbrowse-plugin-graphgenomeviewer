@@ -146,7 +146,7 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
       () =>
         [...document.querySelectorAll('[data-testid="graph-walk-row"] text')]
           .map(el => el.textContent)
-          .some(t => t?.includes('units')),
+          .some(t => t.includes('units')),
       { timeout: 60_000 },
     )
     const choice = await page.evaluate(

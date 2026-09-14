@@ -22,6 +22,7 @@ const svgStyle = {
 const ON_REFERENCE = '#2f8fd6'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
+const LABEL_CHAR_PX = 6.2
 
 const legendBoxStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -107,6 +108,29 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   const X = (bp: number) => bp * scaleX + translateX
   const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
   const { origin, unit, reference, rows } = walkRowBars
+  // The backbone the canvas draws spans the cut window, which reaches past a
+  // selected array on both sides, so the reference readout sits after it.
+  const backboneEnd = Math.max(
+    origin + reference.bp,
+    model.loadedRegion?.end ?? 0,
+  )
+  // A readout that would leave the pane is written inside the end of its bar.
+  const label = (text: string, endBp: number, y: number) => {
+    const x = X(endBp) + 6
+    const fits = x + text.length * LABEL_CHAR_PX < width
+    return (
+      <text
+        x={fits ? x : X(endBp) - 6}
+        y={y + 4}
+        fontSize={11}
+        fontFamily="sans-serif"
+        fill={fits ? '#333' : 'white'}
+        textAnchor={fits ? 'start' : 'end'}
+      >
+        {text}
+      </text>
+    )
+  }
   return (
     <svg
       style={svgStyle}
@@ -114,16 +138,11 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
       height={canvasHeight}
       data-testid="graph-walk-rows"
     >
-      <text
-        x={X(origin + reference.bp) + 6}
-        y={Y(0) + 4}
-        fontSize={11}
-        fontFamily="sans-serif"
-        fill="#333"
-      >
-        {kb(reference.bp)}
-        {units(reference.bp, unit)}
-      </text>
+      {label(
+        `${kb(reference.bp)}${units(reference.bp, unit)}`,
+        backboneEnd,
+        Y(0),
+      )}
       {rows.map((row, i) => {
         const y = Y(i + 1)
         if (y < -BAR_PX || y > canvasHeight + BAR_PX) {
@@ -154,15 +173,11 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                   />
                 ))
               : null}
-            <text
-              x={X(origin + row.bp) + 6}
-              y={y + 4}
-              fontSize={11}
-              fontFamily="sans-serif"
-              fill="#333"
-            >
-              {readout(row.bp, reference.bp, row.complete, unit)}
-            </text>
+            {label(
+              readout(row.bp, reference.bp, row.complete, unit),
+              origin + row.bp,
+              y,
+            )}
           </g>
         )
       })}
