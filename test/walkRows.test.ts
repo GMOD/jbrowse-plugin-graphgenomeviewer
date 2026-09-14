@@ -34,6 +34,24 @@ const VIEW = 'graph_walk_rows'
 const REPEAT_BED = 'chr6\t160616002\t160646753\tKIV-2\t5548\n'
 const REPEAT_KEY = 'chr6:160616002-160646753'
 
+// The same array as a VCF 4.5 <CNV:TR> summary record: POS is the base
+// before the array and SVLEN the reference allele's length, the unit is RUL.
+// Through JBrowse's own VCF feature, so INFO reaches the reader the way a
+// real callset's would.
+const REPEAT_VCF = [
+  '##fileformat=VCFv4.5',
+  '##INFO=<ID=SVLEN,Number=A,Type=Integer,Description="Length of structural variant">',
+  '##INFO=<ID=RN,Number=A,Type=Integer,Description="Total number of repeat sequences in this allele">',
+  '##INFO=<ID=RUS,Number=.,Type=String,Description="Repeat unit sequence of the corresponding repeat sequence">',
+  '##INFO=<ID=RUL,Number=.,Type=Integer,Description="Repeat unit length of the corresponding repeat sequence">',
+  '##INFO=<ID=RUC,Number=.,Type=Float,Description="Repeat unit count of corresponding repeat sequence">',
+  '##ALT=<ID=CNV:TR,Description="Tandem repeat determined based on DNA abundance">',
+  '##contig=<ID=chr6,length=170805979>',
+  '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO',
+  'chr6\t160616002\tkiv2_tr\tN\t<CNV:TR>\t.\t.\tSVLEN=30751;RN=1;RUS=.;RUL=5548;RUC=5.5',
+  '',
+].join('\n')
+
 function config() {
   const served = (file: string) => ({
     uri: `${BASE_URL}/${file}`,
@@ -56,6 +74,13 @@ function config() {
     ],
     tracks: [
       {
+        type: 'VariantTrack',
+        trackId: 'kiv2_tr_vcf',
+        name: 'KIV-2 tandem repeat calls',
+        assemblyNames: ['hg38'],
+        adapter: { type: 'VcfAdapter', vcfLocation: served('kiv2_tr.vcf') },
+      },
+      {
         type: 'FeatureTrack',
         trackId: 'simple_repeats',
         name: 'Simple repeats',
@@ -77,6 +102,7 @@ function config() {
           referencePath: 'GRCh38',
           colorScheme: 'grey',
           gfaLocation: served(KIV2),
+          repeatTrackId: 'simple_repeats',
           loadedRegion: {
             assemblyName: 'hg38',
             refName: 'chr6',
@@ -97,6 +123,7 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
     setupJBrowse({ config: config() })
     writeServedFile('hg38_chr6.chrom.sizes', 'chr6\t170805979\n')
     writeServedFile('kiv2_repeats.bed', REPEAT_BED)
+    writeServedFile('kiv2_tr.vcf', REPEAT_VCF)
     await startJBrowseServer()
     browser = await launchBrowser()
     page = await createJBrowsePage(browser)
@@ -163,4 +190,43 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
     expect(readouts[0]).toMatch(/^147 kb ≈ 27 units \(\+116 kb\)$/)
     await screenshot(page, 'walk-rows-kiv2-tiled')
   }, 60_000)
+
+  it('reads the same array from a VCF 4.5 <CNV:TR> record', async () => {
+    const choices = await page.evaluate(async () => {
+      const view = (
+        window as unknown as {
+          JBrowseSession: {
+            views: {
+              setRepeatTrackId: (id: string) => void
+              reloadRepeats: () => Promise<void>
+              repeatChoices: { name: string; unit: number; key: string }[]
+            }[]
+          }
+        }
+      ).JBrowseSession.views[0]!
+      view.setRepeatTrackId('kiv2_tr_vcf')
+      await view.reloadRepeats()
+      return view.repeatChoices
+    })
+    expect(choices).toHaveLength(1)
+    expect(choices[0]).toMatchObject({ name: 'kiv2_tr', unit: 5548 })
+    await page.click('[data-testid="graph-repeat-select"]')
+    const option = await page.waitForSelector(
+      `li[role="option"][data-value="${choices[0]!.key}"]`,
+    )
+    await option!.click()
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll('[data-testid="graph-walk-row"] text')]
+          .map(el => el.textContent)
+          .some(t => t.includes('units')),
+      { timeout: 60_000 },
+    )
+    const readouts = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-testid="graph-walk-row"] text')].map(
+        el => el.textContent,
+      ),
+    )
+    expect(readouts[0]).toMatch(/^147 kb ≈ 27 units \(\+116 kb\)$/)
+  }, 90_000)
 })

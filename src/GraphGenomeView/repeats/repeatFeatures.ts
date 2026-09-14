@@ -46,19 +46,39 @@ export function pickRepeatTrack<
 
 type FeatureLike = Feature | Record<string, unknown>
 
+function own(f: FeatureLike, name: string): unknown {
+  return typeof (f as Feature).get === 'function'
+    ? (f as Feature).get(name)
+    : (f as Record<string, unknown>)[name]
+}
+
+// A TRGT repeat catalogue is a BED whose name column packs the record:
+// `ID=HTT;MOTIFS=CAG,CCG;STRUC=(CAG)nCAACAG(CCG)n`. Read as fields when it
+// has that shape.
+const PACKED_NAME = /^\w+=[^;]*(;\w+=[^;]*)*$/
+
+function packedName(f: FeatureLike) {
+  const name = own(f, 'name')
+  if (typeof name !== 'string' || !PACKED_NAME.test(name)) {
+    return undefined
+  }
+  return Object.fromEntries(
+    name.split(';').map(pair => {
+      const i = pair.indexOf('=')
+      return [pair.slice(0, i), pair.slice(i + 1)]
+    }),
+  )
+}
+
+// A field at the feature's top level, in a VCF record's INFO, or in a packed
+// name column, in that order.
 function field(f: FeatureLike, name: string): unknown {
-  const top =
-    typeof (f as Feature).get === 'function'
-      ? (f as Feature).get(name)
-      : (f as Record<string, unknown>)[name]
+  const top = own(f, name)
   if (top !== undefined) {
     return top
   }
-  const info =
-    typeof (f as Feature).get === 'function'
-      ? (f as Feature).get('INFO')
-      : (f as Record<string, unknown>).INFO
-  return (info as Record<string, unknown> | undefined)?.[name]
+  const info = own(f, 'INFO') as Record<string, unknown> | undefined
+  return info?.[name] ?? packedName(f)?.[name]
 }
 
 const MOTIF_FIELDS = [
@@ -78,7 +98,7 @@ const PERIOD_FIELDS = [
   'unit',
   'unitLength',
 ]
-const NAME_FIELDS = ['TRID', 'REPID', 'VARID', 'name', 'ID', 'id']
+const NAME_FIELDS = ['TRID', 'REPID', 'VARID', 'ID', 'name', 'id']
 
 // The first entry of a list-valued field, whether it arrived parsed or as
 // the comma-joined text a VCF INFO or a BED column holds; VCF's missing "."
@@ -119,10 +139,11 @@ export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
     }
     const refName = field(f, 'refName') as string
     const motif = first(f, MOTIF_FIELDS)
+    const stated = first(f, NAME_FIELDS)
     arrays.push({
       key: `${refName}:${start}-${end}`,
       name:
-        first(f, NAME_FIELDS) ??
+        (stated && !PACKED_NAME.test(stated) ? stated : undefined) ??
         (motif && motif.length <= 12
           ? `(${motif})n`
           : `${refName}:${(start + 1).toLocaleString()}-${end.toLocaleString()}`),

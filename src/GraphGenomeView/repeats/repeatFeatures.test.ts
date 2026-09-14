@@ -51,6 +51,14 @@ test('ExpansionHunter and HipSTR VCF records read INFO', () => {
   expect(repeatUnitOf(hipstr)).toBe(4)
 })
 
+test('TRGT catalogue BED: the name column packs ID, MOTIFS and STRUC', () => {
+  const f = { ...base, name: 'ID=HTT;MOTIFS=CAG,CCG;STRUC=(CAG)nCAACAG(CCG)n' }
+  expect(repeatUnitOf(f)).toBe(3)
+  expect(repeatArraysFrom([f])[0]).toMatchObject({ name: 'HTT', motif: 'CAG' })
+  const noId = { ...base, name: 'MOTIFS=CAG;STRUC=(CAG)n' }
+  expect(repeatArraysFrom([noId])[0]!.name).toBe('(CAG)n')
+})
+
 test('vamos motifs and an unnamed array fall back to a motif or locus name', () => {
   const vamos = { ...base, motifs: ['ATCGATCG', 'ATCGATCC'] }
   expect(repeatArraysFrom([vamos])[0]!.name).toBe('(ATCGATCG)n')
