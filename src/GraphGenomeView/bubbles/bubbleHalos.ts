@@ -27,8 +27,9 @@ export interface BubbleHalo {
   // the bubble is the whole drawing, as a popped bubble's own row is: its
   // label still names it, but a halo around everything marks nothing
   whole: boolean
-  // each route the walks take off the backbone, named for the haplotypes that
-  // take it, at the point of the route farthest from the bubble's ends
+  // each route the walks take through the bubble, the reference's own
+  // included, named for the haplotypes that take it; a route with no steps, a
+  // deletion, has nowhere to carry a chip
   routes: RouteLabel[]
 }
 
@@ -50,7 +51,6 @@ export function bubbleHalos(
   walkLabel: (name: string) => string = name => name,
 ): BubbleHalo[] {
   const byName = new Map(graph.nodes.map(n => [n.name, n]))
-  const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const halos: BubbleHalo[] = []
   for (const bubble of bubbles) {
     const parts: string[] = []
@@ -105,14 +105,13 @@ export function bubbleHalos(
       if (bubble.longestAlleleLength < MIN_CHIPPED_BP) {
         break
       }
-      const off = route.steps.filter(id => !isBackbone(byId.get(id)!))
-      if (off.length === 0) {
+      if (route.steps.length === 0) {
         continue
       }
-      const rarest = Math.min(...off.map(id => sharing.get(id)!))
+      const rarest = Math.min(...route.steps.map(id => sharing.get(id)!))
       let at: NodeSegment | undefined
       let far = -1
-      for (const id of off) {
+      for (const id of route.steps) {
         if (sharing.get(id) !== rarest) {
           continue
         }

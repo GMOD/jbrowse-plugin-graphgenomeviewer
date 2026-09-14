@@ -32,7 +32,7 @@ test('a derived bubble carries each route with the walks that take it', () => {
   ])
 })
 
-test('a route off the backbone is labelled for its carriers at its far point', () => {
+test('every route with steps is labelled for its carriers at its far point', () => {
   const positions = {
     'v1+': [
       { x: 0, y: 0 },
@@ -60,6 +60,7 @@ test('a route off the backbone is labelled for its carriers at its far point', (
     name => name.split('#')[0]!,
   )
   expect(halo!.routes.map(r => [r.text, r.at])).toEqual([
+    ['ref · 2 bp', { x: 10, y: 0 }],
     ['HG1, HG2 · 6.0 kb', { x: 15, y: 20 }],
     ['HG3 · 1 bp', { x: 15, y: -8 }],
   ])
