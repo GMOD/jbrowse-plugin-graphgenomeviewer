@@ -40,3 +40,17 @@ test('a stacking label steps down past a taken spot', () => {
     ['c', 88],
   ])
 })
+
+test('a stack near the bottom edge grows upward', () => {
+  const placed = placeLabels(
+    [
+      { item: 'a', x: 100, y: 280, text: 'first' },
+      { item: 'b', x: 100, y: 280, text: 'second', stack: 3 },
+    ],
+    frame,
+  )
+  expect(placed.map(p => [p.item, p.y])).toEqual([
+    ['a', 280],
+    ['b', 261],
+  ])
+})

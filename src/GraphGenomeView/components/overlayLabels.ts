@@ -45,8 +45,10 @@ export function placeLabels<T>(
   const row = LABEL_PX + LABEL_PAD * 2
   for (const c of candidates) {
     const w = labelWidth(c.text)
+    // a stack grows away from the nearer edge of the pane
+    const direction = c.y > frame.height / 2 ? -1 : 1
     for (let tries = 0; tries <= (c.stack ?? 0); tries++) {
-      const y = c.y + tries * row
+      const y = c.y + direction * tries * row
       const box = {
         x0: c.x - w / 2,
         x1: c.x + w / 2,

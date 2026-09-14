@@ -40,6 +40,8 @@ export interface RouteLabel {
 
 const WHOLE_FRACTION = 0.9
 const NAMED_WALKS = 2
+// a SNP's routes are a dot each; chips are for loops a reader can see
+const MIN_CHIPPED_BP = 1000
 
 export function bubbleHalos(
   graph: Graph,
@@ -100,6 +102,9 @@ export function bubbleHalos(
     }
     const routes: RouteLabel[] = []
     for (const route of bubble.routes ?? []) {
+      if (bubble.longestAlleleLength < MIN_CHIPPED_BP) {
+        break
+      }
       const off = route.steps.filter(id => !isBackbone(byId.get(id)!))
       if (off.length === 0) {
         continue
