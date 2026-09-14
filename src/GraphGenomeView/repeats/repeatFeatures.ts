@@ -3,10 +3,14 @@ import type { Feature } from '@jbrowse/core/util'
 // A tandem repeat array as the walk rows need it: its span on the reference,
 // which is what the bars measure between, and its unit length, which is what
 // they tile by. Read off whatever repeat annotation the session has, since the
-// tools all state the same two facts under different names: UCSC simpleRepeat
-// and TRF give `period` and the consensus `sequence`, TRGT gives `MOTIFS` and
-// `TRID`, ExpansionHunter `RU` and `REPID`, HipSTR and GangSTR `PERIOD`, vamos
-// its `motifs`. A VCF record's INFO is searched as well as its top level.
+// tools all state the same two facts under different names: VCF 4.5's
+// `<CNV:TR>` allele gives `RUL` and `RUS` (one entry per repeat sequence,
+// grouped by `RN`), UCSC simpleRepeat and TRF give `period` and the consensus
+// `sequence`, TRGT gives `MOTIFS` and `TRID`, ExpansionHunter `RU` and `REPID`,
+// HipSTR and GangSTR `PERIOD`, vamos its `motifs`. A VCF record's INFO is
+// searched as well as its top level, and a list's first entry is the unit the
+// bars tile by: for a compound array that is the first repeat sequence, which
+// is the expanding one at every such locus in the common catalogues.
 export interface RepeatArray {
   key: string
   name: string
@@ -58,6 +62,7 @@ function field(f: FeatureLike, name: string): unknown {
 }
 
 const MOTIF_FIELDS = [
+  'RUS',
   'MOTIFS',
   'RU',
   'motifs',
@@ -66,6 +71,7 @@ const MOTIF_FIELDS = [
   'consensus',
 ]
 const PERIOD_FIELDS = [
+  'RUL',
   'period',
   'PERIOD',
   'consensusSize',
@@ -74,27 +80,32 @@ const PERIOD_FIELDS = [
 ]
 const NAME_FIELDS = ['TRID', 'REPID', 'VARID', 'name', 'ID', 'id']
 
+// The first entry of a list-valued field, whether it arrived parsed or as
+// the comma-joined text a VCF INFO or a BED column holds; VCF's missing "."
+// counts as absent.
 function first(f: FeatureLike, names: string[]) {
   for (const name of names) {
     const value = field(f, name)
-    const one = Array.isArray(value) ? value[0] : value
-    if (one !== undefined && one !== null && one !== '') {
-      return String(one)
+    const one = String((Array.isArray(value) ? value[0] : value) ?? '')
+      .split(',')[0]!
+      .trim()
+    if (one !== '' && one !== '.') {
+      return one
     }
   }
   return undefined
 }
 
-// The unit in bp: a stated period, else the length of the first motif. A
-// compound catalogue entry (`MOTIFS=CAG,CCG`) tiles by its first motif, which
-// is the one the expansion is in for every such locus in the common catalogues.
+const IUPAC = /^[ACGTURYSWKMBDHVN]+$/i
+
+// The unit in bp: a stated period, else the length of the first motif.
 export function repeatUnitOf(f: FeatureLike) {
   const period = Number(first(f, PERIOD_FIELDS))
   if (Number.isFinite(period) && period > 0) {
     return Math.round(period)
   }
-  const motif = first(f, MOTIF_FIELDS)?.split(',')[0]?.trim()
-  return motif && /^[ACGTNacgtn]+$/.test(motif) ? motif.length : undefined
+  const motif = first(f, MOTIF_FIELDS)
+  return motif && IUPAC.test(motif) ? motif.length : undefined
 }
 
 export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
@@ -107,7 +118,7 @@ export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
       continue
     }
     const refName = field(f, 'refName') as string
-    const motif = first(f, MOTIF_FIELDS)?.split(',')[0]?.trim()
+    const motif = first(f, MOTIF_FIELDS)
     arrays.push({
       key: `${refName}:${start}-${end}`,
       name:

@@ -18,6 +18,28 @@ test('TRGT catalogue: first of MOTIFS, named by TRID', () => {
   expect(repeatArraysFrom([f])[0]).toMatchObject({ name: 'HTT', motif: 'CAG' })
 })
 
+// The spec's own <CNV:TR> example: RUS=CAG,CAG,CA,CAG grouped RN=1,3, so the
+// first allele is (CAG)n and the unit is 3. RUL alone, a comma-joined list,
+// or an IUPAC motif all state the same unit; a missing "." states none.
+test('VCF 4.5 <CNV:TR>: RUL, else the first RUS', () => {
+  const spec = {
+    ...base,
+    INFO: {
+      RUS: ['CAG', 'CAG', 'CA', 'CAG'],
+      RN: [1, 3],
+      RB: [90, 15, 2, 12],
+      SVLEN: [30, 30],
+    },
+  }
+  expect(repeatUnitOf(spec)).toBe(3)
+  expect(repeatArraysFrom([spec])[0]!.motif).toBe('CAG')
+  expect(repeatUnitOf({ ...base, INFO: { RUL: '5548,2', RUS: '.' } })).toBe(
+    5548,
+  )
+  expect(repeatUnitOf({ ...base, INFO: { RUS: 'CAR' } })).toBe(3)
+  expect(repeatUnitOf({ ...base, INFO: { RUS: '.', RN: 1 } })).toBeUndefined()
+})
+
 test('ExpansionHunter and HipSTR VCF records read INFO', () => {
   const eh = {
     ...base,
