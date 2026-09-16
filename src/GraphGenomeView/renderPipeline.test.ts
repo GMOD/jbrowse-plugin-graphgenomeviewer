@@ -148,16 +148,16 @@ test('a pan drops it too', async () => {
 })
 
 // The two signals name different events and are read by different consumers:
-// `viewportDirty` says the window onto the drawing moved, `positionsVersion`
-// says the drawing itself did. Conflating them rebuilt a 12k-edge hit index on
-// the first mousemove after every pan, for an index that is in layout units and
-// had not changed.
-test('a pan moves the viewport signal and a node drag moves the positions one', async () => {
+// `viewportDirty` says the window onto the drawing moved past what was built,
+// `positionsVersion` says the drawing itself did. Conflating them rebuilt a
+// 12k-edge hit index on the first mousemove after every pan, for an index that
+// is in layout units and had not changed.
+test('a pan past the built window moves the viewport signal and a node drag moves the positions one', async () => {
   const model = await drawnModel()
   const dirty = model.viewportDirty
   const positions = model.positionsVersion
 
-  model.setTransform(model.scale, model.translateX + 40, model.translateY)
+  model.setTransform(model.scale, model.translateX + 5 * model.width, 0)
   await sleep(300)
   expect(model.viewportDirty).toBeGreaterThan(dirty)
   expect(model.positionsVersion).toBe(positions)
@@ -165,6 +165,22 @@ test('a pan moves the viewport signal and a node drag moves the positions one', 
   model.moveNode('1+', 10, 10)
   await sleep(100)
   expect(model.positionsVersion).toBe(positions + 1)
+})
+
+// A build covers a pane on every side of the one shown, so an ordinary pan is
+// a repaint of strokes already uploaded: no debounce, no blank margin, no
+// rebuild. A zoom changes what the strokes are and rebuilds however small.
+test('a pan inside the built window rebuilds nothing, a zoom always does', async () => {
+  const model = await drawnModel()
+  const dirty = model.viewportDirty
+
+  model.setTransform(model.scale, model.translateX + 40, model.translateY + 40)
+  await sleep(300)
+  expect(model.viewportDirty).toBe(dirty)
+
+  model.zoom(1.01, 100, 100)
+  await sleep(300)
+  expect(model.viewportDirty).toBe(dirty + 1)
 })
 
 // The three consumers of a path colour disagreed about how many paths is too

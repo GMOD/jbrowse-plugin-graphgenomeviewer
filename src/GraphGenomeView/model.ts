@@ -123,6 +123,7 @@ const FIT_PADDING = 40
 const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
+const VIEWPORT_PANES_BUILT = 1
 
 // MobX tracks every observable read while a computed or autorun runs, so
 // passing values here registers them as dependencies without otherwise using
@@ -199,27 +200,53 @@ function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
   return { scaleX: scale, scaleY: pixelRows ? 1 : scale, pixelRows }
 }
 
-function computeViewportBounds(model: {
+interface Bounds {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
+// What the pane shows, in layout units.
+function viewportOf(model: {
   translateX: number
   translateY: number
   width: number
   scaleX: number
   scaleY: number
   canvasHeight: number
-}) {
-  const padding = 0.2
-  const minX = -model.translateX / model.scaleX
-  const minY = -model.translateY / model.scaleY
-  const maxX = (model.width - model.translateX) / model.scaleX
-  const maxY = (model.canvasHeight - model.translateY) / model.scaleY
-  const w = maxX - minX
-  const h = maxY - minY
+}): Bounds {
   return {
-    minX: minX - w * padding,
-    minY: minY - h * padding,
-    maxX: maxX + w * padding,
-    maxY: maxY + h * padding,
+    minX: -model.translateX / model.scaleX,
+    minY: -model.translateY / model.scaleY,
+    maxX: (model.width - model.translateX) / model.scaleX,
+    maxY: (model.canvasHeight - model.translateY) / model.scaleY,
   }
+}
+
+// The window a geometry build covers: the pane plus a whole pane on every
+// side, so a pan has that far to go before the drawing runs out and a rebuild
+// is due. Drawing three panes' worth is cheap now that a redraw is a few
+// batched strokes; what it buys is that an ordinary pan never blanks its
+// margins for the debounce and never rebuilds at all.
+function padded(v: Bounds, panes: number): Bounds {
+  const w = (v.maxX - v.minX) * panes
+  const h = (v.maxY - v.minY) * panes
+  return {
+    minX: v.minX - w,
+    minY: v.minY - h,
+    maxX: v.maxX + w,
+    maxY: v.maxY + h,
+  }
+}
+
+function contains(outer: Bounds, inner: Bounds) {
+  return (
+    inner.minX >= outer.minX &&
+    inner.maxX <= outer.maxX &&
+    inner.minY >= outer.minY &&
+    inner.maxY <= outer.maxY
+  )
 }
 
 // Force layouts already computed for a graph, keyed by the view props the
@@ -499,6 +526,9 @@ export default function stateModelFactory() {
       // Bumped per upload, so the hover autorun re-states its highlights
       // against the batch the renderer now holds.
       geometryVersion: 0,
+      // The zoom and the window the current batch was built for; a pan that
+      // stays inside it needs no rebuild.
+      builtViewport: undefined as { scale: number; bounds: Bounds } | undefined,
       draggingNode: null as string | null,
       // Dragging the background rather than a node. Lives here beside
       // draggingNode instead of in a component ref+state pair, so the two
@@ -1132,9 +1162,14 @@ export default function stateModelFactory() {
       setLayoutMs(ms: number) {
         self.lastLayoutMs = ms
       },
-      setGeometryMetrics(ms: number, strokeCount: number) {
+      setGeometryMetrics(
+        ms: number,
+        strokeCount: number,
+        built: { scale: number; bounds: Bounds },
+      ) {
         self.lastGeometryMs = ms
         self.lastGeometryStrokeCount = strokeCount
+        self.builtViewport = built
         self.geometryVersion++
       },
       setLayoutQuality(quality: number) {
@@ -1387,6 +1422,7 @@ export default function stateModelFactory() {
         self.lastLayoutMs = undefined
         self.lastGeometryMs = undefined
         self.lastGeometryStrokeCount = undefined
+        self.builtViewport = undefined
       },
     }))
     .actions(self => {
@@ -2160,17 +2196,24 @@ export default function stateModelFactory() {
             ),
           )
 
-          // Autorun: debounce viewport dirty flag on pan/zoom (skip first run)
+          // Autorun: a zoom, or a pan that leaves the window the last build
+          // covered, schedules a debounced rebuild. A pan inside it costs a
+          // repaint and nothing else. Skips the first run.
           let firstViewport = true
           addDisposer(
             self,
             autorun(() => {
-              dependOn(self.scale, self.translateX, self.translateY)
+              const { scale } = self
+              const viewport = viewportOf(self)
               if (firstViewport) {
                 firstViewport = false
-              } else {
-                self.scheduleViewportDirty()
+                return
               }
+              const built = untracked(() => self.builtViewport)
+              if (built?.scale === scale && contains(built.bounds, viewport)) {
+                return
+              }
+              self.scheduleViewportDirty()
             }),
           )
 
@@ -2218,6 +2261,9 @@ export default function stateModelFactory() {
               // everything below reads them untracked or not at all.
               dependOn(self.viewportDirty, self.positionsVersion)
               const geometryStart = performance.now()
+              const viewportBounds = untracked(() =>
+                padded(viewportOf(self), VIEWPORT_PANES_BUILT),
+              )
               const batch = buildGeometry({
                 nodePositions: self.nodePositions,
                 graph: self.graph,
@@ -2234,7 +2280,7 @@ export default function stateModelFactory() {
                 // as pan.
                 axis: untracked(() => self.axisScale),
                 linearLayout: self.linearLayout,
-                viewportBounds: untracked(() => computeViewportBounds(self)),
+                viewportBounds,
                 // Where each node sits on the reference and what interval the
                 // hue spans. Held against the graph rather than derived here,
                 // the same way `deletions` is and for the same reason — see
@@ -2249,6 +2295,7 @@ export default function stateModelFactory() {
               self.setGeometryMetrics(
                 performance.now() - geometryStart,
                 batch.nodeStrokes.length,
+                { scale: untracked(() => self.scale), bounds: viewportBounds },
               )
               return true
             }

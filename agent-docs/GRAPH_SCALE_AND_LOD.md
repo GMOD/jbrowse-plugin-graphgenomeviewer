@@ -47,8 +47,32 @@ drawing uses rather than how many nodes it has (`stress.test.ts` pins it).
 
 - **≤2k nodes**: comfortable. Rebuild under 10 ms, redraw under 2 ms.
 - **~15k nodes**: fine to draw. `buildGeometry` is now the wall, at ~60 ms per
-  debounced pan or zoom.
+  zoom.
 - **≥50k nodes**: broken. Geometry alone blows a frame budget by 10×.
+
+**A pan no longer rebuilds.** A build covers the pane plus a whole pane on every
+side (`VIEWPORT_PANES_BUILT`), and the model records the zoom and window it was
+built for; a pan that stays inside it is a repaint of strokes already uploaded,
+with no debounce and no blank margin. Only a zoom, or a pan past the built
+window, schedules the debounced rebuild. Pan and hover mousemoves are also
+coalesced to one frame each in `GraphCanvas`, since mousemove fires well above
+the frame rate and each step used to repaint and re-place every label.
+
+**With paths drawn** (`drawPaths`, 16-path cap), same harness, CPU profile by
+self time. The ribbon fan used to rebuild each edge's whole curve once per path,
+which was 40% of the build; a ribbon is now the shared curve translated, which
+is also what the hit index tests against. The per-graph derivations (path
+palette, node-to-path slots) are cached on the graph rather than redone per
+build.
+
+| nodes  | paths | build before | build after | render |
+| ------ | ----- | ------------ | ----------- | ------ |
+| 11,249 | 20    | 110 ms       | 51 ms       | 71 ms  |
+
+At 1,499 nodes and 16 paths the build after is 4 ms. What is left in a striped
+build is the fan itself — one translated curve, one `isBezierInBounds` and one
+colour lookup per ribbon — and the render is bound by the rasterizer stroking 16
+translucent ribbons per edge, which is the drawing asked for.
 
 Which wall you hit first depends on the layout mode:
 
@@ -72,8 +96,8 @@ matters.
 about where a **force layout stops being readable**, and that limit is set by
 geometry rather than by cost:
 
-- node thickness is a constant in backing-store pixels (`Canvas2DRenderer`:
-  `position * scaleX + normal * thickness`), so it does not shrink with zoom;
+- node thickness is a constant in css pixels (`Canvas2DRenderer` sets
+  `lineWidth` from it after the transform), so it does not shrink with zoom;
 - zoom-to-fit puts the whole drawing in ~900 CSS px;
 - so **N nodes on a path get 900/N px each**, and once that is under the
   thickness the drawing is a rope with the topology inside it.

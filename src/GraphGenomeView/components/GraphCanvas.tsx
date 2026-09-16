@@ -473,6 +473,22 @@ const GraphCanvas = observer(function GraphCanvas({
   // because the cursor renders from it.
   const lastMouseRef = useRef({ x: 0, y: 0 })
   const hasMovedRef = useRef(false)
+  // A pan and a hover are applied once per frame, not once per mousemove:
+  // mousemove fires in bursts well above the frame rate, and each pan step
+  // repainted the canvas and re-placed every overlay label, while each hover
+  // step ran both hit indexes. The pending pan is the summed delta; the pending
+  // hover is the last pointer position, since only the last one can be right.
+  const pendingRef = useRef<{
+    frame: number
+    pan: { dx: number; dy: number } | null
+    hover: { x: number; y: number } | null
+  }>({ frame: 0, pan: null, hover: null })
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(pendingRef.current.frame)
+    },
+    [],
+  )
   const [contextNode, setContextNode] = useState<
     { nodeId: string; top: number; left: number } | undefined
   >(undefined)
@@ -541,25 +557,20 @@ const GraphCanvas = observer(function GraphCanvas({
     }
   }
 
-  function handleMouseMove(e: React.MouseEvent) {
-    const dx = e.clientX - lastMouseRef.current.x
-    const dy = e.clientY - lastMouseRef.current.y
-    lastMouseRef.current = { x: e.clientX, y: e.clientY }
-
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-      hasMovedRef.current = true
-    }
-
-    if (model.draggingNode) {
-      model.moveNode(model.draggingNode, dx / model.scaleX, dy / model.scaleY)
-    } else if (model.isPanning) {
+  function applyPending() {
+    const pending = pendingRef.current
+    pending.frame = 0
+    if (pending.pan) {
       model.setTransform(
         model.scale,
-        model.translateX + dx,
-        model.translateY + dy,
+        model.translateX + pending.pan.dx,
+        model.translateY + pending.pan.dy,
       )
-    } else if (model.nodePositions && model.graph) {
-      const { x, y } = getMouseCoord(e)
+      pending.pan = null
+    }
+    if (pending.hover && model.nodePositions && model.graph) {
+      const { x, y } = screenToGraph(pending.hover.x, pending.hover.y)
+      pending.hover = null
       const node = nodeAt(x, y)
       model.setHoveredNode(node)
       model.setHoveredEdge(
@@ -581,11 +592,53 @@ const GraphCanvas = observer(function GraphCanvas({
     }
   }
 
+  function scheduleFrame() {
+    if (!pendingRef.current.frame) {
+      pendingRef.current.frame = requestAnimationFrame(applyPending)
+    }
+  }
+
+  function dropPending() {
+    const pending = pendingRef.current
+    cancelAnimationFrame(pending.frame)
+    pending.frame = 0
+    pending.pan = null
+    pending.hover = null
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    const dx = e.clientX - lastMouseRef.current.x
+    const dy = e.clientY - lastMouseRef.current.y
+    lastMouseRef.current = { x: e.clientX, y: e.clientY }
+
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      hasMovedRef.current = true
+    }
+
+    const pending = pendingRef.current
+    if (model.draggingNode) {
+      model.moveNode(model.draggingNode, dx / model.scaleX, dy / model.scaleY)
+    } else if (model.isPanning) {
+      pending.pan = {
+        dx: (pending.pan?.dx ?? 0) + dx,
+        dy: (pending.pan?.dy ?? 0) + dy,
+      }
+      scheduleFrame()
+    } else {
+      const rect = (
+        e.currentTarget as HTMLCanvasElement
+      ).getBoundingClientRect()
+      pending.hover = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      scheduleFrame()
+    }
+  }
+
   function handleMouseUp() {
     model.stopDragging()
   }
 
   function handleMouseLeave() {
+    dropPending()
     model.stopDragging()
     model.setHoveredNode(null)
     model.setHoveredEdge(null)

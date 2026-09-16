@@ -1,7 +1,6 @@
 import { packAbgr } from '@jbrowse/core/util/colorBits'
 
 import { fadeAbgr } from './colorBits'
-import { bypassedPoints } from '../deletionEdges'
 import { depthWidthFactor, meanDepth } from '../nodeWidths'
 import {
   PATH_LIGHTNESS,
@@ -12,9 +11,9 @@ import {
 import { referenceMidpoints } from '../referenceSpan'
 import { baseEdgeCurves } from '../util/edgeCurves'
 import {
-  computeEdgeCurves,
   dashCurves,
   pathRibbonOffsets,
+  translateCurves,
   yToXOf,
 } from '../util/geometry'
 
@@ -556,6 +555,73 @@ function isBezierInBounds(
   return false
 }
 
+// Per-graph derivations, cached on the graph: this function runs on every
+// debounced pan and zoom, and a walk over every path's every step is a fact
+// about the graph rather than about the frame.
+
+// By position in the path list, matching pathLegend's swatches exactly, so the
+// key beside the drawing names the strokes in it.
+//
+// One array plus a name lookup, rather than an array and a Map of the same
+// colours: two paths that share a name then draw the same colour on their
+// edges and on their nodes, instead of the Map keeping the last one written
+// while the array kept the first. `gfaConverter` no longer produces such a
+// pair, and this is what makes the drawing merely wrong rather than
+// inconsistent if anything ever does again.
+const paletteCache = new WeakMap<
+  Graph,
+  { pathColorByIndex: number[]; pathIndexByName: Map<string, number> }
+>()
+
+function pathPaletteOf(graph: Graph) {
+  let palette = paletteCache.get(graph)
+  if (!palette) {
+    const pathColorByIndex: number[] = []
+    const pathIndexByName = new Map<string, number>()
+    const paths = graph.paths ?? []
+    for (let i = 0; i < paths.length; i++) {
+      const [r, g, b] = hslToRgb(
+        pathHueAt(i, paths.length),
+        PATH_SATURATION,
+        PATH_LIGHTNESS,
+      )
+      pathColorByIndex.push(packNorm(r, g, b, 0.85))
+      if (!pathIndexByName.has(paths[i]!.name)) {
+        pathIndexByName.set(paths[i]!.name, i)
+      }
+    }
+    palette = { pathColorByIndex, pathIndexByName }
+    paletteCache.set(graph, palette)
+  }
+  return palette
+}
+
+// nodeId -> the indices of the paths that visit it, i.e. which stripe slots
+// this node fills. Built from the paths themselves rather than read off the
+// node, because `GraphNode.samples` collapses a sample's haplotypes together
+// and the legend does not.
+const slotsCache = new WeakMap<Graph, Map<string, number[]>>()
+const NO_SLOTS: ReadonlyMap<string, number[]> = new Map()
+
+function pathSlotsOf(graph: Graph): ReadonlyMap<string, number[]> {
+  let slots = slotsCache.get(graph)
+  if (!slots) {
+    slots = new Map()
+    for (const [pathIdx, path] of (graph.paths ?? []).entries()) {
+      for (const nodeId of new Set(path.nodeIds)) {
+        const visits = slots.get(nodeId)
+        if (visits) {
+          visits.push(pathIdx)
+        } else {
+          slots.set(nodeId, [pathIdx])
+        }
+      }
+    }
+    slotsCache.set(graph, slots)
+  }
+  return slots
+}
+
 export function buildGeometry(options: BuildOptions): RenderBatch {
   const {
     nodePositions,
@@ -603,53 +669,13 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     }
   }
 
-  // By position in the path list, matching pathLegend's swatches exactly, so
-  // the key beside the drawing names the strokes in it.
-  //
-  // One array plus a name lookup, rather than an array and a Map of the same
-  // colours: two paths that share a name then draw the same colour on their
-  // edges and on their nodes, instead of the Map keeping the last one written
-  // while the array kept the first. `gfaConverter` no longer produces such a
-  // pair, and this is what makes the drawing merely wrong rather than
-  // inconsistent if anything ever does again.
   const pathCount = graph.paths?.length ?? 0
-  const pathColorByIndex: number[] = []
-  const pathIndexByName = new Map<string, number>()
-  if (graph.paths) {
-    for (let i = 0; i < graph.paths.length; i++) {
-      const [r, g, b] = hslToRgb(
-        pathHueAt(i, graph.paths.length),
-        PATH_SATURATION,
-        PATH_LIGHTNESS,
-      )
-      pathColorByIndex.push(packNorm(r, g, b, 0.85))
-      if (!pathIndexByName.has(graph.paths[i]!.name)) {
-        pathIndexByName.set(graph.paths[i]!.name, i)
-      }
-    }
-  }
+  const { pathColorByIndex, pathIndexByName } = pathPaletteOf(graph)
   const pathColorByName = (name: string) =>
     pathColorByIndex[pathIndexByName.get(name) ?? -1] ??
     EDGE_PATH_FALLBACK_COLOR
-
-  // nodeId -> the indices of the paths that visit it, i.e. which stripe slots
-  // this node fills. Built from the paths themselves rather than read off the
-  // node, because `GraphNode.samples` collapses a sample's haplotypes together
-  // and the legend does not.
-  const nodePathSlots = new Map<string, number[]>()
-  const stripeNodes = drawPaths && pathCount > 1
-  if (stripeNodes) {
-    for (const [pathIdx, path] of graph.paths!.entries()) {
-      for (const nodeId of new Set(path.nodeIds)) {
-        const slots = nodePathSlots.get(nodeId)
-        if (slots) {
-          slots.push(pathIdx)
-        } else {
-          nodePathSlots.set(nodeId, [pathIdx])
-        }
-      }
-    }
-  }
+  const nodePathSlots =
+    drawPaths && pathCount > 1 ? pathSlotsOf(graph) : NO_SLOTS
 
   // An arrowhead at every joint of a few hundred short nodes is a serration
   // along the whole drawing, so heads wait for a zoom where a node is longer
@@ -666,7 +692,6 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     }
 
     const numPaths = edge.pathIds?.length ?? 0
-    const isSelfLoop = edge.from === edge.to
     const bypassed = deletions?.get(ei)
     const isDeletion = bypassed !== undefined
     const onWalk = highlight?.edgeIndexes.has(ei) ?? false
@@ -674,17 +699,11 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       (connectorThickness / 2) *
       (isDeletion ? DELETION_THICKNESS_FACTOR : 1) *
       (onWalk ? WALK_EDGE_THICKNESS_FACTOR : 1)
-    // One stroke per path crossing the edge, fanned off it. The only variant
-    // that is not the shared curve, and the only reason this loop still builds
-    // one at all.
+    // One stroke per path crossing the edge, fanned off it: the shared curve
+    // slid sideways, which is also what the hit index tests against. Rebuilding
+    // the curve at each offset was 40% of a striped build and differed from a
+    // translation only in a deletion's bow, by the offset's few px.
     const ribbons = drawPaths && numPaths > 0
-    // Bow the arc AROUND the reference it skips, so the two arms of the bubble
-    // are comparable instead of one being a stub at a joint. Where that run is
-    // drawn is the input; computeEdgeCurves turns it into a bow, because only it
-    // knows the chord to measure against. `baseEdgeCurves` has already done this
-    // for the offset-zero curve, so it is only gathered again for a fan.
-    const bowAroundNodes =
-      ribbons && bypassed ? bypassedPoints(nodePositions, bypassed) : []
 
     // An arrowhead states which way a LINK is read, which is a property of the
     // edge and not of each path crossing it. Drawn per ribbon it says one thing
@@ -713,15 +732,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       const curves =
         offsetX === 0 && offsetY === 0
           ? baseCurves
-          : computeEdgeCurves(
-              fromSegments,
-              toSegments,
-              isSelfLoop,
-              offsetX,
-              offsetY,
-              axis,
-              bowAroundNodes,
-            )
+          : translateCurves(baseCurves, offsetX, offsetY)
 
       if (viewportBounds && !isBezierInBounds(curves, viewportBounds)) {
         return
