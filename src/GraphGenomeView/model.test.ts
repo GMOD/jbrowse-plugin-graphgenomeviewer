@@ -587,6 +587,25 @@ describe('loadGFAFromLocation', () => {
     expect(model.isLoading).toBe(false)
     expect(String(model.error)).toMatch(/404/)
   })
+
+  test('canceling aborts the fetch without reporting an error', async () => {
+    mockReadFile.mockImplementation(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'))
+          })
+        }),
+    )
+    const model = createModel()
+    const load = model.loadGFAFromLocation(location)
+    model.cancelLoad()
+    await load
+
+    expect(model.loadCanceled).toBe(true)
+    expect(model.isLoading).toBe(false)
+    expect(model.error).toBeUndefined()
+  })
 })
 
 describe('refetchIfNeeded restore flow', () => {

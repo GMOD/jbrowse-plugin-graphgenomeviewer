@@ -515,6 +515,7 @@ export default function stateModelFactory() {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       error: undefined as unknown,
       isLoading: false,
+      loadCanceled: false,
       statusMessage: '',
       hoveredNode: null as string | null,
       hoveredEdge: null as number | null,
@@ -590,6 +591,15 @@ export default function stateModelFactory() {
       },
       get hasGraph() {
         return self.graph !== undefined
+      },
+      get canRetryLoad() {
+        return !!(self.loadedTrackId && self.loadedRegion) || !!self.gfaLocation
+      },
+      // Only before anything is drawn: past that point a reload is superseded
+      // by the next setting change, and stopping one midway would leave a new
+      // graph under the previous graph's layout.
+      get canCancelLoad() {
+        return self.isLoading && !self.layoutResult
       },
       // Whether the drawing on screen is the FMMM engine's. False before there
       // is a graph, since nothing is drawn by anything yet.
@@ -1460,6 +1470,7 @@ export default function stateModelFactory() {
           self.layoutResult = undefined
           self.error = undefined
           self.isLoading = false
+          self.loadCanceled = false
           self.statusMessage = ''
           self.clearInteractionState()
           self.clearRenderBatchMeta()
@@ -1500,6 +1511,8 @@ export default function stateModelFactory() {
       }
     })
     .actions(self => {
+      let loadController: AbortController | undefined
+
       // `scaling.nodes` rather than the graph's own: under a compressing
       // drawn-length law a node's `length` crosses this boundary as a drawn
       // length, which is all the engine ever reads it as.
@@ -1526,6 +1539,7 @@ export default function stateModelFactory() {
             ...scaling.opts,
             ...(anchored ? { rotateComponents: false } : {}),
           },
+          signal: loadController?.signal,
           // A StatusCallback takes an RpcStatus, not a string — it may be a
           // bare label, a phase, or a phase that threw. `statusMessageText` is
           // core's reader for the human-facing line.
@@ -1622,6 +1636,7 @@ export default function stateModelFactory() {
       function* layoutInto(graph: Graph) {
         const request = ++liveRequest
         const isLive = () => self.graph === graph && request === liveRequest
+        const signal = loadController?.signal
         let computed
         try {
           computed = yield* computeLayout(graph)
@@ -1629,8 +1644,9 @@ export default function stateModelFactory() {
           // A discarded layout's failure is not the user's problem: the drawing
           // they asked for is on screen or on its way, and raising a banner
           // over it reports a graph as broken because a setting they moved on
-          // from could not be drawn.
-          if (!isLive()) {
+          // from could not be drawn. An aborted one was discarded by the load
+          // that replaced it, even when the graph is still the same object.
+          if (!isLive() || signal?.aborted) {
             return false
           }
           throw e
@@ -1687,7 +1703,13 @@ export default function stateModelFactory() {
 
       function beginLoad() {
         const load = ++liveLoad
-        return () => load === liveLoad
+        loadController?.abort()
+        loadController = new AbortController()
+        self.loadCanceled = false
+        return {
+          isLive: () => load === liveLoad,
+          signal: loadController.signal,
+        }
       }
 
       function loadedTrack() {
@@ -1804,7 +1826,7 @@ export default function stateModelFactory() {
           haplotypes?: string[]
         } = {},
       ) {
-        const isLive = beginLoad()
+        const { isLive, signal } = beginLoad()
         const track = loadedTrack()
         const regionSize = region.end - region.start
         // Past the size cap the graph view declines rather than degrading to a
@@ -1838,6 +1860,7 @@ export default function stateModelFactory() {
             adapterConfig,
             region,
             opts: { hops: opts.hops, haplotypes: opts.haplotypes },
+            signal,
           })) as string
           if (!isLive()) {
             return
@@ -1850,6 +1873,9 @@ export default function stateModelFactory() {
           }
           const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
           yield* parseAndLayout(gfaText, label)
+          if (!isLive()) {
+            return
+          }
           yield* loadBubbles(adapterConfig, region, isLive)
           yield* loadGenes(region, isLive)
         } catch (e) {
@@ -1866,8 +1892,9 @@ export default function stateModelFactory() {
 
       // The cut behind a graph whose source is a track in this session, which is
       // what both a launch snapshot and a restored session carry. Silent when
-      // there is no such pair, or when the track it names has since gone: those
-      // are the whole-file and stale cases, not errors.
+      // there is no such pair, which is the whole-file case. A pair naming a
+      // track the session lacks is reported, because otherwise the view sits on
+      // an empty import form with nothing saying why.
       //
       // Nothing here saves and restores the transform: `userMovedViewport` is
       // what protects a restored session's pan/zoom, and it gates the fit
@@ -1877,7 +1904,11 @@ export default function stateModelFactory() {
       function* cutFromLoadedTrack() {
         const region = self.loadedRegion
         const track = loadedTrack()
-        if (track && region) {
+        if (region && self.loadedTrackId && !track) {
+          self.error = new Error(
+            `The track this graph was cut from, "${self.loadedTrackId}", is not in this session`,
+          )
+        } else if (track && region) {
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
             hops: self.subgraphContext,
             haplotypes: self.subgraphHaplotypes,
@@ -1890,16 +1921,18 @@ export default function stateModelFactory() {
       // hand is parsed without yielding first.
       function* loadWholeGFA(
         name: string,
-        source: string | (() => Promise<string>),
+        source: string | ((signal: AbortSignal) => Promise<string>),
       ) {
-        const isLive = beginLoad()
+        const { isLive, signal } = beginLoad()
         self.loadedTrackId = ''
         self.loadedRegion = undefined
         self.isLoading = true
         self.error = undefined
         try {
           const text =
-            typeof source === 'string' ? source : ((yield source()) as string)
+            typeof source === 'string'
+              ? source
+              : ((yield source(signal)) as string)
           if (isLive()) {
             yield* parseAndLayout(text, name)
           }
@@ -1916,6 +1949,18 @@ export default function stateModelFactory() {
       }
 
       return {
+        cancelLoad() {
+          if (self.canCancelLoad) {
+            loadController?.abort()
+            loadController = undefined
+            liveLoad++
+            liveRequest++
+            self.graph = undefined
+            self.isLoading = false
+            self.statusMessage = ''
+            self.loadCanceled = true
+          }
+        },
         loadGFA: flow(function* (text: string, name = 'Imported GFA') {
           yield* loadWholeGFA(name, text)
         }),
@@ -1925,7 +1970,8 @@ export default function stateModelFactory() {
             'uri' in location
               ? (location.uri.split('/').pop() ?? 'GFA')
               : 'GFA',
-            () => openLocation(location).readFile('utf8'),
+            signal =>
+              openLocation(location).readFile({ encoding: 'utf8', signal }),
           )
         }),
         loadFromTabixSubgraph: flow(function* (
@@ -1969,7 +2015,7 @@ export default function stateModelFactory() {
           if (!graph) {
             return
           }
-          const isLive = beginLoad()
+          const { isLive } = beginLoad()
           const sub = bubbleSubgraph(graph, bubbleSegmentIds(bubble))
           if (sub.nodes.length === 0) {
             return
@@ -2332,6 +2378,13 @@ export default function stateModelFactory() {
       },
     }))
     .actions(self => ({
+      retryLoad() {
+        if (self.loadedTrackId && self.loadedRegion) {
+          void self.reloadSubgraph()
+        } else if (self.gfaLocation) {
+          void self.loadGFAFromLocation(self.gfaLocation)
+        }
+      },
       // A declaratively-instantiated view loads itself on attach, from either
       // declarative source: a whole-GFA `gfaLocation`, or the
       // `loadedTrackId`/`loadedRegion` pair the launch menu writes and a

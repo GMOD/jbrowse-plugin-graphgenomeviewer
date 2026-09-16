@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { ErrorBanner, Menu } from '@jbrowse/core/ui'
+import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
-import { LinearProgress, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 
 import BubbleHalos from './BubbleHalos'
@@ -35,26 +34,22 @@ const tooltipStyle = {
   pointerEvents: 'none' as const,
 }
 
-const loadingOverlayStyle = {
-  position: 'absolute' as const,
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  zIndex: 10,
-  background: 'rgba(255,255,255,0.8)',
-  padding: 16,
-  borderRadius: 8,
-  minWidth: 200,
-}
-
-const progressStyle = { marginTop: 8 }
-
 const wrapperStyle = { position: 'relative' as const }
 
 // The overlay origin has to be the canvas, not the wrapper: the wrapper also
 // holds the toolbar, so anything positioned against it is offset by the
 // toolbar's height, and a row label lands a whole row off the row it names.
 const canvasAreaStyle = { position: 'relative' as const, lineHeight: 0 }
+
+// Above the labels, pins and legends drawn over the canvas, and with the line
+// height the canvas area zeroes, which would collapse the overlay's label
+const loadingLayerStyle = {
+  position: 'absolute' as const,
+  inset: 0,
+  zIndex: 10,
+  lineHeight: 'normal',
+  pointerEvents: 'none' as const,
+}
 
 const rowLabelStyle = {
   position: 'absolute' as const,
@@ -625,13 +620,6 @@ const GraphCanvas = observer(function GraphCanvas({
     <div style={wrapperStyle}>
       <GraphToolbar model={model} />
 
-      {model.isLoading ? (
-        <div style={loadingOverlayStyle}>
-          <Typography>{model.statusMessage || 'Loading...'}</Typography>
-          <LinearProgress variant="indeterminate" style={progressStyle} />
-        </div>
-      ) : null}
-
       <div style={canvasAreaStyle}>
         <canvas
           ref={canvasRef}
@@ -660,6 +648,21 @@ const GraphCanvas = observer(function GraphCanvas({
           <PathLegend model={model} />
           <WalkReadout model={model} />
         </div>
+
+        <div style={loadingLayerStyle}>
+          <LoadingOverlay
+            isVisible={model.isLoading}
+            immediate={!model.layoutResult}
+            statusMessage={model.statusMessage}
+            onCancel={
+              model.canCancelLoad
+                ? () => {
+                    model.cancelLoad()
+                  }
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <HoverTooltips model={model} />
@@ -676,7 +679,18 @@ const GraphCanvas = observer(function GraphCanvas({
         />
       ) : null}
 
-      {model.error ? <ErrorBanner error={model.error} /> : null}
+      {model.error ? (
+        <ErrorBanner
+          error={model.error}
+          onReset={
+            model.canRetryLoad
+              ? () => {
+                  model.retryLoad()
+                }
+              : undefined
+          }
+        />
+      ) : null}
     </div>
   )
 })

@@ -161,3 +161,85 @@ describe('overlapping cuts', () => {
     expect(model.nodeCount).toBe(3)
   })
 })
+
+describe('canceling and retrying', () => {
+  function pendingCuts() {
+    const pending: ((gfa: string) => void)[] = []
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? new Promise<string>(resolve => {
+            pending.push(resolve)
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    return pending
+  }
+
+  function cutSignal(index: number) {
+    return (mockRpcCall.mock.calls[index]![2] as { signal: AbortSignal }).signal
+  }
+
+  function launchedView() {
+    return createView({ loadedTrackId: TRACK.trackId, loadedRegion: ON_HG38 })
+  }
+
+  test('canceling a first cut aborts it, and its late answer never lands', async () => {
+    const pending = pendingCuts()
+    const model = launchedView()
+    const load = model.reloadSubgraph()
+    expect(model.canCancelLoad).toBe(true)
+
+    model.cancelLoad()
+    expect(cutSignal(0).aborted).toBe(true)
+    expect(model.isLoading).toBe(false)
+    expect(model.loadCanceled).toBe(true)
+
+    pending[0]!(GFA)
+    await load
+    expect(model.hasGraph).toBe(false)
+    expect(model.error).toBeUndefined()
+  })
+
+  test('retry cuts the same region again', async () => {
+    pendingCuts()
+    const model = launchedView()
+    void model.reloadSubgraph()
+    model.cancelLoad()
+
+    mockRpcCall.mockResolvedValue(GFA)
+    model.retryLoad()
+    expect(model.loadCanceled).toBe(false)
+    await vi.waitFor(() => {
+      expect(model.nodeCount).toBe(3)
+    })
+  })
+
+  test('a newer cut aborts the one it replaces', () => {
+    pendingCuts()
+    const model = launchedView()
+    void model.reloadSubgraph()
+    void model.reloadSubgraph()
+    expect(cutSignal(0).aborted).toBe(true)
+    expect(cutSignal(1).aborted).toBe(false)
+  })
+
+  test('a reload over a drawn graph cannot be canceled', async () => {
+    const model = await cut(ON_HG38)
+    pendingCuts()
+    void model.reloadSubgraph()
+    expect(model.canCancelLoad).toBe(false)
+
+    model.cancelLoad()
+    expect(model.isLoading).toBe(true)
+    expect(model.nodeCount).toBe(3)
+  })
+
+  test('a stored track the session no longer has is reported', async () => {
+    mockSession.tracks = []
+    const model = launchedView()
+    await model.refetchIfNeeded()
+    expect(String(model.error)).toMatch(/"segments", is not in this session/)
+    expect(model.canRetryLoad).toBe(true)
+    expect(mockRpcCall).not.toHaveBeenCalled()
+  })
+})
