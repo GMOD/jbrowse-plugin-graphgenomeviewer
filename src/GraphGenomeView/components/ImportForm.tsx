@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
-import { ErrorBanner, LoadingEllipses } from '@jbrowse/core/ui'
-import { openLocation } from '@jbrowse/core/util/io'
+import { ErrorBanner } from '@jbrowse/core/ui'
 import { Button, Paper, TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
@@ -40,21 +39,9 @@ const ImportForm = observer(function ImportForm({
   const { classes } = useStyles()
   const [url, setUrl] = useState('')
 
-  // Fetch failures go to the model's error slot rather than a second local one,
-  // so the form has one error to show in one banner: two banners meant a failed
-  // URL load could sit next to a stale error from a previous attempt.
-  async function handleUrlLoad() {
+  function handleUrlLoad() {
     if (url.trim()) {
-      model.setError(undefined)
-      try {
-        const text = await openLocation({
-          uri: url,
-          locationType: 'UriLocation',
-        }).readFile('utf8')
-        await model.loadGFA(text, url.split('/').pop() ?? 'GFA')
-      } catch (e) {
-        model.setError(e)
-      }
+      void model.loadGFAFromLocation({ uri: url, locationType: 'UriLocation' })
     }
   }
 
@@ -105,7 +92,7 @@ const ImportForm = observer(function ImportForm({
             }}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                void handleUrlLoad()
+                handleUrlLoad()
               }
             }}
             className={classes.flex1}
@@ -113,9 +100,9 @@ const ImportForm = observer(function ImportForm({
           <Button
             variant="contained"
             onClick={() => {
-              void handleUrlLoad()
+              handleUrlLoad()
             }}
-            disabled={!url.trim() || model.isLoading}
+            disabled={!url.trim()}
           >
             Open
           </Button>
@@ -132,13 +119,6 @@ const ImportForm = observer(function ImportForm({
           Load 4-node example
         </Button>
       </div>
-
-      {model.isLoading ? (
-        <LoadingEllipses
-          variant="body2"
-          message={model.statusMessage || 'Loading'}
-        />
-      ) : null}
 
       {model.error ? <ErrorBanner error={model.error} /> : null}
     </Paper>

@@ -1885,25 +1885,48 @@ export default function stateModelFactory() {
         }
       }
 
+      // Raises `isLoading` before any fetch, so a view waiting on a remote file
+      // shows its loading state instead of the import form. Text already in
+      // hand is parsed without yielding first.
+      function* loadWholeGFA(
+        name: string,
+        source: string | (() => Promise<string>),
+      ) {
+        const isLive = beginLoad()
+        self.loadedTrackId = ''
+        self.loadedRegion = undefined
+        self.isLoading = true
+        self.error = undefined
+        try {
+          const text =
+            typeof source === 'string' ? source : ((yield source()) as string)
+          if (isLive()) {
+            yield* parseAndLayout(text, name)
+          }
+        } catch (e) {
+          if (isLive()) {
+            console.error('[GraphGenomeView.loadWholeGFA]', e)
+            self.error = e
+          }
+        } finally {
+          if (isLive()) {
+            self.isLoading = false
+          }
+        }
+      }
+
       return {
         loadGFA: flow(function* (text: string, name = 'Imported GFA') {
-          const isLive = beginLoad()
-          self.loadedTrackId = ''
-          self.loadedRegion = undefined
-          self.isLoading = true
-          self.error = undefined
-          try {
-            yield* parseAndLayout(text, name)
-          } catch (e) {
-            if (isLive()) {
-              console.error('[GraphGenomeView.loadGFA]', e)
-              self.error = e
-            }
-          } finally {
-            if (isLive()) {
-              self.isLoading = false
-            }
-          }
+          yield* loadWholeGFA(name, text)
+        }),
+        loadGFAFromLocation: flow(function* (location: FileLocation) {
+          self.setStatusMessage('Fetching GFA')
+          yield* loadWholeGFA(
+            'uri' in location
+              ? (location.uri.split('/').pop() ?? 'GFA')
+              : 'GFA',
+            () => openLocation(location).readFile('utf8'),
+          )
         }),
         loadFromTabixSubgraph: flow(function* (
           adapterConfig: Record<string, unknown>,
@@ -2309,41 +2332,24 @@ export default function stateModelFactory() {
       },
     }))
     .actions(self => ({
-      // Fetch and render the whole GFA named by `gfaLocation`. loadGFA leaves
-      // `gfaLocation` intact, so the source round-trips through a session
-      // snapshot.
-      loadFromLocation: flow(function* () {
-        const loc = self.gfaLocation
-        if (loc) {
-          try {
-            const text = yield openLocation(loc).readFile('utf8')
-            const name =
-              'uri' in loc ? (loc.uri.split('/').pop() ?? 'GFA') : 'GFA'
-            yield self.loadGFA(text, name)
-          } catch (e) {
-            console.error('[GraphGenomeView.loadFromLocation]', e)
-            self.setError(e)
-          }
-        }
-      }),
-    }))
-    .actions(self => ({
       // A declaratively-instantiated view loads itself on attach, from either
       // declarative source: a whole-GFA `gfaLocation`, or the
       // `loadedTrackId`/`loadedRegion` pair the launch menu writes and a
       // reloaded session restores.
       //
       // This has to happen here rather than when the rendering backend starts:
-      // the canvas only mounts once `hasGraph` is true (the import form shows
-      // until then), so a view whose graph must be fetched would never fetch it.
+      // the canvas only mounts once `hasGraph` is true, so a view whose graph
+      // must be fetched would never fetch it.
       afterAttach() {
         // A restored session that already carries a non-default transform is
         // the user's own view — mark it so the fit autorun leaves it alone.
         if (!self.isDefaultViewport) {
           self.userMovedViewport = true
         }
+        // loadGFAFromLocation leaves `gfaLocation` intact, so the source
+        // round-trips through a session snapshot.
         if (self.gfaLocation && !self.graph) {
-          void self.loadFromLocation()
+          void self.loadGFAFromLocation(self.gfaLocation)
         }
         void self.refetchIfNeeded()
       },

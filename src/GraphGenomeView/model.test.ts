@@ -83,6 +83,11 @@ vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
   ),
 }))
 
+const mockReadFile = vi.hoisted(() => vi.fn())
+vi.mock('@jbrowse/core/util/io', () => ({
+  openLocation: () => ({ readFile: mockReadFile }),
+}))
+
 const SIMPLE_GFA = 'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nL\t1\t+\t2\t+\t0M\n'
 
 const MOCK_LAYOUT = {
@@ -539,6 +544,48 @@ describe('empty subgraph handling', () => {
     expect(String(model.error)).toMatch(/no GFA/i)
     expect(model.isLoading).toBe(false)
     consoleSpy.mockRestore()
+  })
+})
+
+describe('loadGFAFromLocation', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockReadFile.mockReset()
+  })
+
+  const location = {
+    uri: 'https://example.com/graphs/small.gfa',
+    locationType: 'UriLocation' as const,
+  }
+
+  test('is loading while the file is still being fetched', async () => {
+    rpcRespond()
+    let respond = (_text: string) => {}
+    mockReadFile.mockReturnValue(
+      new Promise<string>(resolve => {
+        respond = resolve
+      }),
+    )
+    const model = createModel()
+    const load = model.loadGFAFromLocation(location)
+
+    expect(model.isLoading).toBe(true)
+    expect(model.statusMessage).toBe('Fetching GFA')
+
+    respond(SIMPLE_GFA)
+    await load
+    expect(model.isLoading).toBe(false)
+    expect(model.nodeCount).toBe(2)
+  })
+
+  test('a failed fetch ends the load with its error', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockReadFile.mockRejectedValue(new Error('404'))
+    const model = createModel()
+    await model.loadGFAFromLocation(location)
+
+    expect(model.isLoading).toBe(false)
+    expect(String(model.error)).toMatch(/404/)
   })
 })
 
