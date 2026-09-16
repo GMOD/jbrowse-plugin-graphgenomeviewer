@@ -68,7 +68,6 @@ vi.mock('@jbrowse/core/util', () => {
     measureText: () => 0,
     IntervalTree: class {},
     // Add other exports that might be needed
-    checkStopToken: () => false,
     getSnapshot: () => ({}),
     applySnapshot: () => {},
     objectHash: () => '',

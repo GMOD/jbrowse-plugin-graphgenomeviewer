@@ -448,6 +448,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         }
       }
       observer.complete()
-    }, opts.stopToken)
+    }, opts.signal)
   }
 }

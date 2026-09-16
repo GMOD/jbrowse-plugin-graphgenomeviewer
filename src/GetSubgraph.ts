@@ -4,7 +4,7 @@ import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTyp
 import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 import type { Region } from '@jbrowse/core/util'
 
-// No `sessionId`, `stopToken` or `statusCallback` here: those belong to the
+// No `sessionId`, `signal` or `statusCallback` here: those belong to the
 // CALL, not to this payload, and core's `EntriesDeclaringCallLevelFields` fails
 // the build for a registry entry that declares one. `execute` still receives
 // them, because `RpcExecuteArgs` intersects `RpcCallContext` in.

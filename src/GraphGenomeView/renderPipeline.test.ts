@@ -22,7 +22,6 @@ vi.mock('@jbrowse/core/util', () => ({
   useWidthSetter: () => {},
   measureText: () => 0,
   IntervalTree: class {},
-  checkStopToken: () => false,
   getSnapshot: () => ({}),
   applySnapshot: () => {},
   objectHash: () => '',
