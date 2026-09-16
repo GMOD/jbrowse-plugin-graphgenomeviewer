@@ -68,7 +68,7 @@ const GraphStats = observer(function GraphStats({
       data-fetch-ms={model.lastFetchMs ?? ''}
       data-layout-ms={model.lastLayoutMs ?? ''}
       data-geometry-ms={model.lastGeometryMs ?? ''}
-      data-geometry-vertices={model.lastGeometryVertexCount ?? ''}
+      data-geometry-strokes={model.lastGeometryStrokeCount ?? ''}
     >
       <Typography variant="body2" component="span">
         {model.nodeCount} nodes, {model.edgeCount} edges

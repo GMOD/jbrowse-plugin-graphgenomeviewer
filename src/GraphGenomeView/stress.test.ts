@@ -3,7 +3,6 @@ import { convertGFAToGraph } from './gfa/gfaConverter'
 import { Canvas2DRenderer } from './renderer/Canvas2DRenderer'
 import { buildGeometry } from './renderer/GeometryBuilder'
 import { recordingCanvas } from './renderer/recordingCanvas'
-import { INSTANCE_STRIDE_F32 } from './renderer/shaders/graph.generated'
 
 import type { GraphNode, NodeSegment } from './types'
 
@@ -108,13 +107,10 @@ test('buildGeometry scales to a few thousand nodes', () => {
   })
   const elapsed = performance.now() - t0
 
-  expect(batch.nodeVertexRanges.size).toBe(totalNodes)
-  expect(batch.nodes.vertexCount).toBeGreaterThan(totalNodes)
+  expect(batch.nodeStrokeRuns.size).toBe(totalNodes)
+  // striped: every node is on at least one of the two paths
+  expect(batch.nodeStrokes.length).toBeGreaterThan(totalNodes)
   expect(batch.edgeCurves.length).toBeGreaterThan(0)
-  // interleaved buffer stays consistent at scale
-  expect(batch.nodes.vertexData.length).toBe(
-    batch.nodes.vertexCount * INSTANCE_STRIDE_F32,
-  )
   expect(elapsed).toBeLessThan(5000)
 })
 
@@ -169,21 +165,16 @@ test('viewport culling drops the vast majority of off-screen nodes', () => {
     viewportBounds: { minX: 0, minY: -50, maxX: 500, maxY: 50 },
   })
 
-  expect(batch.nodeVertexRanges.size).toBeGreaterThan(0)
-  expect(batch.nodeVertexRanges.size).toBeLessThan(graph.nodes.length / 2)
+  expect(batch.nodeStrokeRuns.size).toBeGreaterThan(0)
+  expect(batch.nodeStrokeRuns.size).toBeLessThan(graph.nodes.length / 2)
 })
 
-// Draw calls per frame, which is what the Canvas2D renderer's cost actually
-// tracks -- and unlike wall-clock they are deterministic, so they can be asserted
-// exactly instead of bounded so loosely that a 3x regression slips through. The
-// timing assertions above only catch an accidental O(n^2).
-//
-// The arithmetic for a 2-point node polyline is exact: two 4-segment round caps
-// (8 triangles) plus a 2-triangle quad = 10 fills per node, one stroke per edge
-// stroke, one fill per arrowhead. Measured baseline: 12.6 calls per node, of
-// which nodes are 79%. See agent-docs/GRAPH_SCALE_AND_LOD.md.
-const FILLS_PER_2POINT_NODE = 10
-
+// Draw calls per frame, which is what the Canvas2D renderer's cost tracks --
+// and unlike wall-clock they are deterministic, so they can be asserted exactly.
+// The renderer batches everything drawn with one paint into one path, so the
+// count is a function of how many distinct colours and weights the drawing
+// uses and not of how many nodes it has. It used to be 12.6 per node, with a
+// fill per mesh triangle; see agent-docs/GRAPH_SCALE_AND_LOD.md.
 function countDrawCalls(batch: ReturnType<typeof buildGeometry>) {
   const { canvas, strokes, fills } = recordingCanvas()
   const renderer = new Canvas2DRenderer(canvas)
@@ -201,12 +192,11 @@ function countDrawCalls(batch: ReturnType<typeof buildGeometry>) {
   return { strokes: strokes.length, fills: fills.length }
 }
 
-test('draw calls per frame stay within the measured budget', () => {
-  const { gfa } = generateBubbleGFA(500)
+function uniformBatch(bubbleCount: number) {
+  const { gfa } = generateBubbleGFA(bubbleCount)
   const graph = convertGFAToGraph(parseGFA(gfa), 'stress')
-  const nodePositions = syntheticPositions(graph.nodes)
-  const batch = buildGeometry({
-    nodePositions,
+  return buildGeometry({
+    nodePositions: syntheticPositions(graph.nodes),
     graph,
     nodeById: new Map(graph.nodes.map(n => [n.id, n])),
     colorScheme: 'uniform',
@@ -215,16 +205,12 @@ test('draw calls per frame stay within the measured budget', () => {
     drawPaths: false,
     axis: iso(),
   })
+}
 
-  const { strokes, fills } = countDrawCalls(batch)
-  const nodeCount = batch.nodeVertexRanges.size
-  const arrowheads = batch.arrows.indices.length / 3
-
-  // one stroke per edge stroke: edges are native beziers, never a vertex mesh.
-  // If a mesh path for edges came back, this would no longer hold.
-  expect(strokes).toBe(batch.edgeCurves.length)
-  // exact, so growth in per-node cost cannot pass unnoticed
-  expect(fills).toBe(nodeCount * FILLS_PER_2POINT_NODE + arrowheads)
-  // and the headline budget the doc quotes
-  expect((strokes + fills) / nodeCount).toBeLessThanOrEqual(13)
+test('draw calls per frame do not grow with the graph', () => {
+  const small = countDrawCalls(uniformBatch(100))
+  const large = countDrawCalls(uniformBatch(500))
+  // one paint each for the edges, the nodes and the arrowheads
+  expect(small).toEqual({ strokes: 2, fills: 1 })
+  expect(large).toEqual(small)
 })

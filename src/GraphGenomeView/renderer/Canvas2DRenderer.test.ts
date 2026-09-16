@@ -74,37 +74,41 @@ function channels(rgba: string) {
   return [Number(m?.[1]), Number(m?.[2]), Number(m?.[3])]
 }
 
-test('strokes one path per edge', () => {
+function expectBrighter(a: string, b: string) {
+  const [r, g, bl] = channels(a)
+  const [br, bg, bb] = channels(b)
+  expect(r).toBeGreaterThan(br!)
+  expect(g).toBeGreaterThan(bg!)
+  expect(bl).toBeGreaterThan(bb!)
+}
+
+// Two edges of one colour and weight, three nodes of one colour: a drawing is
+// mostly runs of one paint, and each run is one path. This is the whole
+// performance story of the renderer, so it is pinned exactly.
+test('strokes every edge of one paint as one path, and every node likewise', () => {
   const { renderer, strokes } = makeRenderer()
   renderer.uploadGeometry(batchOf2Edges())
   renderer.updateTransform(TRANSFORM)
   renderer.render([1, 1, 1, 1])
 
   expect(strokes).toHaveLength(2)
-  expect(strokes[0]).toBe(strokes[1])
 })
 
-test('a highlighted edge is stroked brighter and its neighbour is not', () => {
+test('a highlighted edge is stroked brighter, apart from its neighbour', () => {
   const { renderer, strokes } = makeRenderer()
-  const batch = batchOf2Edges()
-  renderer.uploadGeometry(batch)
+  renderer.uploadGeometry(batchOf2Edges())
   renderer.updateTransform(TRANSFORM)
   renderer.render([1, 1, 1, 1])
-  const base = strokes[0]!
+  const [edges, nodeStroke] = strokes as [string, string]
 
   strokes.length = 0
   renderer.setEdgeHighlight(1, 1.6)
   renderer.render([1, 1, 1, 1])
 
-  expect(strokes).toHaveLength(2)
-  // edge 0 untouched, edge 1 brightened on every channel
-  expect(strokes[0]).toBe(base)
-  expect(strokes[1]).not.toBe(base)
-  const [r, g, b] = channels(strokes[1]!)
-  const [br, bg, bb] = channels(base)
-  expect(r).toBeGreaterThan(br!)
-  expect(g).toBeGreaterThan(bg!)
-  expect(b).toBeGreaterThan(bb!)
+  // edge 0 in its own path, then the nodes, then edge 1 on top of everything
+  expect(strokes).toEqual([edges, expect.any(String), nodeStroke])
+  expect(strokes[1]).not.toBe(edges)
+  expectBrighter(strokes[1]!, edges)
 })
 
 test('clearing the highlight restores the base stroke', () => {
@@ -113,46 +117,65 @@ test('clearing the highlight restores the base stroke', () => {
   renderer.updateTransform(TRANSFORM)
   renderer.setEdgeHighlight(0, 1.6)
   renderer.render([1, 1, 1, 1])
-  const highlighted = [...strokes]
+  expect(strokes).toHaveLength(3)
 
   strokes.length = 0
   renderer.setEdgeHighlight(null, 1.6)
   renderer.render([1, 1, 1, 1])
 
-  expect(highlighted[0]).not.toBe(strokes[0])
-  expect(strokes[0]).toBe(strokes[1])
+  expect(strokes).toHaveLength(2)
 })
 
-// A rebuild renumbers the strokes, so a range captured against the old batch
-// could brighten an unrelated edge. The model re-applies the current hover after
-// every upload; the renderer's job is not to keep pointing at a stale range.
-test('uploading a new batch drops the previous highlight', () => {
+// A rebuild renumbers the strokes, so an edge captured against the old batch
+// could brighten an unrelated one. The model re-applies the current hover after
+// every upload; the renderer's job is not to keep pointing at a stale run.
+test('uploading a new batch drops the previous edge highlight', () => {
   const { renderer, strokes } = makeRenderer()
   renderer.uploadGeometry(batchOf2Edges())
   renderer.updateTransform(TRANSFORM)
   renderer.setEdgeHighlight(1, 1.6)
   renderer.render([1, 1, 1, 1])
-  expect(strokes[0]).not.toBe(strokes[1])
+  expect(strokes).toHaveLength(3)
 
   strokes.length = 0
   renderer.uploadGeometry(batchOf2Edges())
   renderer.render([1, 1, 1, 1])
 
   expect(strokes).toHaveLength(2)
-  expect(strokes[0]).toBe(strokes[1])
+})
+
+// Node highlights are keyed by id rather than by position in the batch, so
+// they survive a rebuild on their own and the hovered node lands on top.
+test('a highlighted node is stroked brighter, last, and survives a rebuild', () => {
+  const { renderer, strokes } = makeRenderer()
+  renderer.uploadGeometry(batchOf2Edges())
+  renderer.updateTransform(TRANSFORM)
+  renderer.render([1, 1, 1, 1])
+  const nodeStroke = strokes[1]!
+
+  strokes.length = 0
+  renderer.setNodeHighlights(new Map([['B+', 1.4]]))
+  renderer.render([1, 1, 1, 1])
+  expect(strokes).toHaveLength(3)
+  expect(strokes[1]).toBe(nodeStroke)
+  expectBrighter(strokes[2]!, nodeStroke)
+
+  strokes.length = 0
+  renderer.uploadGeometry(batchOf2Edges())
+  renderer.render([1, 1, 1, 1])
+  expect(strokes).toHaveLength(3)
 })
 
 // A thickness is quoted in CSS pixels and expanded AFTER the transform, so it
 // is the one term the dpr-scaled transform does not reach. Left alone, every
 // tube, connector and arrowhead came out 1/dpr of its weight on a hidpi
-// display, with the positions between them correct — measurable here as the
-// round cap's overhang past the node's own coordinates.
+// display, with the positions between them correct.
 //
 // Asserted as "twice the backing-store pixels at twice the ratio", which is the
 // same drawing in css px. The whole point is that a figure does not change
 // weight with the machine it is opened on.
 describe('a thickness is css pixels, whatever the device ratio', () => {
-  function drawnWidth(dpr: number) {
+  function drawn(dpr: number) {
     const { renderer, points, lineWidths } = makeRenderer()
     renderer.uploadGeometry(batchOf2Edges())
     renderer.updateTransform({ ...TRANSFORM, scaleX: dpr, scaleY: dpr, dpr })
@@ -160,20 +183,25 @@ describe('a thickness is css pixels, whatever the device ratio', () => {
     const xs = points.map(p => p.x)
     return {
       spanPx: Math.max(...xs) - Math.min(...xs),
-      lineWidth: lineWidths[0]!,
+      edgeWidth: lineWidths[0]!,
+      nodeWidth: lineWidths[1]!,
     }
   }
 
-  test('a node mesh scales its caps with the ratio', () => {
-    // three 10-unit nodes over a 90-unit span, plus half a tube of cap at each
-    // end: contigThickness 10, so 100 units at ratio 1
-    expect(drawnWidth(1).spanPx).toBeCloseTo(100, 5)
-    expect(drawnWidth(2).spanPx).toBeCloseTo(200, 5)
+  test('positions go through the transform', () => {
+    // three 10-unit nodes over a 90-unit span
+    expect(drawn(1).spanPx).toBeCloseTo(90, 5)
+    expect(drawn(2).spanPx).toBeCloseTo(180, 5)
   })
 
-  test('a stroked edge scales its width with the ratio', () => {
+  test('a node stroke scales its width with the ratio', () => {
+    expect(drawn(1).nodeWidth).toBeCloseTo(10, 5)
+    expect(drawn(2).nodeWidth).toBeCloseTo(20, 5)
+  })
+
+  test('an edge stroke scales its width with the ratio', () => {
     // connectorThickness 4 is a half-width of 2, so a 4 px stroke at ratio 1
-    expect(drawnWidth(1).lineWidth).toBeCloseTo(4, 5)
-    expect(drawnWidth(2).lineWidth).toBeCloseTo(8, 5)
+    expect(drawn(1).edgeWidth).toBeCloseTo(4, 5)
+    expect(drawn(2).edgeWidth).toBeCloseTo(8, 5)
   })
 })

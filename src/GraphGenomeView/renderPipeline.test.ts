@@ -68,7 +68,7 @@ function fakeRenderer(uploads: RenderBatch[]) {
     },
     updateTransform: () => {},
     render: () => {},
-    updateSubBatchColors: () => {},
+    setNodeHighlights: () => {},
     setEdgeHighlight: () => {},
     destroy: () => {},
   } as unknown as Renderer
@@ -100,7 +100,7 @@ test('a layout larger than the pane still uploads geometry', async () => {
   await new Promise(resolve => setTimeout(resolve, 400))
 
   expect(uploads.length).toBeGreaterThan(0)
-  expect(uploads.at(-1)!.nodes.vertexCount).toBeGreaterThan(0)
+  expect(uploads.at(-1)!.nodeStrokes.length).toBeGreaterThan(0)
 })
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))

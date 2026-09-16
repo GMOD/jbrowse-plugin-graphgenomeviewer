@@ -3,104 +3,55 @@ import {
   normalizedRgbToCssRgba,
 } from '@jbrowse/core/util/colorBits'
 import { syncCanvasSize } from '@jbrowse/render-core/canvas2dUtils'
-import { makeAbgrFill } from '@jbrowse/render-core/marks/colorFill'
 import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBackendBase'
 
 import { brightenAbgr } from './colorBits'
-import * as graphShader from './shaders/graph.generated'
-import { SUB_BATCH_KEYS } from './types'
 
-import type {
-  EdgeCurveBatch,
-  RenderBatch,
-  Renderer,
-  SubBatch,
-  SubBatchKey,
-  TransformUniform,
-  VertexRange,
-} from './types'
+import type { RenderBatch, Renderer, TransformUniform } from './types'
 
-const STRIDE_F32 = graphShader.INSTANCE_STRIDE_F32
-const POS_F32 = graphShader.FIELD_OFFSET_F32.position
-const NORMAL_F32 = graphShader.FIELD_OFFSET_F32.normal
-const THICKNESS_F32 = graphShader.FIELD_OFFSET_F32.thickness
-const COLOR_F32 = graphShader.FIELD_OFFSET_F32.color
-
-// Extends the shared Canvas2D base rather than standing alone, which is how
-// `setErrorHandler` arrives — `useRenderingBackend` requires it, and
-// renderingBackendBase.ts says why in the one place worth reading: it was
-// optional once, and the three backends that skipped it were the three
-// allocating the largest vertex buffers, whose over-limit errors reached
-// nobody. This view is squarely in that class (75 MB of buffers at 100k nodes,
-// agent-docs/GRAPH_SCALE_AND_LOD.md), so the intended route in is the right one
-// rather than a local stub.
+// Everything is drawn as a handful of paths, one per distinct (colour, weight),
+// rather than one path per thing. A drawing is mostly runs of one colour, and
+// Canvas2D's cost is per path verb and per fill or stroke, not per pixel: the
+// same 15k-node graph took 414 ms a frame as one fill per mesh triangle and 11
+// ms as batched strokes (agent-docs/GRAPH_SCALE_AND_LOD.md). Highlighted things
+// are drawn last, in their own paths, so they sit on top of what they brighten.
 //
-// The base's no-op implementation is also the CORRECT one here and not a
-// placeholder: Canvas2D allocates no GPU resources, so there is no OOM channel
-// to forward. It exists so the hook can wire GPU and Canvas2D backends
-// uniformly, and it is what a future GPU backend for this view would replace
-// by extending GpuRenderingBackendBase instead (see GraphRenderer.ts).
+// Extends the shared Canvas2D base rather than standing alone, which is how
+// `setErrorHandler` arrives — `useRenderingBackend` requires it. The base's
+// no-op implementation is the correct one here: Canvas2D allocates no GPU
+// resources, so there is no OOM channel to forward.
 export class Canvas2DRenderer
   extends Canvas2DRenderingBackendBase
   implements Renderer
 {
   private transform: TransformUniform | null = null
-  private subBatches: Record<SubBatchKey, SubBatch | null> = {
-    nodes: null,
-    arrows: null,
-  }
-  // Edges are stroked as native beziers, one ctx.stroke() per edge, so they
-  // stay crisp at any zoom and never enter a vertex buffer.
-  private edgeCurves: EdgeCurveBatch[] = []
-  private edgeCurveRanges = new Map<number, VertexRange>()
-  private highlightedEdge: VertexRange | null = null
+  private batch: RenderBatch | null = null
+  private nodeHighlights: ReadonlyMap<string, number> = new Map()
+  private highlightedEdge: number | null = null
   private highlightFactor = 1
 
-  // The base acquires the 2D context through `acquireCanvas2D`, which names the
-  // committed context in the way when an element is re-initialised. A bare
-  // "Canvas 2D not supported" — what this used to throw — sends the reader
-  // looking for a missing browser feature instead.
-
   // render-core's, not a local `width * devicePixelRatio`: it clamps the
-  // backing store at MAX_CANVAS_DIM_PX — past which a browser throws
-  // `InvalidStateError: Canvas exceeds max size` rather than degrading — reads
-  // the ratio through `getDpr()` so this agrees with the transform the model
-  // builds, and writes the css size independently of the backing size, which is
-  // the part hand-rolled versions get wrong once a clamp engages.
+  // backing store at MAX_CANVAS_DIM_PX, reads the ratio through `getDpr()` so
+  // this agrees with the transform the model builds, and writes the css size
+  // independently of the backing size.
   resize(width: number, height: number) {
     syncCanvasSize(this.ctx.canvas, width, height)
   }
 
   uploadGeometry(batch: RenderBatch) {
-    for (const key of SUB_BATCH_KEYS) {
-      this.subBatches[key] = batch[key].indices.length > 0 ? batch[key] : null
-    }
-    this.edgeCurves = batch.edgeCurves
-    this.edgeCurveRanges = batch.edgeCurveRanges
-    // A rebuild renumbers the strokes, so the old range no longer addresses the
-    // same edge; the model re-applies the current hover against the new batch.
+    this.batch = batch
+    // A rebuild renumbers the strokes, so the old edge no longer addresses the
+    // same run; the model re-applies the current hover against the new batch.
     this.highlightedEdge = null
   }
 
-  setEdgeHighlight(edgeIndex: number | null, factor: number) {
-    this.highlightedEdge =
-      edgeIndex === null ? null : (this.edgeCurveRanges.get(edgeIndex) ?? null)
-    this.highlightFactor = factor
+  setNodeHighlights(factors: ReadonlyMap<string, number>) {
+    this.nodeHighlights = factors
   }
 
-  updateSubBatchColors(
-    target: SubBatchKey,
-    colors: Uint32Array,
-    vertexStart: number,
-  ) {
-    const batch = this.subBatches[target]
-    if (!batch) {
-      return
-    }
-    const dst = batch.vertexDataU32
-    for (let i = 0, l = colors.length; i < l; i++) {
-      dst[(vertexStart + i) * STRIDE_F32 + COLOR_F32] = colors[i]!
-    }
+  setEdgeHighlight(edgeIndex: number | null, factor: number) {
+    this.highlightedEdge = edgeIndex
+    this.highlightFactor = factor
   }
 
   updateTransform(transform: TransformUniform) {
@@ -108,7 +59,8 @@ export class Canvas2DRenderer
   }
 
   render(clearColor: [number, number, number, number]) {
-    if (!this.transform) {
+    const t = this.transform
+    if (!t) {
       return
     }
     const ctx = this.ctx
@@ -120,134 +72,175 @@ export class Canvas2DRenderer
     )
     ctx.fillRect(0, 0, width, height)
 
-    this.renderEdgeCurves()
-    this.renderSubBatch(this.subBatches.nodes)
-    this.renderSubBatch(this.subBatches.arrows)
-  }
-
-  // Project a world-space point through the current transform.
-  private px(x: number, y: number): [number, number] {
-    const t = this.transform!
-    return [x * t.scaleX + t.translateX, y * t.scaleY + t.translateY]
-  }
-
-  private renderEdgeCurves() {
-    const t = this.transform
-    if (!t || this.edgeCurves.length === 0) {
+    const batch = this.batch
+    if (!batch) {
       return
     }
-    const ctx = this.ctx
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
+    this.renderEdges(batch)
+    this.renderNodes(batch)
+    this.renderArrows(batch)
+  }
 
-    const hl = this.highlightedEdge
-    let lastColor = -1
-    for (let i = 0, edgesLen = this.edgeCurves.length; i < edgesLen; i++) {
-      const e = this.edgeCurves[i]!
-      const color =
-        hl && i >= hl.start && i < hl.start + hl.count
-          ? brightenAbgr(e.color, this.highlightFactor)
-          : e.color
-      if (color !== lastColor) {
-        ctx.strokeStyle = abgrToCssRgba(color)
-        lastColor = color
-      }
-      // thickness is the half-width in CSS pixels, so it takes the device
-      // ratio the transform already carries — the mesh path below expands the
-      // same way. Stroke is the full width.
-      ctx.lineWidth = e.thickness * 2 * t.dpr
+  private renderEdges(batch: RenderBatch) {
+    const t = this.transform!
+    const ctx = this.ctx
+    const hl =
+      this.highlightedEdge === null
+        ? undefined
+        : batch.edgeCurveRuns.get(this.highlightedEdge)
+    for (const { color, items } of groupByPaint(batch.edgeCurves, (e, i) => ({
+      color: inRun(hl, i)
+        ? brightenAbgr(e.color, this.highlightFactor)
+        : e.color,
+      weight: e.thickness,
+      last: inRun(hl, i),
+    }))) {
+      ctx.strokeStyle = abgrToCssRgba(color)
+      // thickness is the half-width in css px, so the stroke is twice it at
+      // the device ratio the transform already carries
+      ctx.lineWidth = items[0]!.thickness * 2 * t.dpr
       ctx.beginPath()
-      const first = e.curves[0]!
-      const [sx, sy] = this.px(first.x0, first.y0)
-      ctx.moveTo(sx, sy)
-      for (let j = 0, l = e.curves.length; j < l; j++) {
-        const c = e.curves[j]!
-        const [cx0, cy0] = this.px(c.cx0, c.cy0)
-        const [cx1, cy1] = this.px(c.cx1, c.cy1)
-        const [x1, y1] = this.px(c.x1, c.y1)
-        ctx.bezierCurveTo(cx0, cy0, cx1, cy1, x1, y1)
+      for (const e of items) {
+        const first = e.curves[0]!
+        ctx.moveTo(
+          first.x0 * t.scaleX + t.translateX,
+          first.y0 * t.scaleY + t.translateY,
+        )
+        for (const c of e.curves) {
+          ctx.bezierCurveTo(
+            c.cx0 * t.scaleX + t.translateX,
+            c.cy0 * t.scaleY + t.translateY,
+            c.cx1 * t.scaleX + t.translateX,
+            c.cy1 * t.scaleY + t.translateY,
+            c.x1 * t.scaleX + t.translateX,
+            c.y1 * t.scaleY + t.translateY,
+          )
+        }
       }
       ctx.stroke()
     }
   }
 
-  private renderSubBatch(batch: SubBatch | null) {
-    if (!batch || !this.transform) {
-      return
-    }
+  private renderNodes(batch: RenderBatch) {
+    const t = this.transform!
     const ctx = this.ctx
-    const t = this.transform
-    const { vertexData, vertexDataU32, indices } = batch
-    // The mesh states its thickness in css px and expands it AFTER the
-    // transform, so this is the one term the dpr-scaled transform does not
-    // reach. Without it every tube, connector and arrowhead came out 1/dpr of
-    // its intended weight on a hidpi display while the positions between them
-    // were right — a whole drawing drawn hairline, and the path stripes half
-    // as wide as the slots they sit in, since a slot's OFFSET is a position.
-    const dpr = t.dpr
-    // render-core's run tracker rather than a local `lastColor`: a painting is
-    // mostly runs of one colour, and both the string and the context write cost
-    // more than the comparison. Same reasoning this held itself, from the module
-    // that already states it.
-    const fill = makeAbgrFill(ctx)
-
-    for (let i = 0, indicesLen = indices.length; i < indicesLen; i += 3) {
-      const i0 = indices[i]!
-      const i1 = indices[i + 1]!
-      const i2 = indices[i + 2]!
-      const b0 = i0 * STRIDE_F32
-      const b1 = i1 * STRIDE_F32
-      const b2 = i2 * STRIDE_F32
-
-      const x0 =
-        vertexData[b0 + POS_F32]! * t.scaleX +
-        vertexData[b0 + NORMAL_F32]! * vertexData[b0 + THICKNESS_F32]! * dpr +
-        t.translateX
-      const y0 =
-        vertexData[b0 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b0 + NORMAL_F32 + 1]! *
-          vertexData[b0 + THICKNESS_F32]! *
-          dpr +
-        t.translateY
-      const x1 =
-        vertexData[b1 + POS_F32]! * t.scaleX +
-        vertexData[b1 + NORMAL_F32]! * vertexData[b1 + THICKNESS_F32]! * dpr +
-        t.translateX
-      const y1 =
-        vertexData[b1 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b1 + NORMAL_F32 + 1]! *
-          vertexData[b1 + THICKNESS_F32]! *
-          dpr +
-        t.translateY
-      const x2 =
-        vertexData[b2 + POS_F32]! * t.scaleX +
-        vertexData[b2 + NORMAL_F32]! * vertexData[b2 + THICKNESS_F32]! * dpr +
-        t.translateX
-      const y2 =
-        vertexData[b2 + POS_F32 + 1]! * t.scaleY +
-        vertexData[b2 + NORMAL_F32 + 1]! *
-          vertexData[b2 + THICKNESS_F32]! *
-          dpr +
-        t.translateY
-
-      fill(vertexDataU32[b0 + COLOR_F32]!)
+    // stroke index -> brighten factor, for the nodes the model lifted
+    const lifted = new Map<number, number>()
+    for (const [nodeId, factor] of this.nodeHighlights) {
+      const run = batch.nodeStrokeRuns.get(nodeId)
+      if (run) {
+        for (let i = run.start; i < run.start + run.count; i++) {
+          lifted.set(i, factor)
+        }
+      }
+    }
+    for (const { color, items } of groupByPaint(batch.nodeStrokes, (s, i) => {
+      const factor = lifted.get(i)
+      return {
+        color: factor === undefined ? s.color : brightenAbgr(s.color, factor),
+        weight: s.thickness,
+        last: factor !== undefined,
+      }
+    })) {
+      ctx.strokeStyle = abgrToCssRgba(color)
+      ctx.lineWidth = items[0]!.thickness * 2 * t.dpr
       ctx.beginPath()
-      ctx.moveTo(x0, y0)
-      ctx.lineTo(x1, y1)
-      ctx.lineTo(x2, y2)
-      ctx.closePath()
+      for (const s of items) {
+        const p0 = s.points[0]!
+        ctx.moveTo(
+          p0.x * t.scaleX + t.translateX,
+          p0.y * t.scaleY + t.translateY,
+        )
+        for (let i = 1, l = s.points.length; i < l; i++) {
+          const p = s.points[i]!
+          ctx.lineTo(
+            p.x * t.scaleX + t.translateX,
+            p.y * t.scaleY + t.translateY,
+          )
+        }
+      }
+      ctx.stroke()
+    }
+  }
+
+  private renderArrows(batch: RenderBatch) {
+    const t = this.transform!
+    const ctx = this.ctx
+    const hl =
+      this.highlightedEdge === null
+        ? undefined
+        : batch.arrowRuns.get(this.highlightedEdge)
+    for (const { color, items } of groupByPaint(batch.arrows, (a, i) => ({
+      color: inRun(hl, i)
+        ? brightenAbgr(a.color, this.highlightFactor)
+        : a.color,
+      weight: 0,
+      last: inRun(hl, i),
+    }))) {
+      ctx.fillStyle = abgrToCssRgba(color)
+      ctx.beginPath()
+      for (const a of items) {
+        // The tip sits on the edge's end; the two barbs are `size` css px back
+        // along either side of the tangent, expanded after the transform so
+        // the head is the same size at every zoom.
+        const tipX = a.x * t.scaleX + t.translateX
+        const tipY = a.y * t.scaleY + t.translateY
+        const reach = a.size * t.dpr
+        ctx.moveTo(tipX, tipY)
+        ctx.lineTo(
+          tipX - Math.cos(a.angle - 0.5) * reach,
+          tipY - Math.sin(a.angle - 0.5) * reach,
+        )
+        ctx.lineTo(
+          tipX - Math.cos(a.angle + 0.5) * reach,
+          tipY - Math.sin(a.angle + 0.5) * reach,
+        )
+        ctx.closePath()
+      }
       ctx.fill()
     }
   }
 
   override dispose() {
-    // A no-op on the base today — Canvas2D holds no GPU resources — but called
-    // rather than assumed, so this keeps working if the base ever acquires
-    // something to release.
     super.dispose()
-    this.subBatches = { nodes: null, arrows: null }
-    this.edgeCurves = []
-    this.edgeCurveRanges = new Map()
+    this.batch = null
+    this.nodeHighlights = new Map()
     this.highlightedEdge = null
   }
+}
+
+function inRun(run: { start: number; count: number } | undefined, i: number) {
+  return run !== undefined && i >= run.start && i < run.start + run.count
+}
+
+interface Paint {
+  color: number
+  weight: number
+  // drawn after everything else, so a highlight lands on top of its neighbours
+  last: boolean
+}
+
+// Items bucketed by what they are painted with, in first-seen order, with the
+// `last` ones after the rest.
+function groupByPaint<T>(
+  items: T[],
+  paintOf: (item: T, index: number) => Paint,
+) {
+  const groups = new Map<string, { color: number; items: T[] }>()
+  const deferred = new Map<string, { color: number; items: T[] }>()
+  for (let i = 0, l = items.length; i < l; i++) {
+    const item = items[i]!
+    const { color, weight, last } = paintOf(item, i)
+    const into = last ? deferred : groups
+    const key = `${color}:${weight}`
+    const group = into.get(key)
+    if (group) {
+      group.items.push(item)
+    } else {
+      into.set(key, { color, items: [item] })
+    }
+  }
+  return [...groups.values(), ...deferred.values()]
 }

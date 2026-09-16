@@ -27,11 +27,10 @@ plausible; a GBZ re-cut is **up to 12 s**, which is what keeps it off that
 route. It also wants a decision this repo has not made — which linear views a
 graph is related to — and that is the smaller half, described there.
 
-## GPU rendering, for anchored layouts only
+## GPU rendering: priced, and not worth it at this view's node cap
 
-Replace `Canvas2DRenderer` with a GPU backend on the anchored / sample-rows
-path. The view has never plotted with the GPU; `createGraphRenderer` returns the
-Canvas2D backend unconditionally.
+Replace `Canvas2DRenderer` with a GPU backend. The view has never plotted with
+the GPU; `createGraphRenderer` returns the Canvas2D backend unconditionally.
 
 **This is about drawing, not laying out.** Running FMMM itself on the GPU is a
 separate question with the opposite answer — measured, and recorded at the
@@ -40,47 +39,35 @@ of a real layout, so a perfect port ceilings at ~2.3x and never reaches
 interactive. The two share the word "GPU" and nothing else, and both have been
 asked.
 
-**The preparation is already done**, which is most of why this is attractive.
-`renderer/shaders/graph.generated.ts` is live today as a vertex buffer layout
-contract — `GeometryBuilder` packs with `INSTANCE_STRIDE_F32` /
-`FIELD_OFFSET_F32` and `Canvas2DRenderer` unpacks with the same constants — so
-the geometry is already interleaved the way a GPU backend wants it, colors are
-already ABGR-packed u32 to match a `uint` attribute, and `Canvas2DRenderer`
-already extends `Canvas2DRenderingBackendBase` so `useRenderingBackend` wires
-either kind uniformly. A GPU backend extends `GpuRenderingBackendBase` instead
-and satisfies the same `Renderer` interface. Nothing in the model, the
-component, or the geometry builder has to change.
+**The measurement that used to justify it is gone** (GRAPH_SCALE_AND_LOD.md,
+"Strokes, batched by paint"). The case rested on 12.6 draw calls per node from a
+triangle mesh built for a GPU backend that was never wired. Stroking nodes as
+polylines batched by paint draws a 15k-node anchored layout in 11 ms a frame on
+a software rasterizer, against 414 ms for the mesh, and that is inside a frame
+budget at `maxGraphNodes`. What is left on the main thread — `buildGeometry` at
+~60 ms for 15k nodes, `graphLabels` per mousemove — a GPU backend does not
+touch.
 
-**The payoff, measured** (GRAPH_SCALE_AND_LOD.md): draw calls run at **12.6 per
-node**, and nodes are 79% of them because each is a triangle fan rasterized one
-`fill()` per triangle. 10k nodes is 125k draw calls per frame, which is
-single-digit fps while panning. Instancing collapses that to roughly one call.
+**What it would cost.** The host does not re-export `@jbrowse/render-core`
+(ADR-030 in jbrowse-components keeps the GPU surface static-import-only), so the
+HAL ladder would be bundled: about 30 KB minified on a 55 KB entry. And a
+`.slang` source plus the `@jbrowse/shader-tools` codegen, which does support an
+out-of-tree plugin through `--root` and the shared modules render-core ships in
+`src/shaders`.
 
-**The scope is narrower than it sounds.** This only helps anchored layouts. A
-force layout is bounded by the layout itself long before rendering — and by
-legibility well before that, since it wants tens of nodes on screen, not
-thousands. So the honest framing is "anchored layouts above ~2k nodes", not
-"make the view fast".
+**If it is ever built,** take the batch as it is — `nodeStrokes`, `edgeCurves`,
+`arrows` in layout units with css-px weights — and draw it as instances, not as
+a revived mesh: a capsule per node segment on render-core's `capsule.slang`, and
+a bezier ribbon per edge stroke tessellated in the vertex shader the way
+`syntenyFillCurve.slang` does. Both backends then consume the same arrays and
+the Canvas2D twin is the renderer that exists. The one shader bug the old
+attempt carried is worth remembering: a row layout has `scaleY = 1` and
+`scaleX ≈ 1e-2`, so a half-width expanded as `normal * thickness / scale.x`
+stretches a hundredfold; divide componentwise.
 
-**What it does not fix.** `buildGeometry` runs on the main thread and is already
-632 ms at 100k nodes; the GPU never sees that. Nor does it change the 75 MB of
-vertex buffers at that size.
-
-**The blocker is that `graph.slang` exists in neither repo.** Only the generated
-module's layout constants are in use; its WGSL and GLSL are dead code that
-nothing compiles, and the codegen that produced them is not here either (which
-is also why that file's "do not edit" header is false, and why a render-core
-rename broke `pnpm typecheck` in 2026-08). Recreating the `.slang` is the real
-work, and it has a bug waiting: it writes
-`(position + normal * thickness / scale.x) * scale`, which only cancels when the
-two scales are equal. A row layout has `scaleY = 1` and `scaleX ≈ 1e-2`, so
-every stroke's half-width would stretch by about a hundred. The fix is `/ scale`
-— the componentwise division cancels either way — and it has to happen in the
-`.slang`.
-
-**How to settle it:** build it behind the existing `Renderer` interface and
-benchmark an anchored layout at 10k nodes against Canvas2D. The interface makes
-that a real experiment rather than a commitment.
+**The trigger** is a real workload drawn above ~50k nodes, where the frame is
+geometry-bound anyway — so the honest framing is that the trigger is a geometry
+builder off the main thread, and the GPU comes after it if at all.
 
 ## Pick a tier by zoom, and expand a bubble on click
 

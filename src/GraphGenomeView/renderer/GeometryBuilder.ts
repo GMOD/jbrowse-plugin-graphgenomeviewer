@@ -1,6 +1,6 @@
 import { packAbgr } from '@jbrowse/core/util/colorBits'
 
-import { brightenAbgr, fadeAbgr } from './colorBits'
+import { fadeAbgr } from './colorBits'
 import { bypassedPoints } from '../deletionEdges'
 import { depthWidthFactor, meanDepth } from '../nodeWidths'
 import {
@@ -17,28 +17,23 @@ import {
   pathRibbonOffsets,
   yToXOf,
 } from '../util/geometry'
-import {
-  FIELD_OFFSET_F32,
-  INSTANCE_STRIDE_BYTES,
-  INSTANCE_STRIDE_F32,
-} from './shaders/graph.generated'
 
 import type { ResolvedColorScheme } from '../colorSchemes'
 import type { NodeWidth } from '../nodeWidths'
 import type { Graph, GraphNode, NodeSegment } from '../types'
 import type { WalkHighlight } from '../walkHighlight'
 import type {
+  Arrowhead,
   EdgeCurveBatch,
+  NodeStroke,
   RenderBatch,
-  SubBatch,
-  VertexRange,
+  Run,
 } from './types'
 import type { AxisScale, BezierCurve } from '../util/geometry'
 
-// Colors flow through the geometry builder as ABGR-in-u32 (see colorBits.ts).
-// That matches the shader's uint color attribute so no repacking happens at
-// upload time; CPU-side brighten / recolour utilities operate on the same
-// u32 values.
+// Colors flow through the geometry builder as ABGR-in-u32 (see colorBits.ts),
+// so a brighten or fade is integer arithmetic and a batch of a hundred thousand
+// strokes carries its colours in one number each.
 const EDGE_DEFAULT_COLOR = packAbgr(119, 119, 119, 217) // rgb(119,119,119) ~ 0.467, alpha 0.85
 const EDGE_PATH_FALLBACK_COLOR = packAbgr(136, 136, 136, 217) // ~0.533, alpha 0.85
 // An edge that skips reference sequence: the graph's own statement that some
@@ -95,18 +90,15 @@ const MIN_PATH_STRIPE_PX = 1.2
 // Guards the screen-px-to-world division below against a degenerate transform.
 const MIN_SCALE_FOR_OFFSET = 1e-6
 
-// Half-extent of an arrowhead, in SCREEN px: it reaches the mesh as a
-// `thickness`, and a thickness is expanded after the transform (see
-// TransformUniform), so an arrowhead is the same size at every zoom. It was
-// documented as world units, which would make it grow with the drawing.
+// Half-extent of an arrowhead, in SCREEN px: the renderer expands it after the
+// transform (see TransformUniform), so an arrowhead is the same size at every
+// zoom.
 const ARROWHEAD_SIZE = 12
 const MIN_ARROW_SCALE = 0.45
 
-// Per-point unit normals of a polyline, mitred at the interior joints so a bend
-// keeps a constant drawn width. Shared by addPolyline, which expands a stroke
-// along them, and by offsetPolyline, which slides a whole stroke sideways —
-// both have to agree, or a node's path stripes drift off its own outline where
-// it bends.
+// Per-point unit normals of a polyline, mitred at the interior joints so a
+// stripe slid along them keeps a constant distance from the node's own outline
+// where it bends.
 //
 // `yToX` puts the two axes in comparable units first (see computeEdgeCurves), so
 // the normal is perpendicular to the polyline AS DRAWN rather than to its
@@ -564,219 +556,6 @@ function isBezierInBounds(
   return false
 }
 
-class MeshBuilder {
-  // Grown in-place, freshly allocated when capacity runs out. The final
-  // `toSubBatch` slice is already in the shader's interleaved layout, so
-  // geometry build is one pass with no stride conversion at the end.
-  private capacity = 0
-  private vertexF32 = new Float32Array(0)
-  private vertexU32 = new Uint32Array(0)
-  private colorsU32 = new Uint32Array(0)
-  // Indices are a typed buffer rather than a number[] for the same reason as the
-  // vertices: a mesh runs to hundreds of thousands of indices, and a JS array
-  // pays for growth reallocation twice — once while filling, once converting to
-  // the Uint32Array the batch has to expose.
-  private indexCapacity = 0
-  private indexData = new Uint32Array(0)
-  indexCount = 0
-  vertexCount = 0
-
-  private grow(needed: number) {
-    if (needed > this.capacity) {
-      const next = Math.max(
-        this.capacity === 0 ? 64 : this.capacity * 2,
-        needed,
-      )
-      const buffer = new ArrayBuffer(next * INSTANCE_STRIDE_BYTES)
-      const f32 = new Float32Array(buffer)
-      f32.set(
-        this.vertexF32.subarray(0, this.vertexCount * INSTANCE_STRIDE_F32),
-      )
-      this.vertexF32 = f32
-      this.vertexU32 = new Uint32Array(buffer)
-      const colors = new Uint32Array(next)
-      colors.set(this.colorsU32.subarray(0, this.vertexCount))
-      this.colorsU32 = colors
-      this.capacity = next
-    }
-  }
-
-  private pushTriangle(a: number, b: number, c: number) {
-    if (this.indexCount + 3 > this.indexCapacity) {
-      const next = Math.max(
-        this.indexCapacity === 0 ? 192 : this.indexCapacity * 2,
-        this.indexCount + 3,
-      )
-      const data = new Uint32Array(next)
-      data.set(this.indexData.subarray(0, this.indexCount))
-      this.indexData = data
-      this.indexCapacity = next
-    }
-    this.indexData[this.indexCount] = a
-    this.indexData[this.indexCount + 1] = b
-    this.indexData[this.indexCount + 2] = c
-    this.indexCount += 3
-  }
-
-  pushVertex(
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    thickness: number,
-    color: number,
-    edgeDist: number,
-  ) {
-    this.grow(this.vertexCount + 1)
-    const base = this.vertexCount * INSTANCE_STRIDE_F32
-    const {
-      position,
-      normal,
-      thickness: thickOff,
-      color: colOff,
-      edge_dist,
-    } = FIELD_OFFSET_F32
-
-    this.vertexF32[base + position] = x
-    this.vertexF32[base + position + 1] = y
-    this.vertexF32[base + normal] = nx
-    this.vertexF32[base + normal + 1] = ny
-    this.vertexF32[base + thickOff] = thickness
-    this.vertexU32[base + colOff] = color
-    this.vertexF32[base + edge_dist] = edgeDist
-    this.colorsU32[this.vertexCount] = color
-    this.vertexCount++
-  }
-
-  addRoundCap(
-    center: { x: number; y: number },
-    angle: number,
-    startAngleOffset: number,
-    thickness: number,
-    color: number,
-  ) {
-    const capSegments = 4
-    const centerIdx = this.vertexCount
-    const { x, y } = center
-
-    this.pushVertex(x, y, 0, 0, 0, color, 0)
-
-    for (let i = 0; i <= capSegments; i++) {
-      const a = angle + startAngleOffset + (Math.PI * i) / capSegments
-      this.pushVertex(x, y, Math.cos(a), Math.sin(a), thickness, color, 1)
-      if (i > 0) {
-        this.pushTriangle(centerIdx, this.vertexCount - 2, this.vertexCount - 1)
-      }
-    }
-  }
-
-  // Both the normals and the cap angles here are SCREEN quantities — thickness
-  // is expanded in screen px after the transform — so `yToX` puts y in x units
-  // before either is measured. 1 on an isotropic layout.
-  addPolyline(
-    points: { x: number; y: number }[],
-    thickness: number,
-    color: number,
-    yToX = 1,
-  ) {
-    if (points.length < 2) {
-      return
-    }
-
-    const pointNormals = pointNormalsOf(points, yToX)
-
-    const startDx = points[1]!.x - points[0]!.x
-    const startDy = (points[1]!.y - points[0]!.y) * yToX
-    if (Math.hypot(startDx, startDy) > 0) {
-      this.addRoundCap(
-        points[0]!,
-        Math.atan2(startDy, startDx),
-        Math.PI / 2,
-        thickness,
-        color,
-      )
-    }
-
-    const stripStart = this.vertexCount
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i]!
-      const n = pointNormals[i]!
-      this.pushVertex(p.x, p.y, n.nx, n.ny, thickness, color, 1)
-      this.pushVertex(p.x, p.y, -n.nx, -n.ny, thickness, color, -1)
-    }
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const vi = stripStart + i * 2
-      this.pushTriangle(vi, vi + 1, vi + 2)
-      this.pushTriangle(vi + 1, vi + 3, vi + 2)
-    }
-
-    const lastIdx = points.length - 1
-    const endDx = points[lastIdx]!.x - points[lastIdx - 1]!.x
-    const endDy = (points[lastIdx]!.y - points[lastIdx - 1]!.y) * yToX
-    if (Math.hypot(endDx, endDy) > 0) {
-      this.addRoundCap(
-        points[lastIdx]!,
-        Math.atan2(endDy, endDx),
-        -Math.PI / 2,
-        thickness,
-        color,
-      )
-    }
-  }
-
-  addArrowhead(
-    x: number,
-    y: number,
-    angle: number,
-    size: number,
-    color: number,
-  ) {
-    this.pushVertex(x, y, 0, 0, 0, color, 0)
-    this.pushVertex(
-      x,
-      y,
-      -Math.cos(angle - 0.5),
-      -Math.sin(angle - 0.5),
-      size,
-      color,
-      1,
-    )
-    this.pushVertex(
-      x,
-      y,
-      -Math.cos(angle + 0.5),
-      -Math.sin(angle + 0.5),
-      size,
-      color,
-      1,
-    )
-
-    this.pushTriangle(
-      this.vertexCount - 3,
-      this.vertexCount - 2,
-      this.vertexCount - 1,
-    )
-  }
-
-  toSubBatch(): SubBatch {
-    // slice (not subarray) detaches the over-allocated capacity buffer so it
-    // can be GC'd once the build finishes. The per-element cost is trivial
-    // compared to the build itself.
-    const vertexData = this.vertexF32.slice(
-      0,
-      this.vertexCount * INSTANCE_STRIDE_F32,
-    )
-    return {
-      vertexData,
-      vertexDataU32: new Uint32Array(vertexData.buffer),
-      colors: this.colorsU32.slice(0, this.vertexCount),
-      indices: this.indexData.slice(0, this.indexCount),
-      vertexCount: this.vertexCount,
-    }
-  }
-}
-
 export function buildGeometry(options: BuildOptions): RenderBatch {
   const {
     nodePositions,
@@ -808,13 +587,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     version,
   )
 
-  const nodeMesh = new MeshBuilder()
-  const arrowMesh = new MeshBuilder()
-
-  const nodeVertexRanges = new Map<string, VertexRange>()
-  const arrowVertexRanges = new Map<number, VertexRange>()
+  const nodeStrokes: NodeStroke[] = []
+  const nodeStrokeRuns = new Map<string, Run>()
+  const arrows: Arrowhead[] = []
+  const arrowRuns = new Map<number, Run>()
   const edgeCurves: EdgeCurveBatch[] = []
-  const edgeCurveRanges = new Map<number, VertexRange>()
+  const edgeCurveRuns = new Map<number, Run>()
 
   const colorRange = { ...computeColorSchemeRange(graph), referenceRamp }
 
@@ -968,18 +746,18 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
 
       if (showArrows && arrowColor !== undefined) {
         const last = curves[curves.length - 1]!
-        arrowMesh.addArrowhead(
-          last.x1,
-          last.y1,
-          endTangent(last, yToX),
-          ARROWHEAD_SIZE,
-          arrowColor,
-        )
+        arrows.push({
+          x: last.x1,
+          y: last.y1,
+          angle: endTangent(last, yToX),
+          size: ARROWHEAD_SIZE,
+          color: arrowColor,
+        })
       }
     }
 
     const edgeCurveStart = edgeCurves.length
-    const arrowStart = arrowMesh.vertexCount
+    const arrowStart = arrows.length
 
     if (!ribbons) {
       buildSingleEdge(0, 0, edgeColor, edgeColor)
@@ -1011,14 +789,11 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
 
     const edgeCurveCount = edgeCurves.length - edgeCurveStart
     if (edgeCurveCount > 0) {
-      edgeCurveRanges.set(ei, {
-        start: edgeCurveStart,
-        count: edgeCurveCount,
-      })
+      edgeCurveRuns.set(ei, { start: edgeCurveStart, count: edgeCurveCount })
     }
-    const arrowCount = arrowMesh.vertexCount - arrowStart
+    const arrowCount = arrows.length - arrowStart
     if (arrowCount > 0) {
-      arrowVertexRanges.set(ei, { start: arrowStart, count: arrowCount })
+      arrowRuns.set(ei, { start: arrowStart, count: arrowCount })
     }
   }
 
@@ -1047,16 +822,15 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       (nodeWidth === 'depth' ? depthWidthFactor(node, depthNorm) : 1)
     const nodeThickness = width / 2
 
-    const startVert = nodeMesh.vertexCount
+    const start = nodeStrokes.length
     // The node's drawn width is the same either way: the stripes divide it
     // rather than inflate it, so turning paths on does not re-weight the
     // drawing against the edges and the layout underneath it.
     //
-    // `thickness` reaches the shader in SCREEN px (it is divided by the view
-    // scale before the scale is applied, see graph.slang), while a point is in
-    // world units. So the slot width is screen px and the sideways shift that
-    // places a stripe has to be taken back into world units, or the stripes
-    // fan apart as you zoom in and collapse into one as you zoom out.
+    // A thickness is SCREEN px and a point is world units. So the slot width is
+    // screen px and the sideways shift that places a stripe has to be taken
+    // back into world units, or the stripes fan apart as you zoom in and
+    // collapse into one as you zoom out.
     const slots = nodePathSlots.get(nodeId)
     const slotWidth = width / pathCount
     if (slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
@@ -1065,44 +839,27 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       for (const slot of slots) {
         const offset =
           (slot - (pathCount - 1) / 2) * slotWidth * worldPerScreenPx
-        nodeMesh.addPolyline(
-          offsetPolyline(segments, normals, offset, yToX),
-          slotWidth / 2,
-          pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR,
-          yToX,
-        )
+        nodeStrokes.push({
+          points: offsetPolyline(segments, normals, offset, yToX),
+          thickness: slotWidth / 2,
+          color: pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR,
+        })
       }
-    } else {
-      nodeMesh.addPolyline(segments, nodeThickness, color, yToX)
+    } else if (segments.length >= 2) {
+      nodeStrokes.push({ points: segments, thickness: nodeThickness, color })
     }
-    const count = nodeMesh.vertexCount - startVert
+    const count = nodeStrokes.length - start
     if (count > 0) {
-      nodeVertexRanges.set(nodeId, { start: startVert, count })
+      nodeStrokeRuns.set(nodeId, { start, count })
     }
   }
 
   return {
-    nodes: nodeMesh.toSubBatch(),
-    arrows: arrowMesh.toSubBatch(),
-    nodeVertexRanges,
-    arrowVertexRanges,
+    nodeStrokes,
+    nodeStrokeRuns,
+    arrows,
+    arrowRuns,
     edgeCurves,
-    edgeCurveRanges,
+    edgeCurveRuns,
   }
-}
-
-export function brightenColors(
-  baseColors: Uint32Array,
-  range: VertexRange,
-  factor: number,
-) {
-  const slice = new Uint32Array(range.count)
-  for (let v = 0; v < range.count; v++) {
-    slice[v] = brightenAbgr(baseColors[range.start + v]!, factor)
-  }
-  return slice
-}
-
-export function extractColorSlice(baseColors: Uint32Array, range: VertexRange) {
-  return baseColors.subarray(range.start, range.start + range.count)
 }

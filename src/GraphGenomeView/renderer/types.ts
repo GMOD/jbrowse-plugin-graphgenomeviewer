@@ -1,47 +1,54 @@
 import type { BezierCurve } from '../util/geometry'
 
-export type SubBatchKey = 'nodes' | 'arrows'
-export const SUB_BATCH_KEYS: readonly SubBatchKey[] = ['nodes', 'arrows']
+// Everything the renderer draws is a stroke or a triangle stated in layout
+// units plus a screen-px weight, and the renderer projects it at draw time.
+// Nodes used to arrive as a triangle mesh with per-vertex normals, built for a
+// GPU backend that was never wired; stroking the polyline instead is 20-40x
+// faster on Canvas2D and needs no mesh at all (agent-docs/GRAPH_SCALE_AND_LOD.md).
 
-// Edges are carried as bezier control points, not as a triangle mesh: the
-// renderer strokes them natively, one path per edge. A tessellated `edges`
-// sub-batch was built alongside these until it was found to be dead — nothing
-// ever drew it, and it cost half of every geometry build and more buffer memory
-// than the node mesh. A GPU backend can tessellate from these curves at upload
-// time instead.
+// One stroke per edge, or one per path crossing it when drawPaths is on.
 export interface EdgeCurveBatch {
   curves: BezierCurve[]
+  // half-width in css px
   thickness: number
   color: number
 }
 
-// Interleaved per-vertex buffer laid out to match graph.generated.ts
-// (stride = INSTANCE_STRIDE_BYTES, fields at FIELD_OFFSET_*). `vertexData`
-// and `vertexDataU32` alias the same ArrayBuffer — the float view covers
-// position / normal / thickness, the u32 view reads the packed ABGR colour
-// slot. `colors` is an independent dense snapshot (1 u32 / vertex) kept so
-// hover / select utilities can restore originals without deinterleaving.
-export interface SubBatch {
-  vertexData: Float32Array
-  vertexDataU32: Uint32Array
-  colors: Uint32Array
-  indices: Uint32Array
-  vertexCount: number
+// A node's polyline, or one lengthwise stripe of it under drawPaths.
+export interface NodeStroke {
+  points: { x: number; y: number }[]
+  // half-width in css px
+  thickness: number
+  color: number
 }
 
-export interface VertexRange {
+// One head per edge, at the edge's end, pointing along its tangent. `size` is
+// its half-extent in css px, so a head is the same size at every zoom.
+export interface Arrowhead {
+  x: number
+  y: number
+  angle: number
+  size: number
+  color: number
+}
+
+// A contiguous run of one batch array.
+export interface Run {
   start: number
   count: number
 }
 
-export type RenderBatch = Record<SubBatchKey, SubBatch> & {
-  nodeVertexRanges: Map<string, VertexRange>
-  arrowVertexRanges: Map<number, VertexRange>
-  // One stroke per edge, or one per path crossing it when drawPaths is on.
+export interface RenderBatch {
+  nodeStrokes: NodeStroke[]
+  // node id -> its run of `nodeStrokes`
+  nodeStrokeRuns: Map<string, Run>
+  arrows: Arrowhead[]
+  // graph edge index -> its run of `arrows`
+  arrowRuns: Map<number, Run>
   edgeCurves: EdgeCurveBatch[]
-  // Graph edge index -> its run of `edgeCurves` entries, so a renderer can find
-  // the strokes belonging to one edge without re-deriving the path fan-out.
-  edgeCurveRanges: Map<number, VertexRange>
+  // graph edge index -> its run of `edgeCurves`, so a renderer can find the
+  // strokes belonging to one edge without re-deriving the path fan-out
+  edgeCurveRuns: Map<number, Run>
 }
 
 export interface TransformUniform {
@@ -53,34 +60,25 @@ export interface TransformUniform {
   viewportHeight: number
   // Backing-store pixels per css pixel, from render-core's `getDpr()`. Every
   // other field here is already multiplied by it, because a position goes
-  // through the transform; a THICKNESS does not — the mesh expands
-  // `normal * thickness` AFTER the transform (Canvas2DRenderer.renderSubBatch,
-  // and graph.slang's `normal * thickness / scale`) — so the renderer has to
-  // apply the ratio to that half of the expansion itself. render-core's own
-  // marks carry the same quantity as a `devicePixelRatio` shader uniform, for
-  // the same reason.
+  // through the transform; a THICKNESS does not, so the renderer applies the
+  // ratio to every stroke weight itself. render-core's own marks carry the
+  // same quantity as a `devicePixelRatio` shader uniform, for the same reason.
   //
-  // Required rather than defaulted, for the reason AxisScale is one object: a
-  // caller that omits it draws a picture that is right on one class of display
-  // and wrong on the other, and reports nothing either way. Every screen-metric
-  // constant in the geometry builder is quoted in css px — the dash period, the
-  // path-stripe floor, the arrowhead, both thicknesses — and only the dash
-  // period survived a 2x display, because it is the one of them that reaches
-  // the drawing through a position rather than through a thickness.
+  // Required rather than defaulted: a caller that omits it draws a picture that
+  // is right on one class of display and wrong on the other, and reports
+  // nothing either way. Every screen-metric constant in the geometry builder is
+  // quoted in css px — the dash period, the path-stripe floor, the arrowhead,
+  // both thicknesses.
   dpr: number
 }
 
 export interface Renderer {
   resize(width: number, height: number): void
   uploadGeometry(batch: RenderBatch): void
-  updateSubBatchColors(
-    target: SubBatchKey,
-    colors: Uint32Array,
-    vertexStart: number,
-  ): void
-  // Edges have no vertex buffer to recolor, so highlighting one is a draw-time
-  // override of its strokes' colors rather than an updateSubBatchColors write.
-  // null clears it; the override is absolute, so no restore pass is needed.
+  // Highlights are draw-time colour overrides, absolute rather than
+  // incremental: each call states the whole set, so nothing has to be restored
+  // and nothing goes stale when a rebuild renumbers the batch.
+  setNodeHighlights(factors: ReadonlyMap<string, number>): void
   setEdgeHighlight(edgeIndex: number | null, factor: number): void
   updateTransform(transform: TransformUniform): void
   render(clearColor: [number, number, number, number]): void

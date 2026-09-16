@@ -49,12 +49,7 @@ import { NODE_WIDTH_VALUES } from './nodeWidths'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
-import {
-  brightenColors,
-  buildGeometry,
-  computeReferenceRamp,
-  extractColorSlice,
-} from './renderer/GeometryBuilder'
+import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
 import { walkHighlight } from './walkHighlight'
 import { parseGFA } from '../gfa-core/index'
 import {
@@ -89,12 +84,7 @@ import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
-import type {
-  RenderBatch,
-  Renderer,
-  SubBatchKey,
-  VertexRange,
-} from './renderer/types'
+import type { Renderer } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { GeneModel } from './genes/geneFeatures'
@@ -288,28 +278,6 @@ function remember(
     cache.delete(cache.keys().next().value!)
   }
   cache.set(key, result)
-}
-
-// Recolor one node/edge/arrow's vertices. factor === 1 restores the base
-// colors (cheap subarray view); a larger factor brightens for hover/select.
-function applyHighlight<K extends string | number>(
-  renderer: Renderer,
-  target: SubBatchKey,
-  ranges: Map<K, VertexRange> | undefined,
-  baseColors: Uint32Array | undefined,
-  key: K | null,
-  factor: number,
-) {
-  if (key !== null && ranges && baseColors) {
-    const range = ranges.get(key)
-    if (range) {
-      const colors =
-        factor === 1
-          ? extractColorSlice(baseColors, range)
-          : brightenColors(baseColors, range, factor)
-      renderer.updateSubBatchColors(target, colors, range.start)
-    }
-  }
 }
 
 export default function stateModelFactory() {
@@ -528,10 +496,9 @@ export default function stateModelFactory() {
       // the transform at all. Rebuilding a 12k-edge hit index because the user
       // panned cost ~14 ms of the first mousemove after every gesture.
       positionsVersion: 0,
-      nodeVertexRanges: undefined as Map<string, VertexRange> | undefined,
-      arrowVertexRanges: undefined as Map<number, VertexRange> | undefined,
-      baseNodeColors: undefined as Uint32Array | undefined,
-      baseArrowColors: undefined as Uint32Array | undefined,
+      // Bumped per upload, so the hover autorun re-states its highlights
+      // against the batch the renderer now holds.
+      geometryVersion: 0,
       draggingNode: null as string | null,
       // Dragging the background rather than a node. Lives here beside
       // draggingNode instead of in a component ref+state pair, so the two
@@ -552,11 +519,11 @@ export default function stateModelFactory() {
       // to assert against budgets. `fetchMs` is the GetSubgraph RPC round-trip,
       // `layoutMs` is the Bandage FMMM compute time reported by the
       // GraphComputeLayout RPC, `geometryMs` is the main-thread buildGeometry
-      // pass and `geometryVertexCount` the resulting node-mesh vertex count.
+      // pass and `geometryStrokeCount` the node strokes it produced.
       lastFetchMs: undefined as number | undefined,
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
-      lastGeometryVertexCount: undefined as number | undefined,
+      lastGeometryStrokeCount: undefined as number | undefined,
     }))
     .views(self => ({
       get nodeById() {
@@ -1165,9 +1132,10 @@ export default function stateModelFactory() {
       setLayoutMs(ms: number) {
         self.lastLayoutMs = ms
       },
-      setGeometryMetrics(ms: number, vertexCount: number) {
+      setGeometryMetrics(ms: number, strokeCount: number) {
         self.lastGeometryMs = ms
-        self.lastGeometryVertexCount = vertexCount
+        self.lastGeometryStrokeCount = strokeCount
+        self.geometryVersion++
       },
       setLayoutQuality(quality: number) {
         self.layoutQuality = quality
@@ -1356,12 +1324,6 @@ export default function stateModelFactory() {
       setPositionsDirty() {
         self.positionsVersion++
       },
-      storeRenderBatchMeta(batch: RenderBatch) {
-        self.nodeVertexRanges = batch.nodeVertexRanges
-        self.arrowVertexRanges = batch.arrowVertexRanges
-        self.baseNodeColors = batch.nodes.colors
-        self.baseArrowColors = batch.arrows.colors
-      },
       zoomToFit() {
         // A layout is routinely degenerate on one axis: an anchored window
         // holding only backbone segments puts every node on row 0. So each axis
@@ -1420,17 +1382,11 @@ export default function stateModelFactory() {
             FIT_PADDING - bounds.minY * yScale + Math.max(0, leftoverY) / 2
         }
       },
-      clearRenderBatchMeta() {
-        self.nodeVertexRanges = undefined
-        self.arrowVertexRanges = undefined
-        self.baseNodeColors = undefined
-        self.baseArrowColors = undefined
-      },
       clearPerfMetrics() {
         self.lastFetchMs = undefined
         self.lastLayoutMs = undefined
         self.lastGeometryMs = undefined
-        self.lastGeometryVertexCount = undefined
+        self.lastGeometryStrokeCount = undefined
       },
     }))
     .actions(self => {
@@ -1473,7 +1429,6 @@ export default function stateModelFactory() {
           self.loadCanceled = false
           self.statusMessage = ''
           self.clearInteractionState()
-          self.clearRenderBatchMeta()
           self.clearPerfMetrics()
         },
         // Moves the position objects IN PLACE, which is the one thing
@@ -2219,14 +2174,10 @@ export default function stateModelFactory() {
             }),
           )
 
-          // Autorun: hover/select color-only updates — no geometry rebuild.
-          //
-          // Also tracks nodeVertexRanges, which a geometry rebuild replaces:
-          // the fresh buffers carry base colors, so without re-running here a
-          // selected node lost its highlight on every pan and zoom.
-          let prevHoveredNode: string | null = null
-          let prevHoveredEdge: number | null = null
-          let prevSelectedNode: string | null = null
+          // Autorun: hover/select are draw-time colour overrides, stated whole
+          // on every change, so there is nothing to restore and nothing to go
+          // stale when a rebuild renumbers the batch. Tracks `geometryVersion`
+          // because an upload drops the renderer's edge highlight.
           addDisposer(
             self,
             autorun(() => {
@@ -2234,54 +2185,17 @@ export default function stateModelFactory() {
               const hoveredNode = self.hoveredNode
               const hoveredEdge = self.hoveredEdge
               const selectedNode = self.selectedNode
-              const ranges = self.nodeVertexRanges
+              dependOn(self.geometryVersion)
               if (b) {
-                const node = (key: string | null, factor: number) => {
-                  applyHighlight(
-                    b,
-                    'nodes',
-                    ranges,
-                    self.baseNodeColors,
-                    key,
-                    factor,
-                  )
+                const nodes = new Map<string, number>()
+                if (selectedNode !== null) {
+                  nodes.set(selectedNode, SELECT_BRIGHTEN)
                 }
-                const arrow = (key: number | null, factor: number) => {
-                  applyHighlight(
-                    b,
-                    'arrows',
-                    self.arrowVertexRanges,
-                    self.baseArrowColors,
-                    key,
-                    factor,
-                  )
+                if (hoveredNode !== null && hoveredNode !== selectedNode) {
+                  nodes.set(hoveredNode, HOVER_BRIGHTEN)
                 }
-
-                // Nodes and arrowheads live in vertex buffers, so the previous
-                // frame's brightening has to be written back to base colors
-                // before the new frame's goes on.
-                node(prevHoveredNode, 1)
-                if (prevSelectedNode !== prevHoveredNode) {
-                  node(prevSelectedNode, 1)
-                }
-                arrow(prevHoveredEdge, 1)
-
-                // brighten the current selection, then hover on top of it
-                node(selectedNode, SELECT_BRIGHTEN)
-                if (hoveredNode !== selectedNode) {
-                  node(hoveredNode, HOVER_BRIGHTEN)
-                }
-                arrow(hoveredEdge, HOVER_BRIGHTEN)
-
-                // An edge is a stroke, not vertices: the renderer overrides its
-                // color at draw time, so stating the current one is enough — no
-                // restore pass, and no buffer to go stale on a rebuild.
+                b.setNodeHighlights(nodes)
                 b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
-
-                prevHoveredNode = hoveredNode
-                prevHoveredEdge = hoveredEdge
-                prevSelectedNode = selectedNode
-
                 self.renderNow()
               }
             }),
@@ -2332,10 +2246,9 @@ export default function stateModelFactory() {
                 version: self.positionsVersion,
               })
               b.uploadGeometry(batch)
-              self.storeRenderBatchMeta(batch)
               self.setGeometryMetrics(
                 performance.now() - geometryStart,
-                batch.nodes.vertexCount,
+                batch.nodeStrokes.length,
               )
               return true
             }

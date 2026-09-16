@@ -1,24 +1,19 @@
-import {
-  abgrAlpha,
-  abgrBlue,
-  abgrGreen,
-  abgrRed,
-  packAbgr,
-} from '@jbrowse/core/util/colorBits'
+import { packAbgr } from '@jbrowse/core/util/colorBits'
 
 import {
   REFERENCE_RAMP_MAX_HUE,
-  brightenColors,
   buildGeometry,
   computeReferenceRamp,
   endTangent,
-  extractColorSlice,
   hslToRgb,
 } from './GeometryBuilder'
-import {
-  FIELD_OFFSET_F32,
-  INSTANCE_STRIDE_F32,
-} from './shaders/graph.generated'
+
+import type { RenderBatch } from './types'
+
+// the colour a node is drawn in, off its first stroke
+function nodeColor(batch: RenderBatch, id: string) {
+  return batch.nodeStrokes[batch.nodeStrokeRuns.get(id)!.start]!.color
+}
 
 // isotropic: one scale for both axes, which is every layout but the row ones
 const iso = (scale = 1) => ({ scaleX: scale, scaleY: scale })
@@ -57,17 +52,11 @@ test('produces non-empty geometry for simple graph', () => {
     drawPaths: false,
   })
 
-  expect(batch.nodes.vertexCount).toBeGreaterThan(0)
-  expect(batch.nodes.colors.length).toBeGreaterThan(0)
-  expect(batch.nodes.indices.length).toBeGreaterThan(0)
+  // one stroke per node, along the node's own polyline, at half its width
+  expect(batch.nodeStrokes).toHaveLength(2)
+  expect(batch.nodeStrokes[0]!.points).toBe(simplePositions['A+'])
+  expect(batch.nodeStrokes[0]!.thickness).toBe(2.5)
   expect(batch.edgeCurves.length).toBeGreaterThan(0)
-  expect(batch.nodes.vertexCount).toBe(batch.nodes.colors.length)
-  expect(batch.nodes.vertexData.length).toBe(
-    batch.nodes.vertexCount * INSTANCE_STRIDE_F32,
-  )
-  expect(batch.nodes.vertexDataU32.buffer).toBe(batch.nodes.vertexData.buffer)
-  const firstVertexColor = batch.nodes.vertexDataU32[FIELD_OFFSET_F32.color]
-  expect(firstVertexColor).toBe(batch.nodes.colors[0])
 })
 
 test('produces different geometry for different color schemes', () => {
@@ -87,18 +76,11 @@ test('produces different geometry for different color schemes', () => {
   })
   const depthBatch = buildGeometry({ ...opts, colorScheme: 'depth' as const })
 
-  expect(uniformBatch.nodes.vertexCount).toBe(depthBatch.nodes.vertexCount)
-  let colorsDiffer = false
-  for (let i = 0; i < uniformBatch.nodes.colors.length; i++) {
-    if (uniformBatch.nodes.colors[i] !== depthBatch.nodes.colors[i]) {
-      colorsDiffer = true
-      break
-    }
-  }
-  expect(colorsDiffer).toBe(true)
+  expect(uniformBatch.nodeStrokes).toHaveLength(depthBatch.nodeStrokes.length)
+  expect(nodeColor(uniformBatch, 'B+')).not.toBe(nodeColor(depthBatch, 'B+'))
 })
 
-test('tracks vertex ranges for nodes and edges', () => {
+test('keys the strokes by node and by edge', () => {
   const batch = buildGeometry({
     nodePositions: simplePositions,
     graph: simpleGraph,
@@ -110,15 +92,9 @@ test('tracks vertex ranges for nodes and edges', () => {
     drawPaths: false,
   })
 
-  expect(batch.nodeVertexRanges.size).toBe(2)
-  expect(batch.nodeVertexRanges.has('A+')).toBe(true)
-  expect(batch.nodeVertexRanges.has('B+')).toBe(true)
-  expect(batch.edgeCurveRanges.size).toBe(1)
-  expect(batch.edgeCurveRanges.has(0)).toBe(true)
-
-  const rangeA = batch.nodeVertexRanges.get('A+')!
-  expect(rangeA.start).toBeDefined()
-  expect(rangeA.count).toBeGreaterThan(0)
+  expect(batch.nodeStrokeRuns.get('A+')).toEqual({ start: 0, count: 1 })
+  expect(batch.nodeStrokeRuns.get('B+')).toEqual({ start: 1, count: 1 })
+  expect(batch.edgeCurveRuns.get(0)).toEqual({ start: 0, count: 1 })
 })
 
 test('handles empty node positions gracefully', () => {
@@ -133,9 +109,8 @@ test('handles empty node positions gracefully', () => {
     drawPaths: false,
   })
 
-  expect(batch.nodes.vertexCount).toBe(0)
-  expect(batch.nodes.indices.length).toBe(0)
-  expect(batch.edgeCurves.length).toBe(0)
+  expect(batch.nodeStrokes).toHaveLength(0)
+  expect(batch.edgeCurves).toHaveLength(0)
 })
 
 test('handles graph with paths and drawPaths', () => {
@@ -156,10 +131,10 @@ test('handles graph with paths and drawPaths', () => {
     drawPaths: true,
   })
 
-  expect(batch.nodes.vertexCount).toBeGreaterThan(0)
+  expect(batch.nodeStrokes.length).toBeGreaterThan(0)
   // one stroke per path crossing the edge, not one for the edge
   expect(batch.edgeCurves).toHaveLength(1)
-  expect(batch.edgeCurveRanges.get(0)).toEqual({ start: 0, count: 1 })
+  expect(batch.edgeCurveRuns.get(0)).toEqual({ start: 0, count: 1 })
 })
 
 // A three-path graph where the middle node is the one B skips: A and C walk
@@ -184,13 +159,13 @@ const carriageOpts = {
   connectorThickness: 1.5,
 }
 
-// distinct colors used anywhere in a node's vertex range
-function nodeColors(batch: ReturnType<typeof buildGeometry>, nodeId: string) {
-  const range = batch.nodeVertexRanges.get(nodeId)!
+// distinct colors across a node's strokes
+function nodeColors(batch: RenderBatch, nodeId: string) {
+  const run = batch.nodeStrokeRuns.get(nodeId)!
   return new Set(
-    Array.from(
-      batch.nodes.colors.slice(range.start, range.start + range.count),
-    ),
+    batch.nodeStrokes
+      .slice(run.start, run.start + run.count)
+      .map(stroke => stroke.color),
   )
 }
 
@@ -214,20 +189,10 @@ test('stripes divide the node width rather than inflating it', () => {
   const striped = buildGeometry({ ...carriageOpts, drawPaths: true })
   const plain = buildGeometry({ ...carriageOpts, drawPaths: false })
 
-  const halfWidth = (batch: ReturnType<typeof buildGeometry>) => {
-    const { vertexData, vertexCount } = batch.nodes
-    let max = 0
-    for (let i = 0; i < vertexCount; i++) {
-      const base = i * INSTANCE_STRIDE_F32
-      const nx = vertexData[base + FIELD_OFFSET_F32.normal]!
-      const ny = vertexData[base + FIELD_OFFSET_F32.normal + 1]!
-      const t = vertexData[base + FIELD_OFFSET_F32.thickness]!
-      max = Math.max(max, Math.hypot(nx, ny) * t)
-    }
-    return max
-  }
+  const halfWidth = (batch: RenderBatch) =>
+    Math.max(...batch.nodeStrokes.map(stroke => stroke.thickness))
   // three stripes of a third the width each, laid across the same 12 units
-  expect(halfWidth(striped)).toBeLessThanOrEqual(halfWidth(plain))
+  expect(halfWidth(striped)).toBe(halfWidth(plain) / 3)
 })
 
 test('a node keeps its scheme color when a stripe would be sub-pixel', () => {
@@ -242,16 +207,12 @@ test('a node keeps its scheme color when a stripe would be sub-pixel', () => {
 })
 
 test('the stripe offset is in world units, so zoom does not fan them apart', () => {
-  const yAt = (batch: ReturnType<typeof buildGeometry>, nodeId: string) => {
-    const range = batch.nodeVertexRanges.get(nodeId)!
-    let min = Infinity
-    let max = -Infinity
-    for (let i = range.start; i < range.start + range.count; i++) {
-      const y = batch.nodes.vertexData[i * INSTANCE_STRIDE_F32 + 1]!
-      min = Math.min(min, y)
-      max = Math.max(max, y)
-    }
-    return max - min
+  const yAt = (batch: RenderBatch, nodeId: string) => {
+    const run = batch.nodeStrokeRuns.get(nodeId)!
+    const ys = batch.nodeStrokes
+      .slice(run.start, run.start + run.count)
+      .flatMap(stroke => stroke.points.map(p => p.y))
+    return Math.max(...ys) - Math.min(...ys)
   }
   // the stripes are laid across a width stated in screen px, so in world units
   // they must spread twice as far when the view is drawn at half the zoom
@@ -281,65 +242,6 @@ test('a many-path graph is not striped at all', () => {
   expect(nodeColors(batch, 'A+').size).toBe(1)
 })
 
-test('stores normals and thicknesses for shader-based expansion', () => {
-  const batch = buildGeometry({
-    axis: iso(),
-    nodePositions: simplePositions,
-    graph: simpleGraph,
-    nodeById: simpleNodeById,
-    colorScheme: 'uniform',
-    contigThickness: 10,
-    connectorThickness: 4,
-    drawPaths: false,
-  })
-
-  const { vertexData, vertexCount } = batch.nodes
-  let hasNonZeroNormal = false
-  let hasPositiveThickness = false
-  for (let i = 0; i < vertexCount; i++) {
-    const base = i * INSTANCE_STRIDE_F32
-    if (
-      Math.abs(vertexData[base + FIELD_OFFSET_F32.normal]!) > 0.001 ||
-      Math.abs(vertexData[base + FIELD_OFFSET_F32.normal + 1]!) > 0.001
-    ) {
-      hasNonZeroNormal = true
-    }
-    if (vertexData[base + FIELD_OFFSET_F32.thickness]! > 0) {
-      hasPositiveThickness = true
-    }
-  }
-  expect(hasNonZeroNormal).toBe(true)
-  expect(hasPositiveThickness).toBe(true)
-})
-
-test('brightenColors produces brighter values', () => {
-  const batch = buildGeometry({
-    nodePositions: simplePositions,
-    graph: simpleGraph,
-    axis: iso(),
-    nodeById: simpleNodeById,
-    colorScheme: 'uniform',
-    contigThickness: 5,
-    connectorThickness: 1.5,
-    drawPaths: false,
-  })
-
-  const range = batch.nodeVertexRanges.get('A+')!
-  const brightened = brightenColors(batch.nodes.colors, range, 1.4)
-  const original = extractColorSlice(batch.nodes.colors, range)
-
-  let hasBrighterValue = false
-  for (let i = 0; i < brightened.length; i++) {
-    const origR = original[i]! & 0xff
-    const brightR = brightened[i]! & 0xff
-    if (brightR > origR) {
-      hasBrighterValue = true
-      break
-    }
-  }
-  expect(hasBrighterValue).toBe(true)
-})
-
 test('viewport culling skips off-screen nodes', () => {
   const batch = buildGeometry({
     axis: iso(),
@@ -353,8 +255,8 @@ test('viewport culling skips off-screen nodes', () => {
     viewportBounds: { minX: -5, minY: -5, maxX: 15, maxY: 5 },
   })
 
-  expect(batch.nodeVertexRanges.has('A+')).toBe(true)
-  expect(batch.nodeVertexRanges.has('B+')).toBe(false)
+  expect(batch.nodeStrokeRuns.has('A+')).toBe(true)
+  expect(batch.nodeStrokeRuns.has('B+')).toBe(false)
 })
 
 // The reference-anchored layouts put x in bp, so a backbone segment is routinely
@@ -381,7 +283,7 @@ test('viewport culling keeps a node spanning the whole viewport', () => {
     viewportBounds: { minX: 20_000, minY: -100, maxX: 21_000, maxY: 100 },
   })
 
-  expect(batch.nodeVertexRanges.has('backbone+')).toBe(true)
+  expect(batch.nodeStrokeRuns.has('backbone+')).toBe(true)
 })
 
 test('node-length color scheme produces distinct colors for different lengths', () => {
@@ -413,13 +315,7 @@ test('node-length color scheme produces distinct colors for different lengths', 
     drawPaths: false,
   })
 
-  const shortRange = batch.nodeVertexRanges.get('short+')!
-  const longRange = batch.nodeVertexRanges.get('long+')!
-  expect(shortRange).toBeDefined()
-  expect(longRange).toBeDefined()
-  expect(batch.nodes.colors[shortRange.start]).not.toBe(
-    batch.nodes.colors[longRange.start],
-  )
+  expect(nodeColor(batch, 'short+')).not.toBe(nodeColor(batch, 'long+'))
 })
 
 test('rainbow color scheme produces distinct colors for nodes at different indices', () => {
@@ -456,21 +352,8 @@ test('rainbow color scheme produces distinct colors for nodes at different indic
     drawPaths: false,
   })
 
-  const rangeA = batch.nodeVertexRanges.get('A+')!
-  const rangeB = batch.nodeVertexRanges.get('B+')!
-  const rangeC = batch.nodeVertexRanges.get('C+')!
-  expect(rangeA).toBeDefined()
-  expect(rangeB).toBeDefined()
-  expect(rangeC).toBeDefined()
-  expect(batch.nodes.colors[rangeA.start]).not.toBe(
-    batch.nodes.colors[rangeB.start],
-  )
-  expect(batch.nodes.colors[rangeB.start]).not.toBe(
-    batch.nodes.colors[rangeC.start],
-  )
-  expect(batch.nodes.colors[rangeA.start]).not.toBe(
-    batch.nodes.colors[rangeC.start],
-  )
+  const colors = ['A+', 'B+', 'C+'].map(id => nodeColor(batch, id))
+  expect(new Set(colors).size).toBe(3)
 })
 
 test('builds geometry for a self-loop edge', () => {
@@ -494,10 +377,10 @@ test('builds geometry for a self-loop edge', () => {
     drawPaths: false,
     axis: iso(),
   })
-  expect(batch.nodes.vertexCount).toBeGreaterThan(0)
+  expect(batch.nodeStrokes).toHaveLength(1)
   // a self loop is two curves, so it strokes as one two-segment path
   expect(batch.edgeCurves[0]!.curves).toHaveLength(2)
-  expect(batch.edgeCurveRanges.has(0)).toBe(true)
+  expect(batch.edgeCurveRuns.has(0)).toBe(true)
 })
 
 test('skips edges that reference missing node positions', () => {
@@ -522,34 +405,9 @@ test('skips edges that reference missing node positions', () => {
     axis: iso(),
   })
   // node still builds; the dangling edge is silently dropped
-  expect(batch.nodes.vertexCount).toBeGreaterThan(0)
+  expect(batch.nodeStrokes).toHaveLength(1)
   expect(batch.edgeCurves).toHaveLength(0)
-  expect(batch.edgeCurveRanges.size).toBe(0)
-})
-
-test('brightenColors clamps channels at 255', () => {
-  const colors = new Uint32Array([packAbgr(200, 200, 200, 255)])
-  const range = { start: 0, count: 1 }
-  const brightened = brightenColors(colors, range, 2)
-  expect(abgrRed(brightened[0]!)).toBe(255)
-  expect(abgrGreen(brightened[0]!)).toBe(255)
-  expect(abgrBlue(brightened[0]!)).toBe(255)
-  expect(abgrAlpha(brightened[0]!)).toBe(255)
-})
-
-test('brightenColors preserves alpha', () => {
-  const colors = new Uint32Array([packAbgr(100, 100, 100, 128)])
-  const range = { start: 0, count: 1 }
-  const brightened = brightenColors(colors, range, 1.5)
-  expect(abgrAlpha(brightened[0]!)).toBe(128)
-})
-
-test('extractColorSlice shares the underlying buffer', () => {
-  const colors = new Uint32Array([10, 20, 30, 40, 50])
-  const range = { start: 1, count: 3 }
-  const slice = extractColorSlice(colors, range)
-  expect(slice.buffer).toBe(colors.buffer)
-  expect(Array.from(slice)).toEqual([20, 30, 40])
+  expect(batch.edgeCurveRuns.size).toBe(0)
 })
 
 // Arrowheads used to take their angle from the last two points of the
@@ -687,12 +545,7 @@ describe('the reference-position ramp', () => {
       connectorThickness: 1.5,
       drawPaths: false,
     })
-    return Object.fromEntries(
-      nodes.map(n => [
-        n.id,
-        batch.nodes.colors[batch.nodeVertexRanges.get(n.id)!.start],
-      ]),
-    )
+    return Object.fromEntries(nodes.map(n => [n.id, nodeColor(batch, n.id)]))
   }
 
   // The contract a linear track's `color` jexl reproduces. Written out as the
@@ -805,7 +658,7 @@ describe('abutting nodes under drawPaths', () => {
   })
 
   test('keys the ribbons under the edge, so they stay hoverable', () => {
-    expect(build(true).edgeCurveRanges.get(0)).toEqual({ start: 0, count: 2 })
+    expect(build(true).edgeCurveRuns.get(0)).toEqual({ start: 0, count: 2 })
   })
 })
 
@@ -853,8 +706,7 @@ describe('one arrowhead per edge, whatever crosses it', () => {
     })
   }
 
-  // three vertices to an arrowhead
-  const heads = (b: ReturnType<typeof build>) => b.arrows.vertexCount / 3
+  const heads = (b: ReturnType<typeof build>) => b.arrows.length
 
   test('three ribbons still leave one head', () => {
     expect(heads(build(false))).toBe(1)
@@ -865,7 +717,7 @@ describe('one arrowhead per edge, whatever crosses it', () => {
   test('and it is the edge colour, not a haplotype it would have to pick', () => {
     const plain = build(false)
     const ribboned = build(true)
-    const colorOf = (b: ReturnType<typeof build>) => b.arrows.colors[0]
+    const colorOf = (b: ReturnType<typeof build>) => b.arrows[0]!.color
     expect(colorOf(ribboned)).toBe(colorOf(plain))
   })
 })

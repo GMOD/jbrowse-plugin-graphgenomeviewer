@@ -1,16 +1,17 @@
 # Graph scale: what we can draw, and what it would take to draw more
 
-Measured 2026-07-24 while removing the dead edge mesh. Records the scale
-envelope, why the region cap is the wrong knob, and why the obvious next steps
-(bubble coarsening, a stroke-based renderer) are **deliberately not built**.
-Every number here was measured in this repo or read out of vendored source; none
-is estimated.
+Measured 2026-07-24 while removing the dead edge mesh, and re-measured
+2026-09-16 when the node mesh followed it. Records the scale envelope, why the
+region cap is the wrong knob, and why bubble coarsening is **deliberately not
+built**. Every number here was measured in this repo or read out of vendored
+source; none is estimated.
 
 ## The envelope
 
 Bubble-chain graphs, `buildGeometry` on the main thread, canvas draw calls
 counted through a recording 2D context (see `Canvas2DRenderer.test.ts` for the
-technique):
+technique). As first measured, with every node a triangle fan drawn one `fill()`
+per triangle:
 
 | nodes | edges | parse+convert | buildGeometry | vertex buffers | draw calls / frame |
 | ----- | ----- | ------------- | ------------- | -------------- | ------------------ |
@@ -18,19 +19,42 @@ technique):
 | 10k   | 13k   | 36 ms         | 43 ms         | 7.5 MB         | 125,410            |
 | 100k  | 132k  | 221 ms        | 632 ms        | 75 MB          | 1,254,010          |
 
-- **≤2k nodes**: comfortable. Rebuild under 10 ms.
-- **~10k nodes**: degraded. 125k draw calls is single-digit fps while panning.
-- **≥50k nodes**: broken. Geometry alone blows a frame budget by 10×.
-
-Draw calls run at **12.6 per node**, and the breakdown is exact: 991 nodes × 10
+Draw calls ran at **12.6 per node**, and the breakdown was exact: 991 nodes × 10
 triangles = 9,910 `fill()` calls, + 1,320 edge strokes + 1,320 arrow fills.
-**Nodes are 79% of all draw calls**, because each is a triangle fan rasterized
-one triangle per `fill()`.
+**Nodes were 79% of all draw calls**.
+
+### Strokes, batched by paint (2026-09-16)
+
+The mesh existed for a GPU backend that was never wired, and it was what made
+Canvas2D slow. Measured in headless Chrome (software rasterizer, so absolute
+numbers are an upper bound) on the bench fixture from `renderPasses.bench.ts`
+fitted into a 900×600 pane, ms per frame:
+
+| nodes  | edges  | buildGeometry | one fill per triangle | fills batched by colour | strokes batched by paint |
+| ------ | ------ | ------------- | --------------------- | ----------------------- | ------------------------ |
+| 749    | 1,246  | 7.8           | 23.6                  | 15.5                    | 1.1                      |
+| 1,499  | 2,496  | 8.0           | 44.5                  | 29.8                    | 1.8                      |
+| 7,499  | 12,496 | 34.2          | 219.9                 | 151.9                   | 6.3                      |
+| 14,999 | 24,996 | 63.2          | 413.9                 | 300.2                   | 10.8                     |
+
+Two things follow. Batching the triangle fills by colour alone was worth only
+1.4x, so the cost was the 150k path verbs and the self-overlapping nonzero fill,
+not the draw-call count. And a node stroked as its own polyline, every stroke of
+one colour and weight in one path, is inside a frame budget at the node cap.
+That is the renderer now: `nodeStrokes` in layout units, `Canvas2DRenderer`
+grouping by paint, and draw calls per frame a function of how many paints the
+drawing uses rather than how many nodes it has (`stress.test.ts` pins it).
+
+- **≤2k nodes**: comfortable. Rebuild under 10 ms, redraw under 2 ms.
+- **~15k nodes**: fine to draw. `buildGeometry` is now the wall, at ~60 ms per
+  debounced pan or zoom.
+- **≥50k nodes**: broken. Geometry alone blows a frame budget by 10×.
 
 Which wall you hit first depends on the layout mode:
 
-- **Anchored / sample-rows** (O(n), local): rendering is the wall. This is the
-  one mode a GPU backend would help, and the only one — `IDEAS.md` scopes it.
+- **Anchored / sample-rows** (O(n), local): geometry build is the wall, and it
+  is a main-thread pass that no GPU backend would take — `IDEAS.md` prices the
+  port against these numbers.
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
   Fruchterman-Reingold is "still slow for 10k+ nodes". Ours is single-threaded
@@ -494,29 +518,16 @@ merging junctions buys nothing that binning does not already buy, and it costs
 the precomputed multi-level per-graph artifact this repo already rejected once
 (see the `.graph.coarse.bed.gz` note above).
 
-## Still deferred: nodes as strokes
-
-A node is geometrically a stroked polyline with round caps, which is exactly
-`ctx.stroke()` with `lineCap: 'round'` — the pattern edges already use. It would
-cut draw calls **12,550 → 3,631 (3.5×)**, delete `addPolyline`/`addRoundCap` and
-the node half of the highlight machinery, and leave one drawing model instead of
-two.
-
-Not done, because the workload doesn't ask for it: minigraph windows are p99 115
-nodes against a 2,000 ceiling, and the band plan above keeps it that way. It
-only pays off on **base-level graphs** (pggb / Minigraph-Cactus), where a 100 kb
-window is thousands of nodes — and those have no indexed adapter today, arriving
-only by whole-file import.
-
-> **Trigger**: build it when a base-level-graph adapter lands, or when a real
-> workload is measured above ~2k drawn nodes. It also retires the GPU-ready
-> vertex mesh, which `GraphRenderer.ts` reserves for a future WebGL backend;
-> that mesh currently has one consumer left (arrowheads).
-
 ## Fixed along the way
 
 For the record, since the numbers justify the changes:
 
+- Nodes as strokes (2026-09-16, the table above): the triangle mesh and its
+  vertex-range highlight machinery are gone, a node is its polyline stroked with
+  round caps, and hover is a draw-time colour override keyed by id. This was
+  deferred for a year as "3.5x by draw-call count, and the workload doesn't ask
+  for it"; measured in wall-clock it was 20-40x, because batching every stroke
+  of one paint into one path is what the mesh could not do.
 - Dead edge mesh removed: it was tessellated every build and drawn by nothing.
   Interleaved same-process A/B: **133 ms → 37 ms**, and 5.06 MB of buffers per
   build (128k vertices, 240k indices) no longer allocated.

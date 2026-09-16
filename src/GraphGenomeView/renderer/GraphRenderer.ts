@@ -1,30 +1,13 @@
 import { Canvas2DRenderer } from './Canvas2DRenderer'
 
-// Canvas2D-first: return the Canvas2D backend directly, skipping the GPU-HAL
-// probe in `createRenderingBackend`. A GPU backend (GpuRenderingBackendBase +
-// createRenderingBackend with graph passes/shader) can slot in later without
-// touching the model or component — both consume the `Renderer` interface.
-//
-// **One thing to fix when it does.** `TransformUniform` now carries two
-// different scales: a row layout draws y in screen px and x in reference bp, so
-// scaleY is 1 while scaleX is ~1e-2 (see the model's scaleX/scaleY).
-// Canvas2DRenderer handles that — it expands `normal * thickness` in screen
-// space, after the transform — but `graph.slang`, which the committed
-// `shaders/graph.generated.ts` was compiled from, writes
-// `(position + normal * thickness / scale.x) * scale`, which only cancels when
-// the two scales are equal. On a row layout it would stretch every stroke's
-// half-width by scaleY/scaleX, i.e. by about a hundred. The fix is `/ scale`
-// rather than `/ scale.x` — the componentwise division cancels either way — and
-// it has to happen in the `.slang`, which lives in neither repo today: only the
-// generated module's vertex LAYOUT constants are in use, and its WGSL/GLSL is
-// dead code until this function returns something that runs it.
-//
-// **And a second thing, from the same cancellation.** `scale` arrives already
-// multiplied by the device ratio, so once it cancels, `normal * thickness` is
-// left in BACKING-STORE px while a thickness is quoted in css px — the drawing
-// then comes out 1/dpr of its weight on a hidpi display. Canvas2DRenderer
-// takes `TransformUniform.dpr` for exactly this term; the shader needs the
-// same factor, i.e. `normal * thickness * dpr / scale`.
+// Canvas2D only, and deliberately not through render-core's GPU ladder. The
+// batch is strokes and arrowheads in layout units, and stroking them batched by
+// colour is inside a frame budget at the node counts this view caps itself at
+// (agent-docs/GRAPH_SCALE_AND_LOD.md), so a GPU backend would buy a few
+// milliseconds for ~30 KB of bundled HAL and a shader toolchain. If one is ever
+// wanted, it should take the same `Renderer` interface and draw the batch as
+// instances — a capsule per node segment, a bezier ribbon per edge stroke —
+// rather than reviving a triangle mesh; agent-docs/IDEAS.md scopes it.
 export function createGraphRenderer(canvas: HTMLCanvasElement) {
   return Promise.resolve(new Canvas2DRenderer(canvas))
 }

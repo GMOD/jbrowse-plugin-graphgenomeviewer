@@ -56,7 +56,7 @@ test('a lifted walk keeps its nodes and fades the rest', () => {
   const plain = build()
   const lifted = build(walkHighlight(graph, 'alt#1#chr'))
   const alphaOf = (batch: typeof plain, id: string) =>
-    abgrAlpha(batch.nodes.colors[batch.nodeVertexRanges.get(id)!.start]!)
+    abgrAlpha(batch.nodeStrokes[batch.nodeStrokeRuns.get(id)!.start]!.color)
   expect(alphaOf(lifted, 'a1+')).toBe(alphaOf(plain, 'a1+'))
   expect(alphaOf(lifted, 'v1+')).toBe(alphaOf(plain, 'v1+'))
   expect(alphaOf(lifted, 'v2+')).toBeLessThan(alphaOf(plain, 'v2+') / 4)
@@ -66,7 +66,7 @@ test("a lifted walk's links draw heavier and dark, the others faint", () => {
   const plain = build()
   const lifted = build(walkHighlight(graph, 'alt#1#chr'))
   const strokeOf = (batch: typeof plain, edge: number) =>
-    batch.edgeCurves[batch.edgeCurveRanges.get(edge)!.start]!
+    batch.edgeCurves[batch.edgeCurveRuns.get(edge)!.start]!
   expect(strokeOf(lifted, 2).thickness).toBeGreaterThan(
     strokeOf(plain, 2).thickness,
   )

@@ -455,7 +455,7 @@ describe('performance instrumentation', () => {
     expect(model.lastFetchMs).toBeUndefined()
     expect(model.lastLayoutMs).toBeUndefined()
     expect(model.lastGeometryMs).toBeUndefined()
-    expect(model.lastGeometryVertexCount).toBeUndefined()
+    expect(model.lastGeometryStrokeCount).toBeUndefined()
   })
 })
 
@@ -2127,22 +2127,21 @@ describe('what the row axis draws, in pixels', () => {
 
     const top = Math.min(...points.map(p => p.y))
     const bottom = Math.max(...points.map(p => p.y))
-    // it does bow — a flat arc would mean the bow was dropped, not converted
-    expect(bottom - top).toBeGreaterThan(3 * ROW_HEIGHT_PX)
+    // it does bow past the rows — a flat arc would mean the bow was dropped,
+    // not converted; the rows themselves span three pitches
+    expect(bottom - top).toBeGreaterThanOrEqual(3 * ROW_HEIGHT_PX)
     // ...and it bows in screen px, so the whole drawing still fits its pane
     expect(top).toBeGreaterThan(-model.canvasHeight)
     expect(bottom).toBeLessThan(2 * model.canvasHeight)
   })
 
   // The panel-alignment half: the backbone is drawn across the pane rather than
-  // squeezed into whatever the vertical fit left it. Plus the round cap at each
-  // end, which is half a tube past the coordinate it caps.
+  // squeezed into whatever the vertical fit left it. The recorded points are
+  // the stroke's coordinates; the round caps the canvas adds past them are not
+  // in the path.
   test('the backbone spans the pane', async () => {
     const model = await fitted()
-    expect(spread(render(model).map(p => p.x))).toBeCloseTo(
-      model.width - 80 + model.contigThickness,
-      5,
-    )
+    expect(spread(render(model).map(p => p.x))).toBeCloseTo(model.width - 80, 5)
   })
 
   // Zoom is an x-only gesture on this axis, so afterwards the rows are drawn in
@@ -2160,9 +2159,7 @@ describe('what the row axis draws, in pixels', () => {
     const after = render(model)
 
     expect(rowYs()).toEqual(rowsBefore)
-    // measured without the round caps, which are screen px and so do not zoom
-    const tube = (points: { x: number }[]) =>
-      spread(points.map(p => p.x)) - model.contigThickness
+    const tube = (points: { x: number }[]) => spread(points.map(p => p.x))
     expect(tube(after)).toBeCloseTo(tube(before) * 3, 5)
   })
 })
