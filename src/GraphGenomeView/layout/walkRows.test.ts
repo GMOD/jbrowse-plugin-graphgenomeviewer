@@ -123,3 +123,22 @@ test.skipIf(!existsSync(KIV2))(
     expect(result.rows.map(r => r.label)).toHaveLength(8)
   },
 )
+
+test('a cut that stops at the window leaves whole walks, not partial ones', () => {
+  const graph = pggbGraph()
+  const byId = new Map(graph.nodes.map(n => [n.id, n.length]))
+  const reference = graph.paths!.find(
+    p => pathOrigin(p.name).name === graph.referencePath,
+  )!
+  const start = graph.anchorPaths!.find(
+    p => p.name === graph.referencePath,
+  )!.start
+  let end = start
+  for (const id of reference.nodeIds) {
+    end += byId.get(id)!
+  }
+  // the region IS the reference walk, so no node lies outside it
+  const rows = walkRows(graph, { start, end })!
+  expect(rows.rows.every(r => r.complete)).toBe(true)
+  expect(rows.reference.complete).toBe(true)
+})

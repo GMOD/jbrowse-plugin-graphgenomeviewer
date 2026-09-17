@@ -58,8 +58,11 @@ function sliceBetween(
   nodeIds: string[],
   span: Map<string, { start: number; end: number }>,
   region: { start: number; end: number } | undefined,
+  flanked = true,
 ) {
-  if (!region) {
+  // A cut that stops at the window carries no flanking reference for anyone,
+  // so every walk is whole and the slice is the walk.
+  if (!region || !flanked) {
     return { ids: nodeIds, complete: true }
   }
   let i0 = -1
@@ -116,8 +119,15 @@ export function walkRows(
     pos += len
   }
 
+  // Whether the reference reaches past the region on both sides, i.e. whether
+  // a flanking node exists for any walk to be cut at.
+  const flanked =
+    cut === undefined ||
+    ([...span.values()].some(s => s.end <= cut.start) &&
+      [...span.values()].some(s => s.start >= cut.end))
+
   const rowOf = (path: GraphPath): WalkRow => {
-    const { ids, complete } = sliceBetween(path.nodeIds, span, cut)
+    const { ids, complete } = sliceBetween(path.nodeIds, span, cut, flanked)
     const runs: WalkRun[] = []
     let bp = 0
     let offReferenceBp = 0
