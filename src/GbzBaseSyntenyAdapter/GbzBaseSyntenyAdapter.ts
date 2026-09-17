@@ -414,7 +414,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         const nodeLimit: number = this.getConf('nodeLimit')
         const alignments = query
           ? await updateStatus(
-              `Reading graph ${refName}:${start}-${end}`,
+              `Reading graph ${refName}:${start.toLocaleString()}-${end.toLocaleString()}`,
               opts.statusCallback,
               () =>
                 db
