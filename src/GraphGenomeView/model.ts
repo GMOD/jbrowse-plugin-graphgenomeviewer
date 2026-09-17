@@ -40,6 +40,7 @@ import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
 import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
 import { seededNodes } from './layout/referenceSeeds'
+import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import { walkRows } from './layout/walkRows'
 import {
   LAYOUT_MODE_VALUES,
@@ -392,6 +393,9 @@ export default function stateModelFactory() {
         // The array the walk rows measure between and tile by, as
         // RepeatArray.key; empty measures the whole window untiled.
         repeatKey: types.optional(types.string, ''),
+        // Samples whose walks the walk rows show, by the name before the
+        // haplotype number; undefined shows every walk the cut holds.
+        walkRowSamples: types.maybe(types.frozen<string[]>()),
         // One walk, by its path name, lifted out of the drawing: its nodes and
         // links keep their ink and the rest fades. Empty lifts none.
         highlightedPath: types.optional(types.string, ''),
@@ -900,9 +904,35 @@ export default function stateModelFactory() {
           return undefined
         }
         const repeat = self.selectedRepeat
-        return repeat
+        const bars = repeat
           ? walkRows(self.graph, repeat, repeat.unit)
           : walkRows(self.graph, self.loadedRegion)
+        const samples = self.walkRowSamples
+        return bars && samples
+          ? {
+              ...bars,
+              rows: bars.rows
+                .filter(r => samples.includes(r.label.split('#')[0]!))
+                .sort(
+                  (a, b) =>
+                    samples.indexOf(a.label.split('#')[0]!) -
+                      samples.indexOf(b.label.split('#')[0]!) ||
+                    a.label.localeCompare(b.label),
+                ),
+            }
+          : bars
+      },
+      // The labels drawn beside the rows. Walk rows label from the bars
+      // themselves, which follow the selected repeat and sample filter that
+      // the layout, run once per cut, cannot.
+      get drawnRowLabels() {
+        const bars = this.walkRowBars
+        return bars
+          ? [bars.reference, ...bars.rows].map((row, i) => ({
+              label: row.label,
+              y: i * ROW_HEIGHT_PX,
+            }))
+          : self.rowLabels
       },
       // Each bubble in the window with what it is, for the variant map's
       // glyphs on the reference line.
@@ -1315,6 +1345,9 @@ export default function stateModelFactory() {
       },
       // Same contract: the caller refetches, since the set describes the next
       // cut and the graph on screen was cut for the old one.
+      setWalkRowSamples(samples: string[] | undefined) {
+        self.walkRowSamples = samples
+      },
       setSubgraphHaplotypes(haplotypes: string[] | undefined) {
         self.subgraphHaplotypes = haplotypes
       },

@@ -87,3 +87,22 @@ test('the repeat track is the named one, else one whose name says repeats', () =
   expect(pickRepeatTrack(tracks, 'bed')?.trackId).toBe('bed')
   expect(pickRepeatTrack([tracks[2]!], '')).toBeUndefined()
 })
+
+test("a TRGT VCF's per-sample AL is each sample's called lengths", () => {
+  const f = {
+    ...base,
+    INFO: { TRID: 'ABCA7', MOTIFS: 'CCCCGTGAGC' },
+    samples: {
+      HG00099: { GT: ['1/2'], AL: [387, 3161] },
+      HG02559: { GT: ['1/1'], AL: '491,491' },
+      NA00001: { GT: ['./.'], AL: ['.'] },
+    },
+  }
+  expect(repeatArraysFrom([f])[0]!.calledLengths).toEqual({
+    HG00099: [387, 3161],
+    HG02559: [491, 491],
+  })
+  expect(repeatArraysFrom([{ ...base, period: 2 }])[0]!.calledLengths).toBe(
+    undefined,
+  )
+})

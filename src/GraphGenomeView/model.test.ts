@@ -2371,3 +2371,35 @@ describe('popping a bubble', () => {
     expect(model.poppedFrom).toBeUndefined()
   })
 })
+
+describe('walk rows', () => {
+  const WALKS_GFA = [
+    'H\tVN:Z:1.1',
+    'S\t1\tACGT',
+    'S\t2\tGGCCGGCC',
+    'S\t3\tTTTT',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t2\t+\t3\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'W\tGRCh38\t0\tchr1\t0\t8\t>1>3',
+    'W\tB\t1\tctg\t0\t16\t>1>2>3',
+    'W\tA\t2\tctg\t0\t8\t>1>3',
+    'W\tA\t1\tctg\t0\t16\t>1>2>3',
+    '',
+  ].join('\n')
+
+  test('a sample filter keeps its walks, paired in the order named, and labels follow', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      walkRowSamples: ['A', 'B'],
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const labels = model.walkRowBars!.rows.map(r => r.label)
+    expect(labels).toEqual(['A#1', 'A#2', 'B#1'])
+    expect(model.drawnRowLabels.map(r => r.label).slice(1)).toEqual(labels)
+    model.setWalkRowSamples(['B'])
+    expect(model.walkRowBars!.rows.map(r => r.label)).toEqual(['B#1'])
+  })
+})

@@ -20,6 +20,8 @@ const svgStyle = {
 }
 
 const ON_REFERENCE = '#2f8fd6'
+const CALL_TICK = '#111'
+const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
 const LABEL_CHAR_PX = 6.2
@@ -56,6 +58,14 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
         <div style={{ ...swatchStyle, backgroundColor: OFF_REFERENCE }} />
         <span>sequence it does not</span>
       </div>
+      {model.selectedRepeat?.calledLengths ? (
+        <div style={legendRowStyle}>
+          <div style={{ ...swatchStyle, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 2, backgroundColor: CALL_TICK }} />
+          </div>
+          <span>sample&apos;s genotyped allele lengths</span>
+        </div>
+      ) : null}
     </div>
   )
 })
@@ -78,6 +88,16 @@ function readout(
   const against =
     delta === 0 ? '' : ` (${delta > 0 ? '+' : '−'}${kb(Math.abs(delta))})`
   return `${kb(bp)}${units(bp, unit)}${against}${complete ? '' : ' · partial walk'}`
+}
+
+// A walk agrees with its sample's genotype when one called allele is within
+// 10% of it, or 100 bp for a short allele.
+export function agreesWithCall(bp: number, called: number[]) {
+  return called.some(c => Math.abs(c - bp) <= Math.max(100, 0.1 * bp))
+}
+
+function calledReadout(called: number[]) {
+  return ` · called ${called.map(c => kb(c).replace(' kb', '')).join(' / ')} kb`
 }
 
 // One separator per unit along a bar, so copies are countable, dropped when a
@@ -115,7 +135,8 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
     model.loadedRegion?.end ?? 0,
   )
   // A readout that would leave the pane is written inside the end of its bar.
-  const label = (text: string, endBp: number, y: number) => {
+  const calls = model.selectedRepeat?.calledLengths
+  const label = (text: string, endBp: number, y: number, fill = '#333') => {
     const x = X(endBp) + 6
     const fits = x + text.length * LABEL_CHAR_PX < width
     return (
@@ -124,7 +145,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         y={y + 4}
         fontSize={11}
         fontFamily="sans-serif"
-        fill="#333"
+        fill={fill}
         stroke={fits ? undefined : 'white'}
         strokeWidth={fits ? undefined : 3}
         paintOrder="stroke"
@@ -151,6 +172,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         if (y < -BAR_PX || y > canvasHeight + BAR_PX) {
           return null
         }
+        const called = calls?.[row.label.split('#')[0]!]
         return (
           <g key={row.name} data-testid="graph-walk-row">
             {row.runs.map(run => (
@@ -176,10 +198,22 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                   />
                 ))
               : null}
+            {called?.map((c, k) => (
+              <rect
+                key={`call${k}`}
+                data-testid="graph-walk-call"
+                x={X(origin + c) - 1}
+                y={y - BAR_PX / 2 - 3}
+                width={2}
+                height={BAR_PX + 6}
+                fill={CALL_TICK}
+              />
+            ))}
             {label(
-              readout(row.bp, reference.bp, row.complete, unit),
+              `${readout(row.bp, reference.bp, row.complete, unit)}${called ? calledReadout(called) : ''}`,
               origin + row.bp,
               y,
+              called && !agreesWithCall(row.bp, called) ? DISAGREES : undefined,
             )}
           </g>
         )

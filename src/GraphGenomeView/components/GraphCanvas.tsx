@@ -89,7 +89,7 @@ const RowLabels = observer(function RowLabels({
 }: {
   model: GraphGenomeViewModel
 }) {
-  const { rowLabels } = model
+  const rowLabels = model.drawnRowLabels
   return (
     <>
       {rowLabels.map(({ label, y }) => {
@@ -291,7 +291,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
     width: model.width,
     height: model.canvasHeight,
     // RowLabels paints over this overlay, so its boxes are occupied space
-    reserved: model.rowLabels.map(({ label, y }) =>
+    reserved: model.drawnRowLabels.map(({ label, y }) =>
       rowLabelBox(label, y * model.scaleY + model.translateY),
     ),
     // A drag moves the position objects without replacing them, so nothing

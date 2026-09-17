@@ -19,6 +19,9 @@ export interface RepeatArray {
   end: number
   unit: number
   motif?: string
+  // Each sample's genotyped allele lengths in bp, from a genotyper's
+  // per-sample `AL` (TRGT); absent from a catalogue.
+  calledLengths?: Record<string, number[]>
 }
 
 export const REPEAT_ADAPTER_TYPES = new Set([
@@ -128,6 +131,24 @@ export function repeatUnitOf(f: FeatureLike) {
   return motif && IUPAC.test(motif) ? motif.length : undefined
 }
 
+function calledLengthsOf(f: FeatureLike) {
+  const samples = own(f, 'samples') as
+    | Record<string, Record<string, unknown>>
+    | undefined
+  const called: Record<string, number[]> = {}
+  for (const [sample, fields] of Object.entries(samples ?? {})) {
+    const lengths = (
+      Array.isArray(fields.AL) ? fields.AL : String(fields.AL ?? '').split(',')
+    )
+      .map(Number)
+      .filter(n => Number.isFinite(n) && n > 0)
+    if (lengths.length > 0) {
+      called[sample] = lengths
+    }
+  }
+  return Object.keys(called).length > 0 ? called : undefined
+}
+
 export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
   const arrays: RepeatArray[] = []
   for (const f of features) {
@@ -152,6 +173,7 @@ export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
       end,
       unit,
       motif,
+      calledLengths: calledLengthsOf(f),
     })
   }
   return arrays.sort((a, b) => a.start - b.start)
