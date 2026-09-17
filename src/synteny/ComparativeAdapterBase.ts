@@ -1,7 +1,7 @@
 import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { createStatusFanOut } from '@jbrowse/core/util'
-import { merge } from 'rxjs'
-import { mergeMap } from 'rxjs/operators'
+import { from } from 'rxjs'
+import { map, mergeMap, toArray } from 'rxjs/operators'
 
 import { clipFeatureToRegion } from './clipFeatureToRegion.ts'
 
@@ -40,31 +40,38 @@ export abstract class ComparativeAdapterBase<
   }
 
   /**
-   * `clipToRegion` is honoured here and nowhere below: `getFeatures` never sees
-   * it, so an adapter composed of others (the star) clips its children's
-   * records once, after its own re-keying, rather than once per child and once
-   * for itself.
+   * `clipToRegion` and `splitAtGapBp` are honoured here and nowhere below:
+   * `getFeatures` never sees them.
+   *
+   * Emission is in region order, not arrival order, as core's base does: the
+   * multi-way display's lane sort tie-breaks on first appearance in this list,
+   * and its weights tie exactly, so arrival order would decide the stack.
    */
   getFeaturesInMultipleRegions(
     regions: Region[],
     opts: ComparativeOptions = {},
   ) {
-    const { clipToRegion, ...rest } = opts
+    const { clipToRegion, splitAtGapBp, ...rest } = opts
+    const clip = clipToRegion && this.recordsAreAlignments
     const slot = createStatusFanOut(rest.statusCallback)
-    return clipToRegion && this.recordsAreAlignments
-      ? merge(
-          ...regions.map(region =>
-            this.getFeatures(region, {
-              ...rest,
-              statusCallback: slot(),
-            }).pipe(
-              mergeMap((feature): Feature[] => {
-                const clipped = clipFeatureToRegion(feature, region)
-                return clipped === undefined ? [] : [clipped]
-              }),
-            ),
+    return from(regions).pipe(
+      mergeMap((region, index) =>
+        this.getFeatures(region, { ...rest, statusCallback: slot() }).pipe(
+          mergeMap((feature): Feature[] =>
+            clip
+              ? clipFeatureToRegion(feature, region, splitAtGapBp)
+              : [feature],
           ),
-        )
-      : super.getFeaturesInMultipleRegions(regions, rest)
+          toArray(),
+          map(features => ({ index, features })),
+        ),
+      ),
+      toArray(),
+      mergeMap(chunks =>
+        chunks
+          .sort((a, b) => a.index - b.index)
+          .flatMap(chunk => chunk.features),
+      ),
+    )
   }
 }
