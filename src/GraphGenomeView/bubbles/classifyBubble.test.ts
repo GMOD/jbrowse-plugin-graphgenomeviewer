@@ -33,7 +33,21 @@ describe('classifyBubble', () => {
       }),
     )
     expect(c.kind).toBe('insertion')
-    expect(c.label).toBe('insertion, up to 1.2 kb')
+    expect(c.label).toBe('≤1.2 kb ins')
+  })
+
+  it('counts the alleles past two', () => {
+    expect(
+      classifyBubble(
+        bubble({
+          start: 100,
+          end: 100,
+          pathCount: 3,
+          shortestAlleleLength: 0,
+          longestAlleleLength: 2000,
+        }),
+      ).label,
+    ).toBe('≤2.0 kb ins, 3 alleles')
   })
 
   it('reads a deletion when the longest route is the reference', () => {
@@ -46,7 +60,7 @@ describe('classifyBubble', () => {
       }),
     )
     expect(c.kind).toBe('deletion')
-    expect(c.label).toBe('deletion of 4.4 kb')
+    expect(c.label).toBe('4.4 kb del')
   })
 
   it('calls many routes over a wide length range a repeat array', () => {
@@ -61,7 +75,7 @@ describe('classifyBubble', () => {
       }),
     )
     expect(c.kind).toBe('repeat')
-    expect(c.label).toBe('129 routes, 3.0 kb–175 kb: repeat array')
+    expect(c.label).toBe('3.0–175 kb repeat array, 129 routes')
   })
 
   it('names a saturated route count for what it is', () => {
@@ -76,8 +90,7 @@ describe('classifyBubble', () => {
       }),
     )
     expect(c.kind).toBe('superbubble')
-    expect(c.label).toContain('more routes than gfatools counts')
-    expect(c.label).not.toContain('2147483647')
+    expect(c.label).toBe('2.4–205 kb superbubble, 254 segments, ≥2.1B routes')
   })
 
   it('reads a SNP and a substitution', () => {
@@ -100,19 +113,47 @@ describe('classifyBubble', () => {
           longestAlleleLength: 4,
         }),
       ).label,
-    ).toBe('4 bp substitution')
+    ).toBe('4 bp sub')
   })
 
   it('flags an inversion ahead of everything but a superbubble', () => {
+    const c = classifyBubble(
+      bubble({
+        inversion: true,
+        shortestAlleleLength: 100,
+        longestAlleleLength: 900,
+      }),
+    )
+    expect(c.kind).toBe('inversion')
+    expect(c.label).toBe('900 bp inv')
+  })
+
+  it('states the reference a complex site replaces and its allele range', () => {
+    const c = classifyBubble(
+      bubble({
+        start: 0,
+        end: 12000,
+        pathCount: 9,
+        shortestAlleleLength: 8600,
+        longestAlleleLength: 13000,
+      }),
+    )
+    expect(c.kind).toBe('complex')
+    expect(c.label).toBe('12 kb ref → 8.6–13 kb, 9 alleles')
+  })
+
+  it('marks a bubble the cut did not hold whole', () => {
     expect(
       classifyBubble(
         bubble({
-          inversion: true,
-          shortestAlleleLength: 100,
-          longestAlleleLength: 900,
+          start: 0,
+          end: 41000,
+          shortestAlleleLength: 41000,
+          longestAlleleLength: 41000,
+          partial: true,
         }),
-      ).kind,
-    ).toBe('inversion')
+      ).label,
+    ).toBe('41 kb sub, partial')
   })
 
   it('formats bp the way the node labels do', () => {

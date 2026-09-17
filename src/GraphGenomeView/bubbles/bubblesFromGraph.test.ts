@@ -120,7 +120,7 @@ describe('bubblesFromGraph', () => {
     expect([snp!.shortestAlleleLength, snp!.longestAlleleLength]).toEqual([
       1, 1,
     ])
-    expect(classifyBubble(snp!).label).toBe('SNP, reaches outside the cut')
+    expect(classifyBubble(snp!).label).toBe('SNP, partial')
   })
 
   // A GBZ cut at 1 kb of context hands a haplotype's walk through a repeat
@@ -134,7 +134,7 @@ describe('bubblesFromGraph', () => {
     })
     expect(ins!.partial).toBe(true)
     expect([ins!.pathCount, ins!.longestAlleleLength]).toEqual([3, 30])
-    expect(classifyBubble(ins!).label).toMatch(/reaches outside the cut$/)
+    expect(classifyBubble(ins!).label).toMatch(/, partial$/)
     expect(bubblesFromGraph(walked)[1]!.partial).toBe(false)
   })
 

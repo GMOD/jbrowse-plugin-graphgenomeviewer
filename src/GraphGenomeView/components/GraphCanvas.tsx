@@ -12,7 +12,7 @@ import GraphToolbar from './GraphToolbar'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { graphLabels, rowLabelBox } from '../graphLabels'
+import { formatBp, graphLabels, rowLabelBox } from '../graphLabels'
 import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
@@ -200,7 +200,7 @@ const WalkReadout = observer(function WalkReadout({
 // (hue 0 to REFERENCE_RAMP_MAX_HUE at 70%/50%), rather than from a picked pair
 // of hex stops, so it cannot come to describe a ramp the drawing stopped using.
 const rampStripStyle = {
-  width: 90,
+  minWidth: 90,
   height: 8,
   borderRadius: 2,
   background: `linear-gradient(to right, ${Array.from(
@@ -227,6 +227,7 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
       <div style={rampStripStyle} />
       <div style={rampEndsStyle}>
         <span>{domain.start.toLocaleString()}</span>
+        <span>({formatBp(domain.end - domain.start)})</span>
         <span>{domain.end.toLocaleString()}</span>
       </div>
     </div>
@@ -283,7 +284,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
   const labels = graphLabels({
     nodePositions,
     nodeLengths: model.nodeLengths,
-    deletions: model.deletions,
+    deletions: model.showDeletionEdges ? model.deletions : [],
     alleleDeletions: model.alleleDeletions,
     axis: model.axisScale,
     translateX: model.translateX,
@@ -588,6 +589,7 @@ const GraphCanvas = observer(function GraphCanvas({
               model.effectiveDrawPaths,
               model.positionsVersion,
               model.deletionEdgeIndexes,
+              model.hiddenEdgeIndexes,
             ),
       )
     }

@@ -141,6 +141,22 @@ describe('findHoveredEdge', () => {
     test('and the chord it is not drawn on is not', () => {
       expect(at(100, 26)).toBeNull()
     })
+
+    test('and a hidden one is not hoverable at all', () => {
+      expect(
+        findHoveredEdge(
+          withBypassed,
+          graph,
+          100,
+          26,
+          iso(),
+          false,
+          0,
+          bypassing,
+          new Set([0]),
+        ),
+      ).toBeNull()
+    })
   })
 })
 

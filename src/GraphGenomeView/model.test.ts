@@ -129,10 +129,11 @@ function createModel() {
 
 // The view defaults to the force layout, so a test about a reference-anchored
 // drawing has to select one — the same way the anchored figures do.
-function createAnchoredModel() {
+function createAnchoredModel(props: { showDeletionEdges?: boolean } = {}) {
   return stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'auto',
+    ...props,
   })
 }
 
@@ -2086,6 +2087,7 @@ describe('what the row axis draws, in pixels', () => {
         drawPaths: false,
         axis: model.axisScale,
         deletions: model.deletionEdgeIndexes,
+        hiddenEdges: model.hiddenEdgeIndexes,
       }),
     )
     renderer.updateTransform({
@@ -2101,8 +2103,8 @@ describe('what the row axis draws, in pixels', () => {
     return points
   }
 
-  async function fitted() {
-    const model = createAnchoredModel()
+  async function fitted(props: { showDeletionEdges?: boolean } = {}) {
+    const model = createAnchoredModel(props)
     await model.loadGFA(FOUR_ROWS, 'four rows')
     model.zoomToFit()
     return model
@@ -2134,7 +2136,7 @@ describe('what the row axis draws, in pixels', () => {
   // and takes its label with it. Everything else in this drawing is horizontal
   // and would not notice.
   test('the deletion arc bows a legible distance, not a hundred rows', async () => {
-    const model = await fitted()
+    const model = await fitted({ showDeletionEdges: true })
     expect(model.deletions).toHaveLength(1)
     const points = render(model)
 
@@ -2146,6 +2148,22 @@ describe('what the row axis draws, in pixels', () => {
     // ...and it bows in screen px, so the whole drawing still fits its pane
     expect(top).toBeGreaterThan(-model.canvasHeight)
     expect(bottom).toBeLessThan(2 * model.canvasHeight)
+  })
+
+  test('a deletion edge draws only in a view that shows it', async () => {
+    const hidden = await fitted()
+    expect(hidden.showDeletionEdges).toBe(false)
+    expect([...hidden.hiddenEdgeIndexes]).toEqual(
+      hidden.deletions.map(d => d.edgeIndex),
+    )
+    const shown = await fitted({ showDeletionEdges: true })
+    expect(getSnapshot(shown).showDeletionEdges).toBe(true)
+    expect(shown.hiddenEdgeIndexes.size).toBe(0)
+
+    expect(render(hidden).length).toBeLessThan(render(shown).length)
+
+    hidden.setShowDeletionEdges(true)
+    expect(hidden.hiddenEdgeIndexes.size).toBe(0)
   })
 
   // The panel-alignment half: the backbone is drawn across the pane rather than
@@ -2320,7 +2338,7 @@ describe('popping a bubble', () => {
     await model.loadGFA(RGFA_BUBBLE, 'rgfa')
     expect(model.indexBubbles).toBeUndefined()
     expect(model.bubbleGlyphs.map(g => [g.label, g.bubble.segments])).toEqual([
-      ['insertion, up to 4 bp', '1,3,2'],
+      ['≤4 bp ins', '1,3,2'],
     ])
   })
 
@@ -2332,7 +2350,7 @@ describe('popping a bubble', () => {
     expect(model.bubbleGlyphs).toEqual([])
     expect(
       model.bubbleHalos.map(h => [h.label, h.members, h.path.startsWith('M')]),
-    ).toEqual([['insertion, up to 4 bp', 1, true]])
+    ).toEqual([['≤4 bp ins', 1, true]])
     model.setShowBubbles(false)
     expect(model.bubbleHalos).toEqual([])
   })

@@ -458,9 +458,9 @@ the haplotypes' own lengths._
 
 A derived bubble now says when this happened. A walk piece that enters the
 bubble and ends before its other boundary is a route the cut did not keep, so
-the bubble is marked partial, "reaches outside the cut", and its lengths read as
-a floor. The remedy is a `context` on the track that covers the longest allele,
-or the snarl extension on the kept-haplotype path upstream.
+the bubble is marked partial (its label ends ", partial") and its lengths read
+as a floor. The remedy is a `context` on the track that covers the longest
+allele, or the snarl extension on the kept-haplotype path upstream.
 
 ## Carriage, collapsed
 
@@ -489,8 +489,8 @@ stroke along its own nodes, in layout units so one transform moves it with the
 canvas, with the map's label at its highest node; the label opens the bubble in
 the same layout, and a popped graph derives its own. The two anchors a bubble
 hangs between are left out, so neighbours do not touch. On the 58-node KIV-2
-rGFA cut: six halos, the array's knot labelled "129 routes, 3.0 kb–175 kb:
-repeat array", a 942 bp deletion and a 1.2 kb insertion each a small halo on the
+rGFA cut: six halos, the array's knot labelled "3.0–175 kb repeat array, 129
+routes", a 942 bp deletion and a 1.2 kb insertion each a small halo on the
 backbone.
 
 ![KIV-2, force-directed, bubbles as halos](../img/force_kiv2.png)

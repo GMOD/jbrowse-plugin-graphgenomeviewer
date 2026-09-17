@@ -18,9 +18,9 @@ import type { AxisScale, BezierCurve } from './util/geometry'
 // asking 94.2 kb of what; "skips 94.2 kb of reference" answered that and still
 // drew "it is sort of unclear what 'skips X bp of reference' means. is there any
 // better wording?" on a third round. So the label now names the event rather
-// than describing the arc's mechanics: "94.2 kb deletion" is the term a reader
-// already has for reference sequence a haplotype does not carry, and against the
-// reference is what a deletion is measured from by default.
+// than describing the arc's mechanics: "94.2 kb del" abbreviates the term a
+// reader already has for reference sequence a haplotype does not carry, and
+// against the reference is what a deletion is measured from by default.
 //
 // **Two rules decide which labels there are, and both are about the drawing
 // rather than about a threshold on the graph.**
@@ -203,6 +203,10 @@ export function formatBp(bp: number) {
     return `${+(bp / 1_000_000).toFixed(1)} Mb`
   }
   return bp >= 1000 ? `${+(bp / 1000).toFixed(1)} kb` : `${bp} bp`
+}
+
+function deletionText(bp: number) {
+  return `${formatBp(bp)} del`
 }
 
 // Which way the arc bows, as a unit vector: its chord's midpoint towards its
@@ -451,7 +455,7 @@ export function graphLabels({
     version,
   )) {
     if (extent >= MIN_DELETION_LABEL_PX) {
-      const text = `${formatBp(deletion.bp)} deletion`
+      const text = deletionText(deletion.bp)
       const halfW = labelHalfWidth(text)
       const box = boxAt(halfW, 0, 0)
       const arcX = apex.x * scaleX + translateX
@@ -516,7 +520,7 @@ export function graphLabels({
   // reference the allele replaces, and it has to fit that extent by the same
   // factor-of-two rule a node label does — so the sliver a 2 bp skip occupies in
   // a base-level graph carries nothing, and the 7.1 kb one CFT073 leaves in the
-  // E. coli pggb graph carries `7.0 kb deletion`.
+  // E. coli pggb graph carries `7 kb del`.
   //
   // The nodes it covers are then barred from labelling themselves. Their length
   // is a true fact and the wrong one to print here: `93 bp` written across a bar
@@ -544,7 +548,7 @@ export function graphLabels({
       continue
     }
     const extent = Math.max(shownRight - shownLeft, shownBottom - shownTop)
-    const text = `${formatBp(run.bp)} deletion`
+    const text = deletionText(run.bp)
     const halfW = labelHalfWidth(text)
     if (extent >= (halfW * 2) / MAX_LABEL_OVERHANG) {
       for (const id of run.nodeIds) {

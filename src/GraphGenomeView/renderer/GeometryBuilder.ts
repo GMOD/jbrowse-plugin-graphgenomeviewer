@@ -222,6 +222,7 @@ export interface BuildOptions {
   // rather than derived here because the model can hold it against the graph,
   // and because the same set names the hover text.
   deletions?: Map<number, string[]>
+  hiddenEdges?: ReadonlySet<number>
   // Bumped when a drag moves the positions in place, which their identity
   // cannot report. Only the shared curve cache reads it; see baseEdgeCurves.
   version?: number
@@ -638,6 +639,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     viewportBounds,
     referenceRamp,
     deletions,
+    hiddenEdges,
     version = 0,
   } = options
   const depthNorm = nodeWidth === 'depth' ? meanDepth(graph) : 0
@@ -687,7 +689,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     const fromSegments = nodePositions[edge.from]
     const toSegments = nodePositions[edge.to]
     const baseCurves = sharedCurves.get(ei)
-    if (!fromSegments?.length || !toSegments?.length || !baseCurves) {
+    if (
+      !fromSegments?.length ||
+      !toSegments?.length ||
+      !baseCurves ||
+      hiddenEdges?.has(ei)
+    ) {
       continue
     }
 

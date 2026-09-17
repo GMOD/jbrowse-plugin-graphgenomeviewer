@@ -241,6 +241,7 @@ export function findHoveredEdge(
   drawPaths: boolean,
   version = 0,
   deletions?: Map<number, string[]>,
+  hiddenEdges?: ReadonlySet<number>,
 ) {
   const yToX = yToXOf(axis)
   const edgeThreshold = 10 / axis.scaleX
@@ -266,7 +267,11 @@ export function findHoveredEdge(
     const edge = graph.edges[edgeIdx]!
     const fromSegments = nodePositions[edge.from]
     const toSegments = nodePositions[edge.to]
-    if (!fromSegments?.length || !toSegments?.length) {
+    if (
+      !fromSegments?.length ||
+      !toSegments?.length ||
+      hiddenEdges?.has(edgeIdx)
+    ) {
       continue
     }
 

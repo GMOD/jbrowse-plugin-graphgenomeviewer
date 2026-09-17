@@ -33,6 +33,14 @@ const SettingsMenu = observer(function SettingsMenu({
           },
           {
             type: 'checkbox' as const,
+            label: 'Show deletion edges',
+            checked: model.showDeletionEdges,
+            onClick: () => {
+              model.setShowDeletionEdges(!model.showDeletionEdges)
+            },
+          },
+          {
+            type: 'checkbox' as const,
             label: 'Show timings',
             checked: model.showPerf,
             onClick: () => {

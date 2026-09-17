@@ -123,7 +123,7 @@ test('a deletion names itself, positively, on its arc', () => {
     axis: iso(),
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(label!.text).toBe('84.7 kb deletion')
+  expect(label!.text).toBe('84.7 kb del')
   // off the line the bypassed node lies on, which is what puts it on the curve
   expect(Math.abs(label!.y)).toBeGreaterThan(10)
 })
@@ -161,7 +161,7 @@ test('a deletion label wins the space over a node label', () => {
     axis: iso(),
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toEqual(['84.7 kb deletion', '39 kb'])
+  expect(labels.map(l => l.text)).toEqual(['84.7 kb del', '39 kb'])
 })
 
 // The gate is the arc's drawn extent, not its bulge. Bulge is in layout units,
@@ -194,7 +194,7 @@ test('a wide, shallow arc is labelled', () => {
     axis: iso(),
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toEqual(['9.3 kb deletion'])
+  expect(labels.map(l => l.text)).toEqual(['9.3 kb del'])
 })
 
 // Two arcs over the same stretch of backbone put their labels in nearly the same
@@ -218,7 +218,7 @@ test('the bigger deletion keeps its label', () => {
     axis: iso(),
     ...VIEWPORT,
   }).filter(l => l.kind === 'deletion')
-  expect(labels.map(l => l.text)).toEqual(['15.7 kb deletion'])
+  expect(labels.map(l => l.text)).toEqual(['15.7 kb del'])
 })
 
 // An arc wide enough to hold its own name keeps the label centred on
@@ -245,9 +245,9 @@ test('an arc that can hold its own name keeps it, untethered', () => {
   expect(label!.leader).toBeUndefined()
 })
 
-// The LPA KIV-2 case: a 40-unit arc over a short bypassed run, which clears the
-// "not a dot" floor while still being half the width of the 26 characters naming
-// it. Centred there the text reads as a caption dropped on whatever is beside the
+// The LPA KIV-2 case: a 32-unit arc over a short bypassed run, which clears the
+// "not a dot" floor while still being narrower than the words naming it.
+// Centred there the text reads as a caption dropped on whatever is beside the
 // arc, so it moves off and states the link instead.
 const CRAMPED = {
   nodePositions: {
@@ -256,12 +256,12 @@ const CRAMPED = {
       { x: 0, y: 0 },
     ],
     after: [
-      { x: 40, y: 0 },
-      { x: 120, y: 0 },
+      { x: 32, y: 0 },
+      { x: 112, y: 0 },
     ],
     short: [
       { x: 0, y: 0 },
-      { x: 40, y: 0 },
+      { x: 32, y: 0 },
     ],
   },
   nodeLengths: new Map<string, number>(),
@@ -282,7 +282,7 @@ const CRAMPED = {
 
 test('an arc too small for its name keeps it on a leader', () => {
   const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
-  expect(label!.text).toBe('27.7 kb deletion')
+  expect(label!.text).toBe('27.7 kb del')
   const { leader } = label!
   expect(leader).toBeDefined()
   // the tether starts on the arc and ends short of the label's centre, so the
@@ -296,8 +296,8 @@ test('an arc too small for its name keeps it on a leader', () => {
 })
 
 // The same arc turned 45 degrees, which is where "the box's edge" and "the plane
-// the box touches at a corner" come apart: the label is six times wider than it
-// is tall, so a diagonal leader stopped at the support distance ends a stub's
+// the box touches at a corner" come apart: the label is several times wider than
+// it is tall, so a diagonal leader stopped at the support distance ends a stub's
 // length from the arc with most of the gap left white. It has to run to the box.
 test('a diagonal leader reaches the label it tethers', () => {
   const turn = (segments: { x: number; y: number }[]) =>
@@ -323,11 +323,11 @@ test('a diagonal leader reaches the label it tethers', () => {
   // it stops within the label's own half-height of the text rather than at the
   // far corner of its bounding box, and so covers most of the displacement
   expect(remaining).toBeLessThan(15)
-  expect(drawn).toBeGreaterThan(remaining * 3)
+  expect(drawn).toBeGreaterThan(remaining * 2)
 })
 
 // A tethered label picks its own position, so it must pick one on the canvas.
-// CRAMPED's arc sits 20px from the left edge and the words are 157 wide, so
+// CRAMPED's arc sits 16px from the left edge and the words are 72 wide, so
 // displacing blind hangs them off the frame — the general cull keeps any box
 // that merely overlaps it, which is how the MHC force layout shipped a clipped
 // `…ips 1.5 kb of reference` against its left edge. It slides in instead, and
@@ -336,7 +336,7 @@ test('a tethered label slides into the frame, leader following', () => {
   const [label] = graphLabels(CRAMPED).filter(l => l.kind === 'deletion')
   const { leader } = label!
   expect(leader).toBeDefined()
-  const halfW = '27.7 kb deletion'.length * 5.7 + 9
+  const halfW = '27.7 kb del'.length * 5.7 + 9
   expect(label!.x - halfW / 2).toBeGreaterThanOrEqual(0)
   // still anchored on the arc, and still pointing from it at the words
   expect(leader!.arcX).toBeLessThan(label!.x)
@@ -400,8 +400,8 @@ test('an allele that replaces more reference than it carries is a deletion', () 
     axis: iso(),
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '7 kb deletion'])
-  expect(labels.find(l => l.text === '7 kb deletion')?.kind).toBe('deletion')
+  expect(labels.map(l => l.text).sort()).toEqual(['12 bp', '7 kb del'])
+  expect(labels.find(l => l.text === '7 kb del')?.kind).toBe('deletion')
 })
 
 // ...and the node it covers does not also print its length there. Both are true;
@@ -452,7 +452,7 @@ test('a run reaching off-frame is labelled on the part that is shown', () => {
     axis: iso(),
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toEqual(['7 kb deletion'])
+  expect(labels.map(l => l.text)).toEqual(['7 kb del'])
   expect(labels[0]!.x).toBeGreaterThan(0)
   expect(labels[0]!.x).toBeLessThan(VIEWPORT.width)
 })
@@ -483,7 +483,7 @@ test('a run too long to spread into an argument list is still measured', () => {
     axis: iso(),
     ...VIEWPORT,
   })
-  expect(labels.map(l => l.text)).toContain('70 kb deletion')
+  expect(labels.map(l => l.text)).toContain('70 kb del')
 })
 
 // A node drag moves the position objects without replacing them, so nothing

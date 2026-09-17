@@ -381,6 +381,7 @@ export default function stateModelFactory() {
         // Whether the node layouts draw each bubble as a halo along its nodes
         // with a label that opens it. The variant map draws glyphs instead.
         showBubbles: types.optional(types.boolean, true),
+        showDeletionEdges: types.optional(types.boolean, false),
         // The session's genes drawn onto the backbone: exons along the nodes
         // that carry them, names pinned at their midpoints. See genes/.
         showGenes: types.optional(types.boolean, true),
@@ -1091,6 +1092,11 @@ export default function stateModelFactory() {
       get deletionEdgeIndexes() {
         return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
       },
+      get hiddenEdgeIndexes() {
+        return new Set(
+          self.showDeletionEdges ? [] : self.deletions.map(d => d.edgeIndex),
+        )
+      },
       // The interval the reference-position ramp runs over, for the key beside
       // the drawing, and undefined when no key should be drawn. Two tutorials
       // carry "red to magenta is left to right of the cut window" as a sentence
@@ -1316,6 +1322,9 @@ export default function stateModelFactory() {
       },
       setShowBubbles(show: boolean) {
         self.showBubbles = show
+      },
+      setShowDeletionEdges(show: boolean) {
+        self.showDeletionEdges = show
       },
       setShowGenes(show: boolean) {
         self.showGenes = show
@@ -2454,6 +2463,7 @@ export default function stateModelFactory() {
                 // the `referenceRamp` view.
                 referenceRamp: self.referenceRamp,
                 deletions: self.deletionEdgeIndexes,
+                hiddenEdges: self.hiddenEdgeIndexes,
                 // Read tracked above; passed here so the shared edge-curve
                 // cache can tell a drag from a pan.
                 version: self.positionsVersion,
