@@ -9,6 +9,9 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // once cannot sit on nine rows, so WalkRowsOverlay draws each walk's bar from
 // `walkRows`, and this layout only reserves the rows and states how far the
 // bars reach so the fit and the pane height include them.
+// The fit leaves this much past the longest bar for its readout and the legend.
+const READOUT_ROOM = 1.3
+
 export function walkRowLayout(
   graph: Graph,
   region?: { start: number; end: number },
@@ -40,7 +43,7 @@ export function walkRowLayout(
     referenceAxis: true,
     pixelRows: true,
     extent: {
-      maxX: walks.origin + longest,
+      maxX: walks.origin + longest * READOUT_ROOM,
       maxY: walks.rows.length * ROW_HEIGHT_PX,
     },
   }
