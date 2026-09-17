@@ -446,6 +446,19 @@ describe('performance instrumentation', () => {
     expect(model.lastLayoutMs).toBe(5)
   })
 
+  test('showLoading holds until the geometry is built', async () => {
+    rpcRespond()
+    const model = createModel()
+    expect(model.showLoading).toBe(false)
+    await model.loadGFA(SIMPLE_GFA, 'imported')
+    expect(model.showLoading).toBe(true)
+    model.setGeometryMetrics(1, 3, {
+      scale: 1,
+      bounds: { minX: 0, minY: 0, w: 1, h: 1 },
+    })
+    expect(model.showLoading).toBe(false)
+  })
+
   test('clearGraph resets perf metrics', async () => {
     rpcRespond()
     const model = createModel()

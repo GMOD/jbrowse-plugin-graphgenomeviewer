@@ -589,6 +589,19 @@ export default function stateModelFactory() {
       get hasGraph() {
         return self.graph !== undefined
       },
+      // The app-wide readiness contract (AppReadyMarker, @jbrowse/capture)
+      // reads this: a declared source still fetching, or a graph whose
+      // geometry has not been built yet.
+      get showLoading() {
+        return (
+          self.error === undefined &&
+          (self.isLoading ||
+            ((self.graph !== undefined ||
+              !!(self.loadedTrackId && self.loadedRegion) ||
+              !!self.gfaLocation) &&
+              self.lastGeometryStrokeCount === undefined))
+        )
+      },
       get canRetryLoad() {
         return !!(self.loadedTrackId && self.loadedRegion) || !!self.gfaLocation
       },
