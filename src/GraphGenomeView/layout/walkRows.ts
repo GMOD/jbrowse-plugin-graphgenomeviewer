@@ -51,21 +51,39 @@ function labelOf(path: GraphPath) {
     : panSNSample(path.name)
 }
 
+// Each walk is cut at the nearest reference nodes IT visits on either side of
+// the region, so a walk that skips one flanking node at a SNP is still measured
+// between flanks rather than whole.
 function sliceBetween(
   nodeIds: string[],
-  before: string | undefined,
-  after: string | undefined,
+  span: Map<string, { start: number; end: number }>,
+  region: { start: number; end: number } | undefined,
 ) {
-  if (before === undefined || after === undefined) {
+  if (!region) {
     return { ids: nodeIds, complete: true }
   }
-  const i0 = nodeIds.indexOf(before)
-  const i1 = nodeIds.indexOf(after)
+  let i0 = -1
+  let i1 = -1
+  let bestEnd = -Infinity
+  let bestStart = Infinity
+  nodeIds.forEach((id, i) => {
+    const s = span.get(id)
+    if (s) {
+      if (s.end <= region.start && s.end > bestEnd) {
+        bestEnd = s.end
+        i0 = i
+      }
+      if (s.start >= region.end && s.start < bestStart) {
+        bestStart = s.start
+        i1 = i
+      }
+    }
+  })
   if (i0 < 0 || i1 < 0) {
     return { ids: nodeIds, complete: false }
   }
-  const [a, b] = i0 < i1 ? [i0, i1] : [i1, i0]
-  return { ids: nodeIds.slice(a + 1, b), complete: true }
+  const [lo, hi] = i0 < i1 ? [i0, i1] : [i1, i0]
+  return { ids: nodeIds.slice(lo + 1, hi), complete: true }
 }
 
 export function walkRows(
@@ -87,24 +105,19 @@ export function walkRows(
     graph.anchorPaths?.find(p => p.name === pathOrigin(reference.name).name)
       ?.start ?? 0
 
-  let before: string | undefined
-  let after: string | undefined
-  if (region && region.end > region.start) {
-    let pos = referenceStart
-    for (const id of reference.nodeIds) {
-      const len = lengthOf.get(id) ?? 0
-      if (pos + len <= region.start) {
-        before = id
-      }
-      if (after === undefined && pos >= region.end) {
-        after = id
-      }
-      pos += len
+  const cut = region && region.end > region.start ? region : undefined
+  const span = new Map<string, { start: number; end: number }>()
+  let pos = referenceStart
+  for (const id of reference.nodeIds) {
+    const len = lengthOf.get(id) ?? 0
+    if (!span.has(id)) {
+      span.set(id, { start: pos, end: pos + len })
     }
+    pos += len
   }
 
   const rowOf = (path: GraphPath): WalkRow => {
-    const { ids, complete } = sliceBetween(path.nodeIds, before, after)
+    const { ids, complete } = sliceBetween(path.nodeIds, span, cut)
     const runs: WalkRun[] = []
     let bp = 0
     let offReferenceBp = 0
@@ -132,7 +145,7 @@ export function walkRows(
     }
   }
 
-  const origin = before !== undefined && region ? region.start : referenceStart
+  const origin = cut ? cut.start : referenceStart
   return {
     origin,
     unit,
@@ -140,6 +153,11 @@ export function walkRows(
     rows: paths
       .filter(p => p !== reference)
       .map(rowOf)
-      .sort((a, b) => b.bp - a.bp || a.label.localeCompare(b.label)),
+      .sort(
+        (a, b) =>
+          Number(b.complete) - Number(a.complete) ||
+          b.bp - a.bp ||
+          a.label.localeCompare(b.label),
+      ),
   }
 }

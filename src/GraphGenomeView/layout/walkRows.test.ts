@@ -77,6 +77,32 @@ test('a region measures between its flanking reference nodes', () => {
   expect(cut.reference.bp).toBeLessThan(whole.reference.bp)
 })
 
+test('a walk that skips the flanking node is cut at the next one it visits', () => {
+  const graph = pggbGraph()
+  const byId = new Map(graph.nodes.map(n => [n.id, n.length]))
+  const reference = graph.paths!.find(
+    p => pathOrigin(p.name).name === graph.referencePath,
+  )!
+  const start = graph.anchorPaths!.find(
+    p => p.name === graph.referencePath,
+  )!.start
+  const ends = [start]
+  for (const id of reference.nodeIds) {
+    ends.push(ends.at(-1)! + byId.get(id)!)
+  }
+  const n = reference.nodeIds.length
+  const region = { start: ends[3]!, end: ends[n - 3]! }
+  const skipper = {
+    ...reference,
+    name: 'skipper',
+    nodeIds: reference.nodeIds.filter((_, i) => i !== 2 && i !== n - 3),
+  }
+  const cut = walkRows({ ...graph, paths: [...graph.paths!, skipper] }, region)!
+  const row = cut.rows.find(r => r.name === 'skipper')!
+  expect(row.complete).toBe(true)
+  expect(row.bp).toBe(cut.reference.bp)
+})
+
 // The numbers scripts/layout-lab/copycount.mjs reports for the hosted
 // eight-haplotype KIV-2 cut: GRCh38 about 33 kb through the window, HG00133
 // about 149 kb, so HG00133 carries roughly 21 more units of 5,548 bp.
