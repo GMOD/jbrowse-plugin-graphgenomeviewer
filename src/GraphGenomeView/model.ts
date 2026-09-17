@@ -57,6 +57,7 @@ import {
   pickRepeatTrack,
   repeatArraysFrom,
 } from './repeats/repeatFeatures'
+import { withCalls } from './repeats/walkCalls'
 import { walkHighlight } from './walkHighlight'
 import { parseGFA } from '../gfa-core/index'
 import {
@@ -908,20 +909,20 @@ export default function stateModelFactory() {
         const bars = repeat
           ? walkRows(self.graph, repeat, repeat.unit)
           : walkRows(self.graph, self.loadedRegion)
+        if (!bars) {
+          return undefined
+        }
         const samples = self.walkRowSamples
-        return bars && samples
-          ? {
-              ...bars,
-              rows: bars.rows
-                .filter(r => samples.includes(r.label.split('#')[0]!))
-                .sort(
-                  (a, b) =>
-                    samples.indexOf(a.label.split('#')[0]!) -
-                      samples.indexOf(b.label.split('#')[0]!) ||
-                    a.label.localeCompare(b.label),
-                ),
-            }
-          : bars
+        const rows = samples
+          ? bars.rows
+              .filter(r => samples.includes(r.sample))
+              .sort(
+                (a, b) =>
+                  samples.indexOf(a.sample) - samples.indexOf(b.sample) ||
+                  a.label.localeCompare(b.label),
+              )
+          : bars.rows
+        return { ...bars, rows: withCalls(rows, repeat?.calls) }
       },
       // The labels drawn beside the rows. Walk rows label from the bars
       // themselves, which follow the selected repeat and sample filter that

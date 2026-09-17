@@ -1,5 +1,13 @@
 import type { Feature } from '@jbrowse/core/util'
 
+export interface RepeatCall {
+  bp: number
+  // TRGT's `SD`. Zero means the allele is a copy of the one the reads did
+  // support, so its length states nothing about a second haplotype; absent
+  // where the genotyper writes no such field.
+  spanningReads?: number
+}
+
 // A tandem repeat array as the walk rows need it: its span on the reference,
 // which is what the bars measure between, and its unit length, which is what
 // they tile by. Read off whatever repeat annotation the session has, since the
@@ -19,9 +27,9 @@ export interface RepeatArray {
   end: number
   unit: number
   motif?: string
-  // Each sample's genotyped allele lengths in bp, from a genotyper's
-  // per-sample `AL` (TRGT); absent from a catalogue.
-  calledLengths?: Record<string, number[]>
+  // Each sample's genotyped alleles, from a genotyper's per-sample `AL`
+  // (TRGT); absent from a catalogue.
+  calls?: Record<string, RepeatCall[]>
 }
 
 export const REPEAT_ADAPTER_TYPES = new Set([
@@ -131,19 +139,33 @@ export function repeatUnitOf(f: FeatureLike) {
   return motif && IUPAC.test(motif) ? motif.length : undefined
 }
 
-function calledLengthsOf(f: FeatureLike) {
+// A per-sample list field, parsed or as the comma-joined text a VCF column
+// holds. A missing entry stays missing: read as 0, an absent `SD` would make
+// every allele of every genotyper that writes no such field unspanned.
+function numbers(value: unknown) {
+  const raw: unknown[] = Array.isArray(value)
+    ? value
+    : String(value ?? '').split(',')
+  return raw.map(one => {
+    const n =
+      one === '' || one === null || one === undefined ? NaN : Number(one)
+    return Number.isFinite(n) ? n : undefined
+  })
+}
+
+function callsOf(f: FeatureLike) {
   const samples = own(f, 'samples') as
-    | Record<string, Record<string, unknown>>
-    | undefined
-  const called: Record<string, number[]> = {}
+    Record<string, Record<string, unknown>> | undefined
+  const called: Record<string, RepeatCall[]> = {}
   for (const [sample, fields] of Object.entries(samples ?? {})) {
-    const lengths = (
-      Array.isArray(fields.AL) ? fields.AL : String(fields.AL ?? '').split(',')
+    const reads = numbers(fields.SD)
+    const alleles = numbers(fields.AL).flatMap((bp, i) =>
+      bp !== undefined && bp > 0
+        ? [reads[i] === undefined ? { bp } : { bp, spanningReads: reads[i] }]
+        : [],
     )
-      .map(Number)
-      .filter(n => Number.isFinite(n) && n > 0)
-    if (lengths.length > 0) {
-      called[sample] = lengths
+    if (alleles.length > 0) {
+      called[sample] = alleles
     }
   }
   return Object.keys(called).length > 0 ? called : undefined
@@ -173,7 +195,7 @@ export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
       end,
       unit,
       motif,
-      calledLengths: calledLengthsOf(f),
+      calls: callsOf(f),
     })
   }
   return arrays.sort((a, b) => a.start - b.start)

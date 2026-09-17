@@ -25,6 +25,7 @@ export interface WalkRun {
 export interface WalkRow {
   name: string
   label: string
+  sample: string
   bp: number
   offReferenceBp: number
   // false when the walk does not reach both flanking reference nodes, in which
@@ -43,12 +44,14 @@ export interface WalkRows {
   rows: WalkRow[]
 }
 
+function sampleOf(path: GraphPath) {
+  return path.sample ?? panSNSample(path.name)
+}
+
 function labelOf(path: GraphPath) {
-  return path.sample !== undefined
-    ? path.haplotype !== undefined
-      ? `${path.sample}#${path.haplotype}`
-      : path.sample
-    : panSNSample(path.name)
+  return path.haplotype !== undefined && path.sample !== undefined
+    ? `${path.sample}#${path.haplotype}`
+    : sampleOf(path)
 }
 
 // Each walk is cut at the nearest reference nodes IT visits on either side of
@@ -148,6 +151,7 @@ export function walkRows(
     return {
       name: path.name,
       label: labelOf(path),
+      sample: sampleOf(path),
       bp,
       offReferenceBp,
       complete,

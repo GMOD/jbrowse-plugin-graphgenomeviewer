@@ -88,21 +88,27 @@ test('the repeat track is the named one, else one whose name says repeats', () =
   expect(pickRepeatTrack([tracks[2]!], '')).toBeUndefined()
 })
 
-test("a TRGT VCF's per-sample AL is each sample's called lengths", () => {
+test("a TRGT VCF's per-sample AL and SD are each sample's called alleles", () => {
   const f = {
     ...base,
     INFO: { TRID: 'ABCA7', MOTIFS: 'CCCCGTGAGC' },
     samples: {
-      HG00099: { GT: ['1/2'], AL: [387, 3161] },
-      HG02559: { GT: ['1/1'], AL: '491,491' },
+      HG00099: { GT: ['1/2'], AL: [387, 3161], SD: [7, 1] },
+      HG02559: { GT: ['1/1'], AL: '491,491', SD: '1,0' },
+      HG00280: { GT: ['3/4'], AL: [1047, 1049] },
       NA00001: { GT: ['./.'], AL: ['.'] },
     },
   }
-  expect(repeatArraysFrom([f])[0]!.calledLengths).toEqual({
-    HG00099: [387, 3161],
-    HG02559: [491, 491],
+  expect(repeatArraysFrom([f])[0]!.calls).toEqual({
+    HG00099: [
+      { bp: 387, spanningReads: 7 },
+      { bp: 3161, spanningReads: 1 },
+    ],
+    HG02559: [
+      { bp: 491, spanningReads: 1 },
+      { bp: 491, spanningReads: 0 },
+    ],
+    HG00280: [{ bp: 1047 }, { bp: 1049 }],
   })
-  expect(repeatArraysFrom([{ ...base, period: 2 }])[0]!.calledLengths).toBe(
-    undefined,
-  )
+  expect(repeatArraysFrom([{ ...base, period: 2 }])[0]!.calls).toBe(undefined)
 })

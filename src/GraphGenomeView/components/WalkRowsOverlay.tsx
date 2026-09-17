@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react'
 
 import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
+import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -9,6 +10,10 @@ import type { GraphGenomeViewModel } from '../model'
 // is sequence the reference walk also carries, purple is sequence it does not,
 // and the readout at the end of a bar is what it carries against the
 // reference, which for a repeat array is the expansion.
+//
+// A tick is the genotyped allele length paired with THAT walk, and the walk
+// rows pair them — see repeats/walkCalls.ts, which also holds the threshold
+// this reads a red readout off.
 
 const svgStyle = {
   position: 'absolute' as const,
@@ -21,6 +26,7 @@ const svgStyle = {
 
 const ON_REFERENCE = '#2f8fd6'
 const CALL_TICK = '#111'
+const UNBACKED_TICK = '#9e9e9e'
 const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
@@ -36,9 +42,24 @@ const legendBoxStyle = {
 }
 const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
+const tickSwatchStyle = {
+  ...swatchStyle,
+  display: 'flex',
+  justifyContent: 'center',
+}
 
-// What the two bar colours mean, in the legend stack with the other keys. The
-// reference row is named, so "the reference" here reads as that row.
+function TickSwatch({ color }: { color: string }) {
+  return (
+    <div style={tickSwatchStyle}>
+      <div style={{ width: 2, backgroundColor: color }} />
+    </div>
+  )
+}
+
+// What the bar colours and the ticks mean, in the legend stack with the other
+// keys. The reference row is named, so "the reference" here reads as that row.
+// Each tick row appears once the rows hold one, so a catalogue with no
+// genotypes keeps the two-colour key it had.
 export const WalkRowsLegend = observer(function WalkRowsLegend({
   model,
 }: {
@@ -48,6 +69,7 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   if (!bars) {
     return null
   }
+  const calls = bars.rows.flatMap(row => row.call ?? [])
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-rows-legend">
       <div style={legendRowStyle}>
@@ -58,12 +80,24 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
         <div style={{ ...swatchStyle, backgroundColor: OFF_REFERENCE }} />
         <span>sequence it does not</span>
       </div>
-      {model.selectedRepeat?.calledLengths ? (
+      {calls.some(call => call.spanningReads !== 0) ? (
         <div style={legendRowStyle}>
-          <div style={{ ...swatchStyle, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 2, backgroundColor: CALL_TICK }} />
-          </div>
-          <span>sample&apos;s genotyped allele lengths</span>
+          <TickSwatch color={CALL_TICK} />
+          <span>allele length called for this walk</span>
+        </div>
+      ) : null}
+      {calls.some(call => call.spanningReads === 0) ? (
+        <div style={legendRowStyle}>
+          <TickSwatch color={UNBACKED_TICK} />
+          <span>called with no read spanning it</span>
+        </div>
+      ) : null}
+      {calls.some(call => call.agrees === false) ? (
+        <div style={legendRowStyle}>
+          <div style={swatchStyle} />
+          <span style={{ color: DISAGREES }}>
+            walk and call over {Math.round(CALL_TOLERANCE * 100)}% apart
+          </span>
         </div>
       ) : null}
     </div>
@@ -90,14 +124,9 @@ function readout(
   return `${kb(bp)}${units(bp, unit)}${against}${complete ? '' : ' · partial walk'}`
 }
 
-// A walk agrees with its sample's genotype when one called allele is within
-// 10% of it, or 100 bp for a short allele.
-export function agreesWithCall(bp: number, called: number[]) {
-  return called.some(c => Math.abs(c - bp) <= Math.max(100, 0.1 * bp))
-}
-
-function calledReadout(called: number[]) {
-  return ` · called ${called.map(c => kb(c).replace(' kb', '')).join(' / ')} kb`
+function calledReadout(call: { bp: number; spanningReads?: number }) {
+  const unbacked = call.spanningReads === 0 ? ' · no spanning read' : ''
+  return ` · called ${kb(call.bp)}${unbacked}`
 }
 
 // One separator per unit along a bar, so copies are countable, dropped when a
@@ -135,7 +164,6 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
     model.loadedRegion?.end ?? 0,
   )
   // A readout that would leave the pane is written inside the end of its bar.
-  const calls = model.selectedRepeat?.calledLengths
   const label = (text: string, endBp: number, y: number, fill = '#333') => {
     const x = X(endBp) + 6
     const fits = x + text.length * LABEL_CHAR_PX < width
@@ -172,7 +200,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         if (y < -BAR_PX || y > canvasHeight + BAR_PX) {
           return null
         }
-        const called = calls?.[row.label.split('#')[0]!]
+        const { call } = row
         return (
           <g key={row.name} data-testid="graph-walk-row">
             {row.runs.map(run => (
@@ -198,22 +226,21 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                   />
                 ))
               : null}
-            {called?.map((c, k) => (
+            {call ? (
               <rect
-                key={`call${k}`}
                 data-testid="graph-walk-call"
-                x={X(origin + c) - 1}
+                x={X(origin + call.bp) - 1}
                 y={y - BAR_PX / 2 - 3}
                 width={2}
                 height={BAR_PX + 6}
-                fill={CALL_TICK}
+                fill={call.spanningReads === 0 ? UNBACKED_TICK : CALL_TICK}
               />
-            ))}
+            ) : null}
             {label(
-              `${readout(row.bp, reference.bp, row.complete, unit)}${called ? calledReadout(called) : ''}`,
+              `${readout(row.bp, reference.bp, row.complete, unit)}${call ? calledReadout(call) : ''}`,
               origin + row.bp,
               y,
-              called && !agreesWithCall(row.bp, called) ? DISAGREES : undefined,
+              call?.agrees === false ? DISAGREES : undefined,
             )}
           </g>
         )
