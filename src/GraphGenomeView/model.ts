@@ -922,6 +922,7 @@ export default function stateModelFactory() {
         const positions = self.layoutResult?.nodePositions
         return self.showGenes &&
           self.layoutMode !== 'variants' &&
+          self.layoutMode !== 'walkrows' &&
           self.graph &&
           self.geneFeatures &&
           positions
