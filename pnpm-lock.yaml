@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@gmod/gbz-base':
-        specifier: ^2.6.3
-        version: 2.6.3
+        specifier: ^2.6.4
+        version: 2.6.4
       '@gmod/tabix':
         specifier: ^3.8.2
         version: 3.8.2
@@ -551,8 +551,8 @@ packages:
   '@gmod/bgzf-filehandle@6.6.0':
     resolution: {integrity: sha512-rCKRWfN4KXf4YYH4TeMKKq+56Viu+FX/l2B53uBIx2+ThP9yVbupFMtspteh7Z/lnP6R3vn2kfIytB0wt+bFbA==}
 
-  '@gmod/gbz-base@2.6.3':
-    resolution: {integrity: sha512-l2NA6oNoDSRsZw25gYSI4O2BS5M+WyfCtqjfjkj988N2Vq4hK0eD5RfyKMKsuz1CAsZU6B3nbkpji9NIv7LcmA==}
+  '@gmod/gbz-base@2.6.4':
+    resolution: {integrity: sha512-5UKQl7I/0USLtriT0zeTbI/CcJR7JrcSWniCIA0mrwTcx7bkqDd6IRhYtCf0cqui29O+xcDaQ9BjInKEiwU5ZQ==}
     hasBin: true
 
   '@gmod/shared-read-cache@1.7.2':
@@ -3740,7 +3740,7 @@ snapshots:
       generic-filehandle2: 2.4.0
       pako-esm2: 2.0.2
 
-  '@gmod/gbz-base@2.6.3':
+  '@gmod/gbz-base@2.6.4':
     dependencies:
       generic-filehandle2: 2.4.0
 
