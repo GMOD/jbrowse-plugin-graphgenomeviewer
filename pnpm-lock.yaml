@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@gmod/gbz-base':
-        specifier: ^2.6.2
-        version: 2.6.2
+        specifier: ^2.6.3
+        version: 2.6.3
       '@gmod/tabix':
         specifier: ^3.8.2
         version: 3.8.2
@@ -551,8 +551,8 @@ packages:
   '@gmod/bgzf-filehandle@6.6.0':
     resolution: {integrity: sha512-rCKRWfN4KXf4YYH4TeMKKq+56Viu+FX/l2B53uBIx2+ThP9yVbupFMtspteh7Z/lnP6R3vn2kfIytB0wt+bFbA==}
 
-  '@gmod/gbz-base@2.6.2':
-    resolution: {integrity: sha512-wwkEI6YZke0c9MSv6tRWDO5hUS93Rd4JolZRDr4ndbxlN50MBjOI/0nx7PAeEDGWgb/kmmUAfSAAW2UxfxsyvQ==}
+  '@gmod/gbz-base@2.6.3':
+    resolution: {integrity: sha512-l2NA6oNoDSRsZw25gYSI4O2BS5M+WyfCtqjfjkj988N2Vq4hK0eD5RfyKMKsuz1CAsZU6B3nbkpji9NIv7LcmA==}
     hasBin: true
 
   '@gmod/shared-read-cache@1.7.2':
@@ -1908,9 +1908,6 @@ packages:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
 
-  generic-filehandle2@2.2.1:
-    resolution: {integrity: sha512-nwFh5dvrcuNqvcEa0+MiKrqeRFzisDiBdUC04Eb+XemV93pmOL3cTWEkR3LEESUvnLH7D3RIneACw6O71SJ65w==}
-
   generic-filehandle2@2.4.0:
     resolution: {integrity: sha512-+ah1SBkiusKbBguKuj11zrdAMRdWE9g3zPTtUQtC5LRCGvbfg534KHRjolJFnapCj0Xtt4ZQxs86Vr/WpfuZ8A==}
 
@@ -2602,10 +2599,6 @@ packages:
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
-
-  picomatch@4.0.5:
-    resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
-    engines: {node: '>=12'}
 
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
@@ -3747,9 +3740,9 @@ snapshots:
       generic-filehandle2: 2.4.0
       pako-esm2: 2.0.2
 
-  '@gmod/gbz-base@2.6.2':
+  '@gmod/gbz-base@2.6.3':
     dependencies:
-      generic-filehandle2: 2.2.1
+      generic-filehandle2: 2.4.0
 
   '@gmod/shared-read-cache@1.7.2': {}
 
@@ -5108,9 +5101,9 @@ snapshots:
     dependencies:
       pend: 1.2.0
 
-  fdir@6.5.0(picomatch@4.0.5):
+  fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
-      picomatch: 4.0.5
+      picomatch: 4.0.7
 
   file-entry-cache@11.1.5:
     dependencies:
@@ -5178,8 +5171,6 @@ snapshots:
   functions-have-names@1.2.3: {}
 
   generator-function@2.0.1: {}
-
-  generic-filehandle2@2.2.1: {}
 
   generic-filehandle2@2.4.0: {}
 
@@ -5814,8 +5805,6 @@ snapshots:
 
   picocolors@1.1.1: {}
 
-  picomatch@4.0.5: {}
-
   picomatch@4.0.7: {}
 
   pify@2.3.0: {}
@@ -6328,8 +6317,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tldts-core@7.4.10: {}
 
@@ -6522,7 +6511,7 @@ snapshots:
   vite@8.1.5(@types/node@26.5.1)(esbuild@0.28.2):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       postcss: 8.5.22
       rolldown: 1.1.5
       tinyglobby: 0.2.17
