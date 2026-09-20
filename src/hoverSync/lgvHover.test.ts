@@ -38,22 +38,44 @@ const NODES: GraphNode[] = [
   },
 ]
 
-test('reads the position and the feature name off the hover', () => {
+// The LGV's `coord` is 1-based, for display; a node's `stable.start` is 0-based.
+// LgvHover.coord is the 0-based base, so every comparison downstream is in one
+// convention.
+test('reads the position as a 0-based base, and the feature name, off the hover', () => {
   expect(readLgvHover(lgvHovered(42, 'v2'))).toEqual({
     refName: 'chr1',
-    coord: 42,
+    coord: 41,
     assemblyName: 'K12',
     featureName: 'v2',
   })
 })
 
+test('a host that states coord0 is taken at its word', () => {
+  expect(
+    readLgvHover({
+      hoverPosition: { refName: 'chr1', coord: 42, coord0: 41 },
+    })?.coord,
+  ).toBe(41)
+})
+
 test('a hover with no feature under it still yields the position', () => {
   expect(readLgvHover(lgvHovered(42))).toEqual({
     refName: 'chr1',
-    coord: 42,
+    coord: 41,
     assemblyName: 'K12',
     featureName: undefined,
   })
+})
+
+// The canvas feature display hovers a plain hit item with a `name`, not a
+// Feature with `get`.
+test('reads the name off a plain hit item as well as off a Feature', () => {
+  expect(
+    readLgvHover({
+      hoverPosition: { refName: 'chr1', coord: 42 },
+      hoverFeature: { kind: 'feature', name: 'v2', tooltip: 'v2' },
+    })?.featureName,
+  ).toBe('v2')
 })
 
 // Nothing else in the payload identifies the source, so an older LGV — or
@@ -64,10 +86,20 @@ test('a position with no assembly still yields the hover', () => {
     readLgvHover({ hoverPosition: { refName: 'chr1', coord: 42 } }),
   ).toEqual({
     refName: 'chr1',
-    coord: 42,
+    coord: 41,
     assemblyName: undefined,
     featureName: undefined,
   })
+})
+
+// v1 is bases 0-4 and v2 is 5-7. The pointer on v1's last base arrives as the
+// 1-based 5, which read as 0-based is v2's first.
+test('the last base of a node lights that node, not the next one', () => {
+  const at = (coord: number) =>
+    nodeForLgvHover({ hover: readLgvHover(lgvHovered(coord))!, nodes: NODES })
+  expect(at(5)).toBe('v1+')
+  expect(at(6)).toBe('v2+')
+  expect(at(1)).toBe('v1+')
 })
 
 // `session.hovered` is a shared channel every view writes its own shape to, so
@@ -89,15 +121,18 @@ const REGION = {
   end: 200,
 }
 
-test('the region gate accepts its own refName and span, inclusive', () => {
+// 0-based bases against a half-open window: 100 is its first base and 199 its
+// last.
+test('the region gate accepts its own refName and every base of its span', () => {
   const hover = (coord: number, refName = 'chr1') => ({
     refName,
     coord,
     assemblyName: 'K12',
   })
+  expect(hoverInRegion(hover(99), REGION)).toBe(false)
   expect(hoverInRegion(hover(100), REGION)).toBe(true)
-  expect(hoverInRegion(hover(200), REGION)).toBe(true)
-  expect(hoverInRegion(hover(201), REGION)).toBe(false)
+  expect(hoverInRegion(hover(199), REGION)).toBe(true)
+  expect(hoverInRegion(hover(200), REGION)).toBe(false)
   expect(hoverInRegion(hover(150, 'chr2'), REGION)).toBe(false)
 })
 

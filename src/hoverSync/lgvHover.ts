@@ -10,6 +10,8 @@ import type { GraphNode } from '../GraphGenomeView/types'
 // that matters.
 export interface LgvHover {
   refName: string
+  // The 0-based base under the pointer, the convention `stable.start` and the
+  // cut region are in. Not the LGV's own `coord`, which is 1-based for display.
   coord: number
   // The assembly the hovered view is showing. `hoverPosition` is a
   // `PxToBpResult`, i.e. the displayed region the pointer landed in spread flat,
@@ -42,22 +44,35 @@ function isFeatureLike(value: unknown): value is FeatureLike {
   return isRecord(value) && typeof value.get === 'function'
 }
 
+// A display hovers either a Feature, read with `get`, or a plain hit item with
+// a `name` of its own, which is what the canvas feature display hands over.
+// Reading only the first left the exact segment match dead on that display.
+function hoveredName(feature: unknown) {
+  const name = isFeatureLike(feature)
+    ? feature.get('name')
+    : isRecord(feature)
+      ? feature.name
+      : undefined
+  return typeof name === 'string' ? name : undefined
+}
+
 // `hovered` is typed `unknown` on the session by design — it is a shared channel
 // every view writes its own shape to — so this reads the LGV's shape out of it
 // structurally rather than asserting a type onto it.
 export function readLgvHover(hovered: unknown): LgvHover | undefined {
   let result: LgvHover | undefined
   if (isRecord(hovered) && isRecord(hovered.hoverPosition)) {
-    const { refName, coord, assemblyName } = hovered.hoverPosition
+    const { refName, coord, coord0, assemblyName } = hovered.hoverPosition
     if (typeof refName === 'string' && typeof coord === 'number') {
-      const feature = hovered.hoverFeature
-      const name = isFeatureLike(feature) ? feature.get('name') : undefined
       result = {
         refName,
-        coord,
+        // `coord` is 1-based; a host that states the 0-based `coord0` is
+        // taken at its word. Read as 0-based, the last base of every node lit
+        // the next one, and a 1 bp node could not be reached at all.
+        coord: typeof coord0 === 'number' ? coord0 : coord - 1,
         assemblyName:
           typeof assemblyName === 'string' ? assemblyName : undefined,
-        featureName: typeof name === 'string' ? name : undefined,
+        featureName: hoveredName(hovered.hoverFeature),
       }
     }
   }
@@ -82,7 +97,7 @@ export function hoverInRegion(
       hover.assemblyName === region.assemblyName) &&
     hover.refName === region.refName &&
     hover.coord >= region.start &&
-    hover.coord <= region.end
+    hover.coord < region.end
   )
 }
 
