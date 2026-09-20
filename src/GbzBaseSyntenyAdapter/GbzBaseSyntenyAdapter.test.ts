@@ -151,6 +151,36 @@ test('a target assembly keeps only that haplotype', async () => {
   )
 })
 
+// A pairwise synteny view names its one lane as the target. The target was
+// applied to what came back, so gbz-base was handed no predicate, walked every
+// haplotype in the graph and had all but one thrown away.
+test('a target assembly is what gbz-base is asked to walk', async () => {
+  const adapter = makeAdapter()
+  const all = await feats(adapter, window)
+  const target = mateOf(all[0]!).assemblyName
+  const other = all
+    .map(f => mateOf(f).assemblyName)
+    .find(name => name !== target)!
+  const { db } = await (
+    adapter as unknown as {
+      graph: () => Promise<{ db: { getAlignmentsForRange: unknown } }>
+    }
+  ).graph()
+  const read = vi.spyOn(db, 'getAlignmentsForRange')
+
+  await feats(adapter, window, { targetAssemblyName: target })
+  const { keep } = read.mock.calls.at(-1)![3] as {
+    keep?: (name: { sample: string; haplotype: number }) => boolean
+  }
+  const named = (lane: string) => {
+    const [sample, haplotype] = lane.split('#')
+    return { sample: sample!, haplotype: +haplotype!, contig: '', fragment: 0 }
+  }
+  expect(keep?.(named(target))).toBe(true)
+  expect(keep?.(named(other))).toBe(false)
+  read.mockRestore()
+})
+
 test('a window on a haplotype lane answers nothing, with or without a target', async () => {
   const adapter = makeAdapter()
   const region = { ...window, assemblyName: 'HG00438#1' }

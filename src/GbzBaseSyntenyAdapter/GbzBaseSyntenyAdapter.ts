@@ -350,14 +350,24 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * rejects. Either way a cut holds those walks, the reference, and the nodes
    * they visit. Undefined when every haplotype is wanted.
    */
-  private keepPredicate(haplotypes: string[] | undefined) {
+  //
+  // `targetPrefix` is a pairwise view's one lane, and it belongs in here: left
+  // to filter what came back, it handed gbz-base no predicate, and every
+  // haplotype in the graph was walked for one to be kept.
+  private keepPredicate(
+    haplotypes: string[] | undefined,
+    targetPrefix?: string,
+  ) {
     const wantedPrefixes =
       haplotypes === undefined || haplotypes.length === 0
         ? undefined
         : haplotypes.map(lane => resolvePanSNPrefix(this, lane))
-    return wantedPrefixes === undefined
+    return wantedPrefixes === undefined && targetPrefix === undefined
       ? undefined
-      : (name: PathName) => haplotypeWanted(name, wantedPrefixes)
+      : (name: PathName) =>
+          haplotypeWanted(name, wantedPrefixes) &&
+          (targetPrefix === undefined ||
+            panSNMatchesPrefix(haplotypePrefix(name), targetPrefix))
   }
 
   /**
@@ -410,7 +420,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       if (assemblyName === anchor) {
         const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
         const asmByPrefix = assemblyByPanSNPrefix(this)
-        const keep = this.keepPredicate(opts.haplotypes)
+        const keep = this.keepPredicate(opts.haplotypes, targetPrefix)
         const query = await this.referenceQuery(refName, opts)
         const nodeLimit: number = this.getConf('nodeLimit')
         const alignments = query
@@ -432,11 +442,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             )
           : []
         for (const alignment of alignments) {
-          if (
-            alignment.resolved &&
-            (targetPrefix === undefined ||
-              panSNMatchesPrefix(haplotypePrefix(alignment.name), targetPrefix))
-          ) {
+          if (alignment.resolved) {
             const feature = fragmentFeature({
               alignment,
               assemblyName,
