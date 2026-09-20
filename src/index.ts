@@ -37,15 +37,23 @@ export default class GraphGenomeViewPlugin extends Plugin {
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
   }
 
+  // A throw from configure() takes the whole session to its error page, and a
+  // menu entry is not worth that: hubs 1.0.9 did exactly this to every
+  // jbrowse.org/ucsc launch by appending to a menu a released host defines as
+  // a function. The view is still reachable without the entry.
   configure(pluginManager: PluginManager) {
-    if (isAbstractMenuManager(pluginManager.rootModel)) {
-      pluginManager.rootModel.appendToSubMenu(['Add'], {
-        label: 'Graph genome view',
-        icon: BubbleChartIcon,
-        onClick: (session: AbstractSessionModel) => {
-          session.addView('GraphGenomeView', {})
-        },
-      })
+    try {
+      if (isAbstractMenuManager(pluginManager.rootModel)) {
+        pluginManager.rootModel.appendToSubMenu(['Add'], {
+          label: 'Graph genome view',
+          icon: BubbleChartIcon,
+          onClick: (session: AbstractSessionModel) => {
+            session.addView('GraphGenomeView', {})
+          },
+        })
+      }
+    } catch (e) {
+      console.warn('[GraphGenomeView] could not add the Add menu entry', e)
     }
   }
 }

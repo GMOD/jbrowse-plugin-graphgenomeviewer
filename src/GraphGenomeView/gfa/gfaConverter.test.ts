@@ -217,13 +217,38 @@ L\t1\t+\t1\t+\t0M`)
   expect(graph.edges[0]!.to).toBe('1+')
 })
 
-test('extracts depth from RC/FC/KC tags when dp absent', () => {
-  const rc = convertGFAToGraph(parseGFA('S\t1\tACGT\tRC:i:7'))
-  expect(rc.nodes[0]!.depth).toBe(7)
-  const fc = convertGFAToGraph(parseGFA('S\t1\tACGT\tFC:i:9'))
-  expect(fc.nodes[0]!.depth).toBe(9)
-  const kc = convertGFAToGraph(parseGFA('S\t1\tACGT\tKC:i:11'))
-  expect(kc.nodes[0]!.depth).toBe(11)
+// RC, FC and KC are counts, so a depth is the count over the segment's length
+test('reads RC/FC/KC as a count over the length when dp is absent', () => {
+  const rc = convertGFAToGraph(parseGFA('S\t1\tACGT\tRC:i:8'))
+  expect(rc.nodes[0]!.depth).toBe(2)
+  const fc = convertGFAToGraph(parseGFA('S\t1\tACGT\tFC:i:12'))
+  expect(fc.nodes[0]!.depth).toBe(3)
+  const kc = convertGFAToGraph(parseGFA('S\t1\tACGT\tKC:i:20'))
+  expect(kc.nodes[0]!.depth).toBe(5)
+})
+
+test('a long node at low coverage is not deeper than a short one at high coverage', () => {
+  const graph = convertGFAToGraph(
+    parseGFA(
+      'S\tlong\t*\tLN:i:100000\tRC:i:500000\nS\tshort\t*\tLN:i:1000\tRC:i:50000',
+    ),
+  )
+  const depthOf = (name: string) =>
+    graph.nodes.find(n => n.name === name)!.depth
+  expect(depthOf('long')).toBe(5)
+  expect(depthOf('short')).toBe(50)
+})
+
+test('DP is read in either case, and wins over a count', () => {
+  const upper = convertGFAToGraph(parseGFA('S\t1\tACGT\tDP:f:12.5'))
+  expect(upper.nodes[0]!.depth).toBe(12.5)
+  const both = convertGFAToGraph(parseGFA('S\t1\tACGT\tdp:i:42\tRC:i:8'))
+  expect(both.nodes[0]!.depth).toBe(42)
+})
+
+test('a count on a segment with no length falls back rather than dividing by zero', () => {
+  const graph = convertGFAToGraph(parseGFA('S\t1\t*\tRC:i:8'))
+  expect(graph.nodes[0]!.depth).toBe(1)
 })
 
 test('falls back to depth 1 for zero or missing depth tags', () => {

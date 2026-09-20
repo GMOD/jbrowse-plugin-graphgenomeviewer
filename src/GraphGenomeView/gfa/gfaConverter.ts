@@ -99,6 +99,22 @@ function carriedSamples(gfaNode: GFANode) {
   return samples.length > 0 ? samples : undefined
 }
 
+const positive = (v: unknown) =>
+  typeof v === 'number' && v > 0 ? v : undefined
+
+// The depth a segment states, or undefined. DP is a depth in either case it is
+// written. RC, FC and KC are read, fragment and k-mer counts, so depth is the
+// count over the length: taken raw, a 100 kb node at 5x outweighed a 1 kb node
+// at 50x tenfold in every width drawn from it.
+function statedDepth({ tags, length }: GFANode) {
+  const count = positive(tags.RC) ?? positive(tags.FC) ?? positive(tags.KC)
+  return (
+    positive(tags.dp) ??
+    positive(tags.DP) ??
+    (count !== undefined && length > 0 ? count / length : undefined)
+  )
+}
+
 function makeNode(
   gfaNode: GFANode,
   strand: '+' | '-',
@@ -124,13 +140,8 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
     `${segmentId}${canonical.get(segmentId) ?? '+'}`
 
   for (const gfaNode of gfaGraph.nodes) {
-    const dp =
-      gfaNode.tags.dp ?? gfaNode.tags.RC ?? gfaNode.tags.FC ?? gfaNode.tags.KC
     const depth =
-      typeof dp === 'number' && dp > 0
-        ? dp
-        : Math.max(traversals.get(gfaNode.id) ?? 1, 1)
-
+      statedDepth(gfaNode) ?? Math.max(traversals.get(gfaNode.id) ?? 1, 1)
     nodes.push(makeNode(gfaNode, canonical.get(gfaNode.id) ?? '+', depth))
   }
 

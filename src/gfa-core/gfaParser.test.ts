@@ -143,6 +143,24 @@ test('a truncated S line yields a 0 bp segment rather than throwing', () => {
   ])
 })
 
+// A download cut off mid-line ends in a record missing its later fields. It
+// states nothing drawable, so the rest of the file is still read.
+test('a truncated L, W, P or E line is dropped rather than throwing', () => {
+  const whole = 'S\ts1\tACGT\nS\ts2\tGG\nL\ts1\t+\ts2\t+\t0M\n'
+  for (const cut of [
+    'L\ts1\t+',
+    'W\tHG002\t1\tchr1\t0\t100',
+    'P\tname',
+    'E\t*\ts1+',
+  ]) {
+    const gfa = parseGFA(whole + cut)
+    expect(gfa.nodes).toHaveLength(2)
+    expect(gfa.links).toHaveLength(1)
+    expect(gfa.walks).toHaveLength(0)
+    expect(gfa.paths).toHaveLength(0)
+  }
+})
+
 test('a zero-length GFA2 segment is not mistaken for a GFA1 sequence', () => {
   const node = parseGFA('S\ts1\t0\t*').nodes[0]!
   expect(node.length).toBe(0)

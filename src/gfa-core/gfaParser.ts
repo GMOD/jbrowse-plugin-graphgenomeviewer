@@ -185,45 +185,52 @@ export function parseGFA(file: string) {
       }
       graph.nodes.push({ id: name!, length: len, sequence: seq, tags })
     } else if (line.startsWith('E')) {
+      // From here down, a record cut off before the fields that make it a
+      // link, walk or path states nothing drawable and is dropped; the file
+      // around it still reads. A link missing only its overlap is kept.
       const [, , source, target, , , , , cigar, ...rest] = line.split('\t')
-      const source1 = source!.slice(0, -1)
-      const target1 = target!.slice(0, -1)
-      const strand1 = source!.at(-1)
-      const strand2 = target!.at(-1)
-      graph.links.push({
-        source: source1,
-        target: target1,
-        strand1,
-        strand2,
-        cigar: cigar!,
-        tags: parseTags(rest),
-      })
+      if (source && target) {
+        graph.links.push({
+          source: source.slice(0, -1),
+          target: target.slice(0, -1),
+          strand1: source.at(-1),
+          strand2: target.at(-1),
+          cigar: cigar ?? '*',
+          tags: parseTags(rest),
+        })
+      }
     } else if (line.startsWith('L')) {
       const [, source, strand1, target, strand2, cigar, ...rest] =
         line.split('\t')
-      graph.links.push({
-        source: source!,
-        target: target!,
-        strand1,
-        strand2,
-        cigar: cigar!,
-        tags: parseTags(rest),
-      })
+      if (source && target && strand2) {
+        graph.links.push({
+          source,
+          target,
+          strand1,
+          strand2,
+          cigar: cigar ?? '*',
+          tags: parseTags(rest),
+        })
+      }
     } else if (line.startsWith('W')) {
       const [, sample, hap, contig, start, end, body, ...rest] =
         line.split('\t')
-      graph.walks.push({
-        sample: sample!,
-        haplotype: +hap!,
-        contig: contig!,
-        start: start === '*' ? -1 : +start!,
-        end: end === '*' ? -1 : +end!,
-        segments: parseWalkBody(body!),
-        tags: parseTags(rest),
-      })
+      if (sample && hap && contig && start && end && body) {
+        graph.walks.push({
+          sample,
+          haplotype: +hap,
+          contig,
+          start: start === '*' ? -1 : +start,
+          end: end === '*' ? -1 : +end,
+          segments: parseWalkBody(body),
+          tags: parseTags(rest),
+        })
+      }
     } else if (line.startsWith('P')) {
       const [, name, path, ...rest] = line.split('\t')
-      graph.paths.push({ name: name!, path: path!, rest })
+      if (name && path) {
+        graph.paths.push({ name, path, rest })
+      }
     }
   }
   return graph
