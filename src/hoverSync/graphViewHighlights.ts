@@ -1,3 +1,5 @@
+import { withRows } from '../launchFromGraph/linearViewTarget'
+
 export interface HighlightRegion {
   refName: string
   start: number
@@ -40,9 +42,21 @@ function readRegion(value: unknown): HighlightRegion | undefined {
 // explicit. A graph view without one — a hand-written session snapshot, or
 // `Add > Graph genome view` followed by a subgraph load — matches any linear
 // view, because the alternative is silently drawing nothing.
-function isConnected(view: Record<string, unknown>, linearViewId: string) {
+//
+// So does one whose linear view has been closed. Held to an id nothing answers
+// to, it matched no view and its hover drew nowhere for the rest of the
+// session, the view it next opened included.
+function isConnected(
+  view: Record<string, unknown>,
+  linearViewId: string,
+  liveViewIds: ReadonlySet<unknown>,
+) {
   const connectedViewId = view.connectedViewId
-  return connectedViewId === undefined || connectedViewId === linearViewId
+  return (
+    connectedViewId === undefined ||
+    connectedViewId === linearViewId ||
+    !liveViewIds.has(connectedViewId)
+  )
 }
 
 // ...and whether the view can mean anything by it. `getHighlightCoords`
@@ -83,11 +97,14 @@ export function graphViewHighlights(
   linearAssemblyNames?: string[],
 ): GraphViewHighlight[] {
   const highlights: GraphViewHighlight[] = []
+  const liveViewIds = new Set(
+    withRows(views).map(view => (isRecord(view) ? view.id : undefined)),
+  )
   for (const view of views) {
     if (
       isRecord(view) &&
       view.type === 'GraphGenomeView' &&
-      isConnected(view, linearViewId)
+      isConnected(view, linearViewId, liveViewIds)
     ) {
       const region = readRegion(view.hoverHighlight)
       if (region && isOnAssembly(region, linearAssemblyNames)) {

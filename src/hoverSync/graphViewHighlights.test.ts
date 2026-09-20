@@ -20,10 +20,42 @@ test('a graph view launched from this linear view contributes its highlight', ()
   ).toEqual([{ key: 'graph1', region: HIGHLIGHT }])
 })
 
+const linearView = (id: string) => ({ id, type: 'LinearGenomeView' })
+
 test('a graph view launched from a different linear view is ignored', () => {
   expect(
     graphViewHighlights(
-      [graphView({ connectedViewId: 'lgv2', hoverHighlight: HIGHLIGHT })],
+      [
+        linearView('lgv2'),
+        graphView({ connectedViewId: 'lgv2', hoverHighlight: HIGHLIGHT }),
+      ],
+      'lgv1',
+    ),
+  ).toEqual([])
+})
+
+// The view it was launched from has been closed. Held to that id the graph
+// matched no view at all, and its hover drew nowhere for the rest of the
+// session, the view it next opened included.
+test('a graph view whose linear view is gone broadcasts like an unpaired one', () => {
+  expect(
+    graphViewHighlights(
+      [
+        linearView('lgv1'),
+        graphView({ connectedViewId: 'closed', hoverHighlight: HIGHLIGHT }),
+      ],
+      'lgv1',
+    ),
+  ).toHaveLength(1)
+})
+
+test('a linear view that is a row of a synteny view still counts as there', () => {
+  expect(
+    graphViewHighlights(
+      [
+        { id: 'syn', type: 'LinearSyntenyView', views: [linearView('row2')] },
+        graphView({ connectedViewId: 'row2', hoverHighlight: HIGHLIGHT }),
+      ],
       'lgv1',
     ),
   ).toEqual([])

@@ -85,7 +85,7 @@ import {
   withReferenceRegion,
 } from '../launchFromGraph/launchFromGraph'
 import { launchTracks } from '../launchFromGraph/launchTracks'
-import { linearViewTarget } from '../launchFromGraph/linearViewTarget'
+import { linearViewTarget, withRows } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 import {
   graphReferenceAssembly,
@@ -1407,8 +1407,18 @@ export default function stateModelFactory() {
       // existing pairing: a graph launched *from* an LGV is already paired with
       // it, and stealing that would break the sync the user came in on. So a
       // launch out of the graph only claims the slot when it is empty.
+      //
+      // A slot naming a view that has been closed is empty too. Held, the view
+      // the graph opened next never got its hover, since a highlight is drawn
+      // only in the paired view.
       pairWithLinearView(viewId: string) {
-        if (!self.connectedViewId) {
+        const paired = self.connectedViewId
+        const stillOpen =
+          paired !== undefined &&
+          withRows([...getSession(self).views]).some(
+            view => (view as { id?: unknown }).id === paired,
+          )
+        if (!stillOpen) {
           self.connectedViewId = viewId
         }
       },

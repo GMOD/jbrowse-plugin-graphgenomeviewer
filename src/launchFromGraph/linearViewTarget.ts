@@ -35,7 +35,7 @@ function isLinearView(view: unknown): view is NavigableLinearView {
 // a LinearSyntenyView, LinearComparativeView or BreakpointSplitView sits in
 // that view's own `views[]`, so the candidates are the session's views plus one
 // level of rows.
-function withRows(views: unknown[]) {
+export function withRows(views: unknown[]) {
   return views.flatMap(view =>
     isRecord(view) && Array.isArray(view.views)
       ? [view, ...view.views]

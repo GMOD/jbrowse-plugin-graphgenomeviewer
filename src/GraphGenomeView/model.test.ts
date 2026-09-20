@@ -1754,6 +1754,44 @@ describe('launching out of the graph', () => {
     expect(model.connectedViewId).toBe('view-1')
   })
 
+  // A pairing is not stolen from a view still on screen: a graph launched from
+  // a linear view came in on that sync. One whose view has been closed is held
+  // by nothing, and kept, the view the graph opens next never got its hover.
+  test('a pairing with a view that has been closed is given to the next one opened', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+    applySnapshot(model, { ...getSnapshot(model), connectedViewId: 'closed' })
+    const { reference } = model.nodeLaunchTargets('1+')
+    model.showInLinearView(reference!)
+
+    expect(mockSession.addedViews).toHaveLength(1)
+    expect(model.connectedViewId).toBe('view-1')
+  })
+
+  test('a pairing with a view still open is kept', async () => {
+    mockSession.assemblyNames = ['hg38']
+    mockSession.views = [
+      {
+        id: 'lgv1',
+        type: 'LinearGenomeView',
+        assemblyNames: ['hg38'],
+        navToLocString: vi.fn(),
+      },
+      {
+        id: 'lgv2',
+        type: 'LinearGenomeView',
+        assemblyNames: ['hg38'],
+        navToLocString: vi.fn(),
+      },
+    ]
+    const model = await loadedGraph(HPRC_RGFA)
+    applySnapshot(model, { ...getSnapshot(model), connectedViewId: 'lgv2' })
+    const { reference } = model.nodeLaunchTargets('1+')
+    model.showInLinearView(reference!)
+
+    expect(model.connectedViewId).toBe('lgv2')
+  })
+
   // A view opened on a node is padded so the node has context around it; a
   // mark of the node is not, or a short node paints a band several times its
   // own width where its hover band is exact.
