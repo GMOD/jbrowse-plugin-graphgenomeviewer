@@ -16,6 +16,7 @@ import { formatBp, graphLabels, rowLabelBox } from '../graphLabels'
 import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
+import { wheelZoomFactor } from '../util/wheelZoom'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -504,7 +505,7 @@ const GraphCanvas = observer(function GraphCanvas({
         e.preventDefault()
         const rect = c.getBoundingClientRect()
         model.zoom(
-          e.deltaY < 0 ? 1.1 : 1 / 1.1,
+          wheelZoomFactor(e),
           e.clientX - rect.left,
           e.clientY - rect.top,
         )
