@@ -94,6 +94,8 @@ export function graphLaunchMenuItems({
   onShowLinear: (target: LinearTarget) => void
   onShowSynteny: (trackId: string) => void
 }): MenuItem[] {
+  // sorted widest first
+  const widest = syntenyTracks[0]?.coverage ?? contributors.length
   return [
     ...oneOrMany({
       label: LINEAR_LABEL,
@@ -106,10 +108,15 @@ export function graphLaunchMenuItems({
     }),
     ...(contributors.length >= 2
       ? oneOrMany({
-          label: `${SYNTENY_LABEL} (${contributors.length} assemblies)`,
+          // the count the launch opens, which is what the widest track aligns
+          // and not always every contributor; see launchSyntenyView
+          label: `${SYNTENY_LABEL} (${widest} assemblies)`,
           icon: CompareArrowsIcon,
           entries: syntenyTracks,
-          entryLabel: track => track.name,
+          entryLabel: track =>
+            track.coverage < widest
+              ? `${track.name} (${track.coverage} of ${widest})`
+              : track.name,
           nameTheOnlyEntry: false,
           disabledHelpText: NO_SYNTENY_TRACK,
           onSelect: track => () => {

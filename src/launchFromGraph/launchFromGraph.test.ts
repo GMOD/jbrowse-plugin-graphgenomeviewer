@@ -197,6 +197,43 @@ test('a synteny launch puts the alignment on every level, not just the first', (
   ])
 })
 
+// A track aligning two of five strains is offered, since two is a synteny view.
+// Opened over all five it sat on four levels and could draw on at most one, and
+// only if its two strains happened to be neighbours: K12 and CFT073 are not,
+// so every band opened empty.
+test('a synteny launch opens the panels the chosen track aligns', () => {
+  const { session, added } = testSession(
+    [],
+    [
+      track({
+        type: 'SyntenyTrack',
+        trackId: 'k12_cft073',
+        assemblyNames: ['CFT073', 'K12'],
+      }),
+    ],
+  )
+
+  launchSyntenyView({
+    session,
+    contributors: [
+      contributor('K12', 0),
+      contributor('Sakai', 1, 90000),
+      contributor('CFT073', 2, 40000),
+      contributor('IAI39', 3, 20000),
+    ],
+    trackId: 'k12_cft073',
+  })
+
+  expect(added[0]?.[1]?.init).toEqual({
+    views: [
+      { assembly: 'K12', loc: 'chr:1001-6000' },
+      { assembly: 'CFT073', loc: 'chr:40001-45000' },
+    ],
+    tracks: [['k12_cft073']],
+    collapseEmptyRows: true,
+  })
+})
+
 function labels(items: MenuItem[]) {
   return items.flatMap(i => ('label' in i ? [i.label] : []))
 }
@@ -245,6 +282,34 @@ test('several contributors and a synteny track launch it', () => {
     item.onClick(undefined)
   }
   expect(onShowSynteny).toHaveBeenCalledWith('ecoli_ava')
+})
+
+// The item counts the panels the launch opens, which is what its track aligns.
+// Five strains and one pairwise track read "(5 assemblies)" and opened two.
+test('the synteny item counts the assemblies its track aligns', () => {
+  const five = ['K12', 'Sakai', 'CFT073', 'IAI39', 'NCTC86'].map((s, i) =>
+    contributor(s, i),
+  )
+  const menu = (syntenyTracks: { name: string; coverage: number }[]) =>
+    graphLaunchMenuItems({
+      contributors: five,
+      syntenyTracks: syntenyTracks.map(t => ({ ...t, trackId: t.name })),
+      onShowLinear: () => {},
+      onShowSynteny: () => {},
+    }).at(-1)
+
+  expect(menu([{ name: 'K12 vs Sakai', coverage: 2 }])).toMatchObject({
+    label: 'Linear synteny view (2 assemblies)',
+  })
+  expect(
+    menu([
+      { name: 'All vs all', coverage: 5 },
+      { name: 'K12 vs Sakai', coverage: 2 },
+    ]),
+  ).toMatchObject({
+    label: 'Linear synteny view (5 assemblies)',
+    subMenu: [{ label: 'All vs all' }, { label: 'K12 vs Sakai (2 of 5)' }],
+  })
 })
 
 // The other direction of "where is this node": mark it in place rather than

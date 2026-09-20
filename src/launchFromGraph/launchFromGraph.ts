@@ -206,9 +206,16 @@ export function launchSyntenyView({
   graphTrackId?: string
 }) {
   const graphTrackAssemblies = assemblyNamesOfTrack(session, graphTrackId)
+  // The panels the chosen track aligns, in the order given. A pairwise track is
+  // offered beside an all-vs-all, two assemblies being a synteny view, and over
+  // every contributor it sat on each level and could draw on one at most. A
+  // track that states no assemblies keeps them all.
+  const aligned = assemblyNamesOfTrack(session, trackId)
+  const covered = contributors.filter(c => aligned.includes(c.sample))
+  const panels = covered.length >= 2 ? covered : contributors
   const snapshot = {
     init: {
-      views: contributors.map(c => ({
+      views: panels.map(c => ({
         assembly: c.sample,
         loc: locString(c),
         ...(graphTrackId !== undefined &&
@@ -221,7 +228,7 @@ export function launchSyntenyView({
       // the level-0 shorthand, so on a five-strain launch only the top band got
       // the alignment and the four below it opened as bare rulers. The same
       // all-vs-all track fills every level: it carries all the pairs.
-      tracks: trackId ? contributors.slice(1).map(() => [trackId]) : [],
+      tracks: trackId ? panels.slice(1).map(() => [trackId]) : [],
       collapseEmptyRows: true,
     },
   }
