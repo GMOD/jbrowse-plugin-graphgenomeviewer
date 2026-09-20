@@ -143,4 +143,42 @@ describe('bubblesFromGraph', () => {
       bubblesFromGraph({ name: 'g', nodes: [node('x', 5, 0, 1)], edges: [] }),
     ).toEqual([])
   })
+
+  // KNOWN BUG, stated as the behaviour wanted: `fails` passes while the bug
+  // stands and goes red once it is fixed, which is the cue to drop the marker.
+  //
+  // A 2 kb insertion through two nodes, A>X1>X2>B, then a separate SNP,
+  // B>{C,Calt}>D. referenceOrder seeds its search from every backbone node at
+  // once, so X2 takes its key from B, its right anchor, and sorts after it.
+  // Today this derives ONE bubble over 100-201 with segments
+  // A,X1,B,Calt,X2,C,D and a longest allele of 101 bp: the insertion is lost
+  // and the SNP is fused into it. Every multi-node allele is affected, which
+  // is the ordinary shape of a GBZ cut or a pggb file.
+  it.fails('a multi-node allele beside a SNP derives two bubbles', () => {
+    const graph: Graph = {
+      name: 'g',
+      nodes: [
+        node('A', 100, 0),
+        node('B', 100, 100),
+        node('C', 1, 200),
+        node('D', 100, 201),
+        node('X1', 1000, 0, 1),
+        node('X2', 1000, 1000, 1),
+        node('Calt', 1, 0, 1),
+      ],
+      edges: [
+        ['A', 'B'],
+        ['A', 'X1'],
+        ['X1', 'X2'],
+        ['X2', 'B'],
+        ['B', 'C'],
+        ['B', 'Calt'],
+        ['C', 'D'],
+        ['Calt', 'D'],
+      ].map(([from, to]) => ({ from: `${from}+`, to: `${to}+` })),
+    }
+    const found = bubblesFromGraph(graph)
+    expect(found).toHaveLength(2)
+    expect(found[0]!.longestAlleleLength).toBe(2000)
+  })
 })
