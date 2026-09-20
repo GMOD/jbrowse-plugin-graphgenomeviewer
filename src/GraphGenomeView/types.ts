@@ -17,6 +17,13 @@ export interface GraphNode {
 export interface GraphEdge {
   from: string
   to: string
+  // How the link reads each segment, as the file states it: it leaves the END
+  // of `from` read this way and arrives at the START of `to`. `from` and `to`
+  // alone cannot say which side of a node a link is on, and that is the whole
+  // difference between a deletion, a duplication and an inversion. Absent on a
+  // graph built without them.
+  fromStrand?: '+' | '-'
+  toStrand?: '+' | '-'
   pathIds?: string[]
 }
 

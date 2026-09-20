@@ -55,15 +55,42 @@ test('an allele detour is not a deletion, at either end', () => {
   }
 })
 
-test('a link stated backwards still measures the gap forwards', () => {
-  // `L 3 + 2 +` is the same edge as `L 2 + 3 +`; which endpoint is upstream has
-  // to come from the coordinates, not from from/to
-  const reversed = RGFA.replace('L\t2\t+\t3\t+\t0M', 'L\t3\t+\t2\t+\t0M')
-  expect(deletionEdges(graphOf(reversed))[0]).toMatchObject({
+// A link joins the END of its first segment, read the way it states, to the
+// START of its second. So `L 2 + 3 +` written from the other strand is
+// `L 3 - 2 -`, both segments reversed, and minigraph writes links that way.
+test('a link stated from the other strand still measures the gap forwards', () => {
+  const mirrored = RGFA.replace('L\t2\t+\t3\t+\t0M', 'L\t3\t-\t2\t-\t0M')
+  expect(deletionEdges(graphOf(mirrored))[0]).toMatchObject({
     start: 1020,
     end: 7020,
     bp: 6000,
   })
+})
+
+// `L 3 + 2 +` is not that link. It leaves the end of 3 and arrives at the start
+// of 2: sequence read again, a tandem duplication, which skips nothing. Told
+// apart by coordinates alone it was a 6 kb deletion, and with deletion edges
+// hidden, the default, the link was not drawn at all.
+test('a link back along the reference is a duplication, not a deletion', () => {
+  const back = RGFA.replace('L\t2\t+\t3\t+\t0M', 'L\t3\t+\t2\t+\t0M')
+  expect(deletionEdges(graphOf(back))).toEqual([])
+})
+
+// `L 2 + 3 -` arrives at the END of 3: an inversion junction.
+test('a link into the far side of a segment is an inversion, not a deletion', () => {
+  const inverted = RGFA.replace('L\t2\t+\t3\t+\t0M', 'L\t2\t+\t3\t-\t0M')
+  expect(deletionEdges(graphOf(inverted))).toEqual([])
+})
+
+// A graph built without the strands, by hand or by an older snapshot, reads the
+// way it always has.
+test('a link that states no strands is judged by its coordinates', () => {
+  const graph = graphOf(RGFA)
+  const bare = {
+    ...graph,
+    edges: graph.edges.map(({ from, to }) => ({ from, to })),
+  }
+  expect(deletionEdges(bare)).toHaveLength(1)
 })
 
 test('an unanchored graph has no deletions rather than throwing', () => {

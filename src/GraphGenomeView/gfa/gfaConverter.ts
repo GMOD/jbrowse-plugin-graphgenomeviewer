@@ -146,7 +146,12 @@ export function convertGFAToGraph(gfaGraph: GFAGraph, name = 'Imported GFA') {
   }
 
   for (const link of gfaGraph.links) {
-    edges.push({ from: nodeId(link.source), to: nodeId(link.target) })
+    edges.push({
+      from: nodeId(link.source),
+      to: nodeId(link.target),
+      fromStrand: link.strand1 === '-' ? '-' : '+',
+      toStrand: link.strand2 === '-' ? '-' : '+',
+    })
   }
 
   const paths: GraphPath[] = []

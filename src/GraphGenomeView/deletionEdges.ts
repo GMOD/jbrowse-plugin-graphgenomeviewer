@@ -2,7 +2,7 @@ import { isBackbone } from './anchoredNodes'
 import { computeEdgeCurves } from './util/geometry'
 
 import type { AnchoredNode } from './anchoredNodes'
-import type { Graph } from './types'
+import type { Graph, GraphEdge } from './types'
 import type { AxisScale } from './util/geometry'
 
 // A deletion is the one kind of variation this view could not draw, and the
@@ -159,6 +159,35 @@ function bypassedNodes(
   return bypassed
 }
 
+// A link leaves the END of `from` as it reads it and arrives at the START of
+// `to`. Read the way the reference reads a node, its end is its right side, so
+// a link leaves `from` on the right when the two readings agree and arrives at
+// `to` on the left when they do.
+//
+// A deletion joins the right side of the left node to the left side of the
+// right one, from whichever strand the file states it: `L 1 + 3 +`, or the
+// same link as `L 3 - 1 -`. `L 3 + 1 +` joins the right side of the RIGHT node
+// to the left side of the left one, sequence read again, a duplication. A link
+// with one reading against the reference lands on a node's far side, an
+// inversion. Neither skips anything. Coordinates alone could not tell them
+// from a deletion: each was drawn as one, and hidden with them by default.
+//
+// A link stating no strands is judged by its coordinates, as all once were.
+function skipsBetween(
+  edge: GraphEdge,
+  from: AnchoredNode,
+  to: AnchoredNode,
+  forwards: boolean,
+) {
+  const { fromStrand, toStrand } = edge
+  if (fromStrand === undefined || toStrand === undefined) {
+    return true
+  }
+  const leavesRight = fromStrand === (from.stable.strand ?? '+')
+  const arrivesLeft = toStrand === (to.stable.strand ?? '+')
+  return forwards ? leavesRight && arrivesLeft : !leavesRight && !arrivesLeft
+}
+
 // Every edge that skips reference sequence, in graph.edges order.
 export function deletionEdges(graph: Graph): DeletionEdge[] {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
@@ -175,15 +204,16 @@ export function deletionEdges(graph: Graph): DeletionEdge[] {
       isBackbone(to) &&
       from.stable.refName === to.stable.refName
     ) {
-      // A GFA states a link in either orientation and single-node mode collapses
-      // both onto one node, so which endpoint is upstream comes from the
-      // coordinates rather than from from/to.
-      const [left, right] =
-        from.stable.start <= to.stable.start ? [from, to] : [to, from]
+      // Which endpoint is upstream comes from the coordinates, since a file
+      // may state a link from either strand. Whether it SKIPS what lies
+      // between comes from its sides: a deletion leaves the right side of the
+      // left node and arrives at the left side of the right one.
+      const forwards = from.stable.start <= to.stable.start
+      const [left, right] = forwards ? [from, to] : [to, from]
       const start = left.stable.start + left.length
       const end = right.stable.start
       const bp = end - start
-      if (bp >= MIN_DELETION_BP) {
+      if (bp >= MIN_DELETION_BP && skipsBetween(edge, from, to, forwards)) {
         const refName = left.stable.refName
         found.push({
           edgeIndex,
