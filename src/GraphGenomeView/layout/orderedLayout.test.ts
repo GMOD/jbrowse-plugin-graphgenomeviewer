@@ -118,3 +118,95 @@ test('reference order is backbone by offset, alleles just past their anchor', ()
     'v4+',
   ])
 })
+
+// r1 r2 r3 r4 along chr1 at 0, 1, 2, 3, a base apart as a base-level graph's
+// backbone is, with whatever `extra` hangs off it.
+function baseLevel(extra: string[]) {
+  return graphOf(
+    [
+      ...[0, 1, 2, 3].map(
+        i => `S\tr${i + 1}\tA\tLN:i:1\tSN:Z:chr1\tSO:i:${i}\tSR:i:0`,
+      ),
+      ...[1, 2, 3].map(i => `L\tr${i}\t+\tr${i + 1}\t+\t0M`),
+      ...extra,
+    ].join('\n'),
+  )
+}
+
+const off = (name: string) => `S\t${name}\tA\tLN:i:1\tSN:Z:alt\tSO:i:0\tSR:i:1`
+const link = (a: string, b: string) => `L\t${a}\t+\t${b}\t+\t0M`
+
+// The search from the backbone meets itself in the middle of x1..x4, so x3 and
+// x4 are claimed from r4. Sorted after it, their links into r4 turned round.
+test('both halves of a multi-node allele sort between its anchors', () => {
+  const chain = ['r1', 'x1', 'x2', 'x3', 'x4', 'r4']
+  const graph = baseLevel([
+    ...['x1', 'x2', 'x3', 'x4'].map(off),
+    ...chain.slice(1).map((n, i) => link(chain[i]!, n)),
+  ])
+  const order = referenceOrder(graph)
+  const places = chain.map(n => order.indexOf(`${n}+`))
+  expect(places).toEqual([...places].sort((a, b) => a - b))
+})
+
+// Six nodes off r1, whose next backbone node is a base away. Nudged half a bp
+// per step, the chain's keys walked past r2, r3 and r4.
+test('a long allele stays beside its anchor however close the next node is', () => {
+  const names = ['y1', 'y2', 'y3', 'y4', 'y5', 'y6']
+  const graph = baseLevel([
+    ...names.map(off),
+    link('r1', 'y1'),
+    ...names.slice(1).map((n, i) => link(names[i]!, n)),
+  ])
+  expect(referenceOrder(graph)).toEqual([
+    'r1+',
+    ...names.map(n => `${n}+`),
+    'r2+',
+    'r3+',
+    'r4+',
+  ])
+})
+
+// t1 and t2 are claimed from r4, and the left reaches them only at t1. t2 is a
+// dead end of the search that the left never reached, so steps from r4 say
+// nothing about where it lies: sorted first, as the far half of a chain is, it
+// would have nothing before it. The run stays after its anchor.
+test('a run with a dead end the left never reached stays after its anchor', () => {
+  const graph = baseLevel([
+    ...['s1', 't1', 't2'].map(off),
+    link('r1', 's1'),
+    link('s1', 't1'),
+    link('t1', 'r4'),
+    link('t1', 't2'),
+  ])
+  const order = referenceOrder(graph)
+  const at = (name: string) => order.indexOf(`${name}+`)
+  expect(at('t1')).toBeGreaterThan(at('r4'))
+  expect(at('t2')).toBeGreaterThan(at('t1'))
+})
+
+// A walk says where its nodes lie. w2 links only to r4, so the links alone put
+// it after r4; the walk enters it from w1, off r1.
+const WALKED = [
+  ...['w1', 'w2'].map(off),
+  link('r1', 'w1'),
+  link('w2', 'r4'),
+  'W\tref\t0\tchr1\t0\t4\t>r1>r2>r3>r4',
+]
+
+test('a walk places the nodes it visits after the node it came from', () => {
+  const graph = baseLevel([...WALKED, 'W\thap\t1\tctg\t0\t4\t>r1>w1>w2>r4'])
+  expect(referenceOrder(graph)).toEqual([
+    'r1+',
+    'w1+',
+    'w2+',
+    'r2+',
+    'r3+',
+    'r4+',
+  ])
+})
+
+test('a walk on the reverse strand is read end-first', () => {
+  const graph = baseLevel([...WALKED, 'W\thap\t1\tctg\t0\t4\t<r4<w2<w1<r1'])
+  expect(referenceOrder(graph).slice(0, 3)).toEqual(['r1+', 'w1+', 'w2+'])
+})

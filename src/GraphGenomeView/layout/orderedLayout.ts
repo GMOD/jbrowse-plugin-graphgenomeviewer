@@ -1,6 +1,7 @@
 import { ROW_HEIGHT_PX } from './rowSpacing'
 import { isBackbone } from '../anchoredNodes'
 
+import type { AnchoredNode } from '../anchoredNodes'
 import type { Graph, GraphNode, LayoutResult, NodeSegment } from '../types'
 
 // Reference-ordered layered layout: x is reference ORDER, not bp. Backbone
@@ -21,45 +22,226 @@ function compare<T extends string | number>(a: T, b: T) {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-// Every node id in reference order: backbone by stable offset, an off-reference
-// node just past the nearest backbone node that reaches it (BFS over the edges
-// as undirected), nodes no backbone reaches last. Name breaks ties, so the
-// order is a strict total order and the same graph always gets the same one.
+// Where a node sorts: `at` is the rank of a placed node, the backbone and what
+// the walks visit, and a node the search claims sorts before or after the one
+// that claimed it, by its steps from it. A tuple rather than an offset nudged
+// per step: on a base-level graph the backbone nodes are a bp apart, and a
+// chain a few nodes long nudged its keys past the ones that follow.
+interface OrderKey {
+  at: number
+  side: -1 | 0 | 1
+  hops: number
+}
+
+function compareKeys(a: OrderKey, b: OrderKey) {
+  return (
+    compare(a.at, b.at) || compare(a.side, b.side) || compare(a.hops, b.hops)
+  )
+}
+
+const UNREACHED: OrderKey = { at: Infinity, side: 0, hops: 0 }
+
+// Every node id in reference order: backbone by stable offset, every other node
+// beside a backbone node (orderKeys), nodes nothing reaches last. Name breaks
+// ties, so the order is a strict total order and the same graph always gets
+// the same one.
 export function referenceOrder(graph: Graph) {
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  const key = orderKeys(graph)
+  return graph.nodes
+    .map(n => n.id)
+    .sort(
+      (a, b) =>
+        compareKeys(key.get(a) ?? UNREACHED, key.get(b) ?? UNREACHED) ||
+        compare(byId.get(a)!.name, byId.get(b)!.name) ||
+        compare(a, b),
+    )
+}
+
+// A walk states where its nodes lie, which the links alone do not. Starting
+// from the backbone in offset order, each node a walk visits for the first time
+// goes into the order immediately after the node that walk came from, and the
+// nodes a walk visits before it meets a placed one go immediately before it.
+//
+// That keeps every true boundary. A walk's step joins two nodes on the same
+// side of a node every haplotype crosses once, unless one of them is that
+// node, so by induction the nodes between two such boundaries stay one
+// unbroken stretch of the order and no link among them reaches across. On the
+// eight-haplotype KIV-2 cut (15,808 nodes) the walks imply 28 bubbles and this
+// derives those 28, with 5 of 65,776 walk steps against the order. Placing
+// every node by the links alone derived 21, with 23,308 steps against it.
+//
+// A walk on the reverse strand is read end-first.
+function placeByWalks(graph: Graph, backbone: AnchoredNode[]) {
+  const isNode = new Set(graph.nodes.map(n => n.id))
+  const startOf = new Map(backbone.map(n => [n.id, n.stable.start]))
+  const next = new Map<string, string | undefined>()
+  const prev = new Map<string, string | undefined>()
+  backbone.forEach((n, i) => {
+    prev.set(n.id, backbone[i - 1]?.id)
+    next.set(n.id, backbone[i + 1]?.id)
+  })
+  let head = backbone[0]?.id
+  const insertAfter = (at: string, id: string) => {
+    const after = next.get(at)
+    next.set(at, id)
+    prev.set(id, at)
+    next.set(id, after)
+    if (after !== undefined) {
+      prev.set(after, id)
+    }
+  }
+  const insertBefore = (at: string, id: string) => {
+    const before = prev.get(at)
+    if (before === undefined) {
+      head = id
+      prev.set(id, undefined)
+      next.set(id, at)
+      prev.set(at, id)
+    } else {
+      insertAfter(before, id)
+    }
+  }
+
+  for (const path of graph.paths ?? []) {
+    let rising = 0
+    let falling = 0
+    let last: number | undefined
+    for (const id of path.nodeIds) {
+      const start = startOf.get(id)
+      if (start !== undefined) {
+        if (last !== undefined && start !== last) {
+          if (start > last) {
+            rising++
+          } else {
+            falling++
+          }
+        }
+        last = start
+      }
+    }
+    const ids = falling > rising ? [...path.nodeIds].reverse() : path.nodeIds
+    let from: string | undefined
+    const leading = new Set<string>()
+    for (const id of ids) {
+      if (next.has(id)) {
+        if (from === undefined) {
+          for (const lead of leading) {
+            insertBefore(id, lead)
+          }
+        }
+        from = id
+      } else if (isNode.has(id)) {
+        if (from === undefined) {
+          leading.add(id)
+        } else {
+          insertAfter(from, id)
+          from = id
+        }
+      }
+    }
+  }
+
+  const placed: string[] = []
+  for (let id = head; id !== undefined; id = next.get(id)) {
+    placed.push(id)
+  }
+  return placed
+}
+
+// The nodes no walk visits, which is every off-reference node of a graph with
+// no walks: each goes beside the nearest placed node that reaches it (BFS over
+// the links as undirected, seeded in order so a tie goes left).
+//
+// That search meets itself in the middle of an allele, so the far half of a
+// chain A>X1>X2>B is claimed from B, its RIGHT anchor. Placed after B, as every
+// claimed node once was, X2 sorted past the node it leads into, its link was
+// turned round, and the insertion stopped being a bubble. So a run of nodes
+// claimed from one placed node lies BEFORE it, farthest node first, when it is
+// such a far half: it touches nothing right of that node, and every dead end of
+// the search inside it is a place the search from the left arrived. Steps are
+// a position only along a chain. In a tangle the farthest node is a dead end
+// with nothing before it, and sorted first its links to its real neighbours
+// sweep across every boundary between, so any other run stays after.
+function placeBySearch(
+  adjacent: Map<string, string[]>,
+  key: Map<string, OrderKey>,
+) {
+  const queue = [...key.entries()]
+    .sort(([a, ka], [b, kb]) => compareKeys(ka, kb) || compare(a, b))
+    .map(([id]) => id)
+  const placed = queue.length
+  // the queue grows while the loop walks it, which for-of follows
+  for (const id of queue) {
+    const from = key.get(id)!
+    for (const nb of adjacent.get(id) ?? []) {
+      if (!key.has(nb)) {
+        key.set(nb, { at: from.at, side: 1, hops: from.hops + 1 })
+        queue.push(nb)
+      }
+    }
+  }
+
+  const searched = new Set(queue.slice(placed))
+  const sided = new Set<string>()
+  for (const seed of searched) {
+    if (sided.has(seed)) {
+      continue
+    }
+    const { at } = key.get(seed)!
+    const run = [seed]
+    sided.add(seed)
+    let farHalf = true
+    for (const id of run) {
+      const { hops } = key.get(id)!
+      let deadEnd = true
+      let touchesLeft = false
+      for (const nb of adjacent.get(id) ?? []) {
+        const other = key.get(nb)!
+        if (other.at === at && searched.has(nb)) {
+          deadEnd &&= other.hops <= hops
+          if (!sided.has(nb)) {
+            sided.add(nb)
+            run.push(nb)
+          }
+        } else if (other.at !== at) {
+          touchesLeft ||= other.at < at
+          farHalf &&= other.at < at
+        }
+      }
+      farHalf &&= !deadEnd || touchesLeft
+    }
+    if (farHalf) {
+      for (const id of run) {
+        const k = key.get(id)!
+        key.set(id, { ...k, side: -1, hops: -k.hops })
+      }
+    }
+  }
+}
+
+function orderKeys(graph: Graph) {
+  const ids = new Set(graph.nodes.map(n => n.id))
   const adjacent = new Map<string, string[]>()
   for (const e of graph.edges) {
-    if (!byId.has(e.from) || !byId.has(e.to)) {
+    if (!ids.has(e.from) || !ids.has(e.to)) {
       continue
     }
     ;(adjacent.get(e.from) ?? adjacent.set(e.from, []).get(e.from)!).push(e.to)
     ;(adjacent.get(e.to) ?? adjacent.set(e.to, []).get(e.to)!).push(e.from)
   }
-  const key = new Map<string, number>()
-  const queue: string[] = []
-  for (const n of graph.nodes) {
-    if (isBackbone(n)) {
-      key.set(n.id, n.stable.start)
-      queue.push(n.id)
-    }
-  }
-  // the queue grows while the loop walks it, which for-of follows
-  for (const id of queue) {
-    for (const nb of adjacent.get(id) ?? []) {
-      if (!key.has(nb)) {
-        key.set(nb, key.get(id)! + 0.5)
-        queue.push(nb)
-      }
-    }
-  }
-  return graph.nodes
-    .map(n => n.id)
+  const backbone = graph.nodes
+    .filter(isBackbone)
     .sort(
       (a, b) =>
-        compare(key.get(a) ?? Infinity, key.get(b) ?? Infinity) ||
-        compare(byId.get(a)!.name, byId.get(b)!.name) ||
-        compare(a, b),
+        compare(a.stable.start, b.stable.start) || compare(a.name, b.name),
     )
+  const key = new Map<string, OrderKey>()
+  placeByWalks(graph, backbone).forEach((id, rank) => {
+    key.set(id, { at: rank, side: 0, hops: 0 })
+  })
+  placeBySearch(adjacent, key)
+  return key
 }
 
 export interface LayeredGraph {

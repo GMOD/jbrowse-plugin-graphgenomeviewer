@@ -144,17 +144,13 @@ describe('bubblesFromGraph', () => {
     ).toEqual([])
   })
 
-  // KNOWN BUG, stated as the behaviour wanted: `fails` passes while the bug
-  // stands and goes red once it is fixed, which is the cue to drop the marker.
-  //
   // A 2 kb insertion through two nodes, A>X1>X2>B, then a separate SNP,
-  // B>{C,Calt}>D. referenceOrder seeds its search from every backbone node at
-  // once, so X2 takes its key from B, its right anchor, and sorts after it.
-  // Today this derives ONE bubble over 100-201 with segments
-  // A,X1,B,Calt,X2,C,D and a longest allele of 101 bp: the insertion is lost
-  // and the SNP is fused into it. Every multi-node allele is affected, which
-  // is the ordinary shape of a GBZ cut or a pggb file.
-  it.fails('a multi-node allele beside a SNP derives two bubbles', () => {
+  // B>{C,Calt}>D. A search from every backbone node meets itself in the middle
+  // of the insertion, so X2 is claimed from B, its right anchor. Sorted after
+  // B, its link into B was turned round: this derived ONE bubble over 100-201
+  // with a longest allele of 101 bp, the insertion lost and the SNP fused into
+  // it. Multi-node alleles are the ordinary shape of a GBZ cut or a pggb file.
+  it('a multi-node allele beside a SNP derives two bubbles', () => {
     const graph: Graph = {
       name: 'g',
       nodes: [
@@ -178,7 +174,51 @@ describe('bubblesFromGraph', () => {
       ].map(([from, to]) => ({ from: `${from}+`, to: `${to}+` })),
     }
     const found = bubblesFromGraph(graph)
-    expect(found).toHaveLength(2)
-    expect(found[0]!.longestAlleleLength).toBe(2000)
+    expect(found.map(b => [b.start, b.end, b.segments])).toEqual([
+      [100, 100, 'A,X1,X2,B'],
+      [200, 201, 'B,Calt,C,D'],
+    ])
+    expect(found[0]).toMatchObject({
+      shortestAlleleLength: 0,
+      longestAlleleLength: 2000,
+    })
+  })
+
+  // `w` is where a haplotype's walk enters the cut, so nothing leads into it,
+  // and its walk sorts it just before r4. Read off the drawing's layers, where
+  // such a node sits in the first one, its link into r4 crossed r3's layer and
+  // the SNP fused with the entry into one bubble, r1,a,r2,w,r3,r4.
+  it('a node a walk enters the cut at does not fuse the bubbles before it', () => {
+    const graph: Graph = {
+      name: 'g',
+      nodes: [
+        node('r1', 10, 0),
+        node('r2', 1, 10),
+        node('r3', 10, 11),
+        node('r4', 10, 21),
+        node('a', 1, 0, 1),
+        node('w', 5, 0, 1),
+      ],
+      edges: [
+        ['r1', 'r2'],
+        ['r2', 'r3'],
+        ['r3', 'r4'],
+        ['r1', 'a'],
+        ['a', 'r3'],
+        ['w', 'r4'],
+      ].map(([from, to]) => ({ from: `${from}+`, to: `${to}+` })),
+      paths: [
+        ['r1', 'r2', 'r3', 'r4'],
+        ['r1', 'a', 'r3', 'r4'],
+        ['w', 'r4'],
+      ].map((ids, i) => ({
+        name: `hap${i}`,
+        nodeIds: ids.map(id => `${id}+`),
+      })),
+    }
+    expect(bubblesFromGraph(graph).map(b => b.segments)).toEqual([
+      'r1,a,r2,r3',
+      'r3,w,r4',
+    ])
   })
 })
