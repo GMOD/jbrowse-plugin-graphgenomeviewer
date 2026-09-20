@@ -2,6 +2,7 @@ import { isBackbone } from '../anchoredNodes'
 import { polylineSlice } from '../layout/mergeRuns'
 
 import type { GeneModel } from './geneFeatures'
+import type { AnchoredNode } from '../anchoredNodes'
 import type { Graph, NodeSegment } from '../types'
 
 // A gene drawn onto the graph: its exons as stretches of the backbone nodes
@@ -37,32 +38,76 @@ function pathOf(points: NodeSegment[]) {
     .join('')
 }
 
+// The backbone of one contig in offset order, for finding the nodes a gene
+// lies over without reading the rest. `reach` is the longest node: a node over
+// a gene's start begins no further before it than that.
+interface ContigBackbone {
+  nodes: AnchoredNode[]
+  reach: number
+}
+
+function firstAtOrAfter(nodes: AnchoredNode[], bp: number) {
+  let lo = 0
+  let hi = nodes.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (nodes[mid]!.stable.start < bp) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
+  }
+  return lo
+}
+
 export function genePins(
   graph: Graph,
   genes: GeneModel[],
   positions: Record<string, NodeSegment[]>,
 ): GenePin[] {
-  const backbone = graph.nodes
-    .filter(isBackbone)
-    .filter(node => positions[node.id]?.length)
-    .sort((a, b) => a.stable.start - b.stable.start)
-  if (backbone.length === 0) {
-    return []
+  // Per contig and sorted once, so a gene reads the few nodes it lies over.
+  // Every gene used to read every backbone node, splitting both names each
+  // time, on each frame of a node drag: 199 ms for 100 genes over 15k nodes,
+  // now 12.
+  const byContig = new Map<string, ContigBackbone>()
+  const contigOf = new Map<string, string>()
+  for (const node of graph.nodes) {
+    if (isBackbone(node) && positions[node.id]?.length) {
+      const { refName } = node.stable
+      const name =
+        contigOf.get(refName) ??
+        contigOf.set(refName, contig(refName)).get(refName)!
+      const entry =
+        byContig.get(name) ??
+        byContig.set(name, { nodes: [], reach: 0 }).get(name)!
+      entry.nodes.push(node)
+      entry.reach = Math.max(entry.reach, node.length)
+    }
+  }
+  for (const { nodes } of byContig.values()) {
+    nodes.sort((a, b) => a.stable.start - b.stable.start)
   }
   const pins: GenePin[] = []
   for (const gene of genes) {
+    const backbone = byContig.get(contig(gene.refName))
+    if (!backbone) {
+      continue
+    }
     const parts: string[] = []
     let at: NodeSegment | undefined
     let atDistance = Infinity
     let covered = 0
     const mid = (gene.start + gene.end) / 2
-    for (const node of backbone) {
-      if (contig(node.stable.refName) !== contig(gene.refName)) {
-        continue
-      }
+    const { nodes, reach } = backbone
+    for (
+      let i = firstAtOrAfter(nodes, gene.start - reach);
+      i < nodes.length && nodes[i]!.stable.start < gene.end;
+      i++
+    ) {
+      const node = nodes[i]!
       const nodeStart = node.stable.start
       const nodeEnd = nodeStart + node.length
-      if (nodeEnd <= gene.start || nodeStart >= gene.end) {
+      if (nodeEnd <= gene.start) {
         continue
       }
       const line = positions[node.id]!

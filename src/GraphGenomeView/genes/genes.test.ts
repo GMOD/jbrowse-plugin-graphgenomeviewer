@@ -104,3 +104,50 @@ test('a gene on another sequence pins nothing', () => {
     genePins(graph, geneModelsFrom([{ ...gene, refName: 'chr2' }]), positions),
   ).toEqual([])
 })
+
+// A gene reads only the backbone nodes it lies over, found by their offsets.
+// `long` begins 990 bp before the gene and still carries its first 5 bp, so
+// the search has to reach back by the longest node, not start at the gene.
+test('a gene inside a long node that begins well before it still lands on it', () => {
+  const long = convertGFAToGraph(
+    parseGFA(
+      [
+        'S\tlong\t*\tLN:i:1000\tSN:Z:chr1\tSO:i:0\tSR:i:0',
+        'S\tnext\t*\tLN:i:10\tSN:Z:chr1\tSO:i:1000\tSR:i:0',
+        'S\tlast\t*\tLN:i:10\tSN:Z:chr1\tSO:i:1010\tSR:i:0',
+        'L\tlong\t+\tnext\t+\t0M',
+        'L\tnext\t+\tlast\t+\t0M',
+      ].join('\n'),
+    ),
+  )
+  const drawn = {
+    'long+': [
+      { x: 0, y: 0 },
+      { x: 1000, y: 0 },
+    ],
+    'next+': [
+      { x: 1000, y: 0 },
+      { x: 1010, y: 0 },
+    ],
+    'last+': [
+      { x: 1010, y: 0 },
+      { x: 1020, y: 0 },
+    ],
+  }
+  const [pin] = genePins(
+    long,
+    [
+      {
+        name: 'G',
+        refName: 'chr1',
+        start: 995,
+        end: 1005,
+        strand: 1,
+        exons: [{ start: 995, end: 1005 }],
+      },
+    ],
+    drawn,
+  )
+  expect(pin!.covered).toBe(1)
+  expect(pin!.exons).toBe('M995,0L1000,0M1000,0L1005,0')
+})
