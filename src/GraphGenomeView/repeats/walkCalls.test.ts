@@ -75,10 +75,13 @@ test('a walk that does not span the array keeps its tick and gets no verdict', (
 // almost exactly, the other stops inside it. Paired on length alone the one
 // that stops takes the allele that fits, and the walk that spans reads as a
 // disagreement against what is left.
-test('a walk that stops inside the array cannot take a spanning walk\'s allele', () => {
-  const rows = withCalls([walk('HG02976', 2884), walk('HG02976', 3653, false)], {
-    HG02976: calls(2274, 2886),
-  })
+test("a walk that stops inside the array cannot take a spanning walk's allele", () => {
+  const rows = withCalls(
+    [walk('HG02976', 2884), walk('HG02976', 3653, false)],
+    {
+      HG02976: calls(2274, 2886),
+    },
+  )
   expect(rows.map(r => r.call?.bp)).toEqual([2886, 2274])
   expect(rows.map(r => r.call?.agrees)).toEqual([true, undefined])
 })
