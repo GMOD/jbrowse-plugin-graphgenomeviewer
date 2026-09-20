@@ -43,6 +43,21 @@ describe('distanceToCubicBezier', () => {
     const dist = distanceToCubicBezier(100, 100, 0, 0, 3, 0, 7, 0, 10, 0)
     expect(dist).toBeGreaterThan(100)
   })
+
+  // A deletion arc is routinely this long on screen. Measured to the sampled
+  // points alone, a cursor on the curve between two of them read as up to 25
+  // away, past the hover tolerance, at most positions along it.
+  test('a point on a long curve is on it wherever along it the point lies', () => {
+    for (let x = 0; x <= 1000; x += 7) {
+      const dist = distanceToCubicBezier(x, 0, 0, 0, 333, 0, 667, 0, 1000, 0)
+      expect(dist).toBeLessThan(0.001)
+    }
+  })
+
+  test('distance off a long curve is the distance to the curve', () => {
+    const dist = distanceToCubicBezier(525, 4, 0, 0, 333, 0, 667, 0, 1000, 0)
+    expect(dist).toBeCloseTo(4)
+  })
 })
 
 describe('findHoveredNode', () => {

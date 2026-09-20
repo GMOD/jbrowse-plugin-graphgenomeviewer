@@ -34,9 +34,14 @@ export function distanceToCubicBezier(
   x2: number,
   y2: number,
 ) {
+  // To the chords between samples, not to the samples: on a long curve they
+  // are tens of px apart, and a cursor on the curve between two of them
+  // measured as far off it as half that gap.
   let minDist = Infinity
   const samples = 20
-  for (let i = 0; i <= samples; i++) {
+  let lastX = x1
+  let lastY = y1
+  for (let i = 1; i <= samples; i++) {
     const t = i / samples
     const u = 1 - t
     const bx =
@@ -49,10 +54,9 @@ export function distanceToCubicBezier(
       3 * u * u * t * cy1 +
       3 * u * t * t * cy2 +
       t * t * t * y2
-    const dist = Math.hypot(px - bx, py - by)
-    if (dist < minDist) {
-      minDist = dist
-    }
+    minDist = Math.min(minDist, distanceToSegment(px, py, lastX, lastY, bx, by))
+    lastX = bx
+    lastY = by
   }
   return minDist
 }
