@@ -109,3 +109,33 @@ test('a chip sits on the stretch a route does not share', () => {
     ['HG2 · 4.0 kb', { x: 12, y: -10 }],
   ])
 })
+
+// A contig assembled on the reverse strand walks the same bubble end-first.
+const REVERSED = `S\tv1\tAAAA
+S\tv2\tCC
+S\tv2b\tTT
+S\tv3\tGGG
+S\ta1\tT
+L\tv1\t+\tv2\t+\t0M
+L\tv2\t+\tv2b\t+\t0M
+L\tv2b\t+\tv3\t+\t0M
+L\tv1\t+\ta1\t+\t0M
+L\ta1\t+\tv3\t+\t0M
+W\tref\t0\tchr\t0\t11\t>v1>v2>v2b>v3
+W\tFWD\t1\tchr\t0\t11\t>v1>v2>v2b>v3
+W\tREV\t1\tchr\t0\t11\t<v3<v2b<v2<v1
+W\tALT\t1\tchr\t0\t8\t>v1>a1>v3`
+
+test('a walk crossing a bubble end-first takes the route it takes forwards', () => {
+  const reversed = anchorGraph(convertGFAToGraph(parseGFA(REVERSED)), 'ref')
+  const [bubble] = bubblesFromGraph(reversed)
+  expect(bubble!.pathCount).toBe(2)
+  expect(bubble!.routes).toEqual([
+    {
+      steps: ['v2+', 'v2b+'],
+      bp: 4,
+      walks: ['ref#0#chr', 'FWD#1#chr', 'REV#1#chr'],
+    },
+    { steps: ['a1+'], bp: 1, walks: ['ALT#1#chr'] },
+  ])
+})

@@ -6,7 +6,7 @@ import type {
   MinigraphBubble,
 } from '../../MinigraphBubbleAdapter/bubbleLine'
 import type { AnchoredNode } from '../anchoredNodes'
-import type { Graph } from '../types'
+import type { Graph, GraphNode } from '../types'
 
 // Bubbles from the graph alone, off the layered order the ordered layout draws:
 // a backbone node whose layer holds nothing else and that no edge jumps over is
@@ -115,7 +115,8 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
         })
       }
     }
-    const walked = walkIndex && walkRoutes(graph, walkIndex, start.id, end.id)
+    const walked =
+      walkIndex && walkRoutes(graph, byId, walkIndex, start.id, end.id)
     const routes = walked ?? best.get(end.id) ?? { min: 0, max: 0, n: 0 }
     // A walk that enters the bubble and never reaches its other end left the
     // cut: a GBZ cut of a repeat array at 1 kb of context splits each
@@ -164,13 +165,16 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
 // step sequence, so routes are distinct sequences and lengths are the true
 // haplotype lengths. `left` counts the walks that pass one boundary and end
 // before the other.
+//
+// `byId` is the caller's: this runs once per bubble, and a map of every node
+// built here made the whole pass quadratic, seven seconds at 15k nodes.
 function walkRoutes(
   graph: Graph,
+  byId: Map<string, GraphNode>,
   walkIndex: Map<string, number>[],
   startId: string,
   endId: string,
 ): (Routes & { left: number; routes: BubbleRoute[] }) | undefined {
-  const byId = new Map(graph.nodes.map(n => [n.id, n]))
   const seen = new Map<string, BubbleRoute>()
   let min = Infinity
   let max = -Infinity
@@ -184,7 +188,12 @@ function walkRoutes(
       }
       return
     }
+    // Start to end, whichever way the walk crosses: a contig on the reverse
+    // strand takes the same route, and read end-first it keyed as a second one.
     const steps = p.nodeIds.slice(Math.min(i0, i1) + 1, Math.max(i0, i1))
+    if (i1 < i0) {
+      steps.reverse()
+    }
     let bp = 0
     for (const id of steps) {
       bp += byId.get(id)?.length ?? 0
