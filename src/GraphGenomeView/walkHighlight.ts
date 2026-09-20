@@ -1,3 +1,5 @@
+import { pathOrigin } from './pathAnchoring'
+
 import type { Graph } from './types'
 
 // One walk lifted out of the drawing: the nodes it visits and the links it
@@ -37,8 +39,10 @@ export function walkHighlight(
   }
   const bpOf = (ids: string[]) =>
     ids.reduce((sum, id) => sum + (byId.get(id)?.length ?? 0), 0)
+  // `referencePath` is the anchor name, which pathOrigin has stripped of the
+  // range suffix odgi leaves on a P record's name
   const reference = graph.referencePath
-    ? graph.paths!.find(p => p.name === graph.referencePath)
+    ? graph.paths!.find(p => pathOrigin(p.name).name === graph.referencePath)
     : undefined
   return {
     name,
