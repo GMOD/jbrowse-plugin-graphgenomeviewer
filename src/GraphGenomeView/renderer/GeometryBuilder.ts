@@ -1,7 +1,7 @@
 import { packAbgr } from '@jbrowse/core/util/colorBits'
 
 import { fadeAbgr } from './colorBits'
-import { depthWidthFactor, meanDepth } from '../nodeWidths'
+import { meanDepth, nodeWidthPx } from '../nodeWidths'
 import {
   PATH_LIGHTNESS,
   PATH_SATURATION,
@@ -831,13 +831,9 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       colorScheme,
       colorRange,
     )
-    const color =
-      highlight && !highlight.nodeIds.has(nodeId)
-        ? fadeAbgr(own, FADED_ALPHA)
-        : own
-    const width =
-      contigThickness *
-      (nodeWidth === 'depth' ? depthWidthFactor(node, depthNorm) : 1)
+    const faded = highlight !== undefined && !highlight.nodeIds.has(nodeId)
+    const color = faded ? fadeAbgr(own, FADED_ALPHA) : own
+    const width = nodeWidthPx(node, contigThickness, nodeWidth, depthNorm)
     const nodeThickness = width / 2
 
     const start = nodeStrokes.length
@@ -857,10 +853,12 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       for (const slot of slots) {
         const offset =
           (slot - (pathCount - 1) / 2) * slotWidth * worldPerScreenPx
+        const stripe = pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR
         nodeStrokes.push({
           points: offsetPolyline(segments, normals, offset, yToX),
           thickness: slotWidth / 2,
-          color: pathColorByIndex[slot] ?? EDGE_PATH_FALLBACK_COLOR,
+          // a node off the lifted walk fades whichever way it is painted
+          color: faded ? fadeAbgr(stripe, FADED_ALPHA) : stripe,
         })
       }
     } else if (segments.length >= 2) {

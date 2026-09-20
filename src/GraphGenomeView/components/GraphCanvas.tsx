@@ -543,6 +543,7 @@ const GraphCanvas = observer(function GraphCanvas({
           y,
           model.axisScale,
           model.positionsVersion,
+          model.nodeInk,
         )
       : null
   }

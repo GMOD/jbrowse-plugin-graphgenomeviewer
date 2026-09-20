@@ -47,7 +47,12 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from './layoutModes'
-import { NODE_WIDTH_VALUES } from './nodeWidths'
+import {
+  NODE_WIDTH_VALUES,
+  maxNodeWidthPx,
+  meanDepth,
+  nodeWidthPx,
+} from './nodeWidths'
 import { anchorFromPaths, anchorGraph } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
@@ -89,13 +94,14 @@ import {
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
+import type { GeneModel } from './genes/geneFeatures'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
 import type { Renderer } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
+import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
-import type { GeneModel } from './genes/geneFeatures'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
@@ -889,6 +895,21 @@ export default function stateModelFactory() {
     .views(self => ({
       get nodeNeighbors() {
         return self.graph ? buildNeighbors(self.graph) : undefined
+      },
+      // How far each node's ink reaches from its centreline, for the hit test:
+      // the widths the geometry draws with, from the same function.
+      get nodeInk(): NodeInk {
+        const { contigThickness, nodeWidth, nodeById } = self
+        const mean = self.graph ? meanDepth(self.graph) : 0
+        return {
+          maxHalfWidthPx: maxNodeWidthPx(contigThickness, nodeWidth) / 2,
+          halfWidthPx: id => {
+            const node = nodeById?.get(id)
+            return node
+              ? nodeWidthPx(node, contigThickness, nodeWidth, mean) / 2
+              : contigThickness / 2
+          },
+        }
       },
       // Links that skip reference sequence, i.e. the deletions this graph
       // holds. Computed once per graph rather than per geometry rebuild: it is

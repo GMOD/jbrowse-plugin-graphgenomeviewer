@@ -88,6 +88,40 @@ describe('findHoveredNode', () => {
     // At scale 10, threshold is 5/10 = 0.5, so a point 3 units away should miss
     expect(findHoveredNode(nodePositions, 5, 3, iso(10))).toBeNull()
   })
+
+  // A node drawn thick by its depth is 18 px across at the defaults, so the
+  // pointer can be on its ink 8 px from its centreline. A fixed 5 px missed
+  // it there, and the link beside it took the hover instead.
+  test('a node answers anywhere on the ink it is drawn with', () => {
+    const drawn = {
+      halfWidthPx: (id: string) => (id === 'A+' ? 9 : 3),
+      maxHalfWidthPx: 9,
+    }
+    expect(findHoveredNode(nodePositions, 5, 8, iso())).toBeNull()
+    expect(findHoveredNode(nodePositions, 5, 8, iso(), 0, drawn)).toBe('A+')
+    expect(findHoveredNode(nodePositions, 25, 28, iso(), 0, drawn)).toBeNull()
+  })
+
+  test('a thin node keeps the tolerance that makes it catchable', () => {
+    const drawn = { halfWidthPx: () => 1, maxHalfWidthPx: 1 }
+    expect(findHoveredNode(nodePositions, 5, 4, iso(), 0, drawn)).toBe('A+')
+  })
+
+  test('of two thick nodes under the pointer, the nearer centreline wins', () => {
+    const stacked = {
+      'A+': [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      'B+': [
+        { x: 0, y: 10 },
+        { x: 10, y: 10 },
+      ],
+    }
+    const thick = { halfWidthPx: () => 9, maxHalfWidthPx: 9 }
+    expect(findHoveredNode(stacked, 5, 6, iso(), 0, thick)).toBe('B+')
+    expect(findHoveredNode(stacked, 5, 4, iso(), 0, thick)).toBe('A+')
+  })
 })
 
 describe('findHoveredEdge', () => {

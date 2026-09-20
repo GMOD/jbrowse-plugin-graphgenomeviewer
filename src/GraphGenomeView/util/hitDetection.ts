@@ -195,29 +195,40 @@ function getEdgeSpatialIndex(
 // 5 px of y are nothing alike. The thresholds stay screen px over the x scale,
 // which is what they always were; on an isotropic layout yToX is 1 and this is
 // the arithmetic it has always done.
+//
+// `ink` is how far from its centreline each node is drawn, in screen px, and
+// the most any node is. A node drawn thick by its depth is 18 px across at the
+// defaults, and a fixed tolerance missed the pointer on its outer ink, where
+// the link beside it took the hover instead. MIN_NODE_REACH_PX keeps a thin
+// node catchable.
+const MIN_NODE_REACH_PX = 5
+
+export interface NodeInk {
+  halfWidthPx: (nodeId: string) => number
+  maxHalfWidthPx: number
+}
+
 export function findHoveredNode(
   nodePositions: Record<string, NodeSegment[]>,
   graphX: number,
   graphY: number,
   axis: AxisScale,
   version = 0,
+  ink?: NodeInk,
 ) {
   const yToX = yToXOf(axis)
-  const nodeThreshold = 5 / axis.scaleX
   const index = getSpatialIndex(nodePositions, version)
-  const candidates = index.query(
-    graphX,
-    graphY,
-    nodeThreshold,
-    nodeThreshold / yToX,
-  )
+  const reach = (px: number) => Math.max(MIN_NODE_REACH_PX, px) / axis.scaleX
+  // the query has to cover the thickest node there could be
+  const queryReach = reach(ink?.maxHalfWidthPx ?? 0)
+  const candidates = index.query(graphX, graphY, queryReach, queryReach / yToX)
 
-  // The nearest candidate, not the first one inside the threshold. The threshold
-  // is in world units (5 screen px), so when zoomed out it covers several nodes
-  // at once and "first" meant whichever the grid happened to visit first — the
-  // cursor could sit on one node and highlight its neighbour.
+  // The nearest candidate, not the first one inside its reach. The reach is in
+  // world units, so when zoomed out it covers several nodes at once and "first"
+  // meant whichever the grid happened to visit first — the cursor could sit on
+  // one node and highlight its neighbour.
   let hovered: string | null = null
-  let best = nodeThreshold
+  let best = Infinity
   for (const { nodeId, segmentIdx } of candidates) {
     const segments = nodePositions[nodeId]!
     const dist = distanceToSegment(
@@ -228,7 +239,7 @@ export function findHoveredNode(
       segments[segmentIdx + 1]!.x,
       segments[segmentIdx + 1]!.y * yToX,
     )
-    if (dist < best) {
+    if (dist < best && dist < reach(ink?.halfWidthPx(nodeId) ?? 0)) {
       best = dist
       hovered = nodeId
     }

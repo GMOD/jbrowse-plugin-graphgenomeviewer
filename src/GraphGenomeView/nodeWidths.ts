@@ -48,3 +48,20 @@ export function depthWidthFactor(node: GraphNode, mean: number) {
     Math.max(MIN_FACTOR, Math.sqrt(node.depth / mean)),
   )
 }
+
+// How wide a node is drawn, in screen px. One function for the geometry and
+// for the hit test, so the pointer finds a node exactly where its ink is.
+export function nodeWidthPx(
+  node: GraphNode,
+  contigThickness: number,
+  nodeWidth: NodeWidth,
+  mean: number,
+) {
+  return (
+    contigThickness * (nodeWidth === 'depth' ? depthWidthFactor(node, mean) : 1)
+  )
+}
+
+export function maxNodeWidthPx(contigThickness: number, nodeWidth: NodeWidth) {
+  return contigThickness * (nodeWidth === 'depth' ? MAX_FACTOR : 1)
+}

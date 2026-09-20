@@ -38,7 +38,10 @@ const positions = {
   ],
 }
 
-function build(highlight?: ReturnType<typeof walkHighlight>) {
+function build(
+  highlight?: ReturnType<typeof walkHighlight>,
+  drawPaths = false,
+) {
   return buildGeometry({
     axis: { scaleX: 1, scaleY: 1 },
     nodePositions: positions,
@@ -47,7 +50,7 @@ function build(highlight?: ReturnType<typeof walkHighlight>) {
     colorScheme: 'uniform',
     contigThickness: 5,
     connectorThickness: 2,
-    drawPaths: false,
+    drawPaths,
     highlight,
   })
 }
@@ -75,4 +78,23 @@ test("a lifted walk's links draw heavier and dark, the others faint", () => {
   expect(abgrAlpha(strokeOf(lifted, 0).color)).toBeLessThan(
     abgrAlpha(strokeOf(plain, 0).color) / 4,
   )
+})
+
+// Painted per path, a node is one stroke per walk through it rather than one
+// stroke, and that branch never read the highlight: v2 kept its full ink
+// beside links that had faded.
+test('a node painted in path stripes fades off the lifted walk too', () => {
+  const plain = build(undefined, true)
+  const lifted = build(walkHighlight(graph, 'alt#1#chr'), true)
+  const alphasOf = (batch: typeof plain, id: string) => {
+    const { start, count } = batch.nodeStrokeRuns.get(id)!
+    return batch.nodeStrokes
+      .slice(start, start + count)
+      .map(stroke => abgrAlpha(stroke.color))
+  }
+  expect(alphasOf(plain, 'v1+')).toHaveLength(2)
+  expect(alphasOf(lifted, 'v1+')).toEqual(alphasOf(plain, 'v1+'))
+  for (const [i, alpha] of alphasOf(lifted, 'v2+').entries()) {
+    expect(alpha).toBeLessThan(alphasOf(plain, 'v2+')[i]! / 4)
+  }
 })
