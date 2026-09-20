@@ -427,7 +427,7 @@ const NodeContextMenu = observer(function NodeContextMenu({
   left: number
   onClose: () => void
 }) {
-  const { own, reference } = model.nodeLaunchTargets(nodeId)
+  const { own, reference, highlight } = model.nodeLaunchTargets(nodeId)
   return (
     <Menu
       open
@@ -450,6 +450,7 @@ const NodeContextMenu = observer(function NodeContextMenu({
         ...nodeLaunchMenuItems({
           own,
           reference,
+          highlight,
           onShowLinear: target => {
             model.showInLinearView(target)
           },

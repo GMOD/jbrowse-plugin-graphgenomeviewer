@@ -147,11 +147,14 @@ export function graphLaunchMenuItems({
 export function nodeLaunchMenuItems({
   own,
   reference,
+  highlight,
   onShowLinear,
   onHighlight,
 }: {
   own: LinearTarget | undefined
   reference: LinearTarget | undefined
+  // the node's exact reference span, where `reference` is padded to open on
+  highlight: LinearTarget | undefined
   onShowLinear: (target: LinearTarget) => void
   // absent when no linear view in the session is this graph's to mark
   onHighlight?: (target: LinearTarget) => void
@@ -178,15 +181,14 @@ export function nodeLaunchMenuItems({
   // The reference projection, not the node's own coordinates: a highlight is
   // drawn in the linear view already on screen, and that view is on the
   // reference the subgraph was cut from.
-  const highlightable = onHighlight && reference
   return [
-    ...(highlightable
+    ...(onHighlight && highlight
       ? [
           {
-            label: `Highlight in ${reference.assembly}`,
+            label: `Highlight in ${highlight.assembly}`,
             icon: HighlightAltIcon,
             onClick: () => {
-              onHighlight(reference)
+              onHighlight(highlight)
             },
           },
         ]

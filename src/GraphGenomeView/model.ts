@@ -1245,22 +1245,32 @@ export default function stateModelFactory() {
           region && nodeById && neighbors
             ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
             : undefined
+        const onReference =
+          region && span
+            ? {
+                sample: region.assemblyName,
+                haplotype: undefined,
+                refName: region.refName,
+                ...span,
+              }
+            : undefined
         return {
           own:
             own && ownAssembly
               ? { location: paddedLocation(own), assembly: ownAssembly }
               : undefined,
           reference:
-            region && span
+            region && onReference
               ? {
-                  location: paddedLocation({
-                    sample: region.assemblyName,
-                    haplotype: undefined,
-                    refName: region.refName,
-                    ...span,
-                  }),
+                  location: paddedLocation(onReference),
                   assembly: region.assemblyName,
                 }
+              : undefined,
+          // Unpadded: a mark is of the node, the same span its hover band
+          // draws. The padding above is room to read a view opened on it.
+          highlight:
+            region && onReference
+              ? { location: onReference, assembly: region.assemblyName }
               : undefined,
         }
       },
@@ -2566,8 +2576,14 @@ export default function stateModelFactory() {
       // annotation for the assembly it opens on (see launchTracks), led by the
       // graph's own segments track when the launch is on the reference — the one
       // assembly that track is configured for.
+      //
+      // Only a view on the reference is paired with. A node's hover band is on
+      // that assembly, so paired with a view on another the band fails that
+      // view's assembly check and the reference view's id check, and is drawn
+      // nowhere.
       showInLinearView(target: { location: GraphLocation; assembly: string }) {
         const session = getSession(self)
+        const onReference = target.assembly === self.loadedRegion?.assemblyName
         const viewId = showInLinearView({
           session,
           location: target.location,
@@ -2577,13 +2593,14 @@ export default function stateModelFactory() {
             session,
             assemblyName: target.assembly,
             first:
-              self.loadedTrackId &&
-              target.assembly === self.loadedRegion?.assemblyName
+              self.loadedTrackId && onReference
                 ? self.loadedTrackId
                 : undefined,
           }),
         })
-        self.pairWithLinearView(viewId)
+        if (onReference) {
+          self.pairWithLinearView(viewId)
+        }
       },
       // Mark the node's reference interval in the linear view beside the graph.
       // Not an action that opens anything: with no view to mark, the menu does

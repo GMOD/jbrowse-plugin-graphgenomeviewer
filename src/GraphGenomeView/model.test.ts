@@ -1753,6 +1753,46 @@ describe('launching out of the graph', () => {
     ])
     expect(model.connectedViewId).toBe('view-1')
   })
+
+  // A view opened on a node is padded so the node has context around it; a
+  // mark of the node is not, or a short node paints a band several times its
+  // own width where its hover band is exact.
+  test("a node's highlight is its own span, the span its hover band draws", async () => {
+    mockSession.assemblyNames = ['hg38']
+    const model = await loadedGraph(HPRC_RGFA)
+    const { reference, highlight } = model.nodeLaunchTargets('1+')
+    model.setHoveredNode('1+')
+    const hover = model.hoverHighlight!
+
+    expect(highlight!.assembly).toBe('hg38')
+    expect(highlight!.location).toMatchObject({
+      refName: hover.refName,
+      start: hover.start,
+      end: hover.end,
+    })
+    const width = (loc: { start: number; end: number }) => loc.end - loc.start
+    expect(width(reference!.location)).toBeGreaterThan(
+      width(highlight!.location),
+    )
+  })
+
+  // A node's hover band is on the assembly the graph was cut against. Paired
+  // with a view on any other, the band fails that view's assembly check and
+  // the reference view's id check, and is drawn nowhere.
+  test('opening a contributor other than the reference leaves the graph unpaired', async () => {
+    mockSession.assemblyNames = ['K12', 'Sakai']
+    const model = await loadedGraph(ECOLI_RGFA, {
+      refName: 'chr',
+      assemblyName: 'K12',
+      start: 1000,
+      end: 1020,
+    })
+    const sakai = model.launchableAssemblies.find(c => c.sample === 'Sakai')!
+    model.showInLinearView({ location: sakai, assembly: sakai.sample })
+
+    expect(mockSession.addedViews).toHaveLength(1)
+    expect(model.connectedViewId).toBeUndefined()
+  })
 })
 
 // Bubble spread is the force layout's legibility knob, and 'auto' has to leave
