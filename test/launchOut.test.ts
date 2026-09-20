@@ -29,7 +29,9 @@ import type { Browser, Page } from 'puppeteer'
 const runE2E = process.env.RUN_E2E === '1'
 
 const GRAPH_CANVAS = '[data-testid="graph-genome-canvas"]'
-const LAUNCH_SUBMENU = 'Launch view'
+// The host renamed this submenu from "Launch view" to "Launch" (core's
+// LAUNCH_LABEL), so it is matched by how both begin, as launchAndHover does.
+const LAUNCH_SUBMENU = 'Launch'
 
 describe.skipIf(!runE2E)('launching out of the graph', () => {
   let browser: Browser
@@ -132,7 +134,7 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     expect(view.launchable).toEqual(view.contributingAssemblies)
 
     const labels = await menuLabels(GRAPH_ID)
-    expect(labels).toContain(LAUNCH_SUBMENU)
+    expect(labels.some(l => l.startsWith(LAUNCH_SUBMENU))).toBe(true)
     expect(labels).toContain('Linear genome view')
     // each entry names the strain and the locus it contributes here
     expect(labels.some(l => /^CFT073 chr:[\d,]+-[\d,]+$/.test(l))).toBe(true)
