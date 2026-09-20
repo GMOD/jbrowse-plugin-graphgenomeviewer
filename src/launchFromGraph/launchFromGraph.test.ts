@@ -127,6 +127,28 @@ test('two candidate views and no pairing opens a new view', () => {
   ])
 })
 
+// The view on screen can refuse a location, a contig it has no alias for say.
+// Its promise was let go, so the click moved nothing and said nothing, where
+// the same click with no view open reports the failure through the new view.
+test('a view that cannot go where it is sent says so', async () => {
+  const view = linearView('lgv1', ['K12'])
+  view.navToLocString.mockRejectedValue(new Error('No results found'))
+  const { session } = testSession([view])
+  const notifyError = vi.fn()
+
+  showInLinearView({
+    session: { ...session, notifyError },
+    location: K12_LOCATION,
+    assembly: 'K12',
+  })
+  await vi.waitFor(() => {
+    expect(notifyError).toHaveBeenCalledWith(
+      expect.stringContaining('chr:1,001-6,000'),
+      expect.objectContaining({ message: 'No results found' }),
+    )
+  })
+})
+
 test('a linear view on another assembly is not navigated', () => {
   const view = linearView('lgv1', ['Sakai'])
   const { session, added } = testSession([view])

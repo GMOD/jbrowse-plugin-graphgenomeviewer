@@ -17,6 +17,21 @@ export interface GraphLaunchSession extends TrackScanSession {
   ) => Promise<{ id: string }>
   assemblyNames: string[]
   views: unknown[]
+  // optional, as a hand-built session in a test has none
+  notifyError?: (message: string, error?: unknown) => void
+}
+
+// A launch is a promise nothing waits on. Let go, a refusal moved nothing and
+// said nothing; this is where it is told to the user instead.
+function reportFailure(
+  session: GraphLaunchSession,
+  what: string,
+  launch: Promise<unknown>,
+) {
+  launch.catch((error: unknown) => {
+    console.error(`[GraphGenomeView] ${what}`, error)
+    session.notifyError?.(`${what}: ${error}`, error)
+  })
 }
 
 // A node is often shorter than a line of text — a base-level allele can be a
@@ -105,7 +120,11 @@ export function showInLinearView({
   })
   let viewId: string
   if (existing) {
-    void existing.navToLocString(locString(location), assembly)
+    reportFailure(
+      session,
+      `Could not show ${assembly} ${locLabel(location)}`,
+      Promise.resolve(existing.navToLocString(locString(location), assembly)),
+    )
     viewId = existing.id
   } else {
     viewId = session.addView('LinearGenomeView', {
@@ -235,7 +254,11 @@ export function launchSyntenyView({
   // launchView where the session has it: a synteny view's state model is
   // loaded on demand and addView throws until it is
   if (session.launchView) {
-    void session.launchView('LinearSyntenyView', snapshot)
+    reportFailure(
+      session,
+      'Could not open the synteny view',
+      session.launchView('LinearSyntenyView', snapshot),
+    )
   } else {
     session.addView('LinearSyntenyView', snapshot)
   }

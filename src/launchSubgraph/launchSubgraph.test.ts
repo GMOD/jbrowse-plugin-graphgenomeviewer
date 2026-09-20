@@ -163,6 +163,26 @@ test('a region past the cap notifies instead of opening a view', () => {
   expect(session.notifications[0]).toMatch(/Region too large/)
 })
 
+// A region is 0-based and half-open; a linear view reads it 1-based. Titled
+// with the raw start, the graph named a base the view above it did not show.
+test('the launched view is titled the way the linear view reads the region', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session } = createDisplay()
+  launchSubgraphView({
+    session,
+    region: {
+      refName: 'chr6',
+      assemblyName: 'volvox',
+      start: 31_980_000,
+      end: 32_050_000,
+    },
+    trackId: 'graph_track',
+  })
+  expect(session.addedViews[0]![1].displayName).toBe(
+    'Graph — chr6:31,980,001-32,050,000',
+  )
+})
+
 test('regionAroundSegment floors its padding at 10 bp', () => {
   expect(
     regionAroundSegment({

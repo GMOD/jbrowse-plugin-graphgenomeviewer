@@ -1,4 +1,5 @@
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from '../GraphGenomeView/model'
+import { locLabel } from '../launchFromGraph/contributors'
 
 import type { NotificationLevel, Region } from '@jbrowse/core/util'
 
@@ -26,10 +27,6 @@ export interface SubgraphRegion {
   assemblyName: string
   start: number
   end: number
-}
-
-function regionLabel(region: SubgraphRegion) {
-  return `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
 }
 
 // Half the segment's own length on either side, so it opens with the graph
@@ -120,7 +117,8 @@ export function launchSubgraphView({
     )
   } else {
     session.addView('GraphGenomeView', {
-      displayName: `Graph — ${regionLabel(region)}`,
+      // 1-based, as the linear view this was launched from reads
+      displayName: `Graph — ${locLabel(region)}`,
       loadedTrackId: trackId,
       loadedRegion: region,
       subgraphHaplotypes: haplotypes,

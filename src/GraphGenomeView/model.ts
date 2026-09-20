@@ -72,6 +72,7 @@ import {
 } from '../hoverSync/lgvHover'
 import {
   contributingAssemblies,
+  locLabel,
   nodeOwnLocation,
   resolveContributors,
   resolveLocationAssembly,
@@ -2023,7 +2024,7 @@ export default function stateModelFactory() {
               'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
             )
           }
-          const label = `${region.refName}:${region.start.toLocaleString()}-${region.end.toLocaleString()}`
+          const label = locLabel(region)
           yield* parseAndLayout(gfaText, label)
           if (!isLive()) {
             return
