@@ -99,6 +99,7 @@ import type { GeneModel } from './genes/geneFeatures'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
+import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -945,8 +946,6 @@ export default function stateModelFactory() {
           ...classifyBubble(bubble),
         }))
       },
-      // The same bubbles over every other layout, as halos along their nodes.
-      // Reads positionsVersion so a dragged node takes its halo with it.
       // Exons and names on the backbone, in layout units. Reads
       // positionsVersion so a dragged node takes its exons with it.
       get genePins() {
@@ -961,21 +960,27 @@ export default function stateModelFactory() {
           ? genePins(self.graph, self.geneFeatures, positions)
           : []
       },
+      // The same bubbles over every other layout, as halos along their nodes.
+      // Reads positionsVersion so a dragged node takes its halo with it.
       get bubbleHalos() {
         dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
-        return self.showBubbles &&
-          self.layoutMode !== 'variants' &&
-          self.layoutMode !== 'walkrows' &&
-          self.graph &&
-          positions
-          ? bubbleHalos(self.graph, self.bubbles, positions, name => {
-              const labels = new Map(
-                self.walkChoices.map(c => [c.name, c.label]),
-              )
-              return labels.get(name) ?? name
-            })
-          : []
+        if (
+          !self.showBubbles ||
+          self.layoutMode === 'variants' ||
+          self.layoutMode === 'walkrows' ||
+          !self.graph ||
+          !positions
+        ) {
+          return []
+        }
+        const labels = new Map(self.walkChoices.map(c => [c.name, c.label]))
+        return bubbleHalos(
+          self.graph,
+          self.bubbles,
+          positions,
+          name => labels.get(name) ?? name,
+        )
       },
       // Every node's midpoint on the reference plus the interval the hue ramps
       // over — what `reference-position` paints from, and undefined under every
@@ -1083,13 +1088,13 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
+      get geneTrack() {
+        return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
+      },
       // Which of `graph.edges` are deletions, and what each one bypasses, keyed
       // the way the geometry and the hit index address an edge. One map per
       // graph rather than per rebuild, since both of those take it on every
       // pan.
-      get geneTrack() {
-        return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
-      },
       get deletionEdgeIndexes() {
         return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
       },
@@ -1841,12 +1846,7 @@ export default function stateModelFactory() {
       // the graph's problem.
       function* loadBubbles(
         adapterConfig: Record<string, unknown>,
-        region: {
-          refName: string
-          assemblyName: string
-          start: number
-          end: number
-        },
+        region: SubgraphRegion,
         isLive: () => boolean,
       ) {
         // The track config arrives as written, so the prefix is either the
@@ -1889,92 +1889,62 @@ export default function stateModelFactory() {
         }
       }
 
-      // The genes over the cut, from the session's annotation track for the
-      // assembly, so the backbone can carry its exons and names. A window with
-      // no such track, or a track that fails, leaves the graph unlabelled.
-      function* loadGenes(
-        region: {
-          refName: string
-          assemblyName: string
-          start: number
-          end: number
-        },
-        isLive: () => boolean,
+      // A session track's features over the cut. Undefined when the session
+      // has no such track or the read fails: an annotation is never the
+      // graph's problem.
+      function* trackFeatures(
+        trackId: string | undefined,
+        region: SubgraphRegion,
+        what: string,
       ) {
-        const track = self.geneTrack
-        if (!track) {
-          return
-        }
-        const config = getSession(self).tracks.find(
-          t => t.trackId === track.trackId,
-        )
+        const session = getSession(self)
+        const config = trackId
+          ? session.tracks.find(t => t.trackId === trackId)
+          : undefined
         if (!config) {
-          return
+          return undefined
         }
         try {
-          const features = (yield getSession(self).rpcManager.call(
-            'graph',
-            'CoreGetFeatures',
-            {
-              adapterConfig: readConfObject(config, 'adapter'),
-              regions: [region],
-            },
-          )) as Feature[]
-          if (isLive()) {
-            self.geneFeatures = geneModelsFrom(features)
-          }
+          return (yield session.rpcManager.call('graph', 'CoreGetFeatures', {
+            adapterConfig: readConfObject(config, 'adapter'),
+            regions: [region],
+          })) as Feature[]
         } catch (e) {
-          console.warn('[GraphGenomeView] no genes for this graph', e)
+          console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
+          return undefined
+        }
+      }
+
+      // The genes over the cut, from the session's annotation track for the
+      // assembly, so the backbone can carry its exons and names.
+      function* loadGenes(region: SubgraphRegion, isLive: () => boolean) {
+        const features = yield* trackFeatures(
+          self.geneTrack?.trackId,
+          region,
+          'genes',
+        )
+        if (features && isLive()) {
+          self.geneFeatures = geneModelsFrom(features)
         }
       }
 
       // The tandem repeat arrays over the cut, from the session's repeat
       // track, for the walk rows to measure between and tile by.
-      function* loadRepeats(
-        region: {
-          refName: string
-          assemblyName: string
-          start: number
-          end: number
-        },
-        isLive: () => boolean,
-      ) {
-        const track = self.repeatTrack
-        if (!track) {
-          return
-        }
-        const config = getSession(self).tracks.find(
-          t => t.trackId === track.trackId,
+      function* loadRepeats(region: SubgraphRegion, isLive: () => boolean) {
+        const features = yield* trackFeatures(
+          self.repeatTrack?.trackId,
+          region,
+          'repeats',
         )
-        if (!config) {
-          return
-        }
-        try {
-          const features = (yield getSession(self).rpcManager.call(
-            'graph',
-            'CoreGetFeatures',
-            {
-              adapterConfig: readConfObject(config, 'adapter'),
-              regions: [region],
-            },
-          )) as Feature[]
-          if (isLive()) {
-            self.repeatArrays = repeatArraysFrom(features)
-          }
-        } catch (e) {
-          console.warn('[GraphGenomeView] no repeats for this graph', e)
+        if (features && isLive()) {
+          self.repeatArrays = repeatArraysFrom(features)
         }
       }
 
       // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
       function* doSubgraphLoad(
         adapterConfig: Record<string, unknown>,
-        region: {
-          refName: string
-          assemblyName: string
-          start: number
-          end: number
-        },
+        region: SubgraphRegion,
         opts: {
           hops?: number
           haplotypes?: string[]
@@ -2030,9 +2000,15 @@ export default function stateModelFactory() {
           if (!isLive()) {
             return
           }
-          yield* loadBubbles(adapterConfig, region, isLive)
-          yield* loadGenes(region, isLive)
-          yield* loadRepeats(region, isLive)
+          // Three independent remote reads, each landing as it arrives: in
+          // turn they held the overlay over a drawn graph for the sum of their
+          // round trips.
+          self.setStatusMessage('Reading annotations')
+          yield Promise.all([
+            flow(loadBubbles)(adapterConfig, region, isLive),
+            flow(loadGenes)(region, isLive),
+            flow(loadRepeats)(region, isLive),
+          ])
         } catch (e) {
           if (isLive()) {
             console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
@@ -2074,13 +2050,18 @@ export default function stateModelFactory() {
       // Raises `isLoading` before any fetch, so a view waiting on a remote file
       // shows its loading state instead of the import form. Text already in
       // hand is parsed without yielding first.
+      // `region` is the window a declared file was stated beside. Held through
+      // the load rather than restored after it, so the parse anchors on that
+      // assembly's path and a failed or canceled load can still be retried
+      // with it.
       function* loadWholeGFA(
         name: string,
         source: string | ((signal: AbortSignal) => Promise<string>),
+        region?: SubgraphRegion,
       ) {
         const { isLive, signal } = beginLoad()
         self.loadedTrackId = ''
-        self.loadedRegion = undefined
+        self.loadedRegion = region
         self.isLoading = true
         self.error = undefined
         try {
@@ -2101,6 +2082,7 @@ export default function stateModelFactory() {
             self.isLoading = false
           }
         }
+        return isLive()
       }
 
       return {
@@ -2122,26 +2104,21 @@ export default function stateModelFactory() {
         loadGFAFromLocation: flow(function* (location: FileLocation) {
           self.setStatusMessage('Fetching GFA')
           const stated = self.loadedRegion
-          yield* loadWholeGFA(
+          const live = yield* loadWholeGFA(
             'uri' in location
               ? (location.uri.split('/').pop() ?? 'GFA')
               : 'GFA',
             signal =>
               openLocation(location).readFile({ encoding: 'utf8', signal }),
+            stated,
           )
-          if (stated && self.graph) {
-            self.loadedRegion = stated
-            yield* loadRepeats(stated, () => true)
+          if (stated && live && self.graph) {
+            yield* loadRepeats(stated, () => self.loadedRegion === stated)
           }
         }),
         loadFromTabixSubgraph: flow(function* (
           adapterConfig: Record<string, unknown>,
-          region: {
-            refName: string
-            assemblyName: string
-            start: number
-            end: number
-          },
+          region: SubgraphRegion,
           opts: {
             trackId?: string
           } = {},
@@ -2165,12 +2142,33 @@ export default function stateModelFactory() {
         reloadSubgraph: flow(function* () {
           yield* cutFromLoadedTrack()
         }),
-        // Re-read the repeat track alone, for a track change or a graph that
-        // came from a whole file beside a stated region.
+        // Re-read one annotation track alone, for a track change or a graph
+        // that came from a whole file beside a stated region. The graph, its
+        // layout and any open bubble stay as they are. Live only while the
+        // track it read is still the one chosen, so a slow read cannot land
+        // over the pick that followed it.
         reloadRepeats: flow(function* () {
           const region = self.loadedRegion
+          const trackId = self.repeatTrack?.trackId
           if (region) {
-            yield* loadRepeats(region, () => true)
+            yield* loadRepeats(
+              region,
+              () =>
+                self.loadedRegion === region &&
+                self.repeatTrack?.trackId === trackId,
+            )
+          }
+        }),
+        reloadGenes: flow(function* () {
+          const region = self.loadedRegion
+          const trackId = self.geneTrack?.trackId
+          if (region) {
+            yield* loadGenes(
+              region,
+              () =>
+                self.loadedRegion === region &&
+                self.geneTrack?.trackId === trackId,
+            )
           }
         }),
         // Open one bubble: the graph becomes the segments the bubble row names,
@@ -2183,11 +2181,15 @@ export default function stateModelFactory() {
           if (!graph) {
             return
           }
-          const { isLive } = beginLoad()
           const sub = bubbleSubgraph(graph, bubbleSegmentIds(bubble))
           if (sub.nodes.length === 0) {
+            getSession(self).notify(
+              'None of the segments of this bubble are in the cut; widen the graph context to open it',
+              'info',
+            )
             return
           }
+          const { isLive } = beginLoad()
           self.popStack = [
             ...self.popStack,
             {

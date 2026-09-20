@@ -175,7 +175,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 data-testid="graph-gene-track-select"
                 onChange={e => {
                   model.setGeneTrackId(e.target.value)
-                  void model.reloadSubgraph()
+                  void model.reloadGenes()
                 }}
               >
                 {model.geneTrackChoices.map(({ trackId, name }) => (

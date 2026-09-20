@@ -2,6 +2,7 @@
 // "Launch view" to "Launch" (packages/core/src/ui/launchViewMenu.ts says why),
 // and a hardcoded copy here fails as "the item was never added" rather than as
 // "the submenu is called something else".
+import { readConfObject } from '@jbrowse/core/configuration'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
@@ -52,6 +53,7 @@ const mockSession = {
     mockSession.addedViews.push([type, snapshot])
     return { id: `view-${mockSession.addedViews.length}` }
   },
+  notify: vi.fn(),
 }
 
 // Don't use vi.importActual due to circular dependencies
@@ -600,6 +602,26 @@ describe('loadGFAFromLocation', () => {
 
     expect(model.isLoading).toBe(false)
     expect(String(model.error)).toMatch(/404/)
+  })
+
+  test('the region a file was stated beside outlives a failed fetch, so a retry has it', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    mockReadFile.mockRejectedValueOnce(new Error('404'))
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      gfaLocation: location,
+      loadedRegion: TEST_REGION,
+    })
+    await model.loadGFAFromLocation(location)
+    expect(String(model.error)).toMatch(/404/)
+    expect(model.loadedRegion).toEqual(TEST_REGION)
+
+    await model.loadGFAFromLocation(location)
+    expect(model.error).toBeUndefined()
+    expect(model.nodeCount).toBe(2)
+    expect(model.loadedRegion).toEqual(TEST_REGION)
   })
 
   test('canceling aborts the fetch without reporting an error', async () => {
@@ -2379,14 +2401,19 @@ describe('popping a bubble', () => {
     expect(model.poppedFrom).toBeUndefined()
   })
 
-  test('a bubble naming no segment of the graph is ignored', async () => {
+  test('a bubble naming no segment of the graph says so and opens nothing', async () => {
     rpcRespond()
     const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'rgfa')
     const window = model.graph
+    mockSession.notify.mockClear()
     await model.popBubble({ ...bubble, segments: 'x,y' })
     expect(model.graph).toBe(window)
     expect(model.poppedFrom).toBeUndefined()
+    expect(mockSession.notify).toHaveBeenCalledWith(
+      expect.stringContaining('widen the graph context'),
+      'info',
+    )
   })
 })
 
@@ -2419,5 +2446,135 @@ describe('walk rows', () => {
     expect(model.drawnRowLabels.map(r => r.label).slice(1)).toEqual(labels)
     model.setWalkRowSamples(['B'])
     expect(model.walkRowBars!.rows.map(r => r.label)).toEqual(['B#1'])
+  })
+})
+
+describe('annotation reads beside a cut', () => {
+  const gene = (name: string) => ({
+    name,
+    refName: 'chr1',
+    start: 1100,
+    end: 1900,
+  })
+  const track = (trackId: string, name: string, type: string) => ({
+    trackId,
+    name,
+    assemblyNames: ['hg38'],
+    adapter: { type, tag: trackId },
+  })
+  const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
+  const adapterOnly = (obj: Record<string, unknown>, key: string) =>
+    key === 'adapter' ? obj.adapter : undefined
+
+  // each CoreGetFeatures read, held open until the test settles it
+  let reads: { tag: unknown; settle: (features: unknown[]) => void }[]
+  const readOf = (tag: string) => reads.findLast(r => r.tag === tag)!
+  const subgraphCuts = () =>
+    mockRpcCall.mock.calls.filter(c => c[1] === 'GetSubgraph').length
+
+  beforeEach(() => {
+    reads = []
+    vi.mocked(readConfObject).mockImplementation(bySlot)
+    mockSession.tracks = [
+      track('rgfa-track', 'graph', 'RgfaTabixAdapter'),
+      track('genes-a', 'Genes A', 'Gff3TabixAdapter'),
+      track('genes-b', 'Genes B', 'Gff3TabixAdapter'),
+      track('trgt', 'TRGT repeats', 'BedTabixAdapter'),
+    ]
+    mockRpcCall.mockReset()
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, method: string, args: Record<string, unknown>) => {
+        if (method === 'GetSubgraph') {
+          return Promise.resolve(SIMPLE_GFA)
+        }
+        if (method === 'GraphComputeLayout') {
+          return Promise.resolve({ result: MOCK_LAYOUT, duration: 5 })
+        }
+        return new Promise(resolve => {
+          const config = args.adapterConfig as { tag?: unknown; type: string }
+          reads.push({ tag: config.tag ?? config.type, settle: resolve })
+        })
+      },
+    )
+  })
+
+  afterEach(() => {
+    vi.mocked(readConfObject).mockImplementation(adapterOnly)
+    mockSession.tracks = []
+  })
+
+  function cut(model: ReturnType<typeof createModel>) {
+    return model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter', uri: 'https://example.com/graph' },
+      TEST_REGION,
+      { trackId: 'rgfa-track' },
+    )
+  }
+
+  async function cutAndSettle(model: ReturnType<typeof createModel>) {
+    const loaded = cut(model)
+    await vi.waitFor(() => {
+      expect(reads).toHaveLength(3)
+    })
+    for (const read of reads) {
+      read.settle([])
+    }
+    await loaded
+  }
+
+  test('the bubble, gene and repeat reads go out together', async () => {
+    const model = createModel()
+    const loaded = cut(model)
+    // in turn, only one would ever be outstanding
+    await vi.waitFor(() => {
+      expect(reads.map(r => r.tag)).toEqual([
+        'MinigraphBubbleAdapter',
+        'genes-a',
+        'trgt',
+      ])
+    })
+    expect(model.isLoading).toBe(true)
+    readOf('genes-a').settle([gene('ABC1')])
+    await vi.waitFor(() => {
+      expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+    })
+    expect(model.isLoading).toBe(true)
+    readOf('MinigraphBubbleAdapter').settle([])
+    readOf('trgt').settle([])
+    await loaded
+    expect(model.isLoading).toBe(false)
+    expect(model.error).toBeUndefined()
+  })
+
+  test('picking another gene track reads it and leaves the graph alone', async () => {
+    const model = createModel()
+    await cutAndSettle(model)
+    const { graph, layoutResult } = model
+
+    model.setGeneTrackId('genes-b')
+    const reread = model.reloadGenes()
+    readOf('genes-b').settle([gene('XYZ2')])
+    await reread
+
+    expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
+    expect(subgraphCuts()).toBe(1)
+    expect(model.graph).toBe(graph)
+    expect(model.layoutResult).toBe(layoutResult)
+  })
+
+  test('a slow gene read does not land over the pick that followed it', async () => {
+    const model = createModel()
+    await cutAndSettle(model)
+
+    model.setGeneTrackId('genes-a')
+    const slow = model.reloadGenes()
+    model.setGeneTrackId('genes-b')
+    const fast = model.reloadGenes()
+    readOf('genes-b').settle([gene('XYZ2')])
+    await fast
+    readOf('genes-a').settle([gene('ABC1')])
+    await slow
+
+    expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
   })
 })
