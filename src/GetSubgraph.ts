@@ -18,6 +18,12 @@ export interface SubgraphCutOptions {
   haplotypes?: string[]
 }
 
+// What an adapter's cut is handed: the payload, plus the call's own signal so
+// a cut the view has moved on from stops reading.
+export interface SubgraphAdapterOptions extends SubgraphCutOptions {
+  signal?: AbortSignal
+}
+
 export interface GetSubgraphArgs {
   adapterConfig: Record<string, unknown>
   region: Region
@@ -36,7 +42,7 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
 // Adapters that can cut a local subgraph out of a graph file implement this:
 // RgfaTabixAdapter and GbzBaseSyntenyAdapter today.
 interface SubgraphAdapter {
-  getSubgraph(region: Region, opts?: SubgraphCutOptions): Promise<string>
+  getSubgraph(region: Region, opts?: SubgraphAdapterOptions): Promise<string>
 }
 
 function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {
@@ -64,7 +70,10 @@ export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgr
   // `execute` type-checks against nothing at all. `invoke` has already run
   // `deserializeArguments` by the time this is called, so it does not.
   async execute(args: RpcExecuteArgs<'GetSubgraph'>) {
-    const { adapterConfig, region, sessionId, opts } = args
+    // `signal` arrives on every call and has to be named to be forwarded:
+    // unnamed, a cut the view had replaced went on querying to the end, one
+    // tabix read per off-reference segment per hop.
+    const { adapterConfig, region, sessionId, opts, signal } = args
 
     const { dataAdapter } = await getAdapter(
       this.pluginManager,
@@ -72,7 +81,7 @@ export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgr
       adapterConfig,
     )
     if (isSubgraphAdapter(dataAdapter)) {
-      return dataAdapter.getSubgraph(region, opts)
+      return dataAdapter.getSubgraph(region, { ...opts, signal })
     }
     // An empty result is how the view and the launch menu detect "this track
     // can't do subgraphs" — see GraphGenomeView.loadFromTabixSubgraph.

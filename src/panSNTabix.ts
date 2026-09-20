@@ -1,4 +1,5 @@
 import { TabixIndexedFile } from '@gmod/tabix'
+import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 
 import {
@@ -97,7 +98,15 @@ export function resolveRefName(
  * a slot whose name it cannot prove.
  */
 export class PanSNRefNames {
-  private lookup?: Promise<Map<string, string>>
+  // Read once and kept, since it is a fact about the file. Every query awaits
+  // this one read, so it takes on no caller's signal: a track fetch the user
+  // panned away from rejected the read a graph cut was also waiting on, and
+  // the cut failed with an abort nobody had asked of it. cachedSetup withholds
+  // the signal, and clears a failed read so the next query tries again.
+  private lookup = cachedSetup({
+    setup: async opts =>
+      buildRefNameLookup(await this.file.getReferenceSequenceNames(opts)),
+  })
 
   constructor(
     private file: TabixIndexedFile,
@@ -132,27 +141,11 @@ export class PanSNRefNames {
    * the same slot and helper the all-vs-all PAF adapters use.
    */
   async resolve(region: Region, opts?: BaseOptions) {
-    const lookup = await this.cachedLookup(opts)
+    const lookup = await this.lookup(opts)
     return resolveRefName(
       lookup,
       resolvePanSNPrefix(this.adapter, region.assemblyName),
       region.refName,
     )
-  }
-
-  // Read once and kept, since it is a fact about the file.
-  //
-  // A FAILURE is cleared from the cache so a later query retries. Caching the
-  // rejected promise made one network blip permanently empty the track — every
-  // subsequent region resolved against the same failed lookup.
-  private cachedLookup(opts?: BaseOptions) {
-    this.lookup ??= this.file
-      .getReferenceSequenceNames(opts)
-      .then(names => buildRefNameLookup(names))
-      .catch((e: unknown) => {
-        this.lookup = undefined
-        throw e
-      })
-    return this.lookup
   }
 }

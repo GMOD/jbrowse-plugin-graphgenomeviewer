@@ -45,12 +45,13 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
   }
 
   getFeatures(query: Region, opts: BaseOptions = {}) {
-    const { statusCallback = () => {} } = opts
+    const { signal, statusCallback } = opts
     return ObservableCreate<Feature>(async observer => {
       const tabixRefName = await this.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         await updateStatus('Downloading bubbles', statusCallback, () =>
           this.bubbles.getLines(tabixRefName, query.start, query.end, {
+            signal,
             lineCallback: (line, fileOffset) => {
               const bubble = parseBubbleLine(line)
               observer.next(
@@ -80,6 +81,6 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
         )
       }
       observer.complete()
-    })
+    }, signal)
   }
 }

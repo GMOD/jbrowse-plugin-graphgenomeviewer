@@ -59,6 +59,23 @@ test('forwards the region and context to the adapter', async () => {
   expect(result).toBe('H\tVN:Z:1.0')
 })
 
+// The signal is the call's, not the payload's, so it reaches `execute` beside
+// `opts` rather than in it and has to be handed on by name. Dropped there, a
+// cut the view had replaced went on reading to the end.
+test('hands the call its signal on to the adapter', async () => {
+  const getSubgraph = vi.fn().mockResolvedValue('')
+  mockGetAdapter.mockResolvedValue({
+    dataAdapter: { getSubgraph },
+  })
+  const { signal } = new AbortController()
+
+  await makeMethod().execute(
+    { ...makeArgs(), opts: { hops: 1 }, signal },
+    'MainThreadRpcDriver',
+  )
+  expect(getSubgraph.mock.calls[0]![1].signal).toBe(signal)
+})
+
 // The set rides in `opts` as plain JSON: serializeArguments renames the region
 // and leaves the rest alone, so what the view sends is what the adapter gets.
 test('forwards the haplotype set to the adapter', async () => {

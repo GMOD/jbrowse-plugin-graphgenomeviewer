@@ -124,6 +124,27 @@ test('getSubgraph context adds another hop', async () => {
   expect(far).toEqual(expect.arrayContaining(near))
 })
 
+// A hop is one query per off-reference segment, so a cut the view has replaced
+// has a lot left to read. The signal reaches every query, and one that gave up
+// before it started reads nothing.
+test('getSubgraph stops for its signal', async () => {
+  const gaveUp = new AbortController()
+  gaveUp.abort()
+  await expect(
+    makeAdapter().getSubgraph(k12, { hops: 1, signal: gaveUp.signal }),
+  ).rejects.toThrow(/abort/i)
+})
+
+test('getFeatures stops for its signal', async () => {
+  const gaveUp = new AbortController()
+  gaveUp.abort()
+  await expect(
+    firstValueFrom(
+      makeAdapter().getFeatures(k12, { signal: gaveUp.signal }).pipe(toArray()),
+    ),
+  ).rejects.toThrow(/abort/i)
+})
+
 // A bare header drew as an empty pane with no error, which is what a missing
 // assemblyNameToPanSN entry (hs1 without CHM13) looked like.
 test('getSubgraph refuses a sequence the index does not hold, saying how to map one', async () => {

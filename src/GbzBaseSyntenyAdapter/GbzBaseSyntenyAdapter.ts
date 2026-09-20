@@ -14,7 +14,7 @@ import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
-import type { SubgraphCutOptions } from '../GetSubgraph.ts'
+import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
@@ -372,7 +372,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * are its own contig's, and the graph is indexed for random access on the
    * reference sample's paths alone.
    */
-  async getSubgraph(region: Region, opts: SubgraphCutOptions = {}) {
+  async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
     const { db, anchor } = await this.graph()
     const { assemblyName, refName, start, end } = region
     if (assemblyName !== anchor) {
@@ -388,6 +388,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             snarls: this.getConf('subgraphSnarls'),
             haplotypes: 'all',
             limit: nodeLimit,
+            signal: opts.signal,
             ...(keep === undefined ? {} : { keep }),
           })
           .catch((error: unknown) => {
@@ -422,6 +423,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
                     context: this.getConf('context'),
                     haplotypes: 'all',
                     limit: nodeLimit,
+                    signal: opts.signal,
                     ...(keep === undefined ? {} : { keep }),
                   })
                   .catch((error: unknown) => {

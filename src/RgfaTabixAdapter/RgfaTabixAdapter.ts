@@ -12,20 +12,13 @@ import {
 } from './rgfaBed.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
+import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
-
-export interface SubgraphOptions {
-  // extra rounds of link-following past the region's own segments and their
-  // immediate neighbours, each round costing one tabix query per off-reference
-  // segment newly reached. One round is what closes a bubble, so it is the
-  // default the view asks for; see the frontier in getSubgraph.
-  hops?: number
-}
 
 // What a hop follows: alleles, never the backbone. A rank-0 segment reached
 // through a link is flanking backbone, usually outside the window, so querying
@@ -92,12 +85,13 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   }
 
   getFeatures(query: Region, opts: BaseOptions = {}) {
-    const { statusCallback = () => {} } = opts
+    const { signal, statusCallback } = opts
     return ObservableCreate<Feature>(async observer => {
       const tabixRefName = await this.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         await updateStatus('Downloading segments', statusCallback, () =>
           this.segments.getLines(tabixRefName, query.start, query.end, {
+            signal,
             lineCallback: line => {
               const segment = parseSegmentLine(line)
               // `samples` is who, `carriers` is how many, and the second is not
@@ -124,7 +118,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         )
       }
       observer.complete()
-    })
+    }, signal)
   }
 
   // Extract the graph around a region as GFA text, for GraphGenomeView. The
@@ -132,11 +126,17 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   // incident to them *and* the coordinates of the segments on the other end,
   // which typically sit on a different stable sequence (a rank>0 bubble) and so
   // are not reachable by any coordinate query on this region.
-  async getSubgraph(region: Region, opts: SubgraphOptions = {}) {
-    const { hops = 0 } = opts
+  //
+  // `hops` is extra rounds of link-following past the region's own segments
+  // and their immediate neighbours, each costing one tabix query per
+  // off-reference segment newly reached. One round is what closes a bubble, so
+  // it is the default the view asks for; see the frontier below. `signal` goes
+  // to every one of those queries, so a cut the view has replaced stops.
+  async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
+    const { hops = 0, signal } = opts
     const segments = new Map<string, RgfaSegment>()
     const links = new Map<string, RgfaLink>()
-    const tabixRefName = await this.refNames.resolve(region)
+    const tabixRefName = await this.refNames.resolve(region, { signal })
 
     const addLinksOver = async (
       refName: string,
@@ -145,6 +145,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     ) => {
       const reached: RgfaSegment[] = []
       await this.links.getLines(refName, start, end, {
+        signal,
         lineCallback: line => {
           const link = parseLinkLine(line)
           links.set(linkKey(link), link)
@@ -165,6 +166,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       )
     }
     await this.segments.getLines(tabixRefName, region.start, region.end, {
+      signal,
       lineCallback: line => {
         const segment = parseSegmentLine(line)
         segments.set(segment.id, segment)
