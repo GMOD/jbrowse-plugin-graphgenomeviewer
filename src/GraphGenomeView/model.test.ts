@@ -473,6 +473,46 @@ describe('performance instrumentation', () => {
     expect(model.lastGeometryMs).toBeUndefined()
     expect(model.lastGeometryStrokeCount).toBeUndefined()
   })
+
+  test('clearGraph drops the source with the graph, so the import form is not a view still loading', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      TEST_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    expect(model.hasGraph).toBe(true)
+
+    model.clearGraph()
+    expect(model.hasGraph).toBe(false)
+    expect(model.showLoading).toBe(false)
+    expect(model.canRetryLoad).toBe(false)
+    expect(getSnapshot(model)).toMatchObject({ loadedTrackId: '' })
+    expect(model.loadedRegion).toBeUndefined()
+  })
+
+  test('a load still in flight does not land after clearGraph', async () => {
+    let respond = (_gfa: string) => {}
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? new Promise<string>(resolve => {
+            respond = resolve
+          })
+        : Promise.resolve({ result: MOCK_LAYOUT, duration: 5 }),
+    )
+    const model = createModel()
+    const load = model.loadFromTabixSubgraph(
+      { type: 'RgfaTabixAdapter' },
+      TEST_REGION,
+      { trackId: 'rgfa-track' },
+    )
+    model.clearGraph()
+    respond(SIMPLE_GFA)
+    await load
+    expect(model.hasGraph).toBe(false)
+    expect(model.isLoading).toBe(false)
+  })
 })
 
 describe('formatSpanBp', () => {

@@ -1583,19 +1583,6 @@ export default function stateModelFactory() {
       }
 
       return {
-        // Back to the import form: drop the graph and everything derived from
-        // it. Composed from the same resets the load path uses, so a field added
-        // to one of them cannot be forgotten here.
-        clearGraph() {
-          self.graph = undefined
-          self.layoutResult = undefined
-          self.error = undefined
-          self.isLoading = false
-          self.loadCanceled = false
-          self.statusMessage = ''
-          self.clearInteractionState()
-          self.clearPerfMetrics()
-        },
         // Moves the position objects IN PLACE, which is the one thing
         // jbrowse-components' upload invariant says not to do ("per-region
         // upload values must be freshly constructed, never mutated — backends
@@ -2086,6 +2073,32 @@ export default function stateModelFactory() {
       }
 
       return {
+        // Back to the import form: drop the graph, everything derived from it,
+        // and the source it came from. Leaving the source declared kept
+        // `showLoading` true over the import form and had a reloaded session
+        // cut the dismissed graph again. Any load in flight ends here too,
+        // or it would land its graph afterwards.
+        clearGraph() {
+          loadController?.abort()
+          loadController = undefined
+          liveLoad++
+          liveRequest++
+          self.graph = undefined
+          self.layoutResult = undefined
+          self.loadedTrackId = ''
+          self.loadedRegion = undefined
+          self.gfaLocation = undefined
+          self.indexBubbles = undefined
+          self.geneFeatures = undefined
+          self.repeatArrays = undefined
+          self.popStack = []
+          self.error = undefined
+          self.isLoading = false
+          self.loadCanceled = false
+          self.statusMessage = ''
+          self.clearInteractionState()
+          self.clearPerfMetrics()
+        },
         cancelLoad() {
           if (self.canCancelLoad) {
             loadController?.abort()
