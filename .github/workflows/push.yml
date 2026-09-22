@@ -118,7 +118,7 @@ jobs:
         run: npx puppeteer browsers install chrome
       - name: Create JBrowse test instance
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
-        run: npx @jbrowse/cli create .test-jbrowse --tag v4.3.0
+        run: npx @jbrowse/cli create .test-jbrowse --tag v5.0.0-beta.8
       - name: E2E
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: RUN_E2E=1 pnpm test:e2e
