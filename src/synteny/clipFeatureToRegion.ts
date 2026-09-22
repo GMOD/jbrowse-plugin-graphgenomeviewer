@@ -1,7 +1,7 @@
 import {
   clipSyntenyFeature,
-  splitSyntenyFeatureAtGaps,
   getAlignmentOps,
+  splitSyntenyFeatureAtGaps,
 } from '@jbrowse/synteny-core'
 
 import SyntenyFeature from './SyntenyFeature.ts'

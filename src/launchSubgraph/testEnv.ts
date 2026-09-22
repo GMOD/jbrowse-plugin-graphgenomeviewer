@@ -18,10 +18,7 @@ import { linearBasicDisplayConfigSchemaFactory } from '@jbrowse/plugin-canvas'
 // the host's lazy display registration. Its own subpath is the way in, and it is
 // that module's default export.
 import linearBasicDisplayStateModelFactory from '@jbrowse/plugin-canvas/LinearBasicDisplay/stateModel'
-import {
-  BaseLinearDisplayComponent,
-  linearGenomeViewStateModelFactory,
-} from '@jbrowse/plugin-linear-genome-view'
+import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
 import LaunchSubgraphMenuItemF from './index'
 import LinearViewMenuItemsF from './linearViewMenuItems'
@@ -105,7 +102,7 @@ export function createTestEnvironment({
         stateModel: linearBasicDisplayStateModelFactory(configSchema),
         trackType: 'FeatureTrack',
         viewType: 'LinearGenomeView',
-        ReactComponent: BaseLinearDisplayComponent,
+        ReactComponent: () => null,
       }),
   )
 
