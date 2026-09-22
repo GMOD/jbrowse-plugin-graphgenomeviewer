@@ -1,14 +1,8 @@
-// By source path, not from the '@jbrowse/synteny-core' barrel: a host serves
-// that barrel to the RPC worker as UI stubs, because it also exports React
-// components, and a stub called for data answers with more stubs. That is how
-// every clipped lane came back with `start` and `end` that stringify to ''.
-// These two files import only '@jbrowse/cigar-utils', which the worker serves
-// for real, so esbuild bundles them rather than reading the host global.
 import {
   clipSyntenyFeature,
   splitSyntenyFeatureAtGaps,
-} from '@jbrowse/synteny-core/src/clipSyntenyFeature.ts'
-import { getAlignmentOps } from '@jbrowse/synteny-core/src/featureAlignmentOps.ts'
+  getAlignmentOps,
+} from '@jbrowse/synteny-core'
 
 import SyntenyFeature from './SyntenyFeature.ts'
 
