@@ -86,18 +86,10 @@ jobs:
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: pnpm test:wasm
 
-  # The suite itself passes as of 2026-07-24, verified locally against a
-  # jbrowse-web built from the linked checkout. Still `if: false` for one
-  # unverified step: this job creates its instance with `@jbrowse/cli create
-  # --nightly`, and whether the published nightly yet carries the merged
-  # graph_viz work has not been checked. Confirm that a nightly boots the plugin
-  # (or build jbrowse-web here and point JBROWSE_TEST_DIR at it), then drop the
-  # `if: false`. Note the harness writes into JBROWSE_TEST_DIR.
   e2e-tests:
     name: E2E (force layout in a real JBrowse)
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: false
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -126,7 +118,7 @@ jobs:
         run: npx puppeteer browsers install chrome
       - name: Create JBrowse test instance
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
-        run: npx @jbrowse/cli create .test-jbrowse-nightly --nightly
+        run: npx @jbrowse/cli create .test-jbrowse --tag v4.3.0
       - name: E2E
         working-directory: jb2plugins/jbrowse-plugin-graphgenomeviewer
         run: RUN_E2E=1 pnpm test:e2e
