@@ -3,6 +3,10 @@
   "version": "3.0.2",
   "description": "JBrowse 2 graph genome (pangenome) view: rGFA reference-anchored layouts, the Bandage force-directed engine, and haplotype lanes read from a gbz-base database",
   "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer.git"
+  },
   "keywords": [
     "jbrowse",
     "jbrowse2",

@@ -87,6 +87,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npx puppeteer browsers install chrome
+      # By url rather than --tag: the v5 releases on GitHub are drafts, which
+      # the CLI's unauthenticated release lookup cannot see. The zip beside the
+      # hosted build is the same artifact.
       - name: Create JBrowse test instance
-        run: npx @jbrowse/cli create .test-jbrowse --tag v5.0.0-beta.9
-      - run: RUN_E2E=1 pnpm test:e2e
+        run:
+          npx @jbrowse/cli create .test-jbrowse --url
+          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.9/jbrowse-web-v5.0.0-beta.9.zip
+      - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e
