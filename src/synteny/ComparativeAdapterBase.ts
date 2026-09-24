@@ -41,7 +41,10 @@ export abstract class ComparativeAdapterBase<
 
   /**
    * `clipToRegion` and `splitAtGapBp` are honoured here and nowhere below:
-   * `getFeatures` never sees them.
+   * `getFeatures` never sees them. A record on another assembly than the
+   * region's, such as a lane pair read inside an anchor window, is in no
+   * coordinates the region states, so it is split at its gaps and clipped to
+   * its own extent.
    *
    * Emission is in region order, not arrival order, as core's base does: the
    * multi-way display's lane sort tie-breaks on first appearance in this list,
@@ -59,7 +62,13 @@ export abstract class ComparativeAdapterBase<
         this.getFeatures(region, { ...rest, statusCallback: slot() }).pipe(
           mergeMap((feature): Feature[] =>
             clip
-              ? clipFeatureToRegion(feature, region, splitAtGapBp)
+              ? clipFeatureToRegion(
+                  feature,
+                  feature.get('assemblyName') === region.assemblyName
+                    ? region
+                    : { start: feature.get('start'), end: feature.get('end') },
+                  splitAtGapBp,
+                )
               : [feature],
           ),
           toArray(),

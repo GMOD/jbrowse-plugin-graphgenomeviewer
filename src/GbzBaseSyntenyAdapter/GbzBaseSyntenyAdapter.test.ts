@@ -3,6 +3,7 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter, {
   NoReferenceSampleError,
+  PairTargetError,
   laneAssemblyName,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
@@ -418,6 +419,186 @@ test('getSubgraph refuses a window on a haplotype lane with a message naming the
   await expect(
     makeAdapter().getSubgraph({ ...window, assemblyName: 'HG01106#1' }),
   ).rejects.toThrow(/cut on its reference, hg38; a window on HG01106#1/)
+})
+
+// the bases each side of a record walks, in JBrowse's convention: the feature
+// side takes D, the mate side I
+function cigarSpans(cigar: string) {
+  let feature = 0
+  let mate = 0
+  for (const [, n, op] of cigar.matchAll(/(\d+)([MIDX=])/g)) {
+    feature += op === 'I' ? 0 : +n
+    mate += op === 'D' ? 0 : +n
+  }
+  return { feature, mate }
+}
+
+const largestGap = (cigar: string) =>
+  Math.max(0, ...[...cigar.matchAll(/(\d+)[ID]/g)].map(([, n]) => Number(n)))
+
+// HG01361#2 and HG02145#2 each carry a ~170 bp insertion against GRCh38 at
+// 31,498,602, which a band composed through GRCh38 draws as nothing
+const insertionWindow = { ...window, start: 31498400, end: 31498900 }
+const pair = {
+  queryAssemblyName: 'HG01361#2',
+  targetAssemblyName: 'HG02145#2',
+}
+
+// the companion carries anchor rows, the one cut that holds a walk whole
+const anchoredAdapter = (conf: Record<string, unknown> = {}) =>
+  makeAdapter({
+    haplotypeIndexLocation: {
+      localPath: require.resolve('./test_data/micb-kir3dl1.haplotype-index.db'),
+      locationType: 'LocalPathLocation',
+    },
+    ...conf,
+  })
+
+// HG00673#1's insertion is ~20 bp longer than HG01361#2's, so that pair holds
+// an indel, which pins which side of the record its CIGAR walks
+test.each(['HG02145#2', 'HG00673#1'])(
+  'a lane pair on an anchor window answers HG01361#2 aligned to %s, on HG01361#2',
+  async lower => {
+    const adapter = anchoredAdapter()
+    const records = await feats(adapter, insertionWindow, {
+      queryAssemblyName: 'HG01361#2',
+      targetAssemblyName: lower,
+    })
+    expect(records.length).toBeGreaterThan(0)
+    const upperContigs = await adapter.getRefNames({
+      assemblyName: 'HG01361#2',
+    })
+    const lowerContigs = await adapter.getRefNames({ assemblyName: lower })
+    for (const f of records) {
+      expect(f.get('assemblyName')).toBe('HG01361#2')
+      expect(upperContigs).toContain(f.get('refName'))
+      const mate = mateOf(f)
+      expect(mate.assemblyName).toBe(lower)
+      expect(lowerContigs).toContain(mate.refName)
+      expect(cigarSpans(f.get('CIGAR'))).toEqual({
+        feature: f.get('end') - f.get('start'),
+        mate: mate.end - mate.start,
+      })
+    }
+  },
+)
+
+test('the pair with an indel between its lanes writes it', async () => {
+  const records = await feats(anchoredAdapter(), insertionWindow, {
+    queryAssemblyName: 'HG01361#2',
+    targetAssemblyName: 'HG00673#1',
+  })
+  expect(records.some(f => largestGap(f.get('CIGAR')) > 0)).toBe(true)
+})
+
+test('sequence both lanes carry and GRCh38 lacks aligns inside the pair record', async () => {
+  const adapter = anchoredAdapter()
+  const againstReference = await feats(adapter, insertionWindow, {
+    targetAssemblyName: 'HG01361#2',
+  })
+  expect(
+    Math.max(...againstReference.map(f => largestGap(f.get('CIGAR')))),
+  ).toBeGreaterThan(150)
+  const records = await feats(adapter, insertionWindow, pair)
+  for (const f of records) {
+    expect(largestGap(f.get('CIGAR'))).toBeLessThan(50)
+  }
+  const aligned = records.reduce(
+    (sum, f) => sum + f.get('end') - f.get('start'),
+    0,
+  )
+  expect(aligned).toBeGreaterThan(
+    insertionWindow.end - insertionWindow.start + 150,
+  )
+})
+
+test('a lane pair walks only its two lanes', async () => {
+  const adapter = anchoredAdapter()
+  const { db } = await (
+    adapter as unknown as {
+      graph: () => Promise<{ db: { getSubgraphForRange: unknown } }>
+    }
+  ).graph()
+  const cut = vi.spyOn(db, 'getSubgraphForRange')
+  await feats(adapter, insertionWindow, pair)
+  const { keep } = cut.mock.calls.at(-1)![3] as {
+    keep: (name: { sample: string; haplotype: number }) => boolean
+  }
+  const named = (sample: string, haplotype: number) => ({
+    sample,
+    haplotype,
+    contig: '',
+    fragment: 0,
+  })
+  expect(keep(named('HG01361', 2))).toBe(true)
+  expect(keep(named('HG02145', 2))).toBe(true)
+  expect(keep(named('HG01361', 1))).toBe(false)
+  expect(keep(named('HG00438', 1))).toBe(false)
+  cut.mockRestore()
+})
+
+test('lane pair ids are the same across two fetches of one window', async () => {
+  const adapter = anchoredAdapter()
+  const ids = async () =>
+    (await feats(adapter, insertionWindow, pair)).map(f => f.id()).sort()
+  const a = await ids()
+  expect(new Set(a).size).toBe(a.length)
+  expect(await ids()).toEqual(a)
+})
+
+test('a lane pair names its lanes the way the header does, through assemblyNameToPanSN', async () => {
+  const adapter = anchoredAdapter({
+    assemblyNameToPanSN: {
+      hg38: 'GRCh38#0',
+      'HG01361.2': 'HG01361#2',
+      'HG02145.2': 'HG02145#2',
+    },
+  })
+  const records = await feats(adapter, insertionWindow, {
+    queryAssemblyName: 'HG01361.2',
+    targetAssemblyName: 'HG02145.2',
+  })
+  expect(records.length).toBeGreaterThan(0)
+  for (const f of records) {
+    expect(f.get('assemblyName')).toBe('HG01361.2')
+    expect(mateOf(f).assemblyName).toBe('HG02145.2')
+  }
+})
+
+// the anchor window's numbers are no coordinates on a lane's contig, so a
+// clip against them would cut the records to nothing
+test('clipToRegion keeps a lane pair whole and drops its CIGAR', async () => {
+  const adapter = anchoredAdapter()
+  const whole = await feats(adapter, insertionWindow, pair)
+  const clippedPairs = await firstValueFrom(
+    adapter
+      .getFeaturesInMultipleRegions([insertionWindow] as never, {
+        ...pair,
+        clipToRegion: true,
+        splitAtGapBp: 10_000,
+      })
+      .pipe(toArray()),
+  )
+  expect(clippedPairs.map(f => [f.get('start'), f.get('end')])).toEqual(
+    whole.map(f => [f.get('start'), f.get('end')]),
+  )
+  for (const f of clippedPairs) {
+    expect(f.get('CIGAR')).toBeUndefined()
+  }
+})
+
+test('a lane pair without its target lane is refused', async () => {
+  await expect(
+    feats(anchoredAdapter(), insertionWindow, {
+      queryAssemblyName: 'HG01361#2',
+    }),
+  ).rejects.toThrow(PairTargetError)
+})
+
+// the micb database's own side tables hold no anchor rows, and at context 0
+// its sampled cut leaves both walks in pieces around the insertion
+test('without anchor rows a lane pair answers nothing, which the display composes through the reference', async () => {
+  expect(await feats(makeAdapter(), insertionWindow, pair)).toEqual([])
 })
 
 test('getSubgraph outside every reference fragment is empty', async () => {

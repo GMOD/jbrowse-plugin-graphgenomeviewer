@@ -15,7 +15,13 @@ import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
-import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
+import type {
+  HaplotypeAlignment,
+  HaplotypeRef,
+  PairAlignment,
+  PathName,
+  PathQuery,
+} from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
@@ -71,9 +77,23 @@ export interface GbzHeaderLane {
  * `haplotypes` narrows a fetch to the lanes listed: PanSN prefixes at sample
  * (`HG002`) or haplotype (`HG002#1`) depth, or assembly names the config maps
  * to one; undefined is every haplotype.
+ *
+ * `queryAssemblyName` with `targetAssemblyName`, on a window of the anchor,
+ * asks for that pair of lanes aligned to each other inside the window.
  */
 export interface GbzFeatureOptions extends ComparativeOptions {
   haplotypes?: string[]
+  queryAssemblyName?: string
+}
+
+export class PairTargetError extends Error {
+  override name = 'PairTargetError'
+
+  constructor(queryAssemblyName: string) {
+    super(
+      `a pair query names both lanes: queryAssemblyName ${queryAssemblyName} came without a targetAssemblyName`,
+    )
+  }
 }
 
 function haplotypeWanted(name: PathName, wanted: string[] | undefined) {
@@ -211,6 +231,44 @@ export function fragmentFeature({
     }
     return new SyntenyFeature(data)
   }
+}
+
+/**
+ * One record of a lane pair, on the target walk's own contig with the query
+ * walk as its mate. gbz-base writes the CIGAR along the target, a `D` being
+ * target bases the query lacks, which is the side a JBrowse feature is, so it
+ * passes through unchanged.
+ */
+export function pairFeature({
+  pair,
+  lane,
+  mateLane,
+}: {
+  pair: PairAlignment
+  lane: string
+  mateLane: string
+}) {
+  const id = `${haplotypePrefix(pair.target)}#${pair.target.contig}:${pair.targetStart}-${pair.targetEnd}|${haplotypePrefix(pair.query)}#${pair.query.contig}:${pair.queryStart}-${pair.queryEnd}`
+  return new SyntenyFeature({
+    uniqueId: id,
+    assemblyName: lane,
+    refName: pair.target.contig,
+    start: pair.targetStart,
+    end: pair.targetEnd,
+    type: 'match',
+    strand: pair.strand === '-' ? -1 : 1,
+    CIGAR: pair.cigar,
+    syntenyId: id,
+    identity: pair.matches / Math.max(pair.columns, 1),
+    numMatches: pair.matches,
+    blockLen: pair.columns,
+    mate: {
+      refName: pair.query.contig,
+      start: pair.queryStart,
+      end: pair.queryEnd,
+      assemblyName: mateLane,
+    },
+  })
 }
 
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
@@ -408,51 +466,138 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
   }
 
+  private async laneHaplotypes(
+    assemblyName: string,
+    opts: BaseOptions,
+  ): Promise<HaplotypeRef[]> {
+    const prefix = resolvePanSNPrefix(this, assemblyName)
+    return (await this.getHaplotypes(opts)).filter(haplotype =>
+      panSNMatchesPrefix(haplotype.prefix, prefix),
+    )
+  }
+
+  private async anchorFeatures(region: Region, opts: GbzFeatureOptions) {
+    const { db } = await this.graph(opts)
+    const { assemblyName, refName, start, end } = region
+    const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
+    const asmByPrefix = assemblyByPanSNPrefix(this)
+    const keep = this.keepPredicate(opts.haplotypes, targetPrefix)
+    const query = await this.referenceQuery(refName, opts)
+    const nodeLimit: number = this.getConf('nodeLimit')
+    const alignments = query
+      ? await updateStatus(
+          `Reading graph ${refName}:${start.toLocaleString()}-${end.toLocaleString()}`,
+          opts.statusCallback,
+          () =>
+            db
+              .getAlignmentsForRange(query, start, end, {
+                context: this.getConf('context'),
+                haplotypes: 'all',
+                limit: nodeLimit,
+                signal: opts.signal,
+                ...(keep === undefined ? {} : { keep }),
+              })
+              .catch((error: unknown) => {
+                throw nodeLimitError(error, nodeLimit, end - start) ?? error
+              }),
+        )
+      : []
+    return alignments.flatMap(alignment => {
+      const feature = alignment.resolved
+        ? fragmentFeature({
+            alignment,
+            assemblyName,
+            refName,
+            lane: laneAssemblyName(asmByPrefix, alignment.name),
+          })
+        : undefined
+      return feature === undefined ? [] : [feature]
+    })
+  }
+
+  /**
+   * The two lanes' walks cut out of the anchor window alone, and each walk
+   * of the query lane aligned to each walk of the target lane. The records
+   * sit on the query lane's contigs, the lane the display draws on top.
+   *
+   * Only a cut walked from the haplotype index's anchor rows holds each walk
+   * whole. The sampled cut leaves a walk in pieces wherever it strays past the
+   * context, and pieces align only in part, so without anchor rows, or when
+   * the anchor walk fell back, the pair answers nothing and the display
+   * composes it through the reference.
+   */
+  private async pairFeatures(
+    region: Region,
+    queryAssemblyName: string,
+    opts: GbzFeatureOptions,
+  ) {
+    const { targetAssemblyName } = opts
+    if (targetAssemblyName === undefined) {
+      throw new PairTargetError(queryAssemblyName)
+    }
+    const { db } = await this.graph(opts)
+    const { refName, start, end } = region
+    const featureSide = await this.laneHaplotypes(queryAssemblyName, opts)
+    const mateSide = await this.laneHaplotypes(targetAssemblyName, opts)
+    const kept = [...featureSide, ...mateSide]
+    const query = await this.referenceQuery(refName, opts)
+    const nodeLimit: number = this.getConf('nodeLimit')
+    const anchored = (await db.haplotypeAnchorSpacing()) !== undefined
+    const subgraph =
+      anchored && query && featureSide.length > 0 && mateSide.length > 0
+        ? await updateStatus(
+            `Aligning ${queryAssemblyName} to ${targetAssemblyName}`,
+            opts.statusCallback,
+            () =>
+              db
+                .getSubgraphForRange(query, start, end, {
+                  context: this.getConf('context'),
+                  haplotypes: 'all',
+                  limit: nodeLimit,
+                  signal: opts.signal,
+                  keep: name =>
+                    kept.some(
+                      haplotype =>
+                        haplotype.sample === name.sample &&
+                        haplotype.haplotype === name.haplotype,
+                    ),
+                })
+                .catch((error: unknown) => {
+                  throw nodeLimitError(error, nodeLimit, end - start) ?? error
+                }),
+          )
+        : undefined
+    const walk = subgraph?.stats.anchorWalk
+    return subgraph && walk !== undefined && walk.fallback === undefined
+      ? featureSide.flatMap(target =>
+          mateSide.flatMap(mate =>
+            subgraph.pairAlignments({ target, query: mate }).map(pair =>
+              pairFeature({
+                pair,
+                lane: queryAssemblyName,
+                mateLane: targetAssemblyName,
+              }),
+            ),
+          ),
+        )
+      : []
+  }
+
   getFeatures(region: Region, opts: GbzFeatureOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor } = await this.graph(opts)
       if (!db.hasHaplotypeIndex) {
         throw new NoHaplotypeIndexError()
       }
-      const { assemblyName, refName, start, end } = region
-      // a window on a haplotype lane has no direct answer: the display
-      // composes lane-to-lane links through the anchor
-      if (assemblyName === anchor) {
-        const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
-        const asmByPrefix = assemblyByPanSNPrefix(this)
-        const keep = this.keepPredicate(opts.haplotypes, targetPrefix)
-        const query = await this.referenceQuery(refName, opts)
-        const nodeLimit: number = this.getConf('nodeLimit')
-        const alignments = query
-          ? await updateStatus(
-              `Reading graph ${refName}:${start.toLocaleString()}-${end.toLocaleString()}`,
-              opts.statusCallback,
-              () =>
-                db
-                  .getAlignmentsForRange(query, start, end, {
-                    context: this.getConf('context'),
-                    haplotypes: 'all',
-                    limit: nodeLimit,
-                    signal: opts.signal,
-                    ...(keep === undefined ? {} : { keep }),
-                  })
-                  .catch((error: unknown) => {
-                    throw nodeLimitError(error, nodeLimit, end - start) ?? error
-                  }),
-            )
-          : []
-        for (const alignment of alignments) {
-          if (alignment.resolved) {
-            const feature = fragmentFeature({
-              alignment,
-              assemblyName,
-              refName,
-              lane: laneAssemblyName(asmByPrefix, alignment.name),
-            })
-            if (feature !== undefined) {
-              observer.next(feature)
-            }
-          }
+      // the graph is indexed on its reference alone, so a window on a
+      // haplotype lane has no answer: a lane pair is read inside the anchor's
+      if (region.assemblyName === anchor) {
+        const features =
+          opts.queryAssemblyName === undefined
+            ? await this.anchorFeatures(region, opts)
+            : await this.pairFeatures(region, opts.queryAssemblyName, opts)
+        for (const feature of features) {
+          observer.next(feature)
         }
       }
       observer.complete()
