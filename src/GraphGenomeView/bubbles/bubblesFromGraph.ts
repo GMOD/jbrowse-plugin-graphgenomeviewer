@@ -103,7 +103,7 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
       }
       for (const t of succ.get(id) ?? []) {
         const ti = indexOf.get(t)!
-        if (ti > i1 || (ti <= i0 && t !== end.id)) {
+        if (ti > i1) {
           continue
         }
         const add = t === end.id ? 0 : byId.get(t)!.length
@@ -117,7 +117,8 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
     }
     const walked =
       walkIndex && walkRoutes(graph, byId, walkIndex, start.id, end.id)
-    const routes = walked ?? best.get(end.id) ?? { min: 0, max: 0, n: 0 }
+    const crossed = walked?.n ? walked : undefined
+    const routes = crossed ?? best.get(end.id) ?? { min: 0, max: 0, n: 0 }
     // A walk that enters the bubble and never reaches its other end left the
     // cut: a GBZ cut of a repeat array at 1 kb of context splits each
     // haplotype's walk into pieces, and the routes seen are then a floor.
@@ -136,7 +137,7 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
       (id, k) => k > 0 && !linked.has(`${chain[k - 1]}>${id}`),
     )
     const partial = chainBroken || walksLeave
-    const fallback = chainBroken && !walked
+    const fallback = chainBroken && !crossed
     bubbles.push({
       refName: start.stable.refName,
       start: refStart,
@@ -155,7 +156,7 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
       shortestAllele: undefined,
       longestAllele: undefined,
       partial,
-      routes: walked?.routes,
+      routes: crossed?.routes,
     })
   }
   return bubbles

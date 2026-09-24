@@ -1,5 +1,6 @@
 import { observer } from 'mobx-react'
 
+import { LABEL_CHAR_PX } from './overlayLabels'
 import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
@@ -30,7 +31,6 @@ const UNBACKED_TICK = '#9e9e9e'
 const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
-const LABEL_CHAR_PX = 6.2
 
 const legendBoxStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -134,7 +134,7 @@ function calledReadout(call: { bp: number; spanningReads?: number }) {
 const MIN_TILE_PX = 3
 
 function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
-  if (unit * (X(unit) - X(0)) < MIN_TILE_PX) {
+  if (X(unit) - X(0) < MIN_TILE_PX) {
     return []
   }
   const xs: number[] = []

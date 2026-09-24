@@ -528,3 +528,21 @@ test('a pan moves every label by the pan and drops none', () => {
   expect(after.map(l => l.key)).toEqual(before.map(l => l.key))
   expect(after.map(l => l.x)).toEqual(before.map(l => l.x + 25))
 })
+
+test("a node's label sits halfway along its polyline", () => {
+  const labels = graphLabels({
+    nodePositions: {
+      mid: [
+        { x: 0, y: 20 },
+        { x: 200, y: 20 },
+      ],
+    },
+    nodeLengths: new Map([['mid', 5000]]),
+    deletions: [],
+    axis: iso(),
+    ...VIEWPORT,
+  })
+  expect(labels).toHaveLength(1)
+  expect(labels[0]!.x).toBe(100)
+  expect(labels[0]!.y).toBe(20)
+})

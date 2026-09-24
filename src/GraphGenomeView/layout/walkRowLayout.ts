@@ -2,6 +2,7 @@ import { ROW_HEIGHT_PX } from './rowSpacing'
 import { walkRows } from './walkRows'
 import { backboneNodes } from '../anchoredNodes'
 
+import type { WalkRows } from './walkRows'
 import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 
 // The reference walk as the backbone on row 0, at its bp, and a row per other
@@ -11,6 +12,20 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // bars reach so the fit and the pane height include them.
 // The fit leaves this much past the longest bar for its readout and the legend.
 const READOUT_ROOM = 1.3
+
+// How far the bars reach, so the fit and the pane height include them. The
+// model reads it again for the bars it actually draws, which a repeat pick or
+// a sample filter can narrow after this layout ran.
+export function walkRowsExtent(walks: WalkRows) {
+  let longest = walks.reference.bp
+  for (const row of walks.rows) {
+    longest = Math.max(longest, row.bp)
+  }
+  return {
+    maxX: walks.origin + longest * READOUT_ROOM,
+    maxY: walks.rows.length * ROW_HEIGHT_PX,
+  }
+}
 
 export function walkRowLayout(
   graph: Graph,
@@ -36,15 +51,11 @@ export function walkRowLayout(
       y: (i + 1) * ROW_HEIGHT_PX,
     })),
   ]
-  const longest = Math.max(walks.reference.bp, ...walks.rows.map(r => r.bp))
   return {
     nodePositions,
     rowLabels,
     referenceAxis: true,
     pixelRows: true,
-    extent: {
-      maxX: walks.origin + longest * READOUT_ROOM,
-      maxY: walks.rows.length * ROW_HEIGHT_PX,
-    },
+    extent: walkRowsExtent(walks),
   }
 }

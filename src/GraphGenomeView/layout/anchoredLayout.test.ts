@@ -202,3 +202,12 @@ describe('off-reference minimum length', () => {
     expect(result.nodePositions['alt+']![0]!.x).toBe(4000)
   })
 })
+
+test('a node with no coordinate takes the spare row below the ranks', () => {
+  const graph = convertGFAToGraph(parseGFA(RGFA))
+  graph.nodes.push({ id: 'x+', name: 'x', length: 2, depth: 1 })
+  graph.edges.push({ from: 'v5+', to: 'x+' })
+  const pos = anchoredLayout(graph)!.nodePositions
+  expect(pos['v5+']![0]!.y).toBe(ROW_HEIGHT_PX)
+  expect(pos['x+']![0]!.y).toBe(2 * ROW_HEIGHT_PX)
+})

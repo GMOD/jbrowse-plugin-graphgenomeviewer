@@ -127,7 +127,7 @@ const BubbleHalos = observer(function BubbleHalos({
       {labels.map(({ item: { halo: h, route }, x, y, w, text }) =>
         route ? (
           <LabelChip
-            key={`${h.bubble.start}-${h.bubble.end}-${route.route.steps[0]}`}
+            key={`${h.bubble.start}-${h.bubble.end}-${route.route.steps.join(',')}`}
             x={x}
             y={y}
             w={w}

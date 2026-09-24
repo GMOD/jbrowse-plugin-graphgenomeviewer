@@ -69,7 +69,8 @@ export function anchoredLayout(
     graph,
     minSpan: span * MIN_OFF_REFERENCE_SPAN_FRACTION,
     rowY: node =>
-      (rows.get(node.stable?.rank ?? 1) ?? rows.size) * ROW_HEIGHT_PX,
+      (node.stable ? (rows.get(node.stable.rank) ?? rows.size) : rows.size) *
+      ROW_HEIGHT_PX,
     positions: nodePositions,
   })
 

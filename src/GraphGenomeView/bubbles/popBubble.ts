@@ -18,6 +18,8 @@ export function bubbleSubgraph(graph: Graph, segmentIds: string[]): Graph {
     nodes,
     edges: graph.edges.filter(e => ids.has(e.from) && ids.has(e.to)),
     ...(paths?.length ? { paths } : {}),
+    anchorPaths: graph.anchorPaths,
+    pathVisits: graph.pathVisits,
     anchoredBy: graph.anchoredBy,
     referencePath: graph.referencePath,
   }

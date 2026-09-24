@@ -88,8 +88,8 @@ function sliceBetween(
   if (i0 < 0 || i1 < 0) {
     return { ids: nodeIds, complete: false }
   }
-  const [lo, hi] = i0 < i1 ? [i0, i1] : [i1, i0]
-  return { ids: nodeIds.slice(lo + 1, hi), complete: true }
+  const ids = nodeIds.slice(Math.min(i0, i1) + 1, Math.max(i0, i1))
+  return { ids: i0 < i1 ? ids : ids.reverse(), complete: true }
 }
 
 export function walkRows(

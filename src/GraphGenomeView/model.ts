@@ -41,6 +41,7 @@ import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
 import { seededNodes } from './layout/referenceSeeds'
 import { ROW_HEIGHT_PX } from './layout/rowSpacing'
+import { walkRowsExtent } from './layout/walkRowLayout'
 import { walkRows } from './layout/walkRows'
 import {
   LAYOUT_MODE_VALUES,
@@ -756,60 +757,6 @@ export default function stateModelFactory() {
       get alleleDeletions() {
         return self.layoutResult?.alleleDeletions ?? []
       },
-      // Extent of the drawing in layout units, or undefined before there is
-      // one. Shared by the pane height and by zoomToFit so the two cannot
-      // measure the same graph differently.
-      //
-      // On the reference-anchored layouts x is reference bp, and the axis those
-      // layouts exist for is the region the cut was made for: it is what lines
-      // the graph pane up with the linear view above it. So x comes from
-      // `loadedRegion` there, not from how far the drawing reaches. One allele
-      // can legitimately anchor far outside the window -- a 75 bp CFT073
-      // segment in the E. coli pggb graph attaches at K12:997,574 and rejoins
-      // at K12:1,004,667, a real 7 kb deletion -- and fitting to that drew a
-      // 484 bp window at 6% of the frame, on a pane whose whole claim is that
-      // its x matches the panel above. It exits the frame instead, which is
-      // where it goes. y is always measured: rows are not on the reference.
-      //
-      // Force layouts keep the measured extent in both axes, x there being
-      // simulation units that no region can bound.
-      get layoutBounds() {
-        let bounds:
-          { minX: number; minY: number; w: number; h: number } | undefined
-        if (self.layoutResult) {
-          let minX = Infinity
-          let minY = Infinity
-          let maxX = -Infinity
-          let maxY = -Infinity
-          for (const segments of Object.values(
-            self.layoutResult.nodePositions,
-          )) {
-            for (const seg of segments) {
-              minX = Math.min(minX, seg.x)
-              minY = Math.min(minY, seg.y)
-              maxX = Math.max(maxX, seg.x)
-              maxY = Math.max(maxY, seg.y)
-            }
-          }
-          // A popped bubble is a look inside one interval of the window, so it
-          // fits to what it drew rather than to the window it came from.
-          const region =
-            self.layoutResult.referenceAxis && self.popStack.length === 0
-              ? self.loadedRegion
-              : undefined
-          if (region && region.end > region.start) {
-            minX = region.start
-            maxX = region.end
-          }
-          const extent = self.layoutResult.extent
-          if (extent) {
-            maxX = Math.max(maxX, extent.maxX)
-            maxY = Math.max(maxY, extent.maxY)
-          }
-          bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
-        }
-        return bounds
-      },
       // Whether the current layout states y in screen px rather than in the same
       // units as x (LayoutResult.pixelRows). Everything that has to put the two
       // axes in one expression reads this through scaleX/scaleY.
@@ -1060,6 +1007,52 @@ export default function stateModelFactory() {
       get axisScale() {
         return axisScaleOf(self.scale, self.pixelRows)
       },
+      // Extent of the drawing in layout units, shared by the pane height and
+      // zoomToFit. On a reference-bp layout x is the cut window rather than
+      // how far the drawing reaches: an allele anchored far outside it is a
+      // fact about the graph, not a reason to draw the window at 6% of the
+      // frame. A popped bubble fits to what it drew. Walk rows reach as far as
+      // the bars on screen, which a repeat pick or a sample filter narrows
+      // after the layout ran.
+      get layoutBounds() {
+        let bounds:
+          { minX: number; minY: number; w: number; h: number } | undefined
+        if (self.layoutResult) {
+          let minX = Infinity
+          let minY = Infinity
+          let maxX = -Infinity
+          let maxY = -Infinity
+          for (const segments of Object.values(
+            self.layoutResult.nodePositions,
+          )) {
+            for (const seg of segments) {
+              minX = Math.min(minX, seg.x)
+              minY = Math.min(minY, seg.y)
+              maxX = Math.max(maxX, seg.x)
+              maxY = Math.max(maxY, seg.y)
+            }
+          }
+          const region =
+            self.layoutResult.referenceAxis && self.popStack.length === 0
+              ? self.loadedRegion
+              : undefined
+          if (region && region.end > region.start) {
+            minX = region.start
+            maxX = region.end
+          }
+          const bars = this.walkRowBars
+          const extent =
+            bars && self.layoutResult.extent
+              ? walkRowsExtent(bars)
+              : self.layoutResult.extent
+          if (extent) {
+            maxX = Math.max(maxX, extent.maxX)
+            maxY = Math.max(maxY, extent.maxY)
+          }
+          bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
+        }
+        return bounds
+      },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in the middle of.
       //
@@ -1075,7 +1068,7 @@ export default function stateModelFactory() {
       // derivation. It reads neither `scale` nor the height it is replacing, so
       // zoomToFit consumes this without feeding back into it.
       get canvasHeight() {
-        const bounds = self.layoutBounds
+        const bounds = this.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
         // `paneHeight` replaces the built-in ceiling rather than adding a
         // second clamp under it, and the floor still wins: a pane shorter than

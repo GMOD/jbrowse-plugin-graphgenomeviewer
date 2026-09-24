@@ -91,6 +91,21 @@ describe('bubblesFromGraph', () => {
     ]).toEqual([3, 0, 30])
   })
 
+  it('falls back to the DAG when every walk leaves the bubble', () => {
+    const leaving = [
+      ['r1', 'r2', 'r3', 'r4', 't'],
+      ['k', 'r5'],
+    ].map((ids, i) => ({ name: `hap${i}`, nodeIds: ids.map(id => `${id}+`) }))
+    const [, ins] = bubblesFromGraph({ ...graph, paths: leaving })
+    expect([
+      ins!.pathCount,
+      ins!.shortestAlleleLength,
+      ins!.longestAlleleLength,
+      ins!.partial,
+    ]).toEqual([2, 0, 10, true])
+    expect(classifyBubble(ins!).label).not.toMatch(/Infinity/)
+  })
+
   // Every base a haplotype carries beyond the reference lies in some bubble.
   it('accounts for each walk’s excess over the reference', () => {
     const bubbles = bubblesFromGraph(walked)

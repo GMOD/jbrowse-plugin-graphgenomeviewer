@@ -142,3 +142,30 @@ test('a cut that stops at the window leaves whole walks, not partial ones', () =
   expect(rows.rows.every(r => r.complete)).toBe(true)
   expect(rows.reference.complete).toBe(true)
 })
+
+test('a walk that crosses the window backwards reads in reference direction', () => {
+  const graph = pggbGraph()
+  const byId = new Map(graph.nodes.map(n => [n.id, n.length]))
+  const reference = graph.paths!.find(
+    p => pathOrigin(p.name).name === graph.referencePath,
+  )!
+  const start = graph.anchorPaths!.find(
+    p => p.name === graph.referencePath,
+  )!.start
+  const ends = [start]
+  for (const id of reference.nodeIds) {
+    ends.push(ends.at(-1)! + byId.get(id)!)
+  }
+  const n = reference.nodeIds.length
+  const region = { start: ends[2]!, end: ends[n - 2]! }
+  const forward = walkRows(graph, region)!.rows.find(
+    r => r.complete && r.runs.length > 1,
+  )!
+  expect(forward).toBeDefined()
+  const path = graph.paths!.find(p => p.name === forward.name)!
+  const backwards = { ...path, name: 'backwards', nodeIds: [...path.nodeIds].reverse() }
+  const cut = walkRows({ ...graph, paths: [...graph.paths!, backwards] }, region)!
+  const row = cut.rows.find(r => r.name === 'backwards')!
+  expect(row.complete).toBe(true)
+  expect(row.runs).toEqual(forward.runs)
+})

@@ -70,6 +70,28 @@ describe('buildTrackConfig', () => {
     expect(conf.adapter).not.toHaveProperty('assemblyNameToPanSN')
   })
 
+  it('a CSI beside the segments implies one beside the links', () => {
+    const conf = buildTrackConfig({
+      choice: 'RgfaTabixAdapter',
+      loc: segs,
+      indexLoc: {
+        uri: 'https://example.com/hprc.segs.bed.gz.csi',
+        locationType: 'UriLocation',
+      },
+      assembly: 'hg38',
+      sample: '',
+      trackId: 'hprc',
+      name: 'HPRC graph',
+    })
+    expect(conf.adapter).toMatchObject({
+      segmentsIndex: { indexType: 'CSI' },
+      linksIndex: {
+        indexType: 'CSI',
+        location: { uri: 'https://example.com/hprc.links.bed.gz.csi' },
+      },
+    })
+  })
+
   it('refuses a segments file without the .segs.bed.gz suffix', () => {
     expect(() =>
       buildTrackConfig({

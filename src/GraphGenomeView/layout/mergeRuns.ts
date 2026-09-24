@@ -126,13 +126,7 @@ export function splitRuns(
       continue
     }
     delete out[id]
-    const arc = [0]
-    for (let i = 1; i < line.length; i++) {
-      arc.push(
-        arc[i - 1]! +
-          Math.hypot(line[i]!.x - line[i - 1]!.x, line[i]!.y - line[i - 1]!.y),
-      )
-    }
+    const arc = arcPrefix(line)
     const total = arc.at(-1)!
     const weights = members.map(m => Math.max(weightOf(m), 0))
     const weightSum = weights.reduce((a, b) => a + b, 0) || members.length
@@ -156,6 +150,19 @@ export function polylineSlice(line: NodeSegment[], from: number, to: number) {
   if (line.length === 0) {
     return []
   }
+  const arc = arcPrefix(line)
+  const total = arc.at(-1)!
+  return slice(line, arc, from * total, to * total)
+}
+
+// The point halfway along a polyline by arc length, where a node's label goes.
+export function polylineMidpoint(line: NodeSegment[]): NodeSegment {
+  const arc = arcPrefix(line)
+  return pointAt(line, arc, arc.at(-1)! / 2)
+}
+
+// Cumulative distance to each point of a polyline, starting at 0.
+function arcPrefix(line: NodeSegment[]) {
   const arc = [0]
   for (let i = 1; i < line.length; i++) {
     arc.push(
@@ -163,8 +170,7 @@ export function polylineSlice(line: NodeSegment[], from: number, to: number) {
         Math.hypot(line[i]!.x - line[i - 1]!.x, line[i]!.y - line[i - 1]!.y),
     )
   }
-  const total = arc.at(-1)!
-  return slice(line, arc, from * total, to * total)
+  return arc
 }
 
 function pointAt(line: NodeSegment[], arc: number[], s: number): NodeSegment {

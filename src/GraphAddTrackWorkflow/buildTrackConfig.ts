@@ -46,6 +46,14 @@ function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
     : { location: makeIndex(loc, '.tbi'), indexType: 'TBI' }
 }
 
+// The links file's index is assumed beside it, of the kind the segments' is.
+function siblingIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
+  const csi = indexLoc !== undefined && locationName(indexLoc).endsWith('.csi')
+  return csi
+    ? { location: makeIndex(loc, '.csi'), indexType: 'CSI' }
+    : { location: makeIndex(loc, '.tbi'), indexType: 'TBI' }
+}
+
 function panSN(assembly: string, sample: string) {
   const name = sample.trim()
   return name ? { assemblyNameToPanSN: { [assembly]: name } } : {}
@@ -78,7 +86,7 @@ export function buildAdapterConfig({
     segmentsLocation: loc,
     segmentsIndex: tabixIndex(loc, indexLoc),
     linksLocation: links,
-    linksIndex: tabixIndex(links, undefined),
+    linksIndex: siblingIndex(links, indexLoc),
     ...panSN(assembly, sample),
   }
 }

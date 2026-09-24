@@ -1,4 +1,5 @@
 import { deletionArcCurves } from './deletionEdges'
+import { polylineMidpoint } from './layout/mergeRuns'
 import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
@@ -262,11 +263,6 @@ function boxRayCrossing(box: Box, dir: { x: number; y: number }) {
     dir.x === 0 ? Infinity : halfW / Math.abs(dir.x),
     dir.y === 0 ? Infinity : halfH / Math.abs(dir.y),
   )
-}
-
-function midpoint(segments: NodeSegment[]) {
-  const mid = segments[Math.floor(segments.length / 2)]!
-  return { x: mid.x, y: mid.y }
 }
 
 // The node's own extent along its polyline, IN SCREEN PX — what the label has
@@ -584,7 +580,7 @@ export function graphLabels({
     if (labelledByDeletion.has(id)) {
       continue
     }
-    const { x, y } = midpoint(segments)
+    const { x, y } = polylineMidpoint(segments)
     const screenY = y * scaleY + translateY
     if (
       screenY + LABEL_HALF_HEIGHT <= 0 ||
