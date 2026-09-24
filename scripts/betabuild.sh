@@ -43,8 +43,6 @@ if [ "${SKIP_CHECKS:-0}" != "1" ]; then
   # a host global does not actually export builds and unit-tests clean, then
   # throws the moment the view mounts. That shipped once (useRenderingBackend from
   # @jbrowse/core/util) while typecheck had been reporting it the whole time.
-  # scripts/typecheck.mjs fails only on errors under src/, so linked-package noise
-  # cannot make this advisory.
   echo "==> typecheck"
   pnpm typecheck
   echo "==> tests"
@@ -57,6 +55,14 @@ NODE_ENV=production node esbuild.mjs
 if [ ! -f "dist/${ENTRY}" ]; then
   echo "no dist/${ENTRY} after build" >&2
   exit 1
+fi
+
+# A bundle that builds and unit-tests clean can still fail the moment a hosted
+# release runs it, which is the only place an RPC argument a released core
+# cannot post to its worker shows up.
+if [ "${SKIP_CHECKS:-0}" != "1" ]; then
+  echo "==> boot on hosted releases"
+  pnpm host-compat
 fi
 
 # The entry point already names every chunk it can load by content hash, so its
