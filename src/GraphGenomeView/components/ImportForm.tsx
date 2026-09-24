@@ -27,10 +27,6 @@ const useStyles = makeStyles()({
   footer: { marginTop: 12, display: 'flex', justifyContent: 'flex-end' },
 })
 
-// File/URL load renders the whole GFA in the view — best for small/medium
-// graphs. Locus-anchored subgraph extraction (a GfaTabix/GfaServer track + a
-// region) is deferred until the reference-anchored index lands; the `TrackMode`
-// form for it lives in git history.
 const ImportForm = observer(function ImportForm({
   model,
 }: {

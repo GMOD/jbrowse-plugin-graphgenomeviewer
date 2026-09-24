@@ -98,11 +98,9 @@ export function resolveRefName(
  * a slot whose name it cannot prove.
  */
 export class PanSNRefNames {
-  // Read once and kept, since it is a fact about the file. Every query awaits
-  // this one read, so it takes on no caller's signal: a track fetch the user
-  // panned away from rejected the read a graph cut was also waiting on, and
-  // the cut failed with an abort nobody had asked of it. cachedSetup withholds
-  // the signal, and clears a failed read so the next query tries again.
+  // Read once and shared by every query, so it takes on no caller's signal: a
+  // track fetch the user panned away from once aborted the read a graph cut
+  // was waiting on. cachedSetup withholds the signal and retries a failed read.
   private lookup = cachedSetup({
     setup: async opts =>
       buildRefNameLookup(await this.file.getReferenceSequenceNames(opts)),

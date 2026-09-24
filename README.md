@@ -47,7 +47,7 @@ glyph per bubble:
 
 ![Variant map of KIV-2](img/variant_map_kiv2.png)
 
-It ships five layouts:
+It ships six layouts:
 
 - **Force-directed**: the graph's shape, computed by the OGDF FMMM engine from
   [Bandage](https://github.com/rrwick/Bandage), seeded along the reference and
@@ -63,6 +63,10 @@ It ships five layouts:
 - **Anchored** (rGFA or a reference path): x is reference bp, one row per stable
   rank, aligned under a linear view.
 - **Sample rows**: x is reference bp, one row per contributing assembly.
+- **Walk rows** (W or P lines): x is each walk's own bp, one bar per haplotype,
+  sequence the reference also carries in blue and sequence it does not in
+  purple, so a repeat expansion reads as bar length. The Repeat picker tiles the
+  bars by a repeat annotation's unit and marks the allele a genotyper called.
 
 The bubbles come from `gfatools bubble` output beside the rGFA index
 (`<prefix>.bubbles.bed.gz`), which HPRC's hosted graph has and
@@ -104,18 +108,10 @@ layouts are pure TypeScript and need no external engine.
 
 ## Developing
 
-Requires [pnpm](https://pnpm.io/installation).
-
-This plugin depends on `@jbrowse/render-core`, which is not yet published to
-npm, so it is consumed via a `link:` to a sibling `jbrowse-components` checkout.
-Clone both side by side:
-
-```
-~/src/jbrowse-components/     # provides @jbrowse/render-core
-~/src/jbrowse-plugin-graphgenomeviewer/
-```
-
-Then:
+Requires [pnpm](https://pnpm.io/installation). The plugin builds against the
+published `@jbrowse/*` packages at 5.0.0-beta.9 and needs a host of at least
+that version: it hands its RPC calls an AbortSignal, which an earlier JBrowse 5
+beta cannot post to its worker.
 
 ```console
 pnpm install
@@ -141,7 +137,8 @@ together** — the entry loads its sibling chunks relative to its own url:
   served from cache
 - `chunks/*.js` — other lazily-loaded code split out of the entry
 
-Load the plugin from any JBrowse 2 config with an `esmUrl`:
+Load the plugin from any JBrowse config, 5.0.0-beta.9 or later, with an
+`esmUrl`:
 
 ```json
 {
@@ -200,10 +197,18 @@ pnpm test         # vitest unit tests
 pnpm test:watch
 pnpm test:wasm    # runs the committed Bandage engine, no deps needed
 pnpm test:e2e     # puppeteer, opt-in — see test/README.md
+pnpm host-compat  # boots dist/ on the hosted JBrowse releases and cuts a graph
 pnpm lint
 pnpm typecheck
 ```
 
 `pnpm test:e2e` drives the force layout through a real JBrowse in a headless
-browser. It is gated behind `RUN_E2E=1` until the `graph_viz` jbrowse-components
-branch ships; [`test/README.md`](test/README.md) explains why and how to run it.
+browser, behind `RUN_E2E=1` because it needs a jbrowse-web build to serve;
+[`test/README.md`](test/README.md) explains how to run it.
+
+`pnpm host-compat` is the check a publish has to pass, and `pnpm version` runs
+it. It serves the built `dist/` to a real shipped config on each hosted release
+and cuts a subgraph there, because the failures it catches pass tsc, eslint and
+the unit tests: an RPC argument a released core cannot post to its worker, or a
+re-export the host no longer serves, shows only when the bundle runs on the
+host.

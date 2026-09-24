@@ -25,7 +25,7 @@ writes to `test-screenshots/` is a real browser frame:
 | `demo-04-linear-hover-selects-graph-node`    | hovering the linear view selects the covering graph node                  |
 | `demo-05-cross-track-context-menu`           | the launch offered from the track that _can't_ cut a graph                |
 | `demo-06-cross-track-launched`               | that launch cutting from the graph track instead                          |
-| `demo-07-over-cap-region`                    | past 100 kb the item is disabled with the size as its reason              |
+| `demo-07-over-cap-region`                    | past the 5 Mb cap the item is disabled with the size as its reason        |
 
 Two things learned building it, both worth not rediscovering:
 
@@ -54,14 +54,11 @@ Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 ```
 
-**A build from the same checkout the plugin links against is not merely the most
-faithful option, it is usually the only one that works**, and that is the single
-most expensive thing to rediscover here. The plugin compiles against a
-jbrowse-components checkout, so it calls core APIs as soon as they exist there —
-`contributeToExtensionPoint` (2026-08-05), `requireAssembly` (2026-08-04) — and
-an older host has none of them. The failure is that the plugin throws while
-INSTALLING, so every suite dies in setup with a minified
-`e.<something> is not a function` and the whole run reads as a plugin bug.
+**The host has to be at least 5.0.0-beta.9**, the version the plugin's
+`@jbrowse/*` dependencies are pinned to. An older host lacks core APIs the
+plugin calls, and the failure is that the plugin throws while INSTALLING, so
+every suite dies in setup with a minified `e.<something> is not a function` and
+the whole run reads as a plugin bug.
 
 A host dir is a copy, and nothing refreshes it: `.test-jbrowse-demos` sat at
 2026-07-24 for two weeks and every run against it was a lie. `setup.ts` now
@@ -91,7 +88,7 @@ Without `RUN_E2E=1` the suite skips and exits clean, so it never blocks a run.
 
 - `RUN_E2E=1` — required to un-skip the suite.
 - `JBROWSE_TEST_DIR` — a jbrowse-web static dir to serve (default
-  `.test-jbrowse-<version>`). Use this to target a graph_viz-compatible build.
+  `.test-jbrowse-<version>`). Use this to target a build newer than the release.
 - `SKIP_BUILD=1` — reuse an existing `dist/` instead of rebuilding the plugin.
 - `TEST_JBROWSE_VERSION` — names the default dir (`nightly` if unset).
 
