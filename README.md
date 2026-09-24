@@ -145,7 +145,7 @@ Load the plugin from any JBrowse config, 5.0.0-beta.9 or later, with an
   "plugins": [
     {
       "name": "GraphGenomeView",
-      "esmUrl": "https://your-host/jbrowse-plugin-graphgenomeviewer.esm.js"
+      "esmUrl": "https://unpkg.com/jbrowse-plugin-graphgenomeviewer/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
     }
   ]
 }

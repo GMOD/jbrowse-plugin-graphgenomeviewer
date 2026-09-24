@@ -36,7 +36,6 @@
     "bench:layout": "node scripts/bench-layout.mjs",
     "layout-digest": "node scripts/layout-digest.mjs",
     "build:bundle": "NODE_ENV=production node esbuild.mjs",
-    "betabuild": "bash scripts/betabuild.sh",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "host-compat": "node scripts/host-compat-probe.mjs",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
