@@ -476,6 +476,35 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
   }
 
+  /**
+   * The window split wherever the reference sample's contig starts another
+   * fragment, so each piece lies inside one: getSubgraphForRange cuts the
+   * first fragment alone, where getAlignmentsForRange walks them all
+   */
+  private async referencePieces(
+    refName: string,
+    start: number,
+    end: number,
+    opts: BaseOptions,
+  ) {
+    const { db, referenceSample } = await this.graph(opts)
+    const inside = (await db.paths())
+      .filter(
+        path =>
+          path.isIndexed &&
+          path.name.sample === referenceSample &&
+          path.name.contig === refName &&
+          path.name.fragment > start &&
+          path.name.fragment < end,
+      )
+      .map(path => path.name.fragment)
+    const bounds = [start, ...[...new Set(inside)].sort((a, b) => a - b), end]
+    return bounds.slice(1).map((pieceEnd, i) => ({
+      start: bounds[i]!,
+      end: pieceEnd,
+    }))
+  }
+
   private async anchorFeatures(region: Region, opts: GbzFeatureOptions) {
     const { db } = await this.graph(opts)
     const { assemblyName, refName, start, end } = region
@@ -523,8 +552,8 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * Only a cut walked from the haplotype index's anchor rows holds each walk
    * whole. The sampled cut leaves a walk in pieces wherever it strays past the
    * context, and pieces align only in part, so without anchor rows, or when
-   * the anchor walk fell back, the pair answers nothing and the display
-   * composes it through the reference.
+   * the anchor walk of any reference fragment in the window fell back, the
+   * pair answers nothing and the display composes it through the reference.
    */
   private async pairFeatures(
     region: Region,
@@ -543,40 +572,53 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
     const anchored = (await db.haplotypeAnchorSpacing()) !== undefined
-    const subgraph =
-      anchored && query && featureSide.length > 0 && mateSide.length > 0
-        ? await updateStatus(
-            `Aligning ${queryAssemblyName} to ${targetAssemblyName}`,
-            opts.statusCallback,
-            () =>
-              db
-                .getSubgraphForRange(query, start, end, {
-                  context: this.getConf('context'),
-                  haplotypes: 'all',
-                  limit: nodeLimit,
-                  signal: opts.signal,
-                  keep: name =>
-                    kept.some(
-                      haplotype =>
-                        haplotype.sample === name.sample &&
-                        haplotype.haplotype === name.haplotype,
-                    ),
-                })
-                .catch((error: unknown) => {
-                  throw nodeLimitError(error, nodeLimit, end - start) ?? error
+    const cut = (reference: PathQuery, piece: { start: number; end: number }) =>
+      db
+        .getSubgraphForRange(reference, piece.start, piece.end, {
+          context: this.getConf('context'),
+          haplotypes: 'all',
+          limit: nodeLimit,
+          signal: opts.signal,
+          keep: name =>
+            kept.some(
+              haplotype =>
+                haplotype.sample === name.sample &&
+                haplotype.haplotype === name.haplotype,
+            ),
+        })
+        .catch((error: unknown) => {
+          throw nodeLimitError(error, nodeLimit, end - start) ?? error
+        })
+    const subgraphs =
+      query && anchored && featureSide.length > 0 && mateSide.length > 0
+        ? (
+            await updateStatus(
+              `Aligning ${queryAssemblyName} to ${targetAssemblyName}`,
+              opts.statusCallback,
+              async () =>
+                Promise.all(
+                  (await this.referencePieces(refName, start, end, opts)).map(
+                    piece => cut(query, piece),
+                  ),
+                ),
+            )
+          ).filter(subgraph => subgraph !== undefined)
+        : []
+    const whole = subgraphs.every(subgraph => {
+      const walk = subgraph.stats.anchorWalk
+      return walk !== undefined && walk.fallback === undefined
+    })
+    return whole
+      ? subgraphs.flatMap(subgraph =>
+          featureSide.flatMap(target =>
+            mateSide.flatMap(mate =>
+              subgraph.pairAlignments({ target, query: mate }).map(pair =>
+                pairFeature({
+                  pair,
+                  lane: queryAssemblyName,
+                  mateLane: targetAssemblyName,
                 }),
-          )
-        : undefined
-    const walk = subgraph?.stats.anchorWalk
-    return subgraph && walk !== undefined && walk.fallback === undefined
-      ? featureSide.flatMap(target =>
-          mateSide.flatMap(mate =>
-            subgraph.pairAlignments({ target, query: mate }).map(pair =>
-              pairFeature({
-                pair,
-                lane: queryAssemblyName,
-                mateLane: targetAssemblyName,
-              }),
+              ),
             ),
           ),
         )

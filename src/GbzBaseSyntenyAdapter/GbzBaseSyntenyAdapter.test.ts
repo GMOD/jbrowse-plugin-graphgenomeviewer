@@ -454,9 +454,16 @@ const anchoredAdapter = (conf: Record<string, unknown> = {}) =>
     ...conf,
   })
 
-// HG00673#1's insertion is ~20 bp longer than HG01361#2's, so that pair holds
-// an indel, which pins which side of the record its CIGAR walks
-test.each(['HG02145#2', 'HG00673#1'])(
+const spanOf = (intervals: { start: number; end: number }[]) => ({
+  start: Math.min(...intervals.map(i => i.start)),
+  end: Math.max(...intervals.map(i => i.end)),
+})
+
+// HG00673#1's insertion is 16 bp longer than HG01361#2's, so that pair holds
+// an indel, which pins which side of the record its CIGAR walks. HG00438#1 is
+// assembled reverse to GRCh38. Each pair covers the stretch of each haplotype
+// that its own alignment to GRCh38 does, which pairAlignments never reads
+test.each(['HG02145#2', 'HG00673#1', 'HG00438#1'])(
   'a lane pair on an anchor window answers HG01361#2 aligned to %s, on HG01361#2',
   async lower => {
     const adapter = anchoredAdapter()
@@ -465,23 +472,53 @@ test.each(['HG02145#2', 'HG00673#1'])(
       targetAssemblyName: lower,
     })
     expect(records.length).toBeGreaterThan(0)
-    const upperContigs = await adapter.getRefNames({
-      assemblyName: 'HG01361#2',
-    })
-    const lowerContigs = await adapter.getRefNames({ assemblyName: lower })
     for (const f of records) {
       expect(f.get('assemblyName')).toBe('HG01361#2')
-      expect(upperContigs).toContain(f.get('refName'))
       const mate = mateOf(f)
       expect(mate.assemblyName).toBe(lower)
-      expect(lowerContigs).toContain(mate.refName)
       expect(cigarSpans(f.get('CIGAR'))).toEqual({
         feature: f.get('end') - f.get('start'),
         mate: mate.end - mate.start,
       })
     }
+    const onReference = async (lane: string) =>
+      (await feats(adapter, insertionWindow, { targetAssemblyName: lane })).map(
+        f => mateOf(f),
+      )
+    const [upper] = await onReference('HG01361#2')
+    const [mate] = await onReference(lower)
+    expect(new Set(records.map(f => f.get('refName')))).toEqual(
+      new Set([upper!.refName]),
+    )
+    expect(
+      spanOf(records.map(f => ({ start: f.get('start'), end: f.get('end') }))),
+    ).toEqual(spanOf([upper!]))
+    expect(new Set(records.map(f => mateOf(f).refName))).toEqual(
+      new Set([mate!.refName]),
+    )
+    expect(spanOf(records.map(f => mateOf(f)))).toEqual(spanOf([mate!]))
   },
 )
+
+// the same 179 bp allele assembled forward (HG01928#2) and reverse
+// (HG00438#1): a `-` record's CIGAR reads along the query lane, as a `+`
+// record's does, so the one difference from HG01361#2 sits at the same place
+test('a reverse-strand pair writes its CIGAR along the query lane', async () => {
+  const adapter = anchoredAdapter()
+  const pairWith = async (lower: string) =>
+    (
+      await feats(adapter, insertionWindow, {
+        queryAssemblyName: 'HG01361#2',
+        targetAssemblyName: lower,
+      })
+    )[0]!
+  const reverse = await pairWith('HG00438#1')
+  const forward = await pairWith('HG01928#2')
+  expect(reverse.get('strand')).toBe(-1)
+  expect(forward.get('strand')).toBe(1)
+  expect(largestGap(forward.get('CIGAR'))).toBeGreaterThan(0)
+  expect(reverse.get('CIGAR')).toBe(forward.get('CIGAR'))
+})
 
 test('the pair with an indel between its lanes writes it', async () => {
   const records = await feats(anchoredAdapter(), insertionWindow, {
@@ -585,6 +622,48 @@ test('clipToRegion keeps a lane pair whole and drops its CIGAR', async () => {
   for (const f of clippedPairs) {
     expect(f.get('CIGAR')).toBeUndefined()
   }
+})
+
+// CHM13's contigs are several fragments each in HPRC v2.1, and a cut takes the
+// fragment its window starts in alone; this fixture's are whole, so a second
+// GRCh38 chr6 fragment is reported starting mid-window
+test('a lane pair across a reference fragment boundary is cut once per fragment', async () => {
+  const adapter = anchoredAdapter()
+  const { db } = await (
+    adapter as unknown as {
+      graph: () => Promise<{
+        db: {
+          paths: () => Promise<
+            {
+              isIndexed: boolean
+              name: { sample: string; contig: string; fragment: number }
+            }[]
+          >
+          getSubgraphForRange: unknown
+        }
+      }>
+    }
+  ).graph()
+  const paths = await db.paths()
+  const grch38 = paths.find(
+    p => p.isIndexed && p.name.sample === 'GRCh38' && p.name.contig === 'chr6',
+  )!
+  const boundary = 31498700
+  const listed = vi
+    .spyOn(db, 'paths')
+    .mockResolvedValue([
+      ...paths,
+      { ...grch38, name: { ...grch38.name, fragment: boundary } },
+    ])
+  const cut = vi.spyOn(db, 'getSubgraphForRange')
+  const records = await feats(adapter, insertionWindow, pair)
+  expect(cut.mock.calls.map(([, start, end]) => [start, end]).sort()).toEqual([
+    [insertionWindow.start, boundary],
+    [boundary, insertionWindow.end],
+  ])
+  expect(records.length).toBeGreaterThan(1)
+  cut.mockRestore()
+  listed.mockRestore()
 })
 
 test('a lane pair without its target lane is refused', async () => {
