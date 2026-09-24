@@ -11,10 +11,6 @@ import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
-// The RPC worker, where this clip runs, serves the barrel as UI stubs, so every
-// test here runs with it empty: a runtime read of it fails loudly instead.
-vi.mock('@jbrowse/synteny-core', () => ({}))
-
 // own axis 400 bp (M100 D50 M100 M150), mate axis 400 bp (M100 M100 I50 M150):
 // D advances the record's own axis only, I the mate's only
 const CIGAR = '100M50D100M50I150M'

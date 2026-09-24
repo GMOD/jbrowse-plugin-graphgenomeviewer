@@ -9,11 +9,34 @@ import {
 } from './laneRamp'
 
 const displaySchema = ConfigurationSchema('LaneDisplay', {
-  color: { type: 'color', defaultValue: 'goldenrod' },
+  color: {
+    type: 'color',
+    defaultValue: 'goldenrod',
+    contextVariable: ['feature'],
+  },
 })
 
-function display() {
-  return { configuration: displaySchema.create({}) }
+// The channel shape a 5.0.0-beta.9 host keeps `color` in: an object whose
+// `value` is the expression, with a bare string routed into it.
+const channelSchema = ConfigurationSchema('ChannelLaneDisplay', {
+  color: ConfigurationSchema(
+    'ColorChannel',
+    {
+      value: {
+        type: 'string',
+        defaultValue: '',
+        contextVariable: ['feature'],
+      },
+    },
+    {
+      preProcessSnapshot: snap =>
+        typeof snap === 'string' ? { value: snap } : snap,
+    },
+  ),
+})
+
+function display(schema = displaySchema) {
+  return { configuration: schema.create({}) }
 }
 
 function view(id: string, trackId: string, d = display()) {
@@ -55,5 +78,20 @@ describe('paintSourceLane', () => {
     expect(patches).toHaveLength(1)
     paintSourceLane(d, color)
     expect(patches).toHaveLength(1)
+  })
+
+  it('reads a channel-shaped color back as painted', () => {
+    const d = display(channelSchema)
+    const patches: unknown[] = []
+    onPatch(d.configuration, patch => patches.push(patch))
+    const color = referencePositionColor({ start: 0, end: 10 })
+    paintSourceLane(d, color)
+    expect(getSnapshot(d.configuration)).toMatchObject({
+      color: { value: color },
+    })
+    const written = patches.length
+    expect(written).toBeGreaterThan(0)
+    paintSourceLane(d, color)
+    expect(patches).toHaveLength(written)
   })
 })

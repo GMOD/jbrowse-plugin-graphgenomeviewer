@@ -70,13 +70,18 @@ export function sourceLaneDisplay(
   return undefined
 }
 
-// Idempotent: an autorun re-fires on every domain read, and rewriting an
-// unchanged expression would re-render the lane for nothing.
+// Idempotent, since the autorun that calls this re-fires on every domain read.
+// A host at 5.0.0-beta.9 or later keeps `color` as a channel object whose
+// `value` holds the expression; earlier hosts keep the bare string.
 export function paintSourceLane(display: LaneDisplay, color: string) {
   const { color: current } = getSnapshot(display.configuration) as {
     color?: unknown
   }
-  if (current !== color) {
+  const painted =
+    typeof current === 'object' && current !== null && 'value' in current
+      ? current.value
+      : current
+  if (painted !== color) {
     setConf(display, 'color', color)
   }
 }

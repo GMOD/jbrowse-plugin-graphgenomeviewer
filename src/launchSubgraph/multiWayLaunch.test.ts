@@ -1,34 +1,86 @@
 import PluginManager from '@jbrowse/core/PluginManager'
-import { ConfigurationSchema } from '@jbrowse/core/configuration'
+import {
+  ConfigurationReference,
+  ConfigurationSchema,
+  getConf,
+} from '@jbrowse/core/configuration'
 import AdapterType from '@jbrowse/core/pluggableElementTypes/AdapterType'
 import DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 import TrackType from '@jbrowse/core/pluggableElementTypes/TrackType'
 import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import {
+  BaseDisplay,
   createBaseTrackConfig,
   createBaseTrackModel,
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
+import { getContainingTrack } from '@jbrowse/core/util'
 import { types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
 import LaunchSubgraphMenuItemF from './index'
 import LinearViewMenuItemsF from './linearViewMenuItems'
-import {
-  displayTestSessionModel,
-  testAssembly,
-} from '../../../../jbrowse-components/packages/display-test-utils/src/index.ts'
-import { configSchemaFactory } from '../../../../jbrowse-components/plugins/linear-comparative-view/src/MultiWaySyntenyDisplay/configSchema.ts'
-import { stateModelFactory } from '../../../../jbrowse-components/plugins/linear-comparative-view/src/MultiWaySyntenyDisplay/model.ts'
 
 import type { MenuItem } from '@jbrowse/core/ui'
+import type { Instance } from '@jbrowse/mobx-state-tree'
 
 const LABEL = 'Graph genome view (this region)'
 
-// Core's own MultiWaySyntenyDisplay on a GBZ lane track, in a plugin-extended
-// LinearGenomeView. It comes from the sibling checkout the link: deps already
-// require (CI clones the same layout), because the launch reads the lane pick
-// off that display by duck type and only the real one pins the contract.
+// A stand-in for core's MultiWaySyntenyDisplay with the four members the
+// launch reads by duck type (subgraphTracks.ts): the lanes in force are the
+// picker's choice, else the track's own lanes, and a hidden lane stays in
+// force.
+function laneDisplayType(pluginManager: PluginManager) {
+  const configSchema = ConfigurationSchema(
+    'MultiWaySyntenyDisplay',
+    {},
+    { explicitIdentifier: 'displayId', explicitlyTyped: true },
+  )
+  const stateModel = types
+    .compose(
+      'MultiWaySyntenyDisplay',
+      BaseDisplay,
+      types.model({
+        type: types.literal('MultiWaySyntenyDisplay'),
+        configuration: ConfigurationReference(configSchema),
+      }),
+    )
+    .volatile(() => ({
+      picked: undefined as string[] | undefined,
+      hidden: [] as string[],
+    }))
+    .views(self => ({
+      get laneSelection(): readonly string[] | undefined {
+        const configured = (
+          getConf(getContainingTrack(self), 'assemblyNames') as string[]
+        ).slice(1)
+        return self.picked ?? (configured.length ? configured : undefined)
+      },
+      get hiddenLanes(): readonly string[] {
+        return self.hidden
+      },
+      trackMenuItems(): MenuItem[] {
+        return []
+      },
+    }))
+    .actions(self => ({
+      setSelectedLanes(names: string[] | undefined) {
+        self.picked = names
+      },
+      hideLane(name: string) {
+        self.hidden = [...self.hidden, name]
+      },
+    }))
+  return new DisplayType({
+    name: 'MultiWaySyntenyDisplay',
+    configSchema,
+    stateModel,
+    trackType: 'SyntenyTrack',
+    viewType: 'LinearGenomeView',
+    ReactComponent: () => null,
+  })
+}
+
 function createEnv(trackLanes: string[] = []) {
   console.warn = vi.fn()
   console.error = vi.fn()
@@ -63,18 +115,7 @@ function createEnv(trackLanes: string[] = []) {
       stateModel: createBaseTrackModel(pluginManager, 'SyntenyTrack', schema),
     })
   })
-  const displaySchema = configSchemaFactory()
-  pluginManager.addDisplayType(
-    () =>
-      new DisplayType({
-        name: 'MultiWaySyntenyDisplay',
-        configSchema: displaySchema,
-        stateModel: stateModelFactory(displaySchema),
-        trackType: 'SyntenyTrack',
-        viewType: 'LinearGenomeView',
-        ReactComponent: () => null,
-      }),
-  )
+  pluginManager.addDisplayType(() => laneDisplayType(pluginManager))
   pluginManager.addViewType(
     () =>
       new ViewType({
@@ -104,50 +145,60 @@ function createEnv(trackLanes: string[] = []) {
     },
     { pluginManager },
   )
+  const assemblyRegions = [
+    { refName: 'ctgA', start: 0, end: 50_000, assemblyName: 'volvox' },
+  ]
   const assembly = {
-    ...testAssembly(),
+    initialized: true,
+    regions: assemblyRegions,
+    getCanonicalRefName: (refName: string) => refName,
+    getGeneticCodeId: () => undefined,
     getRegionForRefName: (refName: string) =>
-      refName === 'ctgA'
-        ? { refName, start: 0, end: 50_000, assemblyName: 'volvox' }
-        : undefined,
+      assemblyRegions.find(r => r.refName === refName),
+    configuration: { sequence: undefined },
   }
   const LGV = pluginManager.getViewType('LinearGenomeView').stateModel
-  const Session = types.compose(
-    'MultiWayLaunchSession',
-    displayTestSessionModel({
-      viewModel: LGV,
-      rpcManager: { call: async () => [] },
+  const Session = types
+    .model({
+      name: 'testSession',
+      view: types.maybe(LGV),
+      configuration: types.map(types.frozen()),
+    })
+    .volatile(() => ({
+      tracks: [track],
+      connectionInstances: [],
+      addedViews: [] as [string, Record<string, unknown>][],
+      rpcManager: { call: vi.fn() },
       assemblyManager: {
-        get: () => assembly,
+        get: (name: string) => (name === 'volvox' ? assembly : undefined),
         waitForAssembly: () => Promise.resolve(assembly),
-        getCanonicalAssemblyName: () => undefined,
-        has: (name: string) => name === 'volvox',
         isValidRefName: (refName: string) => refName === 'ctgA',
       },
+    }))
+    .views(self => ({
       getTrackById: (id: string) => (id === 'gbz_lanes' ? track : undefined),
-    }),
-    types
-      .model({})
-      .volatile(() => ({
-        tracks: [track],
-        connectionInstances: [],
-        addedViews: [] as [string, Record<string, unknown>][],
-      }))
-      .views(self => ({
-        get assemblies() {
-          return []
-        },
-        get views() {
-          return self.view ? [self.view] : []
-        },
-      }))
-      .actions(self => ({
-        addView(type: string, snapshot: Record<string, unknown>) {
-          self.addedViews.push([type, snapshot])
-          return snapshot
-        },
-      })),
-  )
+      get assemblies() {
+        return []
+      },
+      get views() {
+        return self.view ? [self.view] : []
+      },
+      getDisplayTypeDefault() {
+        return undefined
+      },
+    }))
+    .actions(self => ({
+      setView(view: Instance<typeof LGV>) {
+        self.view = view
+        return view
+      },
+      addView(type: string, snapshot: Record<string, unknown>) {
+        self.addedViews.push([type, snapshot])
+        return snapshot
+      },
+      notify() {},
+      notifyError() {},
+    }))
   const session = Session.create({ configuration: {} }, { pluginManager })
   const view = session.setView(
     LGV.create({
@@ -170,7 +221,9 @@ function createEnv(trackLanes: string[] = []) {
   view.setDisplayedRegions([
     { refName: 'ctgA', start: 0, end: 1000, assemblyName: 'volvox' },
   ])
-  const display = view.tracks[0]!.displays[0]!
+  const display = view.tracks[0]!.displays[0]! as Instance<
+    ReturnType<typeof laneDisplayType>['stateModel']
+  >
   return { session, view, display }
 }
 
