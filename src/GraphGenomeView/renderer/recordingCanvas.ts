@@ -11,15 +11,6 @@
 // Not bundled: nothing under src/index.ts imports this, so it never ships. Same
 // arrangement as launchSubgraph/testEnv.ts.
 
-export interface RecordedDraws {
-  strokes: string[]
-  fills: string[]
-  // The lineWidth each stroke went out with, parallel to `strokes`. An edge is
-  // the one thing this renderer draws as a stroke rather than as a mesh, so its
-  // weight is not visible in `points` the way a node's cap overhang is.
-  lineWidths: number[]
-}
-
 // `points` is every coordinate the renderer asked for, in BACKING-STORE pixels
 // — the far end of the whole pipeline. Counting draw calls says the renderer ran;
 // this says where it put things, which is the only way to check a transform

@@ -2,6 +2,14 @@ import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
 
 import type { NodeSegment } from '../types'
 
+// An SVG path along a polyline, rounded to two decimals.
+export function svgPath(points: NodeSegment[]) {
+  const round = (v: number) => Math.round(v * 100) / 100
+  return points
+    .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
+    .join('')
+}
+
 export function projectLine(
   x1: number,
   y1: number,

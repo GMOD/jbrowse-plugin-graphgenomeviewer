@@ -1,5 +1,6 @@
 import { bubbleSegmentIds, classifyBubble, formatBp } from './classifyBubble'
 import { isBackbone } from '../anchoredNodes'
+import { svgPath } from '../util/geometry'
 
 import type { BubbleKind } from './classifyBubble'
 import type {
@@ -71,10 +72,8 @@ export function bubbleHalos(
         continue
       }
       nodeIds.push(node.id)
-      parts.push(pathOf(line))
-      if (line.length === 1) {
-        parts.push(`L${round(line[0]!.x)},${round(line[0]!.y)}`)
-      }
+      // a one-point line still needs a segment to stroke as a dot
+      parts.push(svgPath(line.length === 1 ? [line[0]!, line[0]!] : line))
       for (const p of line) {
         if (!top || p.y < top.y) {
           top = p
@@ -147,14 +146,4 @@ function routeText(route: BubbleRoute, walkLabel: (name: string) => string) {
   const more =
     names.length > NAMED_WALKS ? ` +${names.length - NAMED_WALKS}` : ''
   return `${shown}${more} · ${formatBp(route.bp)}`
-}
-
-function round(v: number) {
-  return Math.round(v * 100) / 100
-}
-
-function pathOf(line: NodeSegment[]) {
-  return line
-    .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
-    .join('')
 }

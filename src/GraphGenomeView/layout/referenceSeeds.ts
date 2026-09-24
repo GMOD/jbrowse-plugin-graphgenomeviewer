@@ -1,4 +1,5 @@
 import { isBackbone } from '../anchoredNodes'
+import { buildNeighbors } from '../referenceSpan'
 import { drawnNodeLength } from './drawnScale'
 
 import type { LayoutScaling } from './drawnScale'
@@ -48,19 +49,7 @@ export function referenceSeeds(
     x += drawnOf(node.id) + opts.edgeLength
   }
 
-  const adjacent = new Map<string, string[]>()
-  const link = (from: string, to: string) => {
-    let list = adjacent.get(from)
-    if (!list) {
-      list = []
-      adjacent.set(from, list)
-    }
-    list.push(to)
-  }
-  for (const edge of graph.edges) {
-    link(edge.from, edge.to)
-    link(edge.to, edge.from)
-  }
+  const adjacent = buildNeighbors(graph)
 
   const depth = new Map(backbone.map(node => [node.id, 0]))
   // for-of over an array that grows as it goes: the iterator reads the live

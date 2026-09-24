@@ -1,8 +1,12 @@
 import { placeOffReference } from './placeOffReference'
 import { ROW_HEIGHT_PX } from './rowSpacing'
-import { backboneNodes, referenceSpan } from '../anchoredNodes'
+import {
+  backboneNodes,
+  backbonePositions,
+  referenceSpan,
+} from '../anchoredNodes'
 
-import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
+import type { Graph, LayoutResult, RowLabel } from '../types'
 
 // Layout for rGFA, where the graph states its own backbone instead of leaving a
 // force simulation to find one. Every segment carries SN/SO/SR (gfatools
@@ -16,16 +20,6 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 //      rGFA viewer (VRPG) does it: rank 0 is the reference line, higher ranks
 //      below it in order. In SCREEN PIXELS, not bp — see rowSpacing.ts, shared
 //      with the sample-row layout.
-
-// Floor on the drawn span of an *off-reference* node, as a fraction of the
-// window. Node thickness is a constant number of screen pixels, so at a 50 kb
-// window the median 349 bp allele came out ~9 px long against a ~12 px thick
-// tube — wider than it was long, drawing as a dot on a stalk rather than the
-// second arc of a bubble.
-//
-// Rank-0 nodes keep the exact offsets they declare, so the reference axis — the
-// whole reason to prefer this layout over FMMM — is untouched by the floor.
-const MIN_OFF_REFERENCE_SPAN_FRACTION = 0.015
 
 // Rank is a property of the whole graph, not of the window being drawn: HPRC's
 // minigraph graph ranks up to 89, but an MHC window holds only ranks
@@ -57,17 +51,11 @@ export function anchoredLayout(
 
   // Row 0 by construction: a backbone exists, so rank 0 is present, and
   // `rankRows` numbers the present ranks in ascending order.
-  const nodePositions: Record<string, NodeSegment[]> = {}
-  for (const node of backbone) {
-    nodePositions[node.id] = [
-      { x: node.stable.start, y: 0 },
-      { x: node.stable.start + node.length, y: 0 },
-    ]
-  }
+  const nodePositions = backbonePositions(backbone)
 
   const alleleDeletions = placeOffReference({
     graph,
-    minSpan: span * MIN_OFF_REFERENCE_SPAN_FRACTION,
+    span,
     rowY: node =>
       (node.stable ? (rows.get(node.stable.rank) ?? rows.size) : rows.size) *
       ROW_HEIGHT_PX,

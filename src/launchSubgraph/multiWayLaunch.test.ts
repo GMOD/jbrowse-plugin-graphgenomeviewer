@@ -30,7 +30,7 @@ const LABEL = 'Graph genome view (this region)'
 // launch reads by duck type (subgraphTracks.ts): the lanes in force are the
 // picker's choice, else the track's own lanes, and a hidden lane stays in
 // force.
-function laneDisplayType(pluginManager: PluginManager) {
+function laneDisplayType() {
   const configSchema = ConfigurationSchema(
     'MultiWaySyntenyDisplay',
     {},
@@ -51,8 +51,9 @@ function laneDisplayType(pluginManager: PluginManager) {
     }))
     .views(self => ({
       get laneSelection(): readonly string[] | undefined {
-        const configured = (
-          getConf(getContainingTrack(self), 'assemblyNames') as string[]
+        const configured = getConf(
+          getContainingTrack(self),
+          'assemblyNames',
         ).slice(1)
         return self.picked ?? (configured.length ? configured : undefined)
       },
@@ -115,7 +116,7 @@ function createEnv(trackLanes: string[] = []) {
       stateModel: createBaseTrackModel(pluginManager, 'SyntenyTrack', schema),
     })
   })
-  pluginManager.addDisplayType(() => laneDisplayType(pluginManager))
+  pluginManager.addDisplayType(() => laneDisplayType())
   pluginManager.addViewType(
     () =>
       new ViewType({
@@ -221,9 +222,7 @@ function createEnv(trackLanes: string[] = []) {
   view.setDisplayedRegions([
     { refName: 'ctgA', start: 0, end: 1000, assemblyName: 'volvox' },
   ])
-  const display = view.tracks[0]!.displays[0]! as Instance<
-    ReturnType<typeof laneDisplayType>['stateModel']
-  >
+  const display = view.tracks[0]!.displays[0]!
   return { session, view, display }
 }
 

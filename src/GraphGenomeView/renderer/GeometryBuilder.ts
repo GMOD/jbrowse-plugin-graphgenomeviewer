@@ -847,7 +847,8 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
     // collapse into one as you zoom out.
     const slots = nodePathSlots.get(nodeId)
     const slotWidth = width / pathCount
-    if (slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
+    const drawable = segments.length >= 2
+    if (drawable && slots?.length && slotWidth >= MIN_PATH_STRIPE_PX) {
       const normals = pointNormalsOf(segments, yToX)
       const worldPerScreenPx = 1 / Math.max(scale, MIN_SCALE_FOR_OFFSET)
       for (const slot of slots) {
@@ -861,7 +862,7 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
           color: faded ? fadeAbgr(stripe, FADED_ALPHA) : stripe,
         })
       }
-    } else if (segments.length >= 2) {
+    } else if (drawable) {
       nodeStrokes.push({ points: segments, thickness: nodeThickness, color })
     }
     const count = nodeStrokes.length - start

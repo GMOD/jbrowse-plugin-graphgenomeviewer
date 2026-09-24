@@ -1,5 +1,6 @@
-import { isBackbone } from '../anchoredNodes'
+import { firstNodeAtOrAfter, isBackbone } from '../anchoredNodes'
 import { polylineSlice } from '../layout/mergeRuns'
+import { svgPath } from '../util/geometry'
 
 import type { GeneModel } from './geneFeatures'
 import type { AnchoredNode } from '../anchoredNodes'
@@ -28,36 +29,12 @@ function contig(name: string) {
   return name.split('#').at(-1)!
 }
 
-function round(v: number) {
-  return Math.round(v * 100) / 100
-}
-
-function pathOf(points: NodeSegment[]) {
-  return points
-    .map((p, i) => `${i ? 'L' : 'M'}${round(p.x)},${round(p.y)}`)
-    .join('')
-}
-
 // The backbone of one contig in offset order, for finding the nodes a gene
 // lies over without reading the rest. `reach` is the longest node: a node over
 // a gene's start begins no further before it than that.
 interface ContigBackbone {
   nodes: AnchoredNode[]
   reach: number
-}
-
-function firstAtOrAfter(nodes: AnchoredNode[], bp: number) {
-  let lo = 0
-  let hi = nodes.length
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1
-    if (nodes[mid]!.stable.start < bp) {
-      lo = mid + 1
-    } else {
-      hi = mid
-    }
-  }
-  return lo
 }
 
 export function genePins(
@@ -100,7 +77,7 @@ export function genePins(
     const mid = (gene.start + gene.end) / 2
     const { nodes, reach } = backbone
     for (
-      let i = firstAtOrAfter(nodes, gene.start - reach);
+      let i = firstNodeAtOrAfter(nodes, gene.start - reach);
       i < nodes.length && nodes[i]!.stable.start < gene.end;
       i++
     ) {
@@ -126,7 +103,7 @@ export function genePins(
         if (stretch.length === 1) {
           stretch.push({ ...stretch[0]! })
         }
-        parts.push(pathOf(stretch))
+        parts.push(svgPath(stretch))
       }
       const pinBp = Math.min(Math.max(mid, nodeStart), nodeEnd)
       const distance = Math.abs(pinBp - mid)

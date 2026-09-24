@@ -1,3 +1,4 @@
+import { SATURATED_PATH_COUNT } from '../../MinigraphBubbleAdapter/bubbleLine'
 import { isBackbone } from '../anchoredNodes'
 import { referenceOrder } from '../layout/orderedLayout'
 
@@ -24,9 +25,6 @@ import type { Graph, GraphNode } from '../types'
 // immune to a repeat array whose copies the order cannot direct), and from a
 // DP over the ordered DAG otherwise. A reversed stretch comes out as one
 // bubble whose interior runs against the reference, not as an inversion flag.
-
-// gfatools' int32 clamp, so a derived count reads the same as an indexed one
-const SATURATE = 2147483647
 
 interface Routes {
   min: number
@@ -111,7 +109,7 @@ export function bubblesFromGraph(graph: Graph): MinigraphBubble[] {
         best.set(t, {
           min: Math.min(prev?.min ?? Infinity, cur.min + add),
           max: Math.max(prev?.max ?? -Infinity, cur.max + add),
-          n: Math.min(SATURATE, cur.n + (prev?.n ?? 0)),
+          n: Math.min(SATURATED_PATH_COUNT, cur.n + (prev?.n ?? 0)),
         })
       }
     }

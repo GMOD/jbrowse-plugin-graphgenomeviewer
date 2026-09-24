@@ -481,11 +481,20 @@ export function graphLabels({
             LABEL_HALF_HEIGHT,
             height - LABEL_HALF_HEIGHT,
           )
-      // Recomputed from where the label ACTUALLY sits, not from the bow, or
-      // the line points off at the position the label would have had.
+      // From where the label actually sits, not from the bow, or the line
+      // points off at the position the label would have had.
       const away = Math.hypot(x - arcX, y - arcY)
-      const dir = { x: (x - arcX) / away, y: (y - arcY) / away }
-      const crossing = boxRayCrossing(box, dir)
+      let leader
+      if (away > 0) {
+        const dir = { x: (x - arcX) / away, y: (y - arcY) / away }
+        const crossing = boxRayCrossing(box, dir)
+        leader = {
+          arcX,
+          arcY,
+          labelX: x - dir.x * crossing,
+          labelY: y - dir.y * crossing,
+        }
+      }
       candidates.push({
         label: {
           key: `del:${deletion.edgeIndex}`,
@@ -493,15 +502,7 @@ export function graphLabels({
           x,
           y,
           kind: 'deletion',
-          leader:
-            fits || away === 0
-              ? undefined
-              : {
-                  arcX,
-                  arcY,
-                  labelX: x - dir.x * crossing,
-                  labelY: y - dir.y * crossing,
-                },
+          leader,
         },
         box: boxAt(halfW, x, y),
       })

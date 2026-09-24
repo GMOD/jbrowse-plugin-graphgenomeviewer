@@ -184,8 +184,6 @@ function countDrawCalls(batch: ReturnType<typeof buildGeometry>) {
     scaleY: 1,
     translateX: 0,
     translateY: 0,
-    viewportWidth: 800,
-    viewportHeight: 600,
     dpr: 1,
   })
   renderer.render([1, 1, 1, 1])

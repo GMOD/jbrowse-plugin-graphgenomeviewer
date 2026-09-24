@@ -23,8 +23,6 @@ const TRANSFORM: TransformUniform = {
   scaleY: 1,
   translateX: 0,
   translateY: 0,
-  viewportWidth: 800,
-  viewportHeight: 600,
   dpr: 1,
 }
 

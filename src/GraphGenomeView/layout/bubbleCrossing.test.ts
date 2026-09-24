@@ -168,7 +168,7 @@ test('two members joined by an edge do not overlap in x', () => {
   const graph = convertGFAToGraph(parseGFA(gfa('ecoli_rgfa_slice.gfa')))
   const positions = anchoredLayout(graph)!.nodePositions
   const runOf = new Map<string, ProjectedAllele>()
-  for (const allele of projectAlleles(graph).alleles) {
+  for (const allele of projectAlleles(graph)) {
     for (const id of allele.nodeIds) {
       runOf.set(id, allele)
     }

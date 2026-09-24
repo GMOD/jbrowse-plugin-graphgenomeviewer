@@ -56,8 +56,6 @@ export interface TransformUniform {
   scaleY: number
   translateX: number
   translateY: number
-  viewportWidth: number
-  viewportHeight: number
   // Backing-store pixels per css pixel, from render-core's `getDpr()`. Every
   // other field here is already multiplied by it, because a position goes
   // through the transform; a THICKNESS does not, so the renderer applies the

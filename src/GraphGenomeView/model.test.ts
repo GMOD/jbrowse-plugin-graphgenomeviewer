@@ -2235,8 +2235,6 @@ describe('what the row axis draws, in pixels', () => {
       scaleY: model.scaleY,
       translateX: model.translateX,
       translateY: model.translateY,
-      viewportWidth: model.width,
-      viewportHeight: model.canvasHeight,
       dpr: 1,
     })
     renderer.render([1, 1, 1, 1])

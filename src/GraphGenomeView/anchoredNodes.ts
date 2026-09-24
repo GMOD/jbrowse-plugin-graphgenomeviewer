@@ -1,4 +1,4 @@
-import type { Graph, GraphNode } from './types'
+import type { Graph, GraphNode, NodeSegment } from './types'
 import type { StableCoordinate } from '../gfa-core/index'
 
 // A node whose stable coordinate is known to be present. rGFA states SN/SO/SR
@@ -33,6 +33,34 @@ export function isOffReference(node: GraphNode): node is AnchoredNode {
 
 export function backboneNodes(graph: Graph) {
   return graph.nodes.filter(isBackbone)
+}
+
+// The backbone on row 0 at its declared offsets: the x axis of every layout
+// whose x is reference bp.
+export function backbonePositions(backbone: AnchoredNode[]) {
+  const positions: Record<string, NodeSegment[]> = {}
+  for (const node of backbone) {
+    positions[node.id] = [
+      { x: node.stable.start, y: 0 },
+      { x: node.stable.start + node.length, y: 0 },
+    ]
+  }
+  return positions
+}
+
+// Index of the first node starting at or after `bp`, in a list sorted by start.
+export function firstNodeAtOrAfter(nodes: AnchoredNode[], bp: number) {
+  let lo = 0
+  let hi = nodes.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (nodes[mid]!.stable.start < bp) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
+  }
+  return lo
 }
 
 // bp the backbone covers in this subgraph. Both anchored layouts scale their row

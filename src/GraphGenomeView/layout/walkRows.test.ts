@@ -163,8 +163,15 @@ test('a walk that crosses the window backwards reads in reference direction', ()
   )!
   expect(forward).toBeDefined()
   const path = graph.paths!.find(p => p.name === forward.name)!
-  const backwards = { ...path, name: 'backwards', nodeIds: [...path.nodeIds].reverse() }
-  const cut = walkRows({ ...graph, paths: [...graph.paths!, backwards] }, region)!
+  const backwards = {
+    ...path,
+    name: 'backwards',
+    nodeIds: [...path.nodeIds].reverse(),
+  }
+  const cut = walkRows(
+    { ...graph, paths: [...graph.paths!, backwards] },
+    region,
+  )!
   const row = cut.rows.find(r => r.name === 'backwards')!
   expect(row.complete).toBe(true)
   expect(row.runs).toEqual(forward.runs)

@@ -1,4 +1,4 @@
-import { isBackbone } from './anchoredNodes'
+import { firstNodeAtOrAfter, isBackbone } from './anchoredNodes'
 import { computeEdgeCurves } from './util/geometry'
 
 import type { AnchoredNode } from './anchoredNodes'
@@ -120,21 +120,6 @@ function backboneBySequence(graph: Graph) {
   return bySequence
 }
 
-// Index of the first node starting at or after `start`, by bisection.
-function lowerBound(nodes: AnchoredNode[], start: number) {
-  let lo = 0
-  let hi = nodes.length
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1
-    if (nodes[mid]!.stable.start < start) {
-      lo = mid + 1
-    } else {
-      hi = mid
-    }
-  }
-  return lo
-}
-
 // Backbone nodes lying wholly inside [start, end) on `refName`. Sorted by
 // start, so the candidates are one contiguous run and the walk stops at the
 // first node starting past the end; only the upper bound still needs testing
@@ -146,7 +131,7 @@ function bypassedNodes(
 ) {
   const bypassed: string[] = []
   if (nodes) {
-    for (let i = lowerBound(nodes, start); i < nodes.length; i++) {
+    for (let i = firstNodeAtOrAfter(nodes, start); i < nodes.length; i++) {
       const node = nodes[i]!
       if (node.stable.start >= end) {
         break

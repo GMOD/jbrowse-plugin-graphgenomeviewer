@@ -73,7 +73,7 @@ export function bubbleLabel(bubble: MinigraphBubble) {
 // gfatools counts paths into an int32 and clamps at its maximum rather than
 // overflowing, so this exact value is a "more than I can count" sentinel and not
 // a measurement. 406 of HPRC release 2's 130,510 bubbles hit it.
-const SATURATED_PATH_COUNT = 2147483647
+export const SATURATED_PATH_COUNT = 2147483647
 
 // The rest of the shape, for the description line. `pathCount` is the number of
 // ways through the bubble, which is combinatorial rather than a count of

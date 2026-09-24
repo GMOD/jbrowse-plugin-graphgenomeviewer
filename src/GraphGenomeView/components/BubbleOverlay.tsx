@@ -1,6 +1,7 @@
 import { Button } from '@mui/material'
 import { observer } from 'mobx-react'
 
+import { LABEL_CHAR_PX } from './overlayLabels'
 import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
 
 import type { GraphGenomeViewModel } from '../model'
@@ -36,7 +37,6 @@ const backButtonStyle = {
 const LABEL_ROW_PX = 15
 const MAX_LABEL_ROWS = 8
 const LEGEND_PX = 150
-const LABEL_CHAR_PX = 6.2
 const MIN_GLYPH_PX = 10
 
 function glyphHeight(bp: number, room: number) {

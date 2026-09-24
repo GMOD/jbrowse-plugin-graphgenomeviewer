@@ -1,3 +1,5 @@
+import { SATURATED_PATH_COUNT } from '../../MinigraphBubbleAdapter/bubbleLine'
+
 import type { MinigraphBubble } from '../../MinigraphBubbleAdapter/bubbleLine'
 
 // What kind of variation a bubble is, read off the numbers `gfatools bubble`
@@ -21,9 +23,6 @@ export interface BubbleClass {
   label: string
 }
 
-// gfatools counts routes into an int32 and clamps at its maximum; a nested
-// superbubble's count is combinatorial and reaches it.
-const SATURATED_ROUTES = 2147483647
 const SUPERBUBBLE_SEGMENTS = 40
 
 export function formatBp(bp: number) {
@@ -46,7 +45,7 @@ function formatBpRange(shortest: number, longest: number) {
 }
 
 function routes(count: number) {
-  if (count >= SATURATED_ROUTES) {
+  if (count >= SATURATED_PATH_COUNT) {
     return '≥2.1B routes'
   }
   if (count >= 100_000) {

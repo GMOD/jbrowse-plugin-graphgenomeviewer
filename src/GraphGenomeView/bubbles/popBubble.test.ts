@@ -54,11 +54,19 @@ describe('bubbleSubgraph', () => {
   })
 
   it('keeps the path origins and visits the walk rows measure from', () => {
-    const anchorPaths = [{ name: 'ref', sample: 'ref', start: 1000, length: 40 }]
+    const anchorPaths = [
+      { name: 'ref', sample: 'ref', start: 1000, length: 40 },
+    ]
     const pathVisits = new Map([
-      ['s1', [{ path: 'ref', sample: 'ref', start: 1000, strand: '+' as const }]],
+      [
+        's1',
+        [{ path: 'ref', sample: 'ref', start: 1000, strand: '+' as const }],
+      ],
     ])
-    const sub = bubbleSubgraph({ ...graph, anchorPaths, pathVisits }, ['s2', 's3'])
+    const sub = bubbleSubgraph({ ...graph, anchorPaths, pathVisits }, [
+      's2',
+      's3',
+    ])
     expect(sub.anchorPaths).toBe(anchorPaths)
     expect(sub.pathVisits).toBe(pathVisits)
   })

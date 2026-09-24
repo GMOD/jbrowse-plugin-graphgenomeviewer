@@ -21,22 +21,23 @@ import type { AlleleDeletion, Graph, NodeSegment } from '../types'
 // node tooltip, and drawn to scale in the allele-inventory track, where a CIGAR
 // gives the alignments display a channel for length that is not the x axis.
 
-// Reference bp an allele has to skip before the drawing calls it a deletion.
-// The same 1 bp floor `deletionEdges` uses, and for the same reason: it is not a
-// biological threshold but a guard against a rounding artifact, since anchors
-// that abut leave a gap of exactly zero. What actually decides whether a small
-// one is DRAWN is the label's fit against the run's own drawn extent, in
-// graphLabels — a 2 bp skip in a pggb graph occupies a floor-width sliver that
-// no label fits on, and is culled there rather than by a number here.
+// Reference bp an allele has to skip before the drawing calls it a deletion:
+// the 1 bp floor `deletionEdges` uses, a guard against abutting anchors' zero
+// gap rather than a biological threshold. Whether a small one is drawn is
+// decided by its label's fit in graphLabels.
 const MIN_DELETION_BP = 1
+
+// Floor on an off-reference node's drawn span, as a fraction of the window.
+// Node thickness is a constant number of screen pixels, so a segment on a
+// sub-percent slice of the window draws wider than it is long and reads as a
+// dot on a stalk, and a pure insertion occupies no reference at all. Rank-0
+// nodes keep their exact offsets, so the reference axis is untouched.
+const MIN_ALLELE_SPAN_FRACTION = 0.015
 
 interface PlaceArgs {
   graph: Graph
-  // visibility floor in bp. Node thickness is a constant number of screen
-  // pixels, so a segment occupying a sub-percent slice of the window draws
-  // wider than it is long and reads as a dot on a stalk. A pure insertion
-  // occupies exactly zero reference, so without a floor it would not draw.
-  minSpan: number
+  // the reference interval the drawing is scaled against (referenceSpan)
+  span: number
   // y for a segment, which is the whole of what the two layouts disagree about
   rowY: (node: Graph['nodes'][number]) => number
   // the backbone, already placed at its declared offsets. Mutated in place, and
@@ -46,11 +47,12 @@ interface PlaceArgs {
 
 export function placeOffReference({
   graph,
-  minSpan,
+  span,
   rowY,
   positions,
 }: PlaceArgs): AlleleDeletion[] {
-  const { alleles } = projectAlleles(graph)
+  const minSpan = span * MIN_ALLELE_SPAN_FRACTION
+  const alleles = projectAlleles(graph)
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
   // Alleles standing in for more reference than they carry. Collected here
   // rather than derived by the label pass, because the reason they need saying

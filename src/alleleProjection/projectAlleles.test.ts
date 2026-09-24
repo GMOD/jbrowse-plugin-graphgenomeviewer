@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
 
 import { parsePanSN, projectAlleles } from './projectAlleles'
+import { isOffReference } from '../GraphGenomeView/anchoredNodes'
 import { convertGFAToGraph } from '../GraphGenomeView/gfa/gfaConverter'
 import { parseGFA } from '../gfa-core/index'
 
@@ -17,53 +18,46 @@ function ecoliGraph() {
 test('rGFA carries no walks, so the projection cannot depend on them', () => {
   const graph = ecoliGraph()
   expect(graph.paths ?? []).toHaveLength(0)
-  expect(projectAlleles(graph).alleles.length).toBeGreaterThan(0)
+  expect(projectAlleles(graph).length).toBeGreaterThan(0)
 })
 
-test('attributes alleles to contributing assemblies, never to genotypes', () => {
-  const { samples, attribution } = projectAlleles(ecoliGraph())
-  expect(attribution).toBe('source-assembly')
-  // K12 is the backbone, so it is never an allele source
-  expect(samples).not.toContain('K12')
-  expect(samples).toEqual(['CFT073', 'NCTC86', 'Sakai'])
-})
-
-test('anchors alleles on the reference and states a span for each', () => {
-  const { alleles } = projectAlleles(ecoliGraph())
+test('anchors alleles on the reference and places each node within its run', () => {
+  const alleles = projectAlleles(ecoliGraph())
   for (const allele of alleles) {
-    expect(allele.refName).toBe('K12#1#chr')
     expect(allele.refSpan).toBeGreaterThanOrEqual(0)
-    expect(allele.end).toBeGreaterThanOrEqual(allele.start)
-    expect(allele.altLength).toBeGreaterThan(0)
-    expect(allele.delta).toBe(allele.altLength - allele.refSpan)
+    expect(allele.nodeIds.length).toBeGreaterThan(0)
+    expect(allele.nodeOffsets).toHaveLength(allele.nodeIds.length)
+    expect(Math.min(...allele.nodeOffsets)).toBe(0)
+    expect(allele.pathLength).toBeGreaterThanOrEqual(
+      Math.max(...allele.nodeOffsets),
+    )
+  }
+  for (let i = 1; i < alleles.length; i++) {
+    expect(alleles[i]!.start).toBeGreaterThanOrEqual(alleles[i - 1]!.start)
   }
 })
 
 // The naive per-segment version produced refSpan -22067 here by taking whichever
-// anchor it saw last; a negative span must never be emitted.
+// anchor it saw last; a negative span must never be emitted, and a run with one
+// anchor at the window's edge is left out rather than given one.
 test('declines to state a span rather than emitting a backwards one', () => {
-  const { alleles, unanchored } = projectAlleles(ecoliGraph())
+  const graph = ecoliGraph()
+  const alleles = projectAlleles(graph)
   expect(alleles.every(a => a.refSpan >= 0)).toBe(true)
-  expect(unanchored).toBeGreaterThan(0)
-})
-
-test('classification follows the sign of altLength - refSpan', () => {
-  const { alleles } = projectAlleles(ecoliGraph())
-  for (const a of alleles) {
-    const expected =
-      a.delta > 0 ? 'insertion' : a.delta < 0 ? 'deletion' : 'substitution'
-    expect(a.kind).toBe(expected)
-  }
-  expect(alleles.some(a => a.kind === 'insertion')).toBe(true)
-  expect(alleles.some(a => a.kind === 'deletion')).toBe(true)
+  const placed = new Set(alleles.flatMap(a => a.nodeIds))
+  const unanchored = graph.nodes.filter(
+    n => isOffReference(n) && !placed.has(n.id),
+  )
+  expect(unanchored.length).toBeGreaterThan(0)
 })
 
 test('chains multi-segment bubble paths into one allele', () => {
-  const { alleles } = projectAlleles(ecoliGraph())
-  const multi = alleles.filter(a => a.segmentIds.length > 1)
+  const alleles = projectAlleles(ecoliGraph())
+  const multi = alleles.filter(a => a.nodeIds.length > 1)
   expect(multi.length).toBeGreaterThan(0)
   for (const a of multi) {
-    expect(a.altLength).toBeGreaterThan(0)
+    expect(new Set(a.nodeIds).size).toBe(a.nodeIds.length)
+    expect(a.pathLength).toBeGreaterThan(0)
   }
 })
 
@@ -77,7 +71,5 @@ test('parsePanSN reads sample and haplotype, tolerating bare contig names', () =
 })
 
 test('an empty graph projects to nothing rather than throwing', () => {
-  const empty = projectAlleles({ name: 'empty', nodes: [], edges: [] })
-  expect(empty.alleles).toEqual([])
-  expect(empty.samples).toEqual([])
+  expect(projectAlleles({ name: 'empty', nodes: [], edges: [] })).toEqual([])
 })

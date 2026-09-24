@@ -1,6 +1,6 @@
-import { backboneNodes } from '../anchoredNodes'
+import { backboneNodes, backbonePositions } from '../anchoredNodes'
 
-import type { Graph, LayoutResult, NodeSegment } from '../types'
+import type { Graph, LayoutResult } from '../types'
 
 // The reference alone, at its bp, as one line. Everything off the reference is
 // left unplaced, so the renderer draws no allele nodes: the variation is drawn
@@ -12,12 +12,9 @@ export function variantMapLayout(graph: Graph): LayoutResult | undefined {
   if (backbone.length === 0) {
     return undefined
   }
-  const nodePositions: Record<string, NodeSegment[]> = {}
-  for (const node of backbone) {
-    nodePositions[node.id] = [
-      { x: node.stable.start, y: 0 },
-      { x: node.stable.start + node.length, y: 0 },
-    ]
+  return {
+    nodePositions: backbonePositions(backbone),
+    referenceAxis: true,
+    pixelRows: true,
   }
-  return { nodePositions, referenceAxis: true, pixelRows: true }
 }

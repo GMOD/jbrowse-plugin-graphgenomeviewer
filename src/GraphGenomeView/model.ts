@@ -2551,8 +2551,6 @@ export default function stateModelFactory() {
               scaleY: self.scaleY * dpr,
               translateX: self.translateX * dpr,
               translateY: self.translateY * dpr,
-              viewportWidth: self.width * dpr,
-              viewportHeight: self.canvasHeight * dpr,
               // Handed over rather than read again by the backend: the
               // thicknesses in the vertex buffer are css px and are expanded
               // after this transform, so they need the same ratio the fields

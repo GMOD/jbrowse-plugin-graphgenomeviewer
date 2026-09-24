@@ -1,9 +1,14 @@
 import { placeOffReference } from './placeOffReference'
 import { ROW_HEIGHT_PX } from './rowSpacing'
 import { parsePanSN } from '../../alleleProjection/projectAlleles'
-import { backboneNodes, isOffReference, referenceSpan } from '../anchoredNodes'
+import {
+  backboneNodes,
+  backbonePositions,
+  isOffReference,
+  referenceSpan,
+} from '../anchoredNodes'
 
-import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
+import type { Graph, LayoutResult, RowLabel } from '../types'
 
 // One row per contributing assembly, x on the reference.
 //
@@ -29,13 +34,6 @@ import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
 // of the first path in the file that visits it, and `GraphNode.samples` holds
 // the rest. Drawing a segment once per carrier needs the layout to emit more
 // nodes than the graph has, which the renderer keys by node id and cannot do.
-
-// Visibility floor, in window-span fraction. Node thickness is a constant
-// number of screen pixels, so an allele occupying a sub-percent slice of the
-// window draws wider than it is long and reads as a dot rather than a bar. A
-// pure insertion occupies exactly zero, so without this it would not draw at
-// all.
-const MIN_ALLELE_SPAN_FRACTION = 0.015
 
 // Every assembly with a segment in this subgraph, ordered by how much
 // off-reference sequence it contributes here, most first. Taken from the nodes
@@ -84,20 +82,11 @@ export function sampleRowLayout(
     return undefined
   }
   const span = referenceSpan(backbone, region)
-  const minAlleleSpan = span * MIN_ALLELE_SPAN_FRACTION
 
   // The backbone keeps row 0 and every sample gets a row below it, in the
-  // order projectAlleles reports (sorted), so rows don't reshuffle on pan.
+  // order contributingSamples gives.
   const rowOf = new Map(samples.map((s, i) => [s, i + 1]))
-  const nodePositions: Record<string, NodeSegment[]> = {}
-
-  for (const node of backbone) {
-    const { start } = node.stable
-    nodePositions[node.id] = [
-      { x: start, y: 0 },
-      { x: start + node.length, y: 0 },
-    ]
-  }
+  const nodePositions = backbonePositions(backbone)
 
   // `placeOffReference` also reaches nodes with no coordinate at all: it walks
   // out from what it placed to close a run that leaves the fetched window, and
@@ -111,7 +100,7 @@ export function sampleRowLayout(
   const spareRow = samples.length + 1
   const alleleDeletions = placeOffReference({
     graph,
-    minSpan: minAlleleSpan,
+    span,
     rowY: node => {
       const stable = node.stable
       const row = stable

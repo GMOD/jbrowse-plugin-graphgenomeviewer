@@ -1,9 +1,9 @@
 import { ROW_HEIGHT_PX } from './rowSpacing'
 import { walkRows } from './walkRows'
-import { backboneNodes } from '../anchoredNodes'
+import { backboneNodes, backbonePositions } from '../anchoredNodes'
 
 import type { WalkRows } from './walkRows'
-import type { Graph, LayoutResult, NodeSegment, RowLabel } from '../types'
+import type { Graph, LayoutResult, RowLabel } from '../types'
 
 // The reference walk as the backbone on row 0, at its bp, and a row per other
 // walk below it. The rows themselves are not nodes: a node the renderer draws
@@ -36,14 +36,7 @@ export function walkRowLayout(
   if (backbone.length === 0 || !walks) {
     return undefined
   }
-  const nodePositions: Record<string, NodeSegment[]> = {}
-  for (const node of backbone) {
-    const { start } = node.stable
-    nodePositions[node.id] = [
-      { x: start, y: 0 },
-      { x: start + node.length, y: 0 },
-    ]
-  }
+  const nodePositions = backbonePositions(backbone)
   const rowLabels: RowLabel[] = [
     { label: walks.reference.label, y: 0 },
     ...walks.rows.map((row, i) => ({
