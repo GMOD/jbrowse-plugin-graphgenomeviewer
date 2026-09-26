@@ -1,3 +1,10 @@
+## [4.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v3.1.0...v4.0.0) (2026-09-26)
+
+### Other Changes
+
+- The graph is a track: LinearGraphDisplay hosts the pane in a linear view, and the follow and the launch entries go ([10bebd2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/10bebd2f29f132e288077fb0d8e67ca6c8f76844))
+- The display starts the pane's host clocks on attach, and the candidate server serves the store's path ([060c079](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/060c079e7f1721fa553e87bc0f1401873da58d89))
+
 ## [3.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v3.0.5...v3.1.0) (2026-09-26)
 
 ### Other Changes
