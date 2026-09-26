@@ -1,8 +1,9 @@
+import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
-import configSchema, { normalizeSnapshot } from './configSchema.ts'
+import configSchema from './configSchema.ts'
 import { parseGFA } from '../gfa-core/index.ts'
 
 // Built by scripts/build_rgfa_tabix.sh from the minigraph rGFA of four E. coli
@@ -336,17 +337,22 @@ test("getSubgraph with tier: 'coarse' cuts the coarse pair", async () => {
 })
 
 test('the coarse uri shorthand resolves a pair against the adapter baseUri', () => {
-  const snap = normalizeSnapshot({
+  const config = configSchema.create({
     uri: 'hprc',
     baseUri: 'https://example.com/',
     coarse: { uri: 'hprc.tier10000', aboveBpPerPx: 1000 },
   })
-  expect(snap.coarse).toMatchObject({
-    aboveBpPerPx: 1000,
-    segmentsLocation: {
-      uri: 'hprc.tier10000.segs.bed.gz',
-      baseUri: 'https://example.com/',
-    },
-    linksIndex: { location: { uri: 'hprc.tier10000.links.bed.gz.tbi' } },
+  expect(readConfObject(config, ['coarse', 'aboveBpPerPx'])).toBe(1000)
+  expect(readConfObject(config, ['coarse', 'segmentsLocation'])).toMatchObject({
+    uri: 'hprc.tier10000.segs.bed.gz',
+    baseUri: 'https://example.com/',
   })
+  expect(
+    readConfObject(config, ['coarse', 'linksIndex', 'location']),
+  ).toMatchObject({ uri: 'hprc.tier10000.links.bed.gz.tbi' })
+})
+
+test('a track with no coarse pair states no threshold', () => {
+  const config = configSchema.create({ uri: 'hprc' })
+  expect(readConfObject(config, ['coarse', 'aboveBpPerPx'])).toBeUndefined()
 })
