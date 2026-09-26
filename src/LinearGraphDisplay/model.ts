@@ -21,6 +21,8 @@ const GraphSettingsDialog = lazy(
   () => import('../GraphGenomeView/components/GraphSettingsDialog'),
 )
 
+type ConfiguredSlot = 'layoutMode' | 'colorScheme' | 'height'
+
 export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
   const Pane = paneModelFactory()
   return (
@@ -39,19 +41,31 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           pane: types.optional(Pane, () => ({
             type: 'GraphGenomeView' as const,
           })),
-          // The config's layout and colour reach the pane once, so a choice made
-          // in the track menu survives a reload.
-          configured: types.optional(types.boolean, false),
+          // Which of the config's slots have reached the pane. Each reaches it
+          // once, so a choice made in the track menu survives a reload, and a
+          // launch that states a pane prop keeps it over the config's.
+          configured: types.optional(
+            types.frozen<Partial<Record<ConfiguredSlot, boolean>>>(),
+            {},
+          ),
         }),
       )
-      // A launch that states the pane's props takes them over the config's
-      // layout and colour, and names them without the pane's own type.
+      // A launch names the pane's props without the pane's own type, and what
+      // it states is what the config does not set.
       .preProcessSnapshot(snapshot => {
-        const pane = (snapshot as { pane?: Record<string, unknown> }).pane
+        const { pane, configured } = snapshot as {
+          pane?: Record<string, unknown>
+          configured?: Partial<Record<ConfiguredSlot, boolean>>
+        }
         return pane
           ? ({
-              configured: true,
               ...snapshot,
+              configured: {
+                layoutMode: pane.layoutMode !== undefined,
+                colorScheme: pane.colorScheme !== undefined,
+                height: pane.paneHeight !== undefined,
+                ...configured,
+              },
               pane:
                 pane.type === undefined
                   ? { type: 'GraphGenomeView', ...pane }
@@ -187,8 +201,23 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .actions(self => ({
-        setConfigured() {
-          self.configured = true
+        // The config's slots the pane has not yet taken, then all of them.
+        applyConfig() {
+          const { pane, configured } = self
+          if (!configured.layoutMode) {
+            pane.setLayoutMode(getConf(self, 'layoutMode'))
+          }
+          if (!configured.colorScheme) {
+            pane.setColorScheme(getConf(self, 'colorScheme'))
+          }
+          if (!configured.height) {
+            pane.setPaneHeight(getConf(self, 'height'))
+          }
+          self.configured = {
+            layoutMode: true,
+            colorScheme: true,
+            height: true,
+          }
         },
         // The track's height is the pane's ceiling: a layout shorter than it
         // takes only what it needs, and a drag on the handle moves the ceiling.
@@ -202,12 +231,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       .actions(self => ({
         afterAttach() {
           const { pane } = self
-          if (!self.configured) {
-            pane.setLayoutMode(getConf(self, 'layoutMode'))
-            pane.setColorScheme(getConf(self, 'colorScheme'))
-            pane.setPaneHeight(getConf(self, 'height'))
-            self.setConfigured()
-          }
+          self.applyConfig()
           pane.adoptTrack(self.trackId)
           pane.startHosting()
           addDisposer(

@@ -364,6 +364,27 @@ test("a launch names the pane's props without its type, and opens in that layout
   expect(display.pane.hostPlacesX).toBe(false)
 })
 
+test('a launch that states one pane prop takes the rest from the config', async () => {
+  const { view, cuts } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      pane: { colorScheme: 'uniform' },
+    },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(display.pane.colorScheme).toBe('uniform')
+  expect(display.pane.layoutMode).toBe('auto')
+  expect(display.pane.hostPlacesX).toBe(true)
+})
+
 test('the track menu offers the layouts, colours and the settings dialog', async () => {
   const { display } = await shownGraph()
   const labels = display
