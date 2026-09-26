@@ -30,9 +30,9 @@ export interface SubgraphRegion {
 }
 
 // Half the segment's own length on either side, so it opens with the graph
-// around it rather than clipped to its own ends, and no further than the
-// displayed region it sits in, which a linear view can be navigated to. The
-// 10 bp floor keeps a single-base segment from opening a degenerate region.
+// around it rather than clipped to its own ends, and within the displayed
+// region it sits in, since navTo refuses a span outside one. The 10 bp floor
+// keeps a single-base segment from opening a degenerate region.
 export function regionAroundSegment(
   region: SubgraphRegion,
   within: { start: number; end: number } = { start: 0, end: Infinity },

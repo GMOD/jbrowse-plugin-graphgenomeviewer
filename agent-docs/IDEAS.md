@@ -13,20 +13,6 @@ stays beside the measurement that rejected it — `GRAPH_SCALE_AND_LOD.md` has t
 "do not fix it" notes, and they are more useful next to their numbers than in a
 list of aspirations. And anything already decided is an ADR.
 
-## The graph following the linear view beside it
-
-Its own file, `FOLLOW_THE_LINEAR_VIEW.md`, because the measurement and the cost
-run past what an entry here holds — and because the answer turns on two facts
-(an anchored graph's x axis already IS the linear view's; a graph cut cannot be
-extrapolated, so `SyntenyFollow`'s two-pass structure only half transfers)
-rather than on a number.
-
-The number, for the entry's own sake: an rGFA re-cut is **~1.3 s and flat in
-window size**, which is what makes a margin nearly free and the feature
-plausible; a GBZ re-cut is **up to 12 s**, which is what keeps it off that
-route. It also wants a decision this repo has not made — which linear views a
-graph is related to — and that is the smaller half, described there.
-
 ## GPU rendering: priced, and not worth it at this view's node cap
 
 Replace `Canvas2DRenderer` with a GPU backend. The view has never plotted with
@@ -69,15 +55,13 @@ stretches a hundredfold; divide componentwise.
 geometry-bound anyway — so the honest framing is that the trigger is a geometry
 builder off the main thread, and the GPU comes after it if at all.
 
-## Pick a tier by zoom, and expand a bubble on click
+## Expand a bubble on click
 
-The view picks a tier by `bpPerPx`, the way PIF's two tiers already do in
-jbrowse-components (`agent-docs/reference/SYNTENY_LOD.md`) — config is a prefix
-per tier plus its bp range, and there is no new rendering mode. Then
-**expand-on-click** (PangyPlot's `/pop`): the tier node id _is_ the bubble's
-source segment, so expanding is a fine-index query over the same span with no
-cross-reference to maintain. This retires `maxRegionBp`, which is the interim
-mechanism.
+PangyPlot's `/pop`. A coarse-tier node's id _is_ its bubble's source segment, so
+expanding one is a fine-index query over the same span, with no cross-reference
+to maintain. The tier itself shipped as `RgfaTabixAdapter`'s `coarse` slot,
+which a graph following a linear view switches to by zoom
+(`FOLLOW_THE_LINEAR_VIEW.md`).
 
 A graph loaded through `gfaLocation` has no tier to switch to, so its coarsening
 has to happen in the view: `COARSEN_TRIVIAL_BUBBLES.md`.

@@ -4,7 +4,7 @@ Designed, not built, and the design has an open question at its centre — what 
 collapsed unit's path lanes say — so it is a proposal rather than an action
 item.
 
-Tiering does not reach this case (`IDEAS.md` §"Pick a tier by zoom"): a tier is
+Tiering does not reach this case (`RgfaTabixAdapter`'s `coarse` slot): a tier is
 a hosted segs/links pair, and a figure like `pangenome/pggb_haplotype_paths`
 loads a GFA through `gfaLocation` because the tabix cut has no P lines and
 `drawPaths` would have nothing to draw. A file has no tier to switch to, so its

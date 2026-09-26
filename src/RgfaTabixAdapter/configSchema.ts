@@ -82,7 +82,8 @@ const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
    * The linear view's bp per px past which a graph following it cuts this
    * pair. Unset means the track has no coarse tier. There is no default,
    * because the zoom a fine cut stays drawable to depends on the graph's
-   * density: minigraph runs ~7 kb per segment, a base-level pggb graph ~17 bp.
+   * density: a minigraph graph averages ~7 kb per segment, a base-level pggb
+   * graph ~17 bp.
    */
   aboveBpPerPx: { type: 'maybeNumber' },
   /**
