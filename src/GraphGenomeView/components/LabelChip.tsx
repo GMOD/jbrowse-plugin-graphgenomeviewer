@@ -1,4 +1,4 @@
-import { LABEL_PAD, LABEL_PX } from './overlayLabels'
+import { LABEL_PAD, LABEL_PX } from '../overlayLabels'
 
 // One label on an overlay: a white chip with a coloured edge and text, its
 // baseline at y and centred on x.

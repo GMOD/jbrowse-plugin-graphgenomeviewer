@@ -20,8 +20,9 @@ export interface BubbleHalo {
   label: string
   // an SVG path in layout units; a drawing transform puts it on screen
   path: string
-  // where the label goes: the highest point of the halo, in layout units
-  top: NodeSegment
+  // where the name goes, in layout units: over the middle of its nodes, at the
+  // height of the highest
+  labelAt: NodeSegment
   members: number
   // the ids of those nodes, so a lifted walk can say which bubbles it enters
   nodeIds: string[]
@@ -55,7 +56,9 @@ export function bubbleHalos(
   const halos: BubbleHalo[] = []
   for (const bubble of bubbles) {
     const parts: string[] = []
-    let top: NodeSegment | undefined
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
     const nodeIds: string[] = []
     const ends: NodeSegment[] = []
     for (const name of bubbleSegmentIds(bubble)) {
@@ -75,20 +78,21 @@ export function bubbleHalos(
       // a one-point line still needs a segment to stroke as a dot
       parts.push(svgPath(line.length === 1 ? [line[0]!, line[0]!] : line))
       for (const p of line) {
-        if (!top || p.y < top.y) {
-          top = p
-        }
+        minX = Math.min(minX, p.x)
+        maxX = Math.max(maxX, p.x)
+        minY = Math.min(minY, p.y)
       }
     }
-    if (!top) {
+    if (nodeIds.length === 0) {
       continue
     }
+    const labelAt = { x: (minX + maxX) / 2, y: minY }
     const anchor = ends.length
       ? {
           x: ends.reduce((s, p) => s + p.x, 0) / ends.length,
           y: ends.reduce((s, p) => s + p.y, 0) / ends.length,
         }
-      : top
+      : labelAt
     // A chip goes on the stretch that is the route's own: among the nodes the
     // fewest other routes share, the point farthest from the bubble's ends.
     // Routes through a repeat array share most of their copies, and the far
@@ -130,7 +134,7 @@ export function bubbleHalos(
       bubble,
       ...classifyBubble(bubble),
       path: parts.join(''),
-      top,
+      labelAt,
       members: nodeIds.length,
       nodeIds,
       whole: nodeIds.length >= WHOLE_FRACTION * graph.nodes.length,

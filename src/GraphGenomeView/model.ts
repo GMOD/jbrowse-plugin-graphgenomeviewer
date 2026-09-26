@@ -33,6 +33,7 @@ import {
 import { genePins } from './genes/genePins'
 import { convertGFAToGraph } from './gfa/gfaConverter'
 import { cutHolds, hostCut, hostFrame, hostWindow, isLinearHost } from './host'
+import { layoutLabels } from './labelLayout'
 import {
   paintSourceLane,
   referencePositionColor,
@@ -1392,6 +1393,9 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
+      get overlayLabels() {
+        return layoutLabels(self)
+      },
       get hostFrame() {
         const { host, loadedRegion } = self
         return self.hostPlacesX && host && loadedRegion

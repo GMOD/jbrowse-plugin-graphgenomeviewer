@@ -1,8 +1,10 @@
 import { deletionArcCurves } from './deletionEdges'
 import { polylineMidpoint } from './layout/mergeRuns'
+import { occupancy } from './overlayLabels'
 import { curveBounds, curveMidpoint } from './util/geometry'
 
 import type { DeletionEdge } from './deletionEdges'
+import type { Box, TakeBox } from './overlayLabels'
 import type { AlleleDeletion, NodeSegment } from './types'
 import type { AxisScale, BezierCurve } from './util/geometry'
 
@@ -101,13 +103,6 @@ const LABEL_GAP_PX = 3
 // being drawn rather than the node.
 const MAX_LABEL_OVERHANG = 2
 
-export interface Box {
-  left: number
-  right: number
-  top: number
-  bottom: number
-}
-
 // Half the box a piece of label text occupies. Split out of `labelBox` because
 // the width is wanted before there is anywhere to put the box: a displaced
 // deletion label is clamped by its own half-width, and the node pass below
@@ -130,18 +125,11 @@ const MIN_LABEL_HALF_WIDTH = labelHalfWidth('1 bp')
 // translate(-50%, -50%) in the style, so the anchor is the box's centre.
 function boxAt(halfW: number, x: number, y: number): Box {
   return {
-    left: x - halfW,
-    right: x + halfW,
-    top: y - LABEL_HALF_HEIGHT,
-    bottom: y + LABEL_HALF_HEIGHT,
+    x0: x - halfW,
+    x1: x + halfW,
+    y0: y - LABEL_HALF_HEIGHT,
+    y1: y + LABEL_HALF_HEIGHT,
   }
-}
-
-// A box outside the canvas is dropped rather than clipped, and dropped BEFORE
-// the collision test, so a label nobody can see cannot hold space against one
-// inside the frame.
-function onScreen(box: Box, width: number, height: number) {
-  return box.right > 0 && box.left < width && box.bottom > 0 && box.top < height
 }
 
 // The box a row label occupies, from the same metrics RowLabels renders with
@@ -150,10 +138,10 @@ function onScreen(box: Box, width: number, height: number) {
 // cannot drift apart.
 export function rowLabelBox(text: string, screenY: number): Box {
   return {
-    left: 6,
-    right: 6 + text.length * 6.2 + 8 + LABEL_GAP_PX,
-    top: screenY - 8 - LABEL_GAP_PX / 2,
-    bottom: screenY + 8 + LABEL_GAP_PX / 2,
+    x0: 6,
+    x1: 6 + text.length * 6.2 + 8 + LABEL_GAP_PX,
+    y0: screenY - 8 - LABEL_GAP_PX / 2,
+    y1: screenY + 8 + LABEL_GAP_PX / 2,
   }
 }
 
@@ -162,12 +150,6 @@ export function rowLabelBox(text: string, screenY: number): Box {
 // than the overflow.
 function clamp(v: number, lo: number, hi: number) {
   return hi < lo ? v : Math.min(Math.max(v, lo), hi)
-}
-
-function overlaps(a: Box, b: Box) {
-  return (
-    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
-  )
 }
 
 // A displaced label's tether, in the same screen pixels the label is placed in.
@@ -242,8 +224,8 @@ function arcOutward(
 // than it is tall.
 function boxSupport(box: Box, dir: { x: number; y: number }) {
   return (
-    (Math.abs(dir.x) * (box.right - box.left)) / 2 +
-    (Math.abs(dir.y) * (box.bottom - box.top)) / 2
+    (Math.abs(dir.x) * (box.x1 - box.x0)) / 2 +
+    (Math.abs(dir.y) * (box.y1 - box.y0)) / 2
   )
 }
 
@@ -257,8 +239,8 @@ function boxSupport(box: Box, dir: { x: number; y: number }) {
 // support distance drew an 8px stub at the arc with 50px of white between it and
 // the text it was supposed to tie to.
 function boxRayCrossing(box: Box, dir: { x: number; y: number }) {
-  const halfW = (box.right - box.left) / 2
-  const halfH = (box.bottom - box.top) / 2
+  const halfW = (box.x1 - box.x0) / 2
+  const halfH = (box.y1 - box.y0) / 2
   return Math.min(
     dir.x === 0 ? Infinity : halfW / Math.abs(dir.x),
     dir.y === 0 ? Infinity : halfH / Math.abs(dir.y),
@@ -398,19 +380,7 @@ function arcPlacements(
   return arcs
 }
 
-export function graphLabels({
-  nodePositions,
-  nodeLengths,
-  deletions,
-  alleleDeletions,
-  axis,
-  translateX,
-  translateY,
-  width,
-  height,
-  reserved,
-  version = 0,
-}: {
+interface SizeLabelArgs {
   nodePositions: Record<string, NodeSegment[]>
   // bp per node id, so this module never has to know what a GraphNode is
   nodeLengths: Map<string, number>
@@ -427,23 +397,35 @@ export function graphLabels({
   translateY: number
   width: number
   height: number
-  // Screen-space boxes already occupied by something this module did not draw —
-  // the row labels of a row-structured layout. They sit in the same overlay and
-  // are opaque, so a node label under one is not "behind" it, it is gone: a
-  // label of "17 bp" against the left edge of an anchored layout came out as a
-  // stray "bp" beside `Reference (rank 0)`. Feeding them into the same collision
-  // pass moves that label instead of clipping it.
-  reserved?: Box[]
   // Bumped whenever the layout's positions are mutated in place, i.e. by a node
   // drag. Everything cached across frames here is keyed by it — see the caches
   // above — and reading it is also what makes a dragged node's label follow it.
   version?: number
-}): GraphLabel[] {
+}
+
+export interface SizeLabelCandidate {
+  label: GraphLabel
+  box: Box
+}
+
+// Deletions come first, so an arc keeps its label against the nodes around it:
+// the arc is the only thing in the drawing that represents sequence which is
+// not there, and a reader who cannot read it has no other route to it.
+export function sizeLabelCandidates({
+  nodePositions,
+  nodeLengths,
+  deletions,
+  alleleDeletions,
+  axis,
+  translateX,
+  translateY,
+  width,
+  height,
+  version = 0,
+}: SizeLabelArgs) {
   const { scaleX, scaleY } = axis
-  // Deletions first, so an arc keeps its label against the nodes around it: the
-  // arc is the only thing in the drawing that represents sequence which is not
-  // there, and a reader who cannot read it has no other route to it.
-  const candidates: { label: GraphLabel; box: Box }[] = []
+  const deletionCandidates: SizeLabelCandidate[] = []
+  const nodeCandidates: SizeLabelCandidate[] = []
   for (const { deletion, curves, apex, extent } of arcPlacements(
     nodePositions,
     deletions,
@@ -495,7 +477,7 @@ export function graphLabels({
           labelY: y - dir.y * crossing,
         }
       }
-      candidates.push({
+      deletionCandidates.push({
         label: {
           key: `del:${deletion.edgeIndex}`,
           text,
@@ -557,7 +539,7 @@ export function graphLabels({
         LABEL_HALF_HEIGHT,
         height - LABEL_HALF_HEIGHT,
       )
-      candidates.push({
+      deletionCandidates.push({
         label: {
           key: `alleledel:${run.nodeIds.join(',')}`,
           text,
@@ -599,7 +581,7 @@ export function graphLabels({
     const halfW = labelHalfWidth(text)
     if (drawn >= (halfW * 2) / MAX_LABEL_OVERHANG) {
       const screenX = x * scaleX + translateX
-      candidates.push({
+      nodeCandidates.push({
         label: {
           key: `node:${id}`,
           text,
@@ -612,29 +594,46 @@ export function graphLabels({
     }
   }
 
-  // Node labels are rationed to the pane's area: a base-level cut of hundreds
-  // of short nodes fits a length on most of them at a moderate zoom, and a
-  // drawing where every node states its length is a table with a graph under
-  // it. Biggest first, so the ration goes to the alleles that carry sequence;
-  // zooming in gives more area to fewer nodes and the labels come back.
-  const nodeBudget = Math.max(
+  return { deletions: deletionCandidates, nodes: nodeCandidates }
+}
+
+// Node labels are rationed to the pane's area: a base-level cut of hundreds of
+// short nodes fits a length on most of them at a moderate zoom, and a drawing
+// where every node states its length is a table with a graph under it. Biggest
+// first, so the ration goes to the alleles that carry sequence; zooming in
+// gives more area to fewer nodes and the labels come back.
+export function nodeLabelBudget(width: number, height: number) {
+  return Math.max(
     MIN_NODE_LABELS,
     Math.floor((width * height) / PX_PER_NODE_LABEL),
   )
-  const placed: Box[] = [...(reserved ?? [])]
+}
+
+export function placeSizeLabels(
+  candidates: SizeLabelCandidate[],
+  take: TakeBox,
+  budget = Infinity,
+) {
   const labels: GraphLabel[] = []
-  let nodeLabels = 0
   for (const { label, box } of candidates) {
-    if (label.kind === 'node' && nodeLabels >= nodeBudget) {
-      continue
+    if (labels.length >= budget) {
+      break
     }
-    if (onScreen(box, width, height) && !placed.some(p => overlaps(p, box))) {
-      placed.push(box)
+    if (take(box)) {
       labels.push(label)
-      if (label.kind === 'node') {
-        nodeLabels++
-      }
     }
   }
   return labels
+}
+
+export function graphLabels({
+  reserved,
+  ...args
+}: SizeLabelArgs & { reserved?: Box[] }): GraphLabel[] {
+  const take = occupancy(args, reserved)
+  const { deletions, nodes } = sizeLabelCandidates(args)
+  return [
+    ...placeSizeLabels(deletions, take),
+    ...placeSizeLabels(nodes, take, nodeLabelBudget(args.width, args.height)),
+  ]
 }

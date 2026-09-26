@@ -1,8 +1,8 @@
 import { Button } from '@mui/material'
 import { observer } from 'mobx-react'
 
-import { LABEL_CHAR_PX } from './overlayLabels'
 import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
+import { LABEL_CHAR_PX } from '../overlayLabels'
 
 import type { GraphGenomeViewModel } from '../model'
 

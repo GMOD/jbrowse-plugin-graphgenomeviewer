@@ -1,7 +1,7 @@
 import { observer } from 'mobx-react'
 
-import { LABEL_CHAR_PX } from './overlayLabels'
 import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
+import { LABEL_CHAR_PX } from '../overlayLabels'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphGenomeViewModel } from '../model'

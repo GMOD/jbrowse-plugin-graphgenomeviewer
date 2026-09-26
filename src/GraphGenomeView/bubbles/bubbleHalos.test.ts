@@ -48,7 +48,7 @@ test('the halo runs along the nodes inside the bubble, not its anchors', () => {
   expect(halo).toMatchObject({
     kind: 'deletion',
     path: 'M12,0L20,0M16,-8L16,-8',
-    top: { x: 16, y: -8 },
+    labelAt: { x: 16, y: -8 },
     members: 2,
   })
 })

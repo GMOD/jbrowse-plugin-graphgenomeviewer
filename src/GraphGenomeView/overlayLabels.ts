@@ -1,6 +1,7 @@
-// Label placement shared by the SVG overlays: a label is a box in screen px,
-// and one that would land on a placed box, or off the pane, is dropped. Callers
-// order their candidates so the ones that matter place first.
+// Every label drawn over the graph claims a box in screen px from one
+// occupancy, so a label that would land on one already placed, or off the pane,
+// is dropped whichever overlay it belongs to. Callers take in priority order.
+// A chip is drawn whole or not at all.
 
 export interface Box {
   x0: number
@@ -27,20 +28,55 @@ export interface PlacedLabel<T> extends LabelCandidate<T> {
   w: number
 }
 
+export type TakeBox = (box: Box) => boolean
+
 export function labelWidth(text: string) {
   return text.length * LABEL_CHAR_PX + LABEL_PAD * 2
 }
 
-function overlaps(a: Box, b: Box) {
+export function overlaps(a: Box, b: Box) {
   return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0
+}
+
+interface Frame {
+  width: number
+  height: number
+}
+
+function offFrame(box: Box, frame: Frame) {
+  return (
+    box.x1 <= 0 ||
+    box.x0 >= frame.width ||
+    box.y1 <= 0 ||
+    box.y0 >= frame.height
+  )
+}
+
+function insideFrame(box: Box, frame: Frame) {
+  return (
+    box.x0 >= 0 &&
+    box.x1 <= frame.width &&
+    box.y0 >= 0 &&
+    box.y1 <= frame.height
+  )
+}
+
+export function occupancy(frame: Frame, reserved: Box[] = []): TakeBox {
+  const placed = [...reserved]
+  return box => {
+    if (offFrame(box, frame) || placed.some(p => overlaps(p, box))) {
+      return false
+    }
+    placed.push(box)
+    return true
+  }
 }
 
 export function placeLabels<T>(
   candidates: LabelCandidate<T>[],
-  frame: { width: number; height: number },
-  reserved: Box[] = [],
+  frame: Frame,
+  take: TakeBox,
 ): PlacedLabel<T>[] {
-  const placed = [...reserved]
   const out: PlacedLabel<T>[] = []
   const row = LABEL_PX + LABEL_PAD * 2
   for (const c of candidates) {
@@ -55,20 +91,13 @@ export function placeLabels<T>(
         y0: y - LABEL_PX - LABEL_PAD,
         y1: y + LABEL_PAD,
       }
-      if (
-        box.x1 < 0 ||
-        box.x0 > frame.width ||
-        box.y1 < 0 ||
-        box.y0 > frame.height
-      ) {
+      if (offFrame(box, frame)) {
         break
       }
-      if (placed.some(p => overlaps(p, box))) {
-        continue
+      if (insideFrame(box, frame) && take(box)) {
+        out.push({ ...c, y, w })
+        break
       }
-      placed.push(box)
-      out.push({ ...c, y, w })
-      break
     }
   }
   return out

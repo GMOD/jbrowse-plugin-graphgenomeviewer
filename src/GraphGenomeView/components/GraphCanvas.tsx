@@ -9,10 +9,11 @@ import BubbleHalos from './BubbleHalos'
 import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
+import LabelLayer from './LabelLayer'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { formatBp, graphLabels, rowLabelBox } from '../graphLabels'
+import { formatBp } from '../graphLabels'
 import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
@@ -278,30 +279,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
 }: {
   model: GraphGenomeViewModel
 }) {
-  const { nodePositions } = model
-  if (!nodePositions) {
-    return null
-  }
-  const labels = graphLabels({
-    nodePositions,
-    nodeLengths: model.nodeLengths,
-    deletions: model.showDeletionEdges ? model.deletions : [],
-    alleleDeletions: model.alleleDeletions,
-    axis: model.axisScale,
-    translateX: model.translateX,
-    translateY: model.translateY,
-    width: model.width,
-    height: model.canvasHeight,
-    // RowLabels paints over this overlay, so its boxes are occupied space
-    reserved: model.drawnRowLabels.map(({ label, y }) =>
-      rowLabelBox(label, y * model.scaleY + model.translateY),
-    ),
-    // A drag moves the position objects without replacing them, so nothing
-    // else here can report it: reading this is both what invalidates the
-    // per-layout caches inside `graphLabels` and what re-renders this overlay,
-    // which is why a dragged node used to leave its own size label behind.
-    version: model.positionsVersion,
-  })
+  const labels = model.overlayLabels.sizes
   // A label too wide for the arc it names is placed clear of it and tethered
   // back; nothing else in the drawing carries one.
   const leaders = labels.flatMap(({ key, leader }) =>
@@ -719,6 +697,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <GraphSizeLabels model={model} />
         <BubbleHalos model={model} />
         <GenePins model={model} />
+        <LabelLayer model={model} />
         <BubbleOverlay model={model} />
         <WalkRowsOverlay model={model} />
         <div style={legendStackStyle}>
