@@ -1,3 +1,9 @@
+## [4.0.4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.3...v4.0.4) (2026-09-26)
+
+### Other Changes
+
+- A layout that draws its own picture is cut to the window alone, the display says when it is loading, and the add-track form writes the graph display ([31df954](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/31df954f7d9bb65c8e475623e3bc8ae752baf5b1))
+
 ## [4.0.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.2...v4.0.3) (2026-09-26)
 
 ### Other Changes
