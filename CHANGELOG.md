@@ -1,3 +1,9 @@
+## [4.0.6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.5...v4.0.6) (2026-09-26)
+
+### Other Changes
+
+- Walk rows are cut to the window alone: the margin is the layout's, not the axis's ([65b15db](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/65b15dbf02f1a9ba444e0efd814a1b857692110d))
+
 ## [4.0.5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.4...v4.0.5) (2026-09-26)
 
 ### Other Changes
