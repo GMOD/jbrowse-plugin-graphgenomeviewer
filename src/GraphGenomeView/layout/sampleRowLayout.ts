@@ -55,11 +55,14 @@ import type { Graph, LayoutResult, RowLabel } from '../types'
 // What that costs is comparing one window against another — the order is a fact
 // about the window, so a sample is not in the same place in two of them. That is
 // the case §8's "a row set cannot be requested" is for, and an explicit sample
-// list is the right answer to it rather than an order nobody can read.
+// list is the right answer to it rather than an order nobody can read. A
+// follow's re-cut is the exception it can answer already: `keep` is the rows on
+// screen, those samples hold their order, and a sample new to the window goes
+// below them by content.
 //
 // Name breaks ties, so the order is still deterministic and a pan that changes
 // nothing about the content reshuffles nothing.
-function contributingSamples(graph: Graph) {
+function contributingSamples(graph: Graph, keep: readonly string[]) {
   const carried = new Map<string, number>()
   for (const node of graph.nodes) {
     if (isOffReference(node)) {
@@ -67,17 +70,22 @@ function contributingSamples(graph: Graph) {
       carried.set(sample, (carried.get(sample) ?? 0) + node.length)
     }
   }
+  const held = new Map(keep.map((sample, row) => [sample, row]))
   return [...carried.keys()].sort(
-    (a, b) => carried.get(b)! - carried.get(a)! || a.localeCompare(b),
+    (a, b) =>
+      (held.get(a) ?? Infinity) - (held.get(b) ?? Infinity) ||
+      carried.get(b)! - carried.get(a)! ||
+      a.localeCompare(b),
   )
 }
 
 export function sampleRowLayout(
   graph: Graph,
   region?: { start: number; end: number },
+  keep: readonly string[] = [],
 ): LayoutResult | undefined {
   const backbone = backboneNodes(graph)
-  const samples = contributingSamples(graph)
+  const samples = contributingSamples(graph, keep)
   if (backbone.length === 0 || samples.length === 0) {
     return undefined
   }
@@ -127,6 +135,7 @@ export function sampleRowLayout(
   return {
     nodePositions,
     rowLabels,
+    sampleRows: samples,
     referenceAxis: true,
     pixelRows: true,
     alleleDeletions,

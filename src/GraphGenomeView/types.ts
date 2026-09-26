@@ -114,6 +114,9 @@ export interface AlleleDeletion {
 export interface LayoutResult {
   nodePositions: Record<string, NodeSegment[]>
   rowLabels?: RowLabel[]
+  // The sample on each row under the backbone, top to bottom, from the layout
+  // that rows by sample: what a follow's re-cut hands back so they stay put.
+  sampleRows?: string[]
   // Deletions carried by a SEGMENT rather than by a bare edge, which only a
   // reference-bp layout can state — see AlleleDeletion.
   alleleDeletions?: AlleleDeletion[]

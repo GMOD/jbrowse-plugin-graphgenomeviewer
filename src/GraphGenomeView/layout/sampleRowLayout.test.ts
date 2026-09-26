@@ -34,6 +34,22 @@ test('rows are the backbone plus one per contributing assembly', () => {
   ])
 })
 
+// A follow re-cuts as the linear view pans, and a stack re-sorted per window
+// moves every row under the reader. Handed the rows on screen, the layout keeps
+// those in their order, drops one the window no longer holds, and puts a sample
+// new to the window below them.
+test('the rows on screen keep their order, and a new sample goes below', () => {
+  const graph = ecoliGraph()
+  const [first, second, third] = sampleRowLayout(graph)!.sampleRows!
+  const { sampleRows, rowLabels } = sampleRowLayout(graph, undefined, [
+    'HG00099',
+    third!,
+    second!,
+  ])!
+  expect(sampleRows).toEqual([third, second, first])
+  expect(rowLabels!.slice(1).map(r => r.label)).toEqual(sampleRows)
+})
+
 // Alphabetical put HG00099 above HG00280 for no reason a reader could see, so a
 // row's neighbours said nothing. Ordering by contributed sequence reads the way
 // a sorted pileup does — most divergent at the top, and how far down the stack

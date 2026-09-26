@@ -1908,6 +1908,9 @@ export default function stateModelFactory() {
         const local = layoutModeByValue(self.layoutMode).run(
           graph,
           self.loadedRegion,
+          self.viewportOwner === 'follow'
+            ? self.layoutResult?.sampleRows
+            : undefined,
         )
         if (local) {
           return { result: local, duration: performance.now() - start }

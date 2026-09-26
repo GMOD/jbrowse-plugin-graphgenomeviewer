@@ -86,6 +86,46 @@ function syntheticGraph(tier: SubgraphTier, region: SubgraphRegion) {
   return lines.join('\n')
 }
 
+// The fine tier's backbone with one allele per sample per bubble, sized so the
+// samples rank HG1, HG2 by what they carry before 1.15 Mb and HG2, HG3, HG1
+// past it: the order a fresh cut of a window past 1.15 Mb sorts to.
+function samplesGraph(_tier: SubgraphTier, region: SubgraphRegion) {
+  const step = 10_000
+  const lines = ['H\tVN:Z:1.0']
+  const first = Math.floor(region.start / step)
+  const last = Math.ceil(region.end / step)
+  for (let k = first; k < last; k++) {
+    lines.push(
+      `S\tf${k}\t*\tLN:i:${step}\tSN:Z:${REF}\tSO:i:${k * step}\tSR:i:0`,
+    )
+    if (k > first) {
+      lines.push(`L\tf${k - 1}\t+\tf${k}\t+\t0M`)
+    }
+    if (k % 2 === 0 && k + 1 < last) {
+      const carried: [string, number][] =
+        k * step < 1_150_000
+          ? [
+              ['HG1', 1000],
+              ['HG2', 100],
+            ]
+          : [
+              ['HG2', 1000],
+              ['HG3', 500],
+              ['HG1', 100],
+            ]
+      for (const [sample, bp] of carried) {
+        const allele = `f${k}${sample}`
+        lines.push(
+          `S\t${allele}\t*\tLN:i:${bp}\tSN:Z:${sample}#1#${REF}\tSO:i:${k * step}\tSR:i:1`,
+          `L\tf${k}\t+\t${allele}\t+\t0M`,
+          `L\t${allele}\t+\tf${k + 1}\t+\t0M`,
+        )
+      }
+    }
+  }
+  return lines.join('\n')
+}
+
 interface Cut {
   tier: SubgraphTier
   region: SubgraphRegion
@@ -110,7 +150,7 @@ const FORCE_LAYOUT = {
   },
 }
 
-function stubSubgraphs({ cuts, bubbleReads }: Reads) {
+function stubSubgraphs({ cuts, bubbleReads }: Reads, graph = syntheticGraph) {
   mockRpcCall.mockImplementation(
     (
       _sid: unknown,
@@ -137,7 +177,7 @@ function stubSubgraphs({ cuts, bubbleReads }: Reads) {
         hops: args.opts?.hops,
       }
       cuts.push(cut)
-      return Promise.resolve(syntheticGraph(cut.tier, cut.region))
+      return Promise.resolve(graph(cut.tier, cut.region))
     },
   )
 }
@@ -264,15 +304,17 @@ async function followingModel({
   windowBp = 60_000,
   layoutMode = 'auto',
   tiered = true,
+  graph = syntheticGraph,
 }: {
   windowStart?: number
   windowBp?: number
   layoutMode?: string
   tiered?: boolean
+  graph?: typeof syntheticGraph
 } = {}) {
   const cuts: Cut[] = []
   const bubbleReads: SubgraphRegion[] = []
-  stubSubgraphs({ cuts, bubbleReads })
+  stubSubgraphs({ cuts, bubbleReads }, graph)
   const view = mockLinearView(windowStart, windowBp)
   mockSession.views = [view]
   if (!tiered) {
@@ -365,6 +407,26 @@ test('a re-cut keeps the selection, found again by id', async () => {
   expect(model.selectedNode).toBe('f103+')
   // an edge index means nothing in another graph
   expect(model.hoveredEdge).toBeNull()
+})
+
+test('sample rows keep their order across a re-cut, and a fresh cut sorts them', async () => {
+  const { model, view } = await followingModel({
+    layoutMode: 'samplerows',
+    graph: samplesGraph,
+  })
+  const rows = () => model.rowLabels.slice(1).map(r => r.label)
+  expect(model.followState.active).toBe(true)
+  expect(rows()).toEqual(['HG1', 'HG2'])
+
+  view.panBy(200_000)
+  view.settle()
+  await flush()
+  expect(model.followRecuts).toBe(1)
+  expect(rows()).toEqual(['HG1', 'HG2', 'HG3'])
+
+  model.setFollowLinearView(false)
+  await model.reloadSubgraph()
+  expect(rows()).toEqual(['HG2', 'HG3', 'HG1'])
 })
 
 test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in the fine one', async () => {

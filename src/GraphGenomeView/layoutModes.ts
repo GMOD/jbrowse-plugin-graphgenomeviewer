@@ -28,10 +28,12 @@ export interface LayoutMode {
   // import. The reference-anchored modes scale their rows and their allele
   // floor against it rather than against the backbone they were handed, which
   // a long-range allele's far anchor stretches well past the window
-  // (referenceSpan).
+  // (referenceSpan). `keepRows` is the sample rows on screen, which only the
+  // sample-row layout reads (LayoutResult.sampleRows).
   run: (
     graph: Graph,
     region?: { start: number; end: number },
+    keepRows?: readonly string[],
   ) => LayoutResult | undefined
   // whether this mode can draw this graph at all; the dropdown greys out the
   // rest rather than hiding them, so the reason a mode is unavailable stays
