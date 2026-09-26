@@ -1,3 +1,5 @@
+import { Subgraph } from '@gmod/gbz-base'
+import PluginManager from '@jbrowse/core/PluginManager'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -7,6 +9,7 @@ import Adapter, {
   laneAssemblyName,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
+import GbzBaseSyntenyAdapterF from './index.ts'
 
 import type { SyntenyMate } from '@jbrowse/synteny-core'
 
@@ -459,6 +462,15 @@ const spanOf = (intervals: { start: number; end: number }[]) => ({
   end: Math.max(...intervals.map(i => i.end)),
 })
 
+test('the adapter type declares that a window of its anchor answers any lane pair', () => {
+  const pluginManager = new PluginManager()
+  GbzBaseSyntenyAdapterF(pluginManager)
+  pluginManager.createPluggableElements()
+  expect(
+    pluginManager.getAdapterType('GbzBaseSyntenyAdapter').adapterCapabilities,
+  ).toContain('lanePairsOnAnchor')
+})
+
 // HG00673#1's insertion is 16 bp longer than HG01361#2's, so that pair holds
 // an indel, which pins which side of the record its CIGAR walks. HG00438#1 is
 // assembled reverse to GRCh38. Each pair covers the stretch of each haplotype
@@ -476,6 +488,7 @@ test.each(['HG02145#2', 'HG00673#1', 'HG00438#1'])(
       expect(f.get('assemblyName')).toBe('HG01361#2')
       const mate = mateOf(f)
       expect(mate.assemblyName).toBe(lower)
+      expect(f.get('CIGAR')).toMatch(/^(\d+[=ID])+$/)
       expect(cigarSpans(f.get('CIGAR'))).toEqual({
         feature: f.get('end') - f.get('start'),
         mate: mate.end - mate.start,
@@ -518,6 +531,41 @@ test('a reverse-strand pair writes its CIGAR along the query lane', async () => 
   expect(forward.get('strand')).toBe(1)
   expect(largestGap(forward.get('CIGAR'))).toBeGreaterThan(0)
   expect(reverse.get('CIGAR')).toBe(forward.get('CIGAR'))
+})
+
+// HG01361#2 and HG00673#1 differ by one SNP in this window, which the graph
+// holds as a bubble: an insertion and a deletion, where comparing the bases
+// would write 1X
+test('a SNP between two lanes is the bubble the graph holds, an insertion and a deletion', async () => {
+  const records = await feats(anchoredAdapter(), window, {
+    queryAssemblyName: 'HG01361#2',
+    targetAssemblyName: 'HG00673#1',
+  })
+  expect(records.map(f => [f.get('CIGAR'), f.get('numMatches')])).toEqual([
+    ['800=1I1D413=', 1213],
+  ])
+})
+
+// HG00673#2 differs from HG01361#2 in a 4 bp bubble whose middle two bases
+// agree, which comparing bases would count as matches. Nowhere in the slice
+// would it find an inversion inside a gap, so the option alone keeps one out
+test('a lane pair asks gbz-base to compare no base, and every match it answers is a shared node', async () => {
+  const read = vi.spyOn(Subgraph.prototype, 'pairAlignments')
+  await feats(anchoredAdapter(), window, {
+    queryAssemblyName: 'HG01361#2',
+    targetAssemblyName: 'HG00673#2',
+  })
+  const answered = read.mock.results.flatMap(result =>
+    result.type === 'return' ? result.value : [],
+  )
+  expect(answered.length).toBeGreaterThan(0)
+  for (const [opts] of read.mock.calls) {
+    expect(opts.bases).toBe(false)
+  }
+  for (const pair of answered) {
+    expect(pair.matches).toBe(pair.sharedBases)
+  }
+  read.mockRestore()
 })
 
 test('the pair with an indel between its lanes writes it', async () => {

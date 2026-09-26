@@ -546,8 +546,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
 
   /**
    * The two lanes' walks cut out of the anchor window alone, and each walk
-   * of the query lane aligned to each walk of the target lane. The records
-   * sit on the query lane's contigs, the lane the display draws on top.
+   * of the query lane aligned to each walk of the target lane on the nodes
+   * both visit, with no base compared. The records sit on the query lane's
+   * contigs, the lane the display draws on top.
    *
    * Only a cut walked from the haplotype index's anchor rows holds each walk
    * whole. The sampled cut leaves a walk in pieces wherever it strays past the
@@ -593,7 +594,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       query && anchored && featureSide.length > 0 && mateSide.length > 0
         ? (
             await updateStatus(
-              `Aligning ${queryAssemblyName} to ${targetAssemblyName}`,
+              `Reading ${queryAssemblyName} against ${targetAssemblyName}`,
               opts.statusCallback,
               async () =>
                 Promise.all(
@@ -612,13 +613,15 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       ? subgraphs.flatMap(subgraph =>
           featureSide.flatMap(target =>
             mateSide.flatMap(mate =>
-              subgraph.pairAlignments({ target, query: mate }).map(pair =>
-                pairFeature({
-                  pair,
-                  lane: queryAssemblyName,
-                  mateLane: targetAssemblyName,
-                }),
-              ),
+              subgraph
+                .pairAlignments({ target, query: mate, bases: false })
+                .map(pair =>
+                  pairFeature({
+                    pair,
+                    lane: queryAssemblyName,
+                    mateLane: targetAssemblyName,
+                  }),
+                ),
             ),
           ),
         )
