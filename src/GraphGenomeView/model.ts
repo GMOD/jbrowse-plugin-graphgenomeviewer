@@ -1351,6 +1351,8 @@ export default function stateModelFactory() {
       get regionCapBp() {
         return self.coarseCut ? Infinity : self.maxRegionBp
       },
+    }))
+    .views(self => ({
       // Whether the follow is running, and when it is asked for and cannot,
       // why not: a control that silently does nothing is worse than one that
       // says it cannot (EngineOnly in GraphSettingsDialog).
@@ -1368,8 +1370,20 @@ export default function stateModelFactory() {
             reason: 'Only a graph cut from a track can follow a linear view',
           }
         }
+        const { tracks, views } = getSession(self)
+        const track = tracks.find(t => t.trackId === self.cutTrackId)
+        const adapter = track
+          ? (readConfObject(track, 'adapter') as { type?: unknown })
+          : undefined
+        if (adapter?.type === 'GbzBaseSyntenyAdapter') {
+          return {
+            active: false,
+            reason:
+              'Not following: a GBZ cut takes seconds, too slow to redo per pan',
+          }
+        }
         const view = linearViewTarget({
-          views: [...getSession(self).views],
+          views: [...views],
           connectedViewId: self.connectedViewId,
           assemblyName: region.assemblyName,
         })

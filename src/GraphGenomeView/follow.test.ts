@@ -508,6 +508,21 @@ test('switching an anchored follow to force hands the viewport back to the fit',
   expect([model.scale, model.translateX, model.translateY]).toEqual(handedBack)
 })
 
+test('a GBZ cut is too slow to follow, and says so', async () => {
+  mockSession.tracks = [
+    { ...FINE, adapter: { type: 'GbzBaseSyntenyAdapter', tier: 'fine' } },
+  ]
+  const { model, view, cuts } = await followingModel()
+  expect(model.followState).toEqual({
+    active: false,
+    reason: 'Not following: a GBZ cut takes seconds, too slow to redo per pan',
+  })
+  view.panBy(200_000)
+  view.settle()
+  await flush()
+  expect(cuts).toHaveLength(1)
+})
+
 test('turning the follow off leaves the graph where the follow put it', async () => {
   const { model, view } = await followingModel()
   const transform = [model.scale, model.translateX, model.translateY]
