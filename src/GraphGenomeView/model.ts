@@ -26,7 +26,7 @@ import {
   classifyBubble,
 } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
-import { COLOR_SCHEME_VALUES } from './colorSchemes'
+import { COLOR_SCHEMES, COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import {
   GENE_ADAPTER_TYPES,
@@ -50,6 +50,7 @@ import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import { walkRowsExtent } from './layout/walkRowLayout'
 import { walkRows } from './layout/walkRows'
 import {
+  LAYOUT_MODES,
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
   modeUsesLayoutEngine,
@@ -374,33 +375,10 @@ export function GraphPaneMixin() {
         // difference is visible rather than asserted.
         layoutQuality: types.optional(types.number, 2),
         linearLayout: types.optional(types.boolean, false),
-        // Which drawing to use; the modes and their fallbacks are described in
-        // LAYOUT_MODES. Default 'force' is the Bandage FMMM drawing, i.e. what
-        // someone who has seen a pangenome graph before expects to see.
-        //
-        // The default used to be 'auto', the reference-anchored layout, on the
-        // argument that lining the graph's x axis up with a linear view above it
-        // is what this view can do and Bandage cannot. Docs review disagreed
-        // twice, on figure after figure — "the linear backbone is just
-        // confusing", "default to showing the bandage graphs over linear
-        // backbone in almost all cases" — and the reason is that the anchored
-        // drawing looks like a track rather than a graph: a bubble collapses onto
-        // the reference axis, so the alternative alleles read as short bars
-        // hanging under a line rather than as two routes through the same locus.
-        // The anchored modes stay one dropdown click away, and are what the
-        // hover-sync and one-row-per-strain figures select deliberately.
-        layoutMode: types.optional(
-          types.enumeration(LAYOUT_MODE_VALUES),
-          'force',
-        ),
-        // 'auto' rather than a colour, resolved by `effectiveColorScheme`. See
-        // COLOR_SCHEMES for why the default is not 'uniform' any more. A session
-        // that names a scheme keeps it — this only decides what an unstated one
-        // opens as.
-        colorScheme: types.optional(
-          types.enumeration(COLOR_SCHEME_VALUES),
-          'auto',
-        ),
+        // unset takes the host's default: force in a view of its own, the
+        // display config's in a track
+        layoutMode: types.maybe(types.enumeration(LAYOUT_MODE_VALUES)),
+        colorScheme: types.maybe(types.enumeration(COLOR_SCHEME_VALUES)),
         // How far the force layout opens a bubble, which on a variation graph is
         // the difference between a legible drawing and a rope. See
         // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
@@ -605,9 +583,6 @@ export function GraphPaneMixin() {
       // and then never re-fit.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       viewportOwner: 'fit' as ViewportOwner,
-      // the pane height a host holds, so a re-cut with more rows does not
-      // move the pane while the linear view above it is being dragged
-      hostPaneHeight: undefined as number | undefined,
       cutNote: undefined as string | undefined,
       recuts: 0,
       viewportDirtyTimer: undefined as
@@ -623,6 +598,22 @@ export function GraphPaneMixin() {
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
+    }))
+    .views(() => ({
+      get defaultLayoutMode(): LayoutModeValue {
+        return 'force'
+      },
+      get defaultColorScheme(): ColorScheme {
+        return 'auto'
+      },
+    }))
+    .views(self => ({
+      get chosenLayoutMode() {
+        return self.layoutMode ?? self.defaultLayoutMode
+      },
+      get chosenColorScheme() {
+        return self.colorScheme ?? self.defaultColorScheme
+      },
     }))
     .views(self => ({
       get paneWidth() {
@@ -694,7 +685,7 @@ export function GraphPaneMixin() {
       // `drawPaths` switch already follows.
       get usesLayoutEngine() {
         return self.graph
-          ? modeUsesLayoutEngine(self.layoutMode, self.graph)
+          ? modeUsesLayoutEngine(self.chosenLayoutMode, self.graph)
           : false
       },
       // A rank-0 backbone to draw x against, whether the segments declared it
@@ -780,8 +771,8 @@ export function GraphPaneMixin() {
       // the ramp still says where on the reference each node came from, which is
       // the only quantity a linear track beside it can be painted with too.
       get effectiveColorScheme(): ResolvedColorScheme {
-        return self.colorScheme !== 'auto'
-          ? self.colorScheme
+        return self.chosenColorScheme !== 'auto'
+          ? self.chosenColorScheme
           : self.graph?.anchoredBy
             ? 'reference-position'
             : 'uniform'
@@ -919,14 +910,14 @@ export function GraphPaneMixin() {
       // Walk rows state what each walk skips as its own bar length, so the arcs
       // over the backbone would only say it again, across the bars.
       get deletions() {
-        return self.graph && self.layoutMode !== 'walkrows'
+        return self.graph && self.chosenLayoutMode !== 'walkrows'
           ? deletionEdges(self.graph)
           : []
       },
       // One bar per haplotype walk on its own bp axis, for the walk-rows
       // overlay. Empty under every other layout.
       get walkRowBars() {
-        if (self.layoutMode !== 'walkrows' || !self.graph) {
+        if (self.chosenLayoutMode !== 'walkrows' || !self.graph) {
           return undefined
         }
         const repeat = self.selectedRepeat
@@ -963,7 +954,7 @@ export function GraphPaneMixin() {
       // Each bubble in the window with what it is, for the variant map's
       // glyphs on the reference line.
       get bubbleGlyphs() {
-        const bubbles = self.layoutMode === 'variants' ? self.bubbles : []
+        const bubbles = self.chosenLayoutMode === 'variants' ? self.bubbles : []
         return bubbles.map(bubble => ({
           bubble,
           ...classifyBubble(bubble),
@@ -975,8 +966,8 @@ export function GraphPaneMixin() {
         dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
         return self.showGenes &&
-          self.layoutMode !== 'variants' &&
-          self.layoutMode !== 'walkrows' &&
+          self.chosenLayoutMode !== 'variants' &&
+          self.chosenLayoutMode !== 'walkrows' &&
           self.graph &&
           self.geneFeatures &&
           positions
@@ -990,8 +981,8 @@ export function GraphPaneMixin() {
         const positions = self.layoutResult?.nodePositions
         if (
           !self.showBubbles ||
-          self.layoutMode === 'variants' ||
-          self.layoutMode === 'walkrows' ||
+          self.chosenLayoutMode === 'variants' ||
+          self.chosenLayoutMode === 'walkrows' ||
           !self.graph ||
           !positions
         ) {
@@ -1122,12 +1113,6 @@ export function GraphPaneMixin() {
       // derivation. It reads neither `scale` nor the height it is replacing, so
       // zoomToFit consumes this without feeding back into it.
       get canvasHeight() {
-        if (
-          self.viewportOwner === 'host' &&
-          self.hostPaneHeight !== undefined
-        ) {
-          return self.hostPaneHeight
-        }
         const bounds = this.layoutBounds
         const usableWidth = self.paneWidth - FIT_PADDING * 2
         // `paneHeight` replaces the built-in ceiling rather than adding a
@@ -1146,7 +1131,7 @@ export function GraphPaneMixin() {
           // painted above it by the overlay and need the room a row layout
           // would give to rows.
           const floor =
-            self.layoutMode === 'variants'
+            self.chosenLayoutMode === 'variants'
               ? VARIANT_MAP_HEIGHT
               : MIN_CANVAS_HEIGHT
           return Math.min(ceiling, Math.max(floor, bounds.h + FIT_PADDING * 2))
@@ -1377,7 +1362,7 @@ export function GraphPaneMixin() {
         } catch {
           return undefined
         }
-        return view !== self && isLinearHost(view) ? view : undefined
+        return isLinearHost(view) ? view : undefined
       },
     }))
     .views(self => ({
@@ -1497,9 +1482,6 @@ export function GraphPaneMixin() {
       // caller runs if it wants the drawing refitted into the new pane.
       setPaneHeight(px: number | undefined) {
         self.paneHeight = px
-        if (self.viewportOwner === 'host') {
-          self.hostPaneHeight = px
-        }
       },
       // The track a hosted pane cuts from. The first settle makes the cut.
       adoptTrack(trackId: string) {
@@ -1746,7 +1728,6 @@ export function GraphPaneMixin() {
       hostTransform(scale: number, translateX: number) {
         const engaging = self.viewportOwner !== 'host'
         if (engaging) {
-          self.hostPaneHeight = self.canvasHeight
           self.viewportOwner = 'host'
         }
         self.scale = scale
@@ -1759,7 +1740,6 @@ export function GraphPaneMixin() {
       // whose x no longer means bp is refit.
       releaseHost() {
         if (self.viewportOwner === 'host') {
-          self.hostPaneHeight = undefined
           if (self.layoutResult?.referenceAxis) {
             self.viewportOwner = 'user'
           } else {
@@ -1886,7 +1866,7 @@ export function GraphPaneMixin() {
       // 'force' is expressed. See LAYOUT_MODES.
       function* computeLayout(graph: Graph) {
         const start = performance.now()
-        const local = layoutModeByValue(self.layoutMode).run(
+        const local = layoutModeByValue(self.chosenLayoutMode).run(
           graph,
           self.loadedRegion,
           self.host ? self.layoutResult?.sampleRows : undefined,
@@ -2443,7 +2423,7 @@ export function GraphPaneMixin() {
             ...self.popStack,
             {
               graph,
-              layoutMode: self.layoutMode,
+              layoutMode: self.chosenLayoutMode,
               label: graph.name,
               indexBubbles: self.indexBubbles,
             },
@@ -2451,7 +2431,7 @@ export function GraphPaneMixin() {
           self.indexBubbles = undefined
           const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
-          if (self.layoutMode === 'variants') {
+          if (self.chosenLayoutMode === 'variants') {
             self.layoutMode = 'force'
           }
           self.clearInteractionState()
@@ -2522,7 +2502,7 @@ export function GraphPaneMixin() {
       // window is cut to the window alone; one the host places carries
       // margins to pan over.
       settleOn(seen: HostWindow) {
-        const margins = layoutModeByValue(self.layoutMode).cutMargins
+        const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
         const above = self.coarseAboveBpPerPx
         const tier =
           above !== undefined && seen.bpPerPx > above ? 'coarse' : 'fine'
@@ -2959,6 +2939,135 @@ export function GraphPaneMixin() {
       // other view contributes to. Until this existed the triangle had two edges:
       // a linear view could open a graph or a synteny view of a locus, and the
       // graph could open nothing at all.
+      graphMenuItems(): MenuItem[] {
+        const walks = self.walkChoices
+        return [
+          {
+            label: 'Layout',
+            subMenu: LAYOUT_MODES.map(mode => ({
+              type: 'radio' as const,
+              label: mode.label,
+              checked: self.chosenLayoutMode === mode.value,
+              disabled: self.graph ? !mode.available(self.graph) : false,
+              onClick: () => {
+                void self.switchLayout(mode.value)
+              },
+            })),
+          },
+          {
+            label: 'Color',
+            subMenu: COLOR_SCHEMES.map(scheme => ({
+              type: 'radio' as const,
+              label: scheme.label,
+              checked: self.chosenColorScheme === scheme.value,
+              onClick: () => {
+                self.setColorScheme(scheme.value)
+              },
+            })),
+          },
+          ...(walks.length > 0
+            ? [
+                {
+                  label: 'Walk',
+                  subMenu: [
+                    {
+                      type: 'radio' as const,
+                      label: 'None',
+                      checked: self.highlightedPath === '',
+                      onClick: () => {
+                        self.setHighlightedPath('')
+                      },
+                    },
+                    ...walks.map(walk => ({
+                      type: 'radio' as const,
+                      label: walk.label,
+                      checked: self.highlightedPath === walk.name,
+                      onClick: () => {
+                        self.setHighlightedPath(walk.name)
+                      },
+                    })),
+                  ],
+                },
+              ]
+            : []),
+          ...(self.chosenLayoutMode === 'walkrows' &&
+          self.repeatChoices.length > 0
+            ? [
+                {
+                  label: 'Repeat',
+                  subMenu: [
+                    {
+                      type: 'radio' as const,
+                      label: 'Whole window',
+                      checked: self.repeatKey === '',
+                      onClick: () => {
+                        self.setRepeatKey('')
+                      },
+                    },
+                    ...self.repeatChoices.map(({ key, name, unit }) => ({
+                      type: 'radio' as const,
+                      label: `${name} · ${unit.toLocaleString()} bp unit`,
+                      checked: self.repeatKey === key,
+                      onClick: () => {
+                        self.setRepeatKey(key)
+                      },
+                    })),
+                  ],
+                },
+              ]
+            : []),
+          ...(self.hostPlacesX
+            ? []
+            : [
+                {
+                  label: 'Zoom in',
+                  onClick: () => {
+                    self.zoom(1.5, self.paneWidth / 2, self.canvasHeight / 2)
+                  },
+                },
+                {
+                  label: 'Zoom out',
+                  onClick: () => {
+                    self.zoom(
+                      1 / 1.5,
+                      self.paneWidth / 2,
+                      self.canvasHeight / 2,
+                    )
+                  },
+                },
+                {
+                  label: 'Zoom to fit',
+                  onClick: () => {
+                    self.zoomToFit()
+                  },
+                },
+              ]),
+          {
+            type: 'checkbox',
+            label: 'Mark bubbles',
+            checked: self.showBubbles,
+            onClick: () => {
+              self.setShowBubbles(!self.showBubbles)
+            },
+          },
+          {
+            type: 'checkbox',
+            label: 'Show deletion edges',
+            checked: self.showDeletionEdges,
+            onClick: () => {
+              self.setShowDeletionEdges(!self.showDeletionEdges)
+            },
+          },
+          {
+            type: 'checkbox',
+            label: 'Genes on the backbone',
+            checked: self.showGenes,
+            onClick: () => {
+              self.setShowGenes(!self.showGenes)
+            },
+          },
+        ]
+      },
       launchMenuItems(): MenuItem[] {
         const items: MenuItem[] = []
         for (const item of graphLaunchMenuItems({

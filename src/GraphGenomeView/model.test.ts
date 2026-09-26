@@ -2353,7 +2353,7 @@ describe('the auto color scheme', () => {
     const model = createModel()
     await model.loadGFA(RGFA, 'rgfa')
 
-    expect(model.colorScheme).toBe('auto')
+    expect(model.chosenColorScheme).toBe('auto')
     expect(model.effectiveColorScheme).toBe('reference-position')
   })
 

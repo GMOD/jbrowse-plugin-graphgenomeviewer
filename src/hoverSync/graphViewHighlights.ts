@@ -86,24 +86,23 @@ function isOnAssembly(
   )
 }
 
+// The graph displays in a linear view's own tracks, connected to it by where
+// they sit.
+function trackGraphs(view: Record<string, unknown>) {
+  const tracks = Array.isArray(view.tracks) ? view.tracks : []
+  return tracks.flatMap((track: unknown) =>
+    isRecord(track) && Array.isArray(track.displays)
+      ? track.displays.filter(
+          (display: unknown) =>
+            isRecord(display) && display.type === 'LinearGraphDisplay',
+        )
+      : [],
+  ) as Record<string, unknown>[]
+}
+
 // The highlights a linear view should draw for the graph views connected to it.
 // Reads `session.views` structurally: the members it needs are declared by
 // GraphGenomeView, not by the AbstractViewModel the session array is typed as.
-// The graph panes inside a linear view's own tracks, connected to it by where
-// they sit.
-function trackPanes(view: Record<string, unknown>) {
-  const tracks = Array.isArray(view.tracks) ? view.tracks : []
-  return tracks.flatMap((track: unknown) => {
-    const displays =
-      isRecord(track) && Array.isArray(track.displays) ? track.displays : []
-    return displays.flatMap((display: unknown) =>
-      isRecord(display) && isRecord(display.pane)
-        ? [{ key: display.id, pane: display.pane }]
-        : [],
-    )
-  })
-}
-
 export function graphViewHighlights(
   views: unknown[],
   linearViewId: string,
@@ -117,11 +116,11 @@ export function graphViewHighlights(
   )
   for (const view of views) {
     if (isRecord(view) && view.id === linearViewId) {
-      for (const { key, pane } of trackPanes(view)) {
-        const region = readRegion(pane.hoverHighlight)
+      for (const display of trackGraphs(view)) {
+        const region = readRegion(display.hoverHighlight)
         if (region && isOnAssembly(region, linearAssemblyNames)) {
           highlights.push({
-            key: typeof key === 'string' ? key : 'graph-track',
+            key: typeof display.id === 'string' ? display.id : 'graph-track',
             region,
           })
         }

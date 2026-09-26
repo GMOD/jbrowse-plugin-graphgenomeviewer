@@ -29,7 +29,7 @@ const LayoutSelect = observer(function LayoutSelect({
     <FormControl size="small" className={classes.formControl}>
       <InputLabel>Layout</InputLabel>
       <Select
-        value={model.layoutMode}
+        value={model.chosenLayoutMode}
         label="Layout"
         data-testid="graph-layout-select"
         onChange={e => {

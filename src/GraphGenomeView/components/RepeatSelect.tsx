@@ -20,7 +20,7 @@ const RepeatSelect = observer(function RepeatSelect({
 }) {
   const { classes } = useStyles()
   const { repeatChoices } = model
-  if (model.layoutMode !== 'walkrows' || repeatChoices.length === 0) {
+  if (model.chosenLayoutMode !== 'walkrows' || repeatChoices.length === 0) {
     return null
   }
   const keys = new Set(repeatChoices.map(r => r.key))

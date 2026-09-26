@@ -22,7 +22,7 @@ const ColorSchemeSelect = observer(function ColorSchemeSelect({
     <FormControl size="small" className={classes.formControl}>
       <InputLabel>Color</InputLabel>
       <Select
-        value={model.colorScheme}
+        value={model.chosenColorScheme}
         label="Color"
         onChange={e => {
           model.setColorScheme(e.target.value)

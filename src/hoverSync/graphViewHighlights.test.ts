@@ -22,7 +22,7 @@ test('a graph view launched from this linear view contributes its highlight', ()
 
 const linearView = (id: string) => ({ id, type: 'LinearGenomeView' })
 
-test("a graph pane inside this linear view's own track contributes its highlight", () => {
+test("a graph display inside this linear view's own track contributes its highlight", () => {
   const view = {
     ...linearView('lgv1'),
     tracks: [
@@ -31,7 +31,7 @@ test("a graph pane inside this linear view's own track contributes its highlight
           {
             id: 'display1',
             type: 'LinearGraphDisplay',
-            pane: { type: 'GraphGenomeView', hoverHighlight: HIGHLIGHT },
+            hoverHighlight: HIGHLIGHT,
           },
         ],
       },

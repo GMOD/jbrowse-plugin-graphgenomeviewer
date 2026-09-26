@@ -21,32 +21,31 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
 }: {
   model: LinearGraphDisplayModel
 }) {
-  const { pane, height } = model
   return (
     <div
       data-testid="linear-graph-display"
-      data-layout={pane.layoutMode}
-      data-cut-tier={pane.cutTier}
-      data-recuts={pane.recuts}
-      data-node-count={pane.hasGraph ? pane.nodeCount : undefined}
-      data-loading={pane.isLoading ? '' : undefined}
+      data-layout={model.chosenLayoutMode}
+      data-cut-tier={model.cutTier}
+      data-recuts={model.recuts}
+      data-node-count={model.hasGraph ? model.nodeCount : undefined}
+      data-loading={model.isLoading ? '' : undefined}
       style={{
         position: 'relative',
-        width: pane.width,
-        height,
+        width: model.paneWidth,
+        height: model.height,
         overflow: 'hidden',
       }}
     >
-      <GraphCanvas model={pane} toolbar={false} />
-      {pane.hasGraph ? null : <GraphLoadStatus model={pane} />}
-      {pane.cutNote ? (
+      <GraphCanvas model={model} toolbar={false} />
+      {model.hasGraph ? null : <GraphLoadStatus model={model} />}
+      {model.cutNote ? (
         <Typography
           variant="caption"
           color="warning.main"
           style={noteStyle}
           data-testid="graph-cut-note"
         >
-          {pane.cutNote}
+          {model.cutNote}
         </Typography>
       ) : null}
     </div>

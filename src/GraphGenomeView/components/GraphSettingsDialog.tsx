@@ -299,7 +299,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           <FormControl className={classes.formControl}>
             <InputLabel>Color scheme</InputLabel>
             <Select
-              value={model.colorScheme}
+              value={model.chosenColorScheme}
               label="Color scheme"
               onChange={e => {
                 model.setColorScheme(e.target.value)

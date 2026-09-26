@@ -279,9 +279,9 @@ async function shownGraph({
   view.scrollTo(windowStart / view.bpPerPx)
   view.showTrack('graph')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  display.pane.startRenderingBackend(fakeRenderer())
+  display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
-  return { view, display, pane: display.pane, cuts, session }
+  return { view, display, pane: display, cuts, session }
 }
 
 test('showing the track cuts the window with a margin each side, and x is the view', async () => {
@@ -369,7 +369,7 @@ test('a launch in the force layout cuts the window alone', async () => {
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  display.pane.startRenderingBackend(fakeRenderer())
+  display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
   expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
@@ -397,33 +397,44 @@ test("a launch names the pane's props without its type, and opens in that layout
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  display.pane.startRenderingBackend(fakeRenderer())
+  display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
-  expect(display.pane.layoutMode).toBe('force')
-  expect(display.pane.colorScheme).toBe('uniform')
-  expect(display.pane.hostPlacesX).toBe(false)
+  expect(display.layoutMode).toBe('force')
+  expect(display.colorScheme).toBe('uniform')
+  expect(display.hostPlacesX).toBe(false)
 })
 
-test('a launch that states one pane prop takes the rest from the config', async () => {
+test('a launch that states one choice takes the rest from the config', async () => {
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
   view.showTrack(
     'graph',
     {},
+    { type: 'LinearGraphDisplay', colorScheme: 'uniform' },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(display.chosenColorScheme).toBe('uniform')
+  expect(display.chosenLayoutMode).toBe('auto')
+  expect(display.hostPlacesX).toBe(true)
+})
+
+test("a 4.0 session's pane state still loads", () => {
+  const { view } = createEnvironment()
+  view.showTrack(
+    'graph',
+    {},
     {
       type: 'LinearGraphDisplay',
-      pane: { colorScheme: 'uniform' },
+      pane: { type: 'GraphGenomeView', layoutMode: 'force' },
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  display.pane.startRenderingBackend(fakeRenderer())
-  await wait(SETTLE_MS)
-  expect(cuts).toHaveLength(1)
-  expect(display.pane.colorScheme).toBe('uniform')
-  expect(display.pane.layoutMode).toBe('auto')
-  expect(display.pane.hostPlacesX).toBe(true)
+  expect(display.chosenLayoutMode).toBe('force')
 })
 
 test('a GBZ track cuts for the lanes it names', async () => {
@@ -433,7 +444,7 @@ test('a GBZ track cuts for the lanes it names', async () => {
   view.showTrack('walks')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   expect(display.type).toBe('LinearGraphDisplay')
-  expect(display.pane.subgraphHaplotypes).toEqual(['HG1.1', 'HG2.1'])
+  expect(display.subgraphHaplotypes).toEqual(['HG1.1', 'HG2.1'])
 })
 
 test('the track menu offers the layouts, colours and the settings dialog', async () => {
