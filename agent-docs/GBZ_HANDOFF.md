@@ -25,11 +25,10 @@ and emits one `SyntenyFeature` per haplotype fragment: anchor coordinates from
 the haplotype's own contig, and the lane labelled `sample#haplotype` unless a
 listed assembly maps to it. Ids are the walk's GBWT position at its first node
 in the window, so a refetch of one window re-keys nothing. A window on a
-haplotype lane answers nothing. It answers no lane pair: that route
-aligned two haplotypes with a k-mer chain and a DP in the worker, and was
-deleted rather than shipped, so every gutter below the anchor composes through
-the reference. The aligner remains in gbz-base's CLI for offline use.
-`getHeader` says
+haplotype lane answers nothing. It answers no lane pair: that route aligned two
+haplotypes with a k-mer chain and a DP in the worker, and was deleted rather
+than shipped, so every gutter below the anchor composes through the reference.
+The aligner remains in gbz-base's CLI for offline use. `getHeader` says
 `hasCoarseTier: false`, and `nodeLimit` fails a window that would read a whole
 chromosome.
 

@@ -15,11 +15,7 @@ import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
-import type {
-  HaplotypeAlignment,
-  PathName,
-  PathQuery,
-} from '@gmod/gbz-base'
+import type { HaplotypeAlignment, PathName, PathQuery } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
@@ -216,7 +212,6 @@ export function fragmentFeature({
     return new SyntenyFeature(data)
   }
 }
-
 
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
   private graph = cachedSetup({

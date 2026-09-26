@@ -420,40 +420,6 @@ test('getSubgraph refuses a window on a haplotype lane with a message naming the
   ).rejects.toThrow(/cut on its reference, hg38; a window on HG01106#1/)
 })
 
-// the bases each side of a record walks, in JBrowse's convention: the feature
-// side takes D, the mate side I
-function cigarSpans(cigar: string) {
-  let feature = 0
-  let mate = 0
-  for (const [, n, op] of cigar.matchAll(/(\d+)([MIDX=])/g)) {
-    feature += op === 'I' ? 0 : +n
-    mate += op === 'D' ? 0 : +n
-  }
-  return { feature, mate }
-}
-
-const largestGap = (cigar: string) =>
-  Math.max(0, ...[...cigar.matchAll(/(\d+)[ID]/g)].map(([, n]) => Number(n)))
-
-// HG01361#2 and HG02145#2 each carry a ~170 bp insertion against GRCh38 at
-// 31,498,602, which a band composed through GRCh38 draws as nothing
-const insertionWindow = { ...window, start: 31498400, end: 31498900 }
-// the companion carries anchor rows, the one cut that holds a walk whole
-const anchoredAdapter = (conf: Record<string, unknown> = {}) =>
-  makeAdapter({
-    haplotypeIndexLocation: {
-      localPath: require.resolve('./test_data/micb-kir3dl1.haplotype-index.db'),
-      locationType: 'LocalPathLocation',
-    },
-    ...conf,
-  })
-
-const spanOf = (intervals: { start: number; end: number }[]) => ({
-  start: Math.min(...intervals.map(i => i.start)),
-  end: Math.max(...intervals.map(i => i.end)),
-})
-
-
 test('getSubgraph outside every reference fragment is empty', async () => {
   expect(
     await makeAdapter().getSubgraph({ ...window, start: 100, end: 200 }),
