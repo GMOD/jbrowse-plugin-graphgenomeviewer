@@ -1,3 +1,9 @@
+## [4.0.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.2...v4.0.3) (2026-09-26)
+
+### Other Changes
+
+- A GBZ track cuts for the lanes it names, the track menu carries the Repeat picker, and only force and ordered draw in their own coordinates ([c3962bf](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c3962bfb2c31f22c212ad6d293c28a889b55aa6f))
+
 ## [4.0.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.1...v4.0.2) (2026-09-26)
 
 ### Other Changes
