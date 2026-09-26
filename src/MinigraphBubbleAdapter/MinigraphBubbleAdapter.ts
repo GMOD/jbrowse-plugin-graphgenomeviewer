@@ -32,7 +32,7 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
     pluginManager?: PluginManager,
   ) {
     super(config, getSubAdapter, pluginManager)
-    this.bubbles = openTabixSlot(this, 'bubblesLocation', 'index')
+    this.bubbles = openTabixSlot(this, ['bubblesLocation'], ['index'])
     this.refNames = new PanSNRefNames(this.bubbles, this)
   }
 

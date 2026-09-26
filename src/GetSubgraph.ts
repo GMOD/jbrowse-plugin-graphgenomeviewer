@@ -12,10 +12,14 @@ import type { Region } from '@jbrowse/core/util'
 // cut reads; the GBZ cut has its own bp `context` slot. `haplotypes` is the
 // set the cut is for, lane assembly names or PanSN prefixes, which only the GBZ
 // cut reads: it keeps those walks and the nodes they visit. Undefined or empty
-// is every haplotype.
+// is every haplotype. `tier` picks which of an rGFA track's two index pairs the
+// cut reads, the adapter's own or its `coarse` one; fine when absent.
+export type SubgraphTier = 'fine' | 'coarse'
+
 export interface SubgraphCutOptions {
   hops?: number
   haplotypes?: string[]
+  tier?: SubgraphTier
 }
 
 // What an adapter's cut is handed: the payload, plus the call's own signal so

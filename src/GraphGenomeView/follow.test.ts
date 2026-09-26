@@ -3,6 +3,7 @@ import { observable, observableRef } from 'mobx'
 import { followCut } from './follow'
 import stateModelFactory from './model'
 
+import type { SubgraphTier } from '../GetSubgraph'
 import type { FollowWindow } from './follow'
 import type { Renderer } from './renderer/types'
 import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
@@ -38,24 +39,24 @@ const REF = 'chr1'
 const ASM = 'hg38'
 const CONTIG = 10_000_000
 const WIDTH_PX = 1000
-const COARSE_ABOVE_BP = 1_000_000
+// 1 Mb across the 1000 px view
+const COARSE_ABOVE_BP_PER_PX = 1000
 
-const FINE = {
-  trackId: 'fine',
-  assemblyNames: [ASM],
-  adapter: { type: 'RgfaTabixAdapter', tier: 'fine' },
+function graphTrack(adapter: Record<string, unknown>) {
+  return { trackId: 'graph', assemblyNames: [ASM], adapter }
 }
-const COARSE = {
-  trackId: 'coarse',
-  assemblyNames: [ASM],
-  adapter: { type: 'RgfaTabixAdapter', tier: 'coarse' },
-}
+const TIERED = graphTrack({
+  type: 'RgfaTabixAdapter',
+  uri: 'graph',
+  coarse: { uri: 'graph.tier10000', aboveBpPerPx: COARSE_ABOVE_BP_PER_PX },
+})
+const UNTIERED = graphTrack({ type: 'RgfaTabixAdapter', uri: 'graph' })
 
 // One backbone segment per `step` bp, ids fixed by position so overlapping cuts
 // name the same segment the same way, and an allele over every other one. Past
 // 1.5 Mb the fine tier's alleles nest eight ranks deep, so a cut there has
 // more rows than one before it.
-function syntheticGraph(tier: 'fine' | 'coarse', region: SubgraphRegion) {
+function syntheticGraph(tier: SubgraphTier, region: SubgraphRegion) {
   const step = tier === 'fine' ? 10_000 : 250_000
   const lines = ['H\tVN:Z:1.0']
   const first = Math.floor(region.start / step)
@@ -86,8 +87,14 @@ function syntheticGraph(tier: 'fine' | 'coarse', region: SubgraphRegion) {
 }
 
 interface Cut {
-  tier: 'fine' | 'coarse'
+  tier: SubgraphTier
   region: SubgraphRegion
+  hops: number | undefined
+}
+
+interface Reads {
+  cuts: Cut[]
+  bubbleReads: SubgraphRegion[]
 }
 
 const FORCE_LAYOUT = {
@@ -103,23 +110,32 @@ const FORCE_LAYOUT = {
   },
 }
 
-function stubSubgraphs(cuts: Cut[]) {
+function stubSubgraphs({ cuts, bubbleReads }: Reads) {
   mockRpcCall.mockImplementation(
     (
       _sid: unknown,
       method: string,
       args: {
-        adapterConfig: { tier: 'fine' | 'coarse' }
         region: SubgraphRegion
+        regions?: SubgraphRegion[]
+        opts?: { tier?: SubgraphTier; hops?: number }
       },
     ) => {
       if (method === 'GraphComputeLayout') {
         return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
       }
+      if (method === 'CoreGetFeatures') {
+        bubbleReads.push(args.regions![0]!)
+        return Promise.resolve([])
+      }
       if (method !== 'GetSubgraph') {
         return Promise.reject(new Error(`Unexpected RPC: ${method}`))
       }
-      const cut = { tier: args.adapterConfig.tier, region: args.region }
+      const cut = {
+        tier: args.opts?.tier ?? 'fine',
+        region: args.region,
+        hops: args.opts?.hops,
+      }
       cuts.push(cut)
       return Promise.resolve(syntheticGraph(cut.tier, cut.region))
     },
@@ -213,6 +229,7 @@ function liveWindow(view: LinearView): FollowWindow {
     assemblyName: ASM,
     start: block.start,
     end: block.end,
+    bpPerPx: view.bpPerPx,
     span: view.windowWidthBp,
     regionStart: 0,
     regionEnd: CONTIG,
@@ -254,20 +271,21 @@ async function followingModel({
   tiered?: boolean
 } = {}) {
   const cuts: Cut[] = []
-  stubSubgraphs(cuts)
+  const bubbleReads: SubgraphRegion[] = []
+  stubSubgraphs({ cuts, bubbleReads })
   const view = mockLinearView(windowStart, windowBp)
   mockSession.views = [view]
+  if (!tiered) {
+    mockSession.tracks = [UNTIERED]
+  }
   const model = stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode,
-    loadedTrackId: FINE.trackId,
-    // what a launch with the follow on cuts: the window and its margins
+    loadedTrackId: 'graph',
+    // a follow under way: the window and its margins
     loadedRegion: followCut(liveWindow(view), Infinity),
     connectedViewId: view.id,
     followLinearView: true,
-    ...(tiered
-      ? { coarseTrackId: COARSE.trackId, coarseAboveBp: COARSE_ABOVE_BP }
-      : {}),
   } as never)
   // the mount order the app has: the cut lands, the canvas mounts, then the
   // width is measured
@@ -276,12 +294,12 @@ async function followingModel({
   model.setWidth(WIDTH_PX)
   view.settle()
   await flush()
-  return { model, view, cuts }
+  return { model, view, cuts, bubbleReads }
 }
 
 beforeEach(() => {
   mockRpcCall.mockReset()
-  mockSession.tracks = [FINE, COARSE]
+  mockSession.tracks = [TIERED]
 })
 
 test('a 2 Mb pan in 10 kb steps moves x every step and re-cuts every seventh', async () => {
@@ -351,7 +369,9 @@ test('a re-cut keeps the selection, found again by id', async () => {
 
 test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in the fine one', async () => {
   // centred at 5 Mb, so no margin is clamped at a contig end
-  const { model, view, cuts } = await followingModel({ windowStart: 4_970_000 })
+  const { model, view, cuts, bubbleReads } = await followingModel({
+    windowStart: 4_970_000,
+  })
   const widths = [120_000, 240_000, 480_000, 960_000, 1_920_000, 3_000_000]
   const tierAt = new Map<number, string>()
 
@@ -365,7 +385,9 @@ test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in 
     if (cuts.length > before) {
       tierAt.set(bp, cuts.at(-1)!.tier)
     }
-    expect(model.coarseCut).toBe(bp > COARSE_ABOVE_BP)
+    expect(model.cutTier).toBe(
+      bp / WIDTH_PX > COARSE_ABOVE_BP_PER_PX ? 'coarse' : 'fine',
+    )
     expect(graphX(model, probe)).toBeCloseTo(lgvX(view, probe), 6)
   }
 
@@ -385,6 +407,8 @@ test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in 
   expect(coarseSpan).toBeGreaterThan(model.maxRegionBp)
   expect(model.error).toBeUndefined()
   expect(model.graph!.nodes.every(n => n.id.startsWith('c'))).toBe(true)
+  // a hop past a coarse cut reaches nothing, so none is asked for
+  expect(cuts.filter(c => c.tier === 'coarse').map(c => c.hops)).toEqual([0])
 
   tierAt.clear()
   for (const bp of [...widths].reverse().slice(1).concat(60_000)) {
@@ -392,6 +416,10 @@ test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in 
   }
   expect([...tierAt]).toEqual([[960_000, 'fine']])
   expect(model.graph!.nodes.every(n => n.id.startsWith('f'))).toBe(true)
+  // the bubble index is read beside every fine cut and no coarse one
+  expect(bubbleReads).toEqual(
+    cuts.filter(c => c.tier === 'fine').map(c => c.region),
+  )
 })
 
 test('with no coarse tier the margins narrow to the cap, and past it the last cut holds', async () => {
@@ -509,9 +537,7 @@ test('switching an anchored follow to force hands the viewport back to the fit',
 })
 
 test('a GBZ cut is too slow to follow, and says so', async () => {
-  mockSession.tracks = [
-    { ...FINE, adapter: { type: 'GbzBaseSyntenyAdapter', tier: 'fine' } },
-  ]
+  mockSession.tracks = [graphTrack({ type: 'GbzBaseSyntenyAdapter' })]
   const { model, view, cuts } = await followingModel()
   expect(model.followState).toEqual({
     active: false,

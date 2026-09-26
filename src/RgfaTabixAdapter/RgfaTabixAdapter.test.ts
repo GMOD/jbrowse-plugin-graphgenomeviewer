@@ -2,7 +2,8 @@ import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
-import configSchema from './configSchema.ts'
+import configSchema, { normalizeSnapshot } from './configSchema.ts'
+import { parseGFA } from '../gfa-core/index.ts'
 
 // Built by scripts/build_rgfa_tabix.sh from the minigraph rGFA of four E. coli
 // strains at jbrowse.org/demos/ecoli_pangenome/ecoli_rgfa_slice.gfa (the
@@ -282,4 +283,70 @@ test('getSubgraph resolves through the mapping too', async () => {
   expect(gfa.split('\n').filter(l => l.startsWith('S')).length).toBeGreaterThan(
     0,
   )
+})
+
+// The same four strains at one node per bubble: `gfatools bubble` over
+// test_data/ecoli_rgfa_slice.gfa, collapsed by build_bubble_tier.sh in
+// jbrowse-components at `--min-content 1000`. 14 bubbles over K12's 322 kb,
+// against 161 segments in the fine pair.
+function makeTieredAdapter() {
+  const local = (path: string) => ({
+    localPath: path,
+    locationType: 'LocalPathLocation',
+  })
+  const tier = `${prefix}.tier1000`
+  return new Adapter(
+    configSchema.create({
+      segmentsLocation: local(`${prefix}.segs.bed.gz`),
+      segmentsIndex: { location: local(`${prefix}.segs.bed.gz.tbi`) },
+      linksLocation: local(`${prefix}.links.bed.gz`),
+      linksIndex: { location: local(`${prefix}.links.bed.gz.tbi`) },
+      coarse: {
+        aboveBpPerPx: 100,
+        segmentsLocation: local(`${tier}.segs.bed.gz`),
+        segmentsIndex: { location: local(`${tier}.segs.bed.gz.tbi`) },
+        linksLocation: local(`${tier}.links.bed.gz`),
+        linksIndex: { location: local(`${tier}.links.bed.gz.tbi`) },
+      },
+    }),
+  )
+}
+
+const k12Span = {
+  refName: 'chr',
+  assemblyName: 'K12',
+  start: 993236,
+  end: 1315741,
+}
+
+test("getSubgraph with tier: 'coarse' cuts the coarse pair", async () => {
+  const adapter = makeTieredAdapter()
+  const fine = parseGFA(await adapter.getSubgraph(k12Span))
+  const coarse = parseGFA(
+    await adapter.getSubgraph(k12Span, { tier: 'coarse' }),
+  )
+  const bubbles = coarse.nodes.filter(n => n.tags.ct === 'bubble')
+  expect(bubbles).toHaveLength(14)
+  expect(coarse.nodes.every(n => n.tags.ct !== undefined)).toBe(true)
+  expect(fine.nodes.every(n => n.tags.ct === undefined)).toBe(true)
+  expect([fine.nodes.length, coarse.nodes.length]).toEqual([106, 28])
+  // a bubble keeps its source segment's id, so it joins back to the fine pair
+  const fineIds = new Set(fine.nodes.map(n => n.id))
+  expect(bubbles.every(n => fineIds.has(n.id))).toBe(true)
+})
+
+test('the coarse uri shorthand resolves a pair against the adapter baseUri', () => {
+  const snap = normalizeSnapshot({
+    uri: 'hprc',
+    baseUri: 'https://example.com/',
+    coarse: { uri: 'hprc.tier10000', aboveBpPerPx: 1000 },
+  })
+  expect(snap.coarse).toMatchObject({
+    aboveBpPerPx: 1000,
+    segmentsLocation: {
+      uri: 'hprc.tier10000.segs.bed.gz',
+      baseUri: 'https://example.com/',
+    },
+    linksIndex: { location: { uri: 'hprc.tier10000.links.bed.gz.tbi' } },
+  })
 })

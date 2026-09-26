@@ -40,7 +40,7 @@ const FollowStatus = observer(function FollowStatus({
   const { followState, followNote } = model
   const text = followState.active
     ? (followNote ??
-      `Following the linear view${model.coarseCut ? ', coarse tier' : ''}`)
+      `Following the linear view${model.cutTier === 'coarse' ? ', coarse tier' : ''}`)
     : followState.reason
   return model.followLinearView && text ? (
     <Typography

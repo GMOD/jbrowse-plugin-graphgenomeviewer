@@ -53,8 +53,9 @@ export interface FollowWindow {
   assemblyName: string
   start: number
   end: number
-  // the view's width in bp, which the margin and the tier are sized by: a
-  // block at a contig end is clipped, the zoom is not
+  bpPerPx: number
+  // the view's width in bp, which the margin is sized by: a block at a contig
+  // end is clipped, the zoom is not
   span: number
   regionStart: number
   regionEnd: number
@@ -94,6 +95,7 @@ export function followWindow(view: FollowedView): FollowWindow | undefined {
         assemblyName: block.assemblyName,
         start: block.start,
         end: block.end,
+        bpPerPx: view.bpPerPx,
         span: view.bpPerPx * view.width,
         regionStart: displayed?.start ?? block.start,
         regionEnd: displayed?.end ?? block.end,

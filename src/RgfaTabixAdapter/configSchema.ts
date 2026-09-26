@@ -13,13 +13,17 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * Minigraph-Cactus) has no such tags and is not supported.
  *
  * The `uri` shorthand takes the prefix the build script was given and resolves
- * `<uri>.segs.bed.gz`, `<uri>.links.bed.gz` and their `.tbi` indexes.
+ * `<uri>.segs.bed.gz`, `<uri>.links.bed.gz` and their `.tbi` indexes. `coarse`
+ * takes the same shorthand for a second pair at one node per bubble, built by
+ * `build_bubble_tier.sh` in jbrowse-components, plus the zoom past which a
+ * graph view following a linear view cuts it.
  *
  * #example
  * ```js
  * {
  *   type: 'RgfaTabixAdapter',
- *   uri: 'https://example.com/ecoli.rgfa',
+ *   uri: 'https://example.com/hprc.rgfa',
+ *   coarse: { uri: 'https://example.com/hprc.tier10000', aboveBpPerPx: 1000 },
  * }
  * ```
  */
@@ -31,7 +35,7 @@ function tbi(uri: string, baseUri: unknown, csi: unknown) {
   }
 }
 
-export function normalizeSnapshot(snap: Record<string, unknown>) {
+function prefixLocations(snap: Record<string, unknown>) {
   const { uri, baseUri, csi } = snap
   return typeof uri === 'string'
     ? {
@@ -42,6 +46,15 @@ export function normalizeSnapshot(snap: Record<string, unknown>) {
         linksIndex: tbi(`${uri}.links.bed.gz`, baseUri, csi),
       }
     : snap
+}
+
+export function normalizeSnapshot(snap: Record<string, unknown>) {
+  const { coarse, baseUri } = snap
+  return prefixLocations(
+    typeof coarse === 'object' && coarse !== null
+      ? { ...snap, coarse: prefixLocations({ baseUri, ...coarse }) }
+      : snap,
+  )
 }
 
 const indexSchema = (name: string, defaultUri: string) =>
@@ -62,6 +75,51 @@ const indexSchema = (name: string, defaultUri: string) =>
       defaultValue: { uri: defaultUri, locationType: 'UriLocation' },
     },
   })
+
+const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
+  /**
+   * #slot
+   * The linear view's bp per px past which a graph following it cuts this
+   * pair. Unset means the track has no coarse tier. There is no default,
+   * because the zoom a fine cut stays drawable to depends on the graph's
+   * density: minigraph runs ~7 kb per segment, a base-level pggb graph ~17 bp.
+   */
+  aboveBpPerPx: { type: 'maybeNumber' },
+  /**
+   * #slot
+   */
+  segmentsLocation: {
+    type: 'fileLocation',
+    defaultValue: {
+      uri: '/path/to/graph.tier.segs.bed.gz',
+      locationType: 'UriLocation',
+    },
+  },
+  /**
+   * #slot
+   */
+  segmentsIndex: indexSchema(
+    'RgfaCoarseSegmentsIndex',
+    '/path/to/graph.tier.segs.bed.gz.tbi',
+  ),
+  /**
+   * #slot
+   */
+  linksLocation: {
+    type: 'fileLocation',
+    defaultValue: {
+      uri: '/path/to/graph.tier.links.bed.gz',
+      locationType: 'UriLocation',
+    },
+  },
+  /**
+   * #slot
+   */
+  linksIndex: indexSchema(
+    'RgfaCoarseLinksIndex',
+    '/path/to/graph.tier.links.bed.gz.tbi',
+  ),
+})
 
 const RgfaTabixAdapter = ConfigurationSchema(
   'RgfaTabixAdapter',
@@ -121,6 +179,14 @@ const RgfaTabixAdapter = ConfigurationSchema(
       type: 'frozen',
       defaultValue: {},
     },
+    /**
+     * #slot
+     * The same graph at one node per bubble, which a graph view following a
+     * linear view cuts once that view is zoomed out past `aboveBpPerPx`, and
+     * which no bp cap applies to. `{ uri, aboveBpPerPx }`, where `uri` is a
+     * prefix as the adapter's own is.
+     */
+    coarse: RgfaTabixCoarseTier,
   },
   {
     explicitlyTyped: true,

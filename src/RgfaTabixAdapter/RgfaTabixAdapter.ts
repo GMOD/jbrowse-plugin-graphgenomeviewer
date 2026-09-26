@@ -12,8 +12,9 @@ import {
 } from './rgfaBed.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
-import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
+import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
+import type { TabixIndexedFile } from '@gmod/tabix'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
@@ -56,14 +57,17 @@ function offReference(segments: RgfaSegment[]) {
   return segments.filter(segment => segment.rank > 0)
 }
 
+interface GraphIndex {
+  segments: TabixIndexedFile
+  links: TabixIndexedFile
+  refNames: PanSNRefNames
+}
+
 export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
 
-  private readonly segments
-  private readonly links
-  // Off the SEGMENT index: it is the one that names every stable sequence the
-  // graph is anchored to, where the link index only names those a link touches.
-  private readonly refNames
+  private readonly fine
+  private coarse: GraphIndex | undefined
 
   public constructor(
     config: RgfaTabixAdapterConfig,
@@ -71,13 +75,39 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     pluginManager?: PluginManager,
   ) {
     super(config, getSubAdapter, pluginManager)
-    this.segments = openTabixSlot(this, 'segmentsLocation', 'segmentsIndex')
-    this.links = openTabixSlot(this, 'linksLocation', 'linksIndex')
-    this.refNames = new PanSNRefNames(this.segments, this)
+    this.fine = this.openIndex([])
+  }
+
+  // refNames off the SEGMENT index: it is the one that names every stable
+  // sequence the graph is anchored to, where the link index only names those a
+  // link touches.
+  private openIndex(under: string[]): GraphIndex {
+    const segments = openTabixSlot(
+      this,
+      [...under, 'segmentsLocation'],
+      [...under, 'segmentsIndex'],
+    )
+    return {
+      segments,
+      links: openTabixSlot(
+        this,
+        [...under, 'linksLocation'],
+        [...under, 'linksIndex'],
+      ),
+      refNames: new PanSNRefNames(segments, this),
+    }
+  }
+
+  private index(tier: SubgraphTier = 'fine') {
+    if (tier === 'fine') {
+      return this.fine
+    }
+    this.coarse ??= this.openIndex(['coarse'])
+    return this.coarse
   }
 
   async getRefNames(opts: BaseOptions = {}) {
-    return this.refNames.assemblyRefNames(opts)
+    return this.fine.refNames.assemblyRefNames(opts)
   }
 
   public async hasDataForRefName() {
@@ -87,10 +117,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   getFeatures(query: Region, opts: BaseOptions = {}) {
     const { signal, statusCallback } = opts
     return ObservableCreate<Feature>(async observer => {
-      const tabixRefName = await this.refNames.resolve(query, opts)
+      const tabixRefName = await this.fine.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         await updateStatus('Downloading segments', statusCallback, () =>
-          this.segments.getLines(tabixRefName, query.start, query.end, {
+          this.fine.segments.getLines(tabixRefName, query.start, query.end, {
             signal,
             lineCallback: line => {
               const segment = parseSegmentLine(line)
@@ -132,11 +162,13 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   // off-reference segment newly reached. One round is what closes a bubble, so
   // it is the default the view asks for; see the frontier below. `signal` goes
   // to every one of those queries, so a cut the view has replaced stops.
+  // `tier: 'coarse'` reads the `coarse` pair instead, the same way.
   async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
-    const { hops = 0, signal } = opts
+    const { hops = 0, signal, tier } = opts
+    const index = this.index(tier)
     const segments = new Map<string, RgfaSegment>()
     const links = new Map<string, RgfaLink>()
-    const tabixRefName = await this.refNames.resolve(region, { signal })
+    const tabixRefName = await index.refNames.resolve(region, { signal })
 
     const addLinksOver = async (
       refName: string,
@@ -144,7 +176,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       end: number,
     ) => {
       const reached: RgfaSegment[] = []
-      await this.links.getLines(refName, start, end, {
+      await index.links.getLines(refName, start, end, {
         signal,
         lineCallback: line => {
           const link = parseLinkLine(line)
@@ -165,7 +197,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         `${region.assemblyName} ${region.refName} is not in this graph's index; a graph with PanSN names (GRCh38#0#chr1) needs ${region.assemblyName} mapped to its prefix in assemblyNameToPanSN`,
       )
     }
-    await this.segments.getLines(tabixRefName, region.start, region.end, {
+    await index.segments.getLines(tabixRefName, region.start, region.end, {
       signal,
       lineCallback: line => {
         const segment = parseSegmentLine(line)

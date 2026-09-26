@@ -111,6 +111,7 @@ import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
 import type { Renderer } from './renderer/types'
 import type { Graph, GraphNode, LayoutResult } from './types'
+import type { SubgraphCutOptions, SubgraphTier } from '../GetSubgraph'
 import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { RepeatArray } from './repeats/repeatFeatures'
@@ -546,12 +547,9 @@ export default function stateModelFactory() {
         // x tracks that linear view's window, and the cut is re-made when the
         // window leaves it. agent-docs/FOLLOW_THE_LINEAR_VIEW.md
         followLinearView: types.optional(types.boolean, false),
-        // The one-node-per-bubble tier a follow cuts instead of loadedTrackId
-        // while the window is wider than coarseAboveBp. No bp cap applies to
-        // it; maxGraphNodes counts what came back.
-        coarseTrackId: types.optional(types.string, ''),
-        coarseAboveBp: types.maybe(types.number),
-        // so a restored session re-makes the cut it saved
+        // Whether the cut came from the source track's `coarse` pair
+        // (RgfaTabixAdapter), so a restored session re-makes the cut it saved.
+        // No bp cap applies to that pair; maxGraphNodes counts what came back.
         coarseCut: types.optional(types.boolean, false),
       }),
     )
@@ -764,7 +762,9 @@ export default function stateModelFactory() {
       // The span the reference-position ramp runs over: what the snapshot
       // stated, else the region the graph was cut from. Undefined only for a
       // file-loaded graph that states neither, where the ramp falls back to the
-      // drawn extent (computeReferenceRamp).
+      // drawn extent (computeReferenceRamp). A follow's re-cut moves
+      // loadedRegion, so the ramp re-spans every new cut, and the lane above
+      // with it.
       get rampDomain() {
         return self.colorDomain ?? self.loadedRegion
       },
@@ -840,6 +840,16 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
+      // As written: a session track is a plain object until something
+      // hydrates it, so a slot left at its default reads undefined here.
+      get sourceAdapter() {
+        const track = getSession(self).tracks.find(
+          t => t.trackId === self.loadedTrackId,
+        )
+        return track
+          ? (readConfObject(track, 'adapter') as Record<string, unknown>)
+          : undefined
+      },
       get assemblyTrackChoices() {
         const region = self.loadedRegion
         if (!region) {
@@ -1247,17 +1257,11 @@ export default function stateModelFactory() {
       // go supply it, and this is a probe run for hundreds of haplotypes per
       // graph.
       get assemblyResolver() {
-        const { assemblyManager, tracks } = getSession(self)
-        const track = tracks.find(t => t.trackId === self.loadedTrackId)
-        const adapter = track
-          ? (readConfObject(track, 'adapter') as {
-              assemblyNameToPanSN?: Record<string, string>
-            })
-          : undefined
+        const { assemblyManager } = getSession(self)
+        const panSN = self.sourceAdapter?.assemblyNameToPanSN as
+          Record<string, string> | undefined
         const byPrefix = new Map(
-          Object.entries(adapter?.assemblyNameToPanSN ?? {}).map(
-            ([asm, prefix]) => [prefix, asm],
-          ),
+          Object.entries(panSN ?? {}).map(([asm, prefix]) => [prefix, asm]),
         )
         const loaded = (name: string | undefined) =>
           name !== undefined && assemblyManager.has(name)
@@ -1342,14 +1346,25 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
-      // the track the cut on screen came from
-      get cutTrackId() {
-        return self.coarseCut && self.coarseTrackId
-          ? self.coarseTrackId
-          : self.loadedTrackId
+      // The linear view's zoom past which a follow cuts the source track's
+      // coarse pair, or undefined for a track with none.
+      get coarseAboveBpPerPx() {
+        const coarse = self.sourceAdapter?.coarse as
+          { aboveBpPerPx?: unknown } | undefined
+        const above = coarse?.aboveBpPerPx
+        return typeof above === 'number' ? above : undefined
       },
+    }))
+    .views(self => ({
+      get cutTier(): SubgraphTier {
+        return self.coarseCut && self.coarseAboveBpPerPx !== undefined
+          ? 'coarse'
+          : 'fine'
+      },
+    }))
+    .views(self => ({
       get regionCapBp() {
-        return self.coarseCut ? Infinity : self.maxRegionBp
+        return self.cutTier === 'coarse' ? Infinity : self.maxRegionBp
       },
     }))
     .views(self => ({
@@ -1370,12 +1385,7 @@ export default function stateModelFactory() {
             reason: 'Only a graph cut from a track can follow a linear view',
           }
         }
-        const { tracks, views } = getSession(self)
-        const track = tracks.find(t => t.trackId === self.cutTrackId)
-        const adapter = track
-          ? (readConfObject(track, 'adapter') as { type?: unknown })
-          : undefined
-        if (adapter?.type === 'GbzBaseSyntenyAdapter') {
+        if (self.sourceAdapter?.type === 'GbzBaseSyntenyAdapter') {
           return {
             active: false,
             reason:
@@ -1383,7 +1393,7 @@ export default function stateModelFactory() {
           }
         }
         const view = linearViewTarget({
-          views: [...views],
+          views: [...getSession(self).views],
           connectedViewId: self.connectedViewId,
           assemblyName: region.assemblyName,
         })
@@ -2055,9 +2065,8 @@ export default function stateModelFactory() {
       }
 
       function loadedTrack() {
-        const trackId = self.cutTrackId
-        return trackId
-          ? getSession(self).tracks.find(t => t.trackId === trackId)
+        return self.loadedTrackId
+          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
           : undefined
       }
 
@@ -2065,7 +2074,8 @@ export default function stateModelFactory() {
       // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
       // window. A graph whose source has no such file, the ordinary case for a
       // graph of one's own, keeps its derived bubbles, so a failure here is not
-      // the graph's problem.
+      // the graph's problem. A coarse cut reads none: its nodes are the
+      // bubbles, and the index over its window can run to a chromosome's rows.
       function* loadBubbles(
         adapterConfig: Record<string, unknown>,
         region: SubgraphRegion,
@@ -2074,7 +2084,11 @@ export default function stateModelFactory() {
         // The track config arrives as written, so the prefix is either the
         // `uri` shorthand or the segments location it expands to.
         const prefix = bubblePrefix(adapterConfig)
-        if (adapterConfig.type !== 'RgfaTabixAdapter' || prefix === undefined) {
+        if (
+          adapterConfig.type !== 'RgfaTabixAdapter' ||
+          prefix === undefined ||
+          self.cutTier === 'coarse'
+        ) {
           return
         }
         try {
@@ -2167,10 +2181,7 @@ export default function stateModelFactory() {
       function* doSubgraphLoad(
         adapterConfig: Record<string, unknown>,
         region: SubgraphRegion,
-        opts: {
-          hops?: number
-          haplotypes?: string[]
-        } = {},
+        opts: SubgraphCutOptions = {},
       ) {
         const { isLive, signal } = beginLoad()
         const track = loadedTrack()
@@ -2205,7 +2216,7 @@ export default function stateModelFactory() {
           const gfaText = (yield rpcManager.call(sessionId, 'GetSubgraph', {
             adapterConfig,
             region,
-            opts: { hops: opts.hops, haplotypes: opts.haplotypes },
+            opts,
             signal,
           })) as string
           if (!isLive()) {
@@ -2259,12 +2270,16 @@ export default function stateModelFactory() {
         const track = loadedTrack()
         if (region && self.loadedTrackId && !track) {
           self.error = new Error(
-            `The track this graph was cut from, "${self.cutTrackId}", is not in this session`,
+            `The track this graph was cut from, "${self.loadedTrackId}", is not in this session`,
           )
         } else if (track && region) {
+          // A hop past a coarse cut reaches nothing new: every bubble node's
+          // two links are indexed under the backbone either side of it.
+          const coarse = self.cutTier === 'coarse'
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
-            hops: self.subgraphContext,
+            hops: coarse ? 0 : self.subgraphContext,
             haplotypes: self.subgraphHaplotypes,
+            tier: coarse ? 'coarse' : undefined,
           })
         }
       }
@@ -2285,6 +2300,7 @@ export default function stateModelFactory() {
         self.loadedTrackId = ''
         self.loadedRegion = region
         self.coarseCut = false
+        self.followLinearView = false
         self.isLoading = true
         self.error = undefined
         try {
@@ -2527,11 +2543,10 @@ export default function stateModelFactory() {
         if (!seen) {
           return
         }
-        const coarse =
-          !!self.coarseTrackId &&
-          self.coarseAboveBp !== undefined &&
-          seen.span > self.coarseAboveBp
-        const cap = coarse ? Infinity : self.maxRegionBp
+        const above = self.coarseAboveBpPerPx
+        const tier =
+          above !== undefined && seen.bpPerPx > above ? 'coarse' : 'fine'
+        const cap = tier === 'coarse' ? Infinity : self.maxRegionBp
         const visible = seen.end - seen.start
         self.followNote =
           visible > cap
@@ -2539,11 +2554,11 @@ export default function stateModelFactory() {
             : undefined
         if (
           self.followNote !== undefined ||
-          (coarse === self.coarseCut && cutHolds(self.loadedRegion, seen))
+          (tier === self.cutTier && cutHolds(self.loadedRegion, seen))
         ) {
           return
         }
-        self.coarseCut = coarse
+        self.coarseCut = tier === 'coarse'
         self.loadedRegion = followCut(seen, cap)
         self.followRecuts++
         void self.reloadSubgraph()

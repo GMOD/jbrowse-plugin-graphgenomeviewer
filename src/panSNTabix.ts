@@ -38,18 +38,19 @@ import type { Region } from '@jbrowse/core/util/types'
 const CHUNK_CACHE_SIZE = 50 * 2 ** 20
 
 // One indexed file from the pair of slots that names it: the data location, and
-// an index slot holding its own `location` and `indexType`.
+// an index slot holding its own `location` and `indexType`. Paths, so the pair
+// can sit in a sub-schema.
 export function openTabixSlot(
   adapter: BaseFeatureDataAdapter,
-  location: string,
-  index: string,
+  location: string[],
+  index: string[],
 ) {
   const pm = adapter.pluginManager
   return new TabixIndexedFile({
     filehandle: openLocation(adapter.getConf(location), pm),
     ...openTabixIndexFilehandle(
-      adapter.getConf([index, 'location']),
-      adapter.getConf([index, 'indexType']),
+      adapter.getConf([...index, 'location']),
+      adapter.getConf([...index, 'indexType']),
       pm,
     ),
     chunkCacheSize: CHUNK_CACHE_SIZE,
