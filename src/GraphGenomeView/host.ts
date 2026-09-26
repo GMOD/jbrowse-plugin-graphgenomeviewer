@@ -105,9 +105,15 @@ export function hostWindow(view: LinearHost): HostWindow | undefined {
 
 // The window plus one window-width each side, clamped to the displayed
 // region, with the margins narrowed until the whole cut fits under `capBp`.
-export function hostCut(window: HostWindow, capBp: number): SubgraphRegion {
+export function hostCut(
+  window: HostWindow,
+  capBp: number,
+  margins = true,
+): SubgraphRegion {
   const visible = window.end - window.start
-  const margin = Math.max(0, Math.min(window.span, (capBp - visible) / 2))
+  const margin = margins
+    ? Math.max(0, Math.min(window.span, (capBp - visible) / 2))
+    : 0
   return {
     refName: window.refName,
     assemblyName: window.assemblyName,
@@ -116,11 +122,24 @@ export function hostCut(window: HostWindow, capBp: number): SubgraphRegion {
   }
 }
 
-export function cutHolds(cut: SubgraphRegion | undefined, window: HostWindow) {
+// With margins, a cut holds while the window is inside it; without, only the
+// window itself does, since the drawing is the window.
+export function cutHolds(
+  cut: SubgraphRegion | undefined,
+  window: HostWindow,
+  margins = true,
+) {
+  if (
+    cut?.refName !== window.refName ||
+    cut.assemblyName !== window.assemblyName
+  ) {
+    return false
+  }
+  if (margins) {
+    return cut.start <= window.start && window.end <= cut.end
+  }
+  const exact = hostCut(window, Infinity, false)
   return (
-    cut?.refName === window.refName &&
-    cut.assemblyName === window.assemblyName &&
-    cut.start <= window.start &&
-    window.end <= cut.end
+    Math.abs(cut.start - exact.start) < 1 && Math.abs(cut.end - exact.end) < 1
   )
 }

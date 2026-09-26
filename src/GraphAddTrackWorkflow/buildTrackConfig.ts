@@ -108,7 +108,19 @@ export function buildTrackConfig(args: {
     assemblyNames: [assembly],
     adapter: buildAdapterConfig(args),
     ...(choice === 'RgfaTabixAdapter'
-      ? { displayDefaults: { showLabels: 'none' } }
+      ? {
+          displays: [
+            {
+              type: 'LinearGraphDisplay',
+              displayId: `${trackId}-LinearGraphDisplay`,
+            },
+            {
+              type: 'LinearBasicDisplay',
+              displayId: `${trackId}-LinearBasicDisplay`,
+            },
+          ],
+          displayDefaults: { showLabels: 'none' },
+        }
       : {}),
   }
 }

@@ -2504,7 +2504,11 @@ export default function stateModelFactory() {
       // its edge re-cuts the window plus a window-width each side, on the tier
       // the zoom asks for. Overlapping re-cuts are ordered by doSubgraphLoad's
       // liveLoad, so the latest window wins.
+      // Returns whether it re-cut. A layout that draws its own picture of the
+      // window is cut to the window alone; one the host places carries
+      // margins to pan over.
       settleOn(seen: HostWindow) {
+        const margins = layoutModeByValue(self.layoutMode).referenceAxis
         const above = self.coarseAboveBpPerPx
         const tier =
           above !== undefined && seen.bpPerPx > above ? 'coarse' : 'fine'
@@ -2516,14 +2520,15 @@ export default function stateModelFactory() {
             : undefined
         if (
           self.cutNote !== undefined ||
-          (tier === self.cutTier && cutHolds(self.loadedRegion, seen))
+          (tier === self.cutTier && cutHolds(self.loadedRegion, seen, margins))
         ) {
-          return
+          return false
         }
         self.coarseCut = tier === 'coarse'
-        self.loadedRegion = hostCut(seen, cap)
+        self.loadedRegion = hostCut(seen, cap, margins)
         self.recuts++
         void self.reloadSubgraph()
+        return true
       },
     }))
     .actions(self => ({
@@ -2832,7 +2837,13 @@ export default function stateModelFactory() {
       // A layout picked from a menu: the mode, then the drawing it makes.
       switchLayout(mode: LayoutModeValue) {
         self.setLayoutMode(mode)
-        return self.recomputeLayout()
+        const { host } = self
+        const seen = host ? hostWindow(host) : undefined
+        // A cut the new mode would make differently is made again, and that
+        // reload lays the graph out; otherwise the layout alone is redone.
+        return seen && self.settleOn(seen)
+          ? Promise.resolve()
+          : self.recomputeLayout()
       },
       retryLoad() {
         if (self.loadedTrackId && self.loadedRegion) {

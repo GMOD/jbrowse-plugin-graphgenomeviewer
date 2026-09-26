@@ -29,6 +29,7 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
       data-cut-tier={pane.cutTier}
       data-recuts={pane.recuts}
       data-node-count={pane.hasGraph ? pane.nodeCount : undefined}
+      data-loading={pane.isLoading ? '' : undefined}
       style={{
         position: 'relative',
         width: pane.width,

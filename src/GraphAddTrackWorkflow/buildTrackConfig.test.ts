@@ -23,6 +23,10 @@ describe('buildTrackConfig', () => {
       trackId: 'hprc',
       name: 'HPRC graph',
       assemblyNames: ['hg38'],
+      displays: [
+        { type: 'LinearGraphDisplay', displayId: 'hprc-LinearGraphDisplay' },
+        { type: 'LinearBasicDisplay', displayId: 'hprc-LinearBasicDisplay' },
+      ],
       adapter: {
         type: 'RgfaTabixAdapter',
         segmentsLocation: segs,

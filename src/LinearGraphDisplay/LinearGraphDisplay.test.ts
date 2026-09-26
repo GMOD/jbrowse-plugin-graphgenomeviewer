@@ -338,17 +338,42 @@ test('with no coarse tier the margins narrow to the cap, and past it the last cu
   expect(pane.cutNote).toMatch(/Holding the last cut/)
 })
 
-test('a layout whose x is not reference bp draws its own viewport, and still re-cuts', async () => {
+test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {
   const { view, pane, cuts } = await shownGraph()
   await pane.switchLayout('force')
+  await wait(SETTLE_MS)
   expect(pane.hostPlacesX).toBe(false)
   expect(pane.viewportOwner).not.toBe('host')
+  expect(cuts).toHaveLength(2)
+  expect(cuts[1]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
   view.scrollTo(2_000_000 / view.bpPerPx)
   await wait(SETTLE_MS)
-  expect(cuts).toHaveLength(2)
+  expect(cuts).toHaveLength(3)
+  expect(cuts[2]!.region.start).toBe(2_000_000)
+  expect(Math.abs(cuts[2]!.region.end - 2_060_000)).toBeLessThanOrEqual(1)
   await pane.switchLayout('auto')
+  await wait(SETTLE_MS)
   expect(pane.hostPlacesX).toBe(true)
   expect(graphX(pane, 2_030_000)).toBeCloseTo(lgvX(view, 2_030_000), 6)
+})
+
+test('a launch in the force layout cuts the window alone', async () => {
+  const { view, cuts } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      pane: { layoutMode: 'force' },
+    },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
 })
 
 test('the track is as tall as its rows, up to the configured height', async () => {
