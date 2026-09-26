@@ -1,7 +1,9 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
+  getContainingTrack,
   getContainingView,
+  getRpcSessionId,
   getSession,
   isSessionModelWithWidgets,
   statusMessageText,
@@ -14,10 +16,6 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
-import {
-  graphReferenceAssembly,
-  offReferenceProblem,
-} from '../graphTrackConfig'
 import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import {
@@ -35,13 +33,8 @@ import {
 } from './genes/geneFeatures'
 import { genePins } from './genes/genePins'
 import { convertGFAToGraph } from './gfa/gfaConverter'
-import { cutHolds, hostCut, hostFrame, hostWindow, isLinearHost } from './host'
+import { hostFrame, isLinearHost } from './host'
 import { layoutLabels } from './labelLayout'
-import {
-  paintSourceLane,
-  referencePositionColor,
-  sourceLaneDisplay,
-} from './laneRamp'
 import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
 import { mergeRuns, splitRuns } from './layout/mergeRuns'
 import { orientToReference } from './layout/orientToReference'
@@ -100,22 +93,19 @@ import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
 import type { GeneModel } from './genes/geneFeatures'
-import type { HostWindow, LinearHost } from './host'
+import type { LinearHost } from './host'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
 import type { Renderer } from './renderer/types'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
-import type {
-  SubgraphCutOptions,
-  SubgraphRegion,
-  SubgraphTier,
-} from '../GetSubgraph'
+import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
 import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
+import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -453,79 +443,19 @@ export function GraphPaneMixin() {
         // Raise to draw a bigger graph than the default budget allows; see
         // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
         maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
-        // The bp ceiling on a cut, which is a PROXY for node count and only a
-        // good one at fine granularity: on a base-level index 5 Mb is already
-        // thousands of segments, so refusing by span is refusing by cost. A
-        // level-of-detail tier breaks the proxy — a whole 249 Mb human
-        // chromosome is 474 nodes off the hosted HPRC tier — so a session that
-        // knows which granularity it is pointed at can raise this. The real
-        // backstop stays `maxGraphNodes`, which counts what actually came back.
-        //
-        // The launch MENUS keep the constant deliberately (launchSubgraphView):
-        // a user rubber-banding 249 Mb over a fine index should still be told
-        // no, because nothing there has said the track is coarse.
-        maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
-        loadedTrackId: types.optional(types.string, ''),
-        loadedRegion: types.maybe(
-          types.frozen<{
-            refName: string
-            assemblyName: string
-            start: number
-            end: number
-          }>(),
-        ),
-        // The haplotypes the cut is for, lane assembly names or PanSN
-        // prefixes, beside the region so a re-cut asks for the same set;
-        // undefined is every haplotype. Only the GBZ cut reads it.
-        subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
-        // How far the cut follows links past the segments the region's own
-        // links name, defaulting to one hop because at 0 the drawing is wrong
-        // rather than merely sparse. A detour that leaves the backbone before
-        // the window and rejoins after it has its interior indexed only under
-        // its own stable sequence, which no query on the reference reaches, so an
-        // arm that bypasses 21 kb of reference arrives as a 43 bp fragment: the
-        // one bubble draws as two unrelated small insertions, and nothing on
-        // screen says they are the same event. One hop closes those, and that is
-        // the whole of what a reader means by seeing the local graph.
-        //
-        // The cost is queries rather than nodes, and a hop only follows alleles
-        // (offReference in RgfaTabixAdapter, which is gfabase's stop-at-cutpoints
-        // rule read off the rank tag), so it is bounded by the off-reference
-        // segments the cut already reached and it does not walk the backbone out
-        // of the window. Measured: the E. coli paa locus goes 14 segments at 0 to
-        // 17 at 1 and stays at 17 at 2, so the cut closes and stays closed.
-        // HPRC's amylase window goes 63 to 78 to 92, because there the alleles
-        // have alleles; wall-clock is flat across all three, the remote index
-        // dominating. 0 stays available for a graph where even that is too much.
-        //
-        // Still not a graph-aware cut: a complete one needs the bubble
-        // decomposition (`gfatools view -R`, whose bubble rows state their own
-        // member segments) rather than a frontier, which is the follow-up noted
-        // in the adapter.
-        subgraphContext: types.optional(types.number, 1),
-        // Whole-GFA source loaded on attach — lets a GraphGenomeView be
-        // instantiated declaratively from a session/config snapshot.
-        gfaLocation: types.maybe(types.frozen<FileLocation>()),
-        // The reference span the reference-position ramp runs over. A graph cut
-        // from a track already states one as `loadedRegion`; a file-loaded graph
-        // has no region at all, and this is how its snapshot can still put a
-        // linear track beside it on the same ramp — both painted from one pair
-        // of numbers rather than from the file's own measured extent.
+        // The reference span the reference-position ramp runs over, for a graph
+        // with no region of its own to span it
         colorDomain: types.maybe(
           types.frozen<{ start: number; end: number }>(),
         ),
-        // The linear view this graph was launched from, so a hovered node can
-        // draw its reference span there and vice versa. Written by the launch
-        // menu; see hoverSync/.
+        // the linear view a graph of its own is paired with for the hover sync
         connectedViewId: types.maybe(types.string),
-        // Whether the cut came from the source track's `coarse` pair
-        // (RgfaTabixAdapter), so a restored session re-makes the cut it saved.
-        // No bp cap applies to that pair; maxGraphNodes counts what came back.
-        coarseCut: types.optional(types.boolean, false),
       }),
     )
     .volatile(() => ({
       graph: undefined as Graph | undefined,
+      // the reference window the graph on screen was cut for, set with it
+      graphRegion: undefined as SubgraphRegion | undefined,
       layoutResult: undefined as LayoutResult | undefined,
       // what the legends in the pane's top-right corner measure, so no label
       // is placed under them
@@ -583,8 +513,6 @@ export function GraphPaneMixin() {
       // and then never re-fit.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       viewportOwner: 'fit' as ViewportOwner,
-      cutNote: undefined as string | undefined,
-      recuts: 0,
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
       // 0 is never a live rAF handle, so it doubles as "nothing pending"
@@ -599,12 +527,27 @@ export function GraphPaneMixin() {
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
     }))
-    .views(() => ({
+    .views(self => ({
       get defaultLayoutMode(): LayoutModeValue {
         return 'force'
       },
       get defaultColorScheme(): ColorScheme {
         return 'auto'
+      },
+      // a source declared but not yet loaded
+      get hasPendingSource() {
+        return false
+      },
+      get canRetryLoad() {
+        return false
+      },
+      // the track the graph is cut from: the one the pane is a display of
+      get sourceTrack(): AnyConfigurationModel | undefined {
+        try {
+          return getContainingTrack(self).configuration
+        } catch {
+          return undefined
+        }
       },
     }))
     .views(self => ({
@@ -659,14 +602,10 @@ export function GraphPaneMixin() {
         return (
           self.error === undefined &&
           (self.isLoading ||
-            ((self.graph !== undefined ||
-              !!(self.loadedTrackId && self.loadedRegion) ||
-              !!self.gfaLocation) &&
+            self.hasPendingSource ||
+            (self.graph !== undefined &&
               self.lastGeometryStrokeCount === undefined))
         )
-      },
-      get canRetryLoad() {
-        return !!(self.loadedTrackId && self.loadedRegion) || !!self.gfaLocation
       },
       // Only before anything is drawn: past that point a reload is superseded
       // by the next setting change, and stopping one midway would leave a new
@@ -741,22 +680,10 @@ export function GraphPaneMixin() {
       get activeReferencePath() {
         return self.graph?.referencePath
       },
-      // What to anchor on. An explicit choice wins; otherwise a graph cut from
-      // a track is anchored on the assembly it was cut against, which is the
-      // one the linear view beside it is showing.
-      get preferredReferencePath() {
-        return self.referencePath === ''
-          ? self.loadedRegion?.assemblyName
-          : self.referencePath
-      },
-      // The span the reference-position ramp runs over: what the snapshot
-      // stated, else the region the graph was cut from. Undefined only for a
-      // file-loaded graph that states neither, where the ramp falls back to the
-      // drawn extent (computeReferenceRamp). A follow's re-cut moves
-      // loadedRegion, so the ramp re-spans every new cut, and the lane above
-      // with it.
+      // Undefined for a graph with neither, where the ramp spans the drawn
+      // extent (computeReferenceRamp)
       get rampDomain() {
-        return self.colorDomain ?? self.loadedRegion
+        return self.colorDomain ?? self.graphRegion
       },
       // The scheme the renderer actually paints with, which is the raw prop
       // unless it is 'auto'. A bare getter returns a resolved value (root
@@ -830,18 +757,18 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      // As written: a session track is a plain object until something
-      // hydrates it, so a slot left at its default reads undefined here.
       get sourceAdapter() {
-        const track = getSession(self).tracks.find(
-          t => t.trackId === self.loadedTrackId,
-        )
+        const track = self.sourceTrack
         return track
           ? (readConfObject(track, 'adapter') as Record<string, unknown>)
           : undefined
       },
+      get sourceTrackId() {
+        const track = self.sourceTrack
+        return track ? (readConfObject(track, 'trackId') as string) : undefined
+      },
       get assemblyTrackChoices() {
-        const region = self.loadedRegion
+        const region = self.graphRegion
         if (!region) {
           return []
         }
@@ -923,7 +850,7 @@ export function GraphPaneMixin() {
         const repeat = self.selectedRepeat
         const bars = repeat
           ? walkRows(self.graph, repeat, repeat.unit)
-          : walkRows(self.graph, self.loadedRegion)
+          : walkRows(self.graph, self.graphRegion)
         if (!bars) {
           return undefined
         }
@@ -1024,7 +951,7 @@ export function GraphPaneMixin() {
       // need not name anything the session has loaded. Empty rather than
       // undefined, matching what an LGV with no displayed regions reports.
       get assemblyNames() {
-        const region = self.loadedRegion
+        const region = self.graphRegion
         return region ? [region.assemblyName] : []
       },
       // Screen px per layout unit, per axis. `scale` is the x zoom and the whole
@@ -1079,7 +1006,7 @@ export function GraphPaneMixin() {
           }
           const region =
             self.layoutResult.referenceAxis && self.popStack.length === 0
-              ? self.loadedRegion
+              ? self.graphRegion
               : undefined
           if (region && region.end > region.start) {
             minX = region.start
@@ -1192,7 +1119,7 @@ export function GraphPaneMixin() {
               end: number
             }
           | undefined
-        const region = self.loadedRegion
+        const region = self.graphRegion
         const nodeId = self.hoveredNode
         const nodeById = self.nodeById
         const neighbors = self.nodeNeighbors
@@ -1263,7 +1190,7 @@ export function GraphPaneMixin() {
       // does.
       get launchableAssemblies() {
         return resolveContributors(
-          withReferenceRegion(self.contributingAssemblies, self.loadedRegion),
+          withReferenceRegion(self.contributingAssemblies, self.graphRegion),
           self.assemblyResolver,
         )
       },
@@ -1272,7 +1199,7 @@ export function GraphPaneMixin() {
       // Read by the node menu, which offers the item only when it would land
       // somewhere.
       get canHighlightInLinearView() {
-        const region = self.loadedRegion
+        const region = self.graphRegion
         return (
           region !== undefined &&
           linearViewTarget({
@@ -1292,7 +1219,7 @@ export function GraphPaneMixin() {
         const ownAssembly = own
           ? resolveLocationAssembly(self.assemblyResolver, own)
           : undefined
-        const region = self.loadedRegion
+        const region = self.graphRegion
         const nodeById = self.nodeById
         const neighbors = self.nodeNeighbors
         const span =
@@ -1330,28 +1257,6 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      // The linear view's zoom past which a follow cuts the source track's
-      // coarse pair, or undefined for a track with none.
-      get coarseAboveBpPerPx() {
-        const coarse = self.sourceAdapter?.coarse as
-          { aboveBpPerPx?: unknown } | undefined
-        const above = coarse?.aboveBpPerPx
-        return typeof above === 'number' ? above : undefined
-      },
-    }))
-    .views(self => ({
-      get cutTier(): SubgraphTier {
-        return self.coarseCut && self.coarseAboveBpPerPx !== undefined
-          ? 'coarse'
-          : 'fine'
-      },
-    }))
-    .views(self => ({
-      get regionCapBp() {
-        return self.cutTier === 'coarse' ? Infinity : self.maxRegionBp
-      },
-    }))
-    .views(self => ({
       // The linear view this pane draws inside, when a display hosts it: x is
       // that view's window and the cut is re-made when the window leaves it.
       // A pane that is a view of its own has none.
@@ -1371,7 +1276,7 @@ export function GraphPaneMixin() {
       // their own coordinates inside the track, and a popped bubble is a
       // picture of its own.
       get hostPlacesX() {
-        const { host, loadedRegion: region, layoutResult: layout } = self
+        const { host, graphRegion: region, layoutResult: layout } = self
         return (
           host !== undefined &&
           host.initialized &&
@@ -1389,9 +1294,9 @@ export function GraphPaneMixin() {
         return layoutLabels(self)
       },
       get hostFrame() {
-        const { host, loadedRegion } = self
-        return self.hostPlacesX && host && loadedRegion
-          ? hostFrame(host, loadedRegion)
+        const { host, graphRegion } = self
+        return self.hostPlacesX && host && graphRegion
+          ? hostFrame(host, graphRegion)
           : undefined
       },
     }))
@@ -1483,34 +1388,8 @@ export function GraphPaneMixin() {
       setPaneHeight(px: number | undefined) {
         self.paneHeight = px
       },
-      // The track a hosted pane cuts from. The first settle makes the cut.
-      adoptTrack(trackId: string) {
-        if (self.loadedTrackId !== trackId) {
-          self.loadedTrackId = trackId
-          self.loadedRegion = undefined
-          self.coarseCut = false
-          self.graph = undefined
-          self.layoutResult = undefined
-        }
-      },
-      // The caller refetches — the number only describes how the next cut is
-      // made, and the graph on screen was cut with the old one.
-      setSubgraphContext(hops: number) {
-        self.subgraphContext = hops
-      },
-      // Same contract: the caller refetches, since the set describes the next
-      // cut and the graph on screen was cut for the old one.
       setWalkRowSamples(samples: string[] | undefined) {
         self.walkRowSamples = samples
-      },
-      setSubgraphHaplotypes(haplotypes: string[] | undefined) {
-        self.subgraphHaplotypes = haplotypes
-      },
-      // Same contract as setSubgraphContext: describes how the NEXT cut is
-      // gated, so the caller refetches. See the prop for why a session is
-      // allowed to move this and the launch menus are not.
-      setMaxRegionBp(bp: number) {
-        self.maxRegionBp = bp
       },
       // Pair with a linear view for the hover sync, without ever repointing an
       // existing pairing: a graph launched *from* an LGV is already paired with
@@ -1568,7 +1447,7 @@ export function GraphPaneMixin() {
         const neighbors = self.nodeNeighbors
         if (node && nodeById && neighbors) {
           const session = getSession(self)
-          const region = self.loadedRegion
+          const region = self.graphRegion
           // refName/start/end are what makes the widget show a location rather
           // than a bare id, and they are the same span the linear view
           // highlights on hover.
@@ -1824,13 +1703,9 @@ export function GraphPaneMixin() {
       // reference's coarse shape instead of curling it into a C
       // (docs/layout-experiments.md, experiment 2).
       function callLayout(graph: Graph, scaling: LayoutScaling) {
-        const session = getSession(self)
-        const { rpcManager } = session
-        // Stable grouping key for the layout RPC; a view has no display-level
-        // rpcSessionId. `rpcManager.call` injects sessionId into the args.
-        const sessionId = 'graph'
+        const { rpcManager } = getSession(self)
         const anchored = graph.nodes.some(isBackbone)
-        return rpcManager.call(sessionId, 'GraphComputeLayout', {
+        return rpcManager.call(getRpcSessionId(self), 'GraphComputeLayout', {
           graph: {
             nodes: anchored ? seededNodes(graph, scaling) : scaling.nodes,
             edges: graph.edges,
@@ -1868,7 +1743,7 @@ export function GraphPaneMixin() {
         const start = performance.now()
         const local = layoutModeByValue(self.chosenLayoutMode).run(
           graph,
-          self.loadedRegion,
+          self.graphRegion,
           self.host ? self.layoutResult?.sampleRows : undefined,
         )
         if (local) {
@@ -1967,6 +1842,7 @@ export function GraphPaneMixin() {
       function* parseAndLayout(
         text: string,
         name: string,
+        region: SubgraphRegion | undefined,
         keepSelection = false,
       ) {
         self.setStatusMessage('Parsing GFA')
@@ -1977,7 +1853,7 @@ export function GraphPaneMixin() {
         // to force.
         const graph = anchorGraph(
           convertGFAToGraph(gfaGraph, name),
-          self.preferredReferencePath,
+          self.referencePath || region?.assemblyName,
         )
         // Checked here, between parsing and laying out, because this is the one
         // point both load paths pass through and it is upstream of everything
@@ -1994,6 +1870,7 @@ export function GraphPaneMixin() {
         }
         const selected = keepSelection ? self.selectedNode : null
         self.graph = graph
+        self.graphRegion = region
         self.indexBubbles = undefined
         self.geneFeatures = undefined
         self.repeatArrays = undefined
@@ -2026,12 +1903,6 @@ export function GraphPaneMixin() {
         }
       }
 
-      function loadedTrack() {
-        return self.loadedTrackId
-          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
-          : undefined
-      }
-
       // The bubble index that the hosted HPRC build keeps beside its segments,
       // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
       // window. A graph whose source has no such file, the ordinary case for a
@@ -2046,16 +1917,12 @@ export function GraphPaneMixin() {
         // The track config arrives as written, so the prefix is either the
         // `uri` shorthand or the segments location it expands to.
         const prefix = bubblePrefix(adapterConfig)
-        if (
-          adapterConfig.type !== 'RgfaTabixAdapter' ||
-          prefix === undefined ||
-          self.cutTier === 'coarse'
-        ) {
+        if (adapterConfig.type !== 'RgfaTabixAdapter' || prefix === undefined) {
           return
         }
         try {
           const features = (yield getSession(self).rpcManager.call(
-            'graph',
+            getRpcSessionId(self),
             'CoreGetFeatures',
             {
               adapterConfig: {
@@ -2103,10 +1970,14 @@ export function GraphPaneMixin() {
           return undefined
         }
         try {
-          return (yield session.rpcManager.call('graph', 'CoreGetFeatures', {
-            adapterConfig: readConfObject(config, 'adapter'),
-            regions: [region],
-          })) as Feature[]
+          return (yield session.rpcManager.call(
+            getRpcSessionId(self),
+            'CoreGetFeatures',
+            {
+              adapterConfig: readConfObject(config, 'adapter'),
+              regions: [region],
+            },
+          )) as Feature[]
         } catch (e) {
           console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
           return undefined
@@ -2139,129 +2010,16 @@ export function GraphPaneMixin() {
         }
       }
 
-      // Inner loading logic shared by loadFromTabixSubgraph and refetchIfNeeded
-      function* doSubgraphLoad(
-        adapterConfig: Record<string, unknown>,
-        region: SubgraphRegion,
-        opts: SubgraphCutOptions = {},
-      ) {
-        const { isLive, signal } = beginLoad()
-        const track = loadedTrack()
-        const regionSize = region.end - region.start
-        // Past the size cap the graph view declines rather than degrading to a
-        // non-graph rectangle rendering; large-region and full-genome
-        // comparison is a linear synteny view instead.
-        const refusal =
-          (track &&
-            offReferenceProblem(
-              graphReferenceAssembly(track),
-              region.assemblyName,
-            )) ??
-          (regionSize > self.regionCapBp
-            ? `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.regionCapBp)})`
-            : undefined)
-        if (refusal !== undefined) {
-          self.graph = undefined
-          self.layoutResult = undefined
-          self.isLoading = false
-          self.error = new Error(refusal)
-          return
-        }
-        self.isLoading = true
-        self.error = undefined
-        self.setStatusMessage('Fetching subgraph')
-        try {
-          const session = getSession(self)
-          const { rpcManager } = session
-          const sessionId = 'graph' // getRpcSessionId(self) no rpcSessionId getter
-          const fetchStart = performance.now()
-          const gfaText = (yield rpcManager.call(sessionId, 'GetSubgraph', {
-            adapterConfig,
-            region,
-            opts,
-            signal,
-          })) as string
-          if (!isLive()) {
-            return
-          }
-          self.setFetchMs(performance.now() - fetchStart)
-          if (!gfaText) {
-            throw new Error(
-              'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
-            )
-          }
-          const label = locLabel(region)
-          yield* parseAndLayout(gfaText, label, true)
-          if (!isLive()) {
-            return
-          }
-          // Three independent remote reads, each landing as it arrives: in
-          // turn they held the overlay over a drawn graph for the sum of their
-          // round trips.
-          self.setStatusMessage('Reading annotations')
-          yield Promise.all([
-            flow(loadBubbles)(adapterConfig, region, isLive),
-            flow(loadGenes)(region, isLive),
-            flow(loadRepeats)(region, isLive),
-          ])
-        } catch (e) {
-          if (isLive()) {
-            console.error('[GraphGenomeView.loadFromTabixSubgraph]', e)
-            self.error = e
-          }
-        } finally {
-          if (isLive()) {
-            self.isLoading = false
-          }
-        }
-      }
-
-      // The cut behind a graph whose source is a track in this session, which is
-      // what both a launch snapshot and a restored session carry. Silent when
-      // there is no such pair, which is the whole-file case. A pair naming a
-      // track the session lacks is reported, because otherwise the view sits on
-      // an empty import form with nothing saying why.
-      //
-      // Nothing here saves and restores the transform: `viewportOwner` is
-      // what protects a restored session's pan/zoom, and it gates the fit
-      // autorun — the only thing in this flow that would otherwise move the
-      // view. A save/restore pair around the load wrote back the values it had
-      // just read.
-      function* cutFromLoadedTrack() {
-        const region = self.loadedRegion
-        const track = loadedTrack()
-        if (region && self.loadedTrackId && !track) {
-          self.error = new Error(
-            `The track this graph was cut from, "${self.loadedTrackId}", is not in this session`,
-          )
-        } else if (track && region) {
-          // A hop past a coarse cut reaches nothing new: every bubble node's
-          // two links are indexed under the backbone either side of it.
-          const coarse = self.cutTier === 'coarse'
-          yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
-            hops: coarse ? 0 : self.subgraphContext,
-            haplotypes: self.subgraphHaplotypes,
-            tier: coarse ? 'coarse' : undefined,
-          })
-        }
-      }
-
       // Raises `isLoading` before any fetch, so a view waiting on a remote file
       // shows its loading state instead of the import form. Text already in
-      // hand is parsed without yielding first.
-      // `region` is the window a declared file was stated beside. Held through
-      // the load rather than restored after it, so the parse anchors on that
-      // assembly's path and a failed or canceled load can still be retried
-      // with it.
+      // hand is parsed without yielding first. `region` is the window a
+      // declared file was stated beside, which the parse anchors on.
       function* loadWholeGFA(
         name: string,
         source: string | ((signal: AbortSignal) => Promise<string>),
         region?: SubgraphRegion,
       ) {
         const { isLive, signal } = beginLoad()
-        self.loadedTrackId = ''
-        self.loadedRegion = region
-        self.coarseCut = false
         self.isLoading = true
         self.error = undefined
         try {
@@ -2270,7 +2028,7 @@ export function GraphPaneMixin() {
               ? source
               : ((yield source(signal)) as string)
           if (isLive()) {
-            yield* parseAndLayout(text, name)
+            yield* parseAndLayout(text, name, region)
           }
         } catch (e) {
           if (isLive()) {
@@ -2285,24 +2043,22 @@ export function GraphPaneMixin() {
         return isLive()
       }
 
+      function abortLoad() {
+        loadController?.abort()
+        loadController = undefined
+        liveLoad++
+        liveRequest++
+      }
+
       return {
-        // Back to the import form: drop the graph, everything derived from it,
-        // and the source it came from. Leaving the source declared kept
-        // `showLoading` true over the import form and had a reloaded session
-        // cut the dismissed graph again. Any load in flight ends here too,
-        // or it would land its graph afterwards.
+        // Back to the import form: drop the graph and everything derived from
+        // it. Any load in flight ends here too, or it would land its graph
+        // afterwards.
         clearGraph() {
-          loadController?.abort()
-          loadController = undefined
-          liveLoad++
-          liveRequest++
+          abortLoad()
           self.graph = undefined
+          self.graphRegion = undefined
           self.layoutResult = undefined
-          self.loadedTrackId = ''
-          self.loadedRegion = undefined
-          self.coarseCut = false
-          self.cutNote = undefined
-          self.gfaLocation = undefined
           self.indexBubbles = undefined
           self.geneFeatures = undefined
           self.repeatArrays = undefined
@@ -2314,88 +2070,114 @@ export function GraphPaneMixin() {
           self.clearInteractionState()
           self.clearPerfMetrics()
         },
-        cancelLoad() {
-          if (self.canCancelLoad) {
-            loadController?.abort()
-            loadController = undefined
-            liveLoad++
-            liveRequest++
-            self.graph = undefined
-            self.isLoading = false
-            self.statusMessage = ''
-            self.loadCanceled = true
-          }
+        // The user's stop, leaving whatever is drawn under it
+        stopLoad() {
+          abortLoad()
+          self.isLoading = false
+          self.statusMessage = ''
+          self.loadCanceled = true
+        },
+        beforeDestroy() {
+          abortLoad()
         },
         loadGFA: flow(function* (text: string, name = 'Imported GFA') {
           yield* loadWholeGFA(name, text)
         }),
-        loadGFAFromLocation: flow(function* (location: FileLocation) {
+        loadGFAFromLocation: flow(function* (
+          location: FileLocation,
+          region?: SubgraphRegion,
+        ) {
           self.setStatusMessage('Fetching GFA')
-          const stated = self.loadedRegion
           const live = yield* loadWholeGFA(
             'uri' in location
               ? (location.uri.split('/').pop() ?? 'GFA')
               : 'GFA',
             signal =>
               openLocation(location).readFile({ encoding: 'utf8', signal }),
-            stated,
+            region,
           )
-          if (stated && live && self.graph) {
-            yield* loadRepeats(stated, () => self.loadedRegion === stated)
+          if (region && live && self.graph) {
+            yield* loadRepeats(region, () => self.graphRegion === region)
           }
         }),
-        loadFromTabixSubgraph: flow(function* (
+        // One cut of a region, laid out with the annotations over it. Whether
+        // the region may be cut is the caller's call; overlapping cuts are
+        // ordered by liveLoad, so the latest one lands.
+        cutSubgraph: flow(function* (
           adapterConfig: Record<string, unknown>,
           region: SubgraphRegion,
-          opts: {
-            trackId?: string
-          } = {},
+          opts: SubgraphCutOptions = {},
         ) {
-          self.loadedTrackId = opts.trackId ?? ''
-          self.loadedRegion = opts.trackId ? region : undefined
-          self.coarseCut = false
-          yield* doSubgraphLoad(adapterConfig, region, {
-            hops: self.subgraphContext,
-            haplotypes: self.subgraphHaplotypes,
-          })
-        }),
-        // Cut on attach only — a graph already on screen is either the user's
-        // own or one this just drew.
-        refetchIfNeeded: flow(function* () {
-          if (!self.graph) {
-            yield* cutFromLoadedTrack()
+          const { isLive, signal } = beginLoad()
+          self.isLoading = true
+          self.error = undefined
+          self.setStatusMessage('Fetching subgraph')
+          try {
+            const fetchStart = performance.now()
+            const gfaText = (yield getSession(self).rpcManager.call(
+              getRpcSessionId(self),
+              'GetSubgraph',
+              { adapterConfig, region, opts, signal },
+            )) as string
+            if (!isLive()) {
+              return
+            }
+            self.setFetchMs(performance.now() - fetchStart)
+            if (!gfaText) {
+              throw new Error(
+                'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
+              )
+            }
+            yield* parseAndLayout(gfaText, locLabel(region), region, true)
+            if (!isLive()) {
+              return
+            }
+            // Independent remote reads, each landing as it arrives. A coarse
+            // cut reads no bubble index: its nodes are the bubbles, and the
+            // index over its window can run to a chromosome's rows.
+            self.setStatusMessage('Reading annotations')
+            yield Promise.all([
+              opts.tier === 'coarse'
+                ? undefined
+                : flow(loadBubbles)(adapterConfig, region, isLive),
+              flow(loadGenes)(region, isLive),
+              flow(loadRepeats)(region, isLive),
+            ])
+          } catch (e) {
+            if (isLive()) {
+              console.error('[GraphGenomeView.cutSubgraph]', e)
+              self.error = e
+            }
+          } finally {
+            if (isLive()) {
+              self.isLoading = false
+            }
           }
         }),
-        // Cut the same region again, for a change to what the cut returns
-        // rather than to how it is drawn (subgraphContext).
-        reloadSubgraph: flow(function* () {
-          yield* cutFromLoadedTrack()
-        }),
-        // Re-read one annotation track alone, for a track change or a graph
-        // that came from a whole file beside a stated region. The graph, its
-        // layout and any open bubble stay as they are. Live only while the
+        // Re-read one annotation track alone, for a track change. The graph,
+        // its layout and any open bubble stay as they are. Live only while the
         // track it read is still the one chosen, so a slow read cannot land
         // over the pick that followed it.
         reloadRepeats: flow(function* () {
-          const region = self.loadedRegion
+          const region = self.graphRegion
           const trackId = self.repeatTrack?.trackId
           if (region) {
             yield* loadRepeats(
               region,
               () =>
-                self.loadedRegion === region &&
+                self.graphRegion === region &&
                 self.repeatTrack?.trackId === trackId,
             )
           }
         }),
         reloadGenes: flow(function* () {
-          const region = self.loadedRegion
+          const region = self.graphRegion
           const trackId = self.geneTrack?.trackId
           if (region) {
             yield* loadGenes(
               region,
               () =>
-                self.loadedRegion === region &&
+                self.graphRegion === region &&
                 self.geneTrack?.trackId === trackId,
             )
           }
@@ -2494,119 +2276,8 @@ export function GraphPaneMixin() {
       }
     })
     .actions(self => ({
-      // The settle clock. A pan the cut still holds fetches nothing; one past
-      // its edge re-cuts the window plus a window-width each side, on the tier
-      // the zoom asks for. Overlapping re-cuts are ordered by doSubgraphLoad's
-      // liveLoad, so the latest window wins.
-      // Returns whether it re-cut. A layout that draws its own picture of the
-      // window is cut to the window alone; one the host places carries
-      // margins to pan over.
-      settleOn(seen: HostWindow) {
-        const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
-        const above = self.coarseAboveBpPerPx
-        const tier =
-          above !== undefined && seen.bpPerPx > above ? 'coarse' : 'fine'
-        const cap = tier === 'coarse' ? Infinity : self.maxRegionBp
-        const visible = seen.end - seen.start
-        self.cutNote =
-          visible > cap
-            ? `Holding the last cut: ${formatSpanBp(visible)} is past the ${formatSpanBp(cap)} a cut may span`
-            : undefined
-        if (
-          self.cutNote !== undefined ||
-          (tier === self.cutTier && cutHolds(self.loadedRegion, seen, margins))
-        ) {
-          return false
-        }
-        self.coarseCut = tier === 'coarse'
-        self.loadedRegion = hostCut(seen, cap, margins)
-        self.recuts++
-        void self.reloadSubgraph()
-        return true
-      },
-    }))
-    .actions(self => ({
-      // The host's two clocks, started by the display that hosts the pane.
-      // The frame clock moves x with every frame of the linear view and
-      // fetches nothing; the settle clock wakes on its debounced blocks and
-      // re-cuts only when the window has left the cut, whatever the layout.
-      startHosting() {
-        addDisposer(
-          self,
-          reaction(
-            () => self.hostPlacesX,
-            places => {
-              if (!places) {
-                self.releaseHost()
-              }
-            },
-            { name: 'GraphHostPlacesX' },
-          ),
-        )
-        addDisposer(
-          self,
-          reaction(
-            () => self.hostFrame,
-            frame => {
-              if (frame) {
-                self.hostTransform(frame.scale, frame.translateX)
-              }
-            },
-            {
-              equals: (a, b) =>
-                a?.scale === b?.scale && a?.translateX === b?.translateX,
-              fireImmediately: true,
-              name: 'GraphHostFrame',
-            },
-          ),
-        )
-        addDisposer(
-          self,
-          reaction(
-            () => self.host?.coarseDynamicBlocks,
-            blocks => {
-              const { host } = self
-              const seen = blocks && host ? hostWindow(host) : undefined
-              if (seen) {
-                self.settleOn(seen)
-              }
-            },
-            { fireImmediately: true, name: 'GraphHostSettle' },
-          ),
-        )
-      },
-    }))
-    .actions(self => ({
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
-          // Autorun: paint the lane this graph was cut from in the graph's own
-          // reference-position ramp, so a block above and its node below share
-          // a hue with nothing configured. Follows the domain, so a re-cut or
-          // an opened bubble moves the lane's ramp with the drawing.
-          addDisposer(
-            self,
-            autorun(() => {
-              const domain = self.rampDomain
-              const trackId = self.loadedTrackId
-              if (
-                domain &&
-                trackId &&
-                self.effectiveColorScheme === 'reference-position'
-              ) {
-                const display = untracked(() =>
-                  sourceLaneDisplay(
-                    getSession(self).views,
-                    self.connectedViewId,
-                    trackId,
-                  ),
-                )
-                if (display) {
-                  paintSourceLane(display, referencePositionColor(domain))
-                }
-              }
-            }),
-          )
-
           // Autorun: keep the view fitted to the graph until the user moves it.
           // Reads layoutResult plus (via zoomToFit) width/canvasHeight, so it
           // re-fires — and re-fits — as the layout arrives and the canvas is
@@ -2639,7 +2310,7 @@ export function GraphPaneMixin() {
             autorun(() => {
               const hover = readLgvHover(getSession(self).hovered)
               untracked(() => {
-                const region = self.loadedRegion
+                const region = self.graphRegion
                 const graph = self.graph
                 if (region && graph) {
                   self.setHoveredNode(
@@ -2831,41 +2502,22 @@ export function GraphPaneMixin() {
       // A layout picked from a menu: the mode, then the drawing it makes.
       switchLayout(mode: LayoutModeValue) {
         self.setLayoutMode(mode)
-        const { host } = self
-        const seen = host ? hostWindow(host) : undefined
-        // A cut the new mode would make differently is made again, and that
-        // reload lays the graph out; otherwise the layout alone is redone.
-        return seen && self.settleOn(seen)
-          ? Promise.resolve()
-          : self.recomputeLayout()
+        return self.recomputeLayout()
       },
-      retryLoad() {
-        if (self.loadedTrackId && self.loadedRegion) {
-          void self.reloadSubgraph()
-        } else if (self.gfaLocation) {
-          void self.loadGFAFromLocation(self.gfaLocation)
+      cancelLoad() {
+        if (self.canCancelLoad) {
+          self.stopLoad()
+          self.graph = undefined
         }
       },
-      // A declaratively-instantiated view loads itself on attach, from either
-      // declarative source: a whole-GFA `gfaLocation`, or the
-      // `loadedTrackId`/`loadedRegion` pair the launch menu writes and a
-      // reloaded session restores.
-      //
-      // This has to happen here rather than when the rendering backend starts:
-      // the canvas only mounts once `hasGraph` is true, so a view whose graph
-      // must be fetched would never fetch it.
+      // loads the source again, for a host that has one
+      retryLoad() {},
       afterAttach() {
         // A restored session that already carries a non-default transform is
         // the user's own view — mark it so the fit autorun leaves it alone.
         if (!self.isDefaultViewport) {
           self.viewportOwner = 'user'
         }
-        // loadGFAFromLocation leaves `gfaLocation` intact, so the source
-        // round-trips through a session snapshot.
-        if (self.gfaLocation && !self.graph) {
-          void self.loadGFAFromLocation(self.gfaLocation)
-        }
-        void self.refetchIfNeeded()
       },
     }))
     .actions(self => ({
@@ -2881,7 +2533,7 @@ export function GraphPaneMixin() {
       // nowhere.
       showInLinearView(target: { location: GraphLocation; assembly: string }) {
         const session = getSession(self)
-        const onReference = target.assembly === self.loadedRegion?.assemblyName
+        const onReference = target.assembly === self.graphRegion?.assemblyName
         const viewId = showInLinearView({
           session,
           location: target.location,
@@ -2890,10 +2542,7 @@ export function GraphPaneMixin() {
           tracks: launchTracks({
             session,
             assemblyName: target.assembly,
-            first:
-              self.loadedTrackId && onReference
-                ? self.loadedTrackId
-                : undefined,
+            first: onReference ? self.sourceTrackId : undefined,
           }),
         })
         if (onReference) {
@@ -2919,7 +2568,7 @@ export function GraphPaneMixin() {
           session: getSession(self),
           contributors: self.launchableAssemblies,
           trackId,
-          graphTrackId: self.loadedTrackId || undefined,
+          graphTrackId: self.sourceTrackId,
         })
       },
     }))

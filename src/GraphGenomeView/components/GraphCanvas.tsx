@@ -475,16 +475,16 @@ const NodeContextMenu = observer(function NodeContextMenu({
   )
 })
 
-// `toolbar` false for a pane inside a track, whose controls are the track's
-// menu. A hosted pane whose x the host places takes no pan or wheel of its
+// `ownChrome` false for a pane inside a track, whose controls, loading state
+// and errors are the track's. A hosted pane whose x the host places takes no pan or wheel of its
 // own: those are the linear view's, as on any other track. One drawing its
 // own coordinates inside a track keeps them, and keeps them from the view.
 const GraphCanvas = observer(function GraphCanvas({
   model,
-  toolbar = true,
+  ownChrome = true,
 }: {
   model: GraphPaneModel
-  toolbar?: boolean
+  ownChrome?: boolean
 }) {
   const { canvasRef, canvas } = useRenderingBackend(createGraphRenderer, model)
   // Where the pointer was last, and whether it has travelled since mousedown —
@@ -705,7 +705,7 @@ const GraphCanvas = observer(function GraphCanvas({
 
   return (
     <div style={wrapperStyle}>
-      {toolbar ? <GraphToolbar model={model} /> : null}
+      {ownChrome ? <GraphToolbar model={model} /> : null}
 
       <div style={canvasAreaStyle}>
         <canvas
@@ -734,20 +734,22 @@ const GraphCanvas = observer(function GraphCanvas({
         <WalkRowsOverlay model={model} />
         <Legends model={model} />
 
-        <div style={loadingLayerStyle}>
-          <LoadingOverlay
-            isVisible={model.isLoading}
-            immediate={!model.layoutResult}
-            statusMessage={model.statusMessage}
-            onCancel={
-              model.canCancelLoad
-                ? () => {
-                    model.cancelLoad()
-                  }
-                : undefined
-            }
-          />
-        </div>
+        {ownChrome ? (
+          <div style={loadingLayerStyle}>
+            <LoadingOverlay
+              isVisible={model.isLoading}
+              immediate={!model.layoutResult}
+              statusMessage={model.statusMessage}
+              onCancel={
+                model.canCancelLoad
+                  ? () => {
+                      model.cancelLoad()
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        ) : null}
       </div>
 
       <HoverTooltips model={model} />
@@ -764,7 +766,7 @@ const GraphCanvas = observer(function GraphCanvas({
         />
       ) : null}
 
-      {model.error ? (
+      {ownChrome && model.error ? (
         <ErrorBanner
           error={model.error}
           onReset={

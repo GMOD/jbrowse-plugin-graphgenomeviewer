@@ -8,7 +8,7 @@ import {
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphPaneModel } from '../model'
+import type { LinearGraphCutModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -24,24 +24,21 @@ const useStyles = makeStyles()({
 // detour draws as two unrelated stubs, which is a wrong picture of the graph
 // rather than a cheaper one. Two exists for a graph whose alleles have alleles
 // (HPRC's amylase window keeps growing at 2, the E. coli paa locus does not), and
-// it stops there because a frontier is still not a bubble decomposition. See
-// subgraphContext in the model, and cut an exact slice with gfatools when that is
-// what is wanted.
+// it stops there because a frontier is still not a bubble decomposition. Cut an
+// exact slice with gfatools when that is what is wanted.
 const SUBGRAPH_CONTEXTS = [
   { value: 0, label: 'None' },
   { value: 1, label: '1 hop' },
   { value: 2, label: '2 hops' },
 ]
 
-// Only a graph cut from a track has a cut to widen: a file-loaded graph is
-// already whatever its file holds, and re-cutting it means nothing.
 const SubgraphContextSelect = observer(function SubgraphContextSelect({
   model,
 }: {
-  model: GraphPaneModel
+  model: LinearGraphCutModel
 }) {
   const { classes } = useStyles()
-  return model.loadedTrackId ? (
+  return (
     <div className={classes.section}>
       <FormControl className={classes.formControl}>
         <InputLabel>Graph context</InputLabel>
@@ -51,7 +48,7 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
           data-testid="graph-context-select"
           onChange={e => {
             model.setSubgraphContext(e.target.value)
-            void model.reloadSubgraph()
+            void model.cut()
           }}
         >
           {SUBGRAPH_CONTEXTS.map(({ value, label }) => (
@@ -69,7 +66,7 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
         off-reference segment already reached.
       </Typography>
     </div>
-  ) : null
+  )
 })
 
 export default SubgraphContextSelect

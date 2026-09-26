@@ -5,8 +5,8 @@ import type { SnapshotIn } from '@jbrowse/mobx-state-tree'
 
 // GraphGenomeView has no assembly/track resolution — every field is a plain
 // persisted view prop, so the launch spec forwards straight onto the view
-// snapshot. `afterAttach` loads `gfaLocation`, or refetches the
-// `loadedTrackId`/`loadedRegion` pair, once the view is created.
+// snapshot. `afterAttach` loads `gfaLocation`, or cuts the
+// `loadedTrackId`/`loadedRegion` pair once, when the view is created.
 //
 // **Taken off the model rather than listed by hand**, which is the whole point.
 // This named four props (`gfaLocation`, `colorScheme`, `linearLayout`,

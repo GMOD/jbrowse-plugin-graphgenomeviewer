@@ -168,7 +168,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   // selected array on both sides, so the reference readout sits after it.
   const backboneEnd = Math.max(
     origin + reference.bp,
-    model.loadedRegion?.end ?? 0,
+    model.graphRegion?.end ?? 0,
   )
   // A readout that would leave the pane is written inside the end of its bar.
   const label = (text: string, endBp: number, y: number, fill = '#333') => {

@@ -17,6 +17,10 @@ const mockSession = {
 vi.mock('@jbrowse/core/util', () => ({
   getSession: () => mockSession,
   getContainingView: (node: unknown) => node,
+  getContainingTrack: () => {
+    throw new Error('not in a track')
+  },
+  getRpcSessionId: () => 'test',
   isSessionModelWithWidgets: () => false,
   parseLocString: () => ({}),
   getEnv: () => ({}),

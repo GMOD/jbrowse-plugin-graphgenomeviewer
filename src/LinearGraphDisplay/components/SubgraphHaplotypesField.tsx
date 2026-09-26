@@ -4,7 +4,7 @@ import { TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphPaneModel } from '../model'
+import type { LinearGraphCutModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -23,16 +23,15 @@ export function parseHaplotypeList(text: string) {
 const HaplotypeListField = observer(function HaplotypeListField({
   model,
 }: {
-  model: GraphPaneModel
+  model: LinearGraphCutModel
 }) {
-  const [draft, setDraft] = useState(model.subgraphHaplotypes?.join(', ') ?? '')
+  const [draft, setDraft] = useState(model.chosenHaplotypes?.join(', ') ?? '')
   const apply = () => {
-    const parsed = parseHaplotypeList(draft)
-    const unchanged =
-      parsed?.join('\n') === model.subgraphHaplotypes?.join('\n')
+    const parsed = parseHaplotypeList(draft) ?? []
+    const unchanged = parsed.join('\n') === model.chosenHaplotypes?.join('\n')
     if (!unchanged) {
       model.setSubgraphHaplotypes(parsed)
-      void model.reloadSubgraph()
+      void model.cut()
     }
   }
   return (
@@ -57,27 +56,26 @@ const HaplotypeListField = observer(function HaplotypeListField({
   )
 })
 
-// Only a graph cut from a track has a set to choose; a file holds whatever
-// walks it holds. The inner field is keyed on the model's set so an outside
+// Only a GBZ cut reads the set. The inner field is keyed on it so an outside
 // change (a restored session, a launch) resets the draft rather than fighting
 // it.
 const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
   model,
 }: {
-  model: GraphPaneModel
+  model: LinearGraphCutModel
 }) {
   const { classes } = useStyles()
-  return model.loadedTrackId ? (
+  return model.adapterConfig.type === 'GbzBaseSyntenyAdapter' ? (
     <div className={classes.section}>
       <HaplotypeListField
-        key={model.subgraphHaplotypes?.join(',') ?? ''}
+        key={model.chosenHaplotypes?.join(',') ?? ''}
         model={model}
       />
       <Typography variant="caption" color="text.secondary">
         The haplotypes the cut is for, as lane assembly names or PanSN prefixes
         (HG002#1, or HG002 for both), separated by commas. The cut keeps their
         walks and the nodes those walks visit, with the reference. Empty is
-        every haplotype. Only a gbz-base track reads this.
+        every haplotype.
       </Typography>
     </div>
   ) : null

@@ -95,7 +95,7 @@ export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgr
       return dataAdapter.getSubgraph(region, { ...opts, signal })
     }
     // An empty result is how the view and the launch menu detect "this track
-    // can't do subgraphs" — see GraphGenomeView.loadFromTabixSubgraph.
+    // can't do subgraphs" — see the pane's cutSubgraph.
     console.warn(
       `[GetSubgraph] ${dataAdapter.constructor.name} does not implement getSubgraph`,
     )

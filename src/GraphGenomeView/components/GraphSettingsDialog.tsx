@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { Dialog } from '@jbrowse/core/ui'
 import {
   DialogActions,
@@ -18,12 +20,10 @@ import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import { MAX_PATH_COLORS } from '../pathColors'
-import SubgraphContextSelect from './SubgraphContextSelect'
-import SubgraphHaplotypesField from './SubgraphHaplotypesField'
 import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
 import { NODE_WIDTHS } from '../nodeWidths'
+import { MAX_PATH_COLORS } from '../pathColors'
 
 import type { GraphPaneModel } from '../model'
 
@@ -60,12 +60,14 @@ const EngineOnly = observer(function EngineOnly({
   ) : null
 })
 
+// `children` is the host's own section, between node width and colour
 const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
   model: GraphPaneModel
   open: boolean
   onClose: () => void
+  children?: ReactNode
 }) {
-  const { model, open, onClose } = props
+  const { model, open, onClose, children } = props
   const { classes } = useStyles()
 
   return (
@@ -291,9 +293,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           </Typography>
         </div>
 
-        <SubgraphContextSelect model={model} />
-
-        <SubgraphHaplotypesField model={model} />
+        {children}
 
         <div className={classes.section}>
           <FormControl className={classes.formControl}>

@@ -60,7 +60,7 @@ export function paddedLocation(
 //     reference, which need not be the name of any loaded assembly: the HPRC
 //     graph says `GRCh38#0#chr6` in a session whose assembly is `hg38`. Taking
 //     the PanSN sample there resolves to nothing and the graph offers no way out
-//     at all. `loadedRegion` is authoritative — the adapter resolved that
+//     at all. The cut region is authoritative — the adapter resolved that
 //     assembly to that stable sequence to cut the subgraph in the first place.
 //     The backbone's `haplotype` (`GRCh38#0`) goes with it, since
 //     resolveLocationAssembly tries that before the sample.

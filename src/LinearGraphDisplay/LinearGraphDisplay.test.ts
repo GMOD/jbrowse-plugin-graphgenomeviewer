@@ -188,11 +188,18 @@ function createEnvironment({ tiered = true } = {}) {
   }
 
   const cuts: Cut[] = []
+  // while set, a cut waits for the test to answer it
+  let held: ((answer: () => void) => void) | undefined
+  const signals: AbortSignal[] = []
   const rpcCall = vi.fn(
     (
       _sid: unknown,
       method: string,
-      args: { region: SubgraphRegion; opts?: { tier?: SubgraphTier } },
+      args: {
+        region: SubgraphRegion
+        opts?: { tier?: SubgraphTier }
+        signal?: AbortSignal
+      },
     ) => {
       if (method === 'GraphComputeLayout') {
         return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
@@ -205,9 +212,25 @@ function createEnvironment({ tiered = true } = {}) {
       }
       const cut = { tier: args.opts?.tier ?? 'fine', region: args.region }
       cuts.push(cut)
-      return Promise.resolve(syntheticGraph(cut.tier, cut.region))
+      if (args.signal) {
+        signals.push(args.signal)
+      }
+      const gfa = syntheticGraph(cut.tier, cut.region)
+      const hold = held
+      return hold
+        ? new Promise<string>(resolve => {
+            hold(() => {
+              resolve(gfa)
+            })
+          })
+        : Promise.resolve(gfa)
     },
   )
+  const answers: (() => void)[] = []
+  function holdCuts() {
+    held = answer => answers.push(answer)
+    return answers
+  }
 
   const Session = types
     .model({
@@ -258,7 +281,7 @@ function createEnvironment({ tiered = true } = {}) {
   )
   view.setWidth(WIDTH_PX)
   view.setDisplayedRegions(assemblyRegions)
-  return { session, view, cuts }
+  return { session, view, cuts, holdCuts, signals, rpcCall }
 }
 
 function lgvX(view: { bpPerPx: number; offsetPx: number }, bp: number) {
@@ -274,14 +297,15 @@ async function shownGraph({
   windowBp = 60_000,
   tiered = true,
 } = {}) {
-  const { view, cuts, session } = createEnvironment({ tiered })
+  const env = createEnvironment({ tiered })
+  const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
   view.showTrack('graph')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
-  return { view, display, pane: display, cuts, session }
+  return { ...env, display, pane: display }
 }
 
 test('showing the track cuts the window with a margin each side, and x is the view', async () => {
@@ -325,7 +349,7 @@ test('zooming out past the handover cuts the coarse tier, and back in the fine o
   expect(pane.cutTier).toBe('fine')
 })
 
-test('with no coarse tier the margins narrow to the cap, and past it the last cut holds', async () => {
+test('with no coarse tier the margins narrow to the cap, past it the track is too large, and force load cuts it', async () => {
   const { view, pane, cuts } = await shownGraph({ tiered: false })
   view.zoomTo(pane.maxRegionBp / 2 / WIDTH_PX)
   await wait(SETTLE_MS)
@@ -334,7 +358,81 @@ test('with no coarse tier the margins narrow to the cap, and past it the last cu
   view.zoomTo((pane.maxRegionBp * 2) / WIDTH_PX)
   await wait(SETTLE_MS)
   expect(cuts.at(-1)!.region).toEqual(wide)
-  expect(pane.cutNote).toMatch(/Holding the last cut/)
+  expect(pane.displayPhase).toBe('tooLarge')
+  expect(pane.regionTooLargeReason).toMatch(/max 5 Mb/)
+  const seen = pane.settledWindow!
+  pane.forceLoad()
+  await wait(0)
+  expect(pane.displayPhase).not.toBe('tooLarge')
+  expect(cuts.at(-1)!.region).toMatchObject({
+    start: seen.start,
+    end: seen.end,
+  })
+})
+
+test('the ramp spans the graph on screen until the next cut lands', async () => {
+  const { view, pane, holdCuts } = await shownGraph()
+  const first = pane.graphRegion
+  expect(pane.rampDomain).toEqual(first)
+  const answers = holdCuts()
+  view.scrollTo(2_000_000 / view.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(pane.cutRegion).not.toEqual(first)
+  expect(pane.rampDomain).toEqual(first)
+  answers[0]!()
+  await wait(0)
+  expect(pane.rampDomain).toEqual(pane.cutRegion)
+})
+
+test('removing the track aborts its cut', async () => {
+  const { view, holdCuts, signals } = createEnvironment()
+  holdCuts()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('graph')
+  await wait(SETTLE_MS)
+  expect(signals).toHaveLength(1)
+  view.hideTrack('graph')
+  expect(signals[0]!.aborted).toBe(true)
+})
+
+test('the phase is loading until the graph is drawn, and a failed cut is an error the track shows', async () => {
+  const { view, holdCuts, rpcCall } = createEnvironment()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const answers = holdCuts()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('graph')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(display.displayPhase).toBe('loading')
+  answers[0]!()
+  await vi.waitFor(() => {
+    expect(display.displayPhase).toBe('ready')
+  })
+  rpcCall.mockImplementationOnce(() => Promise.reject(new Error('index gone')))
+  display.reload()
+  await vi.waitFor(() => {
+    expect(display.displayPhase).toBe('error')
+  })
+  expect(String(display.error)).toMatch(/index gone/)
+})
+
+test('a restored session cuts the region it saved', async () => {
+  const { view, cuts } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  const saved = {
+    refName: REF,
+    assemblyName: ASM,
+    start: 990_000,
+    end: 1_070_000,
+  }
+  view.showTrack('graph', {}, { type: 'LinearGraphDisplay', cutRegion: saved })
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(cuts[0]!.region).toEqual(saved)
 })
 
 test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {
@@ -444,7 +542,7 @@ test('a GBZ track cuts for the lanes it names', async () => {
   view.showTrack('walks')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   expect(display.type).toBe('LinearGraphDisplay')
-  expect(display.subgraphHaplotypes).toEqual(['HG1.1', 'HG2.1'])
+  expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
 })
 
 test('the track menu offers the layouts, colours and the settings dialog', async () => {

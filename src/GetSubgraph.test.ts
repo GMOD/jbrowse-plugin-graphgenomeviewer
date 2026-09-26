@@ -35,7 +35,7 @@ function makeMethod() {
   return new GetSubgraph(pluginManager)
 }
 
-// GraphGenomeView.loadFromTabixSubgraph calls rpcManager by this exact string;
+// The pane's cutSubgraph calls rpcManager by this exact string;
 // nothing else checks that a method answers to it, and when the method went
 // missing the view failed only at runtime.
 test('the plugin registers GetSubgraph under the name the view calls', () => {

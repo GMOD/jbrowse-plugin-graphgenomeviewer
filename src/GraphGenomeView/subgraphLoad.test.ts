@@ -9,6 +9,10 @@ const mockSession = {
 vi.mock('@jbrowse/core/util', () => ({
   getSession: () => mockSession,
   getContainingView: (node: unknown) => node,
+  getContainingTrack: () => {
+    throw new Error('not in a track')
+  },
+  getRpcSessionId: () => 'test',
   isSessionModelWithWidgets: () => false,
   parseLocString: () => ({}),
   getEnv: () => ({}),
@@ -73,10 +77,11 @@ async function cut(region: typeof ON_HG38, gfa = GFA) {
       ? Promise.resolve(gfa)
       : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
   )
-  const model = createView()
-  await model.loadFromTabixSubgraph(TRACK.adapter, region, {
-    trackId: TRACK.trackId,
+  const model = createView({
+    loadedTrackId: TRACK.trackId,
+    loadedRegion: region,
   })
+  await model.load()
   return model
 }
 
@@ -137,8 +142,8 @@ describe('overlapping cuts', () => {
       loadedTrackId: TRACK.trackId,
       loadedRegion: { ...ON_HG38, start: 0, end: 200 },
     })
-    const first = model.reloadSubgraph()
-    const second = model.reloadSubgraph()
+    const first = model.load()
+    const second = model.load()
     return { model, pending, first, second }
   }
 
@@ -187,7 +192,7 @@ describe('canceling and retrying', () => {
   test('canceling a first cut aborts it, and its late answer never lands', async () => {
     const pending = pendingCuts()
     const model = launchedView()
-    const load = model.reloadSubgraph()
+    const load = model.load()
     expect(model.canCancelLoad).toBe(true)
 
     model.cancelLoad()
@@ -204,7 +209,7 @@ describe('canceling and retrying', () => {
   test('retry cuts the same region again', async () => {
     pendingCuts()
     const model = launchedView()
-    void model.reloadSubgraph()
+    void model.load()
     model.cancelLoad()
 
     mockRpcCall.mockResolvedValue(GFA)
@@ -218,8 +223,8 @@ describe('canceling and retrying', () => {
   test('a newer cut aborts the one it replaces', () => {
     pendingCuts()
     const model = launchedView()
-    void model.reloadSubgraph()
-    void model.reloadSubgraph()
+    void model.load()
+    void model.load()
     expect(cutSignal(0).aborted).toBe(true)
     expect(cutSignal(1).aborted).toBe(false)
   })
@@ -227,7 +232,7 @@ describe('canceling and retrying', () => {
   test('a reload over a drawn graph cannot be canceled', async () => {
     const model = await cut(ON_HG38)
     pendingCuts()
-    void model.reloadSubgraph()
+    void model.load()
     expect(model.canCancelLoad).toBe(false)
 
     model.cancelLoad()
@@ -238,7 +243,7 @@ describe('canceling and retrying', () => {
   test('a stored track the session no longer has is reported', async () => {
     mockSession.tracks = []
     const model = launchedView()
-    await model.refetchIfNeeded()
+    await model.load()
     expect(String(model.error)).toMatch(/"segments", is not in this session/)
     expect(model.canRetryLoad).toBe(true)
     expect(mockRpcCall).not.toHaveBeenCalled()

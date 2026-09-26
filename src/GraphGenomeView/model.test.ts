@@ -64,6 +64,10 @@ vi.mock('@jbrowse/core/util', () => {
   return {
     getSession: () => mockSession,
     getContainingView: (node: unknown) => node,
+    getContainingTrack: () => {
+      throw new Error('not in a track')
+    },
+    getRpcSessionId: () => 'test',
     isSessionModelWithWidgets: () => false,
     // Add stubs for other potentially imported items
     parseLocString: () => ({}),
@@ -83,7 +87,7 @@ vi.mock('@jbrowse/core/util', () => {
 vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
   ...(await importOriginal()),
   readConfObject: vi.fn((obj: Record<string, unknown>, key: string) =>
-    key === 'adapter' ? obj.adapter : undefined,
+    key === 'assemblyNames' ? (obj.assemblyNames ?? []) : obj[key],
   ),
 }))
 
@@ -153,76 +157,30 @@ const TEST_TRACK = {
   adapter: { type: 'RgfaTabixAdapter' },
 }
 
-describe('loadFromTabixSubgraph state storage', () => {
+describe('graphRegion', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
     mockSession.tracks = []
   })
 
-  test('stores trackId and region when trackId is provided', async () => {
+  test('is the region the graph on screen was cut for', async () => {
     rpcRespond()
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
-    expect(model.loadedTrackId).toBe('rgfa-track')
-    expect(model.loadedRegion).toEqual(TEST_REGION)
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
-  test('clears stored params when no trackId given', async () => {
+  test('a whole file states none, replacing the cut before it', async () => {
     rpcRespond()
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
-    expect(model.loadedTrackId).toBe('rgfa-track')
-
-    rpcRespond()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {},
-    )
-    expect(model.loadedTrackId).toBe('')
-    expect(model.loadedRegion).toBeUndefined()
-  })
-})
-
-describe('loadGFA clears restore params', () => {
-  beforeEach(() => {
-    mockRpcCall.mockReset()
-    mockSession.tracks = []
-  })
-
-  test('loadGFA clears trackId and region stored by a prior tabix load', async () => {
-    rpcRespond()
-    const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
-    expect(model.loadedTrackId).toBe('rgfa-track')
-
-    rpcRespond()
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     await model.loadGFA(SIMPLE_GFA, 'imported')
-    expect(model.loadedTrackId).toBe('')
-    expect(model.loadedRegion).toBeUndefined()
+    expect(model.graphRegion).toBeUndefined()
   })
 })
 
 // What the reference-position ramp spans. A file-loaded graph has no
-// loadedRegion at all, so without a stated domain the ramp is whatever the file
+// region at all, so without a stated domain the ramp is whatever the file
 // happens to contain — which is why a figure pairing a linear track with a
 // file-loaded graph states the window instead of measuring it.
 describe('rampDomain', () => {
@@ -230,11 +188,7 @@ describe('rampDomain', () => {
     rpcRespond()
     mockSession.tracks = [TEST_TRACK]
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     expect(model.rampDomain).toEqual(TEST_REGION)
   })
 
@@ -258,58 +212,39 @@ describe('rampDomain', () => {
   })
 })
 
-describe('refetchIfNeeded guard conditions', () => {
+function restoredView(snapshot: Record<string, unknown> = {}) {
+  return stateModelFactory().create({
+    type: 'GraphGenomeView',
+    loadedTrackId: 'rgfa-track',
+    loadedRegion: TEST_REGION,
+    ...snapshot,
+  } as never)
+}
+
+// A 4.0 session or a docs spec states a view cut from a track; the view cuts
+// it once.
+describe('restoring a stated cut', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
-    mockSession.tracks = []
-  })
-
-  test('does nothing when no trackId is stored', async () => {
-    const model = createModel()
-    await model.refetchIfNeeded()
-    expect(mockRpcCall).not.toHaveBeenCalled()
-  })
-
-  test('does nothing when no region is stored', async () => {
-    const model = createModel()
-    applySnapshot(model, { ...getSnapshot(model), loadedTrackId: 'rgfa-track' })
-    await model.refetchIfNeeded()
-    expect(mockRpcCall).not.toHaveBeenCalled()
-  })
-
-  test('does nothing when graph is already loaded', async () => {
-    rpcRespond()
-    const model = createModel()
     mockSession.tracks = [TEST_TRACK]
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
-    expect(model.graph).toBeDefined()
+  })
 
-    mockRpcCall.mockReset()
-    await model.refetchIfNeeded()
+  test('does nothing when no track is stated', async () => {
+    const model = createModel()
+    await model.load()
     expect(mockRpcCall).not.toHaveBeenCalled()
   })
 
-  // The launch menu opens a view by writing exactly this snapshot (see
-  // launchSubgraph), so the stored-props path is how a launched view — not just
-  // a reloaded session — gets its graph.
-  test('fetches from the stored track and region', async () => {
+  test('does nothing when no region is stated', async () => {
+    const model = restoredView({ loadedRegion: undefined })
+    await model.load()
+    expect(mockRpcCall).not.toHaveBeenCalled()
+  })
+
+  test('fetches from the stated track and region', async () => {
     rpcRespond()
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'rgfa-track',
-      loadedRegion: TEST_REGION,
-    })
-    mockSession.tracks = [TEST_TRACK]
-
-    await model.refetchIfNeeded()
-
+    const model = restoredView()
+    await model.load()
     expect(mockRpcCall).toHaveBeenCalledWith(
       expect.any(String),
       'GetSubgraph',
@@ -319,103 +254,41 @@ describe('refetchIfNeeded guard conditions', () => {
       }),
     )
     expect(model.graph).toBeDefined()
+    expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
-  // subgraphContext rides on the same snapshot as the region, so a session
-  // saved with the cut widened restores the graph it was showing rather than
-  // the default cut.
-  test('passes the stored subgraphContext to the cut', async () => {
+  test('passes the stated context and haplotypes to the cut', async () => {
     rpcRespond()
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'rgfa-track',
-      loadedRegion: TEST_REGION,
+    const model = restoredView({
       subgraphContext: 2,
-    })
-    mockSession.tracks = [TEST_TRACK]
-
-    await model.refetchIfNeeded()
-
-    expect(mockRpcCall).toHaveBeenCalledWith(
-      expect.any(String),
-      'GetSubgraph',
-      expect.objectContaining({ opts: { hops: 2 } }),
-    )
-  })
-
-  // The set rides on the snapshot beside the region, so a launched or restored
-  // view cuts for the haplotypes it was opened on rather than all of them.
-  test('passes the stored haplotype set to the cut, and a changed one to a re-cut', async () => {
-    rpcRespond()
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'rgfa-track',
-      loadedRegion: TEST_REGION,
       subgraphHaplotypes: ['HG002#1', 'HG005#2'],
     })
-    mockSession.tracks = [TEST_TRACK]
-
-    await model.refetchIfNeeded()
-
+    await model.load()
     expect(mockRpcCall).toHaveBeenCalledWith(
       expect.any(String),
       'GetSubgraph',
       expect.objectContaining({
-        opts: { hops: 1, haplotypes: ['HG002#1', 'HG005#2'] },
+        opts: { hops: 2, haplotypes: ['HG002#1', 'HG005#2'] },
       }),
     )
-    expect(getSnapshot(model).subgraphHaplotypes).toEqual([
-      'HG002#1',
-      'HG005#2',
-    ])
-
-    mockRpcCall.mockClear()
-    model.setSubgraphHaplotypes(undefined)
-    await model.reloadSubgraph()
-
-    expect(mockRpcCall).toHaveBeenCalledWith(
-      expect.any(String),
-      'GetSubgraph',
-      expect.objectContaining({ opts: { hops: 1, haplotypes: undefined } }),
-    )
   })
 
-  // The one difference between the two entry points: widening the cut has to
-  // re-cut a graph that is already on screen, which is exactly what
-  // refetchIfNeeded declines to do.
-  test('reloadSubgraph re-cuts a graph that is already drawn', async () => {
-    rpcRespond()
-    const model = createModel()
-    mockSession.tracks = [TEST_TRACK]
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      { trackId: 'rgfa-track' },
-    )
-
-    mockRpcCall.mockClear()
-    model.setSubgraphContext(1)
-    await model.reloadSubgraph()
-
-    expect(mockRpcCall).toHaveBeenCalledWith(
-      expect.any(String),
-      'GetSubgraph',
-      expect.objectContaining({ opts: { hops: 1 } }),
-    )
-  })
-
-  test('does nothing when stored trackId is not in session tracks', async () => {
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'missing-track',
-      loadedRegion: TEST_REGION,
-    })
+  test('a stated track the session lacks is reported without a fetch', async () => {
     mockSession.tracks = []
-    await model.refetchIfNeeded()
+    const model = restoredView()
+    await model.load()
+    expect(String(model.error)).toMatch(/not in this session/)
     expect(mockRpcCall).not.toHaveBeenCalled()
+  })
+
+  test('keeps a restored pan and zoom', async () => {
+    rpcRespond()
+    const model = restoredView({ scale: 3.5, translateX: 120, translateY: 80 })
+    await model.load()
+    expect(model.graph!.nodes.length).toBeGreaterThan(0)
+    expect(model.scale).toBe(3.5)
+    expect(model.translateX).toBe(120)
+    expect(model.translateY).toBe(80)
   })
 })
 
@@ -428,13 +301,7 @@ describe('performance instrumentation', () => {
   test('captures fetch and layout timing on a tabix subgraph load', async () => {
     rpcRespond()
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     // GetSubgraph round-trip is timed with performance.now() — a resolved
     // promise still takes a measurable, non-negative amount of time.
     expect(typeof model.lastFetchMs).toBe('number')
@@ -478,12 +345,9 @@ describe('performance instrumentation', () => {
 
   test('clearGraph drops the source with the graph, so the import form is not a view still loading', async () => {
     rpcRespond()
-    const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    mockSession.tracks = [TEST_TRACK]
+    const model = restoredView()
+    await model.load()
     expect(model.hasGraph).toBe(true)
 
     model.clearGraph()
@@ -504,11 +368,7 @@ describe('performance instrumentation', () => {
         : Promise.resolve({ result: MOCK_LAYOUT, duration: 5 }),
     )
     const model = createModel()
-    const load = model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    const load = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     model.clearGraph()
     respond(SIMPLE_GFA)
     await load
@@ -527,52 +387,43 @@ describe('formatSpanBp', () => {
   })
 })
 
-describe('region size cap', () => {
+describe('region size cap on a stated cut', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
-    mockSession.tracks = []
+    mockSession.tracks = [TEST_TRACK]
   })
 
   test('declines regions over the cap without an RPC call', async () => {
     rpcRespond()
-    const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'GfaTabixAdapter' },
-      { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP + 1 },
-      { trackId: 'rgfa-track' },
-    )
+    const model = restoredView({
+      loadedRegion: { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP + 1 },
+    })
+    await model.load()
     expect(model.graph).toBeUndefined()
-    expect(model.error).toBeInstanceOf(Error)
     expect(String(model.error)).toMatch(/zoom in/i)
     expect(mockRpcCall).not.toHaveBeenCalled()
   })
 
+  // A level-of-detail tier breaks the bp proxy: a whole 249 Mb chromosome is
+  // 474 nodes off the hosted HPRC tier. maxGraphNodes still counts what came
+  // back.
   test('a session can raise the bp cap for a coarse tier', async () => {
-    // The bp cap is a proxy for node count and a level-of-detail tier breaks
-    // it: a whole 249 Mb human chromosome is 474 nodes off the hosted HPRC
-    // tier, where 5 Mb of the fine index is 3,034 segments. A session pointed
-    // at a tier says so by raising this; maxGraphNodes still counts what came
-    // back, so the real backstop is untouched.
     rpcRespond()
-    const model = createModel()
-    model.setMaxRegionBp(250_000_000)
-    await model.loadFromTabixSubgraph(
-      { type: 'GfaTabixAdapter' },
-      { ...TEST_REGION, start: 0, end: 248_956_422 },
-      { trackId: 'rgfa-track' },
-    )
+    const model = restoredView({
+      maxRegionBp: 250_000_000,
+      loadedRegion: { ...TEST_REGION, start: 0, end: 248_956_422 },
+    })
+    await model.load()
     expect(model.error).toBeUndefined()
     expect(mockRpcCall).toHaveBeenCalled()
   })
 
   test('accepts a region exactly at the cap', async () => {
     rpcRespond()
-    const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'GfaTabixAdapter' },
-      { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP },
-      { trackId: 'rgfa-track' },
-    )
+    const model = restoredView({
+      loadedRegion: { ...TEST_REGION, start: 0, end: MAX_GRAPH_REGION_BP },
+    })
+    await model.load()
     expect(model.graph).toBeDefined()
     expect(model.error).toBeUndefined()
   })
@@ -592,11 +443,7 @@ describe('empty subgraph handling', () => {
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     expect(model.graph).toBeUndefined()
     expect(model.error).toBeInstanceOf(Error)
     expect(String(model.error)).toMatch(/no GFA/i)
@@ -656,14 +503,15 @@ describe('loadGFAFromLocation', () => {
       gfaLocation: location,
       loadedRegion: TEST_REGION,
     })
-    await model.loadGFAFromLocation(location)
+    await model.load()
     expect(String(model.error)).toMatch(/404/)
-    expect(model.loadedRegion).toEqual(TEST_REGION)
 
-    await model.loadGFAFromLocation(location)
+    model.retryLoad()
+    await vi.waitFor(() => {
+      expect(model.nodeCount).toBe(2)
+    })
     expect(model.error).toBeUndefined()
-    expect(model.nodeCount).toBe(2)
-    expect(model.loadedRegion).toEqual(TEST_REGION)
+    expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
   test('canceling aborts the fetch without reporting an error', async () => {
@@ -683,49 +531,6 @@ describe('loadGFAFromLocation', () => {
     expect(model.loadCanceled).toBe(true)
     expect(model.isLoading).toBe(false)
     expect(model.error).toBeUndefined()
-  })
-})
-
-describe('refetchIfNeeded restore flow', () => {
-  beforeEach(() => {
-    mockRpcCall.mockReset()
-    mockSession.tracks = []
-  })
-
-  test('fetches the graph when stored params are present', async () => {
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'rgfa-track',
-      loadedRegion: TEST_REGION,
-    })
-    mockSession.tracks = [TEST_TRACK]
-    rpcRespond()
-
-    await model.refetchIfNeeded()
-
-    expect(model.graph).toBeDefined()
-    expect(model.graph!.nodes.length).toBeGreaterThan(0)
-  })
-
-  test('preserves pan/zoom state after restore', async () => {
-    const model = createModel()
-    applySnapshot(model, {
-      ...getSnapshot(model),
-      loadedTrackId: 'rgfa-track',
-      loadedRegion: TEST_REGION,
-      scale: 3.5,
-      translateX: 120,
-      translateY: 80,
-    })
-    mockSession.tracks = [TEST_TRACK]
-    rpcRespond()
-
-    await model.refetchIfNeeded()
-
-    expect(model.scale).toBe(3.5)
-    expect(model.translateX).toBe(120)
-    expect(model.translateY).toBe(80)
   })
 })
 
@@ -1023,10 +828,9 @@ describe('reference path', () => {
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = createModel()
-    await model.loadFromTabixSubgraph(
+    await model.cutSubgraph(
       {},
       { refName: 'chr', assemblyName: 'Sakai', start: 200, end: 211 },
-      { trackId: 'pggb' },
     )
 
     expect(model.activeReferencePath).toBe('Sakai#1#chr')
@@ -1396,13 +1200,7 @@ describe('hoverHighlight', () => {
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = createModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      TEST_REGION,
-      {
-        trackId: 'rgfa-track',
-      },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
     return model
   }
 
@@ -1568,10 +1366,11 @@ describe('launching out of the graph', () => {
         ? Promise.resolve(gfa)
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
-    const model = createModel()
-    await model.loadFromTabixSubgraph({ type: 'RgfaTabixAdapter' }, region, {
-      trackId: 'rgfa-track',
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      loadedTrackId: 'rgfa-track',
     })
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, region)
     return model
   }
 
@@ -1738,6 +1537,7 @@ describe('launching out of the graph', () => {
 
   test('with no linear view to move, one is opened carrying the graph track', async () => {
     mockSession.assemblyNames = ['hg38']
+    mockSession.tracks = [TEST_TRACK]
     const model = await loadedGraph(HPRC_RGFA)
     const { reference } = model.nodeLaunchTargets('1+')
     model.showInLinearView(reference!)
@@ -1992,11 +1792,7 @@ describe('layoutBounds on a reference axis', () => {
 
   test('x is the cut region, not how far the drawing reaches', async () => {
     const model = createAnchoredModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      FAR_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, FAR_REGION)
 
     // the drawing does reach the far anchor -- this is not a fetch change
     const drawnX = Object.values(model.nodePositions!)
@@ -2015,11 +1811,7 @@ describe('layoutBounds on a reference axis', () => {
   // of it.
   test('rows are spaced against the region, not the stretched backbone', async () => {
     const model = createAnchoredModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      FAR_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, FAR_REGION)
     const rowYs = [...new Set(model.rowLabels.map(r => r.y))].sort(
       (a, b) => a - b,
     )
@@ -2033,11 +1825,7 @@ describe('layoutBounds on a reference axis', () => {
 
   test('y still comes from the rows, which are not on the reference', async () => {
     const model = createAnchoredModel()
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      FAR_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, FAR_REGION)
     const drawnY = Object.values(model.nodePositions!)
       .flat()
       .map(s => s.y)
@@ -2056,11 +1844,7 @@ describe('layoutBounds on a reference axis', () => {
     )
     const model = createModel()
     model.setLayoutMode('force')
-    await model.loadFromTabixSubgraph(
-      { type: 'RgfaTabixAdapter' },
-      FAR_REGION,
-      { trackId: 'rgfa-track' },
-    )
+    await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, FAR_REGION)
     // MOCK_LAYOUT's own units, which no region bounds
     const drawnX = Object.values(model.nodePositions!)
       .flat()
@@ -2622,10 +2406,9 @@ describe('annotation reads beside a cut', () => {
   })
 
   function cut(model: ReturnType<typeof createModel>) {
-    return model.loadFromTabixSubgraph(
+    return model.cutSubgraph(
       { type: 'RgfaTabixAdapter', uri: 'https://example.com/graph' },
       TEST_REGION,
-      { trackId: 'rgfa-track' },
     )
   }
 
