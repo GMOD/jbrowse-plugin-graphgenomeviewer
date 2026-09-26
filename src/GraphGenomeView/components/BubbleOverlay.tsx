@@ -2,7 +2,7 @@ import { Button } from '@mui/material'
 import { observer } from 'mobx-react'
 
 import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
-import { LABEL_CHAR_PX } from '../overlayLabels'
+import { LABEL_PAD } from '../overlayLabels'
 
 import type { GraphGenomeViewModel } from '../model'
 
@@ -34,9 +34,6 @@ const backButtonStyle = {
   textTransform: 'none' as const,
 }
 
-const LABEL_ROW_PX = 15
-const MAX_LABEL_ROWS = 8
-const LEGEND_PX = 150
 const MIN_GLYPH_PX = 10
 
 function glyphHeight(bp: number, room: number) {
@@ -69,35 +66,13 @@ const BubbleOverlay = observer(function BubbleOverlay({
   const { scaleX, translateX, translateY, width, canvasHeight } = model
   const lineY = translateY
   const X = (bp: number) => bp * scaleX + translateX
-  // Labels stack in rows above the tallest glyph, biggest bubbles first so a
-  // crowded window keeps the labels that matter; one that finds no row is left
-  // to its tooltip rather than written over another.
-  const maxRows = Math.max(
-    2,
-    Math.min(MAX_LABEL_ROWS, Math.floor((lineY - 60) / LABEL_ROW_PX)),
-  )
+  const labels = model.overlayLabels.glyphs
+  // glyphs take whatever the names leave above the line
+  const labelsBottom = Math.max(0, ...labels.map(l => l.y + LABEL_PAD))
+  const room = Math.max(24, lineY - labelsBottom - 14)
   const glyphs = [...bubbleGlyphs].sort(
     (a, b) => b.bubble.end - b.bubble.start - (a.bubble.end - a.bubble.start),
   )
-  const rowEnd: number[] = []
-  const labels = glyphs.flatMap(g => {
-    const bx = (X(g.bubble.start) + X(g.bubble.end)) / 2
-    if (bx < 0 || bx > width) {
-      return []
-    }
-    const half = (g.label.length * LABEL_CHAR_PX) / 2
-    // the top-right corner is the legend's
-    const cx = Math.min(Math.max(bx, half + 4), width - LEGEND_PX - half)
-    const row = rowEnd.findIndex(end => end < cx - half - 10)
-    const at = row === -1 ? rowEnd.length : row
-    if (at >= maxRows) {
-      return []
-    }
-    rowEnd[at] = cx + half
-    return [{ g, bx, cx, y: 14 + at * LABEL_ROW_PX }]
-  })
-  // glyphs take whatever the rows actually used leave above the line
-  const room = Math.max(24, lineY - rowEnd.length * LABEL_ROW_PX - 14)
 
   return (
     <>
@@ -146,14 +121,14 @@ const BubbleOverlay = observer(function BubbleOverlay({
             </g>
           )
         })}
-        {labels.map(({ g, bx, cx, y }) => {
+        {labels.map(({ item: { glyph: g, glyphX }, x, y }) => {
           const color = BUBBLE_KIND_COLORS[g.kind]
           const top = lineY - glyphHeight(g.bubble.longestAlleleLength, room)
           return (
             <g key={`${g.bubble.start}-${g.bubble.end}-label`}>
               <line
-                x1={bx}
-                x2={bx}
+                x1={glyphX}
+                x2={glyphX}
                 y1={y + 4}
                 y2={top - 2}
                 stroke={color}
@@ -161,7 +136,7 @@ const BubbleOverlay = observer(function BubbleOverlay({
                 strokeOpacity={0.5}
               />
               <text
-                x={cx}
+                x={x}
                 y={y}
                 fontSize={11}
                 fontFamily="sans-serif"

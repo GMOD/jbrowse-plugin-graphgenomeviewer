@@ -1,7 +1,7 @@
 import { describe, test } from 'vitest'
 
 import { deletionEdges } from './deletionEdges'
-import { graphLabels } from './graphLabels'
+import { layoutLabels } from './labelLayout'
 import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
 import { EdgeSpatialIndex, SpatialIndex } from './util/SpatialIndex'
 
@@ -13,12 +13,12 @@ import type { Graph, GraphNode, NodeSegment } from './types'
 // Which pass runs when, because the difference is the whole point of the
 // numbers:
 //
-//   graphLabels     every mousemove of a pan, undebounced — it places labels in
+//   layoutLabels    every mousemove of a pan, undebounced — it places labels in
 //                   screen space, so a translate genuinely moves them
 //   buildGeometry   once per debounced pan/zoom, and once per frame of a drag
 //   the two indexes lazily, on the first mousemove after the positions move
 //
-// So a millisecond in `graphLabels` costs about ten times what a millisecond in
+// So a millisecond in `layoutLabels` costs about ten times what a millisecond in
 // `buildGeometry` does, and both are budgeted against the ~10 ms that
 // agent-docs/GRAPH_SCALE_AND_LOD.md measures a redraw of a 1-2k node cut at.
 //
@@ -76,7 +76,12 @@ function benchLayout(graph: Graph) {
 }
 
 const AXIS = { scaleX: 0.01, scaleY: 1 }
-const VIEWPORT = { translateX: 40, translateY: 40, width: 900, height: 600 }
+const VIEWPORT = {
+  translateX: 40,
+  translateY: 40,
+  width: 900,
+  canvasHeight: 600,
+}
 
 for (const backbone of [1000, 5000]) {
   const graph = benchGraph(backbone)
@@ -93,32 +98,34 @@ for (const backbone of [1000, 5000]) {
   describe(`${graph.nodes.length} nodes / ${graph.edges.length} edges`, () => {
     // The pan case: same layout, same zoom, a new translate. Everything a frame
     // can reuse is reused, so this is the number that has to stay small.
+    const labelSource = {
+      ...VIEWPORT,
+      axisScale: AXIS,
+      contigThickness: 6,
+      legendSize: { width: 170, height: 40 },
+      drawnRowLabels: [],
+      bubbleHalos: [],
+      bubbleGlyphs: [],
+      genePins: [],
+      nodePositions,
+      nodeLengths,
+      showDeletionEdges: true,
+      deletions,
+      alleleDeletions: [],
+      positionsVersion: 0,
+    }
     let tx = VIEWPORT.translateX
-    test('graphLabels (pan)', async ({ bench }) => {
-      await bench('graphLabels (pan)', () => {
-        graphLabels({
-          nodePositions,
-          nodeLengths,
-          deletions,
-          axis: AXIS,
-          ...VIEWPORT,
-          translateX: tx++ % 80,
-        })
+    test('layoutLabels (pan)', async ({ bench }) => {
+      await bench('layoutLabels (pan)', () => {
+        layoutLabels({ ...labelSource, translateX: tx++ % 80 })
       }).run()
     })
 
     // The drag case: the positions moved in place, so nothing carries over.
     let version = 0
-    test('graphLabels (drag)', async ({ bench }) => {
-      await bench('graphLabels (drag)', () => {
-        graphLabels({
-          nodePositions,
-          nodeLengths,
-          deletions,
-          axis: AXIS,
-          ...VIEWPORT,
-          version: ++version,
-        })
+    test('layoutLabels (drag)', async ({ bench }) => {
+      await bench('layoutLabels (drag)', () => {
+        layoutLabels({ ...labelSource, positionsVersion: ++version })
       }).run()
     })
 

@@ -572,7 +572,7 @@ each route off the backbone naming the carriers and the route's length:
 `HG00133 · 149 kb` on the array's biggest loop. That is the lifted walk's
 readout for every haplotype at once, on the drawing. A lifted walk dims the
 chips of the routes it does not take. The three overlays share one label
-placement and one chip (`components/overlayLabels.ts`, `LabelChip.tsx`).
+placement and one chip (`overlayLabels.ts`, `LabelChip.tsx`).
 
 ![KIV-2 over gbz-base, each loop named for its haplotype](../img/force_kiv2_gbz.png)
 

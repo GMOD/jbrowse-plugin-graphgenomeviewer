@@ -41,7 +41,7 @@ try {
   await candidateServer(values.dist)(page)
   const url = `https://jbrowse.org/code/jb2/${values.version}/${query.startsWith('?') ? query : `?${query}`}`
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-  await page.waitForFunction(
+  const ready = await page.waitForFunction(
     () => {
       const roots = [
         ...document.querySelectorAll('[data-testid="linear-graph-display"]'),
@@ -56,10 +56,16 @@ try {
       )
     },
     { timeout: Number(values.timeout), polling: 500 },
+  ).then(
+    () => true,
+    () => false,
   )
-  await page.waitForNetworkIdle({ idleTime: 1500, timeout: 60_000 })
+  if (ready) {
+    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 60_000 })
+  }
   await page.screenshot({ path: out })
-  console.log(`wrote ${out}`)
+  console.log(`wrote ${out}${ready ? '' : ' (a graph display never finished)'}`)
+  process.exitCode = ready ? 0 : 1
 } finally {
   await browser.close()
 }

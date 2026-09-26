@@ -14,6 +14,7 @@ import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { formatBp } from '../graphLabels'
+import { LEGEND_INSET_PX } from '../labelLayout'
 import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
@@ -123,8 +124,8 @@ const RowLabels = observer(function RowLabels({
 // graph can also be reference-position coloured.
 const legendStackStyle = {
   position: 'absolute' as const,
-  top: 6,
-  right: 6,
+  top: LEGEND_INSET_PX,
+  right: LEGEND_INSET_PX,
   display: 'flex',
   flexDirection: 'column' as const,
   alignItems: 'flex-end',
@@ -267,6 +268,37 @@ const leaderStyle = {
   overflow: 'visible' as const,
   zIndex: 2,
 }
+
+// Measures itself for the model, so no label is placed under a legend and
+// none gives way to one that is not drawn.
+const Legends = observer(function Legends({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) {
+      return
+    }
+    const observer = new ResizeObserver(() => {
+      model.setLegendSize({ width: el.offsetWidth, height: el.offsetHeight })
+    })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+    }
+  }, [model])
+  return (
+    <div ref={ref} style={legendStackStyle}>
+      <ReferenceRampLegend model={model} />
+      <PathLegend model={model} />
+      <WalkRowsLegend model={model} />
+      <WalkReadout model={model} />
+    </div>
+  )
+})
 
 // Writes each drawn thing's size onto it, which is what Bandage's Length label
 // does and what the tooltip alone could not: a graph you have to hover to read
@@ -700,12 +732,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <LabelLayer model={model} />
         <BubbleOverlay model={model} />
         <WalkRowsOverlay model={model} />
-        <div style={legendStackStyle}>
-          <ReferenceRampLegend model={model} />
-          <PathLegend model={model} />
-          <WalkRowsLegend model={model} />
-          <WalkReadout model={model} />
-        </div>
+        <Legends model={model} />
 
         <div style={loadingLayerStyle}>
           <LoadingOverlay

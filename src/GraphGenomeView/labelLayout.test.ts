@@ -65,8 +65,10 @@ function source(overrides: Partial<LabelLayoutSource>): LabelLayoutSource {
     translateX: 0,
     translateY: 0,
     contigThickness: 6,
+    legendSize: { width: 0, height: 0 },
     drawnRowLabels: [],
     bubbleHalos: [],
+    bubbleGlyphs: [],
     genePins: [],
     nodeLengths: new Map(),
     showDeletionEdges: false,
@@ -155,4 +157,64 @@ test('on a row layout a bubble name goes above the top row', () => {
     }),
   )
   expect(rows.bubbles[0]!.y).toBe(free.bubbles[0]!.y - 20)
+})
+
+// A sample-row layout overflows downward, and scrolling it takes the top row
+// off the pane; the band sticks to the top edge rather than following it out.
+test('a scrolled row layout keeps its bubble names at the top edge', () => {
+  const rows = Array.from({ length: 40 }, (_, i) => ({
+    label: `row ${i}`,
+    y: i * 20,
+  }))
+  const layout = layoutLabels(
+    source({
+      bubbleHalos: [halo({ x: 300, y: 400 })],
+      drawnRowLabels: rows,
+      translateY: -300,
+    }),
+  )
+  expect(layout.bubbles.map(l => l.y)).toEqual([15])
+})
+
+test('the legend holds its own box, and no box when none is drawn', () => {
+  const corner = {
+    nodePositions: {
+      s1: [
+        { x: 700, y: 20 },
+        { x: 790, y: 20 },
+      ],
+    },
+    nodeLengths: new Map([['s1', 700]]),
+  }
+  expect(layoutLabels(source(corner)).sizes.map(l => l.text)).toEqual([
+    '700 bp',
+  ])
+  expect(
+    layoutLabels(source({ ...corner, legendSize: { width: 170, height: 40 } }))
+      .sizes,
+  ).toEqual([])
+})
+
+test('the variant map stacks its names in rows clear of the legend', () => {
+  const glyph = (start: number, label: string) => ({
+    bubble: { ...bubble, start, end: start + 100 },
+    kind: 'substitution' as const,
+    label,
+  })
+  const layout = layoutLabels(
+    source({
+      translateY: 300,
+      legendSize: { width: 170, height: 40 },
+      bubbleGlyphs: [
+        glyph(300, 'first substitution'),
+        glyph(310, 'second substitution'),
+        glyph(700, 'under the legend'),
+      ],
+    }),
+  )
+  expect(layout.glyphs.map(l => [l.text, l.y])).toEqual([
+    ['first substitution', 15],
+    ['second substitution', 34],
+    ['under the legend', 72],
+  ])
 })

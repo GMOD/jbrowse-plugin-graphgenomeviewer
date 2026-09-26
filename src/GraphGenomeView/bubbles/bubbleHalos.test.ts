@@ -56,3 +56,14 @@ test('the halo runs along the nodes inside the bubble, not its anchors', () => {
 test('a bubble whose nodes are not drawn has no halo', () => {
   expect(bubbleHalos(graph, [bubble], { 'v1+': positions['v1+'] })).toEqual([])
 })
+
+test('the name centres on the nodes, at the height of the highest', () => {
+  const [halo] = bubbleHalos(graph, [bubble], {
+    ...positions,
+    'a1+': [
+      { x: 12, y: -8 },
+      { x: 40, y: -2 },
+    ],
+  })
+  expect(halo?.labelAt).toEqual({ x: 26, y: -8 })
+})

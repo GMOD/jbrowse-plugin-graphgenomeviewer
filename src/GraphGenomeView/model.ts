@@ -548,6 +548,9 @@ export default function stateModelFactory() {
     .volatile(() => ({
       graph: undefined as Graph | undefined,
       layoutResult: undefined as LayoutResult | undefined,
+      // what the legends in the pane's top-right corner measure, so no label
+      // is placed under them
+      legendSize: { width: 0, height: 0 },
       // The bubble index rows over the cut window, when the source track has
       // one beside its segments. Undefined for a graph with no index, which the
       // variant map draws from `derivedBubbles` instead.
@@ -1544,6 +1547,9 @@ export default function stateModelFactory() {
       },
       setHoveredNode(nodeId: string | null) {
         self.hoveredNode = nodeId
+      },
+      setLegendSize(size: { width: number; height: number }) {
+        self.legendSize = size
       },
       setHoveredEdge(edgeIdx: number | null) {
         self.hoveredEdge = edgeIdx
