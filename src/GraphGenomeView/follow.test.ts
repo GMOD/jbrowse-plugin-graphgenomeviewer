@@ -278,6 +278,7 @@ test('a 2 Mb pan in 10 kb steps moves x every step and re-cuts every seventh', a
   expect(model.followState.active).toBe(true)
   expect(model.viewportOwner).toBe('follow')
   expect(cuts).toHaveLength(1)
+  expect(graphX(model, 1_030_000)).toBeCloseTo(lgvX(view, 1_030_000), 6)
 
   const selected = 'f103+'
   model.setSelectedNode(selected)
@@ -424,6 +425,18 @@ test('a gesture on the followed graph moves the linear view', async () => {
   expect(view.bpPerPx).toBeCloseTo(bpPerPx / 2, 9)
   const probe = view.windowStartBp + 10_000
   expect(graphX(model, probe)).toBeCloseTo(lgvX(view, probe), 6)
+
+  // the fit button places the rows and leaves x to the linear view
+  model.zoomToFit()
+  expect(graphX(model, probe)).toBeCloseTo(lgvX(view, probe), 6)
+  model.setTransform(model.scale, model.translateX, y + 30)
+
+  // the rows the reader scrolled to survive a re-cut
+  view.panBy(200_000)
+  view.settle()
+  await flush()
+  expect(model.followRecuts).toBe(1)
+  expect(model.translateY).toBe(y + 30)
 })
 
 test('nothing runs on the force layout, and the toolbar is told why', async () => {
