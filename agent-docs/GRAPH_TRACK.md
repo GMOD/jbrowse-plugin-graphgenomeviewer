@@ -23,9 +23,11 @@ a drag or a wheel on the canvas is the host's, as on any track.
 
 A cut cannot be extrapolated past its edge, so the settle clock, woken by the
 host's debounced `coarseDynamicBlocks`, re-cuts the window plus a window-width
-each side once the window leaves the cut (`hostCut`), on every layout. It
-narrows the margins to fit under `maxRegionBp`; past the cap it keeps the last
-cut and the track shows `cutNote`.
+each side once the window leaves the cut (`hostCut`), on a layout the host
+places. It narrows the margins to fit under `maxRegionBp`; past the cap it keeps
+the last cut and the track shows `cutNote`. Force, ordered and walk rows are cut
+to the window alone (`cutMargins`): the first two draw a picture of it, and walk
+rows' bars are lengths through it.
 
 A layout whose x is not reference bp — force-directed and ordered — draws in its
 own coordinates inside the track, the way a variant matrix does: the pane owns
