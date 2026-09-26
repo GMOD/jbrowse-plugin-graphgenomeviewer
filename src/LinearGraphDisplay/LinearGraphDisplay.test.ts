@@ -17,9 +17,8 @@ import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
 import type { LinearGraphDisplayModel } from './model'
-import type { SubgraphTier } from '../GetSubgraph'
+import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { Renderer } from '../GraphGenomeView/renderer/types'
-import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
 
 const REF = 'chr1'
 const ASM = 'hg38'

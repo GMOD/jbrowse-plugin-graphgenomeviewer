@@ -6,7 +6,7 @@ import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
 import { LABEL_PX } from '../overlayLabels'
 
 import type { BubbleHalo, RouteLabel } from '../bubbles/bubbleHalos'
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // Every chip drawn over the graph, above all of its ink: bubble names, gene
 // names on their pins, and the routes' walkers. `overlayLabels` has placed
@@ -24,7 +24,7 @@ const svgStyle = {
 const LabelLayer = observer(function LabelLayer({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { bubbles, genes, routes } = model.overlayLabels
   if (bubbles.length + genes.length + routes.length === 0) {
@@ -42,7 +42,7 @@ const LabelLayer = observer(function LabelLayer({
   return (
     <svg
       style={svgStyle}
-      width={model.width}
+      width={model.paneWidth}
       height={model.canvasHeight}
       data-testid="graph-label-layer"
     >

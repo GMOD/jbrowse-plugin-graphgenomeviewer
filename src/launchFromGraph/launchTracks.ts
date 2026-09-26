@@ -1,6 +1,6 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 
-import type { TrackScanSession } from '../launchSubgraph/subgraphTracks'
+import type { TrackScanSession } from './launchFromGraph'
 
 const ANNOTATION_TRACK_TYPE = 'FeatureTrack'
 

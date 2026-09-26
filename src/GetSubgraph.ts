@@ -28,6 +28,13 @@ export interface SubgraphAdapterOptions extends SubgraphCutOptions {
   signal?: AbortSignal
 }
 
+export interface SubgraphRegion {
+  refName: string
+  assemblyName: string
+  start: number
+  end: number
+}
+
 export interface GetSubgraphArgs {
   adapterConfig: Record<string, unknown>
   region: Region

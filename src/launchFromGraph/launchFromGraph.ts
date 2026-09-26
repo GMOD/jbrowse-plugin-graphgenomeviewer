@@ -4,7 +4,12 @@ import { locLabel, locString } from './contributors'
 import { linearViewTarget } from './linearViewTarget'
 
 import type { Contributor, GraphLocation } from './contributors'
-import type { TrackScanSession } from '../launchSubgraph/subgraphTracks'
+import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
+
+export interface TrackScanSession {
+  tracks: AnyConfigurationModel[]
+  assemblies: AnyConfigurationModel[]
+}
 
 export interface GraphLaunchSession extends TrackScanSession {
   addView: (type: string, snapshot?: Record<string, unknown>) => { id: string }

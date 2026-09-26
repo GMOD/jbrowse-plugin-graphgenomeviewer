@@ -1,5 +1,4 @@
 import { readConfObject } from '@jbrowse/core/configuration'
-import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
   getContainingView,
@@ -15,6 +14,10 @@ import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
+import {
+  graphReferenceAssembly,
+  offReferenceProblem,
+} from '../graphTrackConfig'
 import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import {
@@ -92,10 +95,6 @@ import {
 import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget, withRows } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
-import {
-  graphReferenceAssembly,
-  offReferenceProblem,
-} from '../launchSubgraph/subgraphTracks'
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
@@ -107,15 +106,19 @@ import type { NodeWidth } from './nodeWidths'
 import type { Renderer } from './renderer/types'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
-import type { SubgraphCutOptions, SubgraphTier } from '../GetSubgraph'
+import type {
+  SubgraphCutOptions,
+  SubgraphRegion,
+  SubgraphTier,
+} from '../GetSubgraph'
 import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
-import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
+import type { Instance } from '@jbrowse/mobx-state-tree'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
 // size against. A roughly square drawing (FMMM) hits this and keeps the
@@ -236,7 +239,7 @@ interface Bounds {
 function viewportOf(model: {
   translateX: number
   translateY: number
-  width: number
+  paneWidth: number
   scaleX: number
   scaleY: number
   canvasHeight: number
@@ -244,7 +247,7 @@ function viewportOf(model: {
   return {
     minX: -model.translateX / model.scaleX,
     minY: -model.translateY / model.scaleY,
-    maxX: (model.width - model.translateX) / model.scaleX,
+    maxX: (model.paneWidth - model.translateX) / model.scaleX,
     maxY: (model.canvasHeight - model.translateY) / model.scaleY,
   }
 }
@@ -350,14 +353,12 @@ function remember(
   cache.set(key, result)
 }
 
-export default function stateModelFactory() {
+export function GraphPaneMixin() {
   return types
     .compose(
-      'GraphGenomeView',
-      BaseViewModel,
+      'GraphPane',
       RenderLifecycleMixin(),
       types.model({
-        type: types.literal('GraphGenomeView'),
         // FMMM's iteration budget, 0-4, the same scale Bandage's own settings
         // dialog exposes: 3+1 iterations at 0, 15+10 at 1, 30+20 at 2, 60+40 at
         // 3, 120+60 at 4 (BandageNG layout/graphlayoutworker.cpp).
@@ -624,6 +625,9 @@ export default function stateModelFactory() {
       lastGeometryStrokeCount: undefined as number | undefined,
     }))
     .views(self => ({
+      get paneWidth() {
+        return getContainingView(self).width
+      },
       get nodeById() {
         if (self.graph) {
           const m = new Map<string, GraphNode>()
@@ -1125,7 +1129,7 @@ export default function stateModelFactory() {
           return self.hostPaneHeight
         }
         const bounds = this.layoutBounds
-        const usableWidth = self.width - FIT_PADDING * 2
+        const usableWidth = self.paneWidth - FIT_PADDING * 2
         // `paneHeight` replaces the built-in ceiling rather than adding a
         // second clamp under it, and the floor still wins: a pane shorter than
         // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its
@@ -1675,7 +1679,7 @@ export default function stateModelFactory() {
         // that window at scale 1 with the graph off-screen entirely, since x
         // there is reference bp.
         const bounds = self.layoutBounds
-        const usableWidth = self.width - FIT_PADDING * 2
+        const usableWidth = self.paneWidth - FIT_PADDING * 2
         const usableHeight = self.canvasHeight - FIT_PADDING * 2
         // A host owns x, so a fit while hosted places the rows only.
         if (self.viewportOwner === 'host') {
@@ -2760,7 +2764,7 @@ export default function stateModelFactory() {
           // change. scale/translate are untracked so they don't trigger a full
           // rebuild — only the debounced viewportDirty flag does.
           upload: (b: Renderer) => {
-            b.resize(self.width, self.canvasHeight)
+            b.resize(self.paneWidth, self.canvasHeight)
             const nodeById = self.nodeById
             if (self.nodePositions && self.graph && nodeById) {
               // The window moved (debounced pan/zoom), or the positions did (a
@@ -2955,7 +2959,7 @@ export default function stateModelFactory() {
       // other view contributes to. Until this existed the triangle had two edges:
       // a linear view could open a graph or a synteny view of a locus, and the
       // graph could open nothing at all.
-      menuItems(): MenuItem[] {
+      launchMenuItems(): MenuItem[] {
         const items: MenuItem[] = []
         for (const item of graphLaunchMenuItems({
           contributors: self.launchableAssemblies,
@@ -2974,6 +2978,4 @@ export default function stateModelFactory() {
     }))
 }
 
-export type GraphGenomeViewModel = ReturnType<
-  ReturnType<typeof stateModelFactory>['create']
->
+export type GraphPaneModel = Instance<ReturnType<typeof GraphPaneMixin>>

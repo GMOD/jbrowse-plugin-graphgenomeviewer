@@ -20,7 +20,7 @@ import { createGraphRenderer } from '../renderer/GraphRenderer'
 import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
 import { wheelZoomFactor } from '../util/wheelZoom'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // Bottom RIGHT, not bottom left: the row labels of a row-structured layout are
 // pinned to the left edge, so a bottom-left tooltip lands on top of them and
@@ -90,7 +90,7 @@ const rowLabelStyle = {
 const RowLabels = observer(function RowLabels({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const rowLabels = model.drawnRowLabels
   return (
@@ -153,7 +153,7 @@ const pathSwatchStyle = { width: 18, height: 3, borderRadius: 2 }
 const PathLegend = observer(function PathLegend({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { pathLegend } = model
   return pathLegend.length > 0 ? (
@@ -173,7 +173,7 @@ const PathLegend = observer(function PathLegend({
 const WalkReadout = observer(function WalkReadout({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const h = model.walkHighlight
   if (!h) {
@@ -222,7 +222,7 @@ const rampEndsStyle = {
 const ReferenceRampLegend = observer(function ReferenceRampLegend({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const domain = model.referenceRampDomain
   return domain ? (
@@ -274,7 +274,7 @@ const leaderStyle = {
 const Legends = observer(function Legends({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -309,7 +309,7 @@ const Legends = observer(function Legends({
 const GraphSizeLabels = observer(function GraphSizeLabels({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const labels = model.overlayLabels.sizes
   // A label too wide for the arc it names is placed clear of it and tethered
@@ -322,7 +322,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
       {leaders.length > 0 ? (
         <svg
           style={leaderStyle}
-          width={model.width}
+          width={model.paneWidth}
           height={model.canvasHeight}
         >
           {leaders.map(({ key, arcX, arcY, labelX, labelY }) => (
@@ -359,7 +359,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
 const HoverTooltips = observer(function HoverTooltips({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const hoveredNodeData = model.hoveredNode
     ? model.nodeById?.get(model.hoveredNode)
@@ -431,7 +431,7 @@ const NodeContextMenu = observer(function NodeContextMenu({
   left,
   onClose,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
   nodeId: string
   top: number
   left: number
@@ -483,7 +483,7 @@ const GraphCanvas = observer(function GraphCanvas({
   model,
   toolbar = true,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
   toolbar?: boolean
 }) {
   const { canvasRef, canvas } = useRenderingBackend(createGraphRenderer, model)
@@ -712,7 +712,7 @@ const GraphCanvas = observer(function GraphCanvas({
           ref={canvasRef}
           data-testid="graph-genome-canvas"
           style={{
-            width: model.width,
+            width: model.paneWidth,
             height: model.canvasHeight,
             cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
             display: 'block',

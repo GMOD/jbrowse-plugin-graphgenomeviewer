@@ -1,6 +1,6 @@
 import { observer } from 'mobx-react'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // The session's genes drawn onto the graph: exons as dark stretches along the
 // backbone nodes that carry them, in layout units, moved by the same transform
@@ -20,7 +20,7 @@ export const EXON_COLOR = '#1c1c22'
 const GenePins = observer(function GenePins({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { genePins } = model
   if (genePins.length === 0) {
@@ -31,7 +31,7 @@ const GenePins = observer(function GenePins({
     scaleY,
     translateX,
     translateY,
-    width,
+    paneWidth: width,
     canvasHeight,
     contigThickness,
   } = model

@@ -5,7 +5,7 @@ import { Button, Paper, TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const EXAMPLE_GFA = `H\tVN:Z:1.0
 S\t1\tACGT
@@ -30,7 +30,7 @@ const useStyles = makeStyles()({
 const ImportForm = observer(function ImportForm({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   const [url, setUrl] = useState('')

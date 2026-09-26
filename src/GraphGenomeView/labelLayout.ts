@@ -42,7 +42,7 @@ export interface BubbleGlyph {
 }
 
 export interface LabelLayoutSource {
-  width: number
+  paneWidth: number
   canvasHeight: number
   axisScale: AxisScale
   translateX: number
@@ -78,7 +78,7 @@ function byExtent<T>(items: T[], extent: (item: T) => number) {
 // The order is what survives a crowd: the bubble's name, then the gene's, then
 // what a deletion skips, then who takes each route, and a node's length last.
 export function layoutLabels(m: LabelLayoutSource): LabelLayout {
-  const { width, canvasHeight: height, translateX, translateY } = m
+  const { paneWidth: width, canvasHeight: height, translateX, translateY } = m
   const { scaleX, scaleY } = m.axisScale
   const frame = { width, height }
   const screen = (p: { x: number; y: number }) => ({

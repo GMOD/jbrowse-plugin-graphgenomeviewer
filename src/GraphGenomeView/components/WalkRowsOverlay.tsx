@@ -4,7 +4,7 @@ import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
 import { LABEL_CHAR_PX } from '../overlayLabels'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference line
 // the canvas draws, each on its own bp axis from the window's left edge. Blue
@@ -63,7 +63,7 @@ function TickSwatch({ color }: { color: string }) {
 export const WalkRowsLegend = observer(function WalkRowsLegend({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const bars = model.walkRowBars
   if (!bars) {
@@ -147,13 +147,20 @@ function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { walkRowBars } = model
   if (!walkRowBars) {
     return null
   }
-  const { scaleX, scaleY, translateX, translateY, width, canvasHeight } = model
+  const {
+    scaleX,
+    scaleY,
+    translateX,
+    translateY,
+    paneWidth: width,
+    canvasHeight,
+  } = model
   const X = (bp: number) => bp * scaleX + translateX
   const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
   const { origin, unit, reference, rows } = walkRowBars

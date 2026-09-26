@@ -1,4 +1,4 @@
-import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
+import type { SubgraphRegion } from '../GetSubgraph'
 
 // The members of a LinearGenomeView a hosted pane reads and drives.
 // Structural, because this plugin takes no runtime dependency on the LGV
@@ -39,8 +39,6 @@ export function isLinearHost(view: unknown): view is LinearHost {
   )
 }
 
-// launchSubgraphView's widestBlock, restated rather than imported: that module
-// imports the model, which imports this.
 function widest(blocks: readonly HostBlock[]) {
   return blocks.reduce<HostBlock | undefined>(
     (best, b) => (best && best.end - best.start >= b.end - b.start ? best : b),

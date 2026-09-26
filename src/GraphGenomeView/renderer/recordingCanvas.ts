@@ -8,8 +8,7 @@
 // loose enough not to flake is too loose to catch a 3x regression. See
 // agent-docs/GRAPH_SCALE_AND_LOD.md.
 //
-// Not bundled: nothing under src/index.ts imports this, so it never ships. Same
-// arrangement as launchSubgraph/testEnv.ts.
+// Not bundled: nothing under src/index.ts imports this, so it never ships.
 
 // `points` is every coordinate the renderer asked for, in BACKING-STORE pixels
 // — the far end of the whole pipeline. Counting draw calls says the renderer ran;

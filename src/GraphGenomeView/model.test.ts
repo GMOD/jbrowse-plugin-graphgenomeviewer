@@ -14,10 +14,11 @@ import {
   layoutScaling,
 } from './layout/drawnScale'
 import { ROW_HEIGHT_PX } from './layout/rowSpacing'
-import stateModelFactory, { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
+import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { Canvas2DRenderer } from './renderer/Canvas2DRenderer'
 import { buildGeometry } from './renderer/GeometryBuilder'
 import { recordingCanvas } from './renderer/recordingCanvas'
+import stateModelFactory from './viewModel'
 
 import type { Graph } from './types'
 
@@ -62,6 +63,7 @@ vi.mock('@jbrowse/core/util', () => {
   // Return minimal mock that doesn't trigger circular load
   return {
     getSession: () => mockSession,
+    getContainingView: (node: unknown) => node,
     isSessionModelWithWidgets: () => false,
     // Add stubs for other potentially imported items
     parseLocString: () => ({}),

@@ -4,7 +4,7 @@ import { makeStyles } from 'tss-react/mui'
 
 import { COLOR_SCHEMES } from '../colorSchemes'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   formControl: {
@@ -15,7 +15,7 @@ const useStyles = makeStyles()({
 const ColorSchemeSelect = observer(function ColorSchemeSelect({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   return (

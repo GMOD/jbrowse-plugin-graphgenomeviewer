@@ -59,7 +59,7 @@ function pin(at: NodeSegment): GenePin {
 
 function source(overrides: Partial<LabelLayoutSource>): LabelLayoutSource {
   return {
-    width: 800,
+    paneWidth: 800,
     canvasHeight: 400,
     axisScale: { scaleX: 1, scaleY: 1 },
     translateX: 0,

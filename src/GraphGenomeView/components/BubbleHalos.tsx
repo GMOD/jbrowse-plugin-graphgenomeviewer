@@ -4,7 +4,7 @@ import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
 import { HALO_FACTOR } from '../labelLayout'
 
 import type { BubbleHalo } from '../bubbles/bubbleHalos'
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // The bubbles over a node drawing: each a translucent halo along its nodes,
 // drawn once in layout units and moved with the canvas by one transform. The
@@ -23,13 +23,20 @@ const svgStyle = {
 const BubbleHalos = observer(function BubbleHalos({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { bubbleHalos, walkHighlight } = model
   if (bubbleHalos.length === 0) {
     return null
   }
-  const { scaleX, scaleY, translateX, translateY, width, canvasHeight } = model
+  const {
+    scaleX,
+    scaleY,
+    translateX,
+    translateY,
+    paneWidth: width,
+    canvasHeight,
+  } = model
   const halo = model.contigThickness * HALO_FACTOR
   // a lifted walk dims the bubbles it never enters
   const dimmedBubble = (h: BubbleHalo) =>

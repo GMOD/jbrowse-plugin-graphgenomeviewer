@@ -8,7 +8,7 @@ import {
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -38,7 +38,7 @@ const SUBGRAPH_CONTEXTS = [
 const SubgraphContextSelect = observer(function SubgraphContextSelect({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   return model.loadedTrackId ? (

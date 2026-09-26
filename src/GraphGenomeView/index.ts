@@ -3,7 +3,7 @@ import { lazy } from 'react'
 import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import { defineLaunchKeys } from '@jbrowse/core/util/withLaunchInput'
 
-import modelFactory from './model'
+import modelFactory from './viewModel'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 

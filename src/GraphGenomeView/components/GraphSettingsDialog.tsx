@@ -25,7 +25,7 @@ import { BUBBLE_SPREADS } from '../bubbleSpreads'
 import { COLOR_SCHEMES } from '../colorSchemes'
 import { NODE_WIDTHS } from '../nodeWidths'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -50,7 +50,7 @@ const qualityLabels = ['Lowest', 'Low', 'Medium', 'High', 'Highest'] as const
 const EngineOnly = observer(function EngineOnly({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   return model.hasGraph && !model.usesLayoutEngine ? (
     <Typography variant="caption" color="warning.main">
@@ -61,7 +61,7 @@ const EngineOnly = observer(function EngineOnly({
 })
 
 const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
   open: boolean
   onClose: () => void
 }) {

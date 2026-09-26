@@ -1,4 +1,4 @@
-import type modelFactory from './GraphGenomeView/model'
+import type modelFactory from './GraphGenomeView/viewModel'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { AbstractSessionModel } from '@jbrowse/core/util'
 import type { SnapshotIn } from '@jbrowse/mobx-state-tree'

@@ -1,4 +1,4 @@
-import stateModelFactory from './model'
+import stateModelFactory from './viewModel'
 
 const mockRpcCall = vi.fn()
 const mockSession = {
@@ -8,6 +8,7 @@ const mockSession = {
 
 vi.mock('@jbrowse/core/util', () => ({
   getSession: () => mockSession,
+  getContainingView: (node: unknown) => node,
   isSessionModelWithWidgets: () => false,
   parseLocString: () => ({}),
   getEnv: () => ({}),

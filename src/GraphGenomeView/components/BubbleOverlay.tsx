@@ -4,7 +4,7 @@ import { observer } from 'mobx-react'
 import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
 import { LABEL_PAD } from '../overlayLabels'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // The variant map's glyphs: one lens per bubble on the reference line the
 // canvas draws, sized by the longest route through it, coloured and labelled
@@ -44,7 +44,7 @@ function glyphHeight(bp: number, room: number) {
 const BubbleOverlay = observer(function BubbleOverlay({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { bubbleGlyphs, poppedFrom } = model
   const back = poppedFrom ? (
@@ -63,7 +63,13 @@ const BubbleOverlay = observer(function BubbleOverlay({
   if (bubbleGlyphs.length === 0) {
     return back
   }
-  const { scaleX, translateX, translateY, width, canvasHeight } = model
+  const {
+    scaleX,
+    translateX,
+    translateY,
+    paneWidth: width,
+    canvasHeight,
+  } = model
   const lineY = translateY
   const X = (bp: number) => bp * scaleX + translateX
   const labels = model.overlayLabels.glyphs

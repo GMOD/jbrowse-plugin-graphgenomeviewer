@@ -1,7 +1,7 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import { getTrackName } from '@jbrowse/core/util/tracks'
 
-import type { TrackScanSession } from '../launchSubgraph/subgraphTracks'
+import type { TrackScanSession } from './launchFromGraph'
 
 export interface LaunchableSyntenyTrack {
   trackId: string

@@ -3,7 +3,7 @@ import { Button, LinearProgress, Paper, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   paper: {
@@ -28,7 +28,7 @@ const useStyles = makeStyles()({
 const GraphLoadStatus = observer(function GraphLoadStatus({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   if (model.isLoading) {

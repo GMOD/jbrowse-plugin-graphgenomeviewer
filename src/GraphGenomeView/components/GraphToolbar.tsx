@@ -12,7 +12,7 @@ import RepeatSelect from './RepeatSelect'
 import SettingsMenu from './SettingsMenu'
 import WalkSelect from './WalkSelect'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   toolbar: {
@@ -27,7 +27,7 @@ const useStyles = makeStyles()({
 const ZoomDisplay = observer(function ZoomDisplay({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   return <Typography variant="body2">{model.zoomPercent}</Typography>
 })
@@ -35,7 +35,7 @@ const ZoomDisplay = observer(function ZoomDisplay({
 const GraphToolbar = observer(function GraphToolbar({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   return (
@@ -48,7 +48,7 @@ const GraphToolbar = observer(function GraphToolbar({
         <IconButton
           size="small"
           onClick={() => {
-            model.zoom(1.5, model.width / 2, model.canvasHeight / 2)
+            model.zoom(1.5, model.paneWidth / 2, model.canvasHeight / 2)
           }}
         >
           <ZoomInIcon />
@@ -58,7 +58,7 @@ const GraphToolbar = observer(function GraphToolbar({
         <IconButton
           size="small"
           onClick={() => {
-            model.zoom(1 / 1.5, model.width / 2, model.canvasHeight / 2)
+            model.zoom(1 / 1.5, model.paneWidth / 2, model.canvasHeight / 2)
           }}
         >
           <ZoomOutIcon />

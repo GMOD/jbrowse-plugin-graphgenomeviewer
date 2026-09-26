@@ -4,7 +4,7 @@ import { TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -23,7 +23,7 @@ export function parseHaplotypeList(text: string) {
 const HaplotypeListField = observer(function HaplotypeListField({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const [draft, setDraft] = useState(model.subgraphHaplotypes?.join(', ') ?? '')
   const apply = () => {
@@ -64,7 +64,7 @@ const HaplotypeListField = observer(function HaplotypeListField({
 const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   return model.loadedTrackId ? (

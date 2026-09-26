@@ -2,7 +2,7 @@ import { Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   stats: {
@@ -30,7 +30,7 @@ function fmtMs(ms: number | undefined) {
 const GraphPerf = observer(function GraphPerf({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   const { lastFetchMs, lastLayoutMs, lastGeometryMs } = model
@@ -53,7 +53,7 @@ const GraphPerf = observer(function GraphPerf({
 const GraphStats = observer(function GraphStats({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const { classes } = useStyles()
   return (

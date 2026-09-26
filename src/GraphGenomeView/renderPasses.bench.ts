@@ -79,7 +79,7 @@ const AXIS = { scaleX: 0.01, scaleY: 1 }
 const VIEWPORT = {
   translateX: 40,
   translateY: 40,
-  width: 900,
+  paneWidth: 900,
   canvasHeight: 600,
 }
 

@@ -2,12 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react'
 
 import GraphGenomeView from './GraphGenomeView'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 // A canvas needs a rendering backend jsdom has none of
 vi.mock('./GraphCanvas', () => ({ default: () => <div>canvas</div> }))
 
-function view(state: Partial<GraphGenomeViewModel>) {
+function view(state: Partial<GraphPaneModel>) {
   const model = {
     hasGraph: false,
     isLoading: false,
@@ -19,7 +19,7 @@ function view(state: Partial<GraphGenomeViewModel>) {
     retryLoad: vi.fn(),
     ...state,
   }
-  render(<GraphGenomeView model={model as unknown as GraphGenomeViewModel} />)
+  render(<GraphGenomeView model={model as unknown as GraphPaneModel} />)
   return model
 }
 

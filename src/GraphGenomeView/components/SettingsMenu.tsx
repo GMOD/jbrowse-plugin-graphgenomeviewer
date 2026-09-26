@@ -8,12 +8,12 @@ import { observer } from 'mobx-react'
 
 import GraphSettingsDialog from './GraphSettingsDialog'
 
-import type { GraphGenomeViewModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const SettingsMenu = observer(function SettingsMenu({
   model,
 }: {
-  model: GraphGenomeViewModel
+  model: GraphPaneModel
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
 

@@ -1,5 +1,5 @@
-import stateModelFactory from './model'
 import { MAX_PATH_COLORS } from './pathColors'
+import stateModelFactory from './viewModel'
 
 import type { RenderBatch, Renderer } from './renderer/types'
 
@@ -16,6 +16,7 @@ const mockSession = {
 
 vi.mock('@jbrowse/core/util', () => ({
   getSession: () => mockSession,
+  getContainingView: (node: unknown) => node,
   isSessionModelWithWidgets: () => false,
   parseLocString: () => ({}),
   getEnv: () => ({}),
