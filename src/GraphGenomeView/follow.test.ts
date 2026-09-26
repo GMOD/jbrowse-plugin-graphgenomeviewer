@@ -330,7 +330,7 @@ test('a 2 Mb pan in 10 kb steps moves x every step and re-cuts every seventh', a
   expect(cuts.every(c => c.tier === 'fine')).toBe(true)
   // past 1.5 Mb the rows are eight ranks deep, and the pane held its height
   expect(rowExtents.size).toBeGreaterThan(1)
-  // f103 left the cut a mile back, and with it the selection
+  // f103 (1.03 Mb) is long out of the last cut, and the selection with it
   expect(model.selectedNode).toBeNull()
   expect(model.error).toBeUndefined()
 })
