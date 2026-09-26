@@ -1,3 +1,9 @@
+## [4.0.5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.4...v4.0.5) (2026-09-26)
+
+### Other Changes
+
+- A cut never exceeds its cap, a held cut tolerates a base of rounding, and a linear view bands the hover of the graph pane in its own tracks ([05c105b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/05c105b834fd22dad04d5960b5d0aa3f855712a8))
+
 ## [4.0.4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.3...v4.0.4) (2026-09-26)
 
 ### Other Changes
