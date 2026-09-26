@@ -1,3 +1,9 @@
+## [4.0.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.1...v4.0.2) (2026-09-26)
+
+### Other Changes
+
+- A launch keeps the pane props it states and takes the rest from the config ([10766db](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/10766dbbd4b79cf3dd4a04794a59644c8b996da7))
+
 ## [4.0.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.0...v4.0.1) (2026-09-26)
 
 ### Other Changes
