@@ -16,6 +16,7 @@ interface Interval {
 interface ClippedIntervals extends Interval {
   mateStart: number
   mateEnd: number
+  cigar?: Uint32Array
 }
 
 const ALIGNMENT_STRING_FIELDS = ['CIGAR', 'cs', 'coarseCigar', 'cg', 'cr']
@@ -64,18 +65,21 @@ function interpolateClip(
 }
 
 // A record inside the window is its own clip, and skips parsing its alignment
-// string, unless the runs are wanted, which only the string knows.
+// string, unless the runs or the ops are wanted, which only the string knows.
 function clipIntervals(
   feature: Feature,
   mate: Interval,
   window: Interval,
   splitAtGapBp: number | undefined,
+  keepAlignment: boolean,
 ): ClippedIntervals[] {
   const own = { start: feature.get('start'), end: feature.get('end') }
   const strand = feature.get('strand') === -1 ? -1 : 1
   const inside = own.start >= window.start && own.end <= window.end
   const ops =
-    inside && splitAtGapBp === undefined ? undefined : getAlignmentOps(feature)
+    inside && splitAtGapBp === undefined && !keepAlignment
+      ? undefined
+      : getAlignmentOps(feature)
   if (ops === undefined) {
     const clipped = inside
       ? { ...own, mateStart: mate.start, mateEnd: mate.end }
@@ -114,6 +118,7 @@ function clippedFeature(
   clipped: ClippedIntervals,
   window: Interval,
   run: string,
+  keepAlignment: boolean,
 ) {
   const suffix = `:${window.start}-${window.end}${run}`
   const source = feature.toJSON()
@@ -130,6 +135,9 @@ function clippedFeature(
   for (const field of ALIGNMENT_STRING_FIELDS) {
     delete data[field]
   }
+  if (keepAlignment && clipped.cigar) {
+    data.alignmentOps = clipped.cigar
+  }
   return new SyntenyFeature(data)
 }
 
@@ -138,8 +146,9 @@ function clippedFeature(
  * the record misses the window, one otherwise, and with `splitAtGapBp` one per
  * gap-free run of its alignment, numbered after the window suffix so each run
  * is its own feature and its own `syntenyId` group. A piece keeps every field
- * of the record except the alignment strings. A feature with no `mate` is not
- * a pairwise record and passes through whole.
+ * of the record except the alignment strings; `keepAlignment` hands back its
+ * own stretch of them as packed ops in `alignmentOps`. A feature with no
+ * `mate` is not a pairwise record and passes through whole.
  *
  * A copy of `@jbrowse/plugin-comparative-adapters`' own, which a runtime plugin
  * cannot import: the worker serves that package as a stub too.
@@ -148,12 +157,19 @@ export function clipFeatureToRegion(
   feature: Feature,
   window: Interval,
   splitAtGapBp?: number,
+  keepAlignment = false,
 ): Feature[] {
   const mate = mateOf(feature)
   if (mate === undefined) {
     return [feature]
   } else {
-    const pieces = clipIntervals(feature, mate, window, splitAtGapBp)
+    const pieces = clipIntervals(
+      feature,
+      mate,
+      window,
+      splitAtGapBp,
+      keepAlignment,
+    )
     return pieces.map((piece, i) =>
       clippedFeature(
         feature,
@@ -161,6 +177,7 @@ export function clipFeatureToRegion(
         piece,
         window,
         pieces.length > 1 ? `/${i}` : '',
+        keepAlignment,
       ),
     )
   }

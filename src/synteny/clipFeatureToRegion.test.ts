@@ -1,3 +1,4 @@
+import { numericCigarToString } from '@jbrowse/cigar-utils'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import { firstValueFrom } from 'rxjs'
@@ -7,6 +8,7 @@ import { ComparativeAdapterBase } from './ComparativeAdapterBase.ts'
 import SyntenyFeature from './SyntenyFeature.ts'
 import { clipFeatureToRegion } from './clipFeatureToRegion.ts'
 
+import type { ClipOptions } from './ComparativeAdapterBase.ts'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
@@ -51,6 +53,33 @@ test('+ strand: a deletion straddling the window start is trimmed, an insertion 
     end: 1250,
   })[0]!
   expect(extents(atInsertion)).toEqual([1120, 1250, 5100, 5250])
+})
+
+const opsOf = (f: Feature) =>
+  numericCigarToString(f.get('alignmentOps') as Uint32Array)
+
+test('keepAlignment hands each piece its own stretch of the alignment', () => {
+  const [piece] = clipFeatureToRegion(
+    record({ CIGAR }),
+    { start: 1120, end: 1300 },
+    undefined,
+    true,
+  )
+  expect(extents(piece!)).toEqual([1120, 1300, 5100, 5300])
+  expect(opsOf(piece!)).toBe('30D100M50I50M')
+  expect(piece!.get('CIGAR')).toBeUndefined()
+  const [whole] = clipFeatureToRegion(
+    record({ CIGAR }),
+    { start: 0, end: 9000 },
+    undefined,
+    true,
+  )
+  expect(opsOf(whole!)).toBe(CIGAR)
+  const [without] = clipFeatureToRegion(record({ CIGAR }), {
+    start: 0,
+    end: 9000,
+  })
+  expect(without!.get('alignmentOps')).toBeUndefined()
 })
 
 test('− strand: the mate runs from its far end', () => {
@@ -244,7 +273,7 @@ const regions: Region[] = [
 
 function fetchAll(
   adapter: ComparativeAdapterBase,
-  opts: ComparativeOptions,
+  opts: ClipOptions,
   over = regions,
 ) {
   return firstValueFrom(
@@ -268,6 +297,17 @@ test('the base passes splitAtGapBp to the clip and getFeatures never sees it', a
       o => o.clipToRegion === undefined && o.splitAtGapBp === undefined,
     ),
   ).toBe(true)
+})
+
+test('the base passes keepAlignment to the clip and getFeatures never sees it', async () => {
+  const adapter = new StubAdapter(stubConfigSchema.create({}))
+  const [piece] = await fetchAll(
+    adapter,
+    { clipToRegion: true, keepAlignment: true },
+    [{ assemblyName: 'anchor', refName: 'chr1', start: 0, end: 9000 }],
+  )
+  expect(opsOf(piece!)).toBe(CIGAR)
+  expect(adapter.regionsSeen.every(o => !('keepAlignment' in o))).toBe(true)
 })
 
 test('two regions over one record yield two distinct pieces, and getFeatures never sees the option', async () => {

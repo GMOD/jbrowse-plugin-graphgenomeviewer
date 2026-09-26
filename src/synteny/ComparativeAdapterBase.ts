@@ -10,6 +10,11 @@ import type { Feature } from '@jbrowse/core/util'
 import type { AugmentedRegion as Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
+/** `keepAlignment` is core's, which synteny-core 5.0.0-beta.9 lacks */
+export interface ClipOptions extends ComparativeOptions {
+  keepAlignment?: boolean
+}
+
 /**
  * What every adapter in this plugin answers the same way.
  *
@@ -40,21 +45,18 @@ export abstract class ComparativeAdapterBase<
   }
 
   /**
-   * `clipToRegion` and `splitAtGapBp` are honoured here and nowhere below:
-   * `getFeatures` never sees them. A record on another assembly than the
-   * region's, such as a lane pair read inside an anchor window, is in no
-   * coordinates the region states, so it is split at its gaps and clipped to
-   * its own extent.
+   * `clipToRegion`, `splitAtGapBp` and `keepAlignment` are honoured here and
+   * nowhere below: `getFeatures` never sees them. A record on another assembly
+   * than the region's, such as a lane pair read inside an anchor window, is in
+   * no coordinates the region states, so it is split at its gaps and clipped
+   * to its own extent.
    *
    * Emission is in region order, not arrival order, as core's base does: the
    * multi-way display's lane sort tie-breaks on first appearance in this list,
    * and its weights tie exactly, so arrival order would decide the stack.
    */
-  getFeaturesInMultipleRegions(
-    regions: Region[],
-    opts: ComparativeOptions = {},
-  ) {
-    const { clipToRegion, splitAtGapBp, ...rest } = opts
+  getFeaturesInMultipleRegions(regions: Region[], opts: ClipOptions = {}) {
+    const { clipToRegion, splitAtGapBp, keepAlignment, ...rest } = opts
     const clip = clipToRegion && this.recordsAreAlignments
     const slot = createStatusFanOut(rest.statusCallback)
     return from(regions).pipe(
@@ -68,6 +70,7 @@ export abstract class ComparativeAdapterBase<
                     ? region
                     : { start: feature.get('start'), end: feature.get('end') },
                   splitAtGapBp,
+                  keepAlignment,
                 )
               : [feature],
           ),

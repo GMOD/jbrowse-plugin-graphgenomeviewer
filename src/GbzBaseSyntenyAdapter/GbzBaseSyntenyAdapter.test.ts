@@ -1,4 +1,5 @@
 import { Subgraph } from '@gmod/gbz-base'
+import { numericCigarToString } from '@jbrowse/cigar-utils'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
@@ -536,14 +537,34 @@ test('a reverse-strand pair writes its CIGAR along the query lane', async () => 
 // HG01361#2 and HG00673#1 differ by one SNP in this window, which the graph
 // holds as a bubble: an insertion and a deletion, where comparing the bases
 // would write 1X
+const snpPair = {
+  queryAssemblyName: 'HG01361#2',
+  targetAssemblyName: 'HG00673#1',
+}
+
 test('a SNP between two lanes is the bubble the graph holds, an insertion and a deletion', async () => {
-  const records = await feats(anchoredAdapter(), window, {
-    queryAssemblyName: 'HG01361#2',
-    targetAssemblyName: 'HG00673#1',
-  })
+  const records = await feats(anchoredAdapter(), window, snpPair)
   expect(records.map(f => [f.get('CIGAR'), f.get('numMatches')])).toEqual([
     ['800=1I1D413=', 1213],
   ])
+})
+
+test('a lane pair fetched the way MultiWaySyntenyDisplay fetches it hands over those ops', async () => {
+  const records = await firstValueFrom(
+    anchoredAdapter()
+      .getFeaturesInMultipleRegions([window] as never, {
+        ...snpPair,
+        clipToRegion: true,
+        splitAtGapBp: 10_000,
+        keepAlignment: true,
+      })
+      .pipe(toArray()),
+  )
+  expect(
+    records.map(f =>
+      numericCigarToString(f.get('alignmentOps') as Uint32Array),
+    ),
+  ).toEqual(['800=1I1D413='])
 })
 
 // HG00673#2 differs from HG01361#2 in a 4 bp bubble whose middle two bases
