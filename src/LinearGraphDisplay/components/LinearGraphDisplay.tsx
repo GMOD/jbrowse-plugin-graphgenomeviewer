@@ -32,11 +32,8 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
         overflow: 'hidden',
       }}
     >
-      {pane.hasGraph ? (
-        <GraphCanvas model={pane} toolbar={false} />
-      ) : (
-        <GraphLoadStatus model={pane} />
-      )}
+      <GraphCanvas model={pane} toolbar={false} />
+      {pane.hasGraph ? null : <GraphLoadStatus model={pane} />}
       {pane.cutNote ? (
         <Typography
           variant="caption"

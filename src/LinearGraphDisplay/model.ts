@@ -193,6 +193,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           self.setConfigured()
         }
         pane.adoptTrack(self.trackId)
+        pane.startHosting()
         addDisposer(
           self,
           autorun(

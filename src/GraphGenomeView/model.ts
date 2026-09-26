@@ -2527,6 +2527,57 @@ export default function stateModelFactory() {
       },
     }))
     .actions(self => ({
+      // The host's two clocks, started by the display that hosts the pane.
+      // The frame clock moves x with every frame of the linear view and
+      // fetches nothing; the settle clock wakes on its debounced blocks and
+      // re-cuts only when the window has left the cut, whatever the layout.
+      startHosting() {
+        addDisposer(
+          self,
+          reaction(
+            () => self.hostPlacesX,
+            places => {
+              if (!places) {
+                self.releaseHost()
+              }
+            },
+            { name: 'GraphHostPlacesX' },
+          ),
+        )
+        addDisposer(
+          self,
+          reaction(
+            () => self.hostFrame,
+            frame => {
+              if (frame) {
+                self.hostTransform(frame.scale, frame.translateX)
+              }
+            },
+            {
+              equals: (a, b) =>
+                a?.scale === b?.scale && a?.translateX === b?.translateX,
+              fireImmediately: true,
+              name: 'GraphHostFrame',
+            },
+          ),
+        )
+        addDisposer(
+          self,
+          reaction(
+            () => self.host?.coarseDynamicBlocks,
+            blocks => {
+              const { host } = self
+              const seen = blocks && host ? hostWindow(host) : undefined
+              if (seen) {
+                self.settleOn(seen)
+              }
+            },
+            { fireImmediately: true, name: 'GraphHostSettle' },
+          ),
+        )
+      },
+    }))
+    .actions(self => ({
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
           // Autorun: paint the lane this graph was cut from in the graph's own
@@ -2573,54 +2624,6 @@ export default function stateModelFactory() {
                 self.zoomToFit()
               }
             }),
-          )
-
-          // The host's two clocks. The frame clock moves x with every frame
-          // of the linear view and fetches nothing; the settle clock wakes on
-          // its debounced blocks and re-cuts only when the window has left
-          // the cut, whatever the layout.
-          addDisposer(
-            self,
-            reaction(
-              () => self.hostPlacesX,
-              places => {
-                if (!places) {
-                  self.releaseHost()
-                }
-              },
-              { name: 'GraphHostPlacesX' },
-            ),
-          )
-          addDisposer(
-            self,
-            reaction(
-              () => self.hostFrame,
-              frame => {
-                if (frame) {
-                  self.hostTransform(frame.scale, frame.translateX)
-                }
-              },
-              {
-                equals: (a, b) =>
-                  a?.scale === b?.scale && a?.translateX === b?.translateX,
-                fireImmediately: true,
-                name: 'GraphHostFrame',
-              },
-            ),
-          )
-          addDisposer(
-            self,
-            reaction(
-              () => self.host?.coarseDynamicBlocks,
-              blocks => {
-                const { host } = self
-                const seen = blocks && host ? hostWindow(host) : undefined
-                if (seen) {
-                  self.settleOn(seen)
-                }
-              },
-              { fireImmediately: true, name: 'GraphHostSettle' },
-            ),
           )
 
           // Autorun: mirror a connected linear view's hover onto the graph. An

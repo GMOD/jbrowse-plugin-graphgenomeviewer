@@ -4,7 +4,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const PLUGIN_PATH = '/demos/graphgenomeviewer/'
+// Where a hosted config names the bundle: the store's versioned path, or the
+// demos path older configs still carry.
+const DEMOS_PATH = '/demos/graphgenomeviewer/'
+const STORE_PATH =
+  /\/plugins\/jbrowse-plugin-graphgenomeviewer\/[^/]+\/dist\/(.*)$/
+
+function distRelative(pathname) {
+  const demos = pathname.indexOf(DEMOS_PATH)
+  return demos === -1
+    ? STORE_PATH.exec(pathname)?.[1]
+    : pathname.slice(demos + DEMOS_PATH.length)
+}
 
 export function candidateServer(distDir) {
   // The whole dist, by the path under the plugin's url: the entry imports its
@@ -12,11 +23,11 @@ export function candidateServer(distDir) {
   // entry would fail in a way that reads as a host incompatibility.
   function candidateBody(url) {
     const { pathname } = new URL(url)
-    const at = pathname.indexOf(PLUGIN_PATH)
-    if (at === -1 || !pathname.endsWith('.js')) {
+    const relative = distRelative(pathname)
+    if (relative === undefined || !pathname.endsWith('.js')) {
       return undefined
     }
-    const file = path.join(distDir, pathname.slice(at + PLUGIN_PATH.length))
+    const file = path.join(distDir, relative)
     return fs.existsSync(file) ? fs.readFileSync(file) : undefined
   }
 
@@ -49,7 +60,10 @@ export function candidateServer(distDir) {
       }
     })
     await client.send('Fetch.enable', {
-      patterns: [{ urlPattern: `*${PLUGIN_PATH}*` }],
+      patterns: [
+        { urlPattern: `*${DEMOS_PATH}*` },
+        { urlPattern: '*/plugins/jbrowse-plugin-graphgenomeviewer/*' },
+      ],
     })
   }
 
