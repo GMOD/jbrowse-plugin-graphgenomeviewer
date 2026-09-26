@@ -33,8 +33,7 @@ const LayoutSelect = observer(function LayoutSelect({
         label="Layout"
         data-testid="graph-layout-select"
         onChange={e => {
-          model.setLayoutMode(e.target.value)
-          void model.recomputeLayout()
+          void model.switchLayout(e.target.value)
         }}
       >
         {LAYOUT_MODES.map(({ value, label, description, available }) => (

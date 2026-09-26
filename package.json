@@ -54,6 +54,7 @@
     "@gmod/tabix": "^3.8.3",
     "@jbrowse/cigar-utils": "5.0.0-beta.9",
     "@jbrowse/core": "5.0.0-beta.9",
+    "@jbrowse/display-kit": "5.0.0-beta.9",
     "@jbrowse/render-core": "5.0.0-beta.9",
     "@jbrowse/synteny-core": "5.0.0-beta.9"
   },

@@ -25,6 +25,7 @@ export function referencePositionColor({
 }
 
 export interface LaneDisplay {
+  type: string
   configuration: AnyConfigurationModel
 }
 
@@ -62,7 +63,7 @@ export function sourceLaneDisplay(
     ) {
       const track = view.tracks?.find(t => t.configuration.trackId === trackId)
       const display = track?.displays[0]
-      if (display) {
+      if (display?.type === 'LinearBasicDisplay') {
         return display
       }
     }

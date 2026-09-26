@@ -6,7 +6,6 @@ import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
 import ColorSchemeSelect from './ColorSchemeSelect'
-import FollowControl from './FollowControl'
 import GraphStats from './GraphStats'
 import LayoutSelect from './LayoutSelect'
 import RepeatSelect from './RepeatSelect'
@@ -76,7 +75,6 @@ const GraphToolbar = observer(function GraphToolbar({
         </IconButton>
       </Tooltip>
       <ZoomDisplay model={model} />
-      <FollowControl model={model} />
       <GraphStats model={model} />
       <SettingsMenu model={model} />
     </div>

@@ -8,11 +8,10 @@ import GraphAddTrackWorkflowF from './GraphAddTrackWorkflow/index'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
 import LaunchGraphGenomeViewF from './LaunchGraphGenomeView'
+import LinearGraphDisplayF from './LinearGraphDisplay/index'
 import MinigraphBubbleAdapterF from './MinigraphBubbleAdapter/index'
 import RgfaTabixAdapterF from './RgfaTabixAdapter/index'
 import GraphHoverSyncF from './hoverSync/index'
-import LaunchSubgraphMenuItemF from './launchSubgraph/index'
-import LinearViewMenuItemsF from './launchSubgraph/linearViewMenuItems'
 import { PLUGIN_NAME } from './pluginName'
 import { version } from './version'
 
@@ -25,9 +24,8 @@ export default class GraphGenomeViewPlugin extends Plugin {
 
   install(pluginManager: PluginManager) {
     GraphGenomeViewF(pluginManager)
+    LinearGraphDisplayF(pluginManager)
     LaunchGraphGenomeViewF(pluginManager)
-    LaunchSubgraphMenuItemF(pluginManager)
-    LinearViewMenuItemsF(pluginManager)
     GraphHoverSyncF(pluginManager)
     RgfaTabixAdapterF(pluginManager)
     MinigraphBubbleAdapterF(pluginManager)

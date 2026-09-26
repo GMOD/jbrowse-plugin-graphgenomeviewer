@@ -36,7 +36,7 @@ const channelSchema = ConfigurationSchema('ChannelLaneDisplay', {
 })
 
 function display(schema = displaySchema) {
-  return { configuration: schema.create({}) }
+  return { type: 'LinearBasicDisplay', configuration: schema.create({}) }
 }
 
 function view(id: string, trackId: string, d = display()) {

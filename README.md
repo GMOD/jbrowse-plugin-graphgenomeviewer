@@ -1,8 +1,7 @@
 # jbrowse-plugin-graphgenomeviewer
 
-A JBrowse 2 plugin that adds a **GraphGenomeView** for pangenome graphs (GFA /
-rGFA), plus a right-click launcher to open the local subgraph around a region
-from a linear genome view, which the graph then follows.
+A JBrowse 2 plugin that draws a pangenome graph (GFA / rGFA) as a track of a
+linear genome view, and as a **GraphGenomeView** of its own for a whole file.
 
 ## Screenshots
 
@@ -75,20 +74,43 @@ no index, a GBZ cut, a pggb file or a popped bubble, from the graph itself off
 the ordered layout's layering. Every node layout marks them as halos; the
 variant map draws them as glyphs.
 
-### Following the linear view
+### The graph as a track
 
-A graph launched from a linear view follows it. **Graph genome view (this
-region)** cuts the window the view shows; **(this selection)** and **(this
-segment)** or **(this feature)** first bring the view to that span. On a layout
-whose x is reference bp, such as Anchored or Sample rows, the graph then pans
-and zooms with the view, and re-cuts the window plus a window-width each side
-once the view leaves the cut, keeping its sample rows in the order they were
-drawn. The force-directed and ordered layouts cannot follow, and the toolbar
-shows why. **Pin** keeps the graph where it is; **Follow** hands it back.
+A graph track's display is `LinearGraphDisplay`. It cuts the view's window plus
+a window-width each side and re-cuts once the view leaves the cut, keeping its
+sample rows in the order they were drawn. On a layout whose x is reference bp,
+such as Anchored or Sample rows, the graph draws under the view's own
+coordinates and pans and zooms with it. The force-directed, ordered and walk-row
+layouts draw in their own coordinates inside the track, fitted to it, with their
+own zoom in the track menu, the way a variant matrix does. The track menu also
+picks the layout, the colour, a walk to lift out, and opens the settings.
+
+```json
+{
+  "type": "FeatureTrack",
+  "trackId": "hprc_graph",
+  "name": "HPRC release 2 graph",
+  "assemblyNames": ["hg38"],
+  "adapter": { "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc" },
+  "displays": [
+    {
+      "type": "LinearGraphDisplay",
+      "displayId": "hprc_graph-LinearGraphDisplay"
+    },
+    {
+      "type": "LinearBasicDisplay",
+      "displayId": "hprc_graph-LinearBasicDisplay"
+    }
+  ]
+}
+```
+
+The first display is the one the track opens with; the second is the segments
+lane, one block per segment, reachable from the track menu.
 
 A fine cut spans at most 5 Mb. An rGFA track can carry a coarse tier, one node
 per bubble, built by `build_bubble_tier.sh` in jbrowse-components; past
-`aboveBpPerPx` in the linear view the graph cuts that pair instead, with no bp
+`aboveBpPerPx` in the linear view the track cuts that pair instead, with no bp
 cap:
 
 ```json
@@ -101,6 +123,9 @@ cap:
   }
 }
 ```
+
+**Add → Graph genome view** opens a whole GFA file in a view of its own, with
+the same layouts and its own pan and zoom.
 
 ### Demonstration loci
 

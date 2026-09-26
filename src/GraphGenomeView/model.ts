@@ -2,6 +2,7 @@ import { readConfObject } from '@jbrowse/core/configuration'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
+  getContainingView,
   getSession,
   isSessionModelWithWidgets,
   statusMessageText,
@@ -25,19 +26,13 @@ import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import {
-  cutHolds,
-  followCut,
-  followFrame,
-  followWindow,
-  isFollowable,
-} from './follow'
-import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
   pickGeneTrack,
 } from './genes/geneFeatures'
 import { genePins } from './genes/genePins'
 import { convertGFAToGraph } from './gfa/gfaConverter'
+import { cutHolds, hostCut, hostFrame, hostWindow, isLinearHost } from './host'
 import {
   paintSourceLane,
   referencePositionColor,
@@ -51,7 +46,6 @@ import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import { walkRowsExtent } from './layout/walkRowLayout'
 import { walkRows } from './layout/walkRows'
 import {
-  FORCE_LAYOUT_LABEL,
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
   modeUsesLayoutEngine,
@@ -104,17 +98,17 @@ import {
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
-import type { FollowedView } from './follow'
 import type { GeneModel } from './genes/geneFeatures'
+import type { HostWindow, LinearHost } from './host'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
 import type { Renderer } from './renderer/types'
+import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { SubgraphCutOptions, SubgraphTier } from '../GetSubgraph'
 import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
-import type { RepeatArray } from './repeats/repeatFeatures'
 import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
 import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
@@ -228,7 +222,7 @@ function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
   return { scaleX: scale, scaleY: pixelRows ? 1 : scale, pixelRows }
 }
 
-type ViewportOwner = 'fit' | 'user' | 'follow'
+type ViewportOwner = 'fit' | 'user' | 'host'
 
 interface Bounds {
   minX: number
@@ -544,9 +538,6 @@ export default function stateModelFactory() {
         // draw its reference span there and vice versa. Written by the launch
         // menu; see hoverSync/.
         connectedViewId: types.maybe(types.string),
-        // x tracks that linear view's window, and the cut is re-made when the
-        // window leaves it. agent-docs/FOLLOW_THE_LINEAR_VIEW.md
-        followLinearView: types.optional(types.boolean, false),
         // Whether the cut came from the source track's `coarse` pair
         // (RgfaTabixAdapter), so a restored session re-makes the cut it saved.
         // No bp cap applies to that pair; maxGraphNodes counts what came back.
@@ -602,18 +593,18 @@ export default function stateModelFactory() {
       // mutually exclusive drag modes are one piece of state read from one place.
       isPanning: false,
       // Who places the view. 'fit' refits it to every new layout, 'user' leaves
-      // it where a gesture or a restored session put it, and 'follow' takes x
-      // from the followed linear view. Not derived from `isDefaultViewport`,
-      // which zoomToFit itself invalidates on its first run — that made the
-      // fit fire once against not-yet-measured dimensions and then never
-      // re-fit.
+      // it where a gesture or a restored session put it, and 'host' takes x
+      // from the linear view the pane sits in. Not derived from
+      // `isDefaultViewport`, which zoomToFit itself invalidates on its first
+      // run — that made the fit fire once against not-yet-measured dimensions
+      // and then never re-fit.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       viewportOwner: 'fit' as ViewportOwner,
-      // the pane height a follow holds, so a re-cut with more rows does not
+      // the pane height a host holds, so a re-cut with more rows does not
       // move the pane while the linear view above it is being dragged
-      followPaneHeight: undefined as number | undefined,
-      followNote: undefined as string | undefined,
-      followRecuts: 0,
+      hostPaneHeight: undefined as number | undefined,
+      cutNote: undefined as string | undefined,
+      recuts: 0,
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
       // 0 is never a live rAF handle, so it doubles as "nothing pending"
@@ -1124,10 +1115,10 @@ export default function stateModelFactory() {
       // zoomToFit consumes this without feeding back into it.
       get canvasHeight() {
         if (
-          self.viewportOwner === 'follow' &&
-          self.followPaneHeight !== undefined
+          self.viewportOwner === 'host' &&
+          self.hostPaneHeight !== undefined
         ) {
-          return self.followPaneHeight
+          return self.hostPaneHeight
         }
         const bounds = this.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
@@ -1368,77 +1359,43 @@ export default function stateModelFactory() {
       },
     }))
     .views(self => ({
-      // Whether the follow is running, and when it is asked for and cannot,
-      // why not: a control that silently does nothing is worse than one that
-      // says it cannot (EngineOnly in GraphSettingsDialog).
-      get followState():
-        | { active: true; view: FollowedView }
-        | { active: false; reason: string | undefined } {
-        const region = self.loadedRegion
-        const layout = self.layoutResult
-        if (!self.followLinearView) {
-          return { active: false, reason: undefined }
+      // The linear view this pane draws inside, when a display hosts it: x is
+      // that view's window and the cut is re-made when the window leaves it.
+      // A pane that is a view of its own has none.
+      get host(): LinearHost | undefined {
+        let view: unknown
+        try {
+          view = getContainingView(self)
+        } catch {
+          return undefined
         }
-        if (!region || !self.loadedTrackId) {
-          return {
-            active: false,
-            reason: 'Only a graph cut from a track can follow a linear view',
-          }
-        }
-        if (self.sourceAdapter?.type === 'GbzBaseSyntenyAdapter') {
-          return {
-            active: false,
-            reason:
-              'Not following: a GBZ cut takes seconds, too slow to redo per pan',
-          }
-        }
-        const view = linearViewTarget({
-          views: [...getSession(self).views],
-          connectedViewId: self.connectedViewId,
-          assemblyName: region.assemblyName,
-        })
-        if (!isFollowable(view)) {
-          return {
-            active: false,
-            reason: `No linear view on ${region.assemblyName} to follow`,
-          }
-        }
-        if (!layout || !view.initialized) {
-          return { active: false, reason: undefined }
-        }
-        if (!layout.referenceAxis) {
-          const label = self.usesLayoutEngine
-            ? FORCE_LAYOUT_LABEL
-            : layoutModeByValue(self.layoutMode).label
-          return {
-            active: false,
-            reason: `Not following: x is not reference bp (${label})`,
-          }
-        }
-        if (self.popStack.length > 0) {
-          return {
-            active: false,
-            reason: 'Not following while a bubble is open',
-          }
-        }
-        if (
-          view.dynamicBlocks.contentBlocks.some(
-            b => b.refName === region.refName && b.reversed,
-          )
-        ) {
-          return {
-            active: false,
-            reason: 'Not following: the linear view shows this region reversed',
-          }
-        }
-        return { active: true, view }
+        return view !== self && isLinearHost(view) ? view : undefined
       },
     }))
     .views(self => ({
-      get followTransform() {
-        const follow = self.followState
-        return follow.active && self.loadedRegion
-          ? followFrame(follow.view, self.loadedRegion)
+      // Whether the host places x. Only a layout whose x is reference bp can
+      // take the window's transform; force, ordered and walk rows draw in
+      // their own coordinates inside the track, and a popped bubble is a
+      // picture of its own.
+      get hostPlacesX() {
+        const { host, loadedRegion: region, layoutResult: layout } = self
+        return (
+          host !== undefined &&
+          host.initialized &&
+          region !== undefined &&
+          layout?.referenceAxis === true &&
+          self.popStack.length === 0 &&
+          !host.dynamicBlocks.contentBlocks.some(
+            b => b.refName === region.refName && b.reversed,
+          )
+        )
+      },
+    }))
+    .views(self => ({
+      get hostFrame() {
+        const { host, loadedRegion } = self
+        return self.hostPlacesX && host && loadedRegion
+          ? hostFrame(host, loadedRegion)
           : undefined
       },
     }))
@@ -1529,6 +1486,19 @@ export default function stateModelFactory() {
       // caller runs if it wants the drawing refitted into the new pane.
       setPaneHeight(px: number | undefined) {
         self.paneHeight = px
+        if (self.viewportOwner === 'host') {
+          self.hostPaneHeight = px
+        }
+      },
+      // The track a hosted pane cuts from. The first settle makes the cut.
+      adoptTrack(trackId: string) {
+        if (self.loadedTrackId !== trackId) {
+          self.loadedTrackId = trackId
+          self.loadedRegion = undefined
+          self.coarseCut = false
+          self.graph = undefined
+          self.layoutResult = undefined
+        }
       },
       // The caller refetches — the number only describes how the next cut is
       // made, and the graph on screen was cut with the old one.
@@ -1648,12 +1618,12 @@ export default function stateModelFactory() {
         }
       },
 
-      // A gesture on a followed graph moves the linear view, and the frame
+      // A gesture on a hosted graph moves the linear view, and the frame
       // clock brings x back here; y stays the pane's own.
       setTransform(s: number, tx: number, ty: number) {
-        const follow = self.followState
-        if (self.viewportOwner === 'follow' && follow.active) {
-          follow.view.horizontalScroll(self.translateX - tx)
+        const { host } = self
+        if (self.viewportOwner === 'host' && host) {
+          host.horizontalScroll(self.translateX - tx)
         } else {
           self.viewportOwner = 'user'
           self.scale = clampZoom(s)
@@ -1662,9 +1632,9 @@ export default function stateModelFactory() {
         self.translateY = ty
       },
       zoom(factor: number, centerX: number, centerY: number) {
-        const follow = self.followState
-        if (self.viewportOwner === 'follow' && follow.active) {
-          follow.view.zoomTo(follow.view.bpPerPx / factor, centerX)
+        const { host } = self
+        if (self.viewportOwner === 'host' && host) {
+          host.zoomTo(host.bpPerPx / factor, centerX)
           return
         }
         self.viewportOwner = 'user'
@@ -1697,8 +1667,8 @@ export default function stateModelFactory() {
         const bounds = self.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
         const usableHeight = self.canvasHeight - FIT_PADDING * 2
-        // A follow owns x, so a fit while following places the rows only.
-        if (self.viewportOwner === 'follow') {
+        // A host owns x, so a fit while hosted places the rows only.
+        if (self.viewportOwner === 'host') {
           if (bounds && usableHeight > 0) {
             self.translateY = fittedTranslateY(
               bounds,
@@ -1756,17 +1726,14 @@ export default function stateModelFactory() {
       },
     }))
     .actions(self => ({
-      setFollowLinearView(follow: boolean) {
-        self.followLinearView = follow
-      },
       // The frame clock. Unclamped, since clampZoom's floor is there to keep a
       // scale finite and 1 / bpPerPx already is; clamped, a whole-chromosome
       // window would stop lining up.
-      followTo(scale: number, translateX: number) {
-        const engaging = self.viewportOwner !== 'follow'
+      hostTransform(scale: number, translateX: number) {
+        const engaging = self.viewportOwner !== 'host'
         if (engaging) {
-          self.followPaneHeight = self.canvasHeight
-          self.viewportOwner = 'follow'
+          self.hostPaneHeight = self.canvasHeight
+          self.viewportOwner = 'host'
         }
         self.scale = scale
         self.translateX = translateX
@@ -1774,11 +1741,11 @@ export default function stateModelFactory() {
           self.zoomToFit()
         }
       },
-      // A drawing still on the reference stays where the follow left it; one
+      // A drawing still on the reference stays where the host left it; one
       // whose x no longer means bp is refit.
-      stopFollowing() {
-        if (self.viewportOwner === 'follow') {
-          self.followPaneHeight = undefined
+      releaseHost() {
+        if (self.viewportOwner === 'host') {
+          self.hostPaneHeight = undefined
           if (self.layoutResult?.referenceAxis) {
             self.viewportOwner = 'user'
           } else {
@@ -1908,9 +1875,7 @@ export default function stateModelFactory() {
         const local = layoutModeByValue(self.layoutMode).run(
           graph,
           self.loadedRegion,
-          self.viewportOwner === 'follow'
-            ? self.layoutResult?.sampleRows
-            : undefined,
+          self.host ? self.layoutResult?.sampleRows : undefined,
         )
         if (local) {
           return { result: local, duration: performance.now() - start }
@@ -2303,7 +2268,6 @@ export default function stateModelFactory() {
         self.loadedTrackId = ''
         self.loadedRegion = region
         self.coarseCut = false
-        self.followLinearView = false
         self.isLoading = true
         self.error = undefined
         try {
@@ -2343,7 +2307,7 @@ export default function stateModelFactory() {
           self.loadedTrackId = ''
           self.loadedRegion = undefined
           self.coarseCut = false
-          self.followNote = undefined
+          self.cutNote = undefined
           self.gfaLocation = undefined
           self.indexBubbles = undefined
           self.geneFeatures = undefined
@@ -2540,30 +2504,25 @@ export default function stateModelFactory() {
       // its edge re-cuts the window plus a window-width each side, on the tier
       // the zoom asks for. Overlapping re-cuts are ordered by doSubgraphLoad's
       // liveLoad, so the latest window wins.
-      followSettle() {
-        const follow = self.followState
-        const seen = follow.active ? followWindow(follow.view) : undefined
-        if (!seen) {
-          return
-        }
+      settleOn(seen: HostWindow) {
         const above = self.coarseAboveBpPerPx
         const tier =
           above !== undefined && seen.bpPerPx > above ? 'coarse' : 'fine'
         const cap = tier === 'coarse' ? Infinity : self.maxRegionBp
         const visible = seen.end - seen.start
-        self.followNote =
+        self.cutNote =
           visible > cap
             ? `Holding the last cut: ${formatSpanBp(visible)} is past the ${formatSpanBp(cap)} a cut may span`
             : undefined
         if (
-          self.followNote !== undefined ||
+          self.cutNote !== undefined ||
           (tier === self.cutTier && cutHolds(self.loadedRegion, seen))
         ) {
           return
         }
         self.coarseCut = tier === 'coarse'
-        self.loadedRegion = followCut(seen, cap)
-        self.followRecuts++
+        self.loadedRegion = hostCut(seen, cap)
+        self.recuts++
         void self.reloadSubgraph()
       },
     }))
@@ -2603,7 +2562,7 @@ export default function stateModelFactory() {
           // re-fires — and re-fits — as the layout arrives and the canvas is
           // measured, rather than firing once against not-yet-known dimensions.
           // A manual pan/zoom (or a restored-session transform) makes the
-          // viewport the user's, and a follow makes it the linear view's.
+          // viewport the user's, and a host makes it the linear view's.
           addDisposer(
             self,
             autorun(() => {
@@ -2616,54 +2575,51 @@ export default function stateModelFactory() {
             }),
           )
 
-          // The follow's two clocks. The frame clock moves x with every frame
+          // The host's two clocks. The frame clock moves x with every frame
           // of the linear view and fetches nothing; the settle clock wakes on
           // its debounced blocks and re-cuts only when the window has left
-          // the cut.
+          // the cut, whatever the layout.
           addDisposer(
             self,
             reaction(
-              () => self.followState.active,
-              active => {
-                if (!active) {
-                  self.stopFollowing()
+              () => self.hostPlacesX,
+              places => {
+                if (!places) {
+                  self.releaseHost()
                 }
               },
-              { name: 'GraphFollowActive' },
+              { name: 'GraphHostPlacesX' },
             ),
           )
           addDisposer(
             self,
             reaction(
-              () => self.followTransform,
+              () => self.hostFrame,
               frame => {
                 if (frame) {
-                  self.followTo(frame.scale, frame.translateX)
+                  self.hostTransform(frame.scale, frame.translateX)
                 }
               },
               {
                 equals: (a, b) =>
                   a?.scale === b?.scale && a?.translateX === b?.translateX,
                 fireImmediately: true,
-                name: 'GraphFollowFrame',
+                name: 'GraphHostFrame',
               },
             ),
           )
           addDisposer(
             self,
             reaction(
-              () => {
-                const follow = self.followState
-                return follow.active
-                  ? follow.view.coarseDynamicBlocks
-                  : undefined
-              },
+              () => self.host?.coarseDynamicBlocks,
               blocks => {
-                if (blocks) {
-                  self.followSettle()
+                const { host } = self
+                const seen = blocks && host ? hostWindow(host) : undefined
+                if (seen) {
+                  self.settleOn(seen)
                 }
               },
-              { fireImmediately: true, name: 'GraphFollowSettle' },
+              { fireImmediately: true, name: 'GraphHostSettle' },
             ),
           )
 
@@ -2870,6 +2826,11 @@ export default function stateModelFactory() {
       },
     }))
     .actions(self => ({
+      // A layout picked from a menu: the mode, then the drawing it makes.
+      switchLayout(mode: LayoutModeValue) {
+        self.setLayoutMode(mode)
+        return self.recomputeLayout()
+      },
       retryLoad() {
         if (self.loadedTrackId && self.loadedRegion) {
           void self.reloadSubgraph()

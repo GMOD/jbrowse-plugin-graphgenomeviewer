@@ -20,9 +20,6 @@ import { linearBasicDisplayConfigSchemaFactory } from '@jbrowse/plugin-canvas'
 import linearBasicDisplayStateModelFactory from '@jbrowse/plugin-canvas/LinearBasicDisplay/stateModel'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
-import LaunchSubgraphMenuItemF from './index'
-import LinearViewMenuItemsF from './linearViewMenuItems'
-
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 // The real LinearBasicDisplay in a real LinearGenomeView, so the launch menu is
@@ -122,8 +119,6 @@ export function createTestEnvironment({
 
   // registered before createPluggableElements, which is when
   // Core-extendPluggableElement runs over each element
-  LaunchSubgraphMenuItemF(pluginManager)
-  LinearViewMenuItemsF(pluginManager)
   pluginManager.createPluggableElements()
   pluginManager.configure()
 

@@ -20,6 +20,9 @@ importers:
       '@jbrowse/core':
         specifier: 5.0.0-beta.9
         version: 5.0.0-beta.9(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)
+      '@jbrowse/display-kit':
+        specifier: 5.0.0-beta.9
+        version: 5.0.0-beta.9(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.9
         version: 5.0.0-beta.9(react@19.3.0)

@@ -60,8 +60,7 @@ builder off the main thread, and the GPU comes after it if at all.
 PangyPlot's `/pop`. A coarse-tier node's id _is_ its bubble's source segment, so
 expanding one is a fine-index query over the same span, with no cross-reference
 to maintain. The tier itself shipped as `RgfaTabixAdapter`'s `coarse` slot,
-which a graph following a linear view switches to by zoom
-(`FOLLOW_THE_LINEAR_VIEW.md`).
+which the graph track switches to by zoom (`GRAPH_TRACK.md`).
 
 A graph loaded through `gfaLocation` has no tier to switch to, so its coarsening
 has to happen in the view: `COARSEN_TRIVIAL_BUBBLES.md`.

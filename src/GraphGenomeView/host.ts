@@ -1,9 +1,9 @@
 import type { SubgraphRegion } from '../launchSubgraph/launchSubgraphView'
 
-// The members of a LinearGenomeView the follow reads and drives. Structural,
-// because this plugin takes no runtime dependency on the LGV plugin (see
-// hoverSync/index.tsx).
-export interface FollowedBlock {
+// The members of a LinearGenomeView a hosted pane reads and drives.
+// Structural, because this plugin takes no runtime dependency on the LGV
+// plugin (see hoverSync/index.tsx).
+export interface HostBlock {
   refName: string
   assemblyName: string
   start: number
@@ -13,20 +13,20 @@ export interface FollowedBlock {
   displayedRegionIndex?: number
 }
 
-export interface FollowedView {
+export interface LinearHost {
   id: string
   initialized: boolean
   bpPerPx: number
   offsetPx: number
   width: number
   displayedRegions: readonly { start: number; end: number }[]
-  dynamicBlocks: { contentBlocks: readonly FollowedBlock[] }
-  coarseDynamicBlocks: readonly FollowedBlock[]
+  dynamicBlocks: { contentBlocks: readonly HostBlock[] }
+  coarseDynamicBlocks: readonly HostBlock[]
   horizontalScroll: (distance: number) => number
   zoomTo: (bpPerPx: number, offset?: number) => number
 }
 
-export function isFollowable(view: unknown): view is FollowedView {
+export function isLinearHost(view: unknown): view is LinearHost {
   if (typeof view !== 'object' || view === null) {
     return false
   }
@@ -41,14 +41,14 @@ export function isFollowable(view: unknown): view is FollowedView {
 
 // launchSubgraphView's widestBlock, restated rather than imported: that module
 // imports the model, which imports this.
-function widest(blocks: readonly FollowedBlock[]) {
-  return blocks.reduce<FollowedBlock | undefined>(
+function widest(blocks: readonly HostBlock[]) {
+  return blocks.reduce<HostBlock | undefined>(
     (best, b) => (best && best.end - best.start >= b.end - b.start ? best : b),
     undefined,
   )
 }
 
-export interface FollowWindow {
+export interface HostWindow {
   refName: string
   assemblyName: string
   start: number
@@ -65,7 +65,7 @@ export interface FollowWindow {
 // view shows when one bp is as many px in both and the cut's refName sits at
 // the same screen x. Undefined when the linear view shows no block of that
 // refName, which is a re-cut's job rather than the frame's.
-export function followFrame(view: FollowedView, region: SubgraphRegion) {
+export function hostFrame(view: LinearHost, region: SubgraphRegion) {
   const block = widest(
     view.dynamicBlocks.contentBlocks.filter(
       b =>
@@ -83,7 +83,7 @@ export function followFrame(view: FollowedView, region: SubgraphRegion) {
 
 // Read off the LIVE blocks even when the coarse ones woke the caller: those
 // name where the window was half a second ago (SyntenyFollow/CLAUDE.md).
-export function followWindow(view: FollowedView): FollowWindow | undefined {
+export function hostWindow(view: LinearHost): HostWindow | undefined {
   const block = widest(view.dynamicBlocks.contentBlocks)
   const displayed =
     block?.displayedRegionIndex === undefined
@@ -105,7 +105,7 @@ export function followWindow(view: FollowedView): FollowWindow | undefined {
 
 // The window plus one window-width each side, clamped to the displayed
 // region, with the margins narrowed until the whole cut fits under `capBp`.
-export function followCut(window: FollowWindow, capBp: number): SubgraphRegion {
+export function hostCut(window: HostWindow, capBp: number): SubgraphRegion {
   const visible = window.end - window.start
   const margin = Math.max(0, Math.min(window.span, (capBp - visible) / 2))
   return {
@@ -116,10 +116,7 @@ export function followCut(window: FollowWindow, capBp: number): SubgraphRegion {
   }
 }
 
-export function cutHolds(
-  cut: SubgraphRegion | undefined,
-  window: FollowWindow,
-) {
+export function cutHolds(cut: SubgraphRegion | undefined, window: HostWindow) {
   return (
     cut?.refName === window.refName &&
     cut.assemblyName === window.assemblyName &&

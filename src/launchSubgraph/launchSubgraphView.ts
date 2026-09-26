@@ -120,8 +120,6 @@ export function launchSubgraphView({
       'warning',
     )
   } else {
-    // A launch from a linear view follows it, which needs x to be reference
-    // bp, so it opens anchored; force stays one click away behind Pin.
     session.addView('GraphGenomeView', {
       // 1-based, as the linear view this was launched from reads
       displayName: `Graph — ${locLabel(region)}`,
@@ -129,8 +127,6 @@ export function launchSubgraphView({
       loadedRegion: region,
       subgraphHaplotypes: haplotypes,
       connectedViewId,
-      followLinearView: connectedViewId !== undefined,
-      ...(connectedViewId === undefined ? {} : { layoutMode: 'auto' }),
     })
   }
 }
