@@ -118,12 +118,15 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                       label: own
                         ? 'Graph genome view (this segment)'
                         : 'Graph genome view (this feature)',
-                      region: regionAroundSegment({
-                        refName: displayedRegion.refName,
-                        assemblyName: displayedRegion.assemblyName,
-                        start: info.item.startBp,
-                        end: info.item.endBp,
-                      }),
+                      region: regionAroundSegment(
+                        {
+                          refName: displayedRegion.refName,
+                          assemblyName: displayedRegion.assemblyName,
+                          start: info.item.startBp,
+                          end: info.item.endBp,
+                        },
+                        displayedRegion,
+                      ),
                       tracks: own
                         ? ownTrack(track, view)
                         : subgraphTracks(
@@ -134,6 +137,9 @@ export default function LaunchSubgraphMenuItemF(pluginManager: PluginManager) {
                           ),
                       session: getSession(self),
                       connectedViewId: view.id,
+                      navigate: region => {
+                        view.navTo(region)
+                      },
                     })
                     for (const item of launchItems) {
                       pushLaunchViewMenuItem(items, item)

@@ -92,6 +92,9 @@ export default function LinearViewMenuItemsF(pluginManager: PluginManager) {
                         tracks: tracks(),
                         session: getSession(self),
                         connectedViewId: self.id,
+                        navigate: region => {
+                          self.navTo(region)
+                        },
                       }),
                     ]
                   },

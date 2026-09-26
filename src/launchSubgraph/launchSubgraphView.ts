@@ -30,14 +30,18 @@ export interface SubgraphRegion {
 }
 
 // Half the segment's own length on either side, so it opens with the graph
-// around it rather than clipped to its own ends. The 10 bp floor keeps a
-// single-base segment from opening a degenerate region.
-export function regionAroundSegment(region: SubgraphRegion): SubgraphRegion {
+// around it rather than clipped to its own ends, and no further than the
+// displayed region it sits in, which a linear view can be navigated to. The
+// 10 bp floor keeps a single-base segment from opening a degenerate region.
+export function regionAroundSegment(
+  region: SubgraphRegion,
+  within: { start: number; end: number } = { start: 0, end: Infinity },
+): SubgraphRegion {
   const padding = Math.max(10, Math.floor((region.end - region.start) * 0.5))
   return {
     ...region,
-    start: Math.max(0, region.start - padding),
-    end: region.end + padding,
+    start: Math.max(within.start, region.start - padding),
+    end: Math.min(within.end, region.end + padding),
   }
 }
 
@@ -103,7 +107,7 @@ export function launchSubgraphView({
   region: SubgraphRegion
   trackId: string
   // The linear view being launched from. Pairs the two views for the hover
-  // sync — see hoverSync/graphViewHighlights.
+  // sync (hoverSync/graphViewHighlights), and the graph follows it.
   connectedViewId?: string
   // The set the cut is for, from the track's own lane selection; undefined is
   // every haplotype. See subgraphHaplotypes on the view.
@@ -123,6 +127,7 @@ export function launchSubgraphView({
       loadedRegion: region,
       subgraphHaplotypes: haplotypes,
       connectedViewId,
+      followLinearView: connectedViewId !== undefined,
     })
   }
 }

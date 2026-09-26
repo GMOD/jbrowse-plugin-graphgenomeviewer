@@ -17,6 +17,7 @@ import type { MenuItem } from '@jbrowse/core/ui'
 
 const LABEL_REGION = 'Graph genome view (this region)'
 const LABEL_SEGMENT = 'Graph genome view (this segment)'
+const LABEL_SELECTION = 'Graph genome view (this selection)'
 
 // pushLaunchViewMenuItem groups every "open another view" entry under one
 // "Launch view" submenu, so that is where these land.
@@ -61,13 +62,97 @@ test('the track menu launches the current region', () => {
 })
 
 // The launched view records which linear view it came from, which is what pairs
-// the two for the hover sync (see hoverSync/graphViewHighlights).
-test('the launch records the linear view it came from', () => {
+// the two for the hover sync (see hoverSync/graphViewHighlights), and follows it.
+test('the launch records the linear view it came from, and follows it', () => {
   const { createDisplay } = createTestEnvironment()
   const { session, view, display } = createDisplay()
 
   clickItem(display.trackMenuItems(), LABEL_REGION)
-  expect(session.addedViews[0]![1].connectedViewId).toBe(view.id)
+  expect(session.addedViews[0]![1]).toMatchObject({
+    connectedViewId: view.id,
+    followLinearView: true,
+  })
+})
+
+test('a launch with no linear view to follow is pinned', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session } = createDisplay()
+  launchSubgraphView({
+    session,
+    region: { refName: 'ctgA', assemblyName: 'volvox', start: 0, end: 100 },
+    trackId: 'graph_track',
+  })
+  expect(session.addedViews[0]![1].followLinearView).toBe(false)
+})
+
+// The three entries are three ways to pick the window. The two whose span is
+// not already the view's bring the view to it first, so the graph opens on
+// what the view shows and follows from there.
+function shownSpan(view: {
+  dynamicBlocks: { contentBlocks: { start: number; end: number }[] }
+}) {
+  const [block] = view.dynamicBlocks.contentBlocks
+  return [Math.round(block!.start), Math.round(block!.end)]
+}
+
+test('the segment entry brings the linear view to the segment first', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session, view, display } = createDisplay()
+  display.openContextMenu({
+    item: {
+      featureId: 's322',
+      startBp: 1000,
+      endBp: 1100,
+      name: 's322',
+      type: 'segment',
+    },
+    displayedRegionIndex: 0,
+    clientX: 0,
+    clientY: 0,
+  })
+  clickItem(display.contextMenuItems(), LABEL_SEGMENT)
+  expect(shownSpan(view)).toEqual([950, 1150])
+  expect(session.addedViews[0]![1].followLinearView).toBe(true)
+})
+
+test('the selection entry brings the linear view to the selection first', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session, view } = createDisplay()
+  view.setOffsets({ index: 0, offset: 2000 }, { index: 0, offset: 3000 })
+  const item = view
+    .rubberBandMenuItems()
+    .find(i => 'label' in i && i.label === LABEL_SELECTION)
+  if (item && 'onClick' in item) {
+    item.onClick(undefined)
+  }
+  expect(shownSpan(view)).toEqual([2000, 3000])
+  expect(session.addedViews[0]![1]).toMatchObject({
+    loadedRegion: { start: 2000, end: 3000 },
+    followLinearView: true,
+  })
+})
+
+test('a segment at the end of the sequence pads no further than its region', () => {
+  const { createDisplay } = createTestEnvironment()
+  const { session, view, display } = createDisplay()
+  display.openContextMenu({
+    item: {
+      featureId: 's999',
+      startBp: 49_900,
+      endBp: 50_000,
+      name: 's999',
+      type: 'segment',
+    },
+    displayedRegionIndex: 0,
+    clientX: 0,
+    clientY: 0,
+  })
+  clickItem(display.contextMenuItems(), LABEL_SEGMENT)
+  expect(session.addedViews[0]![1].loadedRegion).toMatchObject({
+    start: 49_850,
+    end: 50_000,
+  })
+  expect(shownSpan(view)).toEqual([49_850, 50_000])
 })
 
 // The gate is the declared capability, not the adapter's name — the old

@@ -160,6 +160,8 @@ export function createTestEnvironment({
     initialized: true,
     regions: assemblyRegions,
     getCanonicalRefName: (refName: string) => refName,
+    // what the LGV's navTo resolves a location's refName through
+    getCanonicalRefName2: (refName: string) => refName,
     getGeneticCodeId: () => undefined,
     // The LGV's `showsWholeChromosome` reads this (through `canShowCytobands`)
     // as of jbrowse-components 33c15386b3, and a stub without it throws rather

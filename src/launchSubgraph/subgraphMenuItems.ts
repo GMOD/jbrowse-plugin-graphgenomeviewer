@@ -20,18 +20,24 @@ import type { MenuItem } from '@jbrowse/core/ui'
 // yields a *disabled* item rather than none: an item that vanishes teaches the
 // user nothing, while one greyed out with the reason in its tooltip says what
 // to do about it.
+//
+// `navigate` brings the linear view to `region` before the launch, for an entry
+// whose span is not already the view's window, so the graph opens following
+// the window it was asked for.
 export function subgraphMenuItems({
   label,
   region,
   tracks,
   session,
   connectedViewId,
+  navigate,
 }: {
   label: string
   region: SubgraphRegion | undefined
   tracks: SubgraphTrack[]
   session: SubgraphLaunchSession
   connectedViewId?: string
+  navigate?: (region: SubgraphRegion) => void
 }): MenuItem[] {
   let items: MenuItem[] = []
   if (region && tracks.length > 0) {
@@ -44,6 +50,7 @@ export function subgraphMenuItems({
         disabled: problem !== undefined,
         disabledHelpText: problem,
         onClick: () => {
+          navigate?.(region)
           launchSubgraphView({
             session,
             region,
