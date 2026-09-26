@@ -71,6 +71,7 @@ test('the launch records the linear view it came from, and follows it', () => {
   expect(session.addedViews[0]![1]).toMatchObject({
     connectedViewId: view.id,
     followLinearView: true,
+    layoutMode: 'auto',
   })
 })
 
