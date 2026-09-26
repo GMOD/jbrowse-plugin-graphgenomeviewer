@@ -104,6 +104,41 @@ async function probeOne(browser, version) {
               : String(view.error).slice(0, 300),
         }
       }, viewId)
+
+      // Cutting resolves the adapter's chunks; the Bandage engine is a
+      // ~425kb sibling chunk that only `loadBandage()` pulls, and only a
+      // force-directed layout calls it. It is the largest thing this plugin
+      // ships and the whole reason the bundle is split, so a probe that stops
+      // at the cut leaves it untested — a `chunks/` directory that did not
+      // survive rehosting passes every other gate and fails the first time a
+      // reader asks for the drawing.
+      if (result.cut?.error === undefined) {
+        await page.evaluate(id => {
+          window.JBrowseSession.views
+            .find(v => v.id === id)
+            .setLayoutMode('force')
+        }, viewId)
+        await page.waitForFunction(
+          id => {
+            const view = window.JBrowseSession.views.find(v => v.id === id)
+            return !!view && (view.nodePositions || view.error !== undefined)
+          },
+          { timeout },
+          viewId,
+        )
+        result.layout = await page.evaluate(id => {
+          const view = window.JBrowseSession.views.find(v => v.id === id)
+          return {
+            placed: view.nodePositions
+              ? Object.keys(view.nodePositions).length
+              : 0,
+            error:
+              view.error === undefined
+                ? undefined
+                : String(view.error).slice(0, 300),
+          }
+        }, viewId)
+      }
     }
   } catch (e) {
     result.threw = String(e).slice(0, 300)
@@ -128,6 +163,12 @@ function failure(r) {
   if (!r.cut?.nodes) {
     return 'the cut came back empty'
   }
+  if (r.layout?.error !== undefined) {
+    return `the force layout failed: ${r.layout.error}`
+  }
+  if (!r.layout?.placed) {
+    return 'the force layout placed nothing, so the Bandage chunk did not load'
+  }
   return undefined
 }
 
@@ -146,7 +187,11 @@ for (const version of versions) {
   const r = await probeOne(browser, version)
   results.push(r)
   const bad = failure(r)
-  console.log(`${version.padEnd(14)} ${bad ?? `ok, cut ${r.cut.nodes} nodes`}`)
+  console.log(
+    `${version.padEnd(14)} ${
+      bad ?? `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}`
+    }`,
+  )
   if (bad) {
     for (const e of [...new Set(r.consoleErrors)].slice(0, 4)) {
       console.log(`               · ${e}`)
@@ -160,4 +205,6 @@ if (broken.length > 0) {
   console.error(`\nFailed on: ${broken.join(', ')}`)
   process.exit(1)
 }
-console.log('\nEvery probed host loaded the bundle and cut a graph.')
+console.log(
+  '\nEvery probed host loaded the bundle, cut a graph and drew it with Bandage.',
+)
