@@ -2517,16 +2517,18 @@ export default function stateModelFactory() {
           !!self.coarseTrackId &&
           self.coarseAboveBp !== undefined &&
           seen.span > self.coarseAboveBp
-        if (coarse === self.coarseCut && cutHolds(self.loadedRegion, seen)) {
-          return
-        }
         const cap = coarse ? Infinity : self.maxRegionBp
         const visible = seen.end - seen.start
-        if (visible > cap) {
-          self.followNote = `Holding the last cut: ${formatSpanBp(visible)} is past the ${formatSpanBp(cap)} a cut may span`
+        self.followNote =
+          visible > cap
+            ? `Holding the last cut: ${formatSpanBp(visible)} is past the ${formatSpanBp(cap)} a cut may span`
+            : undefined
+        if (
+          self.followNote !== undefined ||
+          (coarse === self.coarseCut && cutHolds(self.loadedRegion, seen))
+        ) {
           return
         }
-        self.followNote = undefined
         self.coarseCut = coarse
         self.loadedRegion = followCut(seen, cap)
         self.followRecuts++

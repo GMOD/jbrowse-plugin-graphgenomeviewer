@@ -246,7 +246,13 @@ async function followingModel({
   windowStart = 1_000_000,
   windowBp = 60_000,
   layoutMode = 'auto',
-}: { windowStart?: number; windowBp?: number; layoutMode?: string } = {}) {
+  tiered = true,
+}: {
+  windowStart?: number
+  windowBp?: number
+  layoutMode?: string
+  tiered?: boolean
+} = {}) {
   const cuts: Cut[] = []
   stubSubgraphs(cuts)
   const view = mockLinearView(windowStart, windowBp)
@@ -259,8 +265,9 @@ async function followingModel({
     loadedRegion: followCut(liveWindow(view), Infinity),
     connectedViewId: view.id,
     followLinearView: true,
-    coarseTrackId: COARSE.trackId,
-    coarseAboveBp: COARSE_ABOVE_BP,
+    ...(tiered
+      ? { coarseTrackId: COARSE.trackId, coarseAboveBp: COARSE_ABOVE_BP }
+      : {}),
   } as never)
   // the mount order the app has: the cut lands, the canvas mounts, then the
   // width is measured
@@ -385,6 +392,33 @@ test('zooming out to 3 Mb cuts the coarse tier above the threshold, and back in 
   }
   expect([...tierAt]).toEqual([[960_000, 'fine']])
   expect(model.graph!.nodes.every(n => n.id.startsWith('f'))).toBe(true)
+})
+
+test('with no coarse tier the margins narrow to the cap, and past it the last cut holds', async () => {
+  const { model, view, cuts } = await followingModel({
+    windowStart: 4_970_000,
+    tiered: false,
+  })
+  view.showWidth(2_000_000)
+  view.settle()
+  await flush()
+  expect(cuts).toHaveLength(2)
+  const region = model.loadedRegion!
+  expect(region.end - region.start).toBe(model.maxRegionBp)
+
+  view.showWidth(6_000_000)
+  view.settle()
+  await flush()
+  expect(cuts).toHaveLength(2)
+  expect(model.followNote).toMatch(/6 Mb is past the 5 Mb/)
+  expect(model.error).toBeUndefined()
+  expect(model.hasGraph).toBe(true)
+
+  view.showWidth(2_000_000)
+  view.settle()
+  await flush()
+  expect(cuts).toHaveLength(2)
+  expect(model.followNote).toBeUndefined()
 })
 
 test('in-flight re-cuts land latest-window-first', async () => {
