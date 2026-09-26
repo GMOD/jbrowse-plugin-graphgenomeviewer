@@ -1,3 +1,9 @@
+## [4.0.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.0...v4.0.1) (2026-09-26)
+
+### Other Changes
+
+- A launch states the pane's props without its type and keeps them, and the display's root says its tier, layout and node count ([4753895](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/475389540ee21506993957b6fd436e68d37edcae))
+
 ## [4.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v3.1.0...v4.0.0) (2026-09-26)
 
 ### Other Changes
