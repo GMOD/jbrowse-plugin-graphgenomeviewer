@@ -31,6 +31,18 @@ const SettingsMenu = observer(function SettingsMenu({
               void model.recomputeLayout()
             },
           },
+          ...(model.loadedTrackId
+            ? [
+                {
+                  type: 'checkbox' as const,
+                  label: 'Follow the linear view',
+                  checked: model.followLinearView,
+                  onClick: () => {
+                    model.setFollowLinearView(!model.followLinearView)
+                  },
+                },
+              ]
+            : []),
           {
             type: 'checkbox' as const,
             label: 'Show deletion edges',

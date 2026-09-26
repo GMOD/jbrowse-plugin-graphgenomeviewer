@@ -227,6 +227,8 @@ function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
   return { scaleX: scale, scaleY: pixelRows ? 1 : scale, pixelRows }
 }
 
+type ViewportOwner = 'fit' | 'user' | 'follow'
+
 interface Bounds {
   minX: number
   minY: number
@@ -607,7 +609,8 @@ export default function stateModelFactory() {
       // which zoomToFit itself invalidates on its first run — that made the
       // fit fire once against not-yet-measured dimensions and then never
       // re-fit.
-      viewportOwner: 'fit' as 'fit' | 'user' | 'follow',
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      viewportOwner: 'fit' as ViewportOwner,
       // the pane height a follow holds, so a re-cut with more rows does not
       // move the pane while the linear view above it is being dragged
       followPaneHeight: undefined as number | undefined,
@@ -1975,7 +1978,11 @@ export default function stateModelFactory() {
 
       // `keepSelection` for a re-cut of the same source: node ids survive one
       // where edge indexes do not, so the selection is found again by id.
-      function* parseAndLayout(text: string, name: string, keepSelection = false) {
+      function* parseAndLayout(
+        text: string,
+        name: string,
+        keepSelection = false,
+      ) {
         self.setStatusMessage('Parsing GFA')
         const gfaGraph = parseGFA(text)
         // A general GFA states its coordinates only in its P/W lines, so the

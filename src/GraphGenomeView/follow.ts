@@ -114,10 +114,12 @@ export function followCut(window: FollowWindow, capBp: number): SubgraphRegion {
   }
 }
 
-export function cutHolds(cut: SubgraphRegion | undefined, window: FollowWindow) {
+export function cutHolds(
+  cut: SubgraphRegion | undefined,
+  window: FollowWindow,
+) {
   return (
-    cut !== undefined &&
-    cut.refName === window.refName &&
+    cut?.refName === window.refName &&
     cut.assemblyName === window.assemblyName &&
     cut.start <= window.start &&
     window.end <= cut.end

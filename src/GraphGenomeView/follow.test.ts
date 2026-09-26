@@ -62,7 +62,9 @@ function syntheticGraph(tier: 'fine' | 'coarse', region: SubgraphRegion) {
   const last = Math.ceil(region.end / step)
   for (let k = first; k < last; k++) {
     const id = `${tier[0]}${k}`
-    lines.push(`S\t${id}\t*\tLN:i:${step}\tSN:Z:${REF}\tSO:i:${k * step}\tSR:i:0`)
+    lines.push(
+      `S\t${id}\t*\tLN:i:${step}\tSN:Z:${REF}\tSO:i:${k * step}\tSR:i:0`,
+    )
     if (k > first) {
       lines.push(`L\t${tier[0]}${k - 1}\t+\t${id}\t+\t0M`)
     }
@@ -147,7 +149,9 @@ function mockLinearView(windowStart: number, windowBp: number) {
       width: WIDTH_PX,
       windowStartBp: windowStart,
       windowWidthBp: windowBp,
-      displayedRegions: [{ refName: REF, assemblyName: ASM, start: 0, end: CONTIG }],
+      displayedRegions: [
+        { refName: REF, assemblyName: ASM, start: 0, end: CONTIG },
+      ],
       coarseDynamicBlocks: [] as Block[],
       get bpPerPx() {
         return this.windowWidthBp / this.width
@@ -403,8 +407,8 @@ test('in-flight re-cuts land latest-window-first', async () => {
   pending[0]!.resolve(syntheticGraph('fine', pending[0]!.region))
   await flush()
   expect(model.loadedRegion).toEqual(pending[1]!.region)
-  const starts = model.graph!.nodes
-    .filter(n => n.stable?.rank === 0)
+  const starts = model
+    .graph!.nodes.filter(n => n.stable?.rank === 0)
     .map(n => n.stable!.start)
   expect(Math.min(...starts)).toBeLessThanOrEqual(pending[1]!.region.start)
   expect(Math.min(...starts)).toBeGreaterThan(pending[0]!.region.start)

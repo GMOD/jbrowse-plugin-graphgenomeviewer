@@ -69,6 +69,7 @@ const GraphStats = observer(function GraphStats({
       data-layout-ms={model.lastLayoutMs ?? ''}
       data-geometry-ms={model.lastGeometryMs ?? ''}
       data-geometry-strokes={model.lastGeometryStrokeCount ?? ''}
+      data-follow-recuts={model.followRecuts}
     >
       <Typography variant="body2" component="span">
         {model.nodeCount} nodes, {model.edgeCount} edges

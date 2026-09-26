@@ -32,6 +32,29 @@ const ZoomDisplay = observer(function ZoomDisplay({
   return <Typography variant="body2">{model.zoomPercent}</Typography>
 })
 
+const FollowStatus = observer(function FollowStatus({
+  model,
+}: {
+  model: GraphGenomeViewModel
+}) {
+  const { followState, followNote } = model
+  const text = followState.active
+    ? (followNote ??
+      `Following the linear view${model.coarseCut ? ', coarse tier' : ''}`)
+    : followState.reason
+  return model.followLinearView && text ? (
+    <Typography
+      variant="caption"
+      color={
+        followState.active && !followNote ? 'text.secondary' : 'warning.main'
+      }
+      data-testid="graph-follow-status"
+    >
+      {text}
+    </Typography>
+  ) : null
+})
+
 const GraphToolbar = observer(function GraphToolbar({
   model,
 }: {
@@ -75,6 +98,7 @@ const GraphToolbar = observer(function GraphToolbar({
         </IconButton>
       </Tooltip>
       <ZoomDisplay model={model} />
+      <FollowStatus model={model} />
       <GraphStats model={model} />
       <SettingsMenu model={model} />
     </div>
