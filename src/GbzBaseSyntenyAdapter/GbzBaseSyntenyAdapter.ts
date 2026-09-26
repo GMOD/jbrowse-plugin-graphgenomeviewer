@@ -17,8 +17,6 @@ import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type {
   HaplotypeAlignment,
-  HaplotypeRef,
-  PairAlignment,
   PathName,
   PathQuery,
 } from '@gmod/gbz-base'
@@ -77,23 +75,9 @@ export interface GbzHeaderLane {
  * `haplotypes` narrows a fetch to the lanes listed: PanSN prefixes at sample
  * (`HG002`) or haplotype (`HG002#1`) depth, or assembly names the config maps
  * to one; undefined is every haplotype.
- *
- * `queryAssemblyName` with `targetAssemblyName`, on a window of the anchor,
- * asks for that pair of lanes aligned to each other inside the window.
  */
 export interface GbzFeatureOptions extends ComparativeOptions {
   haplotypes?: string[]
-  queryAssemblyName?: string
-}
-
-export class PairTargetError extends Error {
-  override name = 'PairTargetError'
-
-  constructor(queryAssemblyName: string) {
-    super(
-      `a pair query names both lanes: queryAssemblyName ${queryAssemblyName} came without a targetAssemblyName`,
-    )
-  }
 }
 
 function haplotypeWanted(name: PathName, wanted: string[] | undefined) {
@@ -233,43 +217,6 @@ export function fragmentFeature({
   }
 }
 
-/**
- * One record of a lane pair, on the target walk's own contig with the query
- * walk as its mate. gbz-base writes the CIGAR along the target, a `D` being
- * target bases the query lacks, which is the side a JBrowse feature is, so it
- * passes through unchanged.
- */
-export function pairFeature({
-  pair,
-  lane,
-  mateLane,
-}: {
-  pair: PairAlignment
-  lane: string
-  mateLane: string
-}) {
-  const id = `${haplotypePrefix(pair.target)}#${pair.target.contig}:${pair.targetStart}-${pair.targetEnd}|${haplotypePrefix(pair.query)}#${pair.query.contig}:${pair.queryStart}-${pair.queryEnd}`
-  return new SyntenyFeature({
-    uniqueId: id,
-    assemblyName: lane,
-    refName: pair.target.contig,
-    start: pair.targetStart,
-    end: pair.targetEnd,
-    type: 'match',
-    strand: pair.strand === '-' ? -1 : 1,
-    CIGAR: pair.cigar,
-    syntenyId: id,
-    identity: pair.matches / Math.max(pair.columns, 1),
-    numMatches: pair.matches,
-    blockLen: pair.columns,
-    mate: {
-      refName: pair.query.contig,
-      start: pair.queryStart,
-      end: pair.queryEnd,
-      assemblyName: mateLane,
-    },
-  })
-}
 
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
   private graph = cachedSetup({
@@ -466,45 +413,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
   }
 
-  private async laneHaplotypes(
-    assemblyName: string,
-    opts: BaseOptions,
-  ): Promise<HaplotypeRef[]> {
-    const prefix = resolvePanSNPrefix(this, assemblyName)
-    return (await this.getHaplotypes(opts)).filter(haplotype =>
-      panSNMatchesPrefix(haplotype.prefix, prefix),
-    )
-  }
-
-  /**
-   * The window split wherever the reference sample's contig starts another
-   * fragment, so each piece lies inside one: getSubgraphForRange cuts the
-   * first fragment alone, where getAlignmentsForRange walks them all
-   */
-  private async referencePieces(
-    refName: string,
-    start: number,
-    end: number,
-    opts: BaseOptions,
-  ) {
-    const { db, referenceSample } = await this.graph(opts)
-    const inside = (await db.paths())
-      .filter(
-        path =>
-          path.isIndexed &&
-          path.name.sample === referenceSample &&
-          path.name.contig === refName &&
-          path.name.fragment > start &&
-          path.name.fragment < end,
-      )
-      .map(path => path.name.fragment)
-    const bounds = [start, ...[...new Set(inside)].sort((a, b) => a - b), end]
-    return bounds.slice(1).map((pieceEnd, i) => ({
-      start: bounds[i]!,
-      end: pieceEnd,
-    }))
-  }
-
   private async anchorFeatures(region: Region, opts: GbzFeatureOptions) {
     const { db } = await this.graph(opts)
     const { assemblyName, refName, start, end } = region
@@ -544,87 +452,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     })
   }
 
-  /**
-   * The two lanes' walks cut out of the anchor window alone, and each walk
-   * of the query lane aligned to each walk of the target lane. The records
-   * sit on the query lane's contigs, the lane the display draws on top.
-   *
-   * Only a cut walked from the haplotype index's anchor rows holds each walk
-   * whole. The sampled cut leaves a walk in pieces wherever it strays past the
-   * context, and pieces align only in part, so without anchor rows, or when
-   * the anchor walk of any reference fragment in the window fell back, the
-   * pair answers nothing and the display composes it through the reference.
-   */
-  private async pairFeatures(
-    region: Region,
-    queryAssemblyName: string,
-    opts: GbzFeatureOptions,
-  ) {
-    const { targetAssemblyName } = opts
-    if (targetAssemblyName === undefined) {
-      throw new PairTargetError(queryAssemblyName)
-    }
-    const { db } = await this.graph(opts)
-    const { refName, start, end } = region
-    const featureSide = await this.laneHaplotypes(queryAssemblyName, opts)
-    const mateSide = await this.laneHaplotypes(targetAssemblyName, opts)
-    const kept = [...featureSide, ...mateSide]
-    const query = await this.referenceQuery(refName, opts)
-    const nodeLimit: number = this.getConf('nodeLimit')
-    const anchored = (await db.haplotypeAnchorSpacing()) !== undefined
-    const cut = (reference: PathQuery, piece: { start: number; end: number }) =>
-      db
-        .getSubgraphForRange(reference, piece.start, piece.end, {
-          context: this.getConf('context'),
-          haplotypes: 'all',
-          limit: nodeLimit,
-          signal: opts.signal,
-          keep: name =>
-            kept.some(
-              haplotype =>
-                haplotype.sample === name.sample &&
-                haplotype.haplotype === name.haplotype,
-            ),
-        })
-        .catch((error: unknown) => {
-          throw nodeLimitError(error, nodeLimit, end - start) ?? error
-        })
-    const subgraphs =
-      query && anchored && featureSide.length > 0 && mateSide.length > 0
-        ? (
-            await updateStatus(
-              `Aligning ${queryAssemblyName} to ${targetAssemblyName}`,
-              opts.statusCallback,
-              async () =>
-                Promise.all(
-                  (await this.referencePieces(refName, start, end, opts)).map(
-                    piece => cut(query, piece),
-                  ),
-                ),
-            )
-          ).filter(subgraph => subgraph !== undefined)
-        : []
-    const whole = subgraphs.every(subgraph => {
-      const walk = subgraph.stats.anchorWalk
-      return walk !== undefined && walk.fallback === undefined
-    })
-    return whole
-      ? subgraphs.flatMap(subgraph =>
-          featureSide.flatMap(target =>
-            mateSide.flatMap(mate =>
-              subgraph.pairAlignments({ target, query: mate }).map(pair =>
-                pairFeature({
-                  pair,
-                  lane: queryAssemblyName,
-                  mateLane: targetAssemblyName,
-                }),
-              ),
-            ),
-          ),
-        )
-      : []
-  }
-
   getFeatures(region: Region, opts: GbzFeatureOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor } = await this.graph(opts)
@@ -632,12 +459,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         throw new NoHaplotypeIndexError()
       }
       // the graph is indexed on its reference alone, so a window on a
-      // haplotype lane has no answer: a lane pair is read inside the anchor's
+      // haplotype lane has no answer
       if (region.assemblyName === anchor) {
-        const features =
-          opts.queryAssemblyName === undefined
-            ? await this.anchorFeatures(region, opts)
-            : await this.pairFeatures(region, opts.queryAssemblyName, opts)
+        const features = await this.anchorFeatures(region, opts)
         for (const feature of features) {
           observer.next(feature)
         }
