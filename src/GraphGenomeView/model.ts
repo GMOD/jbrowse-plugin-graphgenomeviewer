@@ -25,6 +25,13 @@ import { bubbleSubgraph } from './bubbles/popBubble'
 import { COLOR_SCHEME_VALUES } from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import {
+  cutHolds,
+  followCut,
+  followFrame,
+  followWindow,
+  isFollowable,
+} from './follow'
+import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
   pickGeneTrack,
@@ -44,6 +51,7 @@ import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import { walkRowsExtent } from './layout/walkRowLayout'
 import { walkRows } from './layout/walkRows'
 import {
+  FORCE_LAYOUT_LABEL,
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
   modeUsesLayoutEngine,
@@ -96,6 +104,7 @@ import {
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
+import type { FollowedView } from './follow'
 import type { GeneModel } from './genes/geneFeatures'
 import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
@@ -256,6 +265,24 @@ function padded(v: Bounds, panes: number): Bounds {
     maxX: v.maxX + w,
     maxY: v.maxY + h,
   }
+}
+
+// Centre the leftover, but only when there IS leftover. A row layout fits on x
+// alone, so its drawing is routinely taller than the pane — that is the case
+// rowSpacing.ts means by "reached by panning" — and centring an overflow splits
+// the loss across both ends: at 41 rows the top row landed 100 px above the
+// pane. The top row is the reference backbone, i.e. the axis the whole layout
+// exists to put under the linear view, so it is the one row that must not be
+// the first thing to go. Pinned at the padding it opens where a fitting drawing
+// opens, and the rows past the ceiling are below, which is the direction a
+// reader already scrolls a track in.
+function fittedTranslateY(
+  bounds: { minY: number; h: number },
+  usableHeight: number,
+  yScale: number,
+) {
+  const leftoverY = usableHeight - bounds.h * yScale
+  return FIT_PADDING - bounds.minY * yScale + Math.max(0, leftoverY) / 2
 }
 
 function contains(outer: Bounds, inner: Bounds) {
@@ -514,6 +541,16 @@ export default function stateModelFactory() {
         // draw its reference span there and vice versa. Written by the launch
         // menu; see hoverSync/.
         connectedViewId: types.maybe(types.string),
+        // x tracks that linear view's window, and the cut is re-made when the
+        // window leaves it. agent-docs/FOLLOW_THE_LINEAR_VIEW.md
+        followLinearView: types.optional(types.boolean, false),
+        // The one-node-per-bubble tier a follow cuts instead of loadedTrackId
+        // while the window is wider than coarseAboveBp. No bp cap applies to
+        // it; maxGraphNodes counts what came back.
+        coarseTrackId: types.optional(types.string, ''),
+        coarseAboveBp: types.maybe(types.number),
+        // so a restored session re-makes the cut it saved
+        coarseCut: types.optional(types.boolean, false),
       }),
     )
     .volatile(() => ({
@@ -564,13 +601,18 @@ export default function stateModelFactory() {
       // draggingNode instead of in a component ref+state pair, so the two
       // mutually exclusive drag modes are one piece of state read from one place.
       isPanning: false,
-      // Set once the user pans/zooms (or a restored session carries a
-      // transform). While false the view keeps auto-fitting as the layout and
-      // canvas dimensions settle; a manual move opts out so we never fight the
-      // user. Distinct from `isDefaultViewport`, which zoomToFit itself
-      // invalidates on its first run — that made the fit fire once against
-      // not-yet-measured dimensions and then never re-fit.
-      userMovedViewport: false,
+      // Who places the view. 'fit' refits it to every new layout, 'user' leaves
+      // it where a gesture or a restored session put it, and 'follow' takes x
+      // from the followed linear view. Not derived from `isDefaultViewport`,
+      // which zoomToFit itself invalidates on its first run — that made the
+      // fit fire once against not-yet-measured dimensions and then never
+      // re-fit.
+      viewportOwner: 'fit' as 'fit' | 'user' | 'follow',
+      // the pane height a follow holds, so a re-cut with more rows does not
+      // move the pane while the linear view above it is being dragged
+      followPaneHeight: undefined as number | undefined,
+      followNote: undefined as string | undefined,
+      followRecuts: 0,
       viewportDirtyTimer: undefined as
         ReturnType<typeof setTimeout> | undefined,
       // 0 is never a live rAF handle, so it doubles as "nothing pending"
@@ -1068,6 +1110,12 @@ export default function stateModelFactory() {
       // derivation. It reads neither `scale` nor the height it is replacing, so
       // zoomToFit consumes this without feeding back into it.
       get canvasHeight() {
+        if (
+          self.viewportOwner === 'follow' &&
+          self.followPaneHeight !== undefined
+        ) {
+          return self.followPaneHeight
+        }
         const bounds = this.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
         // `paneHeight` replaces the built-in ceiling rather than adding a
@@ -1290,6 +1338,83 @@ export default function stateModelFactory() {
         }
       },
     }))
+    .views(self => ({
+      // the track the cut on screen came from
+      get cutTrackId() {
+        return self.coarseCut && self.coarseTrackId
+          ? self.coarseTrackId
+          : self.loadedTrackId
+      },
+      get regionCapBp() {
+        return self.coarseCut ? Infinity : self.maxRegionBp
+      },
+      // Whether the follow is running, and when it is asked for and cannot,
+      // why not: a control that silently does nothing is worse than one that
+      // says it cannot (EngineOnly in GraphSettingsDialog).
+      get followState():
+        | { active: true; view: FollowedView }
+        | { active: false; reason: string | undefined } {
+        const region = self.loadedRegion
+        const layout = self.layoutResult
+        if (!self.followLinearView) {
+          return { active: false, reason: undefined }
+        }
+        if (!region || !self.loadedTrackId) {
+          return {
+            active: false,
+            reason: 'Only a graph cut from a track can follow a linear view',
+          }
+        }
+        const view = linearViewTarget({
+          views: [...getSession(self).views],
+          connectedViewId: self.connectedViewId,
+          assemblyName: region.assemblyName,
+        })
+        if (!isFollowable(view)) {
+          return {
+            active: false,
+            reason: `No linear view on ${region.assemblyName} to follow`,
+          }
+        }
+        if (!layout || !view.initialized) {
+          return { active: false, reason: undefined }
+        }
+        if (!layout.referenceAxis) {
+          const label = self.usesLayoutEngine
+            ? FORCE_LAYOUT_LABEL
+            : layoutModeByValue(self.layoutMode).label
+          return {
+            active: false,
+            reason: `Not following: x is not reference bp (${label})`,
+          }
+        }
+        if (self.popStack.length > 0) {
+          return {
+            active: false,
+            reason: 'Not following while a bubble is open',
+          }
+        }
+        if (
+          view.dynamicBlocks.contentBlocks.some(
+            b => b.refName === region.refName && b.reversed,
+          )
+        ) {
+          return {
+            active: false,
+            reason: 'Not following: the linear view shows this region reversed',
+          }
+        }
+        return { active: true, view }
+      },
+    }))
+    .views(self => ({
+      get followTransform() {
+        const follow = self.followState
+        return follow.active && self.loadedRegion
+          ? followFrame(follow.view, self.loadedRegion)
+          : undefined
+      },
+    }))
     .actions(self => ({
       setError(error: unknown) {
         self.error = error
@@ -1496,14 +1621,26 @@ export default function stateModelFactory() {
         }
       },
 
+      // A gesture on a followed graph moves the linear view, and the frame
+      // clock brings x back here; y stays the pane's own.
       setTransform(s: number, tx: number, ty: number) {
-        self.userMovedViewport = true
-        self.scale = clampZoom(s)
-        self.translateX = tx
+        const follow = self.followState
+        if (self.viewportOwner === 'follow' && follow.active) {
+          follow.view.horizontalScroll(self.translateX - tx)
+        } else {
+          self.viewportOwner = 'user'
+          self.scale = clampZoom(s)
+          self.translateX = tx
+        }
         self.translateY = ty
       },
       zoom(factor: number, centerX: number, centerY: number) {
-        self.userMovedViewport = true
+        const follow = self.followState
+        if (self.viewportOwner === 'follow' && follow.active) {
+          follow.view.zoomTo(follow.view.bpPerPx / factor, centerX)
+          return
+        }
+        self.viewportOwner = 'user'
         const newScale = clampZoom(self.scale * factor)
         const ratio = newScale / self.scale
         self.scale = newScale
@@ -1533,6 +1670,17 @@ export default function stateModelFactory() {
         const bounds = self.layoutBounds
         const usableWidth = self.width - FIT_PADDING * 2
         const usableHeight = self.canvasHeight - FIT_PADDING * 2
+        // A follow owns x, so a fit while following places the rows only.
+        if (self.viewportOwner === 'follow') {
+          if (bounds && usableHeight > 0) {
+            self.translateY = fittedTranslateY(
+              bounds,
+              usableHeight,
+              self.scaleY,
+            )
+          }
+          return
+        }
         // Nothing to fit into before the canvas is measured. The autorun re-runs
         // once width lands, so skipping here beats computing a negative scale
         // and persisting that transform into the session snapshot.
@@ -1565,20 +1713,11 @@ export default function stateModelFactory() {
             bounds.minX * newScale +
             (usableWidth - bounds.w * newScale) / 2
           // scaleY, which a row layout pins at 1
-          const yScale = self.pixelRows ? 1 : newScale
-          // Centre the leftover, but only when there IS leftover. A row layout
-          // fits on x alone, so its drawing is routinely taller than the pane —
-          // that is the case rowSpacing.ts means by "reached by panning" — and
-          // centring an overflow splits the loss across both ends: at 41 rows
-          // the top row landed 100 px above the pane. The top row is the
-          // reference backbone, i.e. the axis the whole layout exists to put
-          // under the linear view, so it is the one row that must not be the
-          // first thing to go. Pinned at the padding it opens where a fitting
-          // drawing opens, and the rows past the ceiling are below, which is the
-          // direction a reader already scrolls a track in.
-          const leftoverY = usableHeight - bounds.h * yScale
-          self.translateY =
-            FIT_PADDING - bounds.minY * yScale + Math.max(0, leftoverY) / 2
+          self.translateY = fittedTranslateY(
+            bounds,
+            usableHeight,
+            self.pixelRows ? 1 : newScale,
+          )
         }
       },
       clearPerfMetrics() {
@@ -1587,6 +1726,39 @@ export default function stateModelFactory() {
         self.lastGeometryMs = undefined
         self.lastGeometryStrokeCount = undefined
         self.builtViewport = undefined
+      },
+    }))
+    .actions(self => ({
+      setFollowLinearView(follow: boolean) {
+        self.followLinearView = follow
+      },
+      // The frame clock. Unclamped, since clampZoom's floor is there to keep a
+      // scale finite and 1 / bpPerPx already is; clamped, a whole-chromosome
+      // window would stop lining up.
+      followTo(scale: number, translateX: number) {
+        const engaging = self.viewportOwner !== 'follow'
+        if (engaging) {
+          self.followPaneHeight = self.canvasHeight
+          self.viewportOwner = 'follow'
+        }
+        self.scale = scale
+        self.translateX = translateX
+        if (engaging) {
+          self.zoomToFit()
+        }
+      },
+      // A drawing still on the reference stays where the follow left it; one
+      // whose x no longer means bp is refit.
+      stopFollowing() {
+        if (self.viewportOwner === 'follow') {
+          self.followPaneHeight = undefined
+          if (self.layoutResult?.referenceAxis) {
+            self.viewportOwner = 'user'
+          } else {
+            self.viewportOwner = 'fit'
+            self.zoomToFit()
+          }
+        }
       },
     }))
     .actions(self => {
@@ -1801,7 +1973,9 @@ export default function stateModelFactory() {
         return live
       }
 
-      function* parseAndLayout(text: string, name: string) {
+      // `keepSelection` for a re-cut of the same source: node ids survive one
+      // where edge indexes do not, so the selection is found again by id.
+      function* parseAndLayout(text: string, name: string, keepSelection = false) {
         self.setStatusMessage('Parsing GFA')
         const gfaGraph = parseGFA(text)
         // A general GFA states its coordinates only in its P/W lines, so the
@@ -1825,6 +1999,7 @@ export default function stateModelFactory() {
             `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Zoom in to a smaller region, or raise maxGraphNodes on this view.`,
           )
         }
+        const selected = keepSelection ? self.selectedNode : null
         self.graph = graph
         self.indexBubbles = undefined
         self.geneFeatures = undefined
@@ -1835,6 +2010,9 @@ export default function stateModelFactory() {
         // them over points the tooltip and the highlight at whatever now happens
         // to sit at that index.
         self.clearInteractionState()
+        if (selected !== null && self.nodeById?.has(selected)) {
+          self.selectedNode = selected
+        }
         self.setStatusMessage('Computing layout')
         yield* layoutInto(graph)
       }
@@ -1856,8 +2034,9 @@ export default function stateModelFactory() {
       }
 
       function loadedTrack() {
-        return self.loadedTrackId
-          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
+        const trackId = self.cutTrackId
+        return trackId
+          ? getSession(self).tracks.find(t => t.trackId === trackId)
           : undefined
       }
 
@@ -1984,8 +2163,8 @@ export default function stateModelFactory() {
               graphReferenceAssembly(track),
               region.assemblyName,
             )) ??
-          (regionSize > self.maxRegionBp
-            ? `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.maxRegionBp)})`
+          (regionSize > self.regionCapBp
+            ? `Region too large (${formatSpanBp(regionSize)}) — zoom in to view graph (max ${formatSpanBp(self.regionCapBp)})`
             : undefined)
         if (refusal !== undefined) {
           self.graph = undefined
@@ -2018,7 +2197,7 @@ export default function stateModelFactory() {
             )
           }
           const label = locLabel(region)
-          yield* parseAndLayout(gfaText, label)
+          yield* parseAndLayout(gfaText, label, true)
           if (!isLive()) {
             return
           }
@@ -2049,7 +2228,7 @@ export default function stateModelFactory() {
       // track the session lacks is reported, because otherwise the view sits on
       // an empty import form with nothing saying why.
       //
-      // Nothing here saves and restores the transform: `userMovedViewport` is
+      // Nothing here saves and restores the transform: `viewportOwner` is
       // what protects a restored session's pan/zoom, and it gates the fit
       // autorun — the only thing in this flow that would otherwise move the
       // view. A save/restore pair around the load wrote back the values it had
@@ -2059,7 +2238,7 @@ export default function stateModelFactory() {
         const track = loadedTrack()
         if (region && self.loadedTrackId && !track) {
           self.error = new Error(
-            `The track this graph was cut from, "${self.loadedTrackId}", is not in this session`,
+            `The track this graph was cut from, "${self.cutTrackId}", is not in this session`,
           )
         } else if (track && region) {
           yield* doSubgraphLoad(readConfObject(track, 'adapter'), region, {
@@ -2084,6 +2263,7 @@ export default function stateModelFactory() {
         const { isLive, signal } = beginLoad()
         self.loadedTrackId = ''
         self.loadedRegion = region
+        self.coarseCut = false
         self.isLoading = true
         self.error = undefined
         try {
@@ -2122,6 +2302,8 @@ export default function stateModelFactory() {
           self.layoutResult = undefined
           self.loadedTrackId = ''
           self.loadedRegion = undefined
+          self.coarseCut = false
+          self.followNote = undefined
           self.gfaLocation = undefined
           self.indexBubbles = undefined
           self.geneFeatures = undefined
@@ -2173,6 +2355,7 @@ export default function stateModelFactory() {
         ) {
           self.loadedTrackId = opts.trackId ?? ''
           self.loadedRegion = opts.trackId ? region : undefined
+          self.coarseCut = false
           yield* doSubgraphLoad(adapterConfig, region, {
             hops: self.subgraphContext,
             haplotypes: self.subgraphHaplotypes,
@@ -2254,7 +2437,7 @@ export default function stateModelFactory() {
             self.layoutMode = 'force'
           }
           self.clearInteractionState()
-          self.userMovedViewport = false
+          self.viewportOwner = 'fit'
           self.isLoading = true
           try {
             if (yield* layoutInto(self.graph)) {
@@ -2277,7 +2460,7 @@ export default function stateModelFactory() {
           self.layoutMode = from.layoutMode
           self.indexBubbles = from.indexBubbles
           self.clearInteractionState()
-          self.userMovedViewport = false
+          self.viewportOwner = 'fit'
           self.isLoading = true
           try {
             if (yield* layoutInto(from.graph)) {
@@ -2313,6 +2496,37 @@ export default function stateModelFactory() {
       }
     })
     .actions(self => ({
+      // The settle clock. A pan the cut still holds fetches nothing; one past
+      // its edge re-cuts the window plus a window-width each side, on the tier
+      // the zoom asks for. Overlapping re-cuts are ordered by doSubgraphLoad's
+      // liveLoad, so the latest window wins.
+      followSettle() {
+        const follow = self.followState
+        const seen = follow.active ? followWindow(follow.view) : undefined
+        if (!seen) {
+          return
+        }
+        const coarse =
+          !!self.coarseTrackId &&
+          self.coarseAboveBp !== undefined &&
+          seen.span > self.coarseAboveBp
+        if (coarse === self.coarseCut && cutHolds(self.loadedRegion, seen)) {
+          return
+        }
+        const cap = coarse ? Infinity : self.maxRegionBp
+        const visible = seen.end - seen.start
+        if (visible > cap) {
+          self.followNote = `Holding the last cut: ${formatSpanBp(visible)} is past the ${formatSpanBp(cap)} a cut may span`
+          return
+        }
+        self.followNote = undefined
+        self.coarseCut = coarse
+        self.loadedRegion = followCut(seen, cap)
+        self.followRecuts++
+        void self.reloadSubgraph()
+      },
+    }))
+    .actions(self => ({
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
           // Autorun: paint the lane this graph was cut from in the graph's own
@@ -2347,18 +2561,69 @@ export default function stateModelFactory() {
           // Reads layoutResult plus (via zoomToFit) width/canvasHeight, so it
           // re-fires — and re-fits — as the layout arrives and the canvas is
           // measured, rather than firing once against not-yet-known dimensions.
-          // A manual pan/zoom (or a restored-session transform) sets
-          // userMovedViewport, opting out so we never override the user.
+          // A manual pan/zoom (or a restored-session transform) makes the
+          // viewport the user's, and a follow makes it the linear view's.
           addDisposer(
             self,
             autorun(() => {
               if (
                 self.layoutResult &&
-                untracked(() => !self.userMovedViewport)
+                untracked(() => self.viewportOwner === 'fit')
               ) {
                 self.zoomToFit()
               }
             }),
+          )
+
+          // The follow's two clocks. The frame clock moves x with every frame
+          // of the linear view and fetches nothing; the settle clock wakes on
+          // its debounced blocks and re-cuts only when the window has left
+          // the cut.
+          addDisposer(
+            self,
+            reaction(
+              () => self.followState.active,
+              active => {
+                if (!active) {
+                  self.stopFollowing()
+                }
+              },
+              { name: 'GraphFollowActive' },
+            ),
+          )
+          addDisposer(
+            self,
+            reaction(
+              () => self.followTransform,
+              frame => {
+                if (frame) {
+                  self.followTo(frame.scale, frame.translateX)
+                }
+              },
+              {
+                equals: (a, b) =>
+                  a?.scale === b?.scale && a?.translateX === b?.translateX,
+                fireImmediately: true,
+                name: 'GraphFollowFrame',
+              },
+            ),
+          )
+          addDisposer(
+            self,
+            reaction(
+              () => {
+                const follow = self.followState
+                return follow.active
+                  ? follow.view.coarseDynamicBlocks
+                  : undefined
+              },
+              blocks => {
+                if (blocks) {
+                  self.followSettle()
+                }
+              },
+              { fireImmediately: true, name: 'GraphFollowSettle' },
+            ),
           )
 
           // Autorun: mirror a connected linear view's hover onto the graph. An
@@ -2583,7 +2848,7 @@ export default function stateModelFactory() {
         // A restored session that already carries a non-default transform is
         // the user's own view — mark it so the fit autorun leaves it alone.
         if (!self.isDefaultViewport) {
-          self.userMovedViewport = true
+          self.viewportOwner = 'user'
         }
         // loadGFAFromLocation leaves `gfaLocation` intact, so the source
         // round-trips through a session snapshot.
