@@ -27,12 +27,12 @@ each side once the window leaves the cut (`hostCut`), on every layout. It
 narrows the margins to fit under `maxRegionBp`; past the cap it keeps the last
 cut and the track shows `cutNote`.
 
-A layout whose x is not reference bp — force, ordered, variants, walk rows —
-draws in its own coordinates inside the track, the way a variant matrix does:
-the pane owns its viewport (`fit`, then `user`), the track menu carries zoom in,
-out and fit, and a drag or a wheel on the canvas stays inside the track. The
-settle clock still re-cuts it as the view moves. A popped bubble is a picture of
-its own the same way.
+A layout whose x is not reference bp — force-directed and ordered — draws in its
+own coordinates inside the track, the way a variant matrix does: the pane owns
+its viewport (`fit`, then `user`), the track menu carries zoom in, out and fit,
+and a drag or a wheel on the canvas stays inside the track. The settle clock
+still re-cuts it as the view moves. A popped bubble is a picture of its own the
+same way.
 
 ## The tier
 

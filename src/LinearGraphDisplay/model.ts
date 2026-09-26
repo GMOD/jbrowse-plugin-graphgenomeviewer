@@ -12,6 +12,7 @@ import { COLOR_SCHEMES } from '../GraphGenomeView/colorSchemes'
 import { isLinearHost } from '../GraphGenomeView/host'
 import { LAYOUT_MODES } from '../GraphGenomeView/layoutModes'
 import paneModelFactory from '../GraphGenomeView/model'
+import { trackLanes } from '../launchSubgraph/subgraphTracks'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { MenuItem } from '@jbrowse/core/ui'
@@ -141,6 +142,31 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                   },
                 ]
               : []),
+            ...(pane.layoutMode === 'walkrows' && pane.repeatChoices.length > 0
+              ? [
+                  {
+                    label: 'Repeat',
+                    subMenu: [
+                      {
+                        type: 'radio' as const,
+                        label: 'Whole window',
+                        checked: pane.repeatKey === '',
+                        onClick: () => {
+                          pane.setRepeatKey('')
+                        },
+                      },
+                      ...pane.repeatChoices.map(({ key, name, unit }) => ({
+                        type: 'radio' as const,
+                        label: `${name} · ${unit.toLocaleString()} bp unit`,
+                        checked: pane.repeatKey === key,
+                        onClick: () => {
+                          pane.setRepeatKey(key)
+                        },
+                      })),
+                    ],
+                  },
+                ]
+              : []),
             ...(pane.hostPlacesX
               ? []
               : [
@@ -233,6 +259,16 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           const { pane } = self
           self.applyConfig()
           pane.adoptTrack(self.trackId)
+          // A GBZ track cuts for the lanes it names, as its lanes display
+          // draws them, unless a launch or a reader picked others.
+          if (
+            pane.subgraphHaplotypes === undefined &&
+            self.adapterConfig.type === 'GbzBaseSyntenyAdapter'
+          ) {
+            pane.setSubgraphHaplotypes(
+              trackLanes(self.parentTrack.configuration),
+            )
+          }
           pane.startHosting()
           addDisposer(
             self,
