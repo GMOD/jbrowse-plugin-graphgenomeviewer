@@ -26,13 +26,18 @@ the haplotype's own contig, and the lane labelled `sample#haplotype` unless a
 listed assembly maps to it. Ids are the walk's GBWT position at its first node
 in the window, so a refetch of one window re-keys nothing. A window on a
 haplotype lane answers nothing. A window on the anchor with `queryAssemblyName`
-and `targetAssemblyName` answers that lane pair aligned to each other
-(`Subgraph.pairAlignments`), which `MultiWaySyntenyDisplay` asks for each
+and `targetAssemblyName` answers that lane pair with the alignment the graph
+states. `Subgraph.pairAlignments` with `bases: false` writes the nodes both
+walks visit as `=` and the bases between two shared stretches as an insertion
+and a deletion, so no aligner runs. `MultiWaySyntenyDisplay` asks for each
 adjacent pair because the type declares `lanePairsOnAnchor`; only a cut walked
 off the companion's anchor rows holds each walk whole, so without them the pair
-answers nothing and the display composes it through the anchor. `getHeader` says
-`hasCoarseTier: false`, and `nodeLimit` fails a window that would read a whole
-chromosome.
+answers nothing and the display composes it through the anchor. The graph folds
+the copies of a tandem repeat onto shared nodes, which say nothing about which
+copy pairs with which, so where either haplotype holds more than one copy the
+pair's gutter shows a gap across the array, and each lane's length carries its
+copy count. `getHeader` says `hasCoarseTier: false`, and `nodeLimit` fails a
+window that would read a whole chromosome.
 
 `getSubgraph(region)` returns GFA (reference walk first, contained snarls, PanSN
 W lines) and the adapter type declares `adapterCapabilities: ['getSubgraph']`,
