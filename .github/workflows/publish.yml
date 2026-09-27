@@ -25,6 +25,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm publish --access public --provenance --no-git-checks
+      # prepack builds dist, and publishConfig swaps the source exports for it.
+      # working-directory, not --dir: pnpm 10 hands its argv to npm publish,
+      # which rejects the stray path with EUSAGE.
+      - name: Publish @jbrowse/bandage-core
+        run: pnpm publish --provenance --no-git-checks
+        working-directory: packages/core
 
   release:
     name: Create GitHub release

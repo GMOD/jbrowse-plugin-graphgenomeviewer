@@ -46,8 +46,7 @@
     "prepack": "pnpm build",
     "preversion": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm host-compat",
     "version": "node scripts/version.mjs",
-    "postversion": "git push --follow-tags",
-    "release:core": "./scripts/release-core.sh"
+    "postversion": "git push --follow-tags"
   },
   "private": false,
   "dependencies": {
