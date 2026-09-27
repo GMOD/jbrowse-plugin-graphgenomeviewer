@@ -105,19 +105,73 @@ const ARROW_HALF_WIDTH_PER_EDGE_PX = 1.5
 const MIN_ARROW_FIT = 0.5
 const MIN_ARROW_SCALE = 0.45
 
-// Length of a run of curves in screen px, as the mean of each chord and control
-// polygon, which bracket the arc.
-function drawnLengthPx(curves: BezierCurve[], scale: number, yToX: number) {
-  let sum = 0
-  for (const c of curves) {
-    const chord = Math.hypot(c.x1 - c.x0, (c.y1 - c.y0) * yToX)
-    const poly =
-      Math.hypot(c.cx0 - c.x0, (c.cy0 - c.y0) * yToX) +
-      Math.hypot(c.cx1 - c.cx0, (c.cy1 - c.cy0) * yToX) +
-      Math.hypot(c.x1 - c.cx1, (c.y1 - c.cy1) * yToX)
-    sum += (chord + poly) / 2
+// Steps per cubic when walking a curve back from its end, spaced by the square
+// of the step so they bunch where the head sits: the first is 1/144 of the
+// cubic, a few px on even a long edge.
+const ARROW_CURVE_STEPS = 12
+// Below this an edge has no length, only the rounding of sampling one.
+const ABUTTING_PX = 1e-6
+
+// Scratch for backFromEnd, reused across edges: this runs once per head per
+// rebuild, and objects per sample doubled the cost of a 16k-edge build.
+let walkX = new Float64Array(64)
+let walkY = new Float64Array(64)
+let walkPx = new Float64Array(64)
+
+// A run of curves as points walked back from its end into the walk arrays,
+// each with its distance from the end in screen px, as far as `untilPx`.
+// Returns the point count.
+function backFromEnd(
+  curves: BezierCurve[],
+  scale: number,
+  yToX: number,
+  untilPx: number,
+) {
+  const most = curves.length * ARROW_CURVE_STEPS + 1
+  if (walkX.length < most) {
+    walkX = new Float64Array(most)
+    walkY = new Float64Array(most)
+    walkPx = new Float64Array(most)
   }
-  return sum * scale
+  const last = curves[curves.length - 1]!
+  walkX[0] = last.x1
+  walkY[0] = last.y1
+  walkPx[0] = 0
+  let n = 1
+  let px = 0
+  for (let ci = curves.length - 1; ci >= 0 && px < untilPx; ci--) {
+    const c = curves[ci]!
+    for (let k = 1; k <= ARROW_CURVE_STEPS && px < untilPx; k++) {
+      const t = 1 - (k / ARROW_CURVE_STEPS) ** 2
+      const u = 1 - t
+      const a = u * u * u
+      const b = 3 * u * u * t
+      const d = 3 * u * t * t
+      const e = t * t * t
+      const x = a * c.x0 + b * c.cx0 + d * c.cx1 + e * c.x1
+      const y = a * c.y0 + b * c.cy0 + d * c.cy1 + e * c.y1
+      px += Math.hypot(x - walkX[n - 1]!, (y - walkY[n - 1]!) * yToX) * scale
+      walkX[n] = x
+      walkY[n] = y
+      walkPx[n] = px
+      n++
+    }
+  }
+  return n
+}
+
+function walkPointAt(n: number, px: number) {
+  let i = 1
+  while (i < n - 1 && walkPx[i]! < px) {
+    i++
+  }
+  const from = walkPx[i - 1]!
+  const to = walkPx[i]!
+  const f = to > from ? Math.min(1, Math.max(0, (px - from) / (to - from))) : 0
+  return {
+    x: walkX[i - 1]! + (walkX[i]! - walkX[i - 1]!) * f,
+    y: walkY[i - 1]! + (walkY[i]! - walkY[i - 1]!) * f,
+  }
 }
 
 // Bandage's rule, from GraphicsItemNode::shape: a node's arrow is sized by the
@@ -128,6 +182,11 @@ function drawnLengthPx(curves: BezierCurve[], scale: number, yToX: number) {
 // node's first few px. Only as far as the edge is long, so an abutting joint,
 // which has no length to fit to and no other mark of its direction, keeps its
 // head on the joint.
+//
+// The head lies along the curve it ends, from the curve point a head-length
+// back to the tip. The end tangent alone runs along the entered node, and an
+// edge that turns in its last few px then drew a head pointing across its own
+// stroke.
 function arrowheadFor(
   curves: BezierCurve[],
   edgeHalfWidth: number,
@@ -137,19 +196,27 @@ function arrowheadFor(
   color: number,
   toSegments: NodeSegment[],
 ): Arrowhead | undefined {
-  const last = curves[curves.length - 1]!
-  const lengthPx = drawnLengthPx(curves, scale, yToX)
-  const inset = Math.min(nodeHalfWidth, lengthPx)
   const length = ARROW_LENGTH_BASE_PX + ARROW_LENGTH_PER_EDGE_PX * edgeHalfWidth
-  const fit = lengthPx === 0 ? 1 : Math.min(1, (lengthPx - inset) / length)
+  const n = backFromEnd(curves, scale, yToX, nodeHalfWidth + length)
+  const lengthPx = walkPx[n - 1]!
+  const inset = Math.min(nodeHalfWidth, lengthPx)
+  const fit =
+    lengthPx < ABUTTING_PX ? 1 : Math.min(1, (lengthPx - inset) / length)
   if (fit < MIN_ARROW_FIT) {
     return undefined
   }
+  const tip = walkPointAt(n, inset)
+  const base = walkPointAt(n, inset + length * fit)
+  const dx = tip.x - base.x
+  const dy = (tip.y - base.y) * yToX
+  const last = curves[curves.length - 1]!
   return {
-    x: last.x1,
-    y: last.y1,
-    angle: endTangent(last, yToX, intoDirection(last, toSegments)),
-    inset,
+    x: tip.x,
+    y: tip.y,
+    angle:
+      Math.hypot(dx, dy) > 0
+        ? Math.atan2(dy, dx)
+        : endTangent(last, yToX, intoDirection(last, toSegments)),
     length: length * fit,
     halfWidth:
       (ARROW_HALF_WIDTH_BASE_PX +

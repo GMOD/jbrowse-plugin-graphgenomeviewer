@@ -205,18 +205,18 @@ describe('a thickness is css pixels, whatever the device ratio', () => {
 })
 
 describe('arrowheadOutline', () => {
-  const head = { x: 50, y: 0, angle: 0, inset: 3, length: 10, halfWidth: 4 }
+  const head = { x: 50, y: 0, angle: 0, length: 10, halfWidth: 4 }
 
-  test('the tip is inset back along the tangent, the barbs a length behind', () => {
+  test('the barbs sit a length behind the tip, either side of it', () => {
     const [tip, left, notch, right] = arrowheadOutline(
       { ...head, color: 0 },
       TRANSFORM,
     )
-    expect(tip).toEqual({ x: 47, y: 0 })
-    expect(left).toEqual({ x: 37, y: 4 })
-    expect(right).toEqual({ x: 37, y: -4 })
-    expect(notch.x).toBeGreaterThan(37)
-    expect(notch.x).toBeLessThan(47)
+    expect(tip).toEqual({ x: 50, y: 0 })
+    expect(left).toEqual({ x: 40, y: 4 })
+    expect(right).toEqual({ x: 40, y: -4 })
+    expect(notch.x).toBeGreaterThan(40)
+    expect(notch.x).toBeLessThan(50)
   })
 
   test('every px measure scales with the ratio, like a stroke weight', () => {
@@ -224,7 +224,7 @@ describe('arrowheadOutline', () => {
       { ...head, color: 0 },
       { ...TRANSFORM, scaleX: 2, scaleY: 2, dpr: 2 },
     )
-    expect(tip).toEqual({ x: 94, y: 0 })
-    expect(left).toEqual({ x: 74, y: 8 })
+    expect(tip).toEqual({ x: 100, y: 0 })
+    expect(left).toEqual({ x: 80, y: 8 })
   })
 })

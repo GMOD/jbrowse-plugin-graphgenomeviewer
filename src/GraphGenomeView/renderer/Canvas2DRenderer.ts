@@ -215,8 +215,8 @@ const ARROW_NOTCH = 0.25
 export function arrowheadOutline(a: Arrowhead, t: TransformUniform) {
   const ux = Math.cos(a.angle)
   const uy = Math.sin(a.angle)
-  const tipX = a.x * t.scaleX + t.translateX - ux * a.inset * t.dpr
-  const tipY = a.y * t.scaleY + t.translateY - uy * a.inset * t.dpr
+  const tipX = a.x * t.scaleX + t.translateX
+  const tipY = a.y * t.scaleY + t.translateY
   const length = a.length * t.dpr
   const halfWidth = a.halfWidth * t.dpr
   const backX = tipX - ux * length

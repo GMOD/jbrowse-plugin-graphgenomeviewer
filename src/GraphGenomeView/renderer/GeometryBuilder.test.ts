@@ -740,8 +740,31 @@ describe('arrowhead placement', () => {
     }).arrows[0]
   }
 
+  // B's round cap reaches 3 px, which is 0.75 units at scale 4
   test('the tip stops on the outline of the node it enters', () => {
-    expect(headOf(simplePositions, 4)).toMatchObject({ x: 20, y: 0, inset: 3 })
+    const head = headOf(simplePositions, 4)!
+    expect(head.x).toBeCloseTo(19.25, 3)
+    expect(head.y).toBeCloseTo(0, 6)
+    expect(head.angle).toBeCloseTo(0, 6)
+  })
+
+  // the end tangent runs along B, straight down; the stroke arrives across
+  test('the head lies along the curve rather than its end tangent', () => {
+    const head = headOf(
+      {
+        'A+': [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ],
+        'B+': [
+          { x: 14, y: 4 },
+          { x: 14, y: 14 },
+        ],
+      },
+      4,
+    )!
+    const endTangentAngle = Math.PI / 2
+    expect(Math.abs(head.angle - endTangentAngle)).toBeGreaterThan(0.2)
   })
 
   test('a heavier edge draws a bigger head', () => {
@@ -778,7 +801,7 @@ describe('arrowhead placement', () => {
       },
       4,
     )!
-    expect(head.inset).toBe(0)
+    expect(head).toMatchObject({ x: 10, y: 0 })
     expect(head.angle).toBeCloseTo(Math.PI / 2, 6)
   })
 })
