@@ -64,10 +64,13 @@ being the finder here:
   score columns brings that to 1.07 bytes a cell (1.6 GB for HG00133). Its
   output matches the unpatched DP byte for byte on GRCh38's array and the script
   on all nine; above 30 kb the unpatched DP was too large to compare
-- minimap2 cuts these contigs into copy-sized pieces, and vamos keeps no
-  secondary or supplementary filter and never updates `mappedContigLength`, so
-  the last record spanning the locus wins without warning: 6 copies for
-  HG00128's 23 and for HG00097's 10
+- minimap2 cannot bridge the expansion: even its primary record for HG00128
+  aligns 33 kb of the 127 kb contig and soft-clips the rest, and its
+  supplementary records are hard-clipped to the same length. vamos annotates the
+  aligned part as the whole allele without warning: 6 copies for HG00128's 23
+  and for HG00097's 10. Which part depends on file order, since contig mode has
+  no secondary or supplementary filter and never sets `mappedContigLength`, so
+  filtering alone would still leave a clipped allele
 - Its VCF gives a unit index per copy, with no copy lengths, no partial-copy
   mark, and one sample per file
 
