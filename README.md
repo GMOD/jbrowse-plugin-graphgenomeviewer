@@ -11,6 +11,7 @@ Pangenome graphs in JBrowse 2.
   reference's
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, one walk lifted out
+- GAF reads in the tube map, with their mismatches, from a gbz-base track
 
 ## Usage
 
@@ -56,6 +57,7 @@ Needs JBrowse 5.0.0-beta.9 or later.
 - gbz-base swaps in `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`; an
   `hg38` or `hs1` track finds the graph's GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names
+- `"reads": "….gaf.gz"` on that adapter draws GAF reads in the tube map layouts
 
 ## Docs
 
