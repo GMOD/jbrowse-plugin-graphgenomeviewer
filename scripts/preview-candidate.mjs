@@ -41,25 +41,27 @@ try {
   await candidateServer(values.dist)(page)
   const url = `https://jbrowse.org/code/jb2/${values.version}/${query.startsWith('?') ? query : `?${query}`}`
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-  const ready = await page.waitForFunction(
-    () => {
-      const roots = [
-        ...document.querySelectorAll('[data-testid="linear-graph-display"]'),
-      ]
-      return (
-        roots.length > 0 &&
-        roots.every(
-          r =>
-            Number(r.getAttribute('data-node-count')) > 0 &&
-            !r.textContent?.includes('Loading'),
+  const ready = await page
+    .waitForFunction(
+      () => {
+        const roots = [
+          ...document.querySelectorAll('[data-testid="linear-graph-display"]'),
+        ]
+        return (
+          roots.length > 0 &&
+          roots.every(
+            r =>
+              Number(r.getAttribute('data-node-count')) > 0 &&
+              !r.textContent?.includes('Loading'),
+          )
         )
-      )
-    },
-    { timeout: Number(values.timeout), polling: 500 },
-  ).then(
-    () => true,
-    () => false,
-  )
+      },
+      { timeout: Number(values.timeout), polling: 500 },
+    )
+    .then(
+      () => true,
+      () => false,
+    )
   if (ready) {
     await page.waitForNetworkIdle({ idleTime: 1500, timeout: 60_000 })
   }

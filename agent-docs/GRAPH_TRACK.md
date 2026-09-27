@@ -1,14 +1,17 @@
 # The graph as a track
 
-`LinearGraphDisplay` draws the graph inside a linear genome view. It hosts the
-same pane model the standalone `GraphGenomeView` is (`pane`), so every layout,
-colour, overlay and menu the view has, the track has; what differs is who places
-the viewport and who asks for the cut. This records what shipped and why.
+`LinearGraphDisplay` draws the graph inside a linear genome view. It composes
+`BaseDisplay`, `TrackHeightMixin` and `GraphPaneMixin`, the same mixin the
+standalone `GraphGenomeView` composes, so every layout, colour, overlay and menu
+the view has, the track has. The pane draws a graph and cuts a region it is
+handed (`cutSubgraph`); the display decides which region to cut and when. This
+records what shipped and why.
 
 ## The pane finds its host from the tree
 
 A pane inside a display reads the linear view above it as `host`, through
-`getContainingView`. A pane that is a view of its own has none. Nothing is
+`getContainingView`, and its source track through `getContainingTrack`. A pane
+that is a view of its own has no host and reads its own `width`. Nothing is
 written by a launch and nothing pairs two views: the relation is where the pane
 sits. `connectedViewId` stays for the node menu's "Open in …" targets and the
 hover sync between a standalone view and a linear view.
@@ -21,13 +24,17 @@ refName at the same screen x (`hostFrame`). The frame clock applies it on every
 frame of the host and fetches nothing; the pane's `viewportOwner` is `host`, and
 a drag or a wheel on the canvas is the host's, as on any track.
 
-A cut cannot be extrapolated past its edge, so the settle clock, woken by the
-host's debounced `coarseDynamicBlocks`, re-cuts the window plus a window-width
-each side once the window leaves the cut (`hostCut`), on a layout the host
-places. It narrows the margins to fit under `maxRegionBp`; past the cap it keeps
-the last cut and the track shows `cutNote`. Force, ordered and walk rows are cut
-to the window alone (`cutMargins`): the first two draw a picture of it, and walk
-rows' bars are lengths through it.
+A cut cannot be extrapolated past its edge, so the display's settle clock, woken
+by the host's debounced `coarseDynamicBlocks`, re-cuts once the window leaves
+`cutRegion`: the window plus a window-width each side on a layout the host
+places (`hostCut`), narrowed to fit under `maxRegionBp`. Force, ordered and walk
+rows are cut to the window alone (`cutMargins`): the first two draw a picture of
+it, and walk rows' bars are lengths through it. Switching between the two kinds
+re-cuts at once.
+
+Past the cap the display's phase is `tooLarge`, and core's banner offers Force
+load, which raises `maxRegionBp` to the window and cuts it. A canceled cut is
+made again by the next viewport change, as on the other linear-view tracks.
 
 A layout whose x is not reference bp — force-directed and ordered — draws in its
 own coordinates inside the track, the way a variant matrix does: the pane owns
@@ -36,38 +43,55 @@ and a drag or a wheel on the canvas stays inside the track. The settle clock
 still re-cuts it as the view moves. A popped bubble is a picture of its own the
 same way.
 
+## Status
+
+The display reports `displayPhase` through core's `computeDisplayStatusPhase`
+and renders through `DisplayStatusChrome`, so an error, the loading scrim and
+the too-large banner sit inside the track's box rather than below its clip, and
+the app's readiness waits for the first graph. It is `loading` until a graph is
+drawn, suppressed for a minimized track, an empty viewport or an unmounted view
+body as core's displays are. A backend failure is folded into the error phase,
+and GraphCanvas shows it with the render hook's retry.
+
 ## The tier
 
 `RgfaTabixAdapter`'s `coarse` slot names a second segments/links pair at one
 node per bubble, and `aboveBpPerPx`, the zoom past which a settle cuts it. A
 coarse cut has no bp cap, since `maxGraphNodes` counts what came back; it asks
-for no hops, and reads no bubble index, since its nodes are the bubbles.
-`coarseCut` is persisted in the pane, so a restored session re-makes the cut it
-saved. The segments lane (`LinearBasicDisplay` on the same track) does not
-switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
+for no hops, and reads no bubble index, since its nodes are the bubbles. The
+display persists `cutRegion` and `coarseCut`, so a restored session re-makes the
+cut it saved. The segments lane (`LinearBasicDisplay` on the same track) does
+not switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
 ## Height
 
-The display's `height` follows the pane's `canvasHeight`, which is the layout's
-height up to a ceiling; the config's `height` and a drag on the track's handle
-set that ceiling (`setPaneHeight`). While the host places x the pane holds its
-height across a re-cut (`hostPaneHeight`), so more rows arriving does not move
-the tracks below while the view is being dragged.
+The drawing is the track's height (`canvasHeight` is the display's `height`):
+the config's `height` and a drag on the track's handle, as on any track.
+`paneHeight` only applies to a standalone view.
 
 ## Across a re-cut
 
+- The ramp spans `graphRegion`, the region of the graph on screen, which is set
+  with the graph. `cutRegion` moves before the fetch; reading it painted the old
+  graph against the new window on every re-cut.
 - The selection is found again by node id. An edge index means nothing in
   another graph, so the hover goes.
 - The sample rows' order: the layout is handed the rows on screen, and a sample
   new to the window goes below them.
-- Each cut sets the span of the reference-position ramp, so a re-cut re-spans
-  it.
 
 Fetch ordering needed nothing new: `beginLoad` and `liveLoad` let only the
-latest cut asked for land.
+latest cut asked for land, and removing the track aborts its cut. Each track
+cuts through its own RPC session.
 
 ## What the standalone view keeps
 
 `GraphGenomeView` opens a whole GFA file (**Add → Graph genome view**) or a
-session-spec launch, with its own pan, zoom and fit. The linear view's launch
-entries are gone: the graph is a track, opened like any other.
+session-spec launch, with its own pan, zoom and fit. A stated
+`loadedTrackId`/`loadedRegion` pair, which 4.0 sessions and the docs' specs
+carry, is cut once on attach; following the linear view is the track's job.
+
+## Snapshots
+
+A 4.0 track entry nests the graph's state as `pane: {...}`, which the display
+folds flat. Entries now state `layoutMode` and `colorScheme` flat, and
+`paneHeight` is inert in a track; use `height`.
