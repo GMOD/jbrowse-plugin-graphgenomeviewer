@@ -23,6 +23,7 @@ import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import stateModelFactory from './viewModel'
 
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
+import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph } from '@jbrowse/bandage-core/types'
 
 const mockRpcCall = vi.fn()
@@ -141,6 +142,18 @@ function rpcRespond() {
     }
     return Promise.reject(new Error(`Unexpected RPC: ${method}`))
   })
+}
+
+function fakeRenderer() {
+  return {
+    resize: () => {},
+    uploadGeometry: () => {},
+    updateTransform: () => {},
+    render: () => {},
+    setNodeHighlights: () => {},
+    setEdgeHighlight: () => {},
+    dispose: () => {},
+  } as unknown as Renderer
 }
 
 function createModel() {
@@ -1238,6 +1251,17 @@ describe('zoomToFit on a tube map', () => {
     expect(tubePx(model)).toBeCloseTo(5, 10)
     expect(bounds.minX * model.scale + model.translateX).toBeCloseTo(40, 5)
     expect(model.canvasHeight).toBe(Math.max(160, bounds.h * model.scale + 80))
+  })
+
+  // An action's reads are untracked, so an autorun that called zoomToFit
+  // refitted on a new layout and on nothing else
+  test('a view the user has not moved refits when its pane widens', async () => {
+    const model = await tubeMap(2)
+    model.startRenderingBackend(fakeRenderer())
+    const before = model.scale
+
+    model.setWidth(model.width * 2)
+    expect(model.scale).toBeGreaterThan(before)
   })
 
   test('a cut that fits with wider tubes still fits whole', async () => {

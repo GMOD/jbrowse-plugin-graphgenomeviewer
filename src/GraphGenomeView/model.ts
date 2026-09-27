@@ -69,7 +69,11 @@ import {
   tubeMapFrame,
   tubeMapNodeAt,
 } from '@jbrowse/bandage-core/tubeMap/frame'
-import { tubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
+import {
+  GENE_ROW_PX,
+  tubeMapGeneRows,
+  tubeMapGenes,
+} from '@jbrowse/bandage-core/tubeMap/genes'
 import {
   axisScaleOf,
   contains,
@@ -1090,70 +1094,6 @@ export function GraphPaneMixin() {
             })
           : undefined
       },
-      // The pane is as tall as the drawing, rather than a fixed box the drawing
-      // floats in the middle of.
-      //
-      // A row layout says how tall it is outright: rows are px, so the drawing's
-      // height is the row count times the pitch and this is a sum, not a
-      // derivation. It used to be derived from the drawing's ASPECT RATIO
-      // against the x-fit scale, because y was in bp and a height in px did not
-      // exist until a scale was chosen — which is also why a ceiling had to be
-      // put on the row pitch to stop tall graphs from binding the fit on the
-      // wrong axis. Both are gone with the unit.
-      //
-      // An isotropic layout still has no height of its own and keeps the aspect
-      // derivation. It reads neither `scale` nor the height it is replacing, so
-      // zoomToFit consumes this without feeding back into it.
-      get canvasHeight() {
-        const bounds = this.layoutBounds
-        const usableWidth = self.paneWidth - FIT_PADDING * 2
-        const ceiling = this.paneCeiling
-        if (!bounds) {
-          return ceiling
-        }
-        if (self.pixelRows) {
-          // The variant map's drawing is one line; its glyphs and labels are
-          // painted above it by the overlay and need the room a row layout
-          // would give to rows.
-          const floor =
-            self.chosenLayoutMode === 'variants'
-              ? VARIANT_MAP_HEIGHT
-              : MIN_CANVAS_HEIGHT
-          return Math.min(ceiling, Math.max(floor, bounds.h + FIT_PADDING * 2))
-        }
-        return bounds.w > 0 && usableWidth > 0
-          ? Math.min(
-              ceiling,
-              Math.max(
-                MIN_CANVAS_HEIGHT,
-                bounds.h * Math.max(usableWidth / bounds.w, this.minFitScale) +
-                  FIT_PADDING * 2,
-              ),
-            )
-          : ceiling
-      },
-      // `paneHeight` replaces the built-in ceiling rather than adding a second
-      // clamp under it, and the floor still wins: a pane shorter than
-      // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its tooltip,
-      // which is the reason that floor exists.
-      get paneCeiling() {
-        return Math.max(MIN_CANVAS_HEIGHT, self.paneHeight ?? MAX_CANVAS_HEIGHT)
-      },
-      // A tube map on its own axis reads by panning along it, as in
-      // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
-      // stops where its tubes are MIN_FIT_TUBE_PX wide, or at whatever fits
-      // the tallest pane, with the cut's left end on screen.
-      get minFitScale() {
-        const bounds = this.layoutBounds
-        const layout = self.layoutResult
-        const tubePx = layout?.tubeMap?.layout.tracks[0]?.width
-        return bounds && bounds.h > 0 && tubePx && !layout.referenceAxis
-          ? Math.min(
-              MIN_FIT_TUBE_PX / tubePx,
-              (this.paneCeiling - FIT_PADDING * 2) / bounds.h,
-            )
-          : 0
-      },
     }))
     .views(self => ({
       get geneTrack() {
@@ -1371,9 +1311,6 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      get overlayLabels() {
-        return layoutLabels(self)
-      },
       get hostFrame() {
         const { host, graphRegion } = self
         return self.hostPlacesX && host && graphRegion
@@ -1407,6 +1344,96 @@ export function GraphPaneMixin() {
           ? tubeMapGenes(reference, self.backboneGenes)
           : []
       },
+    }))
+    .views(self => ({
+      // `paneHeight` replaces the built-in ceiling rather than adding a second
+      // clamp under it, and the floor still wins: a pane shorter than
+      // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its tooltip,
+      // which is the reason that floor exists.
+      get paneCeiling() {
+        return Math.max(MIN_CANVAS_HEIGHT, self.paneHeight ?? MAX_CANVAS_HEIGHT)
+      },
+      // Room over a tube map for the rows its genes need, one inside the
+      // padding and one more for each further gene that overlaps it
+      get fitPadTop() {
+        const rows = tubeMapGeneRows(self.tubeMapGenes)
+        return FIT_PADDING + Math.max(0, rows - 1) * GENE_ROW_PX
+      },
+      // A tube map on its own axis reads by panning along it, as in
+      // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
+      // stops where its tubes are MIN_FIT_TUBE_PX wide, or at whatever fits
+      // the tallest pane, with the cut's left end on screen.
+      get minFitScale() {
+        const bounds = self.layoutBounds
+        const layout = self.layoutResult
+        const tubePx = layout?.tubeMap?.layout.tracks[0]?.width
+        return bounds && bounds.h > 0 && tubePx && !layout.referenceAxis
+          ? Math.min(
+              MIN_FIT_TUBE_PX / tubePx,
+              (this.paneCeiling - this.fitPadTop - FIT_PADDING) / bounds.h,
+            )
+          : 0
+      },
+      // The pane is as tall as the drawing, rather than a fixed box the drawing
+      // floats in. A row layout's rows are px, so its height is a sum; an
+      // isotropic layout has no height of its own and takes its aspect ratio
+      // at the width's fit. Neither reads `scale`, so the fit reads this
+      // without feeding back into it.
+      get canvasHeight() {
+        const bounds = self.layoutBounds
+        const usableWidth = self.paneWidth - FIT_PADDING * 2
+        const ceiling = this.paneCeiling
+        if (!bounds) {
+          return ceiling
+        }
+        if (self.pixelRows) {
+          // The variant map's drawing is one line; its glyphs and labels are
+          // painted above it by the overlay and need the room a row layout
+          // would give to rows.
+          const floor =
+            self.chosenLayoutMode === 'variants'
+              ? VARIANT_MAP_HEIGHT
+              : MIN_CANVAS_HEIGHT
+          return Math.min(
+            ceiling,
+            Math.max(floor, bounds.h + this.fitPadTop + FIT_PADDING),
+          )
+        }
+        return bounds.w > 0 && usableWidth > 0
+          ? Math.min(
+              ceiling,
+              Math.max(
+                MIN_CANVAS_HEIGHT,
+                bounds.h * Math.max(usableWidth / bounds.w, this.minFitScale) +
+                  this.fitPadTop +
+                  FIT_PADDING,
+              ),
+            )
+          : ceiling
+      },
+      // Where the fit puts the drawing, or undefined until there is a layout
+      // and a measured canvas to fit it into
+      get fittedTransform() {
+        const bounds = self.layoutBounds
+        return bounds
+          ? fitTransform(
+              bounds,
+              self.paneWidth,
+              this.canvasHeight,
+              self.pixelRows,
+              {
+                minScale: this.minFitScale,
+                padLeft: self.fitPadLeft,
+                padTop: this.fitPadTop,
+              },
+            )
+          : undefined
+      },
+    }))
+    .views(self => ({
+      get overlayLabels() {
+        return layoutLabels(self)
+      },
       get tubeMapFrame() {
         const drawing = self.layoutResult?.tubeMap
         return drawing
@@ -1415,7 +1442,7 @@ export function GraphPaneMixin() {
               translateX: self.translateX,
               scaleY: self.scaleY,
               translateY: self.translateY,
-              usableHeight: self.canvasHeight - FIT_PADDING * 2,
+              usableHeight: self.canvasHeight - self.fitPadTop - FIT_PADDING,
             })
           : undefined
       },
@@ -1698,10 +1725,10 @@ export function GraphPaneMixin() {
         self.positionsVersion++
       },
       zoomToFit() {
-        const bounds = self.layoutBounds
-        const usableHeight = self.canvasHeight - FIT_PADDING * 2
         // A host owns x, so a fit while hosted places the rows only.
         if (self.viewportOwner === 'host') {
+          const bounds = self.layoutBounds
+          const usableHeight = self.canvasHeight - FIT_PADDING * 2
           if (bounds && usableHeight > 0) {
             self.translateY = fittedTranslateY(
               bounds,
@@ -1711,18 +1738,10 @@ export function GraphPaneMixin() {
           }
           return
         }
-        // Nothing to fit into before the canvas is measured. The autorun re-runs
-        // once width lands, so skipping beats persisting a negative scale into
-        // the session snapshot.
-        const fit = bounds
-          ? fitTransform(
-              bounds,
-              self.paneWidth,
-              self.canvasHeight,
-              self.pixelRows,
-              { minScale: self.minFitScale, padLeft: self.fitPadLeft },
-            )
-          : undefined
+        // Nothing to fit into before the canvas is measured. The fit autorun
+        // runs again once width lands, so skipping beats persisting a negative
+        // scale into the session snapshot.
+        const fit = self.fittedTransform
         if (fit) {
           self.scale = fit.scale
           self.translateX = fit.translateX
@@ -2401,16 +2420,16 @@ export function GraphPaneMixin() {
       startRenderingBackend(backend: Renderer) {
         if (!self.autorunsInstalled) {
           // Autorun: keep the view fitted to the graph until the user moves it.
-          // Reads layoutResult plus (via zoomToFit) width/canvasHeight, so it
-          // re-fires — and re-fits — as the layout arrives and the canvas is
-          // measured, rather than firing once against not-yet-known dimensions.
-          // A manual pan/zoom (or a restored-session transform) makes the
-          // viewport the user's, and a host makes it the linear view's.
+          // Reading fittedTransform tracks everything the fit depends on, so
+          // it re-fits as the layout arrives, the canvas is measured and the
+          // genes over a tube map claim their rows. A manual pan/zoom (or a
+          // restored-session transform) makes the viewport the user's, and a
+          // host makes it the linear view's.
           addDisposer(
             self,
             autorun(() => {
               if (
-                self.layoutResult &&
+                self.fittedTransform &&
                 untracked(() => self.viewportOwner === 'fit')
               ) {
                 self.zoomToFit()
