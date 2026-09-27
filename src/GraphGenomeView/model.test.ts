@@ -2609,7 +2609,7 @@ describe('annotation reads beside a cut', () => {
 // GRCh38 and CHM13 walk chr6 at overlapping coordinates, so hg38's HLA-A lies
 // over segment 1 whichever walk x is drawn along. Only GRCh38's is hg38's.
 describe('genes on a backbone of another assembly', () => {
-  const CHR6_WALKS = [
+  const SEGMENTS = [
     'S\t1\tAAAAAAAAAA',
     'S\t2\tCCCCCCCCCC',
     'S\t3\tGGGGGGGGGG',
@@ -2618,27 +2618,33 @@ describe('genes on a backbone of another assembly', () => {
     'L\t1\t+\t3\t+\t0M',
     'L\t2\t+\t4\t+\t0M',
     'L\t3\t+\t4\t+\t0M',
-    'W\tGRCh38\t0\tchr6\t1000\t1030\t>1>2>4',
-    'W\tCHM13\t0\tchr6\t1005\t1035\t>1>3>4',
-    '',
-  ].join('\n')
+  ]
+  // A gbz-base cut writes the track's reference walk first
+  const gfaOf = (...walks: string[]) => [...SEGMENTS, ...walks, ''].join('\n')
+  const GRCH38 = 'W\tGRCh38\t0\tchr6\t1000\t1030\t>1>2>4'
+  const CHM13 = 'W\tCHM13\t0\tchr6\t1005\t1035\t>1>3>4'
+  const CHR6_WALKS = gfaOf(GRCH38, CHM13)
   // The same alleles named the way an older graph does, with no PanSN prefix to
   // say whose chr6 each is
-  const BARE_CHR6_PATHS = [
-    ...CHR6_WALKS.split('\n').filter(line => /^[SL]/.test(line)),
+  const BARE_CHR6_PATHS = gfaOf(
     'P\tchr6:1000-1030\t1+,2+,4+\t*',
     'P\tCHM13_chr6:1005-1035\t1+,3+,4+\t*',
-    '',
-  ].join('\n')
+  )
   const BARE_CHR6_RGFA = [
     'S\t1\tAAAAAAAAAA\tSN:Z:chr6\tSO:i:1000\tSR:i:0',
     'S\t2\tCCCCCCCCCC\tSN:Z:chr6\tSO:i:1010\tSR:i:0',
     'S\t3\tGGGGGGGGGG\tSN:Z:CHM13_chr6\tSO:i:1015\tSR:i:1',
     'S\t4\tTTTTTTTTTT\tSN:Z:chr6\tSO:i:1020\tSR:i:0',
-    ...CHR6_WALKS.split('\n').filter(line => line.startsWith('L')),
+    ...SEGMENTS.filter(line => line.startsWith('L')),
     '',
   ].join('\n')
+  // chr6 bp that only GRCh38's walk covers, only CHM13's, and both
+  const ON_GRCH38 = { start: 1000, end: 1004 }
+  const ON_CHM13 = { start: 1031, end: 1034 }
+  const ON_BOTH = { start: 1012, end: 1018 }
+
   let gfa = CHR6_WALKS
+  let geneAt = { refName: 'chr6', start: 1002, end: 1008 }
   const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
   const adapterOnly = (obj: Record<string, unknown>, key: string) =>
     key === 'adapter' ? obj.adapter : undefined
@@ -2659,20 +2665,13 @@ describe('genes on a backbone of another assembly', () => {
     vi.mocked(readConfObject).mockImplementation(bySlot)
     sessionWith('hg38')
     gfa = CHR6_WALKS
+    geneAt = { refName: 'chr6', start: 1002, end: 1008 }
     mockRpcCall.mockReset()
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve(gfa)
         : method === 'CoreGetFeatures'
-          ? Promise.resolve([
-              {
-                type: 'gene',
-                name: 'HLA-A',
-                refName: 'chr6',
-                start: 1002,
-                end: 1008,
-              },
-            ])
+          ? Promise.resolve([{ type: 'gene', name: 'HLA-A', ...geneAt }])
           : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
   })
@@ -2695,7 +2694,7 @@ describe('genes on a backbone of another assembly', () => {
     })
     await model.cutSubgraph(
       {},
-      { refName: 'chr6', assemblyName, start: 1000, end: 1030 },
+      { refName: geneAt.refName, assemblyName, start: 1000, end: 1035 },
     )
     return model
   }
@@ -2703,6 +2702,12 @@ describe('genes on a backbone of another assembly', () => {
   type Model = Awaited<ReturnType<typeof cutFor>>
   const pinned = (model: Model) => model.genePins.map(p => p.gene.name)
   const tubeMapped = (model: Model) => model.tubeMapGenes.map(g => g.gene.name)
+
+  async function drawAlong(model: Model, path: string) {
+    model.setReferencePath(path)
+    await model.recomputeLayout()
+    expect(model.activeReferencePath).toBe(path)
+  }
 
   test.each([
     ['auto', pinned],
@@ -2714,21 +2719,22 @@ describe('genes on a backbone of another assembly', () => {
       expect(model.activeReferencePath).toBe('GRCh38#0#chr6')
       expect(drawn(model)).toEqual(['HLA-A'])
 
-      model.setReferencePath('CHM13#0#chr6')
-      await model.recomputeLayout()
-      expect(model.activeReferencePath).toBe('CHM13#0#chr6')
+      await drawAlong(model, 'CHM13#0#chr6')
       expect(model.geneFeatures).toHaveLength(1)
       expect(drawn(model)).toEqual([])
 
-      model.setReferencePath('GRCh38#0#chr6')
-      await model.recomputeLayout()
+      await drawAlong(model, 'GRCh38#0#chr6')
       expect(drawn(model)).toEqual(['HLA-A'])
     },
   )
 
-  test('an assembly binds by its session aliases or its PanSN prefix', async () => {
+  test('an assembly’s session aliases or PanSN prefix put x on its walk', async () => {
+    gfa = gfaOf(CHM13, GRCH38)
+    geneAt = { refName: 'chr6', ...ON_GRCH38 }
     sessionWith('mine')
-    expect(pinned(await cutFor('mine'))).toEqual([])
+    const unnamed = await cutFor('mine')
+    expect(unnamed.activeReferencePath).toBe('CHM13#0#chr6')
+    expect(pinned(unnamed)).toEqual([])
 
     mockSession.assemblyNames = ['mine']
     mockSession.assemblyAliases = { GRCh38: 'mine' }
@@ -2737,6 +2743,110 @@ describe('genes on a backbone of another assembly', () => {
     mockSession.assemblyAliases = {}
     sessionWith('mine', { assemblyNameToPanSN: { mine: 'GRCh38#0' } })
     expect(pinned(await cutFor('mine'))).toEqual(['HLA-A'])
+  })
+
+  test('an assemblyNameToPanSN keyed by a session alias puts x on its walk', async () => {
+    gfa = gfaOf(CHM13, GRCH38)
+    geneAt = { refName: 'chr6', ...ON_GRCH38 }
+    mockSession.assemblyNames = ['mine']
+    mockSession.assemblyAliases = { 'GRCh38.p14': 'mine' }
+    sessionWith('mine', { assemblyNameToPanSN: { 'GRCh38.p14': 'GRCh38#0' } })
+    const model = await cutFor('mine')
+    expect(model.activeReferencePath).toBe('GRCh38#0#chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+  })
+
+  // gbz-base writes a reference path that names no sample as `_gbwt_ref`
+  test('a vg graph’s generic reference takes its track’s genes', async () => {
+    gfa = gfaOf(
+      'W\t_gbwt_ref\t0\tchr6\t1000\t1030\t>1>2>4',
+      'W\tHG002\t1\tchr6\t1005\t1035\t>1>3>4',
+    )
+    const model = await cutFor('hg38')
+    expect(model.activeReferencePath).toBe('_gbwt_ref#0#chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+
+    await drawAlong(model, 'HG002#1#chr6')
+    expect(pinned(model)).toEqual([])
+
+    await drawAlong(model, '_gbwt_ref#0#chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+  })
+
+  // The adapter cuts along its referenceSample, else along the database's only
+  // reference sample, and names neither after the assembly
+  test.each([
+    [
+      'the referenceSample slot',
+      'T2T-CHM13v2.0',
+      { type: 'GbzBaseSyntenyAdapter', referenceSample: 'CHM13' },
+      gfaOf(CHM13, GRCH38),
+      { refName: 'chr6', ...ON_CHM13 },
+    ],
+    [
+      'the only reference sample',
+      'mm39',
+      { type: 'GbzBaseSyntenyAdapter' },
+      gfaOf(
+        'W\tC57BL_6J\t0\tchr17\t1000\t1030\t>1>2>4',
+        'W\tDBA_2J\t1\tchr17\t1005\t1035\t>1>3>4',
+      ),
+      { refName: 'chr17', ...ON_GRCH38 },
+    ],
+  ])(
+    'the walk a GBZ track cuts along with %s takes its genes',
+    async (_how, assemblyName, adapter, walks, at) => {
+      gfa = walks
+      geneAt = at
+      sessionWith(assemblyName, adapter)
+      const model = await cutFor(assemblyName)
+      expect(pinned(model)).toEqual(['HLA-A'])
+    },
+  )
+
+  test('a re-cut keeps the genes off a walk the user drew x along', async () => {
+    gfa = gfaOf(CHM13, GRCH38)
+    geneAt = { refName: 'chr6', ...ON_BOTH }
+    sessionWith('T2T-CHM13v2.0', {
+      type: 'GbzBaseSyntenyAdapter',
+      referenceSample: 'CHM13',
+    })
+    const model = await cutFor('T2T-CHM13v2.0')
+    expect(pinned(model)).toEqual(['HLA-A'])
+
+    await drawAlong(model, 'GRCh38#0#chr6')
+    expect(pinned(model)).toEqual([])
+
+    const region = model.graphRegion
+    await model.cutSubgraph(
+      {},
+      {
+        refName: 'chr6',
+        assemblyName: 'T2T-CHM13v2.0',
+        start: 1005,
+        end: 1035,
+      },
+    )
+    expect(model.graphRegion).not.toBe(region)
+    expect(model.activeReferencePath).toBe('GRCh38#0#chr6')
+    expect(pinned(model)).toEqual([])
+
+    await drawAlong(model, 'CHM13#0#chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+  })
+
+  test('a diploid’s sample-level name leaves the other haplotype bare', async () => {
+    gfa = gfaOf(
+      'W\tHG002\t1\tchr6\t1000\t1030\t>1>2>4',
+      'W\tHG002\t2\tchr6\t1000\t1030\t>1>3>4',
+    )
+    sessionWith('HG002.1', { assemblyNameToPanSN: { 'HG002.1': 'HG002' } })
+    const model = await cutFor('HG002.1')
+    expect(model.activeReferencePath).toBe('HG002#1#chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+
+    await drawAlong(model, 'HG002#2#chr6')
+    expect(pinned(model)).toEqual([])
   })
 
   test('a bare rGFA takes the assembly its track puts it on', async () => {
@@ -2755,15 +2865,12 @@ describe('genes on a backbone of another assembly', () => {
     expect(model.activeReferencePath).toBe('chr6')
     expect(pinned(model)).toEqual(['HLA-A'])
 
-    model.setReferencePath('CHM13_chr6')
-    await model.recomputeLayout()
-    expect(model.activeReferencePath).toBe('CHM13_chr6')
+    await drawAlong(model, 'CHM13_chr6')
     expect(model.geneFeatures).toHaveLength(1)
     expect(model.backboneGenes).toBeUndefined()
     expect(pinned(model)).toEqual([])
 
-    model.setReferencePath('chr6')
-    await model.recomputeLayout()
+    await drawAlong(model, 'chr6')
     expect(pinned(model)).toEqual(['HLA-A'])
   })
 })

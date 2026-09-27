@@ -4,6 +4,7 @@ const mockRpcCall = vi.fn()
 const mockSession = {
   tracks: [] as Record<string, unknown>[],
   rpcManager: { call: mockRpcCall },
+  assemblyManager: { has: () => false },
 }
 
 vi.mock('@jbrowse/core/util', () => ({

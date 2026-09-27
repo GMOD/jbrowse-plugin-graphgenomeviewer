@@ -46,6 +46,7 @@ import {
   loadGraph,
 } from '@jbrowse/bandage-core/pipeline'
 import {
+  assemblyWalk,
   backboneAssembly,
   featuresOnBackbone,
   graphBackbone,
@@ -156,6 +157,7 @@ import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds, EngineRequest } from '@jbrowse/bandage-core/pipeline'
+import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
 import type {
   RenderBatch,
   Renderer,
@@ -486,6 +488,11 @@ export function GraphPaneMixin() {
       graph: undefined as Graph | undefined,
       // the reference window the graph on screen was cut for, set with it
       graphRegion: undefined as SubgraphRegion | undefined,
+      // The walk the track's graph lies on for the region's assembly, which
+      // the track's config declares; x starts along it unless the user chose
+      // another. Undefined for an rGFA, whose backbone is fixed, and for a
+      // graph with no region.
+      loadedReferencePath: undefined as string | undefined,
       layoutResult: undefined as LayoutResult | undefined,
       // what the legends in the pane's top-right corner measure, so no label
       // is placed under them
@@ -861,60 +868,56 @@ export function GraphPaneMixin() {
       get backbone() {
         return self.graph ? graphBackbone(self.graph) : undefined
       },
-      // The assembly the genes were read for, by each name a backbone may
-      // spell it with: the session's name and aliases, and the PanSN prefix
-      // the source track maps each of those to.
-      get geneAssembly() {
-        const region = self.graphRegion
-        if (!region) {
-          return undefined
-        }
+      // An assembly by each name a backbone may spell it with: the session's
+      // name and aliases, and the PanSN prefix the source track maps each of
+      // those to.
+      assemblySpellings(assemblyName: string): AssemblyNames {
         const { assemblyManager } = getSession(self)
-        const assembly = assemblyManager.has(region.assemblyName)
-          ? assemblyManager.get(region.assemblyName)
+        const assembly = assemblyManager.has(assemblyName)
+          ? assemblyManager.get(assemblyName)
           : undefined
         const panSN = (self.sourceAdapter?.assemblyNameToPanSN ?? {}) as Record<
           string,
           string
         >
         const names = [
-          region.assemblyName,
+          assemblyName,
           ...(assembly ? [assembly.name, ...assembly.aliases] : []),
         ]
         return {
-          name: region.assemblyName,
+          name: assemblyName,
           aliases: [...names, ...names.flatMap(n => panSN[n] ?? [])],
         }
       },
-      // Whether x lies along the reference the graph came with, not a walk
-      // "Draw x along" picked: an rGFA states its own, and a path graph infers
-      // one from the cut's assembly.
+      // Whether x lies along the reference the track's graph came with, not a
+      // walk "Draw x along" picked. An rGFA's backbone is fixed.
       get drawsLoadedReference() {
         const graph = self.graph
         return (
           graph?.anchoredBy === 'tags' ||
-          (graph?.anchorPaths !== undefined &&
-            graph.referencePath ===
-              chooseReferencePath(
-                graph.anchorPaths,
-                self.graphRegion?.assemblyName,
-              )?.name)
+          (graph?.referencePath !== undefined &&
+            graph.referencePath === self.loadedReferencePath)
         )
       },
     }))
     .views(self => ({
-      // The genes on the drawn backbone under its own refNames. The backbone
-      // takes the genes' assembly by its PanSN prefix, or, with bare contig
-      // names, by being the reference the track's graph came with, so "Draw x
-      // along" another walk leaves it none.
+      // the assembly the genes were read for
+      get geneAssembly() {
+        const region = self.graphRegion
+        return region ? self.assemblySpellings(region.assemblyName) : undefined
+      },
+    }))
+    .views(self => ({
+      // The genes on the drawn backbone under its own refNames. The track's
+      // config puts its reference on the cut's assembly, whatever the walk's
+      // name. After "Draw x along" another walk, the backbone takes the genes
+      // only where its PanSN prefix names their assembly.
       get backboneGenes() {
         const { backbone, geneAssembly, geneFeatures } = self
         const binds =
-          backbone &&
-          geneAssembly &&
-          (backboneAssembly(backbone, [geneAssembly]) ??
-            (backbone.contigs.every(c => c.refName === c.contig) &&
-              self.drawsLoadedReference))
+          self.drawsLoadedReference ||
+          (geneAssembly !== undefined &&
+            backboneAssembly(backbone, [geneAssembly]) !== undefined)
         return backbone && geneFeatures && binds
           ? featuresOnBackbone(geneFeatures, backbone)
           : undefined
@@ -2043,6 +2046,20 @@ export function GraphPaneMixin() {
         return live
       }
 
+      // The walk a path graph's track puts on the region's assembly: the one
+      // that names it, else the one chooseReferencePath infers
+      function loadedReference(graph: Graph, region: SubgraphRegion) {
+        const paths = graph.anchorPaths
+        return graph.anchoredBy === 'paths' && paths
+          ? (
+              assemblyWalk(
+                graph,
+                self.assemblySpellings(region.assemblyName),
+              ) ?? chooseReferencePath(paths, region.assemblyName)
+            )?.name
+          : undefined
+      }
+
       // `keepSelection` for a re-cut of the same source: node ids survive one
       // where edge indexes do not, so the selection is found again by id.
       // `readsOf` fetches the reads over the parsed graph before its one
@@ -2056,10 +2073,17 @@ export function GraphPaneMixin() {
       ) {
         const signal = loadController?.signal
         self.setStatusMessage('Parsing GFA')
-        const graph = loadGraph(text, name, {
+        const parsed = loadGraph(text, name, {
           referencePath: self.referencePath || region?.assemblyName,
           maxNodes: self.maxGraphNodes,
         })
+        const loaded = region ? loadedReference(parsed, region) : undefined
+        const graph =
+          !self.referencePath &&
+          loaded !== undefined &&
+          loaded !== parsed.referencePath
+            ? anchorFromPaths(parsed, loaded)
+            : parsed
         if (readsOf) {
           self.setStatusMessage('Reading alignments')
           try {
@@ -2082,6 +2106,7 @@ export function GraphPaneMixin() {
         const selected = keepSelection ? self.selectedNode : null
         self.graph = graph
         self.graphRegion = region
+        self.loadedReferencePath = loaded
         self.indexBubbles = undefined
         self.geneFeatures = undefined
         self.repeatArrays = undefined
@@ -2269,6 +2294,7 @@ export function GraphPaneMixin() {
           abortLoad()
           self.graph = undefined
           self.graphRegion = undefined
+          self.loadedReferencePath = undefined
           self.layoutResult = undefined
           self.indexBubbles = undefined
           self.geneFeatures = undefined
