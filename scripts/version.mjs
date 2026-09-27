@@ -7,7 +7,7 @@ execSync('git add src/version.ts')
 execSync(`git-cliff --tag v${version} --unreleased --prepend CHANGELOG.md`)
 execSync('git add CHANGELOG.md')
 
-// Every plugin release ships @jbrowse/bandage-core too: publish.yml publishes
-// both from the v* tag, so the core takes a patch bump here.
+// Every plugin release ships @jbrowse/bandage-core too: publish-core.yml
+// publishes it from the same v* tag, so the core takes a patch bump here.
 execSync('npm version patch --no-git-tag-version', { cwd: 'packages/core' })
 execSync('git add packages/core/package.json')
