@@ -4,6 +4,7 @@ import {
 } from '@jbrowse/bandage-core/anchoredNodes'
 import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
+import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { bubblesFromGraph } from '@jbrowse/bandage-core/bubbles/bubblesFromGraph'
 import {
   BUBBLE_KIND_NAMES,
@@ -526,6 +527,11 @@ export function GraphPaneMixin() {
       loadCanceled: false,
       statusMessage: '',
       hoveredNode: null as string | null,
+      // the bubble whose label the pointer is on
+      hoveredBubble: null as MinigraphBubble | null,
+      // whether the pointer is over this pane, whose own hit test then says
+      // what it is on
+      pointerInPane: false,
       hoveredEdge: null as number | null,
       selectedNode: null as string | null,
       viewportDirty: 0,
@@ -1166,34 +1172,41 @@ export function GraphPaneMixin() {
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },
-      // The reference interval of the hovered node, for a connected linear view
-      // to highlight. Only a graph cut from a track has one: a whole-file import
-      // has no region, and its stable names need not name anything in a loaded
-      // assembly.
-      get hoverHighlight() {
-        let result:
-          | {
-              refName: string
-              assemblyName: string
-              start: number
-              end: number
-            }
-          | undefined
-        const region = self.graphRegion
+      // A node's reference interval, an allele's between its flanks
+      nodeSpan(nodeId: string) {
+        const { nodeById, nodeNeighbors: neighbors } = self
+        return nodeById && neighbors
+          ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+          : undefined
+      },
+    }))
+    .views(self => ({
+      // The reference interval under the pointer: the hovered node's, or the
+      // hovered bubble's
+      get hoveredSpan() {
         const nodeId = self.hoveredNode
-        const nodeById = self.nodeById
-        const neighbors = self.nodeNeighbors
-        if (region && nodeId !== null && nodeById && neighbors) {
-          const span = nodeReferenceSpan({ nodeId, nodeById, neighbors })
-          if (span) {
-            result = {
+        const bubble = self.hoveredBubble
+        return nodeId !== null
+          ? self.nodeSpan(nodeId)
+          : bubble
+            ? { start: bubble.start, end: bubble.end }
+            : undefined
+      },
+    }))
+    .views(self => ({
+      // The hovered span, for a connected linear view to highlight. Only a
+      // graph cut from a track has one: a whole-file import has no region, and
+      // its stable names need not name anything in a loaded assembly.
+      get hoverHighlight() {
+        const region = self.graphRegion
+        const span = self.hoveredSpan
+        return region && span
+          ? {
               refName: region.refName,
               assemblyName: region.assemblyName,
               ...span,
             }
-          }
-        }
-        return result
+          : undefined
       },
     }))
     .views(self => ({
@@ -1445,27 +1458,31 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      // The lit node's reference span, an allele's by its flanks, and where
-      // the graph drew it
+      // The lit span on the strip, and where the graph drew what it is of:
+      // the hovered node, the hovered bubble's name, or the selected node
       get referenceStripLit() {
-        const nodeId = self.hoveredNode ?? self.selectedNode
-        const { nodeById, nodeNeighbors: neighbors } = self
-        if (
-          !self.referenceStripShown ||
-          nodeId === null ||
-          !nodeById ||
-          !neighbors
-        ) {
+        if (!self.referenceStripShown) {
           return undefined
         }
-        const span = nodeReferenceSpan({ nodeId, nodeById, neighbors })
-        return span
+        const toScreen = (p: { x: number; y: number }) => ({
+          x: p.x * self.scaleX + self.translateX,
+          y: p.y * self.scaleY + self.translateY,
+        })
+        const bubble = self.hoveredNode === null ? self.hoveredBubble : null
+        if (bubble) {
+          const halo = self.bubbleHalos.find(h => sameBubble(h.bubble, bubble))
+          return {
+            start: bubble.start,
+            end: bubble.end,
+            anchor: halo ? toScreen(halo.labelAt) : undefined,
+          }
+        }
+        const nodeId = self.hoveredNode ?? self.selectedNode
+        const span = nodeId === null ? undefined : self.nodeSpan(nodeId)
+        return span && nodeId !== null
           ? {
               ...span,
-              anchor: nodeAnchor(self.nodePositions?.[nodeId], p => ({
-                x: p.x * self.scaleX + self.translateX,
-                y: p.y * self.scaleY + self.translateY,
-              })),
+              anchor: nodeAnchor(self.nodePositions?.[nodeId], toScreen),
             }
           : undefined
       },
@@ -1776,6 +1793,12 @@ export function GraphPaneMixin() {
       setHoveredNode(nodeId: string | null) {
         self.hoveredNode = nodeId
       },
+      setHoveredBubble(bubble: MinigraphBubble | null) {
+        self.hoveredBubble = bubble
+      },
+      setPointerInPane(inside: boolean) {
+        self.pointerInPane = inside
+      },
       setLegendSize(size: { width: number; height: number }) {
         self.legendSize = size
       },
@@ -1799,6 +1822,7 @@ export function GraphPaneMixin() {
       // is replaced, and by clearGraph.
       clearInteractionState() {
         self.hoveredNode = null
+        self.hoveredBubble = null
         self.hoveredEdge = null
         self.selectedNode = null
         self.draggingNode = null
@@ -2640,6 +2664,9 @@ export function GraphPaneMixin() {
           // LGV writes `{hoverPosition, hoverFeature}` to session.hovered on
           // every mousemove; neither field names the source view, so the guard
           // is that the position lies in the region this graph was cut from.
+          // A pointer over the pane itself is the host's too, at a bp its x
+          // only means on a reference-axis layout, so there the pane's own hit
+          // test is the hover.
           //
           // Only `hovered` is tracked — the graph reads are untracked, so a
           // geometry rebuild can't re-fire this and clobber a hover the canvas
@@ -2652,7 +2679,7 @@ export function GraphPaneMixin() {
               untracked(() => {
                 const region = self.graphRegion
                 const graph = self.graph
-                if (region && graph) {
+                if (region && graph && !self.pointerInPane) {
                   self.setHoveredNode(
                     hover && hoverInRegion(hover, region)
                       ? nodeForLgvHover({ hover, nodes: graph.nodes })
@@ -2692,6 +2719,7 @@ export function GraphPaneMixin() {
               () => `${self.scale}-${self.translateX}-${self.translateY}`,
               () => {
                 self.setHoveredNode(null)
+                self.setHoveredBubble(null)
                 self.setHoveredEdge(null)
               },
               { name: 'GraphClearHoverOnViewportChange' },

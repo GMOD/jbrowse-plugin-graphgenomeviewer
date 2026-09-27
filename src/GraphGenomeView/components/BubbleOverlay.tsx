@@ -111,6 +111,12 @@ const BubbleOverlay = observer(function BubbleOverlay({
                 onClick={() => {
                   void model.popBubble(bubble)
                 }}
+                onMouseEnter={() => {
+                  model.setHoveredBubble(bubble)
+                }}
+                onMouseLeave={() => {
+                  model.setHoveredBubble(null)
+                }}
               >
                 <title>{`${label}\n${bubble.segmentCount} segments · click to open`}</title>
               </path>

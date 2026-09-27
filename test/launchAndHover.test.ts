@@ -348,6 +348,41 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     })
     await screenshot(page, 'demo-04-reference-strip-hover')
 
+    // a bubble's name lights the bubble's span, not the node the linear view
+    // reads under the pointer's x
+    const label = await page.$(
+      `${DISPLAY} [data-testid="graph-bubble-halo-label"]`,
+    )
+    const labelBox = (await label!.boundingBox())!
+    await page.mouse.move(
+      labelBox.x + labelBox.width / 2,
+      labelBox.y + labelBox.height / 2,
+    )
+    const lit = await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        const d = window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0]
+        return {
+          bubble: d.hoveredBubble && [
+            d.hoveredBubble.start,
+            d.hoveredBubble.end,
+          ],
+          highlight: d.hoverHighlight && [
+            d.hoverHighlight.start,
+            d.hoverHighlight.end,
+          ],
+        }
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    expect(lit.bubble).not.toBeNull()
+    expect(lit.highlight).toEqual(lit.bubble)
+    await screenshot(page, 'demo-05-bubble-label-hover')
+
     await page.evaluate(
       ([viewId, trackId]: string[]) => {
         window.JBrowseSession.views

@@ -100,6 +100,9 @@ const LabelLayer = observer(function LabelLayer({
           onClick={() => {
             void model.popBubble(h.bubble)
           }}
+          onHover={hovered => {
+            model.setHoveredBubble(hovered ? h.bubble : null)
+          }}
         />
       ))}
     </svg>

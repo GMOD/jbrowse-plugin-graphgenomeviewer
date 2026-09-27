@@ -743,7 +743,17 @@ const GraphCanvas = observer(function GraphCanvas({
     <div style={wrapperStyle}>
       {ownChrome ? <GraphToolbar model={model} /> : null}
 
-      <div style={canvasAreaStyle}>
+      <div
+        style={canvasAreaStyle}
+        onMouseEnter={() => {
+          model.setPointerInPane(true)
+        }}
+        onMouseLeave={() => {
+          if (isAlive(model)) {
+            model.setPointerInPane(false)
+          }
+        }}
+      >
         <canvas
           ref={canvasRef}
           data-testid="graph-genome-canvas"

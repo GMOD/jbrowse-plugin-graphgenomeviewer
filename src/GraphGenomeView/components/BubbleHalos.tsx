@@ -1,3 +1,4 @@
+import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { HALO_FACTOR } from '@jbrowse/bandage-core/labelLayout'
 import { observer } from 'mobx-react'
@@ -24,7 +25,7 @@ const BubbleHalos = observer(function BubbleHalos({
 }: {
   model: GraphPaneModel
 }) {
-  const { bubbleHalos, walkHighlight } = model
+  const { bubbleHalos, walkHighlight, hoveredBubble } = model
   if (bubbleHalos.length === 0) {
     return null
   }
@@ -60,7 +61,13 @@ const BubbleHalos = observer(function BubbleHalos({
               d={h.path}
               fill="none"
               stroke={BUBBLE_KIND_COLORS[h.kind]}
-              strokeOpacity={dimmedBubble(h) ? 0.06 : 0.22}
+              strokeOpacity={
+                hoveredBubble && sameBubble(h.bubble, hoveredBubble)
+                  ? 0.45
+                  : dimmedBubble(h)
+                    ? 0.06
+                    : 0.22
+              }
               strokeWidth={halo}
               strokeLinecap="round"
               strokeLinejoin="round"

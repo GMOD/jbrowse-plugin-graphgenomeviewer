@@ -48,8 +48,15 @@ Such a drawing gets a reference strip (`packages/core/src/referenceStrip.ts`,
 painted the colour `getNodeColor` gives its node, so the strip and the graph
 cannot disagree about a hue. `fitPadTop` leaves the strip's zone clear, the
 label layout reserves it, and the legends start under it. The lit node's
-`nodeReferenceSpan` is boxed on the strip with a leader to its node. A tube map
-has its own bands and walk rows' bars are lengths, so neither gets a strip.
+`nodeReferenceSpan` is boxed on the strip with a leader to its node, and a
+hovered bubble name lights the bubble's span the same way (`hoveredSpan`). A
+tube map has its own bands and walk rows' bars are lengths, so neither gets a
+strip.
+
+The host's hover reaches the pane through `session.hovered`, and a pointer over
+the pane is the host's too. There the host reads its x as bp, which a force or
+ordered drawing's x is not, so while `pointerInPane` holds the pane's own hit
+test is its only hover source.
 
 ## Status
 

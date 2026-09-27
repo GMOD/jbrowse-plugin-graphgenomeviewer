@@ -14,6 +14,7 @@ export default function LabelChip({
   title,
   testId,
   onClick,
+  onHover,
 }: {
   x: number
   y: number
@@ -26,16 +27,23 @@ export default function LabelChip({
   title?: string
   testId?: string
   onClick?: () => void
+  onHover?: (hovered: boolean) => void
 }) {
   return (
     <g
       style={{
-        pointerEvents: onClick ? 'auto' : 'none',
+        pointerEvents: onClick || onHover ? 'auto' : 'none',
         cursor: onClick ? 'pointer' : undefined,
         opacity: dimmed ? 0.35 : 1,
       }}
       data-testid={testId}
       onClick={onClick}
+      onMouseEnter={() => {
+        onHover?.(true)
+      }}
+      onMouseLeave={() => {
+        onHover?.(false)
+      }}
     >
       {title ? <title>{title}</title> : null}
       <rect

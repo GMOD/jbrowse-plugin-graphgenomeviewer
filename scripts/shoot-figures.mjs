@@ -118,6 +118,16 @@ async function hoverLongestAllele(page) {
 const FIGURES = {
   force_kiv2: forceKiv2Track,
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
+  // six of the eight lack GSTM1; the strip fades HG00133's missing stretch
+  force_gstm1_walk: trackView('chr1:109,670,000-109,705,000', {
+    trackId: GBZ,
+    layoutMode: 'force',
+    colorScheme: 'reference-position',
+    subgraphHaplotypes: HAPLOTYPES,
+    highlightedPath: 'HG00133#1#CM090045.1',
+    showDeletionEdges: true,
+    height: 460,
+  }),
   force_kiv2_popped: {
     session: graphView({
       loadedTrackId: RGFA,
