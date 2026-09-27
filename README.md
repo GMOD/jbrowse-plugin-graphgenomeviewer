@@ -6,10 +6,8 @@ its own for a whole file.
 
 ![KIV-2, force-directed, with its bubbles marked](img/force_kiv2.png)
 
-The LPA KIV-2 window of the HPRC release 2 graph, force-directed: the GRCh38
-backbone runs left to right and the kringle repeat array is the knot of loops in
-the middle. Each bubble is haloed and labelled, and its label opens it on its
-own.
+The LPA KIV-2 window of the HPRC release 2 graph: the GRCh38 backbone runs left
+to right, and the kringle repeat array forms the loops in the middle.
 
 ## Core ideas
 
@@ -39,27 +37,50 @@ own.
 }
 ```
 
-The plugin needs a JBrowse host of 5.0.0-beta.9 or later. Add a graph track with
-a `LinearGraphDisplay`, or open a whole file from **Add → Graph genome view**.
+The plugin needs a JBrowse host of 5.0.0-beta.9 or later. A graph track uses
+`LinearGraphDisplay`, whose track menu picks the layout, colour and walk:
+
+```json
+{
+  "type": "FeatureTrack",
+  "trackId": "hprc_graph",
+  "name": "HPRC release 2 graph",
+  "assemblyNames": ["hg38"],
+  "adapter": {
+    "type": "RgfaTabixAdapter",
+    "uri": "https://example.com/hprc",
+    "coarse": {
+      "uri": "https://example.com/hprc.tier10000",
+      "aboveBpPerPx": 1000
+    }
+  },
+  "displays": [
+    { "type": "LinearGraphDisplay", "displayId": "hprc_graph-graph" },
+    { "type": "LinearBasicDisplay", "displayId": "hprc_graph-segments" }
+  ]
+}
+```
+
+The display cuts the visible window plus one window-width each side, up to 5 Mb.
+Past `aboveBpPerPx` it cuts the optional `coarse` tier instead, one node per
+bubble with no size cap, built by `build_bubble_tier.sh` in jbrowse-components.
+Layouts on reference bp pan and zoom with the view; the force-directed and
+ordered layouts fit the track and zoom from its menu. The second display is a
+segments lane, one block per segment.
+
+**Add → Graph genome view** opens a whole GFA file in its own view.
 
 ## Docs
 
 - [docs/layouts.md](docs/layouts.md) — every layout, bubbles, walks, genes on
   the graph, and the demonstration loci
-- [docs/configuration.md](docs/configuration.md) — track and adapter config, the
-  coarse tier
 - [docs/developing.md](docs/developing.md) — dev server, building, the Bandage
   engine, testing and `host-compat`
 - [docs/layout-experiments.md](docs/layout-experiments.md) — all six loci in
   every layout, current and proposed
 
-## License (GPL-3.0)
+## License
 
-This plugin is **GPL-3.0-or-later**. The force-directed layout is computed by a
-WebAssembly build of Bandage's FMMM layout from [OGDF](https://ogdf.github.io/),
-and both Bandage and OGDF are GPL-licensed, so this plugin takes the same
-license rather than linking around it.
-
-JBrowse itself is unaffected and stays Apache-2.0: this is a separate plugin,
-loaded at runtime only by configs that ask for it. The anchored and sample-row
-layouts are pure TypeScript and need no external engine.
+GPL-3.0-or-later, because the force-directed layout runs a wasm build of
+Bandage's FMMM layout from [OGDF](https://ogdf.github.io/), and both are GPL.
+JBrowse stays Apache-2.0, since configs load this plugin separately at runtime.
