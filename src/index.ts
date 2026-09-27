@@ -7,6 +7,7 @@ import GetSubgraph from './GetSubgraph'
 import GraphAddTrackWorkflowF from './GraphAddTrackWorkflow/index'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
+import GraphTrackF from './GraphTrack/index'
 import LaunchGraphGenomeViewF from './LaunchGraphGenomeView'
 import LinearGraphDisplayF from './LinearGraphDisplay/index'
 import MinigraphBubbleAdapterF from './MinigraphBubbleAdapter/index'
@@ -26,6 +27,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
   install(pluginManager: PluginManager) {
     GraphGenomeViewF(pluginManager)
     LinearGraphDisplayF(pluginManager)
+    GraphTrackF(pluginManager)
     LaunchGraphGenomeViewF(pluginManager)
     GraphHoverSyncF(pluginManager)
     RgfaTabixAdapterF(pluginManager)

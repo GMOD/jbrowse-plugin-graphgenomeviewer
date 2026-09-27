@@ -1,49 +1,71 @@
 import PluginManager from '@jbrowse/core/PluginManager'
 
-import GraphTrackDefaultsF, { withGraphDisplayFirst } from './index'
+import GraphTrackDefaultsF, { withGbzAnchor } from './index'
 
-const adapter = { type: 'RgfaTabixAdapter' }
+const uri = (u: string) => ({ uri: u, locationType: 'UriLocation' as const })
 
-test('a FeatureTrack over an rGFA with no displays opens as the graph', () => {
-  expect(
-    withGraphDisplayFirst({ type: 'FeatureTrack', trackId: 'g', adapter })
-      .displays,
-  ).toEqual([{ type: 'LinearGraphDisplay', displayId: 'g-LinearGraphDisplay' }])
-})
-
-test('configured displays and other adapters are left alone', () => {
-  const chosen = {
-    type: 'FeatureTrack',
-    trackId: 'g',
-    adapter,
-    displays: [{ type: 'LinearBasicDisplay' }],
-  }
-  const bed = {
-    type: 'FeatureTrack',
-    trackId: 'b',
-    adapter: { type: 'BedAdapter' },
-  }
-  expect(withGraphDisplayFirst(chosen)).toBe(chosen)
-  expect(withGraphDisplayFirst(bed)).toBe(bed)
-})
-
-test('a segments BED guesses the rGFA adapter, anything else defers', () => {
+function guessers() {
   const pm = new PluginManager()
   GraphTrackDefaultsF(pm)
-  const guess = pm.evaluateExtensionPoint(
-    'Core-guessAdapterForLocation',
-    () => ({ type: 'Fallback' }),
-  )
-  const segs = {
-    uri: 'https://example.com/hprc.segs.bed.gz',
-    locationType: 'UriLocation' as const,
+  return {
+    adapter: pm.evaluateExtensionPoint('Core-guessAdapterForLocation', () => ({
+      type: 'Fallback',
+    })),
+    trackType: pm.evaluateExtensionPoint(
+      'Core-guessTrackTypeForLocation',
+      () => 'FeatureTrack',
+    ),
   }
-  expect(guess(segs)).toMatchObject({
+}
+
+test('a segments BED guesses the rGFA adapter', () => {
+  expect(
+    guessers().adapter(uri('https://example.com/hprc.segs.bed.gz')),
+  ).toMatchObject({
     type: 'RgfaTabixAdapter',
     linksLocation: { uri: 'https://example.com/hprc.links.bed.gz' },
   })
-  expect(guess({ ...segs, uri: 'x.bed.gz' })).toEqual({ type: 'Fallback' })
-  expect(guess(segs, undefined, 'BedTabixAdapter')).toEqual({
+})
+
+test('a .gbz.db guesses the gbz-base adapter, its index as the haplotype index', () => {
+  const index = uri('https://example.com/hprc.haplotype-index.db')
+  expect(
+    guessers().adapter(uri('https://example.com/hprc.gbz.db'), index),
+  ).toEqual({
+    type: 'GbzBaseSyntenyAdapter',
+    gbzDbLocation: uri('https://example.com/hprc.gbz.db'),
+    haplotypeIndexLocation: index,
+  })
+})
+
+test('other files and other adapter hints defer', () => {
+  const { adapter } = guessers()
+  expect(adapter(uri('x.bed.gz'))).toEqual({ type: 'Fallback' })
+  expect(adapter(uri('x.gbz.db'), undefined, 'BedTabixAdapter')).toEqual({
     type: 'Fallback',
   })
+})
+
+test('both graph adapters guess a GraphTrack', () => {
+  const { trackType } = guessers()
+  expect(trackType('RgfaTabixAdapter')).toBe('GraphTrack')
+  expect(trackType('GbzBaseSyntenyAdapter')).toBe('GraphTrack')
+  expect(trackType('BedAdapter')).toBe('FeatureTrack')
+})
+
+test("a gbz adapter naming no assemblies takes the track's", () => {
+  const track = {
+    type: 'GraphTrack',
+    assemblyNames: ['hg38'],
+    adapter: { type: 'GbzBaseSyntenyAdapter' },
+  }
+  expect(withGbzAnchor(track).adapter).toEqual({
+    type: 'GbzBaseSyntenyAdapter',
+    assemblyNames: ['hg38'],
+  })
+  const named = {
+    ...track,
+    adapter: { type: 'GbzBaseSyntenyAdapter', assemblyNames: ['hs1'] },
+  }
+  expect(withGbzAnchor(named)).toBe(named)
 })

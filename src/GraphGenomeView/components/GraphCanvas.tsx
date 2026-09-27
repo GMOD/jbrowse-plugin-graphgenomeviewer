@@ -10,7 +10,6 @@ import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
-import TubeMapOverlay from './TubeMapOverlay'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -564,12 +563,6 @@ const GraphCanvas = observer(function GraphCanvas({
   // has one does not pay for a second getBoundingClientRect.
   function nodeAt(x: number, y: number) {
     const { nodePositions } = model
-    if (model.layoutResult?.tubeMap) {
-      return model.tubeMapNodeAt(
-        x * model.scaleX + model.translateX,
-        y * model.scaleY + model.translateY,
-      )
-    }
     return nodePositions
       ? findHoveredNode(
           nodePositions,
@@ -592,8 +585,7 @@ const GraphCanvas = observer(function GraphCanvas({
         e.stopPropagation()
       }
       const { x, y } = getMouseCoord(e)
-      // a tube map's boxes are the layout's, not positions to drag
-      const node = model.layoutResult?.tubeMap ? null : nodeAt(x, y)
+      const node = nodeAt(x, y)
       if (node) {
         model.setDraggingNode(node)
       } else {
@@ -620,7 +612,7 @@ const GraphCanvas = observer(function GraphCanvas({
       const node = nodeAt(x, y)
       model.setHoveredNode(node)
       model.setHoveredEdge(
-        node || model.layoutResult?.tubeMap
+        node
           ? null
           : findHoveredEdge(
               model.nodePositions,
@@ -738,7 +730,6 @@ const GraphCanvas = observer(function GraphCanvas({
           onContextMenu={handleContextMenu}
         />
 
-        <TubeMapOverlay model={model} />
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
         <BubbleHalos model={model} />

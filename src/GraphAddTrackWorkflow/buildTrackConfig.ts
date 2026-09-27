@@ -106,7 +106,7 @@ export function buildTrackConfig(args: {
 }) {
   const { choice, assembly, trackId, name } = args
   return {
-    type: 'FeatureTrack',
+    type: choice === 'RgfaTabixAdapter' ? 'GraphTrack' : 'FeatureTrack',
     trackId,
     name,
     assemblyNames: [assembly],

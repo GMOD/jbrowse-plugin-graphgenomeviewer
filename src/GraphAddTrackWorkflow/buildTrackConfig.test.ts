@@ -19,7 +19,7 @@ describe('buildTrackConfig', () => {
       name: 'HPRC graph',
     })
     expect(conf).toEqual({
-      type: 'FeatureTrack',
+      type: 'GraphTrack',
       trackId: 'hprc',
       name: 'HPRC graph',
       assemblyNames: ['hg38'],

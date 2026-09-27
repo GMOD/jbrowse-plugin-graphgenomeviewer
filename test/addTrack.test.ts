@@ -3,9 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ASSEMBLY, LGV_ID, createDemoConfig, demoDataFiles } from './demoConfig'
 import {
   BASE_URL,
+  addTrackThroughMenu,
   cleanupJBrowse,
+  confirmAddTrack,
   createJBrowsePage,
   launchBrowser,
+  openTrackState,
   screenshot,
   setupJBrowse,
   startJBrowseServer,
@@ -17,46 +20,20 @@ import type { Browser, Page } from 'puppeteer'
 
 const runE2E = process.env.RUN_E2E === '1'
 
-describe.skipIf(!runE2E)('a graph file added through Add track', () => {
+describe.skipIf(!runE2E)('an rGFA added through Add track', () => {
   let browser: Browser
   let page: Page
 
-  async function clickText(selector: string, text: string) {
-    await page.waitForFunction(
-      (sel: string, t: string) =>
-        [...document.querySelectorAll(sel)].some(e =>
-          e.textContent.trim().startsWith(t),
-        ),
-      { timeout: 30_000 },
-      selector,
-      text,
-    )
-    await page.evaluate(
-      (sel: string, t: string) => {
-        const el = [...document.querySelectorAll<HTMLElement>(sel)].find(e =>
-          e.textContent.trim().startsWith(t),
-        )
-        el!.click()
-      },
-      selector,
-      text,
-    )
-  }
-
   beforeAll(async () => {
     const config = createDemoConfig()
+    const [view] = config.defaultSession.views
     setupJBrowse({
       config: {
         ...config,
         tracks: [],
         defaultSession: {
           ...config.defaultSession,
-          views: [
-            {
-              ...config.defaultSession.views[0]!,
-              init: { ...config.defaultSession.views[0]!.init, tracks: [] },
-            },
-          ],
+          views: [{ ...view!, init: { ...view!.init, tracks: [] } }],
         },
       },
       dataFiles: demoDataFiles(),
@@ -72,47 +49,22 @@ describe.skipIf(!runE2E)('a graph file added through Add track', () => {
     await cleanupJBrowse()
   })
 
-  it('opens as the graph display with no config', async () => {
-    await clickText('button', 'File')
-    await clickText('[role="menuitem"]', 'Open track')
-    await page.waitForSelector('[data-testid="urlInput"]', { timeout: 30_000 })
-    await page.type(
-      '[data-testid="urlInput"]',
-      `${BASE_URL}/rgfa/rgfa_ecoli.segs.bed.gz`,
-    )
-    await page.click('[data-testid="addTrackNextButton"]')
-    await page.waitForSelector('[data-testid="trackNameInput"]')
+  it('opens as a GraphTrack drawing the graph', async () => {
+    await addTrackThroughMenu(page, `${BASE_URL}/rgfa/rgfa_ecoli.segs.bed.gz`)
     await screenshot(page, 'addtrack-00-confirm')
-    await page.click('[data-testid="addTrackNextButton"]')
-
-    await page.waitForFunction(
-      (viewId: string) =>
-        window.JBrowseSession.views.find(v => v.id === viewId)?.tracks
-          .length === 1,
-      { timeout: 60_000 },
-      LGV_ID,
+    await confirmAddTrack(page)
+    await waitForAppReady(
+      page,
+      () => window.JBrowseSession.views[0].tracks.length === 1,
     )
-    const track = await page.evaluate((viewId: string) => {
-      const t = window.JBrowseSession.views.find(v => v.id === viewId).tracks[0]
-      return {
-        adapter: t.configuration.adapter.type,
-        assemblies: [...t.configuration.assemblyNames],
-        display: t.displays[0].type,
-      }
-    }, LGV_ID)
-    expect(track).toEqual({
+    expect(await openTrackState(page, LGV_ID)).toMatchObject({
+      type: 'GraphTrack',
       adapter: 'RgfaTabixAdapter',
       assemblies: [ASSEMBLY],
       display: 'LinearGraphDisplay',
+      nodeCount: expect.any(Number),
     })
-    await waitForAppReady(page)
-    const nodes = await page.evaluate(
-      (viewId: string) =>
-        window.JBrowseSession.views.find(v => v.id === viewId).tracks[0]
-          .displays[0].nodeCount,
-      LGV_ID,
-    )
-    expect(nodes).toBeGreaterThan(0)
+    expect((await openTrackState(page, LGV_ID))!.nodeCount).toBeGreaterThan(0)
     await screenshot(page, 'addtrack-01-graph-display')
   }, 180_000)
 })

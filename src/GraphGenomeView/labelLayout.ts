@@ -55,9 +55,6 @@ export interface LabelLayoutSource {
   genePins: GenePin[]
   poppedFrom?: { label: string }
   nodePositions?: Record<string, NodeSegment[]>
-  // false where the drawing is not the canvas's nodes (the tube map), so a
-  // length label would sit on a box's tubes rather than beside a node
-  labelsNodeSizes: boolean
   nodeLengths: Map<string, number>
   showDeletionEdges: boolean
   deletions: DeletionEdge[]
@@ -180,21 +177,20 @@ export function layoutLabels(m: LabelLayoutSource): LabelLayout {
     frame,
     take,
   )
-  const sizeCandidates =
-    m.nodePositions && m.labelsNodeSizes
-      ? sizeLabelCandidates({
-          nodePositions: m.nodePositions,
-          nodeLengths: m.nodeLengths,
-          deletions: m.showDeletionEdges ? m.deletions : [],
-          alleleDeletions: m.alleleDeletions,
-          axis: m.axisScale,
-          translateX,
-          translateY,
-          width,
-          height,
-          version: m.positionsVersion,
-        })
-      : { deletions: [], nodes: [] }
+  const sizeCandidates = m.nodePositions
+    ? sizeLabelCandidates({
+        nodePositions: m.nodePositions,
+        nodeLengths: m.nodeLengths,
+        deletions: m.showDeletionEdges ? m.deletions : [],
+        alleleDeletions: m.alleleDeletions,
+        axis: m.axisScale,
+        translateX,
+        translateY,
+        width,
+        height,
+        version: m.positionsVersion,
+      })
+    : { deletions: [], nodes: [] }
   const deletionLabels = placeSizeLabels(sizeCandidates.deletions, take)
   const routes = placeLabels(
     byBubble.flatMap(h =>

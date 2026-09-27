@@ -2,11 +2,6 @@ import { isBackbone, isOffReference } from './anchoredNodes'
 import { anchoredLayout } from './layout/anchoredLayout'
 import { orderedLayout } from './layout/orderedLayout'
 import { sampleRowLayout } from './layout/sampleRowLayout'
-import {
-  hasTubeMapPaths,
-  tubeMapLayout,
-  tubeMapReferenceLayout,
-} from './layout/tubeMapLayout'
 import { variantMapLayout } from './layout/variantMapLayout'
 import { walkRowLayout } from './layout/walkRowLayout'
 
@@ -60,8 +55,6 @@ export interface LayoutMode {
 const hasBackbone = (graph: Graph) => graph.nodes.some(isBackbone)
 const hasWalks = (graph: Graph) =>
   hasBackbone(graph) && (graph.paths?.length ?? 0) > 1
-const hasTubeMapBackbone = (graph: Graph) =>
-  hasBackbone(graph) && hasTubeMapPaths(graph)
 const hasAlleles = (graph: Graph) =>
   hasBackbone(graph) && graph.nodes.some(isOffReference)
 
@@ -118,26 +111,6 @@ export const LAYOUT_MODES = [
     cutMargins: true,
     available: hasBackbone,
     drawsLocally: hasBackbone,
-  },
-  {
-    value: 'tubemap',
-    label: 'Tube map',
-    description:
-      'sequenceTubeMap: every path a coloured tube through boxed nodes, columns in node order and node widths log-scaled. Needs P or W lines.',
-    run: tubeMapLayout,
-    cutMargins: false,
-    available: hasTubeMapPaths,
-    drawsLocally: hasTubeMapPaths,
-  },
-  {
-    value: 'tubemapref',
-    label: 'Tube map on reference',
-    description:
-      'The tube map with each column at the reference bp it covers, so the tubes line up with the tracks around them. Needs P or W lines and a reference path.',
-    run: tubeMapReferenceLayout,
-    cutMargins: true,
-    available: hasTubeMapBackbone,
-    drawsLocally: hasTubeMapBackbone,
   },
   {
     value: 'force',

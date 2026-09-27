@@ -292,3 +292,57 @@ export async function waitForAppReady(
       }),
   )
 }
+
+async function clickText(page: Page, selector: string, text: string) {
+  const handle = await page.waitForFunction(
+    (sel: string, t: string) =>
+      [...document.querySelectorAll<HTMLElement>(sel)].find(e =>
+        e.textContent.trim().startsWith(t),
+      ),
+    { timeout: 30_000 },
+    selector,
+    text,
+  )
+  await page.evaluate(el => {
+    ;(el!).click()
+  }, handle)
+}
+
+// File → Open track, paste the url, accept whatever Add track guesses.
+export async function addTrackThroughMenu(page: Page, url: string) {
+  await clickText(page, 'button', 'File')
+  await clickText(page, '[role="menuitem"]', 'Open track')
+  await page.waitForSelector('[data-testid="urlInput"]', { timeout: 30_000 })
+  await page.type('[data-testid="urlInput"]', url)
+  await page.waitForSelector(
+    '[data-testid="addTrackNextButton"]:not([disabled])',
+  )
+  await page.click('[data-testid="addTrackNextButton"]')
+  await page.waitForSelector('[data-testid="trackNameInput"]')
+}
+
+export async function confirmAddTrack(page: Page) {
+  await page.click('[data-testid="addTrackNextButton"]')
+}
+
+// What the open track in a view was built as, read off the live model.
+export function openTrackState(page: Page, viewId: string) {
+  return page.evaluate((id: string) => {
+    const track = window.JBrowseSession.views.find(v => v.id === id)?.tracks[0]
+    const display = track?.displays[0]
+    return track
+      ? {
+          type: track.type as string,
+          adapter: track.configuration.adapter.type as string,
+          assemblies: [...track.configuration.assemblyNames] as string[],
+          display: display.type as string,
+          nodeCount: display.nodeCount as number,
+          displays: [
+            ...track.configuration.displays.map(
+              (d: { type: string }) => d.type,
+            ),
+          ] as string[],
+        }
+      : undefined
+  }, viewId)
+}

@@ -108,7 +108,6 @@ for (const backbone of [1000, 5000]) {
       bubbleGlyphs: [],
       genePins: [],
       nodePositions,
-      labelsNodeSizes: true,
       nodeLengths,
       showDeletionEdges: true,
       deletions,

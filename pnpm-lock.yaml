@@ -14,9 +14,6 @@ importers:
       '@gmod/tabix':
         specifier: ^3.8.3
         version: 3.8.3
-      '@gmod/tubemap-core':
-        specifier: file:vendor/tubemap-core
-        version: file:vendor/tubemap-core
       '@jbrowse/cigar-utils':
         specifier: 5.0.0-beta.9
         version: 5.0.0-beta.9
@@ -609,9 +606,6 @@ packages:
 
   '@gmod/tabix@3.8.3':
     resolution: {integrity: sha512-YmVeuIJDylHlhIZ4DE/h3LV5SGSxtCJESBgKXRD2qALDmeemGtqIVbH62RZs2Lb5ZzN7i8r4rcmeurW9GtjO/Q==}
-
-  '@gmod/tubemap-core@file:vendor/tubemap-core':
-    resolution: {directory: vendor/tubemap-core, type: directory}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4059,8 +4053,6 @@ snapshots:
       '@gmod/shared-read-cache': 1.7.2
       '@jbrowse/quick-lru': 7.3.5
       generic-filehandle2: 2.4.0
-
-  '@gmod/tubemap-core@file:vendor/tubemap-core': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

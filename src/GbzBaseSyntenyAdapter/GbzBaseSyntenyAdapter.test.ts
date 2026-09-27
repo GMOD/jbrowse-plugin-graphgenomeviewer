@@ -8,6 +8,7 @@ import Adapter, {
   NoReferenceSampleError,
   PairTargetError,
   laneAssemblyName,
+  resolveReferenceSample,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import GbzBaseSyntenyAdapterF from './index.ts'
@@ -238,7 +239,10 @@ test('the reference sample comes from the anchor prefix, the tag, or the slot', 
     ).referenceSample,
   ).toBe('GRCh38')
   await expect(
-    makeAdapter({ assemblyNameToPanSN: {} }).getHeader(),
+    makeAdapter({
+      assemblyNames: ['mm39'],
+      assemblyNameToPanSN: {},
+    }).getHeader(),
   ).rejects.toThrow(NoReferenceSampleError)
   const chm13 = makeAdapter({
     assemblyNameToPanSN: {},
@@ -753,4 +757,34 @@ test('getSubgraph outside every reference fragment is empty', async () => {
   expect(
     await makeAdapter().getSubgraph({ ...window, start: 100, end: 200 }),
   ).toBe('')
+})
+
+test('an anchor assembly named hg38 finds GRCh38 among several reference samples with no PanSN map', async () => {
+  const fa = await feats(makeAdapter({ assemblyNameToPanSN: {} }), window)
+  expect(fa.length).toBeGreaterThan(40)
+})
+
+test.each([
+  ['hg38', 'GRCh38'],
+  ['hs1', 'CHM13'],
+  ['T2T-CHM13', 'CHM13'],
+  ['grch38', 'GRCh38'],
+])('a %s anchor resolves to the %s reference sample', (anchor, sample) => {
+  expect(
+    resolveReferenceSample({
+      configured: '',
+      anchorPrefix: anchor,
+      referenceSamples: ['CHM13', 'GRCh38'],
+    }),
+  ).toBe(sample)
+})
+
+test('an anchor no alias matches still names the samples it could have been', () => {
+  expect(() =>
+    resolveReferenceSample({
+      configured: '',
+      anchorPrefix: 'mm39',
+      referenceSamples: ['CHM13', 'GRCh38'],
+    }),
+  ).toThrow(NoReferenceSampleError)
 })

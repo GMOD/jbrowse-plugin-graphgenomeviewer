@@ -70,7 +70,6 @@ function source(overrides: Partial<LabelLayoutSource>): LabelLayoutSource {
     bubbleHalos: [],
     bubbleGlyphs: [],
     genePins: [],
-    labelsNodeSizes: true,
     nodeLengths: new Map(),
     showDeletionEdges: false,
     deletions: [],

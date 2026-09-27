@@ -6,9 +6,9 @@ Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 | ------------------------ | ---------------------------------------------------------------------------------------- |
 | `forceLayout.test.ts`    | the Bandage WASM engine is fetched at runtime as the hashed sibling chunk, and draws     |
 | `interaction.test.ts`    | the mouse is wired to hit detection, and a node drag repaints                            |
-| `addTrack.test.ts`       | a `.segs.bed.gz` url through File → Open track opens as the graph display                |
+| `addTrack.test.ts`       | a `.segs.bed.gz` url through File → Open track opens as a drawn `GraphTrack`             |
+| `addGbzTrack.test.ts`    | a `.gbz.db` url does the same, finding GRCh38 from `hg38` with no PanSN map              |
 | `launchAndHover.test.ts` | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints |
-| `tubeMap.test.ts`        | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view    |
 
 ## What `launchAndHover` demonstrates
 

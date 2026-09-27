@@ -67,8 +67,6 @@ import {
   repeatArraysFrom,
 } from './repeats/repeatFeatures'
 import { withCalls } from './repeats/walkCalls'
-import { tubeMapPicture } from './tubeMap/draw'
-import { referenceKnots, warpX } from './tubeMap/warp'
 import { walkHighlight } from './walkHighlight'
 import {
   hoverInRegion,
@@ -101,7 +99,7 @@ import type { LinearHost } from './host'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
 import type { Bounds, EngineRequest } from './pipeline'
-import type { RenderBatch, Renderer } from './renderer/types'
+import type { Renderer } from './renderer/types'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
@@ -143,21 +141,6 @@ const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
 const VIEWPORT_PANES_BUILT = 1
-
-// The least a tube stack is squeezed to fit a track, and how far a node's box
-// reaches past its tubes (tubemap-core's nodeOutlinePath)
-const MIN_TUBE_Y_SCALE = 0.05
-const NODE_BOX_PAD = 9
-
-// What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
-const EMPTY_BATCH: RenderBatch = {
-  nodeStrokes: [],
-  nodeStrokeRuns: new Map(),
-  arrows: [],
-  arrowRuns: new Map(),
-  edgeCurves: [],
-  edgeCurveRuns: new Map(),
-}
 
 // MobX tracks every observable read while a computed or autorun runs, so
 // passing values here registers them as dependencies without otherwise using
@@ -506,6 +489,11 @@ export function GraphPaneMixin() {
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
+      // the geometryVersion the backend last put on the canvas: the backend
+      // comes up asynchronously, so built geometry is not yet drawn ink
+      paintedGeometryVersion: -1,
+      viewportRebuildPending: false,
+      geometryViewportDirty: -1,
     }))
     .views(self => ({
       get defaultLayoutMode(): LayoutModeValue {
@@ -575,6 +563,14 @@ export function GraphPaneMixin() {
       get hasGraph() {
         return self.graph !== undefined
       },
+      get painted() {
+        return (
+          self.lastGeometryStrokeCount !== undefined &&
+          !self.viewportRebuildPending &&
+          self.geometryViewportDirty === self.viewportDirty &&
+          self.paintedGeometryVersion === self.geometryVersion
+        )
+      },
       // The app-wide readiness contract (AppReadyMarker, @jbrowse/capture)
       // reads this: a declared source still fetching, or a graph whose
       // geometry has not been built yet.
@@ -583,8 +579,7 @@ export function GraphPaneMixin() {
           self.error === undefined &&
           (self.isLoading ||
             self.hasPendingSource ||
-            (self.graph !== undefined &&
-              self.lastGeometryStrokeCount === undefined))
+            (self.graph !== undefined && !self.painted))
         )
       },
       // Only before anything is drawn: past that point a reload is superseded
@@ -623,12 +618,9 @@ export function GraphPaneMixin() {
       // its colours off, so the key cannot name a colour that is not drawn.
       // Empty unless the ribbons are actually on: a colour key beside a drawing
       // with no colours in it is a legend for nothing.
-      // The tube map colours its tubes whether or not paths are drawn on the
-      // nodes, so under it the key follows the tubes.
       get pathLegend() {
         const paths = self.graph?.paths
-        const colouring = self.drawPaths || self.layoutResult?.tubeMap
-        return colouring && paths && pathColorsLegible(paths.length)
+        return self.drawPaths && paths && pathColorsLegible(paths.length)
           ? pathLegend(paths)
           : []
       },
@@ -685,9 +677,6 @@ export function GraphPaneMixin() {
       },
       get nodePositions() {
         return self.layoutResult?.nodePositions
-      },
-      get labelsNodeSizes() {
-        return !self.layoutResult?.tubeMap
       },
       // Empty rather than undefined: every consumer maps over it, and a layout
       // with no row structure (FMMM) is a normal state, not a missing one.
@@ -812,9 +801,7 @@ export function GraphPaneMixin() {
       // Walk rows state what each walk skips as its own bar length, so the arcs
       // over the backbone would only say it again, across the bars.
       get deletions() {
-        return self.graph &&
-          self.chosenLayoutMode !== 'walkrows' &&
-          !self.layoutResult?.tubeMap
+        return self.graph && self.chosenLayoutMode !== 'walkrows'
           ? deletionEdges(self.graph)
           : []
       },
@@ -872,7 +859,6 @@ export function GraphPaneMixin() {
         return self.showGenes &&
           self.chosenLayoutMode !== 'variants' &&
           self.chosenLayoutMode !== 'walkrows' &&
-          !self.layoutResult?.tubeMap &&
           self.graph &&
           self.geneFeatures &&
           positions
@@ -888,7 +874,6 @@ export function GraphPaneMixin() {
           !self.showBubbles ||
           self.chosenLayoutMode === 'variants' ||
           self.chosenLayoutMode === 'walkrows' ||
-          self.layoutResult?.tubeMap ||
           !self.graph ||
           !positions
         ) {
@@ -915,9 +900,7 @@ export function GraphPaneMixin() {
       // is also what `auto` resolves to on any anchored graph, so this was the
       // default path rather than an opt-in one.
       get referenceRamp() {
-        return self.effectiveColorScheme === 'reference-position' &&
-          self.graph &&
-          !self.layoutResult?.tubeMap
+        return self.effectiveColorScheme === 'reference-position' && self.graph
           ? computeReferenceRamp(self.graph, self.rampDomain)
           : undefined
       },
@@ -1252,70 +1235,6 @@ export function GraphPaneMixin() {
           ? hostFrame(host, graphRegion)
           : undefined
       },
-      get tubeMapPicture() {
-        const drawing = self.layoutResult?.tubeMap
-        return drawing ? tubeMapPicture(drawing.layout) : undefined
-      },
-      // On the reference axis y is px and the host has no vertical pan, so a
-      // stack of tubes taller than the track is squeezed to fit it; dragging
-      // the track taller gives the tubes back their width.
-      get tubeMapYScale() {
-        const result = self.layoutResult
-        const h = (result?.extent?.maxY ?? 0) - (result?.extent?.minY ?? 0)
-        return result?.tubeMap?.columns && h > 0
-          ? Math.max(
-              MIN_TUBE_Y_SCALE,
-              Math.min(1, (self.canvasHeight - FIT_PADDING * 2) / h),
-            )
-          : 1
-      },
-    }))
-    .views(self => ({
-      // Tube coordinates to screen px for this frame. The tube map's own axis
-      // is the layout's x; the reference axis warps each column onto the bp
-      // it covers (tubeMap/warp.ts).
-      get tubeMapFrame() {
-        const drawing = self.layoutResult?.tubeMap
-        if (!drawing) {
-          return undefined
-        }
-        const { scaleX, translateX, translateY } = self
-        const scaleY = self.scaleY * self.tubeMapYScale
-        const y = (ty: number) => (ty - drawing.yOffset) * scaleY + translateY
-        const { columns } = drawing
-        if (columns) {
-          const knots = referenceKnots(columns, bp => bp * scaleX + translateX)
-          return { x: (tx: number) => warpX(knots, tx), y, yScale: scaleY }
-        }
-        return {
-          x: (tx: number) => tx * scaleX + translateX,
-          y,
-          yScale: scaleY,
-        }
-      },
-      // The node whose box is under a screen point. The canvas's hit test
-      // measures from a centreline and a stroke width, and a tube map box is
-      // as tall as the tubes through it.
-      tubeMapNodeAt(sx: number, sy: number) {
-        const drawing = self.layoutResult?.tubeMap
-        const frame = this.tubeMapFrame
-        let hit: string | null = null
-        if (drawing && frame) {
-          const { x, y } = frame
-          drawing.layout.nodes.forEach(node => {
-            if (
-              node.order >= 0 &&
-              x(node.x - NODE_BOX_PAD) <= sx &&
-              sx <= x(node.x + node.pixelWidth + NODE_BOX_PAD) &&
-              y(node.y - NODE_BOX_PAD) <= sy &&
-              sy <= y(node.y + node.contentHeight + NODE_BOX_PAD)
-            ) {
-              hit = node.name
-            }
-          })
-        }
-        return hit
-      },
     }))
     .actions(self => ({
       setError(error: unknown) {
@@ -1343,8 +1262,12 @@ export function GraphPaneMixin() {
       ) {
         self.lastGeometryMs = ms
         self.lastGeometryStrokeCount = strokeCount
+        self.geometryViewportDirty = self.viewportDirty
         self.builtViewport = built
         self.geometryVersion++
+      },
+      markPainted(version: number) {
+        self.paintedGeometryVersion = version
       },
       setLayoutQuality(quality: number) {
         self.layoutQuality = quality
@@ -1548,6 +1471,7 @@ export function GraphPaneMixin() {
         }
       },
       setViewportDirty() {
+        self.viewportRebuildPending = false
         self.viewportDirty++
       },
       // The positions themselves moved, as opposed to the window onto them.
@@ -1627,6 +1551,7 @@ export function GraphPaneMixin() {
       // deferred until the user settles.
       function scheduleViewportDirty() {
         clearTimeout(self.viewportDirtyTimer)
+        self.viewportRebuildPending = true
         self.viewportDirtyTimer = setTimeout(() => {
           if (isAlive(self)) {
             self.setViewportDirty()
@@ -2351,10 +2276,6 @@ export function GraphPaneMixin() {
           upload: (b: Renderer) => {
             b.resize(self.paneWidth, self.canvasHeight)
             const nodeById = self.nodeById
-            if (self.layoutResult?.tubeMap) {
-              b.uploadGeometry(EMPTY_BATCH)
-              return true
-            }
             if (self.nodePositions && self.graph && nodeById) {
               // The window moved (debounced pan/zoom), or the positions did (a
               // node drag, coalesced to a frame). Both change the drawing;
@@ -2431,6 +2352,7 @@ export function GraphPaneMixin() {
               dpr,
             })
             b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
+            self.markPainted(untracked(() => self.geometryVersion))
             return true
           },
         }))

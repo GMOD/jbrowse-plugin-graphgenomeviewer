@@ -180,7 +180,7 @@ export function createDemoConfig() {
     ],
     tracks: [
       {
-        type: 'FeatureTrack',
+        type: 'GraphTrack',
         trackId: RGFA_TRACK_ID,
         name: 'minigraph graph segments (rGFA)',
         assemblyNames: [ASSEMBLY],
