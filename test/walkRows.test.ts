@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   BASE_URL,
   PLUGIN_ESM_URL,
+  TEST_JBROWSE_DIR,
   cleanupJBrowse,
   createJBrowsePage,
   launchBrowser,
@@ -19,14 +20,13 @@ import {
 
 import type { Browser, Page } from 'puppeteer'
 
-// RUN_E2E=1 TEST_JBROWSE_VERSION=variants pnpm test:e2e test/walkRows.test.ts
+// RUN_E2E=1 pnpm test:e2e test/walkRows.test.ts
 //
 // The eight-haplotype KIV-2 GBZ cut lives in the served test dir rather than
 // the repo (1.5 MB); the suite skips without it.
 const runE2E = process.env.RUN_E2E === '1'
 const KIV2 = 'test_data/graphgenomeview/kiv2_eight.gfa'
-const testDir = `.test-jbrowse-${process.env.TEST_JBROWSE_VERSION || 'nightly'}`
-const hasFixture = existsSync(path.join(process.cwd(), testDir, KIV2))
+const hasFixture = existsSync(path.join(TEST_JBROWSE_DIR, KIV2))
 const VIEW = 'graph_walk_rows'
 
 // The array as a UCSC simpleRepeat-style row: copycount.mjs's KIV-2 flanks
@@ -56,7 +56,7 @@ const REPEAT_VCF = [
 // Every haplotype's copies of the same array, as scripts/tandem-repeat-vcf.mjs
 // states them from the fixture itself: two units, B leading most arrays.
 function unitsVcf() {
-  const served = (file: string) => path.join(process.cwd(), testDir, file)
+  const served = (file: string) => path.join(TEST_JBROWSE_DIR, file)
   return execFileSync(
     'node',
     [

@@ -10,10 +10,12 @@ import type { Browser, Page } from 'puppeteer'
 // JBROWSE_PORT lets two sessions run the suites at once
 export const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
 
-// JBROWSE_TEST_DIR lets you point at a jbrowse-web built from a graph_viz
-// checkout (see forceLayout.test.ts); otherwise the versioned nightly dir.
-const TEST_JBROWSE_VERSION = process.env.TEST_JBROWSE_VERSION || 'nightly'
-const TEST_JBROWSE_DIR =
+// The plugin targets the latest JBrowse beta, so the suites run on its build.
+// JBROWSE_TEST_DIR points at another, such as a jbrowse-web built from a
+// graph_viz checkout (see forceLayout.test.ts), and TEST_JBROWSE_VERSION picks
+// another `.test-jbrowse-<version>` dir.
+const TEST_JBROWSE_VERSION = process.env.TEST_JBROWSE_VERSION || 'beta9'
+export const TEST_JBROWSE_DIR =
   process.env.JBROWSE_TEST_DIR ??
   path.join(process.cwd(), `.test-jbrowse-${TEST_JBROWSE_VERSION}`)
 
@@ -54,7 +56,7 @@ export async function waitForServer(port: number, timeout = 30_000) {
 }
 
 // Core APIs the plugin compiles against that a JBrowse older than them cannot
-// provide. Both are recent and unreleased, and both fail the same expensive way:
+// provide. Each fails the same expensive way:
 // the plugin throws while installing, every suite dies in setup with a minified
 // `e.<something> is not a function`, and the whole thing reads as a plugin bug.
 // A copied host dir is a snapshot nothing refreshes — `.test-jbrowse-demos` sat
@@ -66,6 +68,7 @@ export async function waitForServer(port: number, timeout = 30_000) {
 const HOST_REQUIRES = [
   ['contributeToExtensionPoint', 'core 2026-08-05'],
   ['requireAssembly', 'core 2026-08-04'],
+  ['packAbgr', 'the colorBits re-export, 5.0.0-beta.9'],
 ] as const
 
 function assertHostIsCurrentEnough() {

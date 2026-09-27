@@ -1,6 +1,3 @@
-import { existsSync } from 'node:fs'
-import path from 'node:path'
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
@@ -23,14 +20,10 @@ import type { Browser, Page } from 'puppeteer'
 // The tube map layouts in a real browser: the five-strain pggb GFA as a
 // standalone view on both axes, and a GBZ cut of the MICB locus as a graph
 // track of a linear view on the reference axis. The GBZ fixture is
-// sequenceTubeMap's exampleData/micb-kir3dl1.gbz.db, which lives in the served
-// test dir rather than the repo; the track half skips without it.
+// sequenceTubeMap's exampleData/micb-kir3dl1.gbz.db, served from the adapter's
+// test data.
 const runE2E = process.env.RUN_E2E === '1'
-const testDir =
-  process.env.JBROWSE_TEST_DIR ??
-  `.test-jbrowse-${process.env.TEST_JBROWSE_VERSION || 'nightly'}`
-const MICB = 'test_data/graphgenomeview/micb-kir3dl1.gbz.db'
-const hasMicb = existsSync(path.resolve(testDir, MICB))
+const MICB = 'micb-kir3dl1.gbz.db'
 
 const OWN_VIEW = 'tube_map_own'
 const REFERENCE_VIEW = 'tube_map_reference'
@@ -57,29 +50,27 @@ function config() {
         },
       },
     ],
-    tracks: hasMicb
-      ? [
+    tracks: [
+      {
+        type: 'GraphTrack',
+        trackId: GBZ_TRACK,
+        name: 'MICB (GBZ)',
+        assemblyNames: ['hg38'],
+        adapter: {
+          type: 'GbzBaseSyntenyAdapter',
+          gbzDbLocation: served(MICB),
+          assemblyNames: ['hg38'],
+          assemblyNameToPanSN: { hg38: 'GRCh38' },
+        },
+        displays: [
           {
-            type: 'GraphTrack',
-            trackId: GBZ_TRACK,
-            name: 'MICB (GBZ)',
-            assemblyNames: ['hg38'],
-            adapter: {
-              type: 'GbzBaseSyntenyAdapter',
-              gbzDbLocation: served(MICB),
-              assemblyNames: ['hg38'],
-              assemblyNameToPanSN: { hg38: 'GRCh38' },
-            },
-            displays: [
-              {
-                type: 'LinearGraphDisplay',
-                displayId: `${GBZ_TRACK}-LinearGraphDisplay`,
-                layoutMode: 'tubemapref',
-              },
-            ],
+            type: 'LinearGraphDisplay',
+            displayId: `${GBZ_TRACK}-LinearGraphDisplay`,
+            layoutMode: 'tubemapref',
           },
-        ]
-      : [],
+        ],
+      },
+    ],
     defaultSession: {
       name: 'tube map e2e',
       views: [
@@ -97,19 +88,15 @@ function config() {
           referencePath: 'K12',
           gfaLocation: served('test.gfa'),
         },
-        ...(hasMicb
-          ? [
-              {
-                id: LGV,
-                type: 'LinearGenomeView',
-                init: {
-                  assembly: 'hg38',
-                  loc: 'chr6:31,498,500-31,502,500',
-                  tracks: [GBZ_TRACK],
-                },
-              },
-            ]
-          : []),
+        {
+          id: LGV,
+          type: 'LinearGenomeView',
+          init: {
+            assembly: 'hg38',
+            loc: 'chr6:31,498,500-31,502,500',
+            tracks: [GBZ_TRACK],
+          },
+        },
       ],
     },
   }
@@ -140,7 +127,12 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
 
   beforeAll(async () => {
     writeServedFile('hg38_chr6.chrom.sizes', 'chr6\t170805979\n')
-    setupJBrowse({ config: config() })
+    setupJBrowse({
+      config: config(),
+      dataFiles: [
+        ['src/GbzBaseSyntenyAdapter/test_data/micb-kir3dl1.gbz.db', MICB],
+      ],
+    })
     await startJBrowseServer()
     browser = await launchBrowser()
     page = await createJBrowsePage(browser)
@@ -193,44 +185,40 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
     expect(columns.at(-1)[1]).toBe(1004961)
   }, 60_000)
 
-  it.skipIf(!hasMicb)(
-    'draws a GBZ cut as a tube map track in a linear view',
-    async () => {
-      const display = '[data-testid="linear-graph-display"]'
-      await page.waitForFunction(
-        sel =>
-          !!document.querySelector(
-            `${sel}[data-display-phase="ready"][data-node-count]:not([data-loading])`,
-          ),
-        { timeout: 120_000 },
-        display,
-      )
-      const state = await page.evaluate(
-        ([viewId, trackId]) => {
-          const view = window.JBrowseSession.views.find(v => v.id === viewId)
-          const track = view.tracks.find(
-            (t: { configuration: { trackId: string } }) =>
-              t.configuration.trackId === trackId,
-          )
-          const pane = track.displays[0]
-          return {
-            error: pane.error ? String(pane.error) : undefined,
-            mode: pane.chosenLayoutMode,
-            tubes: pane.layoutResult?.tubeMap?.layout.tracks.length ?? 0,
-            referenceAxis: pane.layoutResult?.referenceAxis,
-          }
-        },
-        [LGV, GBZ_TRACK],
-      )
-      expect(state.error).toBeUndefined()
-      expect(state.mode).toBe('tubemapref')
-      expect(state.referenceAxis).toBe(true)
-      expect(state.tubes).toBeGreaterThan(1)
-      expect(
-        await inkedPixels(page, `${display} [data-testid="graph-tube-map"]`),
-      ).toBeGreaterThan(1000)
-      await screenshot(page, 'tubemap-01-gbz-track-in-linear-view')
-    },
-    180_000,
-  )
+  it('draws a GBZ cut as a tube map track in a linear view', async () => {
+    const display = '[data-testid="linear-graph-display"]'
+    await page.waitForFunction(
+      sel =>
+        !!document.querySelector(
+          `${sel}[data-display-phase="ready"][data-node-count]:not([data-loading])`,
+        ),
+      { timeout: 120_000 },
+      display,
+    )
+    const state = await page.evaluate(
+      ([viewId, trackId]) => {
+        const view = window.JBrowseSession.views.find(v => v.id === viewId)
+        const track = view.tracks.find(
+          (t: { configuration: { trackId: string } }) =>
+            t.configuration.trackId === trackId,
+        )
+        const pane = track.displays[0]
+        return {
+          error: pane.error ? String(pane.error) : undefined,
+          mode: pane.chosenLayoutMode,
+          tubes: pane.layoutResult?.tubeMap?.layout.tracks.length ?? 0,
+          referenceAxis: pane.layoutResult?.referenceAxis,
+        }
+      },
+      [LGV, GBZ_TRACK],
+    )
+    expect(state.error).toBeUndefined()
+    expect(state.mode).toBe('tubemapref')
+    expect(state.referenceAxis).toBe(true)
+    expect(state.tubes).toBeGreaterThan(1)
+    expect(
+      await inkedPixels(page, `${display} [data-testid="graph-tube-map"]`),
+    ).toBeGreaterThan(1000)
+    await screenshot(page, 'tubemap-01-gbz-track-in-linear-view')
+  }, 180_000)
 })

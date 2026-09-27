@@ -73,8 +73,3 @@ contig from the GFA's walk and the GRCh38 window as the reference.
   one unit, per-copy colour is a KIV-2 story and the tiles already say the rest
 - **JBrowse core**: `VcfFeature` places a symbolic allele from POS − 1 to
   start + SVLEN, one base left of the spec's span
-- **Host compatibility**: the bundle binds `@jbrowse/core/util/colorBits` to the
-  host (it is in ReExports now), and 5.0.0-beta.4 has no `packAbgr` there, so
-  the plugin fails to load on it. `.test-jbrowse-variants` is beta.4; the e2e
-  ran on `.test-jbrowse-beta9`. `renderer/colorBits.ts`'s header still says the
-  path is bundled
