@@ -93,4 +93,20 @@ describe.skipIf(!runE2E)('a gbz-base database added through Add track', () => {
     expect(state!.nodeCount).toBeGreaterThan(0)
     await screenshot(page, 'addgbz-01-graph-display')
   }, 180_000)
+
+  it('reads ready again once switched to a tube map', async () => {
+    await page.evaluate(() => {
+      void window.JBrowseSession.views[0].tracks[0].displays[0].switchLayout(
+        'tubemap',
+      )
+    })
+    await waitForAppReady(
+      page,
+      () =>
+        !!window.JBrowseSession.views[0].tracks[0].displays[0].layoutResult
+          ?.tubeMap,
+      60_000,
+    )
+    await screenshot(page, 'addgbz-02-tube-map')
+  }, 120_000)
 })

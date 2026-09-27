@@ -8,9 +8,7 @@ import {
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 
-// The first display is the one a track opens with. The lanes display is listed
-// as a copy that asks for `headerLanes`, so only gbz-base offers it; core's
-// own registration is left alone.
+// a lanes copy asking for headerLanes, so only gbz-base offers lanes
 function displaysInOrder(pluginManager: PluginManager): DisplayType[] {
   const displays = pluginManager.getElementTypesInGroup(
     'display',

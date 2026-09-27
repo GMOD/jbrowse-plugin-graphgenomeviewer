@@ -170,7 +170,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                   fetchCanceled: self.loadCanceled,
                   awaitingDependentData: false,
                   rendersCanvas: true,
-                  canvasDrawn: self.painted,
+                  canvasDrawn: self.painted && self.geometryPainted,
                 },
                 () => true,
                 () => self.host?.effectiveBodyMounted ?? true,

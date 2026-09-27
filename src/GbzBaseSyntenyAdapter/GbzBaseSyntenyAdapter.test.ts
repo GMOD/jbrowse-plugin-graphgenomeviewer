@@ -788,3 +788,13 @@ test('an anchor no alias matches still names the samples it could have been', ()
     }),
   ).toThrow(NoReferenceSampleError)
 })
+
+test('a sample named exactly as the anchor wins over an alias', () => {
+  expect(
+    resolveReferenceSample({
+      configured: '',
+      anchorPrefix: 'hg38',
+      referenceSamples: ['GRCh38', 'hg38'],
+    }),
+  ).toBe('hg38')
+})

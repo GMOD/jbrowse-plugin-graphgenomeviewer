@@ -57,8 +57,12 @@ const SAMPLE_ALIASES: Record<string, string> = {
 
 function aliasedSample(anchorSample: string, referenceSamples: string[]) {
   const lower = anchorSample.toLowerCase()
-  const wanted = [lower, SAMPLE_ALIASES[lower]]
-  return referenceSamples.find(s => wanted.includes(s.toLowerCase()))
+  const alias = SAMPLE_ALIASES[lower]
+  return (
+    referenceSamples.find(s => s === anchorSample) ??
+    referenceSamples.find(s => s.toLowerCase() === lower) ??
+    referenceSamples.find(s => s.toLowerCase() === alias)
+  )
 }
 
 export function resolveReferenceSample({

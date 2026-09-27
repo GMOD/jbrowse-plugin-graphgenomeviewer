@@ -14,7 +14,7 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
     <DisplayStatusChrome
       model={model}
       phase={model.displayPhase}
-      drawn={model.painted}
+      drawn={model.painted && model.geometryPainted}
       testid="linear-graph-display"
       data-layout={model.chosenLayoutMode}
       data-cut-tier={model.cutTier}

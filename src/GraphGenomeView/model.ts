@@ -225,6 +225,22 @@ function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
 type ViewportOwner = 'fit' | 'user' | 'host'
 
 // What the pane shows, in layout units.
+function geometryPainted(model: {
+  lastGeometryStrokeCount?: number
+  viewportRebuildPending: boolean
+  geometryViewportDirty: number
+  viewportDirty: number
+  paintedGeometryVersion: number
+  geometryVersion: number
+}) {
+  return (
+    model.lastGeometryStrokeCount !== undefined &&
+    !model.viewportRebuildPending &&
+    model.geometryViewportDirty === model.viewportDirty &&
+    model.paintedGeometryVersion === model.geometryVersion
+  )
+}
+
 function viewportOf(model: {
   translateX: number
   translateY: number
@@ -506,8 +522,6 @@ export function GraphPaneMixin() {
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
-      // the geometryVersion the backend last put on the canvas: the backend
-      // comes up asynchronously, so built geometry is not yet drawn ink
       paintedGeometryVersion: -1,
       viewportRebuildPending: false,
       geometryViewportDirty: -1,
@@ -580,23 +594,18 @@ export function GraphPaneMixin() {
       get hasGraph() {
         return self.graph !== undefined
       },
-      get painted() {
-        return (
-          self.lastGeometryStrokeCount !== undefined &&
-          !self.viewportRebuildPending &&
-          self.geometryViewportDirty === self.viewportDirty &&
-          self.paintedGeometryVersion === self.geometryVersion
-        )
+      get geometryPainted() {
+        return geometryPainted(self)
       },
       // The app-wide readiness contract (AppReadyMarker, @jbrowse/capture)
       // reads this: a declared source still fetching, or a graph whose
-      // geometry has not been built yet.
+      // settled geometry is not on the canvas yet.
       get showLoading() {
         return (
           self.error === undefined &&
           (self.isLoading ||
             self.hasPendingSource ||
-            (self.graph !== undefined && !self.painted))
+            (self.graph !== undefined && !geometryPainted(self)))
         )
       },
       // Only before anything is drawn: past that point a reload is superseded
@@ -2370,7 +2379,12 @@ export function GraphPaneMixin() {
             b.resize(self.paneWidth, self.canvasHeight)
             const nodeById = self.nodeById
             if (self.layoutResult?.tubeMap) {
+              dependOn(self.viewportDirty)
               b.uploadGeometry(EMPTY_BATCH)
+              self.setGeometryMetrics(0, 0, {
+                scale: untracked(() => self.scale),
+                bounds: untracked(() => viewportOf(self)),
+              })
               return true
             }
             if (self.nodePositions && self.graph && nodeById) {

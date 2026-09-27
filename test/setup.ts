@@ -304,7 +304,7 @@ async function clickText(page: Page, selector: string, text: string) {
     text,
   )
   await page.evaluate(el => {
-    ;(el!).click()
+    el!.click()
   }, handle)
 }
 
