@@ -14,43 +14,30 @@
 
 ## State
 
-- **jb2hubs**: `752aea1` moved the four portal configs
-  (`website/pangenome-config/*.json`) to `GraphTrack`. They are committed but
-  not uploaded; live `jbrowse.org/pangenome/hprc-grch38/config.json` still says
-  `FeatureTrack`. Uncommitted `.*-uploaded.json` stamp edits there are another
-  session's; leave them.
-- **jbrowse-components**: branch `graphtrack-configs` (worktree
-  `.claude/worktrees/graphtrack-configs`), commit `b018ad16a2`, not landed.
-  - Demos `hprc`, `hprc_multiway`, `ecoli_pangenome` and `arabidopsis_pangenome`
-    get `type` lines only, for tracks whose adapter is
-    `RgfaTabixAdapter`/`GbzBaseSyntenyAdapter` and that open the graph display
-    or declare no displays.
-  - Bubble tracks and `ecoli_pggb_carriage` (plain feature display) stay as they
-    are.
-  - Committed with `SKIP_CONFIG_CHECK=1`: the worktree had no `node_modules`, so
-    the config-validation hook and oxfmt didn't run. Run `pnpm install` and
-    `pnpm verify` before landing.
+- **jb2hubs**: the four portal configs (`752aea1`) are uploaded; live
+  `jbrowse.org/pangenome/hprc-grch38/config.json` says `GraphTrack`. There
+  `hprc_v2_1_gbz_lanes` stays a `SyntenyTrack` beside a `hprc_v2_1_gbz_graph`
+  `GraphTrack`. The uncommitted `.*-uploaded.json` stamps belong to that upload.
+- **jbrowse-components `main`** (local, not pushed) has `b551f14431` (demo
+  configs) and `bbb3899f18` (fixtures, generators, website specs, doc fences,
+  `liveLinks.generated.ts`). Every config whose adapter is
+  `RgfaTabixAdapter`/`GbzBaseSyntenyAdapter` says `GraphTrack`, except carriage
+  lanes (`ecoli_pggb_carriage`, `ecoli_cactus_carriage`, the tutorial's
+  `graph_carriage`), which open a plain feature display and stay `FeatureTrack`.
+  The demos' `hprc_v2_1_gbz_lanes` is a `GraphTrack`; the plugin's lanes display
+  copy covers it.
+- The live demo configs match the repo copies apart from those type lines
+  (checked 2026-09-27), so deploying them changes nothing else.
 
-## Left to do, in order
+## Left to do
 
-1. **jbrowse-components fixtures:**
-   `test_data/graphgenomeview/{hprc,ecoli_pangenome,pangenome_nonhuman}.json`.
-   The type-line script failed its own check on one of these, so do them by hand
-   and verify each with a JSON parse.
-2. **jbrowse-components generators**, so rebuilds don't regress: graph-track
-   `FeatureTrack`/`SyntenyTrack` in `scripts/build_pangenome_graph.sh`,
-   `build_ecoli_pangenome_graph.sh`, `build_ecoli_pangenome_cactus.sh`,
-   `arabidopsis_pangenome_config.py`, `build_bovine_pangenome.sh`,
-   `build_hprc_gbz_index.sh`. Several `SyntenyTrack`s there are PAF/PIF synteny,
-   not graph; check each track's adapter.
-3. **Website specs and generated files** that write graph tracks:
-   `website/scripts/specs/graph-fixtures.ts` (`graphTrack()`), `graph-hprc.ts`,
-   `graph-ecoli.ts`, `pangenome_cactus.ts`, then `pnpm autogen` for
-   `hostedConfigs.generated.ts`/`liveLinks.generated.ts`.
-4. **Land** the jbrowse-components branch: rebase and fast-forward.
-5. **Deploy**, with the user's go-ahead: `scripts/deploy-demo.sh` for the demo
-   configs, and upload jb2hubs' portal configs. Any order is fine on 4.0.9.
-6. **Tell session -41** once the specs are on jbrowse-components `main`; it will
-   reshoot the graph figures on the latest plugin.
-7. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
+1. **Deploy**, with the user's go-ahead, from jbrowse-components:
+   `scripts/deploy-demo.sh demos/<d>/config.json` for `hprc`, `hprc_multiway`,
+   `ecoli_pangenome` and `arabidopsis_pangenome`.
+2. **After the deploy**, `pnpm gen:hosted-configs` in `website/`:
+   `hostedConfigs.generated.ts` fetches the live configs, so it still says
+   `FeatureTrack`/`SyntenyTrack` until then.
+3. **Reshoot the graph figures** on the latest plugin. Session -41 was going to;
+   it is no longer running.
+4. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
    `FeatureTrack` and `SyntenyTrack`.
