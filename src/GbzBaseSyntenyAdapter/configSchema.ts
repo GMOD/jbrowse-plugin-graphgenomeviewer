@@ -13,10 +13,9 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * graph's reference path, every haplotype's walk through the nodes it covers
  * is recovered and named, and each haplotype becomes one alignment record with
  * a CIGAR, so the graph is read through HTTP range requests with no offline
- * conversion. The database has to carry the `HaplotypeSamples` and
- * `HaplotypeLengths` side tables that `gbz-haplotype-index` (shipped with
- * `@gmod/gbz-base`) writes into an upstream-built database; without them the
- * graph cannot say which haplotype a walk belongs to.
+ * conversion. Naming the walks takes the companion haplotype index that
+ * `gbz-haplotype-index` writes; without it the graph cannot say which
+ * haplotype a walk belongs to.
  *
  * Only the fine tier exists: a whole-chromosome view stays on a PIF's coarse
  * tier. A query on a haplotype lane answers nothing, so the multi-way display

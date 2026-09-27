@@ -12,8 +12,8 @@ importers:
         specifier: ^6.7.0
         version: 6.7.0
       '@gmod/gbz-base':
-        specifier: ^2.8.0
-        version: 2.8.0
+        specifier: ^3.0.0
+        version: 3.0.0
       '@gmod/tabix':
         specifier: ^3.8.3
         version: 3.8.3
@@ -163,8 +163,8 @@ importers:
   packages/core:
     dependencies:
       '@gmod/gbz-base':
-        specifier: ^2.8.0
-        version: 2.8.0
+        specifier: ^3.0.0
+        version: 3.0.0
       '@gmod/tubemap-core':
         specifier: ^0.1.0
         version: 0.1.0
@@ -622,8 +622,8 @@ packages:
   '@gmod/bgzf-filehandle@6.7.0':
     resolution: {integrity: sha512-ThtHVneb+tASyGFACVL/rMu6d5AY0vWK6poeOJwIIAaJpXYpptrmwvhdk2xk5eoNzL+iN40B3bXytMvQ+e+80Q==}
 
-  '@gmod/gbz-base@2.8.0':
-    resolution: {integrity: sha512-Q/SkPd4WT22QkEhjB5p9AZy+t5mFfL+QfvusVxOK6f9cncnMK5qXogdqSzqBY3cWT6So8AxkqEGUrnaup318GQ==}
+  '@gmod/gbz-base@3.0.0':
+    resolution: {integrity: sha512-2q/jEswxiUNWSiR2O/X7tmdC3tOeMkUYXOIi/zRCALzC1RbjAzgzsDvx0i8VMLwD+LYQfAEOUoBcCTL+dvKVsQ==}
     hasBin: true
 
   '@gmod/hclust@6.0.0':
@@ -4068,7 +4068,7 @@ snapshots:
       generic-filehandle2: 2.4.0
       pako-esm2: 2.0.2
 
-  '@gmod/gbz-base@2.8.0':
+  '@gmod/gbz-base@3.0.0':
     dependencies:
       generic-filehandle2: 2.4.0
 
