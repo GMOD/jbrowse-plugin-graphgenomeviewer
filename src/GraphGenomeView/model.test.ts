@@ -2598,6 +2598,23 @@ describe('genes on a backbone of another assembly', () => {
     'W\tCHM13\t0\tchr6\t1005\t1035\t>1>3>4',
     '',
   ].join('\n')
+  // The same alleles named the way an older graph does, with no PanSN prefix to
+  // say whose chr6 each is
+  const BARE_CHR6_PATHS = [
+    ...CHR6_WALKS.split('\n').filter(line => /^[SL]/.test(line)),
+    'P\tchr6:1000-1030\t1+,2+,4+\t*',
+    'P\tCHM13_chr6:1005-1035\t1+,3+,4+\t*',
+    '',
+  ].join('\n')
+  const BARE_CHR6_RGFA = [
+    'S\t1\tAAAAAAAAAA\tSN:Z:chr6\tSO:i:1000\tSR:i:0',
+    'S\t2\tCCCCCCCCCC\tSN:Z:chr6\tSO:i:1010\tSR:i:0',
+    'S\t3\tGGGGGGGGGG\tSN:Z:CHM13_chr6\tSO:i:1015\tSR:i:1',
+    'S\t4\tTTTTTTTTTT\tSN:Z:chr6\tSO:i:1020\tSR:i:0',
+    ...CHR6_WALKS.split('\n').filter(line => line.startsWith('L')),
+    '',
+  ].join('\n')
+  let gfa = CHR6_WALKS
   const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
   const adapterOnly = (obj: Record<string, unknown>, key: string) =>
     key === 'adapter' ? obj.adapter : undefined
@@ -2617,10 +2634,11 @@ describe('genes on a backbone of another assembly', () => {
   beforeEach(() => {
     vi.mocked(readConfObject).mockImplementation(bySlot)
     sessionWith('hg38')
+    gfa = CHR6_WALKS
     mockRpcCall.mockReset()
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
-        ? Promise.resolve(CHR6_WALKS)
+        ? Promise.resolve(gfa)
         : method === 'CoreGetFeatures'
           ? Promise.resolve([
               {
@@ -2695,5 +2713,33 @@ describe('genes on a backbone of another assembly', () => {
     mockSession.assemblyAliases = {}
     sessionWith('mine', { assemblyNameToPanSN: { mine: 'GRCh38#0' } })
     expect(pinned(await cutFor('mine'))).toEqual(['HLA-A'])
+  })
+
+  test('a bare rGFA takes the assembly its track puts it on', async () => {
+    gfa = BARE_CHR6_RGFA
+    const model = await cutFor('hg38')
+    expect(pinned(model)).toEqual(['HLA-A'])
+
+    model.setReferencePath('CHM13_chr6')
+    await model.recomputeLayout()
+    expect(pinned(model)).toEqual(['HLA-A'])
+  })
+
+  test('a bare path graph takes it only along the path it came with', async () => {
+    gfa = BARE_CHR6_PATHS
+    const model = await cutFor('hg38')
+    expect(model.activeReferencePath).toBe('chr6')
+    expect(pinned(model)).toEqual(['HLA-A'])
+
+    model.setReferencePath('CHM13_chr6')
+    await model.recomputeLayout()
+    expect(model.activeReferencePath).toBe('CHM13_chr6')
+    expect(model.geneFeatures).toHaveLength(1)
+    expect(model.backboneGenes).toBeUndefined()
+    expect(pinned(model)).toEqual([])
+
+    model.setReferencePath('chr6')
+    await model.recomputeLayout()
+    expect(pinned(model)).toEqual(['HLA-A'])
   })
 })

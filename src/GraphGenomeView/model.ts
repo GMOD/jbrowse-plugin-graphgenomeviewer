@@ -30,7 +30,10 @@ import {
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
-import { anchorFromPaths } from '@jbrowse/bandage-core/pathAnchoring'
+import {
+  anchorFromPaths,
+  chooseReferencePath,
+} from '@jbrowse/bandage-core/pathAnchoring'
 import { pathColorsLegible, pathLegend } from '@jbrowse/bandage-core/pathColors'
 import {
   FIT_PADDING,
@@ -848,17 +851,36 @@ export function GraphPaneMixin() {
           aliases: [...names, ...names.flatMap(n => panSN[n] ?? [])],
         }
       },
+      // Whether x lies along the reference the graph came with, not a walk
+      // "Draw x along" picked: an rGFA states its own, and a path graph infers
+      // one from the cut's assembly.
+      get drawsLoadedReference() {
+        const graph = self.graph
+        return (
+          graph?.anchoredBy === 'tags' ||
+          (graph?.anchorPaths !== undefined &&
+            graph.referencePath ===
+              chooseReferencePath(
+                graph.anchorPaths,
+                self.graphRegion?.assemblyName,
+              )?.name)
+        )
+      },
     }))
     .views(self => ({
-      // The genes on the drawn backbone under its own refNames, or none when
-      // the backbone lies on another assembly than the one they were read for,
-      // as it does once "Draw x along" picks another sample's walk.
+      // The genes on the drawn backbone under its own refNames. The backbone
+      // takes the genes' assembly by its PanSN prefix, or, with bare contig
+      // names, by being the reference the track's graph came with, so "Draw x
+      // along" another walk leaves it none.
       get backboneGenes() {
         const { backbone, geneAssembly, geneFeatures } = self
-        return backbone &&
+        const binds =
+          backbone &&
           geneAssembly &&
-          geneFeatures &&
-          backboneAssembly(backbone, [geneAssembly])
+          (backboneAssembly(backbone, [geneAssembly]) ??
+            (backbone.contigs.every(c => c.refName === c.contig) &&
+              self.drawsLoadedReference))
+        return backbone && geneFeatures && binds
           ? featuresOnBackbone(geneFeatures, backbone)
           : undefined
       },
