@@ -543,6 +543,36 @@ test('a tube map on its own axis ties each reference box to its bp in the linear
   expect(pane.tubeMapConnectors).toEqual([])
 })
 
+test("a folded tube map draws the cut's reference as merged nodes, and the rest as ticks or routes", async () => {
+  const { pane } = await shownGraph({ paths: true })
+  const labels = () =>
+    pane.trackMenuItems().map(item => ('label' in item ? item.label : ''))
+  expect(labels()).not.toContain('Fold variants')
+  await pane.switchLayout('tubemap')
+  await wait(SETTLE_MS)
+  expect(labels()).toContain('Fold variants')
+  expect(pane.drawnGraph).toBe(pane.graph)
+
+  // the haplotype's three 100 bp insertions fold under 1 kb
+  pane.setTubeMapFold(1000)
+  await pane.recomputeLayout()
+  const [merged] = pane.drawnGraph!.nodes
+  expect(pane.drawnGraph!.nodes).toHaveLength(1)
+  expect(merged!.stable).toMatchObject({ start: 1_000_000, rank: 0 })
+  expect(merged!.length).toBe(60_000)
+  expect(pane.nodeById!.get(merged!.id)).toBe(merged)
+  expect(pane.tubeMapDeviations).toHaveLength(3)
+  expect(pane.tubeMapConnectors.map(c => c.node)).toEqual([merged!.id])
+
+  // and stand as their own nodes under 50 bp
+  pane.setTubeMapFold(50)
+  await pane.recomputeLayout()
+  const nodes = pane.drawnGraph!.nodes
+  expect(nodes.filter(n => n.stable?.rank === 0)).toHaveLength(4)
+  expect(nodes.filter(n => n.stable?.rank === 1)).toHaveLength(3)
+  expect(pane.tubeMapDeviations).toEqual([])
+})
+
 test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {
   const { view, pane, cuts } = await shownGraph()
   await pane.switchLayout('force')

@@ -6,6 +6,11 @@ region cap is the wrong knob, and why bubble coarsening is **deliberately not
 built**. Every number here was measured in this repo or read out of vendored
 source; none is estimated.
 
+Scope: this is node count at chromosome scale. The hosted coarse tier
+(`RgfaTabixAdapter`'s `coarse` slot) and the tube map's **Fold variants**
+(`tubeMap/coarsen.ts`) came later and answer other questions: a tier to switch
+to when zoomed out, and a legible tube map at one locus.
+
 ## The envelope
 
 Bubble-chain graphs, `buildGeometry` on the main thread, canvas draw calls

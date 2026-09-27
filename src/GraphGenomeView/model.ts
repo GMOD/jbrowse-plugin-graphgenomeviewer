@@ -59,11 +59,13 @@ import {
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
+import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import {
   connectorAt,
   referenceNodes,
   tubeMapConnectors,
 } from '@jbrowse/bandage-core/tubeMap/connectors'
+import { deviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import {
   tubeMapFrame,
@@ -177,6 +179,19 @@ const MIN_CANVAS_HEIGHT = 160
 const VARIANT_MAP_HEIGHT = 340
 // The thinnest a fit draws a tube map's tubes
 const MIN_FIT_TUBE_PX = 5
+
+const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
+
+// The sizes a tube map folds variants under. MICB's 22 kb cut draws 475
+// columns whole, 34 under 3 bp and one under 50, where only its structural
+// variants would stand: human windows are mostly SNPs.
+const TUBE_MAP_FOLDS = [
+  { bp: 0, label: 'None' },
+  { bp: 3, label: 'Under 3 bp' },
+  { bp: 10, label: 'Under 10 bp' },
+  { bp: 50, label: 'Under 50 bp, leaving structural variants' },
+  { bp: 1000, label: 'Under 1 kb' },
+]
 
 const SEGMENTS_SUFFIX = '.segs.bed.gz'
 
@@ -396,6 +411,10 @@ export function GraphPaneMixin() {
         // The session's genes drawn onto the backbone: exons along the nodes
         // that carry them, names pinned at their midpoints. See genes/.
         showGenes: types.optional(types.boolean, true),
+        // Variants under this many bp fold into the reference before a tube map
+        // is laid out, each kept as a tick on its walk's tube (coarsen.ts); 0
+        // draws every one
+        tubeMapFold: types.optional(types.number, 0),
         // Which track the genes come from; empty picks the assembly's
         // annotation track (pickGeneTrack).
         geneTrackId: types.optional(types.string, ''),
@@ -574,10 +593,18 @@ export function GraphPaneMixin() {
       get paneWidth() {
         return getContainingView(self).width
       },
+      // The graph the drawing's node ids address: a folded tube map's coarse
+      // graph, the cut otherwise. Hover, details and labels read it, so a
+      // merged node reports its own span and length.
+      get drawnGraph() {
+        return self.layoutResult?.tubeMap?.coarse?.graph ?? self.graph
+      },
+    }))
+    .views(self => ({
       get nodeById() {
-        if (self.graph) {
+        if (self.drawnGraph) {
           const m = new Map<string, GraphNode>()
-          for (const n of self.graph.nodes) {
+          for (const n of self.drawnGraph.nodes) {
             m.set(n.id, n)
           }
           return m
@@ -590,7 +617,7 @@ export function GraphPaneMixin() {
       // allocation on a 30k-node cut).
       get nodeLengths() {
         const m = new Map<string, number>()
-        for (const n of self.graph?.nodes ?? []) {
+        for (const n of self.drawnGraph?.nodes ?? []) {
           m.set(n.id, n.length)
         }
         return m
@@ -891,11 +918,11 @@ export function GraphPaneMixin() {
     }))
     .views(self => ({
       get nodeNeighbors() {
-        return self.graph ? buildNeighbors(self.graph) : undefined
+        return self.drawnGraph ? buildNeighbors(self.drawnGraph) : undefined
       },
       get nodeInk(): NodeInk {
         return nodeInk(
-          self.graph,
+          self.drawnGraph,
           self.nodeById,
           self.contigThickness,
           self.nodeWidth,
@@ -1323,16 +1350,24 @@ export function GraphPaneMixin() {
       },
       get tubeMapReference() {
         const drawing = self.layoutResult?.tubeMap
-        return drawing && self.graph
-          ? referenceBoxes(self.graph, drawing.layout)
+        return drawing && self.drawnGraph
+          ? referenceBoxes(self.drawnGraph, drawing.layout)
           : undefined
+      },
+      // the folded variants, as ticks on the tubes of the walks carrying them
+      get tubeMapDeviations() {
+        const coarse = self.layoutResult?.tubeMap?.coarse
+        const layout = self.layoutResult?.tubeMap?.layout
+        return coarse && layout
+          ? deviationMarks(coarse.graph, layout, coarse.deviations)
+          : []
       },
       // the reference boxes a linear view's connectors tie to its bp, which
       // the reference axis already puts under that bp
       get tubeMapReferenceNodes() {
         const layout = self.layoutResult
-        return layout?.tubeMap && !layout.referenceAxis && self.graph
-          ? referenceNodes(self.graph, layout.tubeMap.layout)
+        return layout?.tubeMap && !layout.referenceAxis && self.drawnGraph
+          ? referenceNodes(self.drawnGraph, layout.tubeMap.layout)
           : undefined
       },
     }))
@@ -1567,6 +1602,9 @@ export function GraphPaneMixin() {
       },
       setShowGenes(show: boolean) {
         self.showGenes = show
+      },
+      setTubeMapFold(bp: number) {
+        self.tubeMapFold = bp
       },
       setGeneTrackId(trackId: string) {
         self.geneTrackId = trackId
@@ -1883,13 +1921,24 @@ export function GraphPaneMixin() {
       // 'force' is expressed. See LAYOUT_MODES.
       function* computeLayout(graph: Graph) {
         const start = performance.now()
+        // reads are placed by the cut's segment names, which a fold renames
+        const coarse =
+          TUBE_MAP_MODES.has(self.chosenLayoutMode) &&
+          self.tubeMapFold > 0 &&
+          !graph.reads
+            ? coarsenTubeMap(graph, self.tubeMapFold)
+            : undefined
         const local = layoutModeByValue(self.chosenLayoutMode).run(
-          graph,
+          coarse?.graph ?? graph,
           self.graphRegion,
           self.host ? self.layoutResult?.sampleRows : undefined,
         )
         if (local) {
-          return { result: local, duration: performance.now() - start }
+          const result =
+            coarse && local.tubeMap
+              ? { ...local, tubeMap: { ...local.tubeMap, coarse } }
+              : local
+          return { result, duration: performance.now() - start }
         }
         const cache = forceLayoutsOf(graph)
         const key = forceLayoutKey(graph)
@@ -2787,6 +2836,23 @@ export function GraphPaneMixin() {
                       },
                     })),
                   ],
+                },
+              ]
+            : []),
+          ...(TUBE_MAP_MODES.has(self.chosenLayoutMode)
+            ? [
+                {
+                  label: 'Fold variants',
+                  subMenu: TUBE_MAP_FOLDS.map(({ bp, label }) => ({
+                    type: 'radio' as const,
+                    label,
+                    checked: self.tubeMapFold === bp,
+                    disabled: bp > 0 && self.graph?.reads !== undefined,
+                    onClick: () => {
+                      self.setTubeMapFold(bp)
+                      void self.recomputeLayout()
+                    },
+                  })),
                 },
               ]
             : []),

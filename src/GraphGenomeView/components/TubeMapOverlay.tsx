@@ -5,6 +5,7 @@ import {
   rulerBoxes,
 } from '@jbrowse/bandage-core/tubeMap/axis'
 import { drawTubeMapConnectors } from '@jbrowse/bandage-core/tubeMap/connectors'
+import { drawDeviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
 import { drawTubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
@@ -56,6 +57,7 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
             darkMode: model.darkMode,
           }
           drawTubeMap(ctx, picture, tubeFrame)
+          drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
           drawTubeMapConnectors(
             ctx,
             model.tubeMapConnectors,
