@@ -38,6 +38,31 @@ test('a .gbz.db guesses the gbz-base adapter, its index as the haplotype index',
   })
 })
 
+test("a url's query string keeps both graph files recognised, and rides on the siblings", () => {
+  const { adapter } = guessers()
+  expect(
+    adapter(uri('https://example.com/hprc.gbz.db?X-Amz-Signature=abc')),
+  ).toMatchObject({ type: 'GbzBaseSyntenyAdapter' })
+  expect(
+    adapter(uri('https://example.com/hprc.segs.bed.gz?token=t#frag')),
+  ).toMatchObject({
+    type: 'RgfaTabixAdapter',
+    segmentsIndex: {
+      location: {
+        uri: 'https://example.com/hprc.segs.bed.gz.tbi?token=t#frag',
+      },
+    },
+    linksLocation: {
+      uri: 'https://example.com/hprc.links.bed.gz?token=t#frag',
+    },
+    linksIndex: {
+      location: {
+        uri: 'https://example.com/hprc.links.bed.gz.tbi?token=t#frag',
+      },
+    },
+  })
+})
+
 test('other files and other adapter hints defer', () => {
   const { adapter } = guessers()
   expect(adapter(uri('x.bed.gz'))).toEqual({ type: 'Fallback' })

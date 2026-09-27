@@ -1,4 +1,4 @@
-import { makeIndex, makeIndexType } from '@jbrowse/core/util/tracks'
+import { makeIndexType } from '@jbrowse/core/util/tracks'
 
 import type { FileLocation } from '@jbrowse/core/util'
 
@@ -18,8 +18,32 @@ export const GRAPH_FILE_FIELDS: Record<GraphFileChoice, string> = {
 
 const SEGMENTS_SUFFIX = '.segs.bed.gz'
 
+// A url's query string (a presigned signature, a token) follows the file name
+export function splitUri(uri: string) {
+  const end = uri.search(/[?#]/)
+  return end === -1
+    ? { name: uri, query: '' }
+    : { name: uri.slice(0, end), query: uri.slice(end) }
+}
+
 function locationName(loc: FileLocation) {
-  return 'uri' in loc ? loc.uri : 'localPath' in loc ? loc.localPath : ''
+  return 'uri' in loc
+    ? splitUri(loc.uri).name
+    : 'localPath' in loc
+      ? loc.localPath
+      : ''
+}
+
+function renamed(loc: FileLocation, rename: (name: string) => string) {
+  if ('uri' in loc) {
+    const { name, query } = splitUri(loc.uri)
+    return { ...loc, uri: rename(name) + query }
+  }
+  return 'localPath' in loc ? { ...loc, localPath: rename(loc.localPath) } : loc
+}
+
+function sibling(loc: FileLocation, suffix: string) {
+  return renamed(loc, name => name + suffix)
 }
 
 export function isSegmentsLocation(loc: FileLocation) {
@@ -27,18 +51,15 @@ export function isSegmentsLocation(loc: FileLocation) {
 }
 
 function linksLocation(loc: FileLocation) {
-  const name = locationName(loc)
   if (!isSegmentsLocation(loc)) {
     throw new Error(
-      `Expected a segments BED ending in ${SEGMENTS_SUFFIX}, got ${name || 'a blob'}`,
+      `Expected a segments BED ending in ${SEGMENTS_SUFFIX}, got ${locationName(loc) || 'a blob'}`,
     )
   }
-  const links = `${name.slice(0, -SEGMENTS_SUFFIX.length)}.links.bed.gz`
-  return 'uri' in loc
-    ? { ...loc, uri: links }
-    : 'localPath' in loc
-      ? { ...loc, localPath: links }
-      : loc
+  return renamed(
+    loc,
+    name => `${name.slice(0, -SEGMENTS_SUFFIX.length)}.links.bed.gz`,
+  )
 }
 
 function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
@@ -47,15 +68,15 @@ function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
         location: indexLoc,
         indexType: makeIndexType(locationName(indexLoc), 'CSI', 'TBI'),
       }
-    : { location: makeIndex(loc, '.tbi'), indexType: 'TBI' }
+    : { location: sibling(loc, '.tbi'), indexType: 'TBI' }
 }
 
 // The links file's index is assumed beside it, of the kind the segments' is.
 function siblingIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
   const csi = indexLoc !== undefined && locationName(indexLoc).endsWith('.csi')
   return csi
-    ? { location: makeIndex(loc, '.csi'), indexType: 'CSI' }
-    : { location: makeIndex(loc, '.tbi'), indexType: 'TBI' }
+    ? { location: sibling(loc, '.csi'), indexType: 'CSI' }
+    : { location: sibling(loc, '.tbi'), indexType: 'TBI' }
 }
 
 function panSN(assembly: string, sample: string) {
