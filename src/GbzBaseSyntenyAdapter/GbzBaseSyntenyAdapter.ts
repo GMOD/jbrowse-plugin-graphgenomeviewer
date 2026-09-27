@@ -5,9 +5,17 @@ import { openLocation } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import {
+  cutWindowGFA,
+  haplotypePrefix,
+  haplotypeWanted,
+  nodeLimitError,
+  referencePathQuery,
+  referenceSamplesOf,
+  resolveReferenceSample,
+} from './gbzWindow.ts'
+import {
   assemblyByPanSNPrefix,
   panSNMatchesPrefix,
-  panSNSample,
   resolvePanSNPrefix,
 } from '../pansn.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
@@ -27,6 +35,14 @@ import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
+export {
+  NoReferenceSampleError,
+  NodeLimitError,
+  haplotypePrefix,
+  nodeLimitError,
+  resolveReferenceSample,
+} from './gbzWindow.ts'
+
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'
 
@@ -35,22 +51,6 @@ export class NoHaplotypeIndexError extends Error {
       'this .gbz.db has no HaplotypeSamples/HaplotypeLengths tables, so its walks cannot be named; run gbz-haplotype-index (from @gmod/gbz-base) over it first',
     )
   }
-}
-
-export class NoReferenceSampleError extends Error {
-  override name = 'NoReferenceSampleError'
-
-  constructor(anchor: string, referenceSamples: string[]) {
-    super(
-      referenceSamples.length === 0
-        ? `the graph names no reference sample (gbwt_reference_samples) and the anchor "${anchor}" maps to none; set referenceSample`
-        : `the anchor "${anchor}" is none of the graph's reference samples (${referenceSamples.join(', ')}); set referenceSample or map it through assemblyNameToPanSN`,
-    )
-  }
-}
-
-export function haplotypePrefix(name: Pick<PathName, 'sample' | 'haplotype'>) {
-  return `${name.sample}#${name.haplotype}`
 }
 
 export interface GbzHaplotype {
@@ -96,14 +96,6 @@ export class PairTargetError extends Error {
   }
 }
 
-function haplotypeWanted(name: PathName, wanted: string[] | undefined) {
-  const prefix = haplotypePrefix(name)
-  return (
-    wanted === undefined ||
-    wanted.some(candidate => panSNMatchesPrefix(prefix, candidate))
-  )
-}
-
 export class HaplotypeWindowError extends Error {
   override name = 'HaplotypeWindowError'
 
@@ -111,42 +103,6 @@ export class HaplotypeWindowError extends Error {
     super(
       `the graph is cut on its reference, ${anchor}; a window on ${assemblyName} has no reference coordinates to cut at. Open the graph from a ${anchor} view, and find this haplotype's lane there`,
     )
-  }
-}
-
-export class NodeLimitError extends Error {
-  override name = 'NodeLimitError'
-
-  constructor(limit: number, windowBp: number, fitsBp: number) {
-    super(
-      `this ${windowBp.toLocaleString()} bp window reads more than nodeLimit (${limit.toLocaleString()}) graph nodes; zoom in to about ${fitsBp.toLocaleString()} bp or raise nodeLimit`,
-    )
-  }
-}
-
-/**
- * gbz-base reports the node limit with how far along the reference the walk
- * had got when it tripped; a window that fits is that far, with a margin, or
- * half the window when the limit tripped while extending past the reference.
- */
-export function nodeLimitError(
-  error: unknown,
-  limit: number,
-  windowBp: number,
-) {
-  const isLimit =
-    error instanceof Error &&
-    (error.name === 'SubgraphLimitError' ||
-      /^Subgraph size limit of \d+ nodes exceeded/.test(error.message))
-  if (!isLimit) {
-    return undefined
-  } else {
-    const walked = (error as { walkedBp?: unknown }).walkedBp
-    const fits =
-      typeof walked === 'number' && walked > 0
-        ? Math.floor(walked * 0.8)
-        : Math.floor(windowBp / 2)
-    return new NodeLimitError(limit, windowBp, Math.max(fits, 1))
   }
 }
 
@@ -162,41 +118,6 @@ export function laneAssemblyName(
 ) {
   const prefix = haplotypePrefix(name)
   return asmByPrefix[prefix] ?? asmByPrefix[name.sample] ?? prefix
-}
-
-const SAMPLE_ALIASES: Record<string, string> = {
-  hg38: 'grch38',
-  hg19: 'grch37',
-  hs1: 'chm13',
-  't2t-chm13': 'chm13',
-  chm13v2: 'chm13',
-}
-
-function aliasedSample(anchorSample: string, referenceSamples: string[]) {
-  const lower = anchorSample.toLowerCase()
-  const wanted = [lower, SAMPLE_ALIASES[lower]]
-  return referenceSamples.find(s => wanted.includes(s.toLowerCase()))
-}
-
-export function resolveReferenceSample({
-  configured,
-  anchorPrefix,
-  referenceSamples,
-}: {
-  configured: string
-  anchorPrefix: string
-  referenceSamples: string[]
-}) {
-  if (configured !== '') {
-    return configured
-  }
-  const sample =
-    aliasedSample(panSNSample(anchorPrefix), referenceSamples) ??
-    (referenceSamples.length === 1 ? referenceSamples[0] : undefined)
-  if (sample === undefined) {
-    throw new NoReferenceSampleError(anchorPrefix, referenceSamples)
-  }
-  return sample
 }
 
 /**
@@ -305,9 +226,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
           'GbzBaseSyntenyAdapter needs assemblyNames: its first entry is the assembly the reference sample is loaded as',
         )
       }
-      const referenceSamples = ((await db.tag('gbwt_reference_samples')) ?? '')
-        .split(/\s+/)
-        .filter(sample => sample !== '')
+      const referenceSamples = await referenceSamplesOf(db)
       const referenceSample = resolveReferenceSample({
         configured: this.getConf('referenceSample'),
         anchorPrefix: resolvePanSNPrefix(this, anchor),
@@ -327,19 +246,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     opts: BaseOptions,
   ): Promise<PathQuery | undefined> {
     const { db, referenceSample } = await this.graph(opts)
-    const path = (await db.paths()).find(
-      p =>
-        p.isIndexed &&
-        p.name.sample === referenceSample &&
-        p.name.contig === refName,
-    )
-    return path
-      ? {
-          sample: path.name.sample,
-          contig: refName,
-          haplotype: path.name.haplotype,
-        }
-      : undefined
+    return referencePathQuery(db, referenceSample, refName)
   }
 
   /**
@@ -461,23 +368,14 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       throw new HaplotypeWindowError(assemblyName, anchor)
     }
     const query = await this.referenceQuery(refName, {})
-    const nodeLimit: number = this.getConf('nodeLimit')
     const keep = this.keepPredicate(opts.haplotypes)
-    const subgraph = query
-      ? await db
-          .getSubgraphForRange(query, start, end, {
-            context: this.getConf('context'),
-            snarls: this.getConf('subgraphSnarls'),
-            haplotypes: 'all',
-            limit: nodeLimit,
-            signal: opts.signal,
-            ...(keep === undefined ? {} : { keep }),
-          })
-          .catch((error: unknown) => {
-            throw nodeLimitError(error, nodeLimit, end - start) ?? error
-          })
-      : undefined
-    return subgraph ? subgraph.toGFA({ names: 'resolved' }) : ''
+    return cutWindowGFA(db, query, start, end, {
+      context: this.getConf('context'),
+      snarls: this.getConf('subgraphSnarls'),
+      limit: this.getConf('nodeLimit'),
+      signal: opts.signal,
+      ...(keep === undefined ? {} : { keep }),
+    })
   }
 
   private async laneHaplotypes(

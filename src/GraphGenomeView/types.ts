@@ -1,3 +1,4 @@
+import type { TubeMapDrawing } from './layout/tubeMapLayout'
 import type { StableCoordinate } from '../gfa-core/index'
 
 export interface GraphNode {
@@ -138,8 +139,11 @@ export interface LayoutResult {
   // one says what y is MEASURED IN, and a future layout could set either
   // without the other.
   pixelRows?: boolean
-  // How far a drawing reaches past its nodes, when an overlay draws rows the
-  // renderer has no node for (walk rows). The fit and the pane height take the
-  // wider of this and the nodes.
-  extent?: { maxX: number; maxY: number }
+  // How far a drawing reaches past its nodes, when an overlay draws ink the
+  // renderer has no node for (walk rows, the tube map). The fit and the pane
+  // height take the wider of this and the nodes.
+  extent?: { minX?: number; minY?: number; maxX?: number; maxY?: number }
+  // The tube map's shapes, which TubeMapOverlay draws in place of the canvas's
+  // nodes and edges.
+  tubeMap?: TubeMapDrawing
 }

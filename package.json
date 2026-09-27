@@ -52,6 +52,7 @@
   "dependencies": {
     "@gmod/gbz-base": "^2.8.0",
     "@gmod/tabix": "^3.8.3",
+    "@gmod/tubemap-core": "file:vendor/tubemap-core",
     "@jbrowse/cigar-utils": "5.0.0-beta.9",
     "@jbrowse/core": "5.0.0-beta.9",
     "@jbrowse/display-kit": "5.0.0-beta.9",

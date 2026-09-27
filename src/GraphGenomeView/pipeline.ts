@@ -208,11 +208,10 @@ export function drawingBounds(
   layout: LayoutResult,
   opts: {
     region?: { start: number; end: number }
-    extent?: { maxX: number; maxY: number }
+    extent?: LayoutResult['extent']
   } = {},
 ) {
-  const { minY, ...reach } = layoutExtent(layout.nodePositions)
-  let { minX, maxX, maxY } = reach
+  let { minX, minY, maxX, maxY } = layoutExtent(layout.nodePositions)
   const { region } = opts
   if (layout.referenceAxis && region && region.end > region.start) {
     minX = region.start
@@ -220,8 +219,10 @@ export function drawingBounds(
   }
   const extent = opts.extent ?? layout.extent
   if (extent) {
-    maxX = Math.max(maxX, extent.maxX)
-    maxY = Math.max(maxY, extent.maxY)
+    minX = Math.min(minX, extent.minX ?? minX)
+    minY = Math.min(minY, extent.minY ?? minY)
+    maxX = Math.max(maxX, extent.maxX ?? maxX)
+    maxY = Math.max(maxY, extent.maxY ?? maxY)
   }
   return { minX, minY, w: maxX - minX, h: maxY - minY }
 }
