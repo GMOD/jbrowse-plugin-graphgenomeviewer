@@ -15,6 +15,12 @@
 // sequence (RN), with RUC copies, RB bases and each copy's bases in RUB. A
 // phased GT's k-th allele is PanSN haplotype k; the reference walk is a sample
 // of its own, so its copies are stated too.
+//
+// It stands in for a repeat finder only where none reaches: TRGT needs reads
+// spanning the array, and vamos 3.1.1, the assembly-mode finder, skips any
+// allele over 30,000 bp (src/vntr.cpp) and wrote no record for these contigs
+// under a graph-derived alignment. On GRCh38's array, which fits, vamos with
+// this script's two units as its motifs decomposes the copies identically.
 import fs from 'node:fs'
 import { parseArgs } from 'node:util'
 
