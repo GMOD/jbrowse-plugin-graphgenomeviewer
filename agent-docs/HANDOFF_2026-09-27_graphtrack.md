@@ -31,9 +31,23 @@
   to the repo copies. `5530926383` regenerated `hostedConfigs.generated.ts` from
   them.
 
+- **Plugin `main`, unreleased**: Add track recognises `.gbz.db` and
+  `.segs.bed.gz` urls with a query string, keeping it on the derived links and
+  index urls; paint readiness keys on one stamp (`paintedViewport`, the
+  `builtViewport` record on the canvas); the force layout e2e waits for
+  app-ready instead of racing the paint.
+- **`checkPangenomeLaunches`** on the served configs: 59/61. `defb` and
+  `nphp1: haplotypes` fail on haplotypes with no walk in the window, a data
+  question recorded in jb2hubs' `PANGENOME_PORTAL.md`.
+
 ## Left to do
 
 1. **Reshoot the graph figures** on the latest plugin. Session -41 was going to;
    it is no longer running.
 2. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
    `FeatureTrack` and `SyntenyTrack`.
+3. **Lanes on an rGFA GraphTrack**: beta.9 hosts can't filter displays by
+   adapter capability, so its menu lists lanes. 5.0.0-beta.10 fixes that once
+   jbrowse-components releases.
+4. A presigned url signs one object, so its derived links and index urls won't
+   verify; such a graph needs its locations spelled out in a config.
