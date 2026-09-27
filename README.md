@@ -37,8 +37,11 @@ to right, and the kringle repeat array forms the loops in the middle.
 }
 ```
 
-The plugin needs a JBrowse host of 5.0.0-beta.9 or later. A graph track uses
-`LinearGraphDisplay`, whose track menu picks the layout, colour and walk:
+The plugin needs a JBrowse host of 5.0.0-beta.9 or later. **File → Open track**
+takes a `.segs.bed.gz` url from `build_rgfa_tabix.sh` and opens it as a graph
+track with no config. A hand-written track needs only the adapter; a
+`FeatureTrack` over an rGFA opens as `LinearGraphDisplay` unless its config
+lists `displays`:
 
 ```json
 {
@@ -53,11 +56,7 @@ The plugin needs a JBrowse host of 5.0.0-beta.9 or later. A graph track uses
       "uri": "https://example.com/hprc.tier10000",
       "aboveBpPerPx": 1000
     }
-  },
-  "displays": [
-    { "type": "LinearGraphDisplay", "displayId": "hprc_graph-graph" },
-    { "type": "LinearBasicDisplay", "displayId": "hprc_graph-segments" }
-  ]
+  }
 }
 ```
 
@@ -65,8 +64,9 @@ The display cuts the visible window plus one window-width each side, up to 5 Mb.
 Past `aboveBpPerPx` it cuts the optional `coarse` tier instead, one node per
 bubble with no size cap, built by `build_bubble_tier.sh` in jbrowse-components.
 Layouts on reference bp pan and zoom with the view; the force-directed and
-ordered layouts fit the track and zoom from its menu. The second display is a
-segments lane, one block per segment.
+ordered layouts fit the track and zoom from its menu. The track menu picks the
+layout, colour and walk, and switches to the segments lane, one block per
+segment.
 
 **Add → Graph genome view** opens a whole GFA file in its own view.
 

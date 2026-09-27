@@ -22,9 +22,13 @@ function locationName(loc: FileLocation) {
   return 'uri' in loc ? loc.uri : 'localPath' in loc ? loc.localPath : ''
 }
 
+export function isSegmentsLocation(loc: FileLocation) {
+  return locationName(loc).endsWith(SEGMENTS_SUFFIX)
+}
+
 function linksLocation(loc: FileLocation) {
   const name = locationName(loc)
-  if (!name.endsWith(SEGMENTS_SUFFIX)) {
+  if (!isSegmentsLocation(loc)) {
     throw new Error(
       `Expected a segments BED ending in ${SEGMENTS_SUFFIX}, got ${name || 'a blob'}`,
     )
@@ -108,19 +112,7 @@ export function buildTrackConfig(args: {
     assemblyNames: [assembly],
     adapter: buildAdapterConfig(args),
     ...(choice === 'RgfaTabixAdapter'
-      ? {
-          displays: [
-            {
-              type: 'LinearGraphDisplay',
-              displayId: `${trackId}-LinearGraphDisplay`,
-            },
-            {
-              type: 'LinearBasicDisplay',
-              displayId: `${trackId}-LinearBasicDisplay`,
-            },
-          ],
-          displayDefaults: { showLabels: 'none' },
-        }
+      ? { displayDefaults: { showLabels: 'none' } }
       : {}),
   }
 }

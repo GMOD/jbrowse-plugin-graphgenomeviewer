@@ -267,3 +267,28 @@ export async function waitForReactMount(page: Page) {
     { timeout: 30_000 },
   )
 }
+
+// Resolves once `ready` holds and core's AppReadyMarker then reads "ready",
+// which covers every view's showLoading and every display's displayPhase —
+// the graph pane's included. Waiting on `ready` first keeps a marker that was
+// already "ready" before the action from passing too early.
+export async function waitForAppReady(
+  page: Page,
+  ready: () => boolean = () => true,
+  timeout = 120_000,
+) {
+  await page.waitForFunction(ready, { timeout })
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[data-testid="app-ready-marker"]')
+        ?.getAttribute('data-app-phase') === 'ready',
+    { timeout },
+  )
+  await page.evaluate(
+    () =>
+      new Promise(r => {
+        requestAnimationFrame(() => requestAnimationFrame(r))
+      }),
+  )
+}

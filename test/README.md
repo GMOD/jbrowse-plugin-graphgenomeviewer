@@ -1,11 +1,12 @@
 # End-to-end tests
 
-Puppeteer boots a real JBrowse Web and loads the built plugin. Three suites:
+Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 
 | suite                    | what only it can prove                                                                   |
 | ------------------------ | ---------------------------------------------------------------------------------------- |
 | `forceLayout.test.ts`    | the Bandage WASM engine is fetched at runtime as the hashed sibling chunk, and draws     |
 | `interaction.test.ts`    | the mouse is wired to hit detection, and a node drag repaints                            |
+| `addTrack.test.ts`       | a `.segs.bed.gz` url through File → Open track opens as the graph display                |
 | `launchAndHover.test.ts` | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints |
 
 ## What `launchAndHover` demonstrates
@@ -30,6 +31,15 @@ One thing learned building it, worth not rediscovering:
   threshold. Projecting a node's own mid-point through the view's
   scale/translate is exact, and lets the assertion check the highlight equals
   that node's declared span rather than merely that some highlight appeared.
+
+## Waiting for a drawn frame
+
+Use `waitForAppReady(page, condition)` from `setup.ts` before a screenshot or an
+assertion on what is drawn. It waits for the condition, then for core's
+`AppReadyMarker` to read `ready`, which covers every view's `showLoading` and
+every display's `displayPhase`, including `LinearGraphDisplay`'s. A wait on
+`nodeCount` or a canvas selector passes while the pane still shows "Fetching
+subgraph".
 
 ## Running
 

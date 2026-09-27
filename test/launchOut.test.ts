@@ -28,7 +28,8 @@ import type { Browser, Page } from 'puppeteer'
 // instead of stacking another pane on top.
 const runE2E = process.env.RUN_E2E === '1'
 
-const GRAPH_CANVAS = '[data-testid="graph-genome-canvas"]'
+const GRAPH_CANVAS =
+  '[data-testid="graph-genome-canvas"]:not([data-testid="linear-graph-display"] *)'
 // The host renamed this submenu from "Launch view" to "Launch" (core's
 // LAUNCH_LABEL), so it is matched by how both begin, as launchAndHover does.
 const LAUNCH_SUBMENU = 'Launch'
