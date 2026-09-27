@@ -68,4 +68,5 @@ Needs JBrowse 5.0.0-beta.9 or later.
 
 ## License
 
-GPL-3.0-or-later (the wasm FMMM engine is OGDF, GPL).
+GPL-3.0-or-later (this module is based on work from Bandage and ODGF graph
+drawing algorithms which are both GPL).
