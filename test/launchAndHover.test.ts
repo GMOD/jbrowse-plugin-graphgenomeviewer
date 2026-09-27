@@ -350,10 +350,31 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
 
     // a bubble's name lights the bubble's span, not the node the linear view
     // reads under the pointer's x
-    const label = await page.$(
-      `${DISPLAY} [data-testid="graph-bubble-halo-label"]`,
+    await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          )
+          .displays[0].setShowBubbles(true)
+      },
+      [LGV_ID, RGFA_TRACK_ID],
     )
-    const labelBox = (await label!.boundingBox())!
+    // the halo legend resizes the legend stack, which re-places the labels,
+    // so the chip is read once the legend is up
+    await page.waitForSelector(`${DISPLAY} [data-testid="graph-halo-legend"]`)
+    await page.evaluate(
+      () =>
+        new Promise(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve))
+        }),
+    )
+    const labelBox = await page.evaluate((selector: string) => {
+      const r = document.querySelector(selector)!.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    }, `${DISPLAY} [data-testid="graph-bubble-halo-label"]`)
     await page.mouse.move(
       labelBox.x + labelBox.width / 2,
       labelBox.y + labelBox.height / 2,

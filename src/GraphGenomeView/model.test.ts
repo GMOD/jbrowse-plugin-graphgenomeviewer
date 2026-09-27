@@ -2398,6 +2398,9 @@ describe('popping a bubble', () => {
     model.setLayoutMode('ordered')
     await model.loadGFA(RGFA_BUBBLE, 'rgfa')
     expect(model.bubbleGlyphs).toEqual([])
+    // off by default
+    expect(model.bubbleHalos).toEqual([])
+    model.setShowBubbles(true)
     expect(
       model.bubbleHalos.map(h => [h.label, h.members, h.path.startsWith('M')]),
     ).toEqual([['≤4 bp ins', 1, true]])

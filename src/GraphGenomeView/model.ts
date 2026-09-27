@@ -61,6 +61,7 @@ import {
   nodeAnchor,
   referenceStripBlocks,
   stripBlockAt,
+  stripOverhang,
 } from '@jbrowse/bandage-core/referenceStrip'
 import {
   buildGeometry,
@@ -415,7 +416,8 @@ export function GraphPaneMixin() {
         ),
         // Whether the node layouts draw each bubble as a halo along its nodes
         // with a label that opens it. The variant map draws glyphs instead.
-        showBubbles: types.optional(types.boolean, true),
+        // Off by default: on a base-level cut every SNP's halo is a blob.
+        showBubbles: types.optional(types.boolean, false),
         showDeletionEdges: types.optional(types.boolean, false),
         // The session's genes drawn onto the backbone: exons along the nodes
         // that carry them, names pinned at their midpoints. See genes/.
@@ -1455,6 +1457,21 @@ export function GraphPaneMixin() {
           self.referenceStripBlocks.length > 0 &&
           self.referenceStripFrame !== undefined
         )
+      },
+      // Whether the graph draws reference past the window's edges. A boolean
+      // rather than the bp, which moves on every frame of a pan and would
+      // resize the legend with it.
+      get referenceStripOverhangs() {
+        const frame = self.referenceStripFrame
+        if (!frame || self.referenceStripBlocks.length === 0) {
+          return false
+        }
+        const { left, right } = stripOverhang(
+          self.referenceStripBlocks,
+          frame,
+          self.paneWidth,
+        )
+        return left > 0 || right > 0
       },
     }))
     .views(self => ({

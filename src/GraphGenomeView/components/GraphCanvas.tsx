@@ -13,7 +13,7 @@ import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
 
-import BubbleHalos from './BubbleHalos'
+import BubbleHalos, { HaloLegend } from './BubbleHalos'
 import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
@@ -198,6 +198,8 @@ const WalkReadout = observer(function WalkReadout({
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       <strong>{label}</strong>: {h.steps.toLocaleString()} steps,{' '}
       {h.bp.toLocaleString()} bp{delta}
+      <br />
+      paler: what {label} does not carry
     </div>
   )
 })
@@ -303,6 +305,7 @@ const Legends = observer(function Legends({
     >
       <ReferenceRampLegend model={model} />
       <ReferenceStripLegend model={model} />
+      <HaloLegend model={model} />
       <PathLegend model={model} />
       <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />

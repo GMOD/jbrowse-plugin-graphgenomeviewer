@@ -1,5 +1,8 @@
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import {
+  BUBBLE_KIND_COLORS,
+  BUBBLE_KIND_NAMES,
+} from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { HALO_FACTOR } from '@jbrowse/bandage-core/labelLayout'
 import { observer } from 'mobx-react'
 
@@ -80,3 +83,57 @@ const BubbleHalos = observer(function BubbleHalos({
 })
 
 export default BubbleHalos
+
+const legendBoxStyle = {
+  background: 'rgba(255,255,255,0.82)',
+  padding: '4px 6px',
+  borderRadius: 3,
+  fontSize: 11,
+  lineHeight: '15px',
+  whiteSpace: 'nowrap' as const,
+}
+const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
+
+function HaloSwatch({ color }: { color: string }) {
+  return (
+    <svg width={18} height={10} style={{ flex: 'none' }}>
+      <line
+        x1={5}
+        y1={5}
+        x2={13}
+        y2={5}
+        stroke={color}
+        strokeOpacity={0.35}
+        strokeWidth={8}
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+// One row per halo colour on screen, naming the kinds it stands for
+export const HaloLegend = observer(function HaloLegend({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  const kindsByColor = new Map<string, Set<string>>()
+  for (const h of model.bubbleHalos) {
+    if (!h.whole) {
+      const color = BUBBLE_KIND_COLORS[h.kind]
+      const kinds = kindsByColor.get(color) ?? new Set<string>()
+      kinds.add(BUBBLE_KIND_NAMES[h.kind])
+      kindsByColor.set(color, kinds)
+    }
+  }
+  return kindsByColor.size > 0 ? (
+    <div style={legendBoxStyle} data-testid="graph-halo-legend">
+      {[...kindsByColor].map(([color, kinds]) => (
+        <div key={color} style={legendRowStyle}>
+          <HaloSwatch color={color} />
+          <span>bubble: {[...kinds].join(', ')}</span>
+        </div>
+      ))}
+    </div>
+  ) : null
+})

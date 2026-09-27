@@ -83,14 +83,14 @@ function trackView(loc, graphDisplay) {
   }
 }
 
-const forceKiv2Track = trackView('chr6:160,525,000-160,655,000', {
+const kiv2Force = {
   trackId: RGFA,
   layoutMode: 'force',
   colorScheme: 'reference-position',
-  showDeletionEdges: true,
   maxRegionBp: 143000,
   height: 400,
-})
+}
+const forceKiv2Track = trackView('chr6:160,525,000-160,655,000', kiv2Force)
 
 // Points at the graph track's longest allele through its drawn midpoint, as a
 // reader would, so the strip boxes its span between its flanks
@@ -118,6 +118,10 @@ async function hoverLongestAllele(page) {
 const FIGURES = {
   force_kiv2: forceKiv2Track,
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
+  force_kiv2_bubbles: trackView('chr6:160,525,000-160,655,000', {
+    ...kiv2Force,
+    showBubbles: true,
+  }),
   // six of the eight lack GSTM1; the strip fades HG00133's missing stretch
   force_gstm1_walk: trackView('chr1:109,670,000-109,705,000', {
     trackId: GBZ,
@@ -125,7 +129,6 @@ const FIGURES = {
     colorScheme: 'reference-position',
     subgraphHaplotypes: HAPLOTYPES,
     highlightedPath: 'HG00133#1#CM090045.1',
-    showDeletionEdges: true,
     height: 460,
   }),
   force_kiv2_popped: {
@@ -133,7 +136,7 @@ const FIGURES = {
       loadedTrackId: RGFA,
       loadedRegion: KIV2,
       layoutMode: 'force',
-      showDeletionEdges: true,
+      showBubbles: true,
       paneHeight: 480,
     }),
     // opens the largest bubble in the window, the KIV-2 array
@@ -150,13 +153,13 @@ const FIGURES = {
     loadedTrackId: RGFA,
     loadedRegion: KIV2,
     layoutMode: 'variants',
-    showDeletionEdges: true,
     paneHeight: 340,
   }),
   force_kiv2_gbz: graphView({
     ...gbzCut,
     subgraphHaplotypes: HAPLOTYPES,
     layoutMode: 'force',
+    showBubbles: true,
     paneHeight: 620,
   }),
   force_kiv2_walk: graphView({

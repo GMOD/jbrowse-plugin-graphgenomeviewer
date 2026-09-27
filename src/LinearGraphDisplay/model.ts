@@ -373,6 +373,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             referencePath: self.referencePath,
             geneTrackId: self.geneTrackId,
             showGenes: self.showGenes,
+            showBubbles: self.showBubbles,
+            showDeletionEdges: self.showDeletionEdges,
           } satisfies GraphViewSpec
         },
       }))

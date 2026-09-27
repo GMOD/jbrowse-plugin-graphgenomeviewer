@@ -85,6 +85,14 @@ function StripSwatch() {
   )
 }
 
+function OverhangSwatch() {
+  return (
+    <svg width={SWATCH_PX} height={8} style={{ flex: 'none' }}>
+      <path d="M0,4 L5,0.5 L5,7.5 Z M18,4 L13,0.5 L13,7.5 Z" fill="#18181c" />
+    </svg>
+  )
+}
+
 // Hovering a node boxes its span on the strip and draws a leader to it
 export const ReferenceStripLegend = observer(function ReferenceStripLegend({
   model,
@@ -97,6 +105,12 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
         <StripSwatch />
         <span>top strip: reference segments at their bp</span>
       </div>
+      {model.referenceStripOverhangs ? (
+        <div style={legendRowStyle}>
+          <OverhangSwatch />
+          <span>the graph runs past this edge</span>
+        </div>
+      ) : null}
     </div>
   ) : null
 })
