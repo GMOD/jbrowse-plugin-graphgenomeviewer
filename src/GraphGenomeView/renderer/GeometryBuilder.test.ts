@@ -804,6 +804,26 @@ describe('arrowhead placement', () => {
     expect(head).toMatchObject({ x: 10, y: 0 })
     expect(head.angle).toBeCloseTo(Math.PI / 2, 6)
   })
+
+  // a run of 1 bp nodes on a walk row drew a head at every joint
+  test('a joint drops its head when the node it leaves cannot hold it', () => {
+    const joint = (fromLength: number) =>
+      headOf(
+        {
+          'A+': [
+            { x: 10 - fromLength, y: 0 },
+            { x: 10, y: 0 },
+          ],
+          'B+': [
+            { x: 10, y: 0 },
+            { x: 20, y: 0 },
+          ],
+        },
+        4,
+      )
+    expect(joint(1)).toBeUndefined()
+    expect(joint(5)).toBeDefined()
+  })
 })
 
 // With the last control point on the endpoint, the tangent's limit at t=1 runs

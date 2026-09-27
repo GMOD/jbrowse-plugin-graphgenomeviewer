@@ -179,29 +179,45 @@ function walkPointAt(n: number, px: number) {
 // size, and the node it enters sets where the tip stops. The tip lands on that
 // node's outline, which a round cap puts `nodeHalfWidth` from the endpoint in
 // every direction; on the centreline it sank half a node deep and covered the
-// node's first few px. Only as far as the edge is long, so an abutting joint,
-// which has no length to fit to and no other mark of its direction, keeps its
-// head on the joint.
+// node's first few px. Only as far as the edge is long, so an abutting joint
+// keeps its head on the joint.
+//
+// A joint's head lies over the node the edge leaves, so that node's drawn
+// length is the room it fits to. A run of 1 bp nodes on a walk row otherwise
+// drew a head at every joint, a serration along the row.
 //
 // The head lies along the curve it ends, from the curve point a head-length
 // back to the tip. The end tangent alone runs along the entered node, and an
 // edge that turns in its last few px then drew a head pointing across its own
 // stroke.
-function arrowheadFor(
-  curves: BezierCurve[],
-  edgeHalfWidth: number,
-  nodeHalfWidth: number,
-  scale: number,
-  yToX: number,
-  color: number,
-  toSegments: NodeSegment[],
-): Arrowhead | undefined {
+function arrowheadFor({
+  curves,
+  edgeHalfWidth,
+  nodeHalfWidth,
+  scale,
+  yToX,
+  color,
+  fromSegments,
+  toSegments,
+}: {
+  curves: BezierCurve[]
+  edgeHalfWidth: number
+  nodeHalfWidth: number
+  scale: number
+  yToX: number
+  color: number
+  fromSegments: NodeSegment[]
+  toSegments: NodeSegment[]
+}): Arrowhead | undefined {
   const length = ARROW_LENGTH_BASE_PX + ARROW_LENGTH_PER_EDGE_PX * edgeHalfWidth
   const n = backFromEnd(curves, scale, yToX, nodeHalfWidth + length)
   const lengthPx = walkPx[n - 1]!
   const inset = Math.min(nodeHalfWidth, lengthPx)
-  const fit =
-    lengthPx < ABUTTING_PX ? 1 : Math.min(1, (lengthPx - inset) / length)
+  const room =
+    lengthPx < ABUTTING_PX
+      ? polylinePx(fromSegments, scale, yToX)
+      : lengthPx - inset
+  const fit = Math.min(1, room / length)
   if (fit < MIN_ARROW_FIT) {
     return undefined
   }
@@ -224,6 +240,17 @@ function arrowheadFor(
       fit,
     color,
   }
+}
+
+function polylinePx(segments: NodeSegment[], scale: number, yToX: number) {
+  let length = 0
+  for (let i = 1; i < segments.length; i++) {
+    length += Math.hypot(
+      segments[i]!.x - segments[i - 1]!.x,
+      (segments[i]!.y - segments[i - 1]!.y) * yToX,
+    )
+  }
+  return length * scale
 }
 
 // The way into a node from the end an edge reaches it at: the direction an
@@ -929,15 +956,16 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
 
       const head =
         showArrows && arrowColor !== undefined
-          ? arrowheadFor(
+          ? arrowheadFor({
               curves,
-              edgeThickness,
-              intoHalfWidth,
+              edgeHalfWidth: edgeThickness,
+              nodeHalfWidth: intoHalfWidth,
               scale,
               yToX,
-              arrowColor,
+              color: arrowColor,
+              fromSegments,
               toSegments,
-            )
+            })
           : undefined
       if (head) {
         arrows.push(head)
