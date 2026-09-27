@@ -150,6 +150,26 @@ describe('computeEdgeCurves', () => {
     expect(curves[0]!.y1).toBeCloseTo(curves[1]!.y0)
   })
 
+  // the apex's distance off the node's line, in screen px at `scale`
+  function loopReachPx(length: number, scale: number) {
+    const segments = [
+      { x: 0, y: 0 },
+      { x: length, y: 0 },
+    ]
+    const [first] = computeEdgeCurves(segments, segments, true, 0, 0, {
+      scaleX: scale,
+      scaleY: scale,
+    })
+    return Math.abs(first!.y1) * scale
+  }
+
+  test('a self-loop is sized on screen, from its node', () => {
+    expect(loopReachPx(1, 2)).toBeCloseTo(12)
+    expect(loopReachPx(1, 20)).toBeCloseTo(12)
+    expect(loopReachPx(10, 5)).toBeCloseTo(25)
+    expect(loopReachPx(1000, 1)).toBeCloseTo(40)
+  })
+
   test('applies offset to curve endpoints', () => {
     const from = [
       { x: 0, y: 0 },

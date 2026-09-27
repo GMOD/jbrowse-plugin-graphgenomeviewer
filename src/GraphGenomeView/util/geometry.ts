@@ -444,6 +444,28 @@ function unscaleYOf(curves: BezierCurve[], yToX: number) {
   return curves
 }
 
+// How far a self-loop reaches off its node, in layout units: half the node's
+// drawn length, held between two screen sizes. Bandage uses a fixed
+// `edgeLength` in scene units, which fits one layout's units and no other's: a
+// fixed 50 units was 50 kb of drawing under the engine (1 unit per kb) and 50
+// bp on an anchored row, and under the engine it drew a 100 px oval around a
+// node a tenth that long.
+const SELF_LOOP_MIN_PX = 12
+const SELF_LOOP_MAX_PX = 40
+
+function selfLoopReach(
+  end: { x: number; y: number },
+  start: { x: number; y: number },
+  scale: number,
+) {
+  const nodePx = Math.hypot(end.x - start.x, end.y - start.y) * scale
+  const reachPx = Math.min(
+    SELF_LOOP_MAX_PX,
+    Math.max(SELF_LOOP_MIN_PX, nodePx / 2),
+  )
+  return reachPx / Math.max(scale, Number.EPSILON)
+}
+
 export function computeEdgeCurves(
   fromSegments: NodeSegment[],
   toSegments: NodeSegment[],
@@ -529,7 +551,7 @@ export function computeEdgeCurves(
       }
     }
 
-    const ext = Math.min(50, 50 * scale)
+    const ext = selfLoopReach(fromEnd, toStart, scale)
     const perpX = -segDirY
     const perpY = segDirX
     const midX = (fromEnd.x + toStart.x) / 2 + offsetX + perpX * ext
