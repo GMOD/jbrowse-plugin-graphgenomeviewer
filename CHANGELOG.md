@@ -1,3 +1,14 @@
+## [4.0.12](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.11...v4.0.12) (2026-09-27)
+
+### Other Changes
+
+- Publish skips a version npm already has, so a failed release run can re-run ([728f799](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/728f7997500302607c26eb556fee0448f69aa1e4))
+- Git-cliff reads only v* tags as releases ([4df7ba1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4df7ba16b78f3c31ffca4081ece4e59ea7a7c4aa))
+- Gbz-base ^3.0.0, which reads the haplotype index only from a companion ([4a98ecc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4a98eccf6598ba090973f8aec1c703d5e59d4fa7))
+- Bandage-core publishes from publish-core.yml, on the plugin's v* tag ([a4087a1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a4087a1d78f91d9dc76764fdc53563160e9c02c4))
+- A gene's name drops a row rather than vanish under a bubble's ([4c54b7f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4c54b7fa1e880a2494896f3c21238b5f20eede6f))
+- Figures reshot on the graph track, with walk rows and GAF reads added ([7b5975c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7b5975c4180b08fa9f622e39c3839f3c3b477391))
+
 ## [4.0.11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.10...v4.0.11) (2026-09-27)
 
 ### Other Changes
