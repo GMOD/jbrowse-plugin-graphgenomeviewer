@@ -12,9 +12,7 @@ summary:
 
 Accepted (2026-07). Covers the layout decisions in `plugins/graph`. The
 `adr-027` citations that used to stand in for this were stale (that ADR was
-removed in 9d8102f0b5) and have been dropped from the source. See
-`agent-docs/RGFA_GRAPH_HANDOFF.md` for the shipped state and the Bandage
-comparison recipe.
+removed in 9d8102f0b5) and have been dropped from the source.
 
 ## Context
 

@@ -1,10 +1,10 @@
 # Vision: haplotype access at HPRC scale
 
 Written 2026-09-06 after Phase 7 of `GBZ_PLAN.md` stalled on a sample filter,
-and rewritten the same day after the review in `HAPLOTYPE_WALKS_REVIEW.md`. The
-first draft proposed replacing the GBZ route with a precomputed walk store built
-from the sv graph. The review measured it and the draft was wrong on its
-premises; this version keeps what survived. It is a proposal, not a decision.
+and rewritten the same day after a review. The first draft proposed replacing
+the GBZ route with a precomputed walk store built from the sv graph. The review
+measured it and the draft was wrong on its premises; this version keeps what
+survived. It is a proposal, not a decision.
 
 ## What we want
 

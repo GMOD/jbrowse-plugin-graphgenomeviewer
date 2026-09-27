@@ -126,3 +126,17 @@ perfect port is ~2.3x, against a quadtree that FMMM rebuilds every iteration.
 That takes 111 s to ~45 s and 5.3 s to ~2.3 s — neither crosses into
 interactive, and at the node counts a force layout is legible at, the layout is
 already under 100 ms.
+
+## Loose ends
+
+- Add track matches `.gbz.db` and `.segs.bed.gz` with `endsWith`, so a presigned
+  url's query string defeats it (`graphTrackDefaults/index.ts`)
+- `paintedGeometryVersion` and `geometryViewportDirty` could fold into one stamp
+- LinearGraphDisplay shows render errors through GraphCanvas's own banner;
+  moving to core's `DisplayChrome` would give it core's renderError phase
+- Model caches (hitDetection, edgeCurves, graphLabels, GeometryBuilder,
+  forceLayouts) are WeakMaps that could be observed computeds; force and ordered
+  could cut with margins and re-cut only when the window leaves the cut
+- The hosted HPRC demo's only repeat track is the ABCA7 TRGT VCF, so KIV-2 reads
+  as a complex site rather than a repeat array. TRF catalogues stop near a 2 kb
+  period and the KIV-2 unit is 5.5 kb, so the label needs a curated VNTR track

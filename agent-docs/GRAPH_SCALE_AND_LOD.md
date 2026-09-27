@@ -424,8 +424,8 @@ region-queryable. Tempting. The arithmetic says it buys one zoom level:
 
 - Measured locally, HPRC chr6 MHC over the same 1.95 Mb: **565 segments → 131
   bubbles = 4.3×** (mean 6.5 segments/bubble, max 104).
-- Genome-wide, from `RGFA_GRAPH_HANDOFF.md`: **751,237 segments / 130,510
-  bubbles = 5.8×**. Two independent measurements agreeing on ~4-6×.
+- Genome-wide, over the release 2 sv graph: **751,237 segments / 130,510 bubbles
+  = 5.8×**. Two independent measurements agreeing on ~4-6×.
 
 A whole-genome graph coarsened by bubbles is still ~130k glyphs — 65× above the
 comfortable ceiling. pangyplot's `context/multi-resolution-zoom.md` explains why
@@ -452,9 +452,8 @@ Two warnings before anyone builds either:
   instead.
 - **Per-graph sidecars were already tried here and rejected.** The removed
   `GfaTabixAdapter` was 487 lines plus five bespoke artifacts per graph, one of
-  which was `.graph.coarse.bed.gz` — a precomputed coarse LOD. See
-  `MULTILGV_SYNTENY_RGFA_HANDOFF.md`. Any grid-snapping scheme needs a story for
-  that cost, or it repeats the mistake.
+  which was `.graph.coarse.bed.gz` — a precomputed coarse LOD. Any grid-snapping
+  scheme needs a story for that cost, or it repeats the mistake.
 
 ## Whole chromosomes: a goal (decided 2026-07-24)
 

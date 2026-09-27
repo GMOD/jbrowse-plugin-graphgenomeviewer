@@ -54,11 +54,3 @@
    reshoot the graph figures on the latest plugin.
 7. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
    `FeatureTrack` and `SyntenyTrack`.
-
-## Tube map (done)
-
-- `@gmod/tubemap-core` 0.1.0 is on npm, released by pushing a `tubemap-core-v*`
-  tag in cmdcolin/sequenceTubeMap. Plugin `main` uses `^0.1.0`.
-- `tubemap`/`tubemapref` layout modes are on `main`. So are the mismatch marks
-  (`tubeMap/mismatches.ts`); session -e7 wired them into drawing along with GAF
-  reads.

@@ -10,8 +10,8 @@ summary:
 ## Status
 
 Accepted (2026-09-13). Extends ADR-041. Measured on the six HPRC release 2.1
-rGFA loci in `docs/layouts.md` and the eight-haplotype KIV-2 GBZ cut;
-`scripts/layout-lab/` reproduces the measurements.
+rGFA loci in `scripts/layout-lab/README.md` and the eight-haplotype KIV-2 GBZ
+cut; `scripts/layout-lab/` reproduces the measurements.
 
 ## Context
 
