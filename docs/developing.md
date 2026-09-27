@@ -13,7 +13,7 @@ pnpm start        # esbuild watch, serves dist/out.js on :9000 with CORS
 In another terminal, serve a JBrowse Web that points at `config.json` (its
 `plugins` entry already targets `http://localhost:9000/dist/out.js`).
 
-# Building
+## Building
 
 ```console
 pnpm build        # native ESM bundle via esbuild (code-split)
@@ -82,7 +82,7 @@ since the artifact's bytes move for reasons the layout does not — see
 [`src/bandage/README.md`](../src/bandage/README.md) for
 `scripts/layout-digest.mjs`.
 
-# Testing
+## Testing
 
 ```console
 pnpm test         # vitest unit tests
