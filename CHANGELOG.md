@@ -1,3 +1,25 @@
+## [4.0.7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.6...v4.0.7) (2026-09-27)
+
+### Other Changes
+
+- Every label over the graph places from one occupancy, above all the ink ([d1ed651](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d1ed6513216a95129e6014b604a40e2e672aa762))
+- The legend reserves the box it measures, the variant map's names share the pass, and a scrolled row layout keeps its bubble names ([c68612f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c68612f729d41fb2fb8f7a8092786d0ece3ab410))
+- Trim README to core ideas and two screenshots; move layouts, config and development to docs/ ([3be69c8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3be69c8acfbd78d34f816b601312b80eed45347f))
+- One title per developing doc ([f58c673](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f58c6733fe62f2977338cbdad782d20669144a2d))
+- Tighten README and docs; fold configuration into the README's usage ([9f64a28](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9f64a28b0fd48442df7fe8ec28f16c3ebde9a5f2))
+- The graph pane is a mixin, the standalone view composes it, and a dead launch path goes ([6d16c3a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6d16c3a7e64f51eba127df19e13fcfcd995b4613))
+- The graph display composes the pane instead of nesting it ([d1e133c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d1e133c9b7eef8bd191f007832df96969d4def33))
+- The graph track owns its cut and reports its phase through core's chrome ([154c11f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/154c11f4147cc489941a33bf47234d5a5df90858))
+- The graph track refactor's state and next steps ([bc20245](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bc202452212c8ea6f453969afed28c00506ad909))
+- Review fixes to the graph track, and the e2e suite drives the track ([05776b4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/05776b4fa5773cfcc28ad81841def0aea692cd52))
+- The graph track design as composed, and what the refactor leaves ([19b27a1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/19b27a1e3b76fece74d713121a089099e41ecd04))
+- A bubble is a repeat array only where the repeat track has one ([f5fb3b4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f5fb3b4b98de728af0f4597b26d3c6d27594e367))
+- What the repeat classifier asks of the hosted HPRC demo ([b55204a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b55204a613609253313bcfbe9818ed5e34fbb09c))
+- Graph files open through Add track, as the graph display by default ([7a3081a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7a3081a3dcf2ee47639390f03d76f5b40953fde1))
+- Lint ignores .claude, whose worktrees failed a release's preversion lint ([24d1cb7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/24d1cb77ff740b7d508537ed6fa0df963e2df2f2))
+- The graph's load, layout and fit are a pure pipeline, and src/core.ts is the viewer without JBrowse ([eabd71c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/eabd71cfd6db7501c723279a9a99fad1246aabd5))
+- The drawing's bounds, the hit test's ink and the resolved colour scheme are core functions ([e464e7b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e464e7b38bd639919583a7d728be522588a0d006))
+
 ## [4.0.6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.5...v4.0.6) (2026-09-26)
 
 ### Other Changes
