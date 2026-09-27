@@ -7,7 +7,9 @@ import type { MinigraphBubble } from '../../MinigraphBubbleAdapter/bubbleLine'
 // how many routes, and whether one of them inverts. The reference route is one
 // of the routes and its length is the interval, so the shortest and longest
 // against the interval say whether the alternatives add sequence, remove it,
-// or swap it.
+// or swap it. Whether it is a repeat is not in those numbers: a
+// presence/absence insertion carried by many haplotypes has the same shape as
+// an expanding array, so that comes from the session's repeat annotation.
 export type BubbleKind =
   | 'snp'
   | 'substitution'
@@ -21,6 +23,34 @@ export type BubbleKind =
 export interface BubbleClass {
   kind: BubbleKind
   label: string
+}
+
+// An annotated tandem repeat array over the cut (repeats/repeatFeatures).
+// Its refName is not compared: the arrays are read over the same window as
+// the bubbles, which spell the reference their own way (PanSN).
+export interface RepeatSpan {
+  start: number
+  end: number
+  name?: string
+}
+
+// How far past its reference length an array's alleles may run and still be
+// copies of it: KIV-2's 40 kb array carries 175 kb alleles
+const REPEAT_GROWTH = 10
+
+// The array covering at least half the bubble's reference interval, or the
+// point of an insertion, and long enough to account for its alleles: a
+// microsatellite at an insertion point does not make the insertion a repeat.
+function coveringRepeat(b: MinigraphBubble, repeats: readonly RepeatSpan[]) {
+  const span = b.end - b.start
+  const growth = b.longestAlleleLength - b.shortestAlleleLength
+  return repeats.find(
+    r =>
+      growth <= REPEAT_GROWTH * (r.end - r.start) &&
+      (span === 0
+        ? r.start <= b.start && b.start <= r.end
+        : Math.min(b.end, r.end) - Math.max(b.start, r.start) >= span / 2),
+  )
 }
 
 const SUPERBUBBLE_SEGMENTS = 40
@@ -54,12 +84,18 @@ function routes(count: number) {
   return `${count} routes`
 }
 
-export function classifyBubble(b: MinigraphBubble): BubbleClass {
-  const c = classifyShape(b)
+export function classifyBubble(
+  b: MinigraphBubble,
+  repeats: readonly RepeatSpan[] = [],
+): BubbleClass {
+  const c = classifyShape(b, repeats)
   return b.partial ? { ...c, label: `${c.label}, partial` } : c
 }
 
-function classifyShape(b: MinigraphBubble): BubbleClass {
+function classifyShape(
+  b: MinigraphBubble,
+  repeats: readonly RepeatSpan[],
+): BubbleClass {
   const refSpan = b.end - b.start
   const {
     shortestAlleleLength: shortest,
@@ -78,10 +114,13 @@ function classifyShape(b: MinigraphBubble): BubbleClass {
   if (inversion) {
     return { kind: 'inversion', label: `${formatBp(longest)} inv` }
   }
-  if (pathCount >= 8 && longest > 5 * Math.max(shortest, 1)) {
+  // routes of one length are substitutions inside an array, not copies
+  const repeat = longest !== shortest ? coveringRepeat(b, repeats) : undefined
+  if (repeat) {
+    const name = repeat.name ? ` (${repeat.name})` : ''
     return {
       kind: 'repeat',
-      label: `${range} repeat array, ${routes(pathCount)}`,
+      label: `${range} repeat array${name}, ${routes(pathCount)}`,
     }
   }
   const alleles = pathCount > 2 ? `, ${pathCount} alleles` : ''

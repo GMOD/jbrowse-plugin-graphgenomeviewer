@@ -63,19 +63,54 @@ describe('classifyBubble', () => {
     expect(c.label).toBe('4.4 kb del')
   })
 
-  it('calls many routes over a wide length range a repeat array', () => {
-    const c = classifyBubble(
-      bubble({
-        start: 160616002,
-        end: 160646753,
-        segmentCount: 29,
-        pathCount: 129,
-        shortestAlleleLength: 3018,
-        longestAlleleLength: 174966,
-      }),
-    )
+  const KIV2 = bubble({
+    start: 160616002,
+    end: 160646753,
+    segmentCount: 29,
+    pathCount: 129,
+    shortestAlleleLength: 3018,
+    longestAlleleLength: 174966,
+  })
+
+  it('calls a bubble a repeat array where the repeat track has one', () => {
+    const c = classifyBubble(KIV2, [
+      { start: 160611000, end: 160651000, name: 'KIV-2' },
+    ])
     expect(c.kind).toBe('repeat')
-    expect(c.label).toBe('3.0–175 kb repeat array, 129 routes')
+    expect(c.label).toBe('3.0–175 kb repeat array (KIV-2), 129 routes')
+  })
+
+  it('does not call a bubble a repeat from its shape alone', () => {
+    expect(classifyBubble(KIV2).kind).toBe('complex')
+    expect(
+      classifyBubble(KIV2, [{ start: 160640000, end: 160700000 }]).kind,
+    ).toBe('complex')
+  })
+
+  // GSTT1: a 55 kb presence/absence insertion carried by many haplotypes,
+  // which the old shape rule called a repeat array
+  it('reads a common presence/absence insertion as an insertion', () => {
+    const gstt1 = bubble({
+      start: 23990000,
+      end: 23990000,
+      pathCount: 12,
+      shortestAlleleLength: 0,
+      longestAlleleLength: 55000,
+    })
+    expect(classifyBubble(gstt1).label).toBe('≤55 kb ins, 12 alleles')
+    expect(
+      classifyBubble(gstt1, [{ start: 23989990, end: 23990030 }]).kind,
+    ).toBe('insertion')
+  })
+
+  it('keeps routes of one length inside an array for what they are', () => {
+    const snp = bubble({
+      start: 100,
+      end: 101,
+      shortestAlleleLength: 1,
+      longestAlleleLength: 1,
+    })
+    expect(classifyBubble(snp, [{ start: 50, end: 150 }]).label).toBe('SNP')
   })
 
   it('names a saturated route count for what it is', () => {

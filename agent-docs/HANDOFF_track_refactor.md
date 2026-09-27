@@ -30,11 +30,6 @@ the unit mocks had hidden that.
 - Declare `adapterCapabilities: ['getSubgraph']` on the display type once
   `@jbrowse/core` past 5.0.0-beta.9 is published (core `b05ac725c4` added the
   field; the plugin builds against the npm types).
-- The bubble classifier calls any bubble with at least 8 routes and a longest
-  route over 5x the shortest a "repeat array"; GSTT1's presence/absence
-  insertion reads "0 bp–55 kb repeat array". Replace the shape rule in
-  bubbles/classifyBubble.ts with the repeat track's arrays, which the pane
-  already reads.
 - A render error shows through GraphCanvas's own banner, because `DisplayChrome`
   wants to own the canvas through a factory. Moving the track to `DisplayChrome`
   would give it core's renderError phase.
@@ -54,9 +49,11 @@ and `probe-graph-nodes.ts` read `display` not `display.pane`; jb2hubs
 `website/src/components/pangenomeLinks.ts:296` writes the choices flat. The part
 5 tutorial's `loadedTrackId` fences and `graph-ecoli.ts` `rgfa_launch_out_menu`
 still open (the standalone view cuts a stated pair once) but no longer follow
-the linear view. Then reshoot the graph figures: the track now keeps its
-configured height rather than shrinking to its rows, and errors and the
-too-large gate draw as core's banners.
+the linear view. A bubble is a repeat array only where the session's repeat
+track has one (classifyBubble), so a KIV-2 figure whose session has no repeat
+track now labels the array as a complex site. Then reshoot the graph figures:
+the track now keeps its configured height rather than shrinking to its rows, and
+errors and the too-large gate draw as core's banners.
 
 `scripts/preview-candidate.mjs` screenshots any hosted session with this
 checkout's `dist/` served in place of the store bundle:

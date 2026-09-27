@@ -245,10 +245,12 @@ answer it. All three were prototyped on the same cuts.
 (`hprc-v2.1-mc-grch38.bubbles.bed.gz`, the source of the bubbles track) and
 states, per bubble, the reference interval, the member segments, the number of
 distinct routes, an inversion flag and the shortest and longest route in bp.
-From those numbers alone each bubble classifies as SNP, substitution, insertion,
-deletion, inversion, repeat array or superbubble, with its size. Drawn as one
-glyph per bubble on the reference line, height by allele length, a window reads
-as a sentence rather than a topology:
+From those numbers each bubble classifies as SNP, substitution, insertion,
+deletion, inversion or superbubble, with its size; one that an array on the
+session's repeat track covers is a repeat array, since a common presence/absence
+insertion has the same shape as an expanding array. Drawn as one glyph per
+bubble on the reference line, height by allele length, a window reads as a
+sentence rather than a topology:
 
 ![KIV-2 variant map](img/kiv2-variants.png)
 
@@ -489,9 +491,9 @@ stroke along its own nodes, in layout units so one transform moves it with the
 canvas, with the map's label at its highest node; the label opens the bubble in
 the same layout, and a popped graph derives its own. The two anchors a bubble
 hangs between are left out, so neighbours do not touch. On the 58-node KIV-2
-rGFA cut: six halos, the array's knot labelled "3.0–175 kb repeat array, 129
-routes", a 942 bp deletion and a 1.2 kb insertion each a small halo on the
-backbone.
+rGFA cut: six halos, the array's knot labelled "3.0–175 kb repeat array (KIV-2),
+129 routes" beside a repeat track, a 942 bp deletion and a 1.2 kb insertion each
+a small halo on the backbone.
 
 ![KIV-2, force-directed, bubbles as halos](../img/force_kiv2.png)
 

@@ -2,7 +2,7 @@ import { bubbleSegmentIds, classifyBubble, formatBp } from './classifyBubble'
 import { isBackbone } from '../anchoredNodes'
 import { svgPath } from '../util/geometry'
 
-import type { BubbleKind } from './classifyBubble'
+import type { BubbleKind, RepeatSpan } from './classifyBubble'
 import type {
   BubbleRoute,
   MinigraphBubble,
@@ -51,6 +51,7 @@ export function bubbleHalos(
   bubbles: MinigraphBubble[],
   positions: Record<string, NodeSegment[]>,
   walkLabel: (name: string) => string = name => name,
+  repeats: readonly RepeatSpan[] = [],
 ): BubbleHalo[] {
   const byName = new Map(graph.nodes.map(n => [n.name, n]))
   const halos: BubbleHalo[] = []
@@ -132,7 +133,7 @@ export function bubbleHalos(
     }
     halos.push({
       bubble,
-      ...classifyBubble(bubble),
+      ...classifyBubble(bubble, repeats),
       path: parts.join(''),
       labelAt,
       members: nodeIds.length,

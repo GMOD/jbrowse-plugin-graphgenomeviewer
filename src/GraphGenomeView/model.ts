@@ -884,7 +884,7 @@ export function GraphPaneMixin() {
         const bubbles = self.chosenLayoutMode === 'variants' ? self.bubbles : []
         return bubbles.map(bubble => ({
           bubble,
-          ...classifyBubble(bubble),
+          ...classifyBubble(bubble, self.repeatArrays),
         }))
       },
       // Exons and names on the backbone, in layout units. Reads
@@ -921,6 +921,7 @@ export function GraphPaneMixin() {
           self.bubbles,
           positions,
           name => labels.get(name) ?? name,
+          self.repeatArrays,
         )
       },
       // Every node's midpoint on the reference plus the interval the hue ramps
@@ -2216,7 +2217,7 @@ export function GraphPaneMixin() {
             },
           ]
           self.indexBubbles = undefined
-          const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
+          const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble, self.repeatArrays).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
           if (self.chosenLayoutMode === 'variants') {
             self.layoutMode = 'force'
