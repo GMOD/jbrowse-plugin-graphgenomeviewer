@@ -251,3 +251,100 @@ describe('canceling and retrying', () => {
     expect(mockRpcCall).not.toHaveBeenCalled()
   })
 })
+
+describe('reads', () => {
+  const READS_TRACK = {
+    trackId: 'gbz',
+    assemblyNames: ['hg38'],
+    adapter: { type: 'GbzBaseSyntenyAdapter', reads: 'reads.gaf.gz' },
+  }
+  const PATHS = [
+    'H\tVN:Z:1.0',
+    'S\t1\tACGT',
+    'S\t2\tA',
+    'S\t3\tG',
+    'S\t4\tTTGCA',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'L\t2\t+\t4\t+\t0M',
+    'L\t3\t+\t4\t+\t0M',
+    'P\thg38\t1+,2+,4+\t*',
+    'P\talt\t1+,3+,4+\t*',
+  ].join('\n')
+  const READ = {
+    name: 'r1',
+    queryLength: 7,
+    queryStart: 0,
+    queryEnd: 7,
+    strand: '+',
+    path: [
+      { name: '1', strand: '+' },
+      { name: '3', strand: '+' },
+      { name: '4', strand: '+' },
+    ],
+    pathLength: 10,
+    pathStart: 1,
+    pathEnd: 8,
+    matches: 7,
+    blockLength: 7,
+    mappingQuality: 60,
+    secondary: false,
+  }
+
+  function cutWithReads(reads: () => Promise<unknown>) {
+    mockSession.tracks = [READS_TRACK]
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(PATHS)
+        : method === 'GetGraphReads'
+          ? reads()
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createView({
+      layoutMode: 'tubemap',
+      loadedTrackId: READS_TRACK.trackId,
+      loadedRegion: ON_HG38,
+    })
+    return model.load().then(() => model)
+  }
+
+  test('a track naming reads fetches them over the cut before its layout', async () => {
+    const model = await cutWithReads(() =>
+      Promise.resolve({ records: [READ], total: 3 }),
+    )
+    expect(model.error).toBeUndefined()
+    const [, method, args] = mockRpcCall.mock.calls.find(
+      ([, m]) => m === 'GetGraphReads',
+    )!
+    expect(method).toBe('GetGraphReads')
+    expect((args as { nodeNames: string[] }).nodeNames.sort()).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+    ])
+    expect(model.graph?.reads).toEqual([READ])
+    expect(model.readsShown).toEqual({ shown: 1, total: 3 })
+    expect(model.layoutResult?.tubeMap?.layout.reads).toHaveLength(1)
+  })
+
+  test('reads that fail to load leave the graph drawn without them', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const model = await cutWithReads(() =>
+      Promise.reject(new Error('no index')),
+    )
+    expect(model.error).toBeUndefined()
+    expect(model.graph?.reads).toBeUndefined()
+    expect(model.layoutResult?.tubeMap?.layout.reads).toHaveLength(0)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  test('a track naming no reads asks for none', async () => {
+    const model = await cut(ON_HG38)
+    expect(model.hasGraph).toBe(true)
+    expect(mockRpcCall.mock.calls.map(([, m]) => m)).not.toContain(
+      'GetGraphReads',
+    )
+  })
+})

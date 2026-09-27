@@ -1,6 +1,7 @@
 import { Subgraph } from '@gmod/gbz-base'
 import { numericCigarToString } from '@jbrowse/cigar-utils'
 import PluginManager from '@jbrowse/core/PluginManager'
+import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -797,4 +798,39 @@ test('a sample named exactly as the anchor wins over an alias', () => {
       referenceSamples: ['GRCh38', 'hg38'],
     }),
   ).toBe('hg38')
+})
+
+const cactusReads = () => ({
+  localPath: require.resolve('../../test_data/cactus/cactus_240_280.gaf'),
+  locationType: 'LocalPathLocation' as const,
+})
+
+test('reads come from readsLocation, over the segments named', async () => {
+  const adapter = makeAdapter({ readsLocation: cactusReads() })
+  const { records, total } = await adapter.getReads(['249'])
+  expect(total).toBeGreaterThan(0)
+  expect(records.every(r => r.path.some(step => step.name === '249'))).toBe(
+    true,
+  )
+})
+
+test('an adapter without readsLocation answers no reads', async () => {
+  expect(await makeAdapter().getReads(['249'])).toEqual({
+    records: [],
+    total: 0,
+  })
+})
+
+test('a bgzipped reads shorthand takes the .tbi beside it', () => {
+  const config = configSchema.create({
+    uri: 'graph.gbz.db',
+    reads: 'reads.gaf.gz',
+    assemblyNames: ['hg38'],
+  })
+  expect(readConfObject(config, 'readsLocation').uri).toBe('reads.gaf.gz')
+  expect(readConfObject(config, ['readsIndex', 'location']).uri).toBe(
+    'reads.gaf.gz.tbi',
+  )
+  const plain = configSchema.create({ reads: 'reads.gaf', assemblyNames: [] })
+  expect(readConfObject(plain, ['readsIndex', 'location']).uri).toBe('')
 })

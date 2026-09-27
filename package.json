@@ -50,6 +50,7 @@
   },
   "private": false,
   "dependencies": {
+    "@gmod/bgzf-filehandle": "^6.7.0",
     "@gmod/gbz-base": "^2.8.0",
     "@gmod/tabix": "^3.8.3",
     "@gmod/tubemap-core": "^0.1.0",

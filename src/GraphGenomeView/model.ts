@@ -78,6 +78,7 @@ import {
   zoomAbout,
 } from './viewport'
 import { walkHighlight } from './walkHighlight'
+import { namesReads } from '../GetGraphReads'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -113,6 +114,7 @@ import type { RenderBatch, Renderer } from './renderer/types'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
+import type { GafReads } from '../gaf/gafFile'
 import type { NodeInk } from './util/hitDetection'
 import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
 import type { AxisScale } from './util/geometry'
@@ -480,6 +482,8 @@ export function GraphPaneMixin() {
       // GraphComputeLayout RPC, `geometryMs` is the main-thread buildGeometry
       // pass and `geometryStrokeCount` the node strokes it produced.
       lastFetchMs: undefined as number | undefined,
+      // how many of the cut's reads the tube map was handed, of how many
+      readsShown: undefined as { shown: number; total: number } | undefined,
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
@@ -1734,17 +1738,40 @@ export function GraphPaneMixin() {
 
       // `keepSelection` for a re-cut of the same source: node ids survive one
       // where edge indexes do not, so the selection is found again by id.
+      // `readsOf` fetches the reads over the parsed graph before its one
+      // layout, since the tube map lays them out with the paths.
       function* parseAndLayout(
         text: string,
         name: string,
         region: SubgraphRegion | undefined,
         keepSelection = false,
+        readsOf?: (graph: Graph) => Promise<GafReads>,
       ) {
+        const signal = loadController?.signal
         self.setStatusMessage('Parsing GFA')
         const graph = loadGraph(text, name, {
           referencePath: self.referencePath || region?.assemblyName,
           maxNodes: self.maxGraphNodes,
         })
+        if (readsOf) {
+          self.setStatusMessage('Reading alignments')
+          try {
+            const { records, total } = (yield readsOf(graph)) as GafReads
+            graph.reads = records
+            self.readsShown = { shown: records.length, total }
+          } catch (e) {
+            if (signal?.aborted) {
+              return
+            }
+            console.warn('[GraphGenomeView] no reads for this graph', e)
+            self.readsShown = undefined
+          }
+          if (signal?.aborted) {
+            return
+          }
+        } else {
+          self.readsShown = undefined
+        }
         const selected = keepSelection ? self.selectedNode : null
         self.graph = graph
         self.graphRegion = region
@@ -2005,7 +2032,24 @@ export function GraphPaneMixin() {
                 'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
               )
             }
-            yield* parseAndLayout(gfaText, locLabel(region), region, true)
+            yield* parseAndLayout(
+              gfaText,
+              locLabel(region),
+              region,
+              true,
+              namesReads(adapterConfig)
+                ? graph =>
+                    getSession(self).rpcManager.call(
+                      getRpcSessionId(self),
+                      'GetGraphReads',
+                      {
+                        adapterConfig,
+                        nodeNames: graph.nodes.map(n => n.name),
+                        signal,
+                      },
+                    )
+                : undefined,
+            )
             if (!isLive()) {
               return
             }

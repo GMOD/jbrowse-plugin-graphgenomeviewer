@@ -77,6 +77,42 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
+     * Reads aligned to the graph as GAF, which the tube map layouts draw under
+     * the haplotypes. Its segment names have to be the cut's: numeric node ids,
+     * or `vg giraffe --named-coordinates` on a graph whose segments were
+     * renamed or chopped. Empty means no reads.
+     */
+    readsLocation: {
+      type: 'fileLocation',
+      defaultValue: {
+        uri: '',
+        locationType: 'UriLocation',
+      },
+    },
+    /**
+     * #slot
+     * The `tabix -p gaf` index of a bgzipped `readsLocation`, which fetches the
+     * reads over each window's node ids. Empty reads the GAF whole, up to 50 MB.
+     */
+    readsIndex: ConfigurationSchema('GbzBaseReadsIndex', {
+      /**
+       * #slot
+       */
+      indexType: {
+        model: types.enumeration('IndexType', ['TBI', 'CSI']),
+        type: 'stringEnum',
+        defaultValue: 'TBI',
+      },
+      /**
+       * #slot
+       */
+      location: {
+        type: 'fileLocation',
+        defaultValue: { uri: '', locationType: 'UriLocation' },
+      },
+    }),
+    /**
+     * #slot
      * How the graph view's subgraph is extended past the nodes the reference
      * window touches. `contained` adds every top-level snarl with both
      * boundary nodes in the window, which is what brings back the bubbles a
@@ -153,25 +189,31 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
      * #preProcessSnapshot
      *
      *
-     * preprocessor to allow minimal config:
+     * preprocessor to allow minimal config, where a `.gz` `reads` is taken to
+     * be bgzipped with a `.tbi` beside it:
      * ```json
      * {
      *   "type": "GbzBaseSyntenyAdapter",
      *   "uri": "graph.gbz.db",
+     *   "reads": "reads.gaf.gz",
      *   "assemblyNames": ["hg38"]
      * }
      * ```
      */
     preProcessSnapshot: snap => {
-      return snap.uri
-        ? {
-            ...snap,
-            gbzDbLocation: {
-              uri: snap.uri,
-              baseUri: snap.baseUri,
-            },
-          }
-        : snap
+      const { uri, baseUri, reads } = snap
+      return {
+        ...snap,
+        ...(uri ? { gbzDbLocation: { uri, baseUri } } : {}),
+        ...(typeof reads === 'string'
+          ? {
+              readsLocation: { uri: reads, baseUri },
+              ...(reads.endsWith('.gz')
+                ? { readsIndex: { location: { uri: `${reads}.tbi`, baseUri } } }
+                : {}),
+            }
+          : {}),
+      }
     },
   },
 )

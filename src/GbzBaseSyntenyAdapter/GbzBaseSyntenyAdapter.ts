@@ -1,7 +1,8 @@
 import { GBZBase } from '@gmod/gbz-base'
+import { TabixIndexedFile } from '@gmod/tabix'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { updateStatus } from '@jbrowse/core/util'
-import { openLocation } from '@jbrowse/core/util/io'
+import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import {
@@ -13,6 +14,7 @@ import {
   referenceSamplesOf,
   resolveReferenceSample,
 } from './gbzWindow.ts'
+import { GafFile } from '../gaf/gafFile.ts'
 import {
   assemblyByPanSNPrefix,
   panSNMatchesPrefix,
@@ -23,6 +25,7 @@ import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
+import type { GafReads } from '../gaf/gafFile.ts'
 import type {
   HaplotypeAlignment,
   HaplotypeRef,
@@ -206,12 +209,15 @@ export function pairFeature({
   })
 }
 
+const isSet = (location: FileLocation) =>
+  !('uri' in location) || location.uri !== ''
+
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
   private graph = cachedSetup({
     label: 'Opening pangenome database',
     setup: async () => {
       const indexLocation: FileLocation = this.getConf('haplotypeIndexLocation')
-      const hasCompanion = !('uri' in indexLocation) || indexLocation.uri !== ''
+      const hasCompanion = isSet(indexLocation)
       const db = await GBZBase.open(
         openLocation(this.getConf('gbzDbLocation'), this.pluginManager),
         hasCompanion
@@ -376,6 +382,46 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       signal: opts.signal,
       ...(keep === undefined ? {} : { keep }),
     })
+  }
+
+  private gaf = cachedSetup({
+    label: 'Opening reads',
+    setup: async () => {
+      const location: FileLocation = this.getConf('readsLocation')
+      const index: FileLocation = this.getConf(['readsIndex', 'location'])
+      const pm = this.pluginManager
+      if (!isSet(location)) {
+        return undefined
+      }
+      const file = openLocation(location, pm)
+      return new GafFile(
+        file,
+        isSet(index)
+          ? new TabixIndexedFile({
+              filehandle: file,
+              ...openTabixIndexFilehandle(
+                index,
+                this.getConf(['readsIndex', 'indexType']),
+                pm,
+              ),
+            })
+          : undefined,
+      )
+    },
+  })
+
+  /**
+   * The reads over a cut's segments, from `readsLocation`, sampled down to
+   * what the tube map lays out at interactive speed
+   */
+  async getReads(
+    nodeNames: string[],
+    opts: BaseOptions = {},
+  ): Promise<GafReads> {
+    const gaf = await this.gaf(opts)
+    return gaf
+      ? gaf.readsOver(new Set(nodeNames), opts)
+      : { records: [], total: 0 }
   }
 
   private async laneHaplotypes(
