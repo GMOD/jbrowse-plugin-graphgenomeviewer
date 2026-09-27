@@ -1,3 +1,9 @@
+## [4.0.15](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.14...v4.0.15) (2026-09-27)
+
+### Other Changes
+
+- A bubble label or glyph unmounting under the pointer no longer runs a hover action on the closed view ([a7c6590](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a7c6590ef9ec23e62784d94836b6a3fad11441b0))
+
 ## [4.0.14](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.13...v4.0.14) (2026-09-27)
 
 ### Other Changes
