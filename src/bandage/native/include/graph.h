@@ -63,7 +63,7 @@ public:
     std::vector<DeBruijnEdge*> edges;
     // Where FMMM starts this node's chain, when the caller has an opinion:
     // reference-anchored graphs seed the backbone along x so the layout keeps
-    // its coarse shape instead of curling (docs/layout-experiments.md).
+    // its coarse shape instead of curling (ADR-042).
     bool seeded;
     double seedX;
     double seedY;

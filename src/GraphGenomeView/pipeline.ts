@@ -69,7 +69,7 @@ export interface EngineSettings {
 // the engine ever reads it as. An anchored graph also carries a seed per node,
 // the backbone along x, and asks the engine not to rotate components: FMMM
 // then keeps the reference's coarse shape instead of curling it into a C
-// (docs/layout-experiments.md, experiment 2).
+// (ADR-042).
 export function engineRequest(
   graph: Graph,
   scaling: LayoutScaling,

@@ -9,7 +9,7 @@ import type { Graph, GraphNode, LayoutResult, NodeSegment } from '../types'
 // between the anchors it hangs off, and a node is as wide as the log of its bp,
 // so a SNP allele gets the same room as a 10 kb segment and a bubble reads as a
 // lens rather than a bar under a line. y is a lane in screen px with the
-// reference pinned at lane 0 (docs/layout-experiments.md, experiment 3).
+// reference pinned at lane 0 (ADR-042).
 
 const GUTTER = 12
 const LANE_PX = ROW_HEIGHT_PX

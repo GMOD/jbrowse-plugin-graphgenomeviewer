@@ -63,8 +63,6 @@ Needs JBrowse 5.0.0-beta.9 or later.
 
 - [docs/layouts.md](docs/layouts.md) — layouts, bubbles, walks, genes, loci
 - [docs/developing.md](docs/developing.md) — building, testing, `host-compat`
-- [docs/layout-experiments.md](docs/layout-experiments.md) — every locus in
-  every layout
 
 ## License
 
