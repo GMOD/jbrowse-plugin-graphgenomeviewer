@@ -8,20 +8,29 @@ import {
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 
-// a lanes copy asking for headerLanes, so only gbz-base offers lanes
+// core's synteny displays, copied to ask for headerLanes so only gbz-base
+// offers lanes or opens in a synteny, dotplot or circular view
+const SYNTENY_DISPLAYS = [
+  'MultiWaySyntenyDisplay',
+  'LinearSyntenyDisplay',
+  'DotplotDisplay',
+  'ChordSyntenyDisplay',
+]
+
 function displaysInOrder(pluginManager: PluginManager): DisplayType[] {
   const displays = pluginManager.getElementTypesInGroup(
     'display',
   ) as DisplayType[]
   const named = (name: string) => displays.find(d => d.name === name)
-  const lanes = named('MultiWaySyntenyDisplay')
+  const needsLanes = (display: DisplayType | undefined) =>
+    display &&
+    Object.assign(Object.create(display) as DisplayType, {
+      adapterCapabilities: ['headerLanes'],
+    })
   return [
     named('LinearGraphDisplay'),
     named('LinearBasicDisplay'),
-    lanes &&
-      Object.assign(Object.create(lanes) as DisplayType, {
-        adapterCapabilities: ['headerLanes'],
-      }),
+    ...SYNTENY_DISPLAYS.map(name => needsLanes(named(name))),
   ].filter((d): d is DisplayType => d !== undefined)
 }
 
