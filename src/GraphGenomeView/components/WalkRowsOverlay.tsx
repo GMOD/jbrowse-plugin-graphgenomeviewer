@@ -5,7 +5,7 @@ import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { observer } from 'mobx-react'
 
-import { RAMP_GRADIENT_CSS, rampHue, rampHueCss } from './referenceRampCss'
+import { RAMP_GRADIENT_CSS, rampHueCss, rampStops } from './referenceRampCss'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'
@@ -17,7 +17,7 @@ import type { WalkRun } from '@jbrowse/bandage-core/layout/walkRows'
 // haplotypes carry. Under the reference-position ramp, shared sequence takes
 // the hue of where it sits on the reference, so each copy of a repeat unit
 // shows which reference unit it matches, and haplotype-only sequence takes the
-// charcoal the canvas gives off-reference nodes. The readout at the end of a
+// charcoal the ramp reserves for rGFA's off-reference ranks. The readout at the end of a
 // bar is what it carries against the reference, which for a repeat array is
 // the expansion.
 //
@@ -40,8 +40,6 @@ const UNBACKED_TICK = '#9e9e9e'
 const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
-// hue degrees one gradient stop spans, since SVG interpolates stops in RGB
-const HUE_STOP_DEG = 30
 
 const legendBoxStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -166,13 +164,8 @@ function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
   return xs
 }
 
-function hueStops(from: number, to: number) {
-  const n = Math.max(1, Math.ceil(Math.abs(to - from) / HUE_STOP_DEG))
-  return Array.from({ length: n + 1 }, (_, i) => from + ((to - from) * i) / n)
-}
-
-// A shared run covers its reference contiguously, so its hue ramps linearly
-// from one end to the other and a gradient paints it exactly.
+// A shared run covers its reference contiguously, so a gradient along it
+// paints the hue of every base.
 function runFill(
   run: WalkRun,
   ramp: { start: number; end: number } | undefined,
@@ -184,12 +177,10 @@ function runFill(
   if (run.referenceStart === undefined) {
     return { fill: REFERENCE_RAMP_ALT_CSS }
   }
-  const from = rampHue(run.referenceStart, ramp)
-  const to = rampHue(run.referenceStart + run.bp, ramp)
-  if (Math.abs(to - from) < 1) {
-    return { fill: rampHueCss((from + to) / 2) }
+  const stops = rampStops({ ...run, start: run.referenceStart }, ramp)
+  if (stops.length === 1) {
+    return { fill: rampHueCss(stops[0]!) }
   }
-  const stops = hueStops(from, to)
   return {
     fill: `url(#${gradientId})`,
     gradient: (
