@@ -24,6 +24,9 @@ export interface LinearHost {
   coarseDynamicBlocks: readonly HostBlock[]
   horizontalScroll: (distance: number) => number
   zoomTo: (bpPerPx: number, offset?: number) => number
+  // whether the view's body is mounted, which an off-screen view's is not
+  effectiveBodyMounted?: boolean
+  hasVisibleContent?: boolean
 }
 
 export function isLinearHost(view: unknown): view is LinearHost {

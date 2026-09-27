@@ -63,7 +63,9 @@ vi.mock('@jbrowse/core/util', () => {
   // Return minimal mock that doesn't trigger circular load
   return {
     getSession: () => mockSession,
-    getContainingView: (node: unknown) => node,
+    getContainingView: () => {
+      throw new Error('no containing view found')
+    },
     getContainingTrack: () => {
       throw new Error('not in a track')
     },

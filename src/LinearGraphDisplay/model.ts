@@ -151,20 +151,30 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       }))
       .views(self => ({
         get displayPhase(): DisplayStatusPhase {
-          return computeDisplayStatusPhase(self, () =>
-            computeActivityPhase(
-              {
-                isMinimized: self.isMinimized,
-                fetchInert: false,
-                viewportEmpty: false,
-                isLoading: self.isLoading || !self.hasGraph,
-                fetchCanceled: self.loadCanceled,
-                awaitingDependentData: false,
-                rendersCanvas: true,
-                canvasDrawn: self.painted,
-              },
-              () => true,
-            ),
+          // A backend that failed is an error the canvas reports with its
+          // retry; the status chrome has no renderError phase of its own.
+          return computeDisplayStatusPhase(
+            {
+              regionTooLarge: self.regionTooLarge,
+              error: self.error ?? self.renderError,
+            },
+            () =>
+              computeActivityPhase(
+                {
+                  isMinimized: self.isMinimized,
+                  fetchInert: false,
+                  viewportEmpty:
+                    self.host?.initialized === true &&
+                    self.host.hasVisibleContent === false,
+                  isLoading: self.isLoading || !self.hasGraph,
+                  fetchCanceled: self.loadCanceled,
+                  awaitingDependentData: false,
+                  rendersCanvas: true,
+                  canvasDrawn: self.painted,
+                },
+                () => true,
+                () => self.host?.effectiveBodyMounted ?? true,
+              ),
           )
         },
       }))
@@ -214,25 +224,27 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             layoutModeByValue(self.chosenLayoutMode).cutMargins,
           )
           self.recuts++
-          void self.cut()
+          return self.cut()
         },
       }))
       .actions(self => ({
         // The settle clock. A window the cut still holds fetches nothing; one
         // past its edge re-cuts, on the tier the zoom asks for, with margins
         // when the host places x and the window alone when the layout draws
-        // its own picture of it. Returns whether it re-cut.
+        // its own picture of it. A canceled cut is re-made by the next move.
+        // Returns whether it re-cut.
         settleOn(seen: HostWindow) {
           self.settledWindow = seen
           const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
           if (
             self.regionTooLarge ||
-            (self.tierAt(seen.bpPerPx) === self.cutTier &&
+            (!self.loadCanceled &&
+              self.tierAt(seen.bpPerPx) === self.cutTier &&
               cutHolds(self.cutRegion, seen, margins))
           ) {
             return false
           }
-          self.recutAt(seen)
+          void self.recutAt(seen)
           return true
         },
         switchLayout(mode: LayoutModeValue) {
@@ -244,8 +256,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             !self.regionTooLarge &&
             layoutModeByValue(mode).cutMargins !== margins
           ) {
-            self.recutAt(seen)
-            return Promise.resolve()
+            return self.recutAt(seen)
           }
           return self.recomputeLayout()
         },

@@ -16,7 +16,9 @@ const mockSession = {
 
 vi.mock('@jbrowse/core/util', () => ({
   getSession: () => mockSession,
-  getContainingView: (node: unknown) => node,
+  getContainingView: () => {
+    throw new Error('no containing view found')
+  },
   getContainingTrack: () => {
     throw new Error('not in a track')
   },

@@ -40,6 +40,10 @@ export default function stateModelFactory() {
       get rpcSessionId() {
         return self.id
       },
+      // a view is not its own containing view
+      get paneWidth() {
+        return self.width
+      },
       get sourceTrack(): AnyConfigurationModel | undefined {
         return self.loadedTrackId
           ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)

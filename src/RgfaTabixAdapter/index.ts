@@ -12,7 +12,7 @@ export default function RgfaTabixAdapterF(pluginManager: PluginManager) {
         displayName: 'Indexed rGFA adapter',
         normalizeSnapshot,
         configSchema,
-        // what the launch menus look for (launchSubgraph/subgraphTracks.ts)
+        // what a graph display needs of its track's adapter
         adapterCapabilities: ['getSubgraph'],
         adapterMetadata: {
           category: 'Graph adapters',

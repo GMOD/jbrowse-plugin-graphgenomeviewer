@@ -486,7 +486,12 @@ const GraphCanvas = observer(function GraphCanvas({
   model: GraphPaneModel
   ownChrome?: boolean
 }) {
-  const { canvasRef, canvas } = useRenderingBackend(createGraphRenderer, model)
+  const {
+    canvasRef,
+    canvas,
+    error: renderError,
+    retry: retryRender,
+  } = useRenderingBackend(createGraphRenderer, model)
   // Where the pointer was last, and whether it has travelled since mousedown —
   // per-gesture scratch that nothing renders from, which is what a ref is for.
   // Whether a drag is in progress is model state (`isPanning`/`draggingNode`),
@@ -764,6 +769,10 @@ const GraphCanvas = observer(function GraphCanvas({
             setContextNode(undefined)
           }}
         />
+      ) : null}
+
+      {renderError ? (
+        <ErrorBanner error={renderError} onReset={retryRender} />
       ) : null}
 
       {ownChrome && model.error ? (

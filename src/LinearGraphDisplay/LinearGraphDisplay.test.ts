@@ -384,6 +384,24 @@ test('the ramp spans the graph on screen until the next cut lands', async () => 
   expect(pane.rampDomain).toEqual(pane.cutRegion)
 })
 
+test('a canceled re-cut keeps the graph under it, and the next move cuts again', async () => {
+  const { view, pane, cuts, holdCuts } = await shownGraph()
+  const answers = holdCuts()
+  view.scrollTo(2_000_000 / view.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(2)
+  pane.cancelFetchByUser()
+  expect(pane.displayPhase).toBe('canceled')
+  expect(pane.hasGraph).toBe(true)
+  view.horizontalScroll(10)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(3)
+  answers[1]!()
+  await vi.waitFor(() => {
+    expect(pane.displayPhase).toBe('ready')
+  })
+})
+
 test('removing the track aborts its cut', async () => {
   const { view, holdCuts, signals } = createEnvironment()
   holdCuts()
@@ -411,6 +429,8 @@ test('the phase is loading until the graph is drawn, and a failed cut is an erro
   await vi.waitFor(() => {
     expect(display.displayPhase).toBe('ready')
   })
+  // the chrome shows a ready track's status as background progress
+  expect(display.statusMessage).toBe('')
   rpcCall.mockImplementationOnce(() => Promise.reject(new Error('index gone')))
   display.reload()
   await vi.waitFor(() => {
@@ -473,13 +493,12 @@ test('a launch in the force layout cuts the window alone', async () => {
   expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
 })
 
-test('the track is as tall as its rows, up to the configured height', async () => {
-  const { display, pane } = await shownGraph()
-  expect(display.height).toBe(pane.canvasHeight)
-  expect(display.height).toBeLessThanOrEqual(300)
+test('the drawing is the track height, and resizing the track resizes it', async () => {
+  const { display } = await shownGraph()
+  expect(display.height).toBe(300)
+  expect(display.canvasHeight).toBe(300)
   display.resizeHeight(-100)
-  await wait(0)
-  expect(display.height).toBe(pane.canvasHeight)
+  expect(display.canvasHeight).toBe(200)
 })
 
 test("a launch names the pane's props without its type, and opens in that layout", async () => {

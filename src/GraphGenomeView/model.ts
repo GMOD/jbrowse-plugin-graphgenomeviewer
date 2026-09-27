@@ -1304,6 +1304,11 @@ export function GraphPaneMixin() {
       setError(error: unknown) {
         self.error = error
         self.isLoading = false
+        self.statusMessage = ''
+      },
+      finishLoading() {
+        self.isLoading = false
+        self.statusMessage = ''
       },
       setStatusMessage(message: string) {
         self.statusMessage = message
@@ -2037,7 +2042,7 @@ export function GraphPaneMixin() {
           }
         } finally {
           if (isLive()) {
-            self.isLoading = false
+            self.finishLoading()
           }
         }
         return isLive()
@@ -2150,7 +2155,7 @@ export function GraphPaneMixin() {
             }
           } finally {
             if (isLive()) {
-              self.isLoading = false
+              self.finishLoading()
             }
           }
         }),
@@ -2221,12 +2226,12 @@ export function GraphPaneMixin() {
           self.isLoading = true
           try {
             if (yield* layoutInto(self.graph)) {
-              self.isLoading = false
+              self.finishLoading()
             }
           } catch (e) {
             if (isLive()) {
               self.error = e
-              self.isLoading = false
+              self.finishLoading()
             }
           }
         }),
@@ -2244,11 +2249,11 @@ export function GraphPaneMixin() {
           self.isLoading = true
           try {
             if (yield* layoutInto(from.graph)) {
-              self.isLoading = false
+              self.finishLoading()
             }
           } catch (e) {
             self.error = e
-            self.isLoading = false
+            self.finishLoading()
           }
         }),
         recomputeLayout: flow(function* () {
@@ -2265,12 +2270,12 @@ export function GraphPaneMixin() {
             // user actually asked for is still being computed, which is the
             // common case when a cheap choice follows an expensive one.
             if (yield* layoutInto(graph)) {
-              self.isLoading = false
+              self.finishLoading()
             }
           } catch (e) {
             console.error('[GraphGenomeView.recomputeLayout]', e)
             self.error = e
-            self.isLoading = false
+            self.finishLoading()
           }
         }),
       }

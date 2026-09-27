@@ -37,8 +37,7 @@ export function configSchemaFactory() {
       },
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,
-        height:
-          'the most the track takes; a layout shorter than it takes only what it needs',
+        height: 'the height of the track the graph is drawn in',
       }),
     },
     { explicitlyTyped: true, explicitIdentifier: 'displayId' },

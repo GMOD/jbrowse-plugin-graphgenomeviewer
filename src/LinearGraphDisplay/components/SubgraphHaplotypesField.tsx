@@ -28,7 +28,8 @@ const HaplotypeListField = observer(function HaplotypeListField({
   const [draft, setDraft] = useState(model.chosenHaplotypes?.join(', ') ?? '')
   const apply = () => {
     const parsed = parseHaplotypeList(draft) ?? []
-    const unchanged = parsed.join('\n') === model.chosenHaplotypes?.join('\n')
+    const unchanged =
+      parsed.join('\n') === (model.chosenHaplotypes ?? []).join('\n')
     if (!unchanged) {
       model.setSubgraphHaplotypes(parsed)
       void model.cut()
