@@ -65,7 +65,8 @@ export interface HostWindow {
 // x is reference bp on an anchored layout, so the graph shows what the linear
 // view shows when one bp is as many px in both and the cut's refName sits at
 // the same screen x. Undefined when the linear view shows no block of that
-// refName, which is a re-cut's job rather than the frame's.
+// refName, which is a re-cut's job rather than the frame's. A reversed block
+// runs bp right to left, which only the tube map's connectors can draw.
 export function hostFrame(view: LinearHost, region: SubgraphRegion) {
   const block = widest(
     view.dynamicBlocks.contentBlocks.filter(
@@ -74,12 +75,13 @@ export function hostFrame(view: LinearHost, region: SubgraphRegion) {
     ),
   )
   const { bpPerPx } = view
-  return block && bpPerPx > 0
-    ? {
-        scale: 1 / bpPerPx,
-        translateX: block.offsetPx - view.offsetPx - block.start / bpPerPx,
-      }
-    : undefined
+  if (!block || !(bpPerPx > 0)) {
+    return undefined
+  }
+  const left = block.offsetPx - view.offsetPx
+  return block.reversed
+    ? { scale: -1 / bpPerPx, translateX: left + block.end / bpPerPx }
+    : { scale: 1 / bpPerPx, translateX: left - block.start / bpPerPx }
 }
 
 // Read off the LIVE blocks even when the coarse ones woke the caller: those

@@ -51,6 +51,11 @@ import {
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
+import {
+  connectorAt,
+  referenceNodes,
+  tubeMapConnectors,
+} from '@jbrowse/bandage-core/tubeMap/connectors'
 import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import {
   tubeMapFrame,
@@ -1303,11 +1308,20 @@ export function GraphPaneMixin() {
           ? referenceBoxes(self.graph, drawing.layout)
           : undefined
       },
+      // the reference boxes a linear view's connectors tie to its bp, which
+      // the reference axis already puts under that bp
+      get tubeMapReferenceNodes() {
+        const layout = self.layoutResult
+        return layout?.tubeMap && !layout.referenceAxis && self.graph
+          ? referenceNodes(self.graph, layout.tubeMap.layout)
+          : undefined
+      },
     }))
     .views(self => ({
+      // A linear view has the genes in a track of their own, at their bp
       get tubeMapGenes() {
         const reference = self.tubeMapReference
-        return self.showGenes && reference && self.geneFeatures
+        return self.showGenes && !self.host && reference && self.geneFeatures
           ? tubeMapGenes(reference, self.geneFeatures)
           : []
       },
@@ -1325,10 +1339,46 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // The connectors run from the top of the pane down to the tubes' top
+      get connectorZoneBottom() {
+        const picture = self.tubeMapPicture
+        const frame = self.tubeMapFrame
+        return picture && frame ? frame.y(picture.bounds.minY) - 2 : 0
+      },
+      // Read off the live blocks, so the bands' tops follow every frame of a
+      // pan in the linear view and their bottoms every pan of the tubes
+      get tubeMapConnectors() {
+        const nodes = self.tubeMapReferenceNodes
+        const frame = self.tubeMapFrame
+        const { host, graphRegion } = self
+        const bp =
+          nodes && frame && host?.initialized && graphRegion
+            ? hostFrame(host, graphRegion)
+            : undefined
+        return nodes && frame && bp
+          ? tubeMapConnectors(
+              nodes,
+              b => b * bp.scale + bp.translateX,
+              frame.x,
+              self.paneWidth,
+            )
+          : []
+      },
+    }))
+    .views(self => ({
       tubeMapNodeAt(sx: number, sy: number) {
         const drawing = self.layoutResult?.tubeMap
         const frame = self.tubeMapFrame
-        return drawing && frame ? tubeMapNodeAt(drawing, frame, sx, sy) : null
+        return (
+          (drawing && frame ? tubeMapNodeAt(drawing, frame, sx, sy) : null) ??
+          connectorAt(
+            self.tubeMapConnectors,
+            self.connectorZoneBottom,
+            sx,
+            sy,
+          ) ??
+          null
+        )
       },
     }))
     .actions(self => ({

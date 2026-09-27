@@ -8,7 +8,7 @@ A `GraphTrack` cuts the graph for the view's window and redraws it as you pan.
 
 ![KIV-2 as a graph track under RefSeq genes, force-directed, with its bubbles marked](img/force_kiv2.png)
 
-![MICB as a tube map track, eight HPRC haplotypes on the reference axis, genes drawn above the tubes](img/tube_map_micb_track.png)
+![MICB's exons 2–4 as a tube map track, eight HPRC haplotypes, each reference node tied to its bp on the ruler](img/tube_map_micb_track.png)
 
 ## As its own view
 

@@ -152,7 +152,7 @@ const FIGURES = {
       {
         type: 'LinearGenomeView',
         assembly: 'hg38',
-        loc: 'chr6:31,492,000-31,514,000',
+        loc: 'chr6:31,505,400-31,507,400',
         tracks: [
           {
             trackId: GENES,
@@ -164,7 +164,7 @@ const FIGURES = {
           {
             trackId: GBZ,
             type: 'LinearGraphDisplay',
-            layoutMode: 'tubemapref',
+            layoutMode: 'tubemap',
             subgraphHaplotypes: HAPLOTYPES,
             height: 360,
           },

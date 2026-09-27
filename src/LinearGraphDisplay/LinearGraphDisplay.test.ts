@@ -31,14 +31,23 @@ const SETTLE_MS = 700
 
 // A backbone of `step`-long segments with a small allele bubble on every
 // second one; past 1.5 Mb the fine tier's bubbles run eight ranks deep, so a
-// re-cut there has more rows than one before it.
-function syntheticGraph(tier: SubgraphTier, region: SubgraphRegion) {
+// re-cut there has more rows than one before it. `paths` walks the reference
+// and one haplotype through every bubble, for the tube map.
+function syntheticGraph(
+  tier: SubgraphTier,
+  region: SubgraphRegion,
+  paths = false,
+) {
   const step = tier === 'fine' ? 10_000 : 250_000
   const lines = ['H\tVN:Z:1.0']
+  const ref: string[] = []
+  const alt: string[] = []
   const first = Math.floor(region.start / step)
   const last = Math.ceil(region.end / step)
   for (let k = first; k < last; k++) {
     const id = `${tier[0]}${k}`
+    ref.push(`${id}+`)
+    alt.push(`${id}+`)
     lines.push(
       `S\t${id}\t*\tLN:i:${step}\tSN:Z:${REF}\tSO:i:${k * step}\tSR:i:0`,
     )
@@ -50,6 +59,7 @@ function syntheticGraph(tier: SubgraphTier, region: SubgraphRegion) {
       let from = id
       for (let rank = 1; rank <= deep; rank++) {
         const allele = `${id}r${rank}`
+        alt.push(`${allele}+`)
         lines.push(
           `S\t${allele}\t*\tLN:i:100\tSN:Z:HG${rank}#1#${REF}\tSO:i:${k * step}\tSR:i:${rank}`,
           `L\t${from}\t+\t${allele}\t+\t0M`,
@@ -58,6 +68,9 @@ function syntheticGraph(tier: SubgraphTier, region: SubgraphRegion) {
       }
       lines.push(`L\t${from}\t+\t${tier[0]}${k + 1}\t+\t0M`)
     }
+  }
+  if (paths) {
+    lines.push(`P\t${REF}\t${ref.join(',')}\t*`, `P\tHG1\t${alt.join(',')}\t*`)
   }
   return lines.join('\n')
 }
@@ -94,7 +107,7 @@ function fakeRenderer() {
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-function createEnvironment({ tiered = true } = {}) {
+function createEnvironment({ tiered = true, paths = false } = {}) {
   console.warn = vi.fn()
   const pluginManager = new PluginManager()
   RgfaTabixAdapterF(pluginManager)
@@ -235,7 +248,7 @@ function createEnvironment({ tiered = true } = {}) {
       if (args.signal) {
         signals.push(args.signal)
       }
-      const gfa = syntheticGraph(cut.tier, cut.region)
+      const gfa = syntheticGraph(cut.tier, cut.region, paths)
       const hold = held
       return hold
         ? new Promise<string>(resolve => {
@@ -318,8 +331,9 @@ async function shownGraph({
   windowStart = 1_000_000,
   windowBp = 60_000,
   tiered = true,
+  paths = false,
 } = {}) {
-  const env = createEnvironment({ tiered })
+  const env = createEnvironment({ tiered, paths })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
@@ -475,6 +489,42 @@ test('a restored session cuts the region it saved', async () => {
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
   expect(cuts[0]!.region).toEqual(saved)
+})
+
+test('a tube map on its own axis ties each reference box to its bp in the linear view', async () => {
+  const { view, pane } = await shownGraph({ paths: true })
+  await pane.switchLayout('tubemap')
+  await wait(SETTLE_MS)
+  expect(pane.hostPlacesX).toBe(false)
+  const nodes = new Map(pane.tubeMapReferenceNodes!.map(n => [n.node, n]))
+  const frame = pane.tubeMapFrame!
+  const connectors = pane.tubeMapConnectors
+  expect(connectors.length).toBeGreaterThan(3)
+  for (const c of connectors) {
+    const n = nodes.get(c.node)!
+    expect(c.top0).toBeCloseTo(lgvX(view, n.bp0), 6)
+    expect(c.top1).toBeCloseTo(lgvX(view, n.bp1), 6)
+    expect(c.bottom0).toBeCloseTo(frame.x(n.x0), 6)
+    expect(c.bottom1).toBeCloseTo(frame.x(n.x1), 6)
+  }
+
+  const c = connectors[1]!
+  const zoneBottom = pane.connectorZoneBottom
+  expect(zoneBottom).toBeGreaterThan(0)
+  const mid = (c.top0 + c.top1 + c.bottom0 + c.bottom1) / 4
+  expect(pane.tubeMapNodeAt(mid, zoneBottom / 2)).toBe(c.node)
+
+  // a frame of a pan moves the tops with the linear view, the boxes stay
+  view.horizontalScroll(50)
+  expect(pane.tubeMapConnectors[1]).toEqual({
+    ...c,
+    top0: c.top0 - 50,
+    top1: c.top1 - 50,
+  })
+
+  // on the reference axis the boxes already sit on their bp
+  await pane.switchLayout('tubemapref')
+  expect(pane.tubeMapConnectors).toEqual([])
 })
 
 test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {

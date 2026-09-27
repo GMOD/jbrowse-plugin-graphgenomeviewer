@@ -4,6 +4,7 @@ import {
   drawTubeMapRuler,
   rulerBoxes,
 } from '@jbrowse/bandage-core/tubeMap/axis'
+import { drawTubeMapConnectors } from '@jbrowse/bandage-core/tubeMap/connectors'
 import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
 import { drawTubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
@@ -20,10 +21,12 @@ const canvasStyle = {
   zIndex: 1,
 }
 
-// The tube map's ink, the session's genes in rows above it and, unless a
-// linear view's ruler is right there, a reference ruler under it, over the
-// canvas, which draws nothing under a tube map layout. Repainted by an autorun on every change of transform, so a pan in
-// the linear view above moves the tubes in the same frame as its other tracks.
+// The tube map's ink, over the canvas, which draws nothing under a tube map
+// layout. Above the tubes go the session's genes in a view of its own, or in
+// a linear view the bands tying each reference box to its bp there; under
+// them a reference ruler, unless the linear view's is already the axis.
+// Repainted by an autorun on every change of transform, so a pan in the linear
+// view above moves the tubes in the same frame as its other tracks.
 const TubeMapOverlay = observer(function TubeMapOverlay({
   model,
 }: {
@@ -53,6 +56,12 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
             darkMode: model.darkMode,
           }
           drawTubeMap(ctx, picture, tubeFrame)
+          drawTubeMapConnectors(
+            ctx,
+            model.tubeMapConnectors,
+            model.connectorZoneBottom,
+            tubeFrame,
+          )
           const { bounds } = picture
           drawTubeMapGenes(
             ctx,
