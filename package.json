@@ -52,6 +52,7 @@
   "dependencies": {
     "@gmod/gbz-base": "^2.8.0",
     "@gmod/tabix": "^3.8.3",
+    "@gmod/tubemap-core": "file:/tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz",
     "@jbrowse/cigar-utils": "5.0.0-beta.9",
     "@jbrowse/core": "5.0.0-beta.9",
     "@jbrowse/display-kit": "5.0.0-beta.9",

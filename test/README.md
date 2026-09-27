@@ -8,6 +8,7 @@ Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 | `interaction.test.ts`    | the mouse is wired to hit detection, and a node drag repaints                            |
 | `addTrack.test.ts`       | a `.segs.bed.gz` url through File → Open track opens as the graph display                |
 | `launchAndHover.test.ts` | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints |
+| `tubeMap.test.ts`        | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view    |
 
 ## What `launchAndHover` demonstrates
 

@@ -11,10 +11,11 @@ to right, and the kringle repeat array forms the loops in the middle.
 
 ## Core ideas
 
-- **Six layouts, one graph.** Force-directed (Bandage's OGDF FMMM, compiled to
+- **Eight layouts, one graph.** Force-directed (Bandage's OGDF FMMM, compiled to
   wasm) shows the graph's shape; the variant map, ordered, anchored, sample-row
   and walk-row layouts put it on reference coordinates so it lines up under a
-  linear view.
+  linear view; the tube map draws its paths the way sequenceTubeMap does, on its
+  own axis or the reference's.
 - **Bubbles are the unit.** The plugin reads `gfatools bubble` output beside an
   rGFA index, or derives bubbles from the graph itself, then marks them and
   opens any one level by level.
@@ -63,9 +64,9 @@ lists `displays`:
 The display cuts the visible window plus one window-width each side, up to 5 Mb.
 Past `aboveBpPerPx` it cuts the optional `coarse` tier instead, one node per
 bubble with no size cap, built by `build_bubble_tier.sh` in jbrowse-components.
-Layouts on reference bp pan and zoom with the view; the force-directed and
-ordered layouts fit the track and zoom from its menu. The track menu picks the
-layout, colour and walk, and switches to the segments lane, one block per
+Layouts on reference bp pan and zoom with the view; the force-directed, ordered
+and tube map layouts fit the track and zoom from its menu. The track menu picks
+the layout, colour and walk, and switches to the segments lane, one block per
 segment.
 
 **Add → Graph genome view** opens a whole GFA file in its own view.
