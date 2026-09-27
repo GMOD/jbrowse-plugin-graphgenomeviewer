@@ -1,5 +1,6 @@
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
+import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
 
 import { EXON_COLOR } from './GenePins'
@@ -100,8 +101,11 @@ const LabelLayer = observer(function LabelLayer({
           onClick={() => {
             void model.popBubble(h.bubble)
           }}
+          // a leave also fires as the view closing it unmounts the chip
           onHover={hovered => {
-            model.setHoveredBubble(hovered ? h.bubble : null)
+            if (isAlive(model)) {
+              model.setHoveredBubble(hovered ? h.bubble : null)
+            }
           }}
         />
       ))}

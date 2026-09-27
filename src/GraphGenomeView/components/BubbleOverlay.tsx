@@ -1,5 +1,6 @@
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { LABEL_PAD } from '@jbrowse/bandage-core/overlayLabels'
+import { isAlive } from '@jbrowse/mobx-state-tree'
 import { Button } from '@mui/material'
 import { observer } from 'mobx-react'
 
@@ -114,8 +115,11 @@ const BubbleOverlay = observer(function BubbleOverlay({
                 onMouseEnter={() => {
                   model.setHoveredBubble(bubble)
                 }}
+                // also fired as the view closing it unmounts the glyph
                 onMouseLeave={() => {
-                  model.setHoveredBubble(null)
+                  if (isAlive(model)) {
+                    model.setHoveredBubble(null)
+                  }
                 }}
               >
                 <title>{`${label}\n${bubble.segmentCount} segments · click to open`}</title>
