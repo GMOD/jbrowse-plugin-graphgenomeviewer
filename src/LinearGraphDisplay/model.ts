@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 
+import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { ConfigurationReference, getConf } from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { getSession } from '@jbrowse/core/util'
@@ -13,7 +14,6 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
 import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
-import { layoutModeByValue } from '../GraphGenomeView/layoutModes'
 import {
   GraphPaneMixin,
   MAX_GRAPH_REGION_BP,
@@ -27,9 +27,9 @@ import {
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
-import type { ColorScheme } from '../GraphGenomeView/colorSchemes'
 import type { HostWindow } from '../GraphGenomeView/host'
-import type { LayoutModeValue } from '../GraphGenomeView/layoutModes'
+import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 import type { DisplayStatusPhase } from '@jbrowse/render-core/displayPhase'

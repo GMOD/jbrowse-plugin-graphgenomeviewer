@@ -8,7 +8,7 @@ import {
   resolveLocationAssembly,
 } from './contributors'
 
-import type { Graph, GraphNode } from '../GraphGenomeView/types'
+import type { Graph, GraphNode } from '@jbrowse/bandage-core/types'
 
 function node(
   id: string,

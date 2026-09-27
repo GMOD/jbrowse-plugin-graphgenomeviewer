@@ -2,25 +2,26 @@
 // "Launch view" to "Launch" (packages/core/src/ui/launchViewMenu.ts says why),
 // and a hardcoded copy here fails as "the item was never added" rather than as
 // "the submenu is called something else".
-import { readConfObject } from '@jbrowse/core/configuration'
-import { LAUNCH_LABEL } from '@jbrowse/core/ui'
-import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
-import { spreadFor } from './bubbleSpreads'
+import { spreadFor } from '@jbrowse/bandage-core/bubbleSpreads'
 import {
   PROPORTIONAL_LENGTH,
   bandageAutoScale,
   drawnLengthFor,
   layoutScaling,
-} from './layout/drawnScale'
-import { ROW_HEIGHT_PX } from './layout/rowSpacing'
+} from '@jbrowse/bandage-core/layout/drawnScale'
+import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
+import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
+import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
+import { readConfObject } from '@jbrowse/core/configuration'
+import { LAUNCH_LABEL } from '@jbrowse/core/ui'
+import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
+
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
-import { Canvas2DRenderer } from './renderer/Canvas2DRenderer'
-import { buildGeometry } from './renderer/GeometryBuilder'
-import { recordingCanvas } from './renderer/recordingCanvas'
 import stateModelFactory from './viewModel'
 
-import type { Graph } from './types'
+import type { Graph } from '@jbrowse/bandage-core/types'
 
 const mockRpcCall = vi.fn()
 // The canonical assembly a name or alias resolves to, which is what

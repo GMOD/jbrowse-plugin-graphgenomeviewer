@@ -1,3 +1,4 @@
+import { LAYOUT_MODES } from '@jbrowse/bandage-core/layoutModes'
 import {
   FormControl,
   InputLabel,
@@ -7,8 +8,6 @@ import {
 } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
-
-import { LAYOUT_MODES } from '../layoutModes'
 
 import type { GraphPaneModel } from '../model'
 

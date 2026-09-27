@@ -1,9 +1,8 @@
+import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
+import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'
-
-import { COLOR_SCHEME_VALUES } from '../GraphGenomeView/colorSchemes'
-import { LAYOUT_MODE_VALUES } from '../GraphGenomeView/layoutModes'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 

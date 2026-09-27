@@ -19,7 +19,7 @@ import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
 import type { LinearGraphDisplayModel } from './model'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
-import type { Renderer } from '../GraphGenomeView/renderer/types'
+import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 
 const REF = 'chr1'
 const ASM = 'hg38'

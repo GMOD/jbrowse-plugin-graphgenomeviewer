@@ -1,14 +1,13 @@
 import { TabixIndexedFile } from '@gmod/tabix'
-import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
-import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
-
 import {
   panSNContig,
   panSNHaplotype,
   panSNMatchesPrefix,
   panSNSample,
   resolvePanSNPrefix,
-} from './pansn.ts'
+} from '@jbrowse/bandage-core/pansn'
+import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
+import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 
 import type {
   BaseFeatureDataAdapter,

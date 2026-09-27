@@ -1,6 +1,6 @@
 import { hoverInRegion, nodeForLgvHover, readLgvHover } from './lgvHover'
 
-import type { GraphNode } from '../GraphGenomeView/types'
+import type { GraphNode } from '@jbrowse/bandage-core/types'
 
 // The shape LinearGenomeViewContainer writes on mousemove: `hoverPosition` is a
 // PxToBpResult, i.e. the displayed region the pointer landed in spread flat, so

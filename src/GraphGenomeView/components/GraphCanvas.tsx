@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
+import { REFERENCE_RAMP_MAX_HUE } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import {
+  findHoveredEdge,
+  findHoveredNode,
+} from '@jbrowse/bandage-core/util/hitDetection'
+import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -15,12 +23,7 @@ import TubeMapOverlay from './TubeMapOverlay'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { formatBp } from '../graphLabels'
-import { LEGEND_INSET_PX } from '../labelLayout'
-import { REFERENCE_RAMP_MAX_HUE } from '../renderer/GeometryBuilder'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
-import { findHoveredEdge, findHoveredNode } from '../util/hitDetection'
-import { wheelZoomFactor } from '../util/wheelZoom'
 
 import type { GraphPaneModel } from '../model'
 

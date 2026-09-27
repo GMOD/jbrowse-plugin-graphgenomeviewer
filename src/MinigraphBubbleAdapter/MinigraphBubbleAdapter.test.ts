@@ -1,12 +1,12 @@
-import { firstValueFrom } from 'rxjs'
-import { toArray } from 'rxjs/operators'
-
-import Adapter from './MinigraphBubbleAdapter.ts'
 import {
   bubbleDescription,
   bubbleLabel,
   parseBubbleLine,
-} from './bubbleLine.ts'
+} from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import { firstValueFrom } from 'rxjs'
+import { toArray } from 'rxjs/operators'
+
+import Adapter from './MinigraphBubbleAdapter.ts'
 import configSchema from './configSchema.ts'
 
 // Unmodified `gfatools bubble` output cut to chr6:32.4-32.7 Mb, so the column

@@ -1,8 +1,7 @@
+import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { LABEL_PAD } from '@jbrowse/bandage-core/overlayLabels'
 import { Button } from '@mui/material'
 import { observer } from 'mobx-react'
-
-import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
-import { LABEL_PAD } from '../overlayLabels'
 
 import type { GraphPaneModel } from '../model'
 

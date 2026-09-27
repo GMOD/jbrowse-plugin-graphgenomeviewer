@@ -1,4 +1,4 @@
-import type { GeneModel } from './genePins'
+import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { Feature } from '@jbrowse/core/util'
 
 // The adapters whose tracks hold gene models, in the order the session's

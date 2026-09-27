@@ -1,7 +1,7 @@
+import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
+import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { observer } from 'mobx-react'
 
-import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
-import { LABEL_CHAR_PX } from '../overlayLabels'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'

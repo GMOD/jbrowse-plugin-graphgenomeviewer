@@ -1,10 +1,13 @@
+import { convertGFAToGraph } from '@jbrowse/bandage-core/gfa/gfaConverter'
+import {
+  parseGFA,
+  stableCoordinate,
+} from '@jbrowse/bandage-core/gfa-core/index'
+import { anchoredLayout } from '@jbrowse/bandage-core/layout/anchoredLayout'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 
 import GetSubgraph from './GetSubgraph'
-import { convertGFAToGraph } from './GraphGenomeView/gfa/gfaConverter'
-import { anchoredLayout } from './GraphGenomeView/layout/anchoredLayout'
-import { parseGFA, stableCoordinate } from './gfa-core/index'
 import GraphPlugin from './index'
 
 import type { AbstractRootModel } from '@jbrowse/core/util'

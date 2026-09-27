@@ -186,8 +186,8 @@ for 5%.
 reproduced the committed drawing exactly — 90 of 90 `layout-digest.mjs` cases
 byte-identical to the baseline. So neither flag reorders FMMM's arithmetic, and
 if a future emcc makes either pay, it can be turned on without regenerating a
-single figure. Recheck with the recipe in `src/bandage/README.md`; a variant
-build is `CXXFLAGS=<flags>` on both cmake configures.
+single figure. Recheck with the recipe in `packages/core/src/bandage/README.md`;
+a variant build is `CXXFLAGS=<flags>` on both cmake configures.
 
 The same run re-confirmed that a from-scratch rebuild under emcc 6.0.6 is
 digest-identical to the committed artifact.
@@ -370,7 +370,7 @@ constant, and the quality knob is worth 4x on its own.
 Two things follow, and both are now implemented or recorded:
 
 - **The floor on a node's drawn length is what hides the variation**, and it is
-  a view setting (`bubbleSpread`, `src/GraphGenomeView/bubbleSpreads.ts`) rather
+  a view setting (`bubbleSpread`, `packages/core/src/bubbleSpreads.ts`) rather
   than a retuned default. Bandage's 5 units suits assembly contigs; a 1-50 bp
   allele clamps to a stub and both arms of a bubble land inside one node
   thickness. At 2.5x the mean drawn node length every bubble on that 61-node

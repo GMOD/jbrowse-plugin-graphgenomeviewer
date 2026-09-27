@@ -1,10 +1,10 @@
+import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
-import { parseGFA } from '../gfa-core/index.ts'
 
 // Built by scripts/build_rgfa_tabix.sh from the minigraph rGFA of four E. coli
 // strains at jbrowse.org/demos/ecoli_pangenome/ecoli_rgfa_slice.gfa (the

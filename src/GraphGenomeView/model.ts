@@ -1,3 +1,67 @@
+import {
+  backboneNodes,
+  backboneSpan,
+} from '@jbrowse/bandage-core/anchoredNodes'
+import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
+import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
+import { bubblesFromGraph } from '@jbrowse/bandage-core/bubbles/bubblesFromGraph'
+import {
+  BUBBLE_KIND_NAMES,
+  bubbleSegmentIds,
+  classifyBubble,
+} from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { bubbleSubgraph } from '@jbrowse/bandage-core/bubbles/popBubble'
+import {
+  COLOR_SCHEMES,
+  COLOR_SCHEME_VALUES,
+  resolveColorScheme,
+} from '@jbrowse/bandage-core/colorSchemes'
+import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
+import { genePins } from '@jbrowse/bandage-core/genes/genePins'
+import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
+import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
+import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
+import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
+import {
+  LAYOUT_MODES,
+  LAYOUT_MODE_VALUES,
+  layoutModeByValue,
+  modeUsesLayoutEngine,
+} from '@jbrowse/bandage-core/layoutModes'
+import { NODE_WIDTH_VALUES, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { anchorFromPaths } from '@jbrowse/bandage-core/pathAnchoring'
+import { pathColorsLegible, pathLegend } from '@jbrowse/bandage-core/pathColors'
+import {
+  FIT_PADDING,
+  clampZoom,
+  drawingBounds,
+  engineKey,
+  fitTransform,
+  fittedTranslateY,
+  forceLayout,
+  loadGraph,
+} from '@jbrowse/bandage-core/pipeline'
+import {
+  buildNeighbors,
+  nodeReferenceSpan,
+} from '@jbrowse/bandage-core/referenceSpan'
+import {
+  buildGeometry,
+  computeReferenceRamp,
+} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
+import {
+  tubeMapFrame,
+  tubeMapNodeAt,
+} from '@jbrowse/bandage-core/tubeMap/frame'
+import {
+  axisScaleOf,
+  contains,
+  padded,
+  viewportOf,
+  zoomAbout,
+} from '@jbrowse/bandage-core/viewport'
+import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
@@ -14,71 +78,19 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
-import { backboneNodes, backboneSpan } from './anchoredNodes'
-import { BUBBLE_SPREAD_VALUES } from './bubbleSpreads'
-import { bubbleHalos } from './bubbles/bubbleHalos'
-import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
-import {
-  BUBBLE_KIND_NAMES,
-  bubbleSegmentIds,
-  classifyBubble,
-} from './bubbles/classifyBubble'
-import { bubbleSubgraph } from './bubbles/popBubble'
-import {
-  COLOR_SCHEMES,
-  COLOR_SCHEME_VALUES,
-  resolveColorScheme,
-} from './colorSchemes'
-import { deletionEdges } from './deletionEdges'
 import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
   pickGeneTrack,
 } from './genes/geneFeatures'
-import { genePins } from './genes/genePins'
 import { hostFrame, isLinearHost } from './host'
-import { layoutLabels } from './labelLayout'
-import { ROW_HEIGHT_PX } from './layout/rowSpacing'
-import { walkRowsExtent } from './layout/walkRowLayout'
-import { walkRows } from './layout/walkRows'
-import {
-  LAYOUT_MODES,
-  LAYOUT_MODE_VALUES,
-  layoutModeByValue,
-  modeUsesLayoutEngine,
-} from './layoutModes'
-import { NODE_WIDTH_VALUES, nodeInk } from './nodeWidths'
-import { anchorFromPaths } from './pathAnchoring'
-import { pathColorsLegible, pathLegend } from './pathColors'
-import {
-  FIT_PADDING,
-  clampZoom,
-  drawingBounds,
-  engineKey,
-  fitTransform,
-  fittedTranslateY,
-  forceLayout,
-  loadGraph,
-} from './pipeline'
-import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
-import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
+import { namesReads } from '../GetGraphReads'
 import {
   REPEAT_ADAPTER_TYPES,
   pickRepeatTrack,
   repeatArraysFrom,
 } from './repeats/repeatFeatures'
 import { withCalls } from './repeats/walkCalls'
-import { tubeMapPicture } from './tubeMap/draw'
-import { tubeMapFrame, tubeMapNodeAt } from './tubeMap/frame'
-import {
-  axisScaleOf,
-  contains,
-  padded,
-  viewportOf,
-  zoomAbout,
-} from './viewport'
-import { walkHighlight } from './walkHighlight'
-import { namesReads } from '../GetGraphReads'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -103,22 +115,32 @@ import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget, withRows } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
-import type { BubbleSpread } from './bubbleSpreads'
-import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
-import type { GeneModel } from './genes/genePins'
 import type { LinearHost } from './host'
-import type { LayoutModeValue } from './layoutModes'
-import type { NodeWidth } from './nodeWidths'
-import type { Bounds, EngineRequest } from './pipeline'
-import type { RenderBatch, Renderer } from './renderer/types'
-import type { RepeatArray } from './repeats/repeatFeatures'
-import type { Graph, GraphNode, LayoutResult } from './types'
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
+import type { RepeatArray } from './repeats/repeatFeatures'
 import type { GafReads } from '../gaf/gafFile'
-import type { NodeInk } from './util/hitDetection'
-import type { MinigraphBubble } from '../MinigraphBubbleAdapter/bubbleLine'
-import type { AxisScale } from './util/geometry'
 import type { GraphLocation } from '../launchFromGraph/contributors'
+import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
+import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import type {
+  ColorScheme,
+  ResolvedColorScheme,
+} from '@jbrowse/bandage-core/colorSchemes'
+import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
+import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
+import type { Bounds, EngineRequest } from '@jbrowse/bandage-core/pipeline'
+import type {
+  RenderBatch,
+  Renderer,
+} from '@jbrowse/bandage-core/renderer/types'
+import type {
+  Graph,
+  GraphNode,
+  LayoutResult,
+} from '@jbrowse/bandage-core/types'
+import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
+import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'

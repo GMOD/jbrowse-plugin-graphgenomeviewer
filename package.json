@@ -46,7 +46,8 @@
     "prepack": "pnpm build",
     "preversion": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm host-compat",
     "version": "node scripts/version.mjs",
-    "postversion": "git push --follow-tags"
+    "postversion": "git push --follow-tags",
+    "release:core": "./scripts/release-core.sh"
   },
   "private": false,
   "dependencies": {
@@ -65,6 +66,7 @@
     "@emotion/styled": "^11.14.1",
     "@eslint/js": "^10.0.1",
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
+    "@jbrowse/bandage-core": "workspace:*",
     "@jbrowse/cli": "^4.3.0",
     "@jbrowse/mobx-state-tree": "^6.6.1",
     "@jbrowse/plugin-canvas": "5.0.0-beta.9",

@@ -1,12 +1,15 @@
+import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { observer } from 'mobx-react'
 
 import { EXON_COLOR } from './GenePins'
 import LabelChip from './LabelChip'
-import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
-import { LABEL_PX } from '../overlayLabels'
 
-import type { BubbleHalo, RouteLabel } from '../bubbles/bubbleHalos'
 import type { GraphPaneModel } from '../model'
+import type {
+  BubbleHalo,
+  RouteLabel,
+} from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 
 // Every chip drawn over the graph, above all of its ink: bubble names, gene
 // names on their pins, and the routes' walkers. `overlayLabels` has placed

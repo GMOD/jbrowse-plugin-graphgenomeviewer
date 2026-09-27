@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react'
 
+import { BUBBLE_SPREADS } from '@jbrowse/bandage-core/bubbleSpreads'
+import { COLOR_SCHEMES } from '@jbrowse/bandage-core/colorSchemes'
+import { NODE_WIDTHS } from '@jbrowse/bandage-core/nodeWidths'
+import { MAX_PATH_COLORS } from '@jbrowse/bandage-core/pathColors'
 import { Dialog } from '@jbrowse/core/ui'
 import {
   DialogActions,
@@ -19,11 +23,6 @@ import {
 import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
-
-import { BUBBLE_SPREADS } from '../bubbleSpreads'
-import { COLOR_SCHEMES } from '../colorSchemes'
-import { NODE_WIDTHS } from '../nodeWidths'
-import { MAX_PATH_COLORS } from '../pathColors'
 
 import type { GraphPaneModel } from '../model'
 

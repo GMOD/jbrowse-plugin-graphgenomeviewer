@@ -1,6 +1,6 @@
-import { isBackbone } from '../GraphGenomeView/anchoredNodes'
+import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 
-import type { GraphNode } from '../GraphGenomeView/types'
+import type { GraphNode } from '@jbrowse/bandage-core/types'
 
 // What a LinearGenomeView writes to `session.hovered` on every mousemove (see
 // LinearGenomeViewContainer): the bp under the cursor, plus the feature under it

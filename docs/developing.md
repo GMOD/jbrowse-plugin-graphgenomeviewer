@@ -36,8 +36,8 @@ bytes, serve the plugin from an immutable, versioned url on a host you control.
 
 ## Rebuilding the engine
 
-`src/bandage/bandage-layout.js` is a committed artifact, so `pnpm build` never
-needs Emscripten. After changing the C++ layout sources:
+`packages/core/src/bandage/bandage-layout.js` is a committed artifact, so
+`pnpm build` never needs Emscripten. After changing the C++ layout sources:
 
 ```console
 pnpm build:wasm   # needs emsdk only
@@ -50,7 +50,7 @@ base64, giving one ES module esbuild copies as-is.
 
 The artifact's bytes change for reasons the layout doesn't, so check a rebuild
 against the drawing with `scripts/layout-digest.mjs`
-([src/bandage/README.md](../src/bandage/README.md)).
+([packages/core/src/bandage/README.md](../packages/core/src/bandage/README.md)).
 
 ## Testing
 

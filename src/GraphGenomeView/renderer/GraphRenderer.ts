@@ -1,4 +1,4 @@
-import { Canvas2DRenderer } from './Canvas2DRenderer'
+import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 
 // Canvas2D only, and deliberately not through render-core's GPU ladder. The
 // batch is strokes and arrowheads in layout units, and stroking them batched by

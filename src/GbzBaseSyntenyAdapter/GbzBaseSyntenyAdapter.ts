@@ -1,10 +1,5 @@
 import { GBZBase } from '@gmod/gbz-base'
 import { TabixIndexedFile } from '@gmod/tabix'
-import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
-import { updateStatus } from '@jbrowse/core/util'
-import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
-import { ObservableCreate } from '@jbrowse/core/util/rxjs'
-
 import {
   cutWindowGFA,
   haplotypePrefix,
@@ -13,13 +8,18 @@ import {
   referencePathQuery,
   referenceSamplesOf,
   resolveReferenceSample,
-} from './gbzWindow.ts'
-import { GafFile } from '../gaf/gafFile.ts'
+} from '@jbrowse/bandage-core/gbzWindow'
 import {
   assemblyByPanSNPrefix,
   panSNMatchesPrefix,
   resolvePanSNPrefix,
-} from '../pansn.ts'
+} from '@jbrowse/bandage-core/pansn'
+import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
+import { updateStatus } from '@jbrowse/core/util'
+import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
+import { ObservableCreate } from '@jbrowse/core/util/rxjs'
+
+import { GafFile } from '../gaf/gafFile.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
@@ -44,7 +44,7 @@ export {
   haplotypePrefix,
   nodeLimitError,
   resolveReferenceSample,
-} from './gbzWindow.ts'
+} from '@jbrowse/bandage-core/gbzWindow'
 
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'

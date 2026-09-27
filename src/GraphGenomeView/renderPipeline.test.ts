@@ -1,7 +1,11 @@
-import { MAX_PATH_COLORS } from './pathColors'
+import { MAX_PATH_COLORS } from '@jbrowse/bandage-core/pathColors'
+
 import stateModelFactory from './viewModel'
 
-import type { RenderBatch, Renderer } from './renderer/types'
+import type {
+  RenderBatch,
+  Renderer,
+} from '@jbrowse/bandage-core/renderer/types'
 
 const mockRpcCall = vi.fn()
 const mockSession = {

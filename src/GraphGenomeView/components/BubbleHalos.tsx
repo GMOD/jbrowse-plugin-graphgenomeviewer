@@ -1,10 +1,9 @@
+import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { HALO_FACTOR } from '@jbrowse/bandage-core/labelLayout'
 import { observer } from 'mobx-react'
 
-import { BUBBLE_KIND_COLORS } from '../bubbles/classifyBubble'
-import { HALO_FACTOR } from '../labelLayout'
-
-import type { BubbleHalo } from '../bubbles/bubbleHalos'
 import type { GraphPaneModel } from '../model'
+import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 
 // The bubbles over a node drawing: each a translucent halo along its nodes,
 // drawn once in layout units and moved with the canvas by one transform. The

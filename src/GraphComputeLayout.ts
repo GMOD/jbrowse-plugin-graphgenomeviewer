@@ -1,9 +1,8 @@
+import loadBandage from '@jbrowse/bandage-core/loadBandage'
 import { RpcMethodType } from '@jbrowse/core/pluggableElementTypes'
 
-import loadBandage from './loadBandage'
-
-import type { EngineRequest } from './GraphGenomeView/pipeline'
-import type { LayoutResult } from './GraphGenomeView/types'
+import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
+import type { LayoutResult } from '@jbrowse/bandage-core/types'
 import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 
 // The payload is the pipeline's EngineRequest, the same request a standalone

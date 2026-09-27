@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react'
 
+import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
-
-import { drawTubeMap } from '../tubeMap/draw'
 
 import type { GraphPaneModel } from '../model'
 

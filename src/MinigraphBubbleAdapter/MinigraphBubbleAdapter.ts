@@ -1,13 +1,13 @@
+import {
+  bubbleDescription,
+  bubbleLabel,
+  parseBubbleLine,
+} from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
-import {
-  bubbleDescription,
-  bubbleLabel,
-  parseBubbleLine,
-} from './bubbleLine.ts'
 
 import type { MinigraphBubbleAdapterConfig } from './configSchema.ts'
 import type PluginManager from '@jbrowse/core/PluginManager'

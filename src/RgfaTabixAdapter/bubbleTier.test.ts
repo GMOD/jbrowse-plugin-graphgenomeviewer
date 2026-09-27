@@ -1,6 +1,7 @@
+import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
+
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
-import { parseGFA } from '../gfa-core/index.ts'
 
 // A level-of-detail tier: the same two files the adapter always reads, but one
 // node per bubble instead of one per GFA segment. Built by

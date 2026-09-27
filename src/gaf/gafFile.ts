@@ -1,9 +1,8 @@
 import { unzip } from '@gmod/bgzf-filehandle'
+import { parseGaf, parseGafLine } from '@jbrowse/bandage-core/gaf/parseGaf'
 
-import { parseGaf, parseGafLine } from './parseGaf.ts'
-
-import type { GafRecord } from './parseGaf.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
+import type { GafRecord } from '@jbrowse/bandage-core/gaf/parseGaf'
 
 interface WholeFile {
   stat(): Promise<{ size: number }>

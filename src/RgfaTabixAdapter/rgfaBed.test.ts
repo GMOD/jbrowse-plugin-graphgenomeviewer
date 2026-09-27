@@ -147,9 +147,9 @@ test('segmentSamples finds the tag beside other tags', () => {
 // the only statement of carriage it can carry, and nothing else asserts that it
 // survives the round trip.
 test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
-  const { parseGFA } = await import('../gfa-core/index.ts')
+  const { parseGFA } = await import('@jbrowse/bandage-core/gfa-core/index')
   const { convertGFAToGraph } =
-    await import('../GraphGenomeView/gfa/gfaConverter.ts')
+    await import('@jbrowse/bandage-core/gfa/gfaConverter')
   const segment = parseSegmentLine(
     'K12#1#chr\t1004477\t1004500\ts119690\t0\tSM:Z:K12.1,Sakai.1,NCTC86.1',
   )

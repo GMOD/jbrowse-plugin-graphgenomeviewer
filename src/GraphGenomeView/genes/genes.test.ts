@@ -1,7 +1,8 @@
+import { genePins } from '@jbrowse/bandage-core/genes/genePins'
+import { convertGFAToGraph } from '@jbrowse/bandage-core/gfa/gfaConverter'
+import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
+
 import { geneModelsFrom, pickGeneTrack } from './geneFeatures'
-import { genePins } from './genePins'
-import { parseGFA } from '../../gfa-core/index'
-import { convertGFAToGraph } from '../gfa/gfaConverter'
 
 const gene = {
   type: 'gene',

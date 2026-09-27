@@ -11,7 +11,7 @@
 - Needs a halo that skips the shaft: clip the outline to the node strokes under
   the head, or stroke only the two barbs.
 - Code: `renderArrows` / `arrowheadOutline` in
-  `src/GraphGenomeView/renderer/Canvas2DRenderer.ts`.
+  `packages/core/src/renderer/Canvas2DRenderer.ts`.
 
 ### Bandage-style pointed node ends
 
