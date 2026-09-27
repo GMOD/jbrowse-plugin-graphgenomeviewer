@@ -21,8 +21,8 @@ Measured on `kiv2_eight.gfa` (GRCh38 + 8 HPRC haplotypes):
   diagnostic sites (bases 14, 41, 86)
 - The graph threads 32 copies through GRCh38 copies, and 13 of those through a
   reference copy of the other unit, so a ramp hue in an array states the
-  aligner's pick, not homology. Within a unit a copy's nearest GRCh38 copy wins
-  by 2-4 bp of 5.5 kb, which is noise
+  aligner's pick among near-identical copies. Within a unit a copy's nearest
+  GRCh38 copy wins by 2-4 bp of 5.5 kb, which is noise
 
 ## Candidates rejected, with the number that rejected each
 
@@ -56,8 +56,8 @@ repeat sequence per allele. vamos 3.1.1 (`--contig`, a custom catalogue holding
 the two units) reproduces the script's GRCh38 decomposition, A A A B A A, but
 skips any allele over 30,000 bp (`src/vntr.cpp:198`, a constant `-L` does not
 reach), and wrote no record for any haplotype contig, whatever the region, under
-a graph-derived alignment (flank M, array I, flank M). Trial inputs: the session
-scratchpad's `vamos/`.
+a graph-derived alignment (flank M, array I, flank M). The trial took each
+contig from the GFA's walk and the GRCh38 window as the reference.
 
 ## Open
 
