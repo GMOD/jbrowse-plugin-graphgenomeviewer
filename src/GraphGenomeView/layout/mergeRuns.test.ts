@@ -98,3 +98,18 @@ test('a run splits its polyline among its members by weight, abutting', () => {
   expect(split['v5+']).toEqual([{ x: 20, y: 0 }])
   expect(split['a1+']).toBe(positions['a1+'])
 })
+
+// The node is c-, the strand the first link names, so `L d + c +` joins its
+// END. Counted as an in-edge of c- it stopped the run at b and told the engine
+// to attach d at c's start.
+test('a link to the far end of a node attaches there, not across the run', () => {
+  const { graph: merged, runs } = mergeRuns(
+    convertGFAToGraph(
+      parseGFA(
+        `S\ta\tAAAA\nS\tb\tCC\nS\tc\tGG\nS\td\tTT\nL\ta\t+\tb\t+\t0M\nL\tb\t+\tc\t-\t0M\nL\td\t+\tc\t+\t0M`,
+      ),
+    ),
+  )
+  expect([...runs]).toEqual([['a+', ['a+', 'b+', 'c-']]])
+  expect(merged.edges).toEqual([{ from: 'd+', to: 'a+', toStrand: '-' }])
+})

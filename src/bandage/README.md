@@ -51,6 +51,11 @@ and the smoke graph's segments were called `1`..`6`, so it never exercised the
 branch a minigraph rGFA takes. See `parseWholeInt` in `native/include/types.h`
 for what was hiding there.
 
+An edge's `fromStrand`/`toStrand` pick the ends it joins. The graph holds one
+node per segment, so `L a + b -` reaches the END of `b+`; the engine reads a
+strand against the node id's own suffix, and an absent strand joins end to start
+as before. `mergeRuns` counts links per side for the same reason.
+
 ## Nothing in native/ may throw
 
 Emscripten builds with exception catching off by default, so `throw` is not

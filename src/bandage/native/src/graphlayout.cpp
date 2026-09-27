@@ -177,7 +177,8 @@ static void addToOgdfGraph(const DeBruijnEdge* edge,
                      layout.find(startingNode->getReverseComplement()) : layout.end();
 
     if (startIt != layout.end())
-        firstEdgeOgdfNode = startIt->second.back();
+        firstEdgeOgdfNode = edge->leavesStart ? startIt->second.front()
+                                              : startIt->second.back();
     else if (startRcIt != layout.end())
         firstEdgeOgdfNode = startRcIt->second.front();
     else
@@ -189,7 +190,8 @@ static void addToOgdfGraph(const DeBruijnEdge* edge,
                    layout.find(endingNode->getReverseComplement()) : layout.end();
 
     if (endIt != layout.end())
-        secondEdgeOgdfNode = endIt->second.front();
+        secondEdgeOgdfNode = edge->entersEnd ? endIt->second.back()
+                                             : endIt->second.front();
     else if (endRcIt != layout.end())
         secondEdgeOgdfNode = endRcIt->second.back();
     else

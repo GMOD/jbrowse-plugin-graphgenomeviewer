@@ -9,6 +9,19 @@
 
 using namespace emscripten;
 
+// Whether a link reads `name` on the other strand from the one its id carries,
+// i.e. joins the node at the opposite end. An absent or malformed strand reads
+// as the id's own, which is how every link attached before strands were read.
+static bool flipped(const val& edge, const char* key, const std::string& name) {
+    if (name.empty() || !edge.hasOwnProperty(key) || !edge[key].isString()) {
+        return false;
+    }
+    std::string strand = edge[key].as<std::string>();
+    char own = name.back();
+    return strand.size() == 1 && (own == '+' || own == '-') &&
+           (strand[0] == '+' || strand[0] == '-') && strand[0] != own;
+}
+
 // Helper to create graph from JavaScript object
 std::unique_ptr<AssemblyGraph> createGraphFromJS(const val& jsGraph) {
     auto graph = std::make_unique<AssemblyGraph>();
@@ -70,7 +83,11 @@ std::unique_ptr<AssemblyGraph> createGraphFromJS(const val& jsGraph) {
                      edge["overlap"].as<int>() : 0;
 
         auto* e = graph->addEdge(from, to, overlap, UNKNOWN_OVERLAP);
-        if (e) e->setAsDrawn();
+        if (e) {
+            e->setAsDrawn();
+            e->leavesStart = flipped(edge, "fromStrand", from);
+            e->entersEnd = flipped(edge, "toStrand", to);
+        }
     }
 
     return graph;

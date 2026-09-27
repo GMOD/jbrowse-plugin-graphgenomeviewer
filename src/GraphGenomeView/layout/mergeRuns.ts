@@ -1,6 +1,6 @@
 import { isBackbone } from '../anchoredNodes'
 
-import type { Graph, GraphNode, NodeSegment } from '../types'
+import type { Graph, GraphEdge, GraphNode, NodeSegment } from '../types'
 
 // A base-level graph chops its sequence into short nodes at every variant and
 // every kilobase, so a cut of it is thousands of nodes strung in unbranching
@@ -8,8 +8,11 @@ import type { Graph, GraphNode, NodeSegment } from '../types'
 // chain, and its positions are split back onto the members afterwards, so the
 // drawing, the hit index and the labels never see the merged graph.
 //
-// A node joins the run before it when that node's only in-edge is the run's
-// only out-edge. A self loop counts on both sides and so keeps its node alone.
+// A node joins the run before it when the run's end side and the node's start
+// side each hold exactly one link, and it is that link read forward. Sides, not
+// in- and out-edges: a graph holds one node per segment, so `L a + b -` joins
+// b's END, and counting it as an in-edge of b both merged across it and handed
+// the engine a link attached at the wrong end. A self loop keeps its node alone.
 
 export interface MergedRuns {
   graph: Graph
@@ -17,39 +20,82 @@ export interface MergedRuns {
   runs: Map<string, string[]>
 }
 
+type Side = 'start' | 'end'
+
+// The strand a node's id carries, which is the one its drawn chain reads.
+function ownStrand(id: string) {
+  return id.endsWith('-') ? '-' : '+'
+}
+
+function flip(strand: '+' | '-') {
+  return strand === '+' ? '-' : '+'
+}
+
+function sidesOf(edge: GraphEdge) {
+  const from: Side =
+    (edge.fromStrand ?? ownStrand(edge.from)) === ownStrand(edge.from)
+      ? 'end'
+      : 'start'
+  const to: Side =
+    (edge.toStrand ?? ownStrand(edge.to)) === ownStrand(edge.to)
+      ? 'start'
+      : 'end'
+  return { from, to }
+}
+
 export function mergeRuns(graph: Graph): MergedRuns {
-  const outOf = new Map<string, string[]>()
-  const inOf = new Map<string, string[]>()
-  const push = (map: Map<string, string[]>, key: string, value: string) => {
-    const list = map.get(key)
+  const sides = graph.edges.map(sidesOf)
+  // node side -> indexes of the edges attached there
+  const at = new Map<string, number[]>()
+  const attach = (id: string, side: Side, ei: number) => {
+    const key = `${id}|${side}`
+    const list = at.get(key)
     if (list) {
-      list.push(value)
+      list.push(ei)
     } else {
-      map.set(key, [value])
+      at.set(key, [ei])
     }
   }
-  for (const edge of graph.edges) {
-    push(outOf, edge.from, edge.to)
-    push(inOf, edge.to, edge.from)
+  graph.edges.forEach((edge, ei) => {
+    attach(edge.from, sides[ei]!.from, ei)
+    attach(edge.to, sides[ei]!.to, ei)
+  })
+  // the edge that carries node `a`'s run on into the next node, if one does
+  const joinAfter = (a: string) => {
+    const out = at.get(`${a}|end`)
+    if (out?.length !== 1) {
+      return undefined
+    }
+    const ei = out[0]!
+    const edge = graph.edges[ei]!
+    return edge.from === a &&
+      edge.to !== a &&
+      sides[ei]!.from === 'end' &&
+      sides[ei]!.to === 'start' &&
+      at.get(`${edge.to}|start`)?.length === 1
+      ? ei
+      : undefined
   }
-  const joins = (a: string, b: string) =>
-    a !== b && outOf.get(a)?.length === 1 && inOf.get(b)?.length === 1
+  const joined = new Set<number>()
   const runOf = new Map<string, string>()
   const runs = new Map<string, string[]>()
   for (const node of graph.nodes) {
-    const pred = inOf.get(node.id)
+    const into = at.get(`${node.id}|start`)
+    const pred = into?.length === 1 ? graph.edges[into[0]!]!.from : undefined
     if (
       runOf.has(node.id) ||
-      (pred?.length === 1 && joins(pred[0]!, node.id))
+      (pred !== undefined && joinAfter(pred) === into![0])
     ) {
       continue
     }
     const run = [node.id]
     for (;;) {
-      const next = outOf.get(run.at(-1)!)?.[0]
-      if (next === undefined || runOf.has(next) || !joins(run.at(-1)!, next)) {
+      const ei = joinAfter(run.at(-1)!)
+      const next = ei === undefined ? undefined : graph.edges[ei]!.to
+      if (next === undefined || runOf.has(next)) {
         break
       }
+      joined.add(ei!)
       run.push(next)
     }
     for (const id of run) {
@@ -90,22 +136,28 @@ export function mergeRuns(graph: Graph): MergedRuns {
       stable: first.stable,
     })
   }
-  const internal = new Set<string>()
-  for (const run of runs.values()) {
-    for (let i = 1; i < run.length; i++) {
-      internal.add(`${run[i - 1]}>${run[i]}`)
-    }
-  }
+  // A link can only reach a run at its free ends, the first member's start and
+  // the last's end, since every inner side holds exactly the join. So a
+  // member's side is the run's side, and a flipped one crosses over as the
+  // strand opposite the run's own.
   const seen = new Set<string>()
-  const edges = []
-  for (const edge of graph.edges) {
-    const key = `${runOf.get(edge.from)}>${runOf.get(edge.to)}`
-    if (internal.has(`${edge.from}>${edge.to}`) || seen.has(key)) {
-      continue
+  const edges: GraphEdge[] = []
+  graph.edges.forEach((edge, ei) => {
+    const from = runOf.get(edge.from)!
+    const to = runOf.get(edge.to)!
+    const side = sides[ei]!
+    const key = `${from}|${side.from}>${to}|${side.to}`
+    if (joined.has(ei) || seen.has(key)) {
+      return
     }
     seen.add(key)
-    edges.push({ from: runOf.get(edge.from)!, to: runOf.get(edge.to)! })
-  }
+    edges.push({
+      from,
+      to,
+      ...(side.from === 'start' ? { fromStrand: flip(ownStrand(from)) } : {}),
+      ...(side.to === 'end' ? { toStrand: flip(ownStrand(to)) } : {}),
+    })
+  })
   return {
     graph: { ...graph, nodes, edges, paths: undefined, pathVisits: undefined },
     runs,

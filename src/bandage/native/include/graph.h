@@ -38,10 +38,16 @@ public:
     int overlap;
     EdgeOverlapType overlapType;
     bool drawn;
+    // Which side of each node the link joins, from its strands against the
+    // node's own. A graph holds one node per segment, so `L 1 + 2 -` joins the
+    // END of 2+ and has no 2- to attach to; without these it joined 2's start.
+    bool leavesStart;
+    bool entersEnd;
 
     DeBruijnEdge(DeBruijnNode* start, DeBruijnNode* end)
         : startingNode(start), endingNode(end), overlap(0),
-          overlapType(UNKNOWN_OVERLAP), drawn(false) {}
+          overlapType(UNKNOWN_OVERLAP), drawn(false), leavesStart(false),
+          entersEnd(false) {}
 
     DeBruijnNode* getStartingNode() const { return startingNode; }
     DeBruijnNode* getEndingNode() const { return endingNode; }
