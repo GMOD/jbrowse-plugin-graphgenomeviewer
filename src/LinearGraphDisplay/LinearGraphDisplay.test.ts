@@ -533,7 +533,7 @@ test("a 4.0 session's pane state still loads, and is not reported as an unknown 
 })
 
 test('closing a drawn track reads nothing of the dead display', async () => {
-  const { display, view } = await shownGraph()
+  const { view } = await shownGraph()
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
   view.hideTrack('graph')
   await wait(SETTLE_MS)
