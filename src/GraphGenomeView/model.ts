@@ -24,7 +24,11 @@ import {
   classifyBubble,
 } from './bubbles/classifyBubble'
 import { bubbleSubgraph } from './bubbles/popBubble'
-import { COLOR_SCHEMES, COLOR_SCHEME_VALUES } from './colorSchemes'
+import {
+  COLOR_SCHEMES,
+  COLOR_SCHEME_VALUES,
+  resolveColorScheme,
+} from './colorSchemes'
 import { deletionEdges } from './deletionEdges'
 import {
   GENE_ADAPTER_TYPES,
@@ -43,21 +47,16 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from './layoutModes'
-import {
-  NODE_WIDTH_VALUES,
-  maxNodeWidthPx,
-  meanDepth,
-  nodeWidthPx,
-} from './nodeWidths'
+import { NODE_WIDTH_VALUES, nodeInk } from './nodeWidths'
 import { anchorFromPaths } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
 import {
   FIT_PADDING,
   clampZoom,
+  drawingBounds,
   fitTransform,
   fittedTranslateY,
   forceLayout,
-  layoutExtent,
   loadGraph,
 } from './pipeline'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
@@ -662,11 +661,7 @@ export function GraphPaneMixin() {
       // the ramp still says where on the reference each node came from, which is
       // the only quantity a linear track beside it can be painted with too.
       get effectiveColorScheme(): ResolvedColorScheme {
-        return self.chosenColorScheme !== 'auto'
-          ? self.chosenColorScheme
-          : self.graph?.anchoredBy
-            ? 'reference-position'
-            : 'uniform'
+        return resolveColorScheme(self.chosenColorScheme, self.graph)
       },
       get nodePositions() {
         return self.layoutResult?.nodePositions
@@ -780,20 +775,13 @@ export function GraphPaneMixin() {
       get nodeNeighbors() {
         return self.graph ? buildNeighbors(self.graph) : undefined
       },
-      // How far each node's ink reaches from its centreline, for the hit test:
-      // the widths the geometry draws with, from the same function.
       get nodeInk(): NodeInk {
-        const { contigThickness, nodeWidth, nodeById } = self
-        const mean = self.graph ? meanDepth(self.graph) : 0
-        return {
-          maxHalfWidthPx: maxNodeWidthPx(contigThickness, nodeWidth) / 2,
-          halfWidthPx: id => {
-            const node = nodeById?.get(id)
-            return node
-              ? nodeWidthPx(node, contigThickness, nodeWidth, mean) / 2
-              : contigThickness / 2
-          },
-        }
+        return nodeInk(
+          self.graph,
+          self.nodeById,
+          self.contigThickness,
+          self.nodeWidth,
+        )
       },
       // Links that skip reference sequence, i.e. the deletions this graph
       // holds. Computed once per graph rather than per geometry rebuild: it is
@@ -952,32 +940,14 @@ export function GraphPaneMixin() {
       // the bars on screen, which a repeat pick or a sample filter narrows
       // after the layout ran.
       get layoutBounds() {
-        let bounds:
-          { minX: number; minY: number; w: number; h: number } | undefined
-        if (self.layoutResult) {
-          const extentOf = layoutExtent(self.layoutResult.nodePositions)
-          const { minY } = extentOf
-          let { minX, maxX, maxY } = extentOf
-          const region =
-            self.layoutResult.referenceAxis && self.popStack.length === 0
-              ? self.graphRegion
-              : undefined
-          if (region && region.end > region.start) {
-            minX = region.start
-            maxX = region.end
-          }
-          const bars = this.walkRowBars
-          const extent =
-            bars && self.layoutResult.extent
-              ? walkRowsExtent(bars)
-              : self.layoutResult.extent
-          if (extent) {
-            maxX = Math.max(maxX, extent.maxX)
-            maxY = Math.max(maxY, extent.maxY)
-          }
-          bounds = { minX, minY, w: maxX - minX, h: maxY - minY }
-        }
-        return bounds
+        const layout = self.layoutResult
+        const bars = this.walkRowBars
+        return layout
+          ? drawingBounds(layout, {
+              region: self.popStack.length === 0 ? self.graphRegion : undefined,
+              extent: bars && layout.extent ? walkRowsExtent(bars) : undefined,
+            })
+          : undefined
       },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in the middle of.

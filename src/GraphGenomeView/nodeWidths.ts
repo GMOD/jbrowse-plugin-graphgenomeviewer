@@ -1,4 +1,5 @@
 import type { Graph, GraphNode } from './types'
+import type { NodeInk } from './util/hitDetection'
 
 // How thick a node draws. Bandage widens a node by its depth, the square root
 // of its depth against the graph's mean, so a contig every read covers is fat
@@ -64,4 +65,24 @@ export function nodeWidthPx(
 
 export function maxNodeWidthPx(contigThickness: number, nodeWidth: NodeWidth) {
   return contigThickness * (nodeWidth === 'depth' ? MAX_FACTOR : 1)
+}
+
+// How far each node's ink reaches from its centreline, for the hit test: the
+// widths the geometry draws with, from the same function.
+export function nodeInk(
+  graph: Graph | undefined,
+  nodeById: ReadonlyMap<string, GraphNode> | undefined,
+  contigThickness: number,
+  nodeWidth: NodeWidth,
+): NodeInk {
+  const mean = graph ? meanDepth(graph) : 0
+  return {
+    maxHalfWidthPx: maxNodeWidthPx(contigThickness, nodeWidth) / 2,
+    halfWidthPx: id => {
+      const node = nodeById?.get(id)
+      return node
+        ? nodeWidthPx(node, contigThickness, nodeWidth, mean) / 2
+        : contigThickness / 2
+    },
+  }
 }

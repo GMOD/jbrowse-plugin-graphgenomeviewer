@@ -7,6 +7,7 @@
 export {
   FIT_PADDING,
   clampZoom,
+  drawingBounds,
   engineRequest,
   fitTransform,
   forceLayout,
@@ -27,7 +28,10 @@ export {
   modeUsesLayoutEngine,
 } from './GraphGenomeView/layoutModes'
 export type { LayoutModeValue } from './GraphGenomeView/layoutModes'
-export { COLOR_SCHEMES } from './GraphGenomeView/colorSchemes'
+export {
+  COLOR_SCHEMES,
+  resolveColorScheme,
+} from './GraphGenomeView/colorSchemes'
 export type {
   ColorScheme,
   ResolvedColorScheme,
@@ -36,6 +40,7 @@ export {
   NODE_WIDTHS,
   maxNodeWidthPx,
   meanDepth,
+  nodeInk,
   nodeWidthPx,
 } from './GraphGenomeView/nodeWidths'
 export type { NodeWidth } from './GraphGenomeView/nodeWidths'
@@ -48,6 +53,9 @@ export {
   computeReferenceRamp,
 } from './GraphGenomeView/renderer/GeometryBuilder'
 export { Canvas2DRenderer } from './GraphGenomeView/renderer/Canvas2DRenderer'
+// the ratio the renderer sizes its backing store with, which the transform
+// handed to it has to be multiplied by
+export { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 export type { Renderer } from './GraphGenomeView/renderer/types'
 export {
   findHoveredEdge,

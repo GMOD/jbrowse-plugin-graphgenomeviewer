@@ -198,3 +198,30 @@ export function fitTransform(
     translateY: fittedTranslateY(bounds, usableHeight, pixelRows ? 1 : scale),
   }
 }
+
+// Extent of the drawing in layout units, which the fit and the pane height
+// read. On a reference-bp layout x is the cut window rather than how far the
+// drawing reaches: an allele anchored far outside it is a fact about the
+// graph, not a reason to draw the window at 6% of the frame. `extent` stands
+// in for the layout's own when an overlay's rows reach further (walk rows).
+export function drawingBounds(
+  layout: LayoutResult,
+  opts: {
+    region?: { start: number; end: number }
+    extent?: { maxX: number; maxY: number }
+  } = {},
+) {
+  const { minY, ...reach } = layoutExtent(layout.nodePositions)
+  let { minX, maxX, maxY } = reach
+  const { region } = opts
+  if (layout.referenceAxis && region && region.end > region.start) {
+    minX = region.start
+    maxX = region.end
+  }
+  const extent = opts.extent ?? layout.extent
+  if (extent) {
+    maxX = Math.max(maxX, extent.maxX)
+    maxY = Math.max(maxY, extent.maxY)
+  }
+  return { minX, minY, w: maxX - minX, h: maxY - minY }
+}

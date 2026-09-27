@@ -1,3 +1,5 @@
+import type { Graph } from './types'
+
 // One table drives the persisted enum and both colour dropdowns, the same way
 // LAYOUT_MODES drives the layout enum and its menu. The values and their labels
 // used to live in two lists in two directories, so adding a scheme meant editing
@@ -34,3 +36,17 @@ export type ColorScheme = (typeof COLOR_SCHEMES)[number]['value']
 export type ResolvedColorScheme = Exclude<ColorScheme, 'auto'>
 
 export const COLOR_SCHEME_VALUES = COLOR_SCHEMES.map(s => s.value)
+
+// 'auto' asks the GRAPH, not the layout: a hue along the reference means
+// something whenever the segments have reference coordinates, force-directed
+// drawings included.
+export function resolveColorScheme(
+  scheme: ColorScheme,
+  graph: Graph | undefined,
+): ResolvedColorScheme {
+  return scheme !== 'auto'
+    ? scheme
+    : graph?.anchoredBy
+      ? 'reference-position'
+      : 'uniform'
+}
