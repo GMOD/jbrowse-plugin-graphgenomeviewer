@@ -134,3 +134,16 @@ export {
   resolveReferenceSample,
 } from './GbzBaseSyntenyAdapter/gbzWindow'
 export type { GbzWindowOptions } from './GbzBaseSyntenyAdapter/gbzWindow'
+
+export { engineKey } from './GraphGenomeView/pipeline'
+export {
+  axisScaleOf,
+  contains,
+  padded,
+  screenToLayout,
+  viewportOf,
+  zoomAbout,
+} from './GraphGenomeView/viewport'
+export type { PaneTransform } from './GraphGenomeView/viewport'
+export { default as loadBandage } from './loadBandage'
+export { panSNContig, panSNHaplotype, panSNSample } from './pansn'

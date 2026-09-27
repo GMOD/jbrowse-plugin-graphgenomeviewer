@@ -14,7 +14,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
-import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
+import { backboneNodes, backboneSpan } from './anchoredNodes'
 import { BUBBLE_SPREAD_VALUES } from './bubbleSpreads'
 import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
@@ -54,6 +54,7 @@ import {
   FIT_PADDING,
   clampZoom,
   drawingBounds,
+  engineKey,
   fitTransform,
   fittedTranslateY,
   forceLayout,
@@ -69,6 +70,13 @@ import {
 import { withCalls } from './repeats/walkCalls'
 import { tubeMapPicture } from './tubeMap/draw'
 import { tubeMapFrame, tubeMapNodeAt } from './tubeMap/frame'
+import {
+  axisScaleOf,
+  contains,
+  padded,
+  viewportOf,
+  zoomAbout,
+} from './viewport'
 import { walkHighlight } from './walkHighlight'
 import {
   hoverInRegion,
@@ -206,20 +214,8 @@ export function formatSpanBp(bp: number) {
 // escape hatch strangepg gives with `-T N`.
 export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
-// The zoom as a pair of axis scales. One expression, read by all three getters
-// below: they sit in one `.views()` block and so cannot reach each other through
-// `self`, which had each of them restating the `pixelRows ? 1 : scale` rule that
-// AxisScale exists to keep in one place.
-function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
-  // pixelRows rides along rather than being derived downstream: the deletion
-  // bow is capped in a row layout and not in the isotropic one, and `scaleY !==
-  // scaleX` coincides at one zoom level. See AxisScale.
-  return { scaleX: scale, scaleY: pixelRows ? 1 : scale, pixelRows }
-}
-
 type ViewportOwner = 'fit' | 'user' | 'host'
 
-// What the pane shows, in layout units.
 function geometryPainted(model: {
   lastGeometryStrokeCount?: number
   viewportRebuildPending: boolean
@@ -236,45 +232,15 @@ function geometryPainted(model: {
   )
 }
 
-function viewportOf(model: {
+// What the pane shows, in layout units.
+function paneViewportOf(model: {
   translateX: number
   translateY: number
   paneWidth: number
-  scaleX: number
-  scaleY: number
+  axisScale: AxisScale
   canvasHeight: number
 }): Bounds {
-  return {
-    minX: -model.translateX / model.scaleX,
-    minY: -model.translateY / model.scaleY,
-    maxX: (model.paneWidth - model.translateX) / model.scaleX,
-    maxY: (model.canvasHeight - model.translateY) / model.scaleY,
-  }
-}
-
-// The window a geometry build covers: the pane plus a whole pane on every
-// side, so a pan has that far to go before the drawing runs out and a rebuild
-// is due. Drawing three panes' worth is cheap now that a redraw is a few
-// batched strokes; what it buys is that an ordinary pan never blanks its
-// margins for the debounce and never rebuilds at all.
-function padded(v: Bounds, panes: number): Bounds {
-  const w = (v.maxX - v.minX) * panes
-  const h = (v.maxY - v.minY) * panes
-  return {
-    minX: v.minX - w,
-    minY: v.minY - h,
-    maxX: v.maxX + w,
-    maxY: v.maxY + h,
-  }
-}
-
-function contains(outer: Bounds, inner: Bounds) {
-  return (
-    inner.minX >= outer.minX &&
-    inner.maxX <= outer.maxX &&
-    inner.minY >= outer.minY &&
-    inner.maxY <= outer.maxY
-  )
+  return viewportOf(model, model.axisScale, model.paneWidth, model.canvasHeight)
 }
 
 // Force layouts already computed for a graph, keyed by the view props the
@@ -1514,17 +1480,10 @@ export function GraphPaneMixin() {
           return
         }
         self.viewportOwner = 'user'
-        const newScale = clampZoom(self.scale * factor)
-        const ratio = newScale / self.scale
-        self.scale = newScale
-        self.translateX = centerX - (centerX - self.translateX) * ratio
-        // y only follows when it is on the same scale. A row layout's y is
-        // screen px (scaleY === 1), so nothing about it changes as x zooms —
-        // moving translateY by the ratio there would slide the rows off under
-        // the cursor while their pitch stayed put.
-        if (!self.pixelRows) {
-          self.translateY = centerY - (centerY - self.translateY) * ratio
-        }
+        const t = zoomAbout(self, factor, centerX, centerY, self.pixelRows)
+        self.scale = t.scale
+        self.translateX = t.translateX
+        self.translateY = t.translateY
       },
       setViewportDirty() {
         self.viewportRebuildPending = false
@@ -1687,8 +1646,11 @@ export function GraphPaneMixin() {
       // function of it; the colour scheme and the anchored modes' own settings
       // are absent because none of them reaches the engine.
       function forceLayoutKey(graph: Graph) {
-        const anchored = graph.nodes.some(isBackbone)
-        return `${self.layoutQuality}|${self.linearLayout}|${self.bubbleSpread}|${anchored}|${graph.referencePath ?? ''}`
+        return engineKey(graph, {
+          quality: self.layoutQuality,
+          linearLayout: self.linearLayout,
+          bubbleSpread: self.bubbleSpread,
+        })
       }
 
       // Single dispatch point for every layout mode. A mode that returns a
@@ -2281,7 +2243,7 @@ export function GraphPaneMixin() {
             self,
             autorun(() => {
               const { scale } = self
-              const viewport = viewportOf(self)
+              const viewport = paneViewportOf(self)
               if (firstViewport) {
                 firstViewport = false
                 return
@@ -2337,7 +2299,7 @@ export function GraphPaneMixin() {
               b.uploadGeometry(EMPTY_BATCH)
               self.setGeometryMetrics(0, 0, {
                 scale: untracked(() => self.scale),
-                bounds: untracked(() => viewportOf(self)),
+                bounds: untracked(() => paneViewportOf(self)),
               })
               return true
             }
@@ -2348,7 +2310,7 @@ export function GraphPaneMixin() {
               dependOn(self.viewportDirty, self.positionsVersion)
               const geometryStart = performance.now()
               const viewportBounds = untracked(() =>
-                padded(viewportOf(self), VIEWPORT_PANES_BUILT),
+                padded(paneViewportOf(self), VIEWPORT_PANES_BUILT),
               )
               const batch = buildGeometry({
                 nodePositions: self.nodePositions,

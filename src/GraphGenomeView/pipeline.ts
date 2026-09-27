@@ -90,6 +90,14 @@ export function engineRequest(
   }
 }
 
+// What a force layout of this graph is a function of, as a cache key: the
+// settings `engineRequest` reads, whether it seeds, and the reference path the
+// seeds follow.
+export function engineKey(graph: Graph, settings: EngineSettings) {
+  const anchored = graph.nodes.some(isBackbone)
+  return `${settings.quality}|${settings.linearLayout}|${settings.bubbleSpread}|${anchored}|${graph.referencePath ?? ''}`
+}
+
 // The engine lays out the runs, not the nodes: a base-level cut is thousands
 // of nodes in unbranching chains, and one chain per run is the same drawing at
 // a third of the time. Members take their share of the run's polyline by drawn
