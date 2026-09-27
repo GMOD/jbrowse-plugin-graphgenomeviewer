@@ -18,6 +18,7 @@ import {
 } from '@jbrowse/bandage-core/colorSchemes'
 import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
+import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
@@ -871,6 +872,14 @@ export function GraphPaneMixin() {
             }))
           : self.rowLabels
       },
+      // The row labels are pinned to the pane's left edge, so the fit starts
+      // the drawing past the widest one.
+      get fitPadLeft() {
+        return Math.max(
+          FIT_PADDING,
+          ...this.drawnRowLabels.map(r => rowLabelBox(r.label, 0).x1 + 6),
+        )
+      },
       // Each bubble in the window with what it is, for the variant map's
       // glyphs on the reference line.
       get bubbleGlyphs() {
@@ -1579,7 +1588,7 @@ export function GraphPaneMixin() {
               self.paneWidth,
               self.canvasHeight,
               self.pixelRows,
-              self.minFitScale,
+              { minScale: self.minFitScale, padLeft: self.fitPadLeft },
             )
           : undefined
         if (fit) {

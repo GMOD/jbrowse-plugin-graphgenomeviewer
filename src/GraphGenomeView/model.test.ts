@@ -4,6 +4,7 @@
 // "the submenu is called something else".
 
 import { spreadFor } from '@jbrowse/bandage-core/bubbleSpreads'
+import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
   PROPORTIONAL_LENGTH,
   bandageAutoScale,
@@ -2011,13 +2012,16 @@ describe('a row layout draws y in pixels', () => {
     expect(model.canvasHeight).toBe(600)
     // the vertical fit is the tighter one, and is not the one taken
     expect((model.canvasHeight - 80) / model.layoutBounds!.h).toBeLessThan(
-      (model.width - 80) / model.layoutBounds!.w,
+      (model.width - model.fitPadLeft - 40) / model.layoutBounds!.w,
     )
 
     const xs = Object.values(model.nodePositions!)
       .flat()
       .map(p => p.x * model.scaleX + model.translateX)
-    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(model.width - 80, 5)
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(
+      model.width - model.fitPadLeft - 40,
+      5,
+    )
   })
 
   // Rows are a track's row height, so zooming the sequence axis leaves them
@@ -2174,7 +2178,19 @@ describe('what the row axis draws, in pixels', () => {
   // in the path.
   test('the backbone spans the pane', async () => {
     const model = await fitted()
-    expect(spread(render(model).map(p => p.x))).toBeCloseTo(model.width - 80, 5)
+    expect(spread(render(model).map(p => p.x))).toBeCloseTo(
+      model.width - model.fitPadLeft - 40,
+      5,
+    )
+  })
+
+  test('the fit starts the drawing right of the row labels', async () => {
+    const model = await fitted()
+    const labelsEnd = Math.max(
+      ...model.drawnRowLabels.map(r => rowLabelBox(r.label, 0).x1),
+    )
+    expect(labelsEnd).toBeGreaterThan(40)
+    expect(Math.min(...render(model).map(p => p.x))).toBeGreaterThan(labelsEnd)
   })
 
   // Zoom is an x-only gesture on this axis, so afterwards the rows are drawn in
