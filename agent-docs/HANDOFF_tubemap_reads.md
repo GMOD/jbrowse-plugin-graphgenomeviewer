@@ -1,31 +1,10 @@
 # Handoff: tube map reads (2026-09-26)
 
 GAF reads draw under the tube map's haplotypes, with their mismatches, from a
-gbz-base graph track. They are on main as of a19da14.
+gbz-base graph track. They are on main as of a19da14 (a4c8946..a19da14);
+`src/gaf/`, `tubeMap/reads.ts` and `src/GetGraphReads.ts` hold the code.
 
-## What landed
-
-- 13091af: `@gmod/tubemap-core` `^0.1.0` from npm; `vendor/tubemap-core` gone
-- 89f13d8: `tubeMap/frame.ts` holds `tubeMapFrame` and `tubeMapNodeAt`, exported
-  from `src/core.ts` for BandageJS
-- a4c8946..a19da14: reads, end to end
-  - `src/gaf/parseGaf.ts`: GAF lines, cs tag
-  - `src/gaf/gafFile.ts`: tabix query by the cut's node id range, or a plain or
-    gzipped file read whole (50 MB cap); `MAX_READS` 5000, sampled evenly
-  - `tubeMap/reads.ts`: records to tubemap-core reads. A read keeps the steps
-    whose segments the cut holds; cs edits land on the node they fall in, split
-    at node boundaries. Past a segment the cut lacks, offsets count back from
-    the walk's end
-  - `GbzBaseSyntenyAdapter`: `readsLocation`, `readsIndex`, and a `reads`
-    shorthand (`.gz` takes the `.tbi` beside it); `getReads(nodeNames)`
-  - `src/GetGraphReads.ts`: the RPC; `namesReads(adapterConfig)` skips the round
-    trip for tracks without reads
-  - `model.ts` `parseAndLayout`: fetches reads after the parse and before the
-    one layout; a failure warns and draws without reads; `readsShown` records
-    `{ shown, total }`
-  - `tubeMap/draw.ts` paints `tubeMap/mismatches.ts`'s marks (written by session
-    -a9) over the node boxes; hidden below 6 px text
-  - e2e harness: `JBROWSE_PORT`, and cleanup kills serve's process group
+Config:
 
 ```json
 {
@@ -94,6 +73,3 @@ JBROWSE_PORT=9891 JBROWSE_TEST_DIR=/tmp/host RUN_E2E=1 \
 7. **Named coordinates.** GAF step names must be the cut's segment names
    (`toGFA({ names: 'resolved' })`). HPRC-style GBZs with chopped nodes need
    `vg giraffe --named-coordinates`, and then can't use a tabix index.
-8. **Orphaned `serve` processes** from runs before the cleanup fix still hold
-   ports 9876, 9877 and 9886. They belong to other sessions, so they were left
-   alone.
