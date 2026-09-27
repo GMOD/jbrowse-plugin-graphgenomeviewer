@@ -26,7 +26,7 @@ export function splitUri(uri: string) {
     : { name: uri.slice(0, end), query: uri.slice(end) }
 }
 
-function locationName(loc: FileLocation) {
+export function locationName(loc: FileLocation) {
   return 'uri' in loc
     ? splitUri(loc.uri).name
     : 'localPath' in loc
@@ -34,7 +34,7 @@ function locationName(loc: FileLocation) {
       : ''
 }
 
-function renamed(loc: FileLocation, rename: (name: string) => string) {
+export function renamed(loc: FileLocation, rename: (name: string) => string) {
   if ('uri' in loc) {
     const { name, query } = splitUri(loc.uri)
     return { ...loc, uri: rename(name) + query }

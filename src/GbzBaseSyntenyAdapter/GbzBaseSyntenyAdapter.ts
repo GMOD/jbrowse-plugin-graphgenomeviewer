@@ -19,6 +19,7 @@ import { updateStatus } from '@jbrowse/core/util'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
+import { findCompanion } from './companion.ts'
 import { GafFile } from '../gaf/gafFile.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
@@ -216,11 +217,14 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   private graph = cachedSetup({
     label: 'Opening pangenome database',
     setup: async () => {
-      const indexLocation: FileLocation = this.getConf('haplotypeIndexLocation')
-      const hasCompanion = isSet(indexLocation)
+      const gbzDb: FileLocation = this.getConf('gbzDbLocation')
+      const configured: FileLocation = this.getConf('haplotypeIndexLocation')
+      const indexLocation = isSet(configured)
+        ? configured
+        : await findCompanion(gbzDb, this.pluginManager)
       const db = await GBZBase.open(
-        openLocation(this.getConf('gbzDbLocation'), this.pluginManager),
-        hasCompanion
+        openLocation(gbzDb, this.pluginManager),
+        indexLocation
           ? {
               haplotypeIndex: openLocation(indexLocation, this.pluginManager),
             }

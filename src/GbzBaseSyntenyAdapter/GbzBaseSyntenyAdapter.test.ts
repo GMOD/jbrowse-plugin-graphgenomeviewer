@@ -17,10 +17,16 @@ import GbzBaseSyntenyAdapterF from './index.ts'
 import type { SyntenyMate } from '@jbrowse/synteny-core'
 
 // micb-kir3dl1.gbz.db is gbwt-rs's 46-sample HPRC slice (MICB on chr6, KIR3DL1
-// on chr19), built by upstream gbz-base and augmented with the haplotype side
-// tables by gbz-haplotype-index; its GRCh38 chr6 fragment starts at 31498140
+// on chr19), built by upstream gbz-base; its GRCh38 chr6 fragment starts at
+// 31498140. The sampled companion has no anchor rows, the other one does.
 const loc = () => ({
   localPath: require.resolve('./test_data/micb-kir3dl1.gbz.db'),
+  locationType: 'LocalPathLocation' as const,
+})
+
+const sampledCompanion = () => ({
+  localPath:
+    require.resolve('./test_data/micb-kir3dl1.sampled.haplotype-index.db'),
   locationType: 'LocalPathLocation' as const,
 })
 
@@ -28,6 +34,7 @@ function makeAdapter(conf: Record<string, unknown> = {}) {
   return new Adapter(
     configSchema.create({
       gbzDbLocation: loc(),
+      haplotypeIndexLocation: sampledCompanion(),
       assemblyNames: ['hg38'],
       assemblyNameToPanSN: { hg38: 'GRCh38#0' },
       context: 0,
@@ -748,10 +755,17 @@ test('a lane pair without its target lane is refused', async () => {
   ).rejects.toThrow(PairTargetError)
 })
 
-// the micb database's own side tables hold no anchor rows, and at context 0
+// the sampled companion holds no anchor rows, and at context 0
 // its sampled cut leaves both walks in pieces around the insertion
 test('without anchor rows a lane pair answers nothing, which the display composes through the reference', async () => {
   expect(await feats(makeAdapter(), insertionWindow, pair)).toEqual([])
+})
+
+test('with no index set, opens the haplotype index beside the database', async () => {
+  const found = makeAdapter({
+    haplotypeIndexLocation: { uri: '', locationType: 'UriLocation' },
+  })
+  expect(await feats(found, insertionWindow, pair)).not.toEqual([])
 })
 
 test('getSubgraph outside every reference fragment is empty', async () => {
