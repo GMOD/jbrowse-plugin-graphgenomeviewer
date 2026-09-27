@@ -1,6 +1,10 @@
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { convertGFAToGraph } from '@jbrowse/bandage-core/gfa/gfaConverter'
 import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
+import {
+  featuresOnBackbone,
+  graphBackbone,
+} from '@jbrowse/bandage-core/reference'
 
 import { geneModelsFrom, pickGeneTrack } from './geneFeatures'
 
@@ -93,11 +97,14 @@ test('exons land on the backbone stretch they cover, and the name at the midpoin
   expect(pin!.covered).toBe(1)
 })
 
-test('a PanSN-named backbone still carries a gene named by its contig', () => {
+test('a PanSN-named backbone carries a gene named by its contig once renamed onto it', () => {
   const pansn = convertGFAToGraph(
     parseGFA(GFA.replaceAll('SN:Z:chr1', 'SN:Z:GRCh38#0#chr1')),
   )
-  expect(genePins(pansn, geneModelsFrom([gene]), positions)).toHaveLength(1)
+  const genes = geneModelsFrom([gene])
+  expect(genePins(pansn, genes, positions)).toEqual([])
+  const renamed = featuresOnBackbone(genes, graphBackbone(pansn)!)
+  expect(genePins(pansn, renamed, positions)).toHaveLength(1)
 })
 
 test('a gene on another sequence pins nothing', () => {
