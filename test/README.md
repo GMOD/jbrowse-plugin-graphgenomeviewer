@@ -25,6 +25,7 @@ Every screenshot it writes to `test-screenshots/` is a real browser frame:
 | `demo-01-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span |
 | `demo-02-linear-hover-selects-graph-node`    | hovering the plain track selects the covering graph node      |
 | `demo-03-graph-track-recut`                  | navigating past the cut re-cuts the new window                |
+| `demo-04-reference-strip-hover`              | an ordered track's strip block lights the node it draws       |
 
 One thing learned building it, worth not rediscovering:
 

@@ -43,6 +43,14 @@ and a drag or a wheel on the canvas stays inside the track. The settle clock
 still re-cuts it as the view moves. A popped bubble is a picture of its own the
 same way.
 
+Such a drawing gets a reference strip (`packages/core/src/referenceStrip.ts`,
+`ReferenceStripOverlay`): each backbone node at its bp in the host's frame,
+painted the colour `getNodeColor` gives its node, so the strip and the graph
+cannot disagree about a hue. `fitPadTop` leaves the strip's zone clear, the
+label layout reserves it, and the legends start under it. The lit node's
+`nodeReferenceSpan` is boxed on the strip with a leader to its node. A tube map
+has its own bands and walk rows' bars are lengths, so neither gets a strip.
+
 ## Status
 
 The display reports `displayPhase` through core's `computeDisplayStatusPhase`

@@ -6,7 +6,11 @@ Pangenome graphs in JBrowse 2.
 
 A `GraphTrack` cuts the graph for the view's window and redraws it as you pan.
 
-![KIV-2 as a graph track under RefSeq genes, force-directed, with its bubbles marked](img/force_kiv2.png)
+A force-directed track draws a strip of the reference segments at their bp above
+the graph, each in its node's colour, so the reference-position ramp ties the
+graph back to the linear view's coordinates.
+
+![KIV-2 as a graph track under RefSeq genes, force-directed, with its bubbles marked and its reference segments on a strip at their bp](img/force_kiv2.png)
 
 ![MICB's exons 2–4 as a tube map track, eight HPRC haplotypes, each reference node tied to its bp on the ruler](img/tube_map_micb_track.png)
 

@@ -18,6 +18,9 @@ import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
+import ReferenceStripOverlay, {
+  ReferenceStripLegend,
+} from './ReferenceStripOverlay'
 import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { RAMP_GRADIENT_CSS } from './referenceRampCss'
@@ -291,8 +294,15 @@ const Legends = observer(function Legends({
     }
   }, [model])
   return (
-    <div ref={ref} style={legendStackStyle}>
+    <div
+      ref={ref}
+      style={{
+        ...legendStackStyle,
+        top: LEGEND_INSET_PX + model.referenceStripZonePx,
+      }}
+    >
       <ReferenceRampLegend model={model} />
+      <ReferenceStripLegend model={model} />
       <PathLegend model={model} />
       <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />
@@ -564,11 +574,14 @@ const GraphCanvas = observer(function GraphCanvas({
   // has one does not pay for a second getBoundingClientRect.
   function nodeAt(x: number, y: number) {
     const { nodePositions } = model
+    const sx = x * model.scaleX + model.translateX
+    const sy = y * model.scaleY + model.translateY
     if (model.layoutResult?.tubeMap) {
-      return model.tubeMapNodeAt(
-        x * model.scaleX + model.translateX,
-        y * model.scaleY + model.translateY,
-      )
+      return model.tubeMapNodeAt(sx, sy)
+    }
+    const onStrip = model.referenceStripNodeAt(sx, sy)
+    if (onStrip) {
+      return onStrip
     }
     return nodePositions
       ? findHoveredNode(
@@ -592,8 +605,13 @@ const GraphCanvas = observer(function GraphCanvas({
         e.stopPropagation()
       }
       const { x, y } = getMouseCoord(e)
-      // a tube map's boxes are the layout's, not positions to drag
-      const node = model.layoutResult?.tubeMap ? null : nodeAt(x, y)
+      // a tube map's boxes are the layout's, and the strip's are bp, not
+      // positions to drag
+      const node =
+        model.layoutResult?.tubeMap ||
+        e.nativeEvent.offsetY < model.referenceStripZonePx
+          ? null
+          : nodeAt(x, y)
       if (node) {
         model.setDraggingNode(node)
       } else {
@@ -739,6 +757,7 @@ const GraphCanvas = observer(function GraphCanvas({
         />
 
         <TubeMapOverlay model={model} />
+        <ReferenceStripOverlay model={model} />
         <RowLabels model={model} />
         <GraphSizeLabels model={model} />
         <BubbleHalos model={model} />

@@ -278,6 +278,77 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     await screenshot(page, 'demo-03-graph-track-recut')
   }, 240_000)
 
+  // A layout in its own coordinates gets the strip of reference segments at
+  // their bp, and a block there is its node
+  it('hovering the reference strip lights the node it draws', async () => {
+    await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          )
+          .displays[0].setLayoutMode('ordered')
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    await waitForStage(
+      'the ordered layout draws its reference strip',
+      (selector: string) =>
+        !!document.querySelector(
+          `${selector}[data-layout="ordered"] [data-testid="graph-reference-strip"]`,
+        ),
+      DISPLAY,
+    )
+    await waitForGraphReady()
+    const target = await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        const d = window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0]
+        const { scale, translateX } = d.referenceStripFrame
+        const onScreen = d.referenceStripBlocks.filter(
+          (b: { bp0: number; bp1: number }) =>
+            (b.bp1 - b.bp0) * scale > 6 &&
+            b.bp0 * scale + translateX > 0 &&
+            b.bp1 * scale + translateX < d.paneWidth,
+        )
+        const block = onScreen[Math.floor(onScreen.length / 2)]
+        return {
+          node: block.node as string,
+          bp0: block.bp0 as number,
+          bp1: block.bp1 as number,
+          sx: ((block.bp0 + block.bp1) / 2) * scale + translateX,
+        }
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    const canvas = await page.$(GRAPH_CANVAS)
+    const box = (await canvas!.boundingBox())!
+    await page.mouse.move(box.x + target.sx, box.y + 4)
+    await page.waitForFunction(
+      ([viewId, trackId, node]: string[]) =>
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0].hoveredNode === node,
+      { timeout: 10_000 },
+      [LGV_ID, RGFA_TRACK_ID, target.node],
+    )
+    const state = await display()
+    expect(state.hoverHighlight).toMatchObject({
+      start: target.bp0,
+      end: target.bp1,
+    })
+    await screenshot(page, 'demo-04-reference-strip-hover')
+  }, 240_000)
+
   // Last, since it closes the view. No action may run on the graph display
   // once it is dead; a callback that lands late checks at the time of use. Bare
   // reads during the teardown are core's order of destroy before unmount, and

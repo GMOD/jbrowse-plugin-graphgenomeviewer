@@ -56,6 +56,12 @@ import {
   nodeReferenceSpan,
 } from '@jbrowse/bandage-core/referenceSpan'
 import {
+  REFERENCE_STRIP_ZONE_PX,
+  nodeAnchor,
+  referenceStripBlocks,
+  stripBlockAt,
+} from '@jbrowse/bandage-core/referenceStrip'
+import {
   buildGeometry,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -1393,6 +1399,76 @@ export function GraphPaneMixin() {
           ? tubeMapGenes(reference, self.backboneGenes)
           : []
       },
+      // A drawing of nodes in its own coordinates inside a linear view, whose
+      // reference segments the strip puts back at their bp. A tube map has
+      // its own bands, and walk rows' bars are lengths, not nodes.
+      get referenceStripBlocks() {
+        const { host, graph, layoutResult } = self
+        return host?.initialized &&
+          graph &&
+          layoutResult &&
+          !layoutResult.tubeMap &&
+          !self.hostPlacesX &&
+          self.chosenLayoutMode !== 'walkrows'
+          ? referenceStripBlocks(
+              graph,
+              self.effectiveColorScheme,
+              self.referenceRamp,
+            )
+          : []
+      },
+      // Read off the live blocks, so the strip follows every frame of a pan
+      // in the linear view
+      get referenceStripFrame() {
+        const { host, graphRegion } = self
+        return host?.initialized && graphRegion
+          ? hostFrame(host, graphRegion)
+          : undefined
+      },
+    }))
+    .views(self => ({
+      get referenceStripShown() {
+        return (
+          self.referenceStripBlocks.length > 0 &&
+          self.referenceStripFrame !== undefined
+        )
+      },
+    }))
+    .views(self => ({
+      // The lit node's reference span, an allele's by its flanks, and where
+      // the graph drew it
+      get referenceStripLit() {
+        const nodeId = self.hoveredNode ?? self.selectedNode
+        const { nodeById, nodeNeighbors: neighbors } = self
+        if (
+          !self.referenceStripShown ||
+          nodeId === null ||
+          !nodeById ||
+          !neighbors
+        ) {
+          return undefined
+        }
+        const span = nodeReferenceSpan({ nodeId, nodeById, neighbors })
+        return span
+          ? {
+              ...span,
+              anchor: nodeAnchor(self.nodePositions?.[nodeId], p => ({
+                x: p.x * self.scaleX + self.translateX,
+                y: p.y * self.scaleY + self.translateY,
+              })),
+            }
+          : undefined
+      },
+      referenceStripNodeAt(sx: number, sy: number) {
+        const frame = self.referenceStripFrame
+        return self.referenceStripShown && frame
+          ? stripBlockAt(self.referenceStripBlocks, frame, sx, sy)
+          : undefined
+      },
+      // the strip, and the gap the fit leaves under it
+      get referenceStripZonePx() {
+        return self.referenceStripShown ? REFERENCE_STRIP_ZONE_PX : 0
+      },
     }))
     .views(self => ({
       // `paneHeight` replaces the built-in ceiling rather than adding a second
@@ -1403,10 +1479,15 @@ export function GraphPaneMixin() {
         return Math.max(MIN_CANVAS_HEIGHT, self.paneHeight ?? MAX_CANVAS_HEIGHT)
       },
       // Room over a tube map for the rows its genes need, one inside the
-      // padding and one more for each further gene that overlaps it
+      // padding and one more for each further gene that overlaps it, and
+      // room for the reference strip
       get fitPadTop() {
         const rows = tubeMapGeneRows(self.tubeMapGenes)
-        return FIT_PADDING + Math.max(0, rows - 1) * GENE_ROW_PX
+        return (
+          FIT_PADDING +
+          Math.max(0, rows - 1) * GENE_ROW_PX +
+          self.referenceStripZonePx
+        )
       },
       // A tube map on its own axis reads by panning along it, as in
       // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
