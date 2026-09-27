@@ -3,8 +3,14 @@ import { layoutTubeMap } from '@gmod/tubemap-core'
 import { isBackbone } from '../anchoredNodes'
 import { pathOrigin } from '../pathAnchoring'
 import { pathCssColor } from '../pathColors'
+import {
+  canonicalStrand,
+  readColor,
+  stepName,
+  tubeMapReads,
+} from '../tubeMap/reads'
 
-import type { Graph, GraphNode, LayoutResult, NodeSegment } from '../types'
+import type { Graph, LayoutResult, NodeSegment } from '../types'
 import type {
   InputNode,
   InputTrack,
@@ -60,10 +66,6 @@ function visitStrands(graph: Graph) {
   return strands
 }
 
-function canonicalStrand(node: GraphNode) {
-  return node.id.endsWith('-') ? '-' : '+'
-}
-
 // A tube map track per path, the reference first: the layout straightens
 // track 0 and orders every other node around it. A step reads its node in
 // reverse where the path walks the segment against the strand the node is
@@ -90,7 +92,7 @@ export function tubeMapTracks(graph: Graph): InputTrack[] {
       seen.set(node.name, k + 1)
       const strand =
         strands.get(`${visitName}\t${node.name}`)?.[k] ?? canonicalStrand(node)
-      return [strand === canonicalStrand(node) ? id : `-${id}`]
+      return [stepName(node, strand)]
     })
     return sequence.length > 0
       ? [
@@ -134,10 +136,16 @@ export function tubeWidth(trackCount: number) {
 function runTubeMap(graph: Graph) {
   const paths = graph.paths ?? []
   const tracks = tubeMapTracks(graph)
-  return layoutTubeMap(tubeMapNodes(graph), tracks, [], {
+  const reads = graph.reads
+    ? tubeMapReads(graph, graph.reads, paths.length)
+    : []
+  return layoutTubeMap(tubeMapNodes(graph), tracks, reads, {
     nodeWidthOption: 'compressed',
     trackWidth: tubeWidth(tracks.length),
-    trackColor: track => pathCssColor(track.id, paths.length),
+    trackColor: track =>
+      track.type === 'read'
+        ? readColor(track)
+        : pathCssColor(track.id, paths.length),
   })
 }
 

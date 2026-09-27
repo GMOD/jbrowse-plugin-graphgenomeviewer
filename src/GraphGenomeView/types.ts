@@ -1,3 +1,4 @@
+import type { GafRecord } from '../gaf/parseGaf'
 import type { TubeMapDrawing } from './layout/tubeMapLayout'
 import type { StableCoordinate } from '../gfa-core/index'
 
@@ -75,6 +76,8 @@ export interface Graph {
   anchoredBy?: 'tags' | 'paths'
   // the path `anchoredBy: 'paths'` put on x
   referencePath?: string
+  // reads aligned to the graph, which the tube map draws under its paths
+  reads?: GafRecord[]
 }
 
 export interface NodeSegment {
