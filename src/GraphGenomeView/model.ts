@@ -59,11 +59,7 @@ import {
   buildGeometry,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import {
-  referenceBoxes,
-  rulerBoxes,
-  rulerMarks,
-} from '@jbrowse/bandage-core/tubeMap/axis'
+import { referenceBoxes, rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import {
   connectorAt,
@@ -1536,17 +1532,13 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      // What the tube map's legend has to explain: a zigzag where the ruler
-      // squeezes a box on screen, and the fold its walks' ticks stand for
+      // What the tube map's legend has to explain: that on the own axis a
+      // box is as wide as the log of its length, and the fold its walks'
+      // ticks stand for
       get tubeMapKeys() {
-        const boxes = self.tubeMapRulerBoxes
-        const frame = self.tubeMapFrame
-        const marks =
-          boxes && frame
-            ? rulerMarks(boxes, frame.x, self.paneWidth, () => 0)
-            : undefined
+        const layout = self.layoutResult
         return {
-          squeezed: (marks?.squeezed.length ?? 0) > 0,
+          logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
         }

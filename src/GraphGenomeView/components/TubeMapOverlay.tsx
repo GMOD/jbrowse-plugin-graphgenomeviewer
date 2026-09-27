@@ -1,12 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
-import {
-  ZIGZAG_AMPLITUDE_PX,
-  ZIGZAG_PX,
-  drawTubeMapRuler,
-  rulerInk,
-} from '@jbrowse/bandage-core/tubeMap/axis'
+import { drawTubeMapRuler, rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 import { drawTubeMapConnectors } from '@jbrowse/bandage-core/tubeMap/connectors'
 import {
   deviationInk,
@@ -114,22 +109,16 @@ const legendBoxStyle = {
 const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const SWATCH_PX = 18
 
-// The ruler's own zigzag, tooth for tooth
-function ZigzagSwatch() {
-  const teeth = Math.round(SWATCH_PX / ZIGZAG_PX)
-  const dx = SWATCH_PX / teeth
-  const mid = ZIGZAG_AMPLITUDE_PX + 1
-  const points = [`0,${mid}`]
-  for (let i = 0; i < teeth; i++) {
-    points.push(
-      `${(i + 0.5) * dx},${mid + (i % 2 ? 1 : -1) * ZIGZAG_AMPLITUDE_PX}`,
-    )
-  }
-  points.push(`${SWATCH_PX},${mid}`)
+// Two boxes' brackets, as the ruler draws them under every box
+function BracketSwatch() {
+  const brackets = [
+    [0.5, 5.5],
+    [8.5, SWATCH_PX - 0.5],
+  ]
   return (
-    <svg width={SWATCH_PX} height={mid * 2} style={{ flex: 'none' }}>
-      <polyline
-        points={points.join(' ')}
+    <svg width={SWATCH_PX} height={7} style={{ flex: 'none' }}>
+      <path
+        d={brackets.map(([x0, x1]) => `M${x0},6 V1.5 H${x1} V6`).join(' ')}
         fill="none"
         stroke={rulerInk()}
         strokeWidth={1}
@@ -155,15 +144,15 @@ function TickSwatch() {
   )
 }
 
-// The two marks a tube map draws that nothing else on screen explains, each
-// listed only while it is drawn
+// What a tube map draws that nothing else on screen explains, each listed
+// only while it applies
 export const TubeMapLegend = observer(function TubeMapLegend({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const { squeezed, foldBp } = model.tubeMapKeys
-  return squeezed || foldBp !== undefined ? (
+  const { logWidths, foldBp } = model.tubeMapKeys
+  return logWidths || foldBp !== undefined ? (
     <div style={legendBoxStyle} data-testid="graph-tube-map-legend">
       {foldBp !== undefined ? (
         <div style={legendRowStyle}>
@@ -171,10 +160,10 @@ export const TubeMapLegend = observer(function TubeMapLegend({
           <span>a haplotype's variant under {formatBp(foldBp)}</span>
         </div>
       ) : null}
-      {squeezed ? (
+      {logWidths ? (
         <div style={legendRowStyle}>
-          <ZigzagSwatch />
-          <span>ruler not to scale, box length below</span>
+          <BracketSwatch />
+          <span>box width grows with the log of its length</span>
         </div>
       ) : null}
     </div>
