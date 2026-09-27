@@ -22,6 +22,7 @@ import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import stateModelFactory from './viewModel'
 
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Graph } from '@jbrowse/bandage-core/types'
 
 const mockRpcCall = vi.fn()
@@ -47,7 +48,14 @@ const mockSession = {
     has: (name: string) => canonicalAssembly(name) !== undefined,
     get: (name: string) => {
       const canonical = canonicalAssembly(name)
-      return canonical === undefined ? undefined : { name: canonical }
+      return canonical === undefined
+        ? undefined
+        : {
+            name: canonical,
+            aliases: Object.keys(mockSession.assemblyAliases).filter(
+              alias => mockSession.assemblyAliases[alias] === canonical,
+            ),
+          }
     },
   },
   views: [] as unknown[],
@@ -2571,5 +2579,121 @@ describe('annotation reads beside a cut', () => {
     await slow
 
     expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
+  })
+})
+
+// GRCh38 and CHM13 walk chr6 at overlapping coordinates, so hg38's HLA-A lies
+// over segment 1 whichever walk x is drawn along. Only GRCh38's is hg38's.
+describe('genes on a backbone of another assembly', () => {
+  const CHR6_WALKS = [
+    'S\t1\tAAAAAAAAAA',
+    'S\t2\tCCCCCCCCCC',
+    'S\t3\tGGGGGGGGGG',
+    'S\t4\tTTTTTTTTTT',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'L\t2\t+\t4\t+\t0M',
+    'L\t3\t+\t4\t+\t0M',
+    'W\tGRCh38\t0\tchr6\t1000\t1030\t>1>2>4',
+    'W\tCHM13\t0\tchr6\t1005\t1035\t>1>3>4',
+    '',
+  ].join('\n')
+  const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
+  const adapterOnly = (obj: Record<string, unknown>, key: string) =>
+    key === 'adapter' ? obj.adapter : undefined
+
+  function sessionWith(assemblyName: string, graphAdapter = {}) {
+    mockSession.tracks = [
+      { trackId: 'graph', assemblyNames: [], adapter: graphAdapter },
+      {
+        trackId: 'refseq',
+        name: 'RefSeq genes',
+        assemblyNames: [assemblyName],
+        adapter: { type: 'Gff3TabixAdapter' },
+      },
+    ]
+  }
+
+  beforeEach(() => {
+    vi.mocked(readConfObject).mockImplementation(bySlot)
+    sessionWith('hg38')
+    mockRpcCall.mockReset()
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(CHR6_WALKS)
+        : method === 'CoreGetFeatures'
+          ? Promise.resolve([
+              {
+                type: 'gene',
+                name: 'HLA-A',
+                refName: 'chr6',
+                start: 1002,
+                end: 1008,
+              },
+            ])
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+  })
+
+  afterEach(() => {
+    vi.mocked(readConfObject).mockImplementation(adapterOnly)
+    mockSession.tracks = []
+    mockSession.assemblyNames = []
+    mockSession.assemblyAliases = {}
+  })
+
+  async function cutFor(
+    assemblyName: string,
+    layoutMode: LayoutModeValue = 'auto',
+  ) {
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode,
+      loadedTrackId: 'graph',
+    })
+    await model.cutSubgraph(
+      {},
+      { refName: 'chr6', assemblyName, start: 1000, end: 1030 },
+    )
+    return model
+  }
+
+  type Model = Awaited<ReturnType<typeof cutFor>>
+  const pinned = (model: Model) => model.genePins.map(p => p.gene.name)
+  const tubeMapped = (model: Model) => model.tubeMapGenes.map(g => g.gene.name)
+
+  test.each([
+    ['auto', pinned],
+    ['tubemapref', tubeMapped],
+  ] as const)(
+    '%s draws hg38 genes only while x is drawn along the GRCh38 walk',
+    async (layoutMode, drawn) => {
+      const model = await cutFor('hg38', layoutMode)
+      expect(model.activeReferencePath).toBe('GRCh38#0#chr6')
+      expect(drawn(model)).toEqual(['HLA-A'])
+
+      model.setReferencePath('CHM13#0#chr6')
+      await model.recomputeLayout()
+      expect(model.activeReferencePath).toBe('CHM13#0#chr6')
+      expect(model.geneFeatures).toHaveLength(1)
+      expect(drawn(model)).toEqual([])
+
+      model.setReferencePath('GRCh38#0#chr6')
+      await model.recomputeLayout()
+      expect(drawn(model)).toEqual(['HLA-A'])
+    },
+  )
+
+  test('an assembly binds by its session aliases or its PanSN prefix', async () => {
+    sessionWith('mine')
+    expect(pinned(await cutFor('mine'))).toEqual([])
+
+    mockSession.assemblyNames = ['mine']
+    mockSession.assemblyAliases = { GRCh38: 'mine' }
+    expect(pinned(await cutFor('mine'))).toEqual(['HLA-A'])
+
+    mockSession.assemblyAliases = {}
+    sessionWith('mine', { assemblyNameToPanSN: { mine: 'GRCh38#0' } })
+    expect(pinned(await cutFor('mine'))).toEqual(['HLA-A'])
   })
 })

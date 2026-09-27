@@ -43,6 +43,11 @@ import {
   loadGraph,
 } from '@jbrowse/bandage-core/pipeline'
 import {
+  backboneAssembly,
+  featuresOnBackbone,
+  graphBackbone,
+} from '@jbrowse/bandage-core/reference'
+import {
   buildNeighbors,
   nodeReferenceSpan,
 } from '@jbrowse/bandage-core/referenceSpan'
@@ -815,6 +820,48 @@ export function GraphPaneMixin() {
       get selectedRepeat() {
         return self.repeatChoices.find(r => r.key === self.repeatKey)
       },
+      get backbone() {
+        return self.graph ? graphBackbone(self.graph) : undefined
+      },
+      // The assembly the genes were read for, by each name a backbone may
+      // spell it with: the session's name and aliases, and the PanSN prefix
+      // the source track maps each of those to.
+      get geneAssembly() {
+        const region = self.graphRegion
+        if (!region) {
+          return undefined
+        }
+        const { assemblyManager } = getSession(self)
+        const assembly = assemblyManager.has(region.assemblyName)
+          ? assemblyManager.get(region.assemblyName)
+          : undefined
+        const panSN = (self.sourceAdapter?.assemblyNameToPanSN ?? {}) as Record<
+          string,
+          string
+        >
+        const names = [
+          region.assemblyName,
+          ...(assembly ? [assembly.name, ...assembly.aliases] : []),
+        ]
+        return {
+          name: region.assemblyName,
+          aliases: [...names, ...names.flatMap(n => panSN[n] ?? [])],
+        }
+      },
+    }))
+    .views(self => ({
+      // The genes on the drawn backbone under its own refNames, or none when
+      // the backbone lies on another assembly than the one they were read for,
+      // as it does once "Draw x along" picks another sample's walk.
+      get backboneGenes() {
+        const { backbone, geneAssembly, geneFeatures } = self
+        return backbone &&
+          geneAssembly &&
+          geneFeatures &&
+          backboneAssembly(backbone, [geneAssembly])
+          ? featuresOnBackbone(geneFeatures, backbone)
+          : undefined
+      },
     }))
     .views(self => ({
       get nodeNeighbors() {
@@ -904,9 +951,9 @@ export function GraphPaneMixin() {
           self.chosenLayoutMode !== 'walkrows' &&
           !self.layoutResult?.tubeMap &&
           self.graph &&
-          self.geneFeatures &&
+          self.backboneGenes &&
           positions
-          ? genePins(self.graph, self.geneFeatures, positions)
+          ? genePins(self.graph, self.backboneGenes, positions)
           : []
       },
       // The same bubbles over every other layout, as halos along their nodes.
@@ -1321,8 +1368,8 @@ export function GraphPaneMixin() {
       // A linear view has the genes in a track of their own, at their bp
       get tubeMapGenes() {
         const reference = self.tubeMapReference
-        return self.showGenes && !self.host && reference && self.geneFeatures
-          ? tubeMapGenes(reference, self.geneFeatures)
+        return self.showGenes && !self.host && reference && self.backboneGenes
+          ? tubeMapGenes(reference, self.backboneGenes)
           : []
       },
       get tubeMapFrame() {
