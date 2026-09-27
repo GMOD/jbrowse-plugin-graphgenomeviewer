@@ -1,6 +1,9 @@
 import { curvePaths, nodeOutlinePath } from '@gmod/tubemap-core'
 
+import { tubeMapMismatches } from './mismatches'
+
 import type { TubeMapTransform } from './frame'
+import type { TubeMapMismatch } from './mismatches'
 import type { TrackType, TubeMapLayout } from '@gmod/tubemap-core'
 
 // Paints a tube map layout on a 2D canvas, in the order sequenceTubeMap's d3
@@ -87,6 +90,7 @@ interface Layer {
 export interface TubeMapPicture {
   layers: Layer[]
   nodes: { name: string; commands: Command[]; x0: number; x1: number }[]
+  mismatches: TubeMapMismatch[]
 }
 
 function extentOf(commands: Command[]) {
@@ -143,6 +147,9 @@ export function tubeMapPicture(layout: TubeMapLayout): TubeMapPicture {
   return {
     layers: [layerOf(layout, 'haplotype'), layerOf(layout, 'read')],
     nodes,
+    mismatches: tubeMapMismatches(layout).filter(
+      m => m.kind !== 'insertion' || !m.softClip,
+    ),
   }
 }
 
@@ -259,6 +266,44 @@ export function drawTubeMap(
       ctx.strokeStyle = lit ? '#ff0000' : stroke
       ctx.fill()
       ctx.stroke()
+    }
+  }
+  drawMismatches(ctx, picture.mismatches, frame)
+}
+
+// sequenceTubeMap's marks, which it draws at 12px and hides once zoomed out
+// below half size
+const MISMATCH_FONT_PX = 12
+const MIN_MISMATCH_FONT_PX = 6
+
+function drawMismatches(
+  ctx: CanvasRenderingContext2D,
+  marks: readonly TubeMapMismatch[],
+  { x, y, yScale, width, darkMode }: TubeMapFrame,
+) {
+  const fontPx = MISMATCH_FONT_PX * yScale
+  if (fontPx < MIN_MISMATCH_FONT_PX || marks.length === 0) {
+    return
+  }
+  const onScreen = (x0: number, x1: number) => x(x1) >= 0 && x(x0) <= width
+  ctx.fillStyle = 'grey'
+  ctx.beginPath()
+  for (const m of marks) {
+    if (m.kind === 'deletion' && onScreen(m.x0, m.x1)) {
+      const left = x(m.x0)
+      const top = y(m.y)
+      ctx.rect(left, top, x(m.x1) - left, y(m.y + m.height) - top)
+    }
+  }
+  ctx.fill()
+  ctx.font = `${fontPx}px monospace`
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = darkMode ? '#ffffff' : '#000000'
+  for (const m of marks) {
+    if (m.kind === 'substitution' && onScreen(m.x0, m.x1)) {
+      ctx.fillText(m.seq, x(m.x0) + 1, y(m.y + m.height))
+    } else if (m.kind === 'insertion' && onScreen(m.x, m.x)) {
+      ctx.fillText('*', x(m.x) - 3, y(m.y + m.height))
     }
   }
 }
