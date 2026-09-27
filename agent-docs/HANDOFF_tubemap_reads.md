@@ -55,6 +55,11 @@ JBROWSE_PORT=9891 JBROWSE_TEST_DIR=/tmp/host RUN_E2E=1 \
    `min < e && max >= s`. `gafFile` already calls
    `getLines('{node}', lo, hi + 1)`.
 
+   Until then the `reads` shorthand is a trap: it gives a `.gz` a `.tbi` index,
+   and 3.8.3 throws on it (reproduced 2026-09-27 on
+   `test_data/cactus/cactus_240_280.gaf.gz`). `docs/layouts.md` routes a gzipped
+   GAF through `readsLocation`, which reads it whole.
+
 2. **No UI for the sample.** `readsShown` is set but nothing displays "5000 of N
    reads".
 3. **Reads load in every layout mode** of a track that names them, though only

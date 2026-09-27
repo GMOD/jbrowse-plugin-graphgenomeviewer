@@ -26,3 +26,26 @@
     so the drawn direction there is now meaningful.
 - First step: have each layout emit a per-node drawn strand, then taper the node
   end in `buildGeometry`. Force and tube map could go first.
+
+## Tube map
+
+### Genes per haplotype through GAF
+
+- Goal: draw each gene through the nodes a haplotype carries it on, with that
+  haplotype's edits marked. The gene lane (`tubeMap/genes.ts`) maps genes
+  through the reference's boxes only, so it can't show an exon a haplotype's
+  allele shifts, and on the own axis an exon over one long node looks as wide as
+  a short intron.
+- Route: transcripts as GAF on the graph, drawn through the reads pipeline
+  (`GetGraphReads`, `src/gaf/gafFile.ts`, `tubeMap/reads.ts`). Each transcript
+  gets a lane through the nodes it uses, and its cs tag marks the edits.
+- Open question: where per-haplotype alignments come from. Projecting the
+  reference annotation onto the graph repeats what the gene lane already draws;
+  the gain needs each haplotype's own annotation, or transcripts aligned to each
+  haplotype's path. Nobody has tried either.
+- Limits inherited from reads (`HANDOFF_tubemap_reads.md`):
+  - only gbz-base tracks take reads
+  - an indexed GAF waits on a `@gmod/tabix` release with the GAF preset (branch
+    `gaf-preset` in tabix-js); until then a file is read whole, up to 50 MB
+  - reads are sampled to 5000 a cut and coloured by strand; transcripts would
+    want neither, and a name on each lane

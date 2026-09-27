@@ -73,7 +73,8 @@ Needs JBrowse 5.0.0-beta.9 or later.
 - gbz-base swaps in `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`; an
   `hg38` or `hs1` track finds the graph's GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names
-- `"reads": "….gaf.gz"` on that adapter draws GAF reads in the tube map layouts
+- `"reads": "….gaf"` on that adapter draws GAF reads in the tube map layouts;
+  [docs/layouts.md](docs/layouts.md#reads) has the config and how to make one
 
 ## Docs
 
