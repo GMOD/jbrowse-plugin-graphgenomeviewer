@@ -1,3 +1,16 @@
+## [4.0.14](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.13...v4.0.14) (2026-09-27)
+
+### Other Changes
+
+- Typos skips the generated CHANGELOG, whose commit hashes read as typos ([d192bf4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d192bf42aadea21f4d1e5123ba0518d86eb60245))
+- The own-axis ruler brackets every box alike, and the legend states the log widths ([f546da3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f546da3d1efe800a95cd247e609b74cb2d7d0082))
+- The reference-axis ruler keeps its round positions; figures reshot on the bracket ruler ([9cdf390](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9cdf390c957d89a75792f28f94e86e2049ffcecf))
+- A force or ordered graph track draws its reference segments at their bp, in their nodes' colours ([4852d56](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4852d567283b735224ee6dd2d562da375fe14f99))
+- The reference strip fades off a lifted walk, has a menu toggle, and a hover figure ([50332e0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/50332e01d0ef1bfdf4412d3be762fa8b7212ae6b))
+- A bubble's name lights its span on the strip and the linear view; GSTM1 walk figure ([691ff3c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/691ff3c6248a15e53038da48de528af8fcde3961))
+- Bubble halos are off by default and named in the legend; the strip marks overhang and the fade ([a665f58](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a665f58cc390995ce71b16353b788cf25f98901c))
+- The tube map legend names reads, their edits and generic paths; tubes go grey beside reads ([84aeec0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/84aeec089050b6cab3abc7b6739cc039689e505f))
+
 ## [4.0.13](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.12...v4.0.13) (2026-09-27)
 
 ### Other Changes
