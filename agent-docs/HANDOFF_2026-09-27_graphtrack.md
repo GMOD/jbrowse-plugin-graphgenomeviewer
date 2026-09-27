@@ -26,18 +26,14 @@
   `graph_carriage`), which open a plain feature display and stay `FeatureTrack`.
   The demos' `hprc_v2_1_gbz_lanes` is a `GraphTrack`; the plugin's lanes display
   copy covers it.
-- The live demo configs match the repo copies apart from those type lines
-  (checked 2026-09-27), so deploying them changes nothing else.
+- **Deployed 2026-09-27**: `hprc`, `hprc_multiway`, `ecoli_pangenome` and
+  `arabidopsis_pangenome` under `jbrowse.org/demos/` are served byte-identical
+  to the repo copies. `5530926383` regenerated `hostedConfigs.generated.ts` from
+  them.
 
 ## Left to do
 
-1. **Deploy**, with the user's go-ahead, from jbrowse-components:
-   `scripts/deploy-demo.sh demos/<d>/config.json` for `hprc`, `hprc_multiway`,
-   `ecoli_pangenome` and `arabidopsis_pangenome`.
-2. **After the deploy**, `pnpm gen:hosted-configs` in `website/`:
-   `hostedConfigs.generated.ts` fetches the live configs, so it still says
-   `FeatureTrack`/`SyntenyTrack` until then.
-3. **Reshoot the graph figures** on the latest plugin. Session -41 was going to;
+1. **Reshoot the graph figures** on the latest plugin. Session -41 was going to;
    it is no longer running.
-4. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
+2. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
    `FeatureTrack` and `SyntenyTrack`.
