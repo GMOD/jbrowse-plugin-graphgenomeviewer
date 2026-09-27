@@ -27,7 +27,14 @@ const runE2E = process.env.RUN_E2E === '1'
 
 const LGV = 'tube_map_reads_lgv'
 const TRACK = 'cactus_gbz'
-const FIXTURES = ['cactus.gbz.db', 'cactus_240_280.gaf']
+// the same reads bgzipped with a `tabix -p gaf` index, named the short way
+const INDEXED = 'cactus_gbz_indexed'
+const FIXTURES = [
+  'cactus.gbz.db',
+  'cactus_240_280.gaf',
+  'cactus_240_280.gaf.gz',
+  'cactus_240_280.gaf.gz.tbi',
+]
 
 function config() {
   const served = (file: string) => ({
@@ -66,6 +73,26 @@ function config() {
           {
             type: 'LinearGraphDisplay',
             displayId: `${TRACK}-LinearGraphDisplay`,
+            layoutMode: 'tubemapref',
+          },
+        ],
+      },
+      {
+        type: 'GraphTrack',
+        trackId: INDEXED,
+        name: 'cactus (GBZ + indexed GAF)',
+        assemblyNames: ['cactus'],
+        adapter: {
+          type: 'GbzBaseSyntenyAdapter',
+          gbzDbLocation: served('cactus.gbz.db'),
+          reads: `${BASE_URL}/cactus/cactus_240_280.gaf.gz`,
+          assemblyNames: ['cactus'],
+          referenceSample: '_gbwt_ref',
+        },
+        displays: [
+          {
+            type: 'LinearGraphDisplay',
+            displayId: `${INDEXED}-LinearGraphDisplay`,
             layoutMode: 'tubemapref',
           },
         ],
@@ -111,22 +138,13 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
     await cleanupJBrowse()
   })
 
-  it('lays the reads out under the haplotypes and paints them', async () => {
-    const display = '[data-testid="linear-graph-display"]'
-    await page.waitForFunction(
-      sel =>
-        !!document.querySelector(
-          `${sel}[data-display-phase="ready"][data-node-count]:not([data-loading])`,
-        ),
-      { timeout: 120_000 },
-      display,
-    )
-    const state = await page.evaluate(
-      ([viewId, trackId]) => {
+  function readsState(trackId: string) {
+    return page.evaluate(
+      ([viewId, id]) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
         const track = view.tracks.find(
           (t: { configuration: { trackId: string } }) =>
-            t.configuration.trackId === trackId,
+            t.configuration.trackId === id,
         )
         const pane = track.displays[0]
         const layout = pane.layoutResult?.tubeMap?.layout
@@ -137,12 +155,43 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
           marks: pane.tubeMapPicture?.mismatches.length ?? 0,
         }
       },
-      [LGV, TRACK],
+      [LGV, trackId],
     )
+  }
+
+  function displaysReady(count: number) {
+    return page.waitForFunction(
+      n =>
+        document.querySelectorAll(
+          '[data-testid="linear-graph-display"][data-display-phase="ready"][data-node-count]:not([data-loading])',
+        ).length === n,
+      { timeout: 120_000 },
+      count,
+    )
+  }
+
+  it('lays the reads out under the haplotypes and paints them', async () => {
+    await displaysReady(1)
+    const state = await readsState(TRACK)
     expect(state.error).toBeUndefined()
     expect(state.reads).toBeGreaterThan(50)
     expect(state.readsShown.shown).toBe(state.reads)
     expect(state.marks).toBeGreaterThan(0)
     await screenshot(page, 'tubemap-02-gaf-reads-track')
+  }, 180_000)
+
+  it('reads the same reads through a tabix index', async () => {
+    await page.evaluate(
+      ([viewId, id]) => {
+        window.JBrowseSession.views.find(v => v.id === viewId).showTrack(id)
+      },
+      [LGV, INDEXED],
+    )
+    await displaysReady(2)
+    const plain = await readsState(TRACK)
+    const indexed = await readsState(INDEXED)
+    expect(indexed.error).toBeUndefined()
+    expect(indexed.reads).toBe(plain.reads)
+    expect(indexed.readsShown).toEqual(plain.readsShown)
   }, 180_000)
 })

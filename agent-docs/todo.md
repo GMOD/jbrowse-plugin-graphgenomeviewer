@@ -45,7 +45,7 @@
   haplotype's path. Nobody has tried either.
 - Limits inherited from reads (`HANDOFF_tubemap_reads.md`):
   - only gbz-base tracks take reads
-  - an indexed GAF waits on a `@gmod/tabix` release with the GAF preset (branch
-    `gaf-preset` in tabix-js); until then a file is read whole, up to 50 MB
+  - a tabix GAF index needs numeric node ids; without one a file is read whole,
+    up to 50 MB
   - reads are sampled to 5000 a cut and coloured by strand; transcripts would
     want neither, and a name on each lane

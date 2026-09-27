@@ -40,25 +40,15 @@ JBROWSE_PORT=9891 JBROWSE_TEST_DIR=/tmp/host RUN_E2E=1 \
 
 ## Open
 
-1. **Indexed GAF needs a `@gmod/tabix` release.** 3.8.3 throws
-   `invalid Tabix preset format flags 3`. Branch `gaf-preset` (c0556b9) in
-   `~/src/gmod/tabix-js/.claude/worktrees/gaf-preset` adds the preset; it was
-   checked against htslib with 1000 randomized queries per index. **Not
-   verified:** the `pnpm bench` comparison against origin/main, which was still
-   running when the agent was stopped. Not pushed or published. Next steps:
-   - review it and run the bench
-   - land and release it, which is the user's call
-   - bump the plugin's `@gmod/tabix`
-   - add a `gafFile` test on `cactus_240_280.gaf.gz(.tbi)`
+1. **Indexed GAF: done.** `@gmod/tabix` 3.9.0 (2026-09-27) reads `tabix -p gaf`
+   indexes; the plugin depends on it. Checked before release against htslib 1.24
+   (4000 randomized GAF queries, no differences) and, interleaved against 3.8.3,
+   no measurable cost on other formats. `gafFile.test.ts` and
+   `test/tubeMapReads.test.ts` read `cactus_240_280.gaf.gz(.tbi)` through the
+   `reads` shorthand.
 
    Semantics: any refName is ref 0, and `getLines(_, s, e)` returns reads with
-   `min < e && max >= s`. `gafFile` already calls
-   `getLines('{node}', lo, hi + 1)`.
-
-   Until then the `reads` shorthand is a trap: it gives a `.gz` a `.tbi` index,
-   and 3.8.3 throws on it (reproduced 2026-09-27 on
-   `test_data/cactus/cactus_240_280.gaf.gz`). `docs/layouts.md` routes a gzipped
-   GAF through `readsLocation`, which reads it whole.
+   `min < e && max >= s`. `gafFile` calls `getLines('{node}', lo, hi + 1)`.
 
 2. **No UI for the sample.** `readsShown` is set but nothing displays "5000 of N
    reads".

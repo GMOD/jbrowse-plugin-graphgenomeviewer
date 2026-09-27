@@ -3,6 +3,8 @@ import fs from 'fs'
 import path from 'path'
 import zlib from 'zlib'
 
+import { TabixIndexedFile } from '@gmod/tabix'
+
 import { GafFile, MAX_READS, UnindexedGafTooLargeError } from './gafFile.ts'
 
 const dir = path.join(__dirname, '../../test_data/cactus')
@@ -40,6 +42,22 @@ test('gzipped and bgzipped GAF read the same as plain', async () => {
   expect(
     await read(fs.readFileSync(path.join(dir, 'cactus_240_280.gaf.gz'))),
   ).toEqual(plain)
+})
+
+test('an indexed GAF answers the same reads as reading it whole', async () => {
+  const gz = path.join(dir, 'cactus_240_280.gaf.gz')
+  const indexed = new GafFile(
+    inMemory(fs.readFileSync(gz)),
+    new TabixIndexedFile({ path: gz, tbiPath: `${gz}.tbi` }),
+  )
+  const whole = new GafFile(inMemory(bytes))
+  for (const ids of [names(249), names(250, 251, 260), names(1, 2)]) {
+    const { records } = await indexed.readsOver(ids)
+    expect(unordered(records)).toEqual(
+      unordered((await whole.readsOver(ids)).records),
+    )
+  }
+  expect((await indexed.readsOver(names(249))).total).toBeGreaterThan(0)
 })
 
 test('a large unindexed GAF asks for an index instead', async () => {
