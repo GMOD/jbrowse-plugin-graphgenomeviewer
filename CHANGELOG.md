@@ -1,3 +1,22 @@
+## [4.0.8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.7...v4.0.8) (2026-09-27)
+
+### Other Changes
+
+- The gbz-base window cut is a core function the adapter and BandageJS share ([e3e05bc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e3e05bc2f68bd56c2b7e7b7029a1926d854a2653))
+- Tube map layouts: sequenceTubeMap's drawing, on its own axis or the reference's ([14ff594](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/14ff59426742269070e394c75b04e75dfe43fb47))
+- Trim the README to bullets, and the tube map docs with it ([1c675d4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1c675d482f8c2eb1c45acd10a3b59894f05ef8cb))
+- Vendor @gmod/tubemap-core until it is on npm, and let the core entry draw tube maps ([a224ef2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a224ef2b908111a9c3ac283b8ca40242380c8a4f))
+- One track type for rGFA and gbz-base, both openable through Add track ([036f617](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/036f617005f338bc160c9e0f821af66d1b90a13f))
+- Restore e3e05bc..a224ef2, which the GraphTrack commit reverted ([511d5b6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/511d5b68743b8f213698bb6c63b6b20636b45632))
+- Graph readiness no longer shadows core's painted, and a tube map reads ready ([968ac66](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/968ac6691283a58917781ec8c86482ed89dc4329))
+- Take @gmod/tubemap-core 0.1.0 from npm and drop the vendored build ([13091af](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/13091af1fb3379de747f206ffde20d02c8350475))
+- The tube map's transform and box hit test are core functions ([89f13d8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/89f13d8be8087c2afd7ac105ce413e907041afe4))
+- The graph display lives on GraphTrack alone ([82b2ead](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/82b2ead0e4579e20d922652960b2ac0d6ef31d89))
+- Viewport and zoom arithmetic are core functions, and core.test pins what BandageJS imports ([131b728](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/131b728cb44f77b7c528e5ff9ddbc7f2d23f990a))
+- Depend on @testing-library/dom directly, so import-x resolves screen ([a60791e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a60791ebc2a3e16dc94a540d07b27e1c1ae3b459))
+- A 4.0 pane entry is not reported as an unknown key, and the legend measures nothing once its track is closed ([f00ebc9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f00ebc9f279619e660ffefdeafb7c9eb045b9dc4))
+- Drop an unused binding the lint gate rejects ([54dad76](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/54dad76a4e27dc160e1ec494e1938db8961fc07d))
+
 ## [4.0.7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.6...v4.0.7) (2026-09-27)
 
 ### Other Changes
