@@ -52,21 +52,33 @@ Measured on `kiv2_eight.gfa` (GRCh38 + 8 HPRC haplotypes):
 Colin prefers loading a dedicated finder's output. None states KIV-2 per copy
 from assemblies today. TRGT needs HiFi reads spanning the array, which 53-147 kb
 alleles are not. DRAGEN's VNTR caller writes `<CNV:TR>` from short reads, one
-repeat sequence per allele. vamos 3.1.1 (`--contig`, a custom catalogue holding
-the two units) reproduces the script's GRCh38 decomposition, A A A B A A, but
-skips any allele over 30,000 bp (`src/vntr.cpp:198`, a constant `-L` does not
-reach), and wrote no record for any haplotype contig, whatever the region, under
-a graph-derived alignment (flank M, array I, flank M). The trial took each
-contig from the GFA's walk and the GRCh38 window as the reference.
+repeat sequence per allele. vamos 3.1.1 (`--contig`, a catalogue holding the two
+units) skips any allele over 30,000 bp (`src/vntr.cpp:198`, a constant `-L` does
+not reach). Patched to `max(30000, opt.maxLocusLength)` and given each contig as
+one alignment record built from the graph (flank M, array I, flank M), it splits
+all nine haplotypes copy for copy as the script does. Three things keep it from
+being the finder here:
+
+- Its DP tables cost 15.7 bytes a cell, 5-26 GB per KIV-2 allele. Dropping the
+  two tables nothing reads, storing the path as `int8_t` and keeping two rolling
+  score columns brings that to 1.07 bytes a cell (1.6 GB for HG00133). Its
+  output matches the unpatched DP byte for byte on GRCh38's array and the script
+  on all nine; above 30 kb the unpatched DP was too large to compare
+- minimap2 cuts these contigs into copy-sized pieces, and vamos keeps no
+  secondary or supplementary filter and never updates `mappedContigLength`, so
+  the last record spanning the locus wins without warning: 6 copies for
+  HG00128's 23 and for HG00097's 10
+- Its VCF gives a unit index per copy, with no copy lengths, no partial-copy
+  mark, and one sample per file
 
 ## Open
 
 - **Tutorial**: converting TRGT (`MOTIFS` + `MS`) and vamos (`RU` +
   `ALTANNO_H1/H2`) output to spec VCF 4.5 `<CNV:TR>` fields, which walk rows
   then read. Colin's framing; the app reads only the spec
-- **vamos upstream**: a patch that lets `-L` govern the 30 kb allele cap, and
-  finding why contig mode drops these alignments, would make vamos the finder
-  for KIV-2 and leave the script only the unit discovery. Colin's call
+- **vamos upstream**: the cap patch alone does not make vamos state KIV-2 from
+  assemblies aligned the usual way. The silent last-record choice is a bug worth
+  reporting to its authors either way. Colin's call
 - **The whole panel**: the generator compares every distinct copy with every
   other, so all 464 haplotypes at KIV-2 need sketches first
 - **Other VNTRs**: run the generator on ABCA7 and the CFHR window. If each is

@@ -18,9 +18,12 @@
 //
 // It stands in for a repeat finder only where none reaches: TRGT needs reads
 // spanning the array, and vamos 3.1.1, the assembly-mode finder, skips any
-// allele over 30,000 bp (src/vntr.cpp) and wrote no record for these contigs
-// under a graph-derived alignment. On GRCh38's array, which fits, vamos with
-// this script's two units as its motifs decomposes the copies identically.
+// allele over 30,000 bp (src/vntr.cpp) whatever -L says. Patched so that cap
+// follows -L, and given each contig as one alignment record, vamos with this
+// script's two units as motifs splits all nine KIV-2 haplotypes identically.
+// It then needs 5-26 GB per allele for its DP tables, and on minimap2's own
+// alignments, which cut these contigs into copy-sized pieces, it reports the
+// last piece without warning: 6 copies for HG00128's 23.
 import fs from 'node:fs'
 import { parseArgs } from 'node:util'
 
