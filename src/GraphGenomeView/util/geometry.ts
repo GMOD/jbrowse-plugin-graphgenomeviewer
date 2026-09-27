@@ -1,6 +1,6 @@
 import { ROW_HEIGHT_PX } from '../layout/rowSpacing'
 
-import type { NodeSegment } from '../types'
+import type { GraphEdge, NodeSegment } from '../types'
 
 // An SVG path along a polyline, rounded to two decimals.
 export function svgPath(points: NodeSegment[]) {
@@ -444,8 +444,8 @@ function unscaleYOf(curves: BezierCurve[], yToX: number) {
   return curves
 }
 
-// How far a self-loop reaches off its node, in layout units: half the node's
-// drawn length, held between two screen sizes. Bandage uses a fixed
+// How far a self-loop or hairpin reaches off its node, in layout units: half
+// the node's drawn length, held between two screen sizes. Bandage uses a fixed
 // `edgeLength` in scene units, which fits one layout's units and no other's: a
 // fixed 50 units was 50 kb of drawing under the engine (1 unit per kb) and 50
 // bp on an anchored row, and under the engine it drew a 100 px oval around a
@@ -453,12 +453,15 @@ function unscaleYOf(curves: BezierCurve[], yToX: number) {
 const SELF_LOOP_MIN_PX = 12
 const SELF_LOOP_MAX_PX = 40
 
-function selfLoopReach(
-  end: { x: number; y: number },
-  start: { x: number; y: number },
-  scale: number,
-) {
-  const nodePx = Math.hypot(end.x - start.x, end.y - start.y) * scale
+function selfLoopReach(segments: NodeSegment[], scale: number) {
+  let length = 0
+  for (let i = 1; i < segments.length; i++) {
+    length += Math.hypot(
+      segments[i]!.x - segments[i - 1]!.x,
+      segments[i]!.y - segments[i - 1]!.y,
+    )
+  }
+  const nodePx = length * scale
   const reachPx = Math.min(
     SELF_LOOP_MAX_PX,
     Math.max(SELF_LOOP_MIN_PX, nodePx / 2),
@@ -466,10 +469,77 @@ function selfLoopReach(
   return reachPx / Math.max(scale, Number.EPSILON)
 }
 
+// How an edge joins a node to itself: `true` is a loop from the end back
+// round to the start, a Side is a hairpin that leaves that end and returns to
+// it, and `false` is an edge between two nodes.
+export type SelfLink = boolean | Side
+
+// `L a + a -` leaves a's end and arrives at the start of a read backwards,
+// which is a's end again, and `L a - a +` is the same at its start. Drawn end
+// to start like a cycle it named the wrong ends, which is the difference
+// between an inverted repeat and a tandem one. Bandage draws the same case
+// with its own path (makeSpecialPathConnectingNodeToReverseComplement).
+export function selfLinkOf(edge: GraphEdge): SelfLink {
+  if (edge.from !== edge.to) {
+    return false
+  }
+  return edge.fromStrand && edge.toStrand && edge.fromStrand !== edge.toStrand
+    ? edge.fromStrand === '+'
+      ? 'end'
+      : 'start'
+    : true
+}
+
+// A teardrop off one end, after Bandage's: it leaves along the node, turns at
+// the apex and comes back in on itself.
+function hairpinCurves(
+  attach: { at: NodeSegment; inward: NodeSegment | undefined },
+  reach: number,
+  offsetX: number,
+  offsetY: number,
+): BezierCurve[] {
+  const { at, inward } = attach
+  const dx = inward ? at.x - inward.x : 1
+  const dy = inward ? at.y - inward.y : 0
+  const len = Math.hypot(dx, dy) || 1
+  const ux = dx / len
+  const uy = dy / len
+  const px = at.x + offsetX
+  const py = at.y + offsetY
+  const nearX = px + (ux * reach) / 3
+  const nearY = py + (uy * reach) / 3
+  const apexX = px + ux * reach
+  const apexY = py + uy * reach
+  const sideX = (-uy * reach) / 2
+  const sideY = (ux * reach) / 2
+  return [
+    {
+      x0: px,
+      y0: py,
+      cx0: nearX,
+      cy0: nearY,
+      cx1: apexX + sideX,
+      cy1: apexY + sideY,
+      x1: apexX,
+      y1: apexY,
+    },
+    {
+      x0: apexX,
+      y0: apexY,
+      cx0: apexX - sideX,
+      cy0: apexY - sideY,
+      cx1: nearX,
+      cy1: nearY,
+      x1: px,
+      y1: py,
+    },
+  ]
+}
+
 export function computeEdgeCurves(
   fromSegments: NodeSegment[],
   toSegments: NodeSegment[],
-  isSelfLoop: boolean,
+  selfLink: SelfLink,
   offsetX: number,
   offsetY: number,
   axis: AxisScale,
@@ -513,7 +583,7 @@ export function computeEdgeCurves(
       computeEdgeCurves(
         scaleYOf(fromSegments, yToX),
         scaleYOf(toSegments, yToX),
-        isSelfLoop,
+        selfLink,
         offsetX,
         offsetY * yToX,
         { scaleX: scale, scaleY: scale },
@@ -525,7 +595,15 @@ export function computeEdgeCurves(
       yToX,
     )
   }
-  const sides = isSelfLoop
+  if (typeof selfLink === 'string') {
+    return hairpinCurves(
+      attachment(fromSegments, selfLink),
+      selfLoopReach(fromSegments, scale),
+      offsetX,
+      offsetY,
+    )
+  }
+  const sides = selfLink
     ? { from: 'end' as Side, to: 'start' as Side }
     : facingSides(fromSegments, toSegments)
   const fromAttach = attachment(fromSegments, sides.from)
@@ -538,7 +616,7 @@ export function computeEdgeCurves(
   const p2x = toStart.x + offsetX
   const p2y = toStart.y + offsetY
 
-  if (isSelfLoop) {
+  if (selfLink) {
     let segDirX = 1
     let segDirY = 0
     if (fromAttach.inward) {
@@ -551,7 +629,7 @@ export function computeEdgeCurves(
       }
     }
 
-    const ext = selfLoopReach(fromEnd, toStart, scale)
+    const ext = selfLoopReach(fromSegments, scale)
     const perpX = -segDirY
     const perpY = segDirX
     const midX = (fromEnd.x + toStart.x) / 2 + offsetX + perpX * ext

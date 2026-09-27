@@ -1,5 +1,5 @@
 import { bypassedPoints } from '../deletionEdges'
-import { computeEdgeCurves } from './geometry'
+import { computeEdgeCurves, selfLinkOf } from './geometry'
 
 import type { Graph, NodeSegment } from '../types'
 import type { AxisScale, BezierCurve } from './geometry'
@@ -73,7 +73,7 @@ export function baseEdgeCurves(
         computeEdgeCurves(
           from,
           to,
-          edge.from === edge.to,
+          selfLinkOf(edge),
           0,
           0,
           axis,

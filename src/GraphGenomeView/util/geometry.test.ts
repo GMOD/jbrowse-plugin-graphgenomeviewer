@@ -4,6 +4,7 @@ import {
   curvePointAt,
   dashCurves,
   projectLine,
+  selfLinkOf,
   translateCurves,
 } from './geometry'
 
@@ -168,6 +169,36 @@ describe('computeEdgeCurves', () => {
     expect(loopReachPx(1, 20)).toBeCloseTo(12)
     expect(loopReachPx(10, 5)).toBeCloseTo(25)
     expect(loopReachPx(1000, 1)).toBeCloseTo(40)
+  })
+
+  test('a link to a node read backwards is a hairpin at the end it names', () => {
+    const edge = (fromStrand: '+' | '-', toStrand: '+' | '-') => ({
+      from: 'a+',
+      to: 'a+',
+      fromStrand,
+      toStrand,
+    })
+    expect(selfLinkOf(edge('+', '-'))).toBe('end')
+    expect(selfLinkOf(edge('-', '+'))).toBe('start')
+    expect(selfLinkOf(edge('+', '+'))).toBe(true)
+    expect(selfLinkOf({ from: 'a+', to: 'a+' })).toBe(true)
+    expect(selfLinkOf({ from: 'a+', to: 'b+' })).toBe(false)
+  })
+
+  test('a hairpin leaves an end and comes back to it, reaching outward', () => {
+    const segments = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]
+    const atEnd = computeEdgeCurves(segments, segments, 'end', 0, 0, iso(2))
+    expect(atEnd).toHaveLength(2)
+    expect(atEnd[0]).toMatchObject({ x0: 10, y0: 0 })
+    expect(atEnd[1]).toMatchObject({ x1: 10, y1: 0 })
+    expect(atEnd[0]!.x1).toBeGreaterThan(10)
+
+    const atStart = computeEdgeCurves(segments, segments, 'start', 0, 0, iso(2))
+    expect(atStart[0]).toMatchObject({ x0: 0, y0: 0 })
+    expect(atStart[0]!.x1).toBeLessThan(0)
   })
 
   test('applies offset to curve endpoints', () => {
