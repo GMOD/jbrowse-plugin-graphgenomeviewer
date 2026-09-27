@@ -18,9 +18,11 @@ Config:
 ## Fixtures
 
 - `test_data/cactus/`: sequenceTubeMap's cactus graph (`cactus.gbz.db`,
-  reference sample `_gbwt_ref`, contig `ref`, 81189 bp), nodes 240..280 as GFA,
-  and the NA12879 reads touching nodes 248..272 as plain `.gaf` and as sorted
-  `.gaf.gz` + `tabix -p gaf` `.tbi`
+  reference sample `_gbwt_ref`, contig `ref`, 81189 bp) with the haplotype index
+  that names its generic paths `GI262359905` and `GI528476558`
+  (`cactus.haplotype-index.db`), nodes 240..280 as GFA, and the NA12879 reads
+  touching nodes 248..272 as plain `.gaf` and as sorted `.gaf.gz` +
+  `tabix -p gaf` `.tbi`
 - The whole read set is at
   `~/src/vendor/sequenceTubeMapModern/exampleData/cactus-NA12879.gaf.gz` (51k
   reads)

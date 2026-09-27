@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   BASE_URL,
   PLUGIN_ESM_URL,
+  SCREENSHOT_DIR,
   cleanupJBrowse,
   createJBrowsePage,
   launchBrowser,
@@ -22,7 +23,8 @@ import type { Browser, Page } from 'puppeteer'
 //
 // GAF reads through a real worker: sequenceTubeMap's cactus graph as a gbz-base
 // track with the NA12879 reads over nodes 240..280 (test_data/cactus), drawn
-// as a tube map track of a linear view.
+// as a tube map track of a linear view. The haplotype index beside the
+// database names the walks.
 const runE2E = process.env.RUN_E2E === '1'
 
 const LGV = 'tube_map_reads_lgv'
@@ -31,6 +33,7 @@ const TRACK = 'cactus_gbz'
 const INDEXED = 'cactus_gbz_indexed'
 const FIXTURES = [
   'cactus.gbz.db',
+  'cactus.haplotype-index.db',
   'cactus_240_280.gaf',
   'cactus_240_280.gaf.gz',
   'cactus_240_280.gaf.gz.tbi',
@@ -178,6 +181,56 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
     expect(state.readsShown.shown).toBe(state.reads)
     expect(state.marks).toBeGreaterThan(0)
     await screenshot(page, 'tubemap-02-gaf-reads-track')
+  }, 180_000)
+
+  // img/tube_map_reads.png is this frame
+  it('names the walks, the reads and their marks in the legends', async () => {
+    await page.evaluate(
+      ([viewId, id]) => {
+        const view = window.JBrowseSession.views.find(v => v.id === viewId)
+        const track = view.tracks.find(
+          (t: { configuration: { trackId: string } }) =>
+            t.configuration.trackId === id,
+        )
+        track.displays[0].setHeight(520)
+        view.navToLocString('ref:23,555-23,615')
+      },
+      [LGV, TRACK],
+    )
+    await displaysReady(1)
+    const legendRows = (testid: string) =>
+      page.$$eval(`[data-testid="${testid}"] > div`, rows =>
+        rows.map(r => r.textContent),
+      )
+    await page.waitForSelector('[data-testid="graph-tube-map-legend"]')
+    expect(await legendRows('graph-path-legend')).toEqual([
+      'ref',
+      'GI262359905',
+      'GI528476558',
+    ])
+    expect(await legendRows('graph-tube-map-legend')).toEqual(
+      expect.arrayContaining([
+        'read on the forward strand',
+        'read on the reverse strand',
+        "Aa read's base unlike the node's",
+      ]),
+    )
+    await page.evaluate(
+      () =>
+        new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    )
+    const view = await page.$(`[data-testid="view-container-${LGV}"]`)
+    const box = await view!.evaluate(el => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    })
+    await page.screenshot({
+      path: path.join(SCREENSHOT_DIR, 'tube_map_reads.png'),
+      clip: box,
+      captureBeyondViewport: false,
+    })
   }, 180_000)
 
   it('reads the same reads through a tabix index', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { drawTubeMapRuler, rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
@@ -9,6 +10,10 @@ import {
 } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
 import { drawTubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
+import {
+  FORWARD_READ_COLORS,
+  REVERSE_READ_COLORS,
+} from '@jbrowse/bandage-core/tubeMap/reads'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
@@ -133,10 +138,10 @@ function BracketSwatch() {
   )
 }
 
+const barSwatchStyle = { width: SWATCH_PX, height: 7, flex: 'none' }
+
 const tubeSwatchStyle = {
-  width: SWATCH_PX,
-  height: 7,
-  flex: 'none',
+  ...barSwatchStyle,
   display: 'flex',
   justifyContent: 'center',
   backgroundColor: '#b8b8c0',
@@ -150,6 +155,47 @@ function TickSwatch() {
   )
 }
 
+// A read takes one shade of its strand's palette, varied so neighbours differ
+function ReadSwatch({ colors }: { colors: readonly string[] }) {
+  const step = 100 / colors.length
+  const stops = colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`)
+  return (
+    <div
+      style={{
+        ...barSwatchStyle,
+        background: `linear-gradient(to right, ${stops.join(', ')})`,
+      }}
+    />
+  )
+}
+
+const glyphSwatchStyle = {
+  width: SWATCH_PX,
+  flex: 'none',
+  textAlign: 'center' as const,
+  fontFamily: 'monospace',
+  fontSize: 12,
+}
+
+function DeletionSwatch() {
+  return <div style={{ ...barSwatchStyle, backgroundColor: 'grey' }} />
+}
+
+function LegendRow({
+  swatch,
+  children,
+}: {
+  swatch: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div style={legendRowStyle}>
+      {swatch}
+      <span>{children}</span>
+    </div>
+  )
+}
+
 // What a tube map draws that nothing else on screen explains, each listed
 // only while it applies
 export const TubeMapLegend = observer(function TubeMapLegend({
@@ -157,21 +203,48 @@ export const TubeMapLegend = observer(function TubeMapLegend({
 }: {
   model: GraphPaneModel
 }) {
-  const { logWidths, foldBp } = model.tubeMapKeys
-  return logWidths || foldBp !== undefined ? (
+  const { logWidths, foldBp, forwardReads, reverseReads, mismatches } =
+    model.tubeMapKeys
+  const rows = [
+    forwardReads && (
+      <LegendRow key="fwd" swatch={<ReadSwatch colors={FORWARD_READ_COLORS} />}>
+        read on the forward strand
+      </LegendRow>
+    ),
+    reverseReads && (
+      <LegendRow key="rev" swatch={<ReadSwatch colors={REVERSE_READ_COLORS} />}>
+        read on the reverse strand
+      </LegendRow>
+    ),
+    mismatches.has('substitution') && (
+      <LegendRow key="sub" swatch={<span style={glyphSwatchStyle}>A</span>}>
+        a read's base unlike the node's
+      </LegendRow>
+    ),
+    mismatches.has('insertion') && (
+      <LegendRow key="ins" swatch={<span style={glyphSwatchStyle}>*</span>}>
+        bases a read inserts
+      </LegendRow>
+    ),
+    mismatches.has('deletion') && (
+      <LegendRow key="del" swatch={<DeletionSwatch />}>
+        bases a read skips
+      </LegendRow>
+    ),
+    foldBp !== undefined && (
+      <LegendRow key="fold" swatch={<TickSwatch />}>
+        a haplotype's variant under {formatBp(foldBp)}
+      </LegendRow>
+    ),
+    logWidths && (
+      <LegendRow key="log" swatch={<BracketSwatch />}>
+        width grows with log of length
+      </LegendRow>
+    ),
+  ].filter(Boolean)
+  return rows.length > 0 ? (
     <div style={legendBoxStyle} data-testid="graph-tube-map-legend">
-      {foldBp !== undefined ? (
-        <div style={legendRowStyle}>
-          <TickSwatch />
-          <span>a haplotype's variant under {formatBp(foldBp)}</span>
-        </div>
-      ) : null}
-      {logWidths ? (
-        <div style={legendRowStyle}>
-          <BracketSwatch />
-          <span>width grows with log of length</span>
-        </div>
-      ) : null}
+      {rows}
     </div>
   ) : null
 })

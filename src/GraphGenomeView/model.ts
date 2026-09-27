@@ -75,7 +75,11 @@ import {
   tubeMapConnectors,
 } from '@jbrowse/bandage-core/tubeMap/connectors'
 import { deviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
-import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
+import {
+  mismatchOnScreen,
+  mismatchesLegible,
+  tubeMapPicture,
+} from '@jbrowse/bandage-core/tubeMap/draw'
 import {
   tubeMapFrame,
   tubeMapNodeAt,
@@ -709,12 +713,14 @@ export function GraphPaneMixin() {
       // Empty unless the ribbons are actually on: a colour key beside a drawing
       // with no colours in it is a legend for nothing.
       // The tube map colours its tubes whether or not paths are drawn on the
-      // nodes, so under it the key follows the tubes.
+      // nodes, so under it the key follows the tubes, and names the colours
+      // the tubes were drawn in.
       get pathLegend() {
         const paths = self.graph?.paths
-        const colouring = self.drawPaths || self.layoutResult?.tubeMap
+        const tubeMap = self.layoutResult?.tubeMap
+        const colouring = self.drawPaths || tubeMap
         return colouring && paths && pathColorsLegible(paths.length)
-          ? pathLegend(paths)
+          ? pathLegend(paths, tubeMap?.pathColors)
           : []
       },
       // Every walk the graph carries, named for a picker, whatever the count.
@@ -1658,14 +1664,26 @@ export function GraphPaneMixin() {
     }))
     .views(self => ({
       // What the tube map's legend has to explain: that on the own axis a
-      // box is as wide as the log of its length, and the fold its walks'
-      // ticks stand for
+      // box is as wide as the log of its length, the fold its walks' ticks
+      // stand for, the reads' strands, and the marks on the reads in view
       get tubeMapKeys() {
         const layout = self.layoutResult
+        const reads = layout?.tubeMap?.layout.reads ?? []
+        const picture = self.tubeMapPicture
+        const frame = self.tubeMapFrame
+        const shown =
+          picture && frame && mismatchesLegible(frame.yScale)
+            ? picture.mismatches.filter(m =>
+                mismatchOnScreen(m, { x: frame.x, width: self.paneWidth }),
+              )
+            : []
         return {
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
+          forwardReads: reads.some(r => !r.is_reverse),
+          reverseReads: reads.some(r => r.is_reverse),
+          mismatches: new Set(shown.map(m => m.kind)),
         }
       },
       tubeMapNodeAt(sx: number, sy: number) {

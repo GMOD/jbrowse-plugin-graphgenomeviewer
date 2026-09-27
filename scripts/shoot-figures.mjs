@@ -9,8 +9,7 @@
 //
 // tube_map.png and tube_map_reads.png draw local fixtures, not the demo: they
 // are frames of test/tubeMap.test.ts (its two standalone views, cropped) and
-// test/tubeMapReads.test.ts, the reads one at ref:23,555-23,615 with the track
-// 520 px tall.
+// test/tubeMapReads.test.ts, which writes test-screenshots/tube_map_reads.png.
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
