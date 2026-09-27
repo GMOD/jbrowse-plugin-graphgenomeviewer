@@ -1,16 +1,25 @@
+import { useId } from 'react'
+
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
+import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { observer } from 'mobx-react'
 
+import { RAMP_GRADIENT_CSS, rampHue, rampHueCss } from './referenceRampCss'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'
+import type { WalkRun } from '@jbrowse/bandage-core/layout/walkRows'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference line
 // the canvas draws, each on its own bp axis from the window's left edge. Blue
-// is sequence the reference walk also carries, purple is sequence it does not,
-// and the readout at the end of a bar is what it carries against the
-// reference, which for a repeat array is the expansion.
+// marks sequence shared with the reference walk and purple sequence only the
+// haplotypes carry. Under the reference-position ramp, shared sequence takes
+// the hue of where it sits on the reference, so each copy of a repeat unit
+// shows which reference unit it matches, and haplotype-only sequence takes the
+// charcoal the canvas gives off-reference nodes. The readout at the end of a
+// bar is what it carries against the reference, which for a repeat array is
+// the expansion.
 //
 // A tick is the genotyped allele length paired with THAT walk, and the walk
 // rows pair them — see repeats/walkCalls.ts, which also holds the threshold
@@ -31,6 +40,8 @@ const UNBACKED_TICK = '#9e9e9e'
 const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
+// hue degrees one gradient stop spans, since SVG interpolates stops in RGB
+const HUE_STOP_DEG = 30
 
 const legendBoxStyle = {
   background: 'rgba(255,255,255,0.82)',
@@ -69,16 +80,27 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   if (!bars) {
     return null
   }
+  const ramp = model.referenceRampDomain
   const calls = bars.rows.flatMap(row => row.call ?? [])
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-rows-legend">
       <div style={legendRowStyle}>
-        <div style={{ ...swatchStyle, backgroundColor: ON_REFERENCE }} />
-        <span>sequence {bars.reference.label} also carries</span>
+        <div
+          style={{
+            ...swatchStyle,
+            background: ramp ? RAMP_GRADIENT_CSS : ON_REFERENCE,
+          }}
+        />
+        <span>shared with {bars.reference.label}</span>
       </div>
       <div style={legendRowStyle}>
-        <div style={{ ...swatchStyle, backgroundColor: OFF_REFERENCE }} />
-        <span>sequence it does not</span>
+        <div
+          style={{
+            ...swatchStyle,
+            backgroundColor: ramp ? REFERENCE_RAMP_ALT_CSS : OFF_REFERENCE,
+          }}
+        />
+        <span>carried by haplotypes only</span>
       </div>
       {calls.some(call => call.spanningReads !== 0) ? (
         <div style={legendRowStyle}>
@@ -144,12 +166,53 @@ function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
   return xs
 }
 
+function hueStops(from: number, to: number) {
+  const n = Math.max(1, Math.ceil(Math.abs(to - from) / HUE_STOP_DEG))
+  return Array.from({ length: n + 1 }, (_, i) => from + ((to - from) * i) / n)
+}
+
+// A shared run covers its reference contiguously, so its hue ramps linearly
+// from one end to the other and a gradient paints it exactly.
+function runFill(
+  run: WalkRun,
+  ramp: { start: number; end: number } | undefined,
+  gradientId: string,
+) {
+  if (!ramp) {
+    return { fill: run.onReference ? ON_REFERENCE : OFF_REFERENCE }
+  }
+  if (run.referenceStart === undefined) {
+    return { fill: REFERENCE_RAMP_ALT_CSS }
+  }
+  const from = rampHue(run.referenceStart, ramp)
+  const to = rampHue(run.referenceStart + run.bp, ramp)
+  if (Math.abs(to - from) < 1) {
+    return { fill: rampHueCss((from + to) / 2) }
+  }
+  const stops = hueStops(from, to)
+  return {
+    fill: `url(#${gradientId})`,
+    gradient: (
+      <linearGradient id={gradientId}>
+        {stops.map((hue, i) => (
+          <stop
+            key={i}
+            offset={i / (stops.length - 1)}
+            stopColor={rampHueCss(hue)}
+          />
+        ))}
+      </linearGradient>
+    ),
+  }
+}
+
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const { walkRowBars } = model
+  const idPrefix = useId().replace(/[^\w-]/g, '')
+  const { walkRowBars, referenceRampDomain: ramp } = model
   if (!walkRowBars) {
     return null
   }
@@ -210,16 +273,25 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         const { call } = row
         return (
           <g key={row.name} data-testid="graph-walk-row">
-            {row.runs.map(run => (
-              <rect
-                key={run.start}
-                x={X(origin + run.start)}
-                y={y - BAR_PX / 2}
-                width={Math.max(1, run.bp * scaleX)}
-                height={BAR_PX}
-                fill={run.onReference ? ON_REFERENCE : OFF_REFERENCE}
-              />
-            ))}
+            {row.runs.map(run => {
+              const { fill, gradient } = runFill(
+                run,
+                ramp,
+                `${idPrefix}-${i}-${run.start}`,
+              )
+              return (
+                <g key={run.start}>
+                  {gradient}
+                  <rect
+                    x={X(origin + run.start)}
+                    y={y - BAR_PX / 2}
+                    width={Math.max(1, run.bp * scaleX)}
+                    height={BAR_PX}
+                    fill={fill}
+                  />
+                </g>
+              )
+            })}
             {unit
               ? tileSeparators(row.bp, unit, bp => bp * scaleX).map(k => (
                   <line

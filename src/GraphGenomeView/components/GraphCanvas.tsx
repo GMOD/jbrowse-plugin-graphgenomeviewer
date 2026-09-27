@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
-import { REFERENCE_RAMP_MAX_HUE } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import {
   findHoveredEdge,
   findHoveredNode,
@@ -21,6 +20,7 @@ import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
 import TubeMapOverlay from './TubeMapOverlay'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
+import { RAMP_GRADIENT_CSS } from './referenceRampCss'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
@@ -203,19 +203,11 @@ const WalkReadout = observer(function WalkReadout({
 // over. Nothing on screen used to say that red-to-magenta means left-to-right of
 // the cut window, so two tutorials carried that sentence in prose and a reader
 // arriving at a figure had no way to know it at all.
-//
-// The gradient is built from the same three numbers `getNodeColor` paints with
-// (hue 0 to REFERENCE_RAMP_MAX_HUE at 70%/50%), rather than from a picked pair
-// of hex stops, so it cannot come to describe a ramp the drawing stopped using.
 const rampStripStyle = {
   minWidth: 90,
   height: 8,
   borderRadius: 2,
-  background: `linear-gradient(to right, ${Array.from(
-    { length: 7 },
-    (_, i) =>
-      `hsl(${(i / 6) * REFERENCE_RAMP_MAX_HUE}, 70%, 50%) ${(i / 6) * 100}%`,
-  ).join(', ')})`,
+  background: RAMP_GRADIENT_CSS,
 }
 
 const rampEndsStyle = {
