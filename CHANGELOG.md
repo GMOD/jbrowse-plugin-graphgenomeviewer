@@ -1,7 +1,13 @@
-## [4.0.11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/core-v0.1.2...v4.0.11) (2026-09-27)
+## [4.0.11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.10...v4.0.11) (2026-09-27)
 
 ### Other Changes
 
+- GAM is vg's alignment format ([d6d9c60](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d6d9c60b9042dd956011cdd1cf2d4eebd7e1195e))
+- GeneModel lives with the gene pins that draw it ([2d215cb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2d215cbd00b6ee1ad6a67f3c94d09a3d9ef9392f))
+- The core moves into packages/core as @jbrowse/bandage-core ([a2901cf](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a2901cf3f77089a375a410a4b73294f591f0c034))
+- @jbrowse/bandage-core 0.1.1 ([2116962](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/21169625bbf722b0e4303a7a0271b3886e53fe44))
+- Bandage-core publishes: working-directory for pnpm 10, .js specifiers in its declarations ([f828533](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f828533a716ce3a0695ddc4f78173a5e17e70058))
+- @jbrowse/bandage-core 0.1.2 ([8d5c5f0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8d5c5f0600cadb8b81e1847476e021e0c95276a5))
 - Gbz-base adapter: the haplotype index comes from a companion file ([d4f15fc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d4f15fc9d929517b90207c93470e2db00c8f8f20))
 - Gbz-base adapter opens graph.haplotype-index.db beside graph.gbz.db ([60ce76f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/60ce76fcf123d754994052a42a91a5f13e3be3aa))
 - Bandage-core publishes with the plugin, from publish.yml ([9d65fcc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9d65fcc946a1188b25cadad764bf9ad1ba66ac67))
