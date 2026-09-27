@@ -10,6 +10,7 @@ const ALLOWED = [
   /^@jbrowse\/core\/esm\/util\/color\/cssColorsLevel4\.js$/,
   /^@jbrowse\/render-core\/esm\/(canvas2dUtils|canvasContext|renderingBackendBase)\.js$/,
   /^@jbrowse\/render-core\/esm\/marks\/colorFill\.js$/,
+  /^@gmod\/tubemap-core\/dist\//,
 ]
 
 test('the core entry reaches no host, state tree or UI framework', async () => {

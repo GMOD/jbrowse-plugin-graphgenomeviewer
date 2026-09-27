@@ -64,6 +64,13 @@ export {
 export type { NodeInk } from './GraphGenomeView/util/hitDetection'
 export type { AxisScale } from './GraphGenomeView/util/geometry'
 export { wheelZoomFactor } from './GraphGenomeView/util/wheelZoom'
+// the tube map layouts draw their own shapes rather than the batch above
+export { drawTubeMap, tubeMapPicture } from './GraphGenomeView/tubeMap/draw'
+export type {
+  TubeMapFrame,
+  TubeMapPicture,
+} from './GraphGenomeView/tubeMap/draw'
+export { referenceKnots, warpX } from './GraphGenomeView/tubeMap/warp'
 
 export { deletionEdges } from './GraphGenomeView/deletionEdges'
 export type { DeletionEdge } from './GraphGenomeView/deletionEdges'

@@ -15,8 +15,8 @@ importers:
         specifier: ^3.8.3
         version: 3.8.3
       '@gmod/tubemap-core':
-        specifier: file:/tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz
-        version: file:../../../../../../../../tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz
+        specifier: file:vendor/tubemap-core
+        version: file:vendor/tubemap-core
       '@jbrowse/cigar-utils':
         specifier: 5.0.0-beta.9
         version: 5.0.0-beta.9
@@ -610,9 +610,8 @@ packages:
   '@gmod/tabix@3.8.3':
     resolution: {integrity: sha512-YmVeuIJDylHlhIZ4DE/h3LV5SGSxtCJESBgKXRD2qALDmeemGtqIVbH62RZs2Lb5ZzN7i8r4rcmeurW9GtjO/Q==}
 
-  '@gmod/tubemap-core@file:../../../../../../../../tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz':
-    resolution: {integrity: sha512-tfFUoeK2R+GCHM/GODR9oT0ntCNcw7VLvIrlqZqDycqZzCsBBUBJ4QfWX98B4RRgl8TJfPFgR4/ToOoKlGI49Q==, tarball: file:../../../../../../../../tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz}
-    version: 0.1.0
+  '@gmod/tubemap-core@file:vendor/tubemap-core':
+    resolution: {directory: vendor/tubemap-core, type: directory}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4061,7 +4060,7 @@ snapshots:
       '@jbrowse/quick-lru': 7.3.5
       generic-filehandle2: 2.4.0
 
-  '@gmod/tubemap-core@file:../../../../../../../../tmp/claude-1001/-home-cdiesh-src-jb2plugins-jbrowse-plugin-graphgenomeviewer/e9fe615f-0891-43eb-8265-6835d1f4c68c/scratchpad/gmod-tubemap-core-0.1.0.tgz': {}
+  '@gmod/tubemap-core@file:vendor/tubemap-core': {}
 
   '@humanfs/core@0.19.2':
     dependencies:
