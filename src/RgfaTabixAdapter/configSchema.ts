@@ -5,7 +5,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
 
 /**
  * #config RgfaTabixAdapter
- * #trackType FeatureTrack
+ * #trackType GraphTrack
  * #fileFormat graph | Indexed rGFA | Built by `scripts/build_rgfa_tabix.sh`; serves segments as features and extracts local subgraphs
  * two tabix-indexed BED projections of an rGFA (minigraph). rGFA tags every
  * segment with `SN`/`SO`/`SR`, so both files record coordinates the graph

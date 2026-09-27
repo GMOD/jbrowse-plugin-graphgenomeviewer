@@ -5,7 +5,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
 
 /**
  * #config GbzBaseSyntenyAdapter
- * #trackType SyntenyTrack
+ * #trackType GraphTrack
  * #fileFormat synteny | gbz-base pangenome database | Haplotype alignments read from the graph at query time, no PAF conversion
  * Serves a pangenome graph stored as a gbz-base SQLite database (`.gbz.db`) as
  * haplotype-versus-reference alignments, the shape `MultiWaySyntenyDisplay`

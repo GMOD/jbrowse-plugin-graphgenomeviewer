@@ -16,8 +16,7 @@ const ANNOTATION_TRACK_TYPE = 'FeatureTrack'
 // Annotation tracks only, not everything configured for the assembly. A launch
 // is a jump to a locus, and an alignments or coverage track turned on behind the
 // user's back fetches data nobody asked for; a FeatureTrack at a 50 kb window is
-// a tabix range query. The graph's own segments track is a FeatureTrack too, so
-// the reference case still gets it from the same scan.
+// a tabix range query.
 //
 // `first` is the graph's own track when the launch is on the reference, so the
 // segments the graph drew sit at the top of the view rather than wherever config

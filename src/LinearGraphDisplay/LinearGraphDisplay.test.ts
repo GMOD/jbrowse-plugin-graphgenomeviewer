@@ -1,19 +1,12 @@
 import PluginManager from '@jbrowse/core/PluginManager'
-import {
-  ConfigurationSchema,
-  readConfObject,
-} from '@jbrowse/core/configuration'
-import TrackType from '@jbrowse/core/pluggableElementTypes/TrackType'
+import { readConfObject } from '@jbrowse/core/configuration'
 import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
-import {
-  createBaseTrackConfig,
-  createBaseTrackModel,
-} from '@jbrowse/core/pluggableElementTypes/models'
 import { types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
 import LinearGraphDisplayF from './index'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
+import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
 import type { LinearGraphDisplayModel } from './model'
@@ -98,28 +91,8 @@ function createEnvironment({ tiered = true } = {}) {
   const pluginManager = new PluginManager()
   RgfaTabixAdapterF(pluginManager)
   GbzBaseSyntenyAdapterF(pluginManager)
-  for (const name of ['FeatureTrack', 'SyntenyTrack']) {
-    pluginManager.addTrackType(() => {
-      const trackConfigSchema = ConfigurationSchema(
-        name,
-        {},
-        {
-          baseConfiguration: createBaseTrackConfig(pluginManager),
-          explicitIdentifier: 'trackId',
-        },
-      )
-      return new TrackType({
-        name,
-        configSchema: trackConfigSchema,
-        stateModel: createBaseTrackModel(
-          pluginManager,
-          name,
-          trackConfigSchema,
-        ),
-      })
-    })
-  }
   LinearGraphDisplayF(pluginManager)
+  GraphTrackF(pluginManager)
   pluginManager.addViewType(
     () =>
       new ViewType({
@@ -136,7 +109,7 @@ function createEnvironment({ tiered = true } = {}) {
   const trackSchema = pluginManager.pluggableConfigSchemaType('track')
   const trackConfig = trackSchema.create(
     {
-      type: 'FeatureTrack',
+      type: 'GraphTrack',
       trackId: 'graph',
       name: 'graph',
       assemblyNames: [ASM],
@@ -160,7 +133,7 @@ function createEnvironment({ tiered = true } = {}) {
   )
   const gbzTrackConfig = trackSchema.create(
     {
-      type: 'SyntenyTrack',
+      type: 'GraphTrack',
       trackId: 'walks',
       name: 'walks',
       assemblyNames: [ASM, 'HG1.1', 'HG2.1'],

@@ -60,7 +60,7 @@ function config() {
     tracks: hasMicb
       ? [
           {
-            type: 'SyntenyTrack',
+            type: 'GraphTrack',
             trackId: GBZ_TRACK,
             name: 'MICB (GBZ)',
             assemblyNames: ['hg38'],
