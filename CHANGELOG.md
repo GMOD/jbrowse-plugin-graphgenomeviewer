@@ -1,3 +1,11 @@
+## [4.0.11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/core-v0.1.2...v4.0.11) (2026-09-27)
+
+### Other Changes
+
+- Gbz-base adapter: the haplotype index comes from a companion file ([d4f15fc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d4f15fc9d929517b90207c93470e2db00c8f8f20))
+- Gbz-base adapter opens graph.haplotype-index.db beside graph.gbz.db ([60ce76f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/60ce76fcf123d754994052a42a91a5f13e3be3aa))
+- Bandage-core publishes with the plugin, from publish.yml ([9d65fcc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9d65fcc946a1188b25cadad764bf9ad1ba66ac67))
+
 ## [4.0.10](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.9...v4.0.10) (2026-09-27)
 
 ### Other Changes
