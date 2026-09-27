@@ -71,6 +71,15 @@ export type {
   TubeMapPicture,
 } from './GraphGenomeView/tubeMap/draw'
 export { referenceKnots, warpX } from './GraphGenomeView/tubeMap/warp'
+export { tubeMapFrame, tubeMapNodeAt } from './GraphGenomeView/tubeMap/frame'
+export type {
+  TubeMapTransform,
+  TubeMapView,
+} from './GraphGenomeView/tubeMap/frame'
+export type {
+  TubeMapColumn,
+  TubeMapDrawing,
+} from './GraphGenomeView/layout/tubeMapLayout'
 
 export { deletionEdges } from './GraphGenomeView/deletionEdges'
 export type { DeletionEdge } from './GraphGenomeView/deletionEdges'

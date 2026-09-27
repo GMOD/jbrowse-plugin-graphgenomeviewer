@@ -68,7 +68,7 @@ import {
 } from './repeats/repeatFeatures'
 import { withCalls } from './repeats/walkCalls'
 import { tubeMapPicture } from './tubeMap/draw'
-import { referenceKnots, warpX } from './tubeMap/warp'
+import { tubeMapFrame, tubeMapNodeAt } from './tubeMap/frame'
 import { walkHighlight } from './walkHighlight'
 import {
   hoverInRegion,
@@ -143,11 +143,6 @@ const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
 const VIEWPORT_PANES_BUILT = 1
-
-// The least a tube stack is squeezed to fit a track, and how far a node's box
-// reaches past its tubes (tubemap-core's nodeOutlinePath)
-const MIN_TUBE_Y_SCALE = 0.05
-const NODE_BOX_PAD = 9
 
 // What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
 const EMPTY_BATCH: RenderBatch = {
@@ -1277,65 +1272,24 @@ export function GraphPaneMixin() {
         const drawing = self.layoutResult?.tubeMap
         return drawing ? tubeMapPicture(drawing.layout) : undefined
       },
-      // On the reference axis y is px and the host has no vertical pan, so a
-      // stack of tubes taller than the track is squeezed to fit it; dragging
-      // the track taller gives the tubes back their width.
-      get tubeMapYScale() {
-        const result = self.layoutResult
-        const h = (result?.extent?.maxY ?? 0) - (result?.extent?.minY ?? 0)
-        return result?.tubeMap?.columns && h > 0
-          ? Math.max(
-              MIN_TUBE_Y_SCALE,
-              Math.min(1, (self.canvasHeight - FIT_PADDING * 2) / h),
-            )
-          : 1
+      get tubeMapFrame() {
+        const drawing = self.layoutResult?.tubeMap
+        return drawing
+          ? tubeMapFrame(drawing, {
+              scaleX: self.scaleX,
+              translateX: self.translateX,
+              scaleY: self.scaleY,
+              translateY: self.translateY,
+              usableHeight: self.canvasHeight - FIT_PADDING * 2,
+            })
+          : undefined
       },
     }))
     .views(self => ({
-      // Tube coordinates to screen px for this frame. The tube map's own axis
-      // is the layout's x; the reference axis warps each column onto the bp
-      // it covers (tubeMap/warp.ts).
-      get tubeMapFrame() {
-        const drawing = self.layoutResult?.tubeMap
-        if (!drawing) {
-          return undefined
-        }
-        const { scaleX, translateX, translateY } = self
-        const scaleY = self.scaleY * self.tubeMapYScale
-        const y = (ty: number) => (ty - drawing.yOffset) * scaleY + translateY
-        const { columns } = drawing
-        if (columns) {
-          const knots = referenceKnots(columns, bp => bp * scaleX + translateX)
-          return { x: (tx: number) => warpX(knots, tx), y, yScale: scaleY }
-        }
-        return {
-          x: (tx: number) => tx * scaleX + translateX,
-          y,
-          yScale: scaleY,
-        }
-      },
-      // The node whose box is under a screen point. The canvas's hit test
-      // measures from a centreline and a stroke width, and a tube map box is
-      // as tall as the tubes through it.
       tubeMapNodeAt(sx: number, sy: number) {
         const drawing = self.layoutResult?.tubeMap
-        const frame = this.tubeMapFrame
-        let hit: string | null = null
-        if (drawing && frame) {
-          const { x, y } = frame
-          drawing.layout.nodes.forEach(node => {
-            if (
-              node.order >= 0 &&
-              x(node.x - NODE_BOX_PAD) <= sx &&
-              sx <= x(node.x + node.pixelWidth + NODE_BOX_PAD) &&
-              y(node.y - NODE_BOX_PAD) <= sy &&
-              sy <= y(node.y + node.contentHeight + NODE_BOX_PAD)
-            ) {
-              hit = node.name
-            }
-          })
-        }
-        return hit
+        const frame = self.tubeMapFrame
+        return drawing && frame ? tubeMapNodeAt(drawing, frame, sx, sy) : null
       },
     }))
     .actions(self => ({

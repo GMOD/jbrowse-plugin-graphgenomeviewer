@@ -1,5 +1,6 @@
 import { curvePaths, nodeOutlinePath } from '@gmod/tubemap-core'
 
+import type { TubeMapTransform } from './frame'
 import type { TrackType, TubeMapLayout } from '@gmod/tubemap-core'
 
 // Paints a tube map layout on a 2D canvas, in the order sequenceTubeMap's d3
@@ -190,12 +191,7 @@ function trace(
   }
 }
 
-export interface TubeMapFrame {
-  x: (tx: number) => number
-  y: (ty: number) => number
-  // screen px per tube px in y, which thins the node outlines of a squeezed
-  // stack along with its tubes
-  yScale?: number
+export interface TubeMapFrame extends TubeMapTransform {
   width: number
   highlightNode?: string | null
   darkMode?: boolean
@@ -253,7 +249,7 @@ export function drawTubeMap(
   }
   const stroke = frame.darkMode ? '#d0d0d0' : '#000000'
   const fill = frame.darkMode ? 'rgba(40,40,40,0.4)' : 'rgba(255,255,255,0.4)'
-  ctx.lineWidth = 2 * Math.max(0.25, Math.min(1, frame.yScale ?? 1))
+  ctx.lineWidth = 2 * Math.max(0.25, Math.min(1, frame.yScale))
   for (const node of picture.nodes) {
     if (visible(node)) {
       const lit = node.name === frame.highlightNode
