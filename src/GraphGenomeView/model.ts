@@ -218,19 +218,23 @@ export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
 type ViewportOwner = 'fit' | 'user' | 'host'
 
-function geometryPainted(model: {
-  lastGeometryStrokeCount?: number
-  viewportRebuildPending: boolean
-  geometryViewportDirty: number
+interface BuiltViewport {
+  scale: number
+  bounds: Bounds
   viewportDirty: number
-  paintedGeometryVersion: number
-  geometryVersion: number
+}
+
+function geometryPainted(model: {
+  viewportRebuildPending: boolean
+  viewportDirty: number
+  builtViewport?: BuiltViewport
+  paintedViewport?: BuiltViewport
 }) {
   return (
-    model.lastGeometryStrokeCount !== undefined &&
-    !model.viewportRebuildPending &&
-    model.geometryViewportDirty === model.viewportDirty &&
-    model.paintedGeometryVersion === model.geometryVersion
+    model.builtViewport !== undefined &&
+    model.paintedViewport === model.builtViewport &&
+    model.builtViewport.viewportDirty === model.viewportDirty &&
+    !model.viewportRebuildPending
   )
 }
 
@@ -458,7 +462,9 @@ export function GraphPaneMixin() {
       geometryVersion: 0,
       // The zoom and the window the current batch was built for; a pan that
       // stays inside it needs no rebuild.
-      builtViewport: undefined as { scale: number; bounds: Bounds } | undefined,
+      builtViewport: undefined as BuiltViewport | undefined,
+      // The builtViewport whose batch is on the canvas
+      paintedViewport: undefined as BuiltViewport | undefined,
       draggingNode: null as string | null,
       // Dragging the background rather than a node. Lives here beside
       // draggingNode instead of in a component ref+state pair, so the two
@@ -487,9 +493,7 @@ export function GraphPaneMixin() {
       lastLayoutMs: undefined as number | undefined,
       lastGeometryMs: undefined as number | undefined,
       lastGeometryStrokeCount: undefined as number | undefined,
-      paintedGeometryVersion: -1,
       viewportRebuildPending: false,
-      geometryViewportDirty: -1,
     }))
     .views(self => ({
       get defaultLayoutMode(): LayoutModeValue {
@@ -1288,12 +1292,11 @@ export function GraphPaneMixin() {
       ) {
         self.lastGeometryMs = ms
         self.lastGeometryStrokeCount = strokeCount
-        self.geometryViewportDirty = self.viewportDirty
-        self.builtViewport = built
+        self.builtViewport = { ...built, viewportDirty: self.viewportDirty }
         self.geometryVersion++
       },
-      markPainted(version: number) {
-        self.paintedGeometryVersion = version
+      markPainted() {
+        self.paintedViewport = self.builtViewport
       },
       setLayoutQuality(quality: number) {
         self.layoutQuality = quality
@@ -2423,7 +2426,7 @@ export function GraphPaneMixin() {
               dpr,
             })
             b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
-            self.markPainted(untracked(() => self.geometryVersion))
+            self.markPainted()
             return true
           },
         }))

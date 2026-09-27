@@ -331,8 +331,19 @@ describe('performance instrumentation', () => {
       bounds: { minX: 0, minY: 0, w: 1, h: 1 },
     })
     expect(model.showLoading).toBe(true)
-    model.markPainted(model.geometryVersion)
+    model.markPainted()
     expect(model.showLoading).toBe(false)
+
+    model.setGeometryMetrics(1, 3, {
+      scale: 1,
+      bounds: { minX: 0, minY: 0, w: 1, h: 1 },
+    })
+    expect(model.showLoading).toBe(true)
+    model.markPainted()
+    expect(model.showLoading).toBe(false)
+
+    model.setViewportDirty()
+    expect(model.showLoading).toBe(true)
   })
 
   test('clearGraph resets perf metrics', async () => {
