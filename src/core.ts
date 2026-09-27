@@ -109,3 +109,12 @@ export type {
   LayoutResult,
   NodeSegment,
 } from './GraphGenomeView/types'
+
+export {
+  cutWindowGFA,
+  haplotypeWanted,
+  referencePathQuery,
+  referenceSamplesOf,
+  resolveReferenceSample,
+} from './GbzBaseSyntenyAdapter/gbzWindow'
+export type { GbzWindowOptions } from './GbzBaseSyntenyAdapter/gbzWindow'
