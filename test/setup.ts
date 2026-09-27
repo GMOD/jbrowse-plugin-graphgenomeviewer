@@ -7,7 +7,8 @@ import { launch } from 'puppeteer'
 
 import type { Browser, Page } from 'puppeteer'
 
-export const JBROWSE_PORT = 9876
+// JBROWSE_PORT lets two sessions run the suites at once
+export const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
 
 // JBROWSE_TEST_DIR lets you point at a jbrowse-web built from a graph_viz
 // checkout (see forceLayout.test.ts); otherwise the versioned nightly dir.
@@ -142,7 +143,7 @@ export function setupJBrowse({
 
 // Written into the served dir rather than committed: it is derived from the rGFA
 // fixture, so it can't drift from it.
-export function writeServedFile(dest: string, contents: string) {
+export function writeServedFile(dest: string, contents: string | Uint8Array) {
   const target = path.join(TEST_JBROWSE_DIR, dest)
   fs.mkdirSync(path.dirname(target), { recursive: true })
   fs.writeFileSync(target, contents)
@@ -200,7 +201,8 @@ export async function startJBrowseServer() {
       `tcp://127.0.0.1:${JBROWSE_PORT}`,
       TEST_JBROWSE_DIR,
     ],
-    { stdio: ['ignore', 'pipe', 'pipe'] },
+    // its own process group, so cleanup reaches the serve that npx starts
+    { stdio: ['ignore', 'pipe', 'pipe'], detached: true },
   )
   proc.stdout.on('data', d => {
     console.log(`[serve] ${d}`.trimEnd())
@@ -213,18 +215,24 @@ export async function startJBrowseServer() {
   return proc
 }
 
+function killGroup(proc: ChildProcess, signal: NodeJS.Signals) {
+  try {
+    process.kill(-proc.pid!, signal)
+  } catch {
+    // already gone
+  }
+}
+
 export async function cleanupJBrowse() {
   const proc = jbrowseServer
-  if (proc && !proc.killed) {
+  if (proc?.pid !== undefined && proc.exitCode === null) {
     await new Promise<void>(resolve => {
       proc.on('close', () => {
         resolve()
       })
-      proc.kill('SIGTERM')
+      killGroup(proc, 'SIGTERM')
       setTimeout(() => {
-        if (!proc.killed) {
-          proc.kill('SIGKILL')
-        }
+        killGroup(proc, 'SIGKILL')
         resolve()
       }, 5000)
     })

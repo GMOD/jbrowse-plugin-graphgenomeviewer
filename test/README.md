@@ -10,6 +10,7 @@ Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 | `addGbzTrack.test.ts`    | a `.gbz.db` url does the same, finding GRCh38 from `hg38` with no PanSN map              |
 | `launchAndHover.test.ts` | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints |
 | `tubeMap.test.ts`        | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view    |
+| `tubeMapReads.test.ts`   | a GBZ track's GAF reads load through the worker and lay out under its tube map           |
 
 ## What `launchAndHover` demonstrates
 
@@ -57,6 +58,8 @@ Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 ```console
 JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 ```
+
+`JBROWSE_PORT` (9876) moves the server, so two sessions can run at once.
 
 **The host has to be at least 5.0.0-beta.9**, the version the plugin's
 `@jbrowse/*` dependencies are pinned to. An older host lacks core APIs the
