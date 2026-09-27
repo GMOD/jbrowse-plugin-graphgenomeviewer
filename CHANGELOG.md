@@ -1,3 +1,10 @@
+## [4.0.9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.8...v4.0.9) (2026-09-27)
+
+### Other Changes
+
+- Mismatch marks for tube map reads, in tube coordinates ([b5b7b08](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b5b7b08413ff7b31511ebb263400a10961e6b817))
+- The graph display registers for FeatureTrack and SyntenyTrack again, beside GraphTrack ([68e9c80](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/68e9c80e0a288200317a1065a8dfab001895fc86))
+
 ## [4.0.8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.7...v4.0.8) (2026-09-27)
 
 ### Other Changes
