@@ -592,6 +592,15 @@ test('a layout whose x is not reference bp draws its own viewport of the window 
   expect(graphX(pane, 2_030_000)).toBeCloseTo(lgvX(view, 2_030_000), 6)
 })
 
+test('walk rows fit their own bars in the track, since a walk can be longer than the window', async () => {
+  const { pane } = await shownGraph({ paths: true })
+  await pane.switchLayout('walkrows')
+  await wait(SETTLE_MS)
+  expect(pane.layoutResult?.referenceAxis).toBe(true)
+  expect(pane.hostPlacesX).toBe(false)
+  expect(pane.viewportOwner).toBe('fit')
+})
+
 test('a launch in the force layout cuts the window alone', async () => {
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)

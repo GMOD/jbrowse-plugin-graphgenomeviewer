@@ -1319,17 +1319,28 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // Whether the drawing's x is reference bp a host can place. Walk rows
+      // put the backbone at its bp too, but their bars are lengths, so the
+      // mode's `cutMargins` is what says the drawing is a picture.
+      get xIsReferenceBp() {
+        return (
+          self.layoutResult?.referenceAxis === true &&
+          layoutModeByValue(self.chosenLayoutMode).cutMargins
+        )
+      },
+    }))
+    .views(self => ({
       // Whether the host places x. Only a layout whose x is reference bp can
       // take the window's transform; force, ordered and walk rows draw in
       // their own coordinates inside the track, and a popped bubble is a
       // picture of its own.
       get hostPlacesX() {
-        const { host, graphRegion: region, layoutResult: layout } = self
+        const { host, graphRegion: region } = self
         return (
           host !== undefined &&
           host.initialized &&
           region !== undefined &&
-          layout?.referenceAxis === true &&
+          self.xIsReferenceBp &&
           self.popStack.length === 0 &&
           !host.dynamicBlocks.contentBlocks.some(
             b => b.refName === region.refName && b.reversed,
@@ -1813,7 +1824,7 @@ export function GraphPaneMixin() {
       // whose x no longer means bp is refit.
       releaseHost() {
         if (self.viewportOwner === 'host') {
-          if (self.layoutResult?.referenceAxis) {
+          if (self.xIsReferenceBp) {
             self.viewportOwner = 'user'
           } else {
             self.viewportOwner = 'fit'
