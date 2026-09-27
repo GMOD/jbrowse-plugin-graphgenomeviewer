@@ -6,6 +6,7 @@ import {
   launchBrowser,
   setupJBrowse,
   startJBrowseServer,
+  waitForAppReady,
   waitForReactMount,
 } from './setup'
 
@@ -58,12 +59,10 @@ describe.skipIf(!runE2E)('force-directed layout in a real JBrowse', () => {
     })
     // reload so the request listener sees the chunk fetch from a clean state
     await page.reload({ waitUntil: 'networkidle2', timeout: 60_000 })
-    await page.waitForFunction(
-      () =>
-        [...document.querySelectorAll('*')].some(el =>
-          /\d+ nodes, \d+ edges/.test(el.textContent),
-        ),
-      { timeout: 120_000 },
+    await waitForAppReady(page, () =>
+      [...document.querySelectorAll('*')].some(el =>
+        /\d+ nodes, \d+ edges/.test(el.textContent),
+      ),
     )
     expect(chunkRequests.length).toBeGreaterThan(0)
     // esbuild's chunkNames is `chunks/[name]-[hash]`, so the engine arrives as
