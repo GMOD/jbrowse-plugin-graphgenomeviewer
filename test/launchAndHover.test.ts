@@ -277,4 +277,27 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     expect(after.nodeCount).toBeGreaterThan(0)
     await screenshot(page, 'demo-03-graph-track-recut')
   }, 240_000)
+
+  // Last, since it closes the view. No action may run on the graph display
+  // once it is dead; a callback that lands late checks at the time of use. Bare
+  // reads during the teardown are core's order of destroy before unmount, and
+  // its own displays show them too.
+  it('closing the view runs nothing on the dead graph display', async () => {
+    const dead: string[] = []
+    page.on('console', msg => {
+      const text = msg.text()
+      if (
+        text.includes("Object type: 'LinearGraphDisplay'") &&
+        !text.includes("Action: ''")
+      ) {
+        dead.push(text.slice(0, 300))
+      }
+    })
+    await page.evaluate((viewId: string) => {
+      const session = window.JBrowseSession
+      session.removeView(session.views.find(v => v.id === viewId))
+    }, LGV_ID)
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    expect(dead).toEqual([])
+  }, 60_000)
 })

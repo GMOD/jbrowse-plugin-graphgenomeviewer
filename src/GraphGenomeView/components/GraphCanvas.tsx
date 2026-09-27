@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
+import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
@@ -283,8 +284,11 @@ const Legends = observer(function Legends({
     if (!el) {
       return
     }
+    // the last callback can land after the track is closed
     const observer = new ResizeObserver(() => {
-      model.setLegendSize({ width: el.offsetWidth, height: el.offsetHeight })
+      if (isAlive(model)) {
+        model.setLegendSize({ width: el.offsetWidth, height: el.offsetHeight })
+      }
     })
     observer.observe(el)
     return () => {

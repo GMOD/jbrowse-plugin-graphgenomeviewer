@@ -1,7 +1,7 @@
 import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
 import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
-import { types } from '@jbrowse/mobx-state-tree'
+import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
 import LinearGraphDisplayF from './index'
@@ -161,6 +161,7 @@ function createEnvironment({ tiered = true } = {}) {
   }
 
   const cuts: Cut[] = []
+  const errors: string[] = []
   // while set, a cut waits for the test to answer it
   let held: ((answer: () => void) => void) | undefined
   const signals: AbortSignal[] = []
@@ -244,7 +245,9 @@ function createEnvironment({ tiered = true } = {}) {
         return view
       },
       notify() {},
-      notifyError() {},
+      notifyError(message: string) {
+        errors.push(message)
+      },
       queueDialog() {},
     }))
 
@@ -254,7 +257,7 @@ function createEnvironment({ tiered = true } = {}) {
   )
   view.setWidth(WIDTH_PX)
   view.setDisplayedRegions(assemblyRegions)
-  return { session, view, cuts, holdCuts, signals, rpcCall }
+  return { session, view, cuts, errors, holdCuts, signals, rpcCall }
 }
 
 function lgvX(view: { bpPerPx: number; offsetPx: number }, bp: number) {
@@ -513,8 +516,8 @@ test('a launch that states one choice takes the rest from the config', async () 
   expect(display.hostPlacesX).toBe(true)
 })
 
-test("a 4.0 session's pane state still loads", () => {
-  const { view } = createEnvironment()
+test("a 4.0 session's pane state still loads, and is not reported as an unknown key", () => {
+  const { view, errors } = createEnvironment()
   view.showTrack(
     'graph',
     {},
@@ -525,6 +528,18 @@ test("a 4.0 session's pane state still loads", () => {
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   expect(display.chosenLayoutMode).toBe('force')
+  expect(errors).toEqual([])
+  expect(getSnapshot(display).pane).toBeUndefined()
+})
+
+test('closing a drawn track reads nothing of the dead display', async () => {
+  const { display, view } = await shownGraph()
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  view.hideTrack('graph')
+  await wait(SETTLE_MS)
+  expect(warn.mock.calls.map(c => String(c[0])).join('\n')).not.toMatch(
+    /findParentThat|no longer part of a state tree/,
+  )
 })
 
 test('a GBZ track cuts for the lanes it names', async () => {

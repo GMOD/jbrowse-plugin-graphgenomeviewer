@@ -49,6 +49,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         types.model({
           type: types.literal('LinearGraphDisplay'),
           configuration: ConfigurationReference(configSchema),
+          // A 4.0 entry's nested state, which preProcessSnapshot folds flat and
+          // so never holds. Declared so a session spec stating it is not
+          // reported as an unknown key.
+          pane: types.maybe(types.frozen()),
           // the window the graph on screen was asked for, so a restored
           // session cuts it again
           cutRegion: types.maybe(types.frozen<SubgraphRegion>()),
