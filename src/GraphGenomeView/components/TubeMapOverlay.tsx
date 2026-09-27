@@ -74,7 +74,13 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
           )
           const boxes = model.tubeMapRulerBoxes
           if (boxes) {
-            drawTubeMapRuler(ctx, boxes, tubeFrame, frame.y(bounds.maxY) + 4)
+            drawTubeMapRuler(
+              ctx,
+              boxes,
+              tubeFrame,
+              frame.y(bounds.maxY) + 4,
+              model.layoutResult?.referenceAxis,
+            )
           }
         }
       }),
@@ -163,7 +169,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
       {logWidths ? (
         <div style={legendRowStyle}>
           <BracketSwatch />
-          <span>box width grows with the log of its length</span>
+          <span>width grows with log of length</span>
         </div>
       ) : null}
     </div>
