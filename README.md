@@ -2,15 +2,29 @@
 
 Pangenome graphs in JBrowse 2.
 
-![KIV-2 as a graph track under a linear view, force-directed, with its bubbles marked](img/force_kiv2.png)
+## As a track of a linear view
+
+A `GraphTrack` cuts the graph for the view's window and redraws it as you pan.
+
+![KIV-2 as a graph track under RefSeq genes, force-directed, with its bubbles marked](img/force_kiv2.png)
+
+![MICB as a tube map track, eight HPRC haplotypes on the reference axis, genes drawn above the tubes](img/tube_map_micb_track.png)
+
+## As its own view
+
+**Add → Graph genome view** opens a whole GFA file. A session spec's
+`loadedTrackId` and `loadedRegion` open a track's cut there instead.
+
+![MICB's exons 2–4 as a tube map on its own axis, with the reference ruler under it](img/tube_map_micb.png)
 
 ![KIV-2 walk rows: eight haplotypes tiled by the repeat unit](img/walk_rows_kiv2.png)
 
-![Tube maps, and a tube map track under a linear view](img/tube_map.png)
+## Features
 
 - Eight layouts: force-directed (Bandage FMMM), variant map, ordered, anchored,
   sample rows, walk rows, and sequenceTubeMap's tube map on its own axis or the
   reference's
+- Genes from the session's annotation track, drawn on the graph
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, one walk lifted out
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
@@ -32,7 +46,6 @@ Needs JBrowse 5.0.0-beta.9 or later.
 
 - **File → Open track** opens an rGFA index (`.segs.bed.gz` from
   `build_rgfa_tabix.sh`) or a gbz-base database (`.gbz.db`) as a `GraphTrack`
-- **Add → Graph genome view** opens a whole GFA file
 - A hand-written track needs only the adapter:
 
 ```json

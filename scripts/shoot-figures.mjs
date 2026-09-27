@@ -8,8 +8,9 @@
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //
 // tube_map.png and tube_map_reads.png draw local fixtures, not the demo: they
-// are frames of test/tubeMap.test.ts and test/tubeMapReads.test.ts, the reads
-// one at ref:23,555-23,615 with the track 520 px tall.
+// are frames of test/tubeMap.test.ts (its two standalone views, cropped) and
+// test/tubeMapReads.test.ts, the reads one at ref:23,555-23,615 with the track
+// 520 px tall.
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -29,6 +30,7 @@ const KIV2 = {
 }
 const KIV2_ARRAY = { ...KIV2, start: 160614798, end: 160647758 }
 const MHC = { ...KIV2, start: 32510000, end: 32600000 }
+const MICB_EXONS = { ...KIV2, start: 31505400, end: 31507400 }
 const HAPLOTYPES = [
   'HG00097.1',
   'HG00099.1',
@@ -145,6 +147,38 @@ const FIGURES = {
       })
     },
   },
+  tube_map_micb_track: {
+    views: [
+      {
+        type: 'LinearGenomeView',
+        assembly: 'hg38',
+        loc: 'chr6:31,492,000-31,514,000',
+        tracks: [
+          {
+            trackId: GENES,
+            type: 'LinearBasicDisplay',
+            geneGlyphMode: 'longestCoding',
+            displayMode: 'compact',
+            height: 60,
+          },
+          {
+            trackId: GBZ,
+            type: 'LinearGraphDisplay',
+            layoutMode: 'tubemapref',
+            subgraphHaplotypes: HAPLOTYPES,
+            height: 360,
+          },
+        ],
+      },
+    ],
+  },
+  tube_map_micb: graphView({
+    loadedTrackId: GBZ,
+    loadedRegion: MICB_EXONS,
+    subgraphHaplotypes: HAPLOTYPES,
+    layoutMode: 'tubemap',
+    paneHeight: 360,
+  }),
   force_mhc: graphView({
     loadedTrackId: RGFA,
     loadedRegion: MHC,
