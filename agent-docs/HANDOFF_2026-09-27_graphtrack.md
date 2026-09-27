@@ -6,8 +6,11 @@
   (`82b2ead`). 4.0.7 has no `GraphTrack` type at all.
 - The user chose to move every hosted config to `GraphTrack` rather than keep
   accepting `FeatureTrack`/`SyntenyTrack`.
-- jbrowse-plugin-list's `plugins.json` pins this plugin to 4.0.7, so the live
-  configs are safe until that pin moves.
+- Update 03:03 GMT: the store briefly served 4.0.8, so hosted graph tracks
+  stopped attaching. Session -41 then released 4.0.9 (`68e9c80`), which
+  registers the display for `GraphTrack`, `FeatureTrack` and `SyntenyTrack`, and
+  moved the store pin to it (plugin-list `d9e376c`). The live demo draws again.
+  Configs can now land and upload in any order.
 
 ## State
 
@@ -45,18 +48,12 @@
    `graph-ecoli.ts`, `pangenome_cactus.ts`, then `pnpm autogen` for
    `hostedConfigs.generated.ts`/`liveLinks.generated.ts`.
 4. **Land** the jbrowse-components branch: rebase and fast-forward.
-5. **Deploy**, needing the user's go-ahead, in this order:
-   - bump the plugin-list pin to 4.0.8 or later, then
-     `pnpm update-plugins && pnpm upload && pnpm invalidate`;
-   - redeploy the demo configs with `scripts/deploy-demo.sh`;
-   - upload jb2hubs' portal configs.
-
-   Store first: 4.0.8 with an old `FeatureTrack` config only falls back to the
-   segments display, while a `GraphTrack` config on 4.0.7 loses the track. Check
-   with `node scripts/checkConfigCompat.mjs` in jb2hubs.
-
-6. **Saved sessions and copied configs** in the wild still name `FeatureTrack`.
-   The user accepted that break.
+5. **Deploy**, with the user's go-ahead: `scripts/deploy-demo.sh` for the demo
+   configs, and upload jb2hubs' portal configs. Any order is fine on 4.0.9.
+6. **Tell session -41** once the specs are on jbrowse-components `main`; it will
+   reshoot the graph figures on the latest plugin.
+7. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
+   `FeatureTrack` and `SyntenyTrack`.
 
 ## Tube map (done)
 
