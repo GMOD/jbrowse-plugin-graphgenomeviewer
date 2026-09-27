@@ -22,13 +22,18 @@ export interface NodeStroke {
   color: number
 }
 
-// One head per edge, at the edge's end, pointing along its tangent. `size` is
-// its half-extent in css px, so a head is the same size at every zoom.
+// One head per edge, pointing along its end tangent. (x, y) is the edge's end
+// in layout units; every other measure is css px, applied after the transform
+// so a head is the same size at every zoom. The tip sits `inset` px back from
+// (x, y), on the outline of the node the edge enters rather than on its
+// centreline.
 export interface Arrowhead {
   x: number
   y: number
   angle: number
-  size: number
+  inset: number
+  length: number
+  halfWidth: number
   color: number
 }
 

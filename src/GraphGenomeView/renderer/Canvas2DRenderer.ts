@@ -7,7 +7,12 @@ import { Canvas2DRenderingBackendBase } from '@jbrowse/render-core/renderingBack
 
 import { brightenAbgr } from './colorBits'
 
-import type { RenderBatch, Renderer, TransformUniform } from './types'
+import type {
+  Arrowhead,
+  RenderBatch,
+  Renderer,
+  TransformUniform,
+} from './types'
 
 // Everything is drawn as a handful of paths, one per distinct (colour, weight),
 // rather than one path per thing. A drawing is mostly runs of one colour, and
@@ -182,21 +187,11 @@ export class Canvas2DRenderer
       ctx.fillStyle = abgrToCssRgba(color)
       ctx.beginPath()
       for (const a of items) {
-        // The tip sits on the edge's end; the two barbs are `size` css px back
-        // along either side of the tangent, expanded after the transform so
-        // the head is the same size at every zoom.
-        const tipX = a.x * t.scaleX + t.translateX
-        const tipY = a.y * t.scaleY + t.translateY
-        const reach = a.size * t.dpr
-        ctx.moveTo(tipX, tipY)
-        ctx.lineTo(
-          tipX - Math.cos(a.angle - 0.5) * reach,
-          tipY - Math.sin(a.angle - 0.5) * reach,
-        )
-        ctx.lineTo(
-          tipX - Math.cos(a.angle + 0.5) * reach,
-          tipY - Math.sin(a.angle + 0.5) * reach,
-        )
+        const [tip, left, notch, right] = arrowheadOutline(a, t)
+        ctx.moveTo(tip.x, tip.y)
+        ctx.lineTo(left.x, left.y)
+        ctx.lineTo(notch.x, notch.y)
+        ctx.lineTo(right.x, right.y)
         ctx.closePath()
       }
       ctx.fill()
@@ -209,6 +204,30 @@ export class Canvas2DRenderer
     this.nodeHighlights = new Map()
     this.highlightedEdge = null
   }
+}
+
+// How far the back of the head is cut in toward the tip, as a fraction of its
+// length. The notch leaves the edge showing through the back of the head, so
+// the head reads as the end of the edge rather than a triangle laid over it.
+const ARROW_NOTCH = 0.25
+
+// Tip, left barb, notch and right barb in backing-store px.
+export function arrowheadOutline(a: Arrowhead, t: TransformUniform) {
+  const ux = Math.cos(a.angle)
+  const uy = Math.sin(a.angle)
+  const tipX = a.x * t.scaleX + t.translateX - ux * a.inset * t.dpr
+  const tipY = a.y * t.scaleY + t.translateY - uy * a.inset * t.dpr
+  const length = a.length * t.dpr
+  const halfWidth = a.halfWidth * t.dpr
+  const backX = tipX - ux * length
+  const backY = tipY - uy * length
+  const notchBack = length * (1 - ARROW_NOTCH)
+  return [
+    { x: tipX, y: tipY },
+    { x: backX - uy * halfWidth, y: backY + ux * halfWidth },
+    { x: tipX - ux * notchBack, y: tipY - uy * notchBack },
+    { x: backX + uy * halfWidth, y: backY - ux * halfWidth },
+  ] as const
 }
 
 function inRun(run: { start: number; count: number } | undefined, i: number) {

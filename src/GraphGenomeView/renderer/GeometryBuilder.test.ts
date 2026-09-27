@@ -721,3 +721,81 @@ describe('one arrowhead per edge, whatever crosses it', () => {
     expect(colorOf(ribboned)).toBe(colorOf(plain))
   })
 })
+
+describe('arrowhead placement', () => {
+  function headOf(
+    positions: Record<string, { x: number; y: number }[]>,
+    scale: number,
+    connectorThickness = 2,
+  ) {
+    return buildGeometry({
+      nodePositions: positions,
+      graph: simpleGraph,
+      nodeById: simpleNodeById,
+      colorScheme: 'uniform',
+      contigThickness: 6,
+      connectorThickness,
+      drawPaths: false,
+      axis: iso(scale),
+    }).arrows[0]
+  }
+
+  test('the tip stops on the outline of the node it enters', () => {
+    expect(headOf(simplePositions, 4)).toMatchObject({ x: 20, y: 0, inset: 3 })
+  })
+
+  test('a heavier edge draws a bigger head', () => {
+    const thin = headOf(simplePositions, 4, 2)!
+    const heavy = headOf(simplePositions, 4, 6)!
+    expect(heavy.length).toBeGreaterThan(thin.length)
+    expect(heavy.halfWidth).toBeGreaterThan(thin.halfWidth)
+  })
+
+  test('an edge too short for its head drops it until a zoom lengthens it', () => {
+    const tight = {
+      ...simplePositions,
+      'B+': [
+        { x: 11, y: 0 },
+        { x: 21, y: 0 },
+      ],
+    }
+    expect(headOf(tight, 1)).toBeUndefined()
+    expect(headOf(tight, 10)).toBeDefined()
+  })
+
+  // an anchored layout's joint: the edge has no length, so no curve direction
+  test('an abutting edge points into the node it enters, on the joint', () => {
+    const head = headOf(
+      {
+        'A+': [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ],
+        'B+': [
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+        ],
+      },
+      4,
+    )!
+    expect(head.inset).toBe(0)
+    expect(head.angle).toBeCloseTo(Math.PI / 2, 6)
+  })
+})
+
+// With the last control point on the endpoint, the tangent's limit at t=1 runs
+// from the first control point, not along the chord.
+test('endTangent reads the first control point when the last is degenerate', () => {
+  expect(
+    endTangent({
+      x0: 0,
+      y0: 0,
+      cx0: 10,
+      cy0: 0,
+      cx1: 10,
+      cy1: 10,
+      x1: 10,
+      y1: 10,
+    }),
+  ).toBeCloseTo(Math.PI / 2, 6)
+})

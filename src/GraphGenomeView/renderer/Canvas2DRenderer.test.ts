@@ -1,4 +1,4 @@
-import { Canvas2DRenderer } from './Canvas2DRenderer'
+import { Canvas2DRenderer, arrowheadOutline } from './Canvas2DRenderer'
 import { buildGeometry } from './GeometryBuilder'
 import { recordingCanvas } from './recordingCanvas'
 
@@ -201,5 +201,30 @@ describe('a thickness is css pixels, whatever the device ratio', () => {
     // connectorThickness 4 is a half-width of 2, so a 4 px stroke at ratio 1
     expect(drawn(1).edgeWidth).toBeCloseTo(4, 5)
     expect(drawn(2).edgeWidth).toBeCloseTo(8, 5)
+  })
+})
+
+describe('arrowheadOutline', () => {
+  const head = { x: 50, y: 0, angle: 0, inset: 3, length: 10, halfWidth: 4 }
+
+  test('the tip is inset back along the tangent, the barbs a length behind', () => {
+    const [tip, left, notch, right] = arrowheadOutline(
+      { ...head, color: 0 },
+      TRANSFORM,
+    )
+    expect(tip).toEqual({ x: 47, y: 0 })
+    expect(left).toEqual({ x: 37, y: 4 })
+    expect(right).toEqual({ x: 37, y: -4 })
+    expect(notch.x).toBeGreaterThan(37)
+    expect(notch.x).toBeLessThan(47)
+  })
+
+  test('every px measure scales with the ratio, like a stroke weight', () => {
+    const [tip, left] = arrowheadOutline(
+      { ...head, color: 0 },
+      { ...TRANSFORM, scaleX: 2, scaleY: 2, dpr: 2 },
+    )
+    expect(tip).toEqual({ x: 94, y: 0 })
+    expect(left).toEqual({ x: 74, y: 8 })
   })
 })

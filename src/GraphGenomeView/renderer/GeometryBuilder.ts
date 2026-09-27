@@ -89,11 +89,91 @@ const MIN_PATH_STRIPE_PX = 1.2
 // Guards the screen-px-to-world division below against a degenerate transform.
 const MIN_SCALE_FOR_OFFSET = 1e-6
 
-// Half-extent of an arrowhead, in SCREEN px: the renderer expands it after the
-// transform (see TransformUniform), so an arrowhead is the same size at every
-// zoom.
-const ARROWHEAD_SIZE = 12
+// An arrowhead's size in SCREEN px, grown from the half-width of the edge it
+// ends: the renderer expands it after the transform (see TransformUniform), so
+// a head is the same size at every zoom. A fixed 12 px head was twice the width
+// of a default 6 px node and hid the 1 bp nodes it pointed at; this one is about
+// a node wide on a default edge and grows with a deletion's or a walk's weight.
+const ARROW_LENGTH_BASE_PX = 7
+const ARROW_LENGTH_PER_EDGE_PX = 3
+const ARROW_HALF_WIDTH_BASE_PX = 3
+const ARROW_HALF_WIDTH_PER_EDGE_PX = 1.5
+// A head on an edge shorter than itself would overhang the node it leaves, so
+// it shrinks to fit, and below this fraction of its size it is dropped until a
+// zoom lengthens the edge. In a tight bubble the old heads, laid over every
+// 1 bp allele, were most of the ink.
+const MIN_ARROW_FIT = 0.5
 const MIN_ARROW_SCALE = 0.45
+
+// Length of a run of curves in screen px, as the mean of each chord and control
+// polygon, which bracket the arc.
+function drawnLengthPx(curves: BezierCurve[], scale: number, yToX: number) {
+  let sum = 0
+  for (const c of curves) {
+    const chord = Math.hypot(c.x1 - c.x0, (c.y1 - c.y0) * yToX)
+    const poly =
+      Math.hypot(c.cx0 - c.x0, (c.cy0 - c.y0) * yToX) +
+      Math.hypot(c.cx1 - c.cx0, (c.cy1 - c.cy0) * yToX) +
+      Math.hypot(c.x1 - c.cx1, (c.y1 - c.cy1) * yToX)
+    sum += (chord + poly) / 2
+  }
+  return sum * scale
+}
+
+// Bandage's rule, from GraphicsItemNode::shape: a node's arrow is sized by the
+// node's own width. Here the head belongs to the edge, so the edge sets its
+// size, and the node it enters sets where the tip stops. The tip lands on that
+// node's outline, which a round cap puts `nodeHalfWidth` from the endpoint in
+// every direction; on the centreline it sank half a node deep and covered the
+// node's first few px. Only as far as the edge is long, so an abutting joint,
+// which has no length to fit to and no other mark of its direction, keeps its
+// head on the joint.
+function arrowheadFor(
+  curves: BezierCurve[],
+  edgeHalfWidth: number,
+  nodeHalfWidth: number,
+  scale: number,
+  yToX: number,
+  color: number,
+  toSegments: NodeSegment[],
+): Arrowhead | undefined {
+  const last = curves[curves.length - 1]!
+  const lengthPx = drawnLengthPx(curves, scale, yToX)
+  const inset = Math.min(nodeHalfWidth, lengthPx)
+  const length = ARROW_LENGTH_BASE_PX + ARROW_LENGTH_PER_EDGE_PX * edgeHalfWidth
+  const fit = lengthPx === 0 ? 1 : Math.min(1, (lengthPx - inset) / length)
+  if (fit < MIN_ARROW_FIT) {
+    return undefined
+  }
+  return {
+    x: last.x1,
+    y: last.y1,
+    angle: endTangent(last, yToX, intoDirection(last, toSegments)),
+    inset,
+    length: length * fit,
+    halfWidth:
+      (ARROW_HALF_WIDTH_BASE_PX +
+        ARROW_HALF_WIDTH_PER_EDGE_PX * edgeHalfWidth) *
+      fit,
+    color,
+  }
+}
+
+// The way into a node from the end an edge reaches it at: the direction an
+// abutting edge, which has no length of its own, points.
+function intoDirection(last: BezierCurve, toSegments: NodeSegment[]) {
+  if (toSegments.length < 2) {
+    return undefined
+  }
+  const first = toSegments[0]!
+  const final = toSegments[toSegments.length - 1]!
+  const atStart =
+    Math.hypot(last.x1 - first.x, last.y1 - first.y) <=
+    Math.hypot(last.x1 - final.x, last.y1 - final.y)
+  return atStart
+    ? { from: first, to: toSegments[1]! }
+    : { from: final, to: toSegments[toSegments.length - 2]! }
+}
 
 // Per-point unit normals of a polyline, mitred at the interior joints so a
 // stripe slid along them keeps a constant distance from the node's own outline
@@ -489,24 +569,37 @@ export function getNodeColor(
   }
 }
 
-// A cubic's tangent at t=1 runs from its last control point to its endpoint, so
-// an arrowhead's angle needs no tessellation. A control point sitting exactly on
-// the endpoint states no direction there; the chord is the only thing left.
+// The SCREEN angle an arrowhead points: a cubic's tangent at t=1, which runs
+// from its last control point to its endpoint, so no tessellation is needed.
+// The head is expanded from a screen-px size after the transform, so its
+// direction has to be the drawn one too, and `yToX` puts the y difference in x
+// units first.
 //
-// Exported for the test that checks it against a numerically differentiated
-// curve: arrow angles previously came from the last two tessellated points, and
-// this has to reproduce that direction to keep arrowheads pointing along the edge.
-// The angle an arrowhead points, which is a SCREEN angle: the head is expanded
-// from a screen-px size (addArrowhead offsets by `normal * size` after the
-// transform), so its direction has to be the drawn one too. `yToX` is what puts
-// the y difference in the same units as the x one; on an isotropic layout it is
-// 1 and the ratio inside atan2 is unchanged.
-export function endTangent(c: BezierCurve, yToX = 1) {
-  const dx = c.x1 - c.cx1
-  const dy = (c.y1 - c.cy1) * yToX
-  return Math.hypot(dx, dy) > 0
-    ? Math.atan2(dy, dx)
-    : Math.atan2((c.y1 - c.y0) * yToX, c.x1 - c.x0)
+// A control point on the endpoint states no direction there. The tangent's
+// limit as t -> 1 then runs from the FIRST control point, and failing that from
+// the start. An edge with no length at all, the abutting joint of an anchored
+// layout, has none of those, and `into` (the way into the node it enters) is
+// what is left; without it such a head pointed along +x whatever the node did.
+export function endTangent(
+  c: BezierCurve,
+  yToX = 1,
+  into?: { from: NodeSegment; to: NodeSegment },
+) {
+  const candidates: [number, number][] = [
+    [c.cx1, c.cy1],
+    [c.cx0, c.cy0],
+    [c.x0, c.y0],
+  ]
+  for (const [x, y] of candidates) {
+    const dx = c.x1 - x
+    const dy = (c.y1 - y) * yToX
+    if (Math.hypot(dx, dy) > 0) {
+      return Math.atan2(dy, dx)
+    }
+  }
+  return into
+    ? Math.atan2((into.to.y - into.from.y) * yToX, into.to.x - into.from.x)
+    : 0
 }
 
 // Whether any part of a node's polyline falls inside the viewport. Testing the
@@ -730,6 +823,11 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
       : onWalk
         ? EDGE_WALK_COLOR
         : fadeAbgr(plainEdgeColor, FADED_ALPHA)
+    const toNode = nodeById.get(edge.to)
+    const intoHalfWidth =
+      (toNode
+        ? nodeWidthPx(toNode, contigThickness, nodeWidth, depthNorm)
+        : contigThickness) / 2
     const buildSingleEdge = (
       offsetX: number,
       offsetY: number,
@@ -762,15 +860,20 @@ export function buildGeometry(options: BuildOptions): RenderBatch {
         edgeCurves.push({ curves, thickness: edgeThickness, color })
       }
 
-      if (showArrows && arrowColor !== undefined) {
-        const last = curves[curves.length - 1]!
-        arrows.push({
-          x: last.x1,
-          y: last.y1,
-          angle: endTangent(last, yToX),
-          size: ARROWHEAD_SIZE,
-          color: arrowColor,
-        })
+      const head =
+        showArrows && arrowColor !== undefined
+          ? arrowheadFor(
+              curves,
+              edgeThickness,
+              intoHalfWidth,
+              scale,
+              yToX,
+              arrowColor,
+              toSegments,
+            )
+          : undefined
+      if (head) {
+        arrows.push(head)
       }
     }
 
