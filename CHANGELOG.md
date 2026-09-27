@@ -1,3 +1,37 @@
+## [4.0.10](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.9...v4.0.10) (2026-09-27)
+
+### Other Changes
+
+- The tube map draws GAF reads aligned to the graph ([a4c8946](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a4c8946dddd24cd56bcb9cb93d6b491da975c7f6))
+- A GBZ graph track reads its GAF alignments into the tube map ([2847939](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/28479395efc4f005b53553de064c7442ec586610))
+- The tube map paints its reads' mismatches ([7f51140](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7f51140ee8717ce7467179ec92e799cee7f7ab26))
+- GAF reads in the tube map ([0dee69b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0dee69bd2691d27f0e438fe3860560fae5aafa14))
+- A GBZ track's GAF reads in a tube map track, on a port of its own ([a19da14](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a19da142e8af199875e4101b06b475162e4c5bfb))
+- The GraphTrack config migration, what is done and the deploy order ([c23e335](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c23e3353848dab7d2c9980fc8660b5f5f48dbae7))
+- Tube map reads, and what the GAF index still waits on ([01a7a4a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/01a7a4adb8c753287a39f718d1dbd5c0d33ed18b))
+- 4.0.9 reads both track shapes, so the configs can move in any order ([a4d6655](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a4d66558b9c5f9c61305387963c27cb0abc3c1ab))
+- GraphTrack, Add track for rGFA and gbz-base, and paint readiness ([6cd95c2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6cd95c22af68142210ca15aa4c169e4837e2df92))
+- Fold layout-experiments.md into ADR-042 ([85fe286](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/85fe286e53d0c71b6739c927bb118c72c280e5e5))
+- Fix the ordered width formula, tighten prose ([6f45534](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6f45534193bc7e90c8a63e653417131be67fce0b))
+- Pin the tube map exports BandageJS imports; drop clampZoom, which it no longer does ([490e79c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/490e79cf663f1f5325ecda22ca8607d79075a1bf))
+- Drop misc.md: the core-published export pin landed in 490e79c ([d72a62a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d72a62a151910550dd0ea9f9f4f7385e0e7347e7))
+- Prune agent-docs of shipped handoffs; drop unused images ([5a19563](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5a195632e57705e1238ad918fdd453e492812288))
+- Fold the three GBZ docs into agent-docs/GBZ.md; trim the reads handoff ([eb5490f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/eb5490fddde7ccb6498f2723b080b70240a80655))
+- GraphTrack configs landed on jbrowse-components main; the demo deploy waits on a go-ahead ([b017dcd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b017dcdf2439c272cf55f162c5e8f556ce2a2f3b))
+- The GraphTrack demo configs are deployed; figures remain ([b79f470](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b79f470747111792f1fc2fb871130eecc0e6ac82))
+- Add track recognises a graph file whose url carries a query string ([e2bc30e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e2bc30e09197a8b33087adc0bad635a91112f999))
+- Paint readiness keys on one stamp: the build record on the canvas ([2b70d3f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2b70d3f58e957be04b4c5c2aba585084be2d8f2b))
+- Force layout e2e waits for app-ready, not the stats line ([d444399](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d444399c06883d973717921d699f432a5e37e360))
+- Query-string urls, one paint stamp, and the served launch check ([addf58d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/addf58d827b84e1d9f86a0739b159a8b8dbeddf5))
+- Arrowheads sized by their edge and stopped at the node outline ([4becf67](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4becf67a1b4581890e03323fa92aaff38c09294f))
+- Self-loops sized in screen px from their node ([5b8c9f6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5b8c9f64e411bcef69238c381c1a7d471bbed6e6))
+- Arrowheads lie along the curve they end, not its end tangent ([1c03d02](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1c03d022adaa434514612134101dd88440d49087))
+- Hairpin links draw as a teardrop off the end they name ([31b759d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/31b759d3148f43c8afb86a31750ffd0b412f8b1b))
+- A joint's arrowhead needs room on the node it leaves ([6f8fa25](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6f8fa2590e16ec2e5e73a7036bea81a064b672e1))
+- The force layout attaches a link at the ends its strands name ([ec10976](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ec109762f5047f8a2a5e22f90907723eeadcf193))
+- Arrowhead halo and pointed node ends, and what blocks them ([baa69ca](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/baa69ca2222c725993b670566f4040c49363077e))
+- A gbz-base GraphTrack opens in synteny, dotplot and circular views ([482cf17](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/482cf1751446d05a9f65493ba27c1cbdca19c574))
+
 ## [4.0.9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.8...v4.0.9) (2026-09-27)
 
 ### Other Changes
