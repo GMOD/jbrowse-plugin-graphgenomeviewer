@@ -2,9 +2,19 @@ import { firstNodeAtOrAfter, isBackbone } from '../anchoredNodes'
 import { polylineSlice } from '../layout/mergeRuns'
 import { svgPath } from '../util/geometry'
 
-import type { GeneModel } from './geneFeatures'
 import type { AnchoredNode } from '../anchoredNodes'
 import type { Graph, NodeSegment } from '../types'
+
+// A gene as the pins need it: its name, its span on the reference, and the
+// exons of all its transcripts merged into one set of intervals.
+export interface GeneModel {
+  name: string
+  refName: string
+  start: number
+  end: number
+  strand: number
+  exons: { start: number; end: number }[]
+}
 
 // A gene drawn onto the graph: its exons as stretches of the backbone nodes
 // that carry them, in layout units, and one point on the backbone to pin its

@@ -105,7 +105,7 @@ import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
 import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
-import type { GeneModel } from './genes/geneFeatures'
+import type { GeneModel } from './genes/genePins'
 import type { LinearHost } from './host'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'

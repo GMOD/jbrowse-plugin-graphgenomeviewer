@@ -1,15 +1,5 @@
+import type { GeneModel } from './genePins'
 import type { Feature } from '@jbrowse/core/util'
-
-// A gene as the pins need it: its name, its span on the reference, and the
-// exons of all its transcripts merged into one set of intervals.
-export interface GeneModel {
-  name: string
-  refName: string
-  start: number
-  end: number
-  strand: number
-  exons: { start: number; end: number }[]
-}
 
 // The adapters whose tracks hold gene models, in the order the session's
 // tracks are searched when no track is named.
