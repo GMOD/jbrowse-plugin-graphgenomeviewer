@@ -157,6 +157,8 @@ const MAX_CANVAS_HEIGHT = 600
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
 const VARIANT_MAP_HEIGHT = 340
+// The thinnest a fit draws a tube map's tubes
+const MIN_FIT_TUBE_PX = 5
 
 const SEGMENTS_SUFFIX = '.segs.bed.gz'
 
@@ -1009,14 +1011,7 @@ export function GraphPaneMixin() {
       get canvasHeight() {
         const bounds = this.layoutBounds
         const usableWidth = self.paneWidth - FIT_PADDING * 2
-        // `paneHeight` replaces the built-in ceiling rather than adding a
-        // second clamp under it, and the floor still wins: a pane shorter than
-        // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its
-        // tooltip, which is the reason that floor exists.
-        const ceiling = Math.max(
-          MIN_CANVAS_HEIGHT,
-          self.paneHeight ?? MAX_CANVAS_HEIGHT,
-        )
+        const ceiling = this.paneCeiling
         if (!bounds) {
           return ceiling
         }
@@ -1035,10 +1030,33 @@ export function GraphPaneMixin() {
               ceiling,
               Math.max(
                 MIN_CANVAS_HEIGHT,
-                (bounds.h * usableWidth) / bounds.w + FIT_PADDING * 2,
+                bounds.h * Math.max(usableWidth / bounds.w, this.minFitScale) +
+                  FIT_PADDING * 2,
               ),
             )
           : ceiling
+      },
+      // `paneHeight` replaces the built-in ceiling rather than adding a second
+      // clamp under it, and the floor still wins: a pane shorter than
+      // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its tooltip,
+      // which is the reason that floor exists.
+      get paneCeiling() {
+        return Math.max(MIN_CANVAS_HEIGHT, self.paneHeight ?? MAX_CANVAS_HEIGHT)
+      },
+      // A tube map on its own axis reads by panning along it, as in
+      // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
+      // stops where its tubes are MIN_FIT_TUBE_PX wide, or at whatever fits
+      // the tallest pane, with the cut's left end on screen.
+      get minFitScale() {
+        const bounds = this.layoutBounds
+        const layout = self.layoutResult
+        const tubePx = layout?.tubeMap?.layout.tracks[0]?.width
+        return bounds && bounds.h > 0 && tubePx && !layout.referenceAxis
+          ? Math.min(
+              MIN_FIT_TUBE_PX / tubePx,
+              (this.paneCeiling - FIT_PADDING * 2) / bounds.h,
+            )
+          : 0
       },
     }))
     .views(self => ({
@@ -1561,6 +1579,7 @@ export function GraphPaneMixin() {
               self.paneWidth,
               self.canvasHeight,
               self.pixelRows,
+              self.minFitScale,
             )
           : undefined
         if (fit) {

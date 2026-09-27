@@ -1181,6 +1181,68 @@ describe('canvas height follows the drawing', () => {
   })
 })
 
+// A 22 kb cut of 1,295 nodes fitted whole drew at 3.4%, a strip of 1 px
+// tubes. On its own axis a tube map fits no smaller than 5 px tubes and is
+// panned along, as in sequenceTubeMap.
+describe('zoomToFit on a tube map', () => {
+  // A SNP between each pair of backbone nodes, so the boxes cannot merge
+  function snpChainGfa(snps: number) {
+    const lines = ['H\tVN:Z:1.0', 'S\tb0\t*\tLN:i:1000']
+    const ref = ['b0+']
+    const alt = ['b0+']
+    for (let i = 1; i <= snps; i++) {
+      lines.push(
+        `S\tr${i}\tA`,
+        `S\ta${i}\tC`,
+        `S\tb${i}\t*\tLN:i:1000`,
+        `L\tb${i - 1}\t+\tr${i}\t+\t0M`,
+        `L\tb${i - 1}\t+\ta${i}\t+\t0M`,
+        `L\tr${i}\t+\tb${i}\t+\t0M`,
+        `L\ta${i}\t+\tb${i}\t+\t0M`,
+      )
+      ref.push(`r${i}+`, `b${i}+`)
+      alt.push(`a${i}+`, `b${i}+`)
+    }
+    lines.push(`P\tref\t${ref.join(',')}\t*`, `P\talt\t${alt.join(',')}\t*`)
+    return `${lines.join('\n')}\n`
+  }
+
+  async function tubeMap(snps: number) {
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+    })
+    await model.loadGFA(snpChainGfa(snps), `${snps} SNPs`)
+    model.zoomToFit()
+    return model
+  }
+
+  function tubePx(model: Awaited<ReturnType<typeof tubeMap>>) {
+    return model.layoutResult!.tubeMap!.layout.tracks[0]!.width * model.scale
+  }
+
+  test('a cut too long for the pane opens at 5 px tubes, its left end on screen', async () => {
+    const model = await tubeMap(100)
+    const bounds = model.layoutBounds!
+    expect(model.width - 80).toBeLessThan(bounds.w * model.scale)
+
+    expect(tubePx(model)).toBeCloseTo(5, 10)
+    expect(bounds.minX * model.scale + model.translateX).toBeCloseTo(40, 5)
+    expect(model.canvasHeight).toBe(Math.max(160, bounds.h * model.scale + 80))
+  })
+
+  test('a cut that fits with wider tubes still fits whole', async () => {
+    const model = await tubeMap(2)
+    const bounds = model.layoutBounds!
+
+    expect(tubePx(model)).toBeGreaterThan(5)
+    const left = bounds.minX * model.scale + model.translateX
+    const right = left + bounds.w * model.scale
+    expect(left).toBeGreaterThanOrEqual(40 - 1e-6)
+    expect(right).toBeLessThanOrEqual(model.width - 40 + 1e-6)
+  })
+})
+
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set
 // against; carrying it across a load pointed the tooltip and the highlight at
 // whatever ended up at that index in the new graph.
