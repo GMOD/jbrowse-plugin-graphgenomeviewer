@@ -2,7 +2,9 @@
 
 Pangenome graphs in JBrowse 2.
 
-![KIV-2, force-directed, with its bubbles marked](img/force_kiv2.png)
+![KIV-2 as a graph track under a linear view, force-directed, with its bubbles marked](img/force_kiv2.png)
+
+![KIV-2 walk rows: eight haplotypes tiled by the repeat unit](img/walk_rows_kiv2.png)
 
 ![Tube maps, and a tube map track under a linear view](img/tube_map.png)
 

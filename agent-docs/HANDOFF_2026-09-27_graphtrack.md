@@ -42,8 +42,9 @@
 
 ## Left to do
 
-1. **Reshoot the graph figures** on the latest plugin. Session -41 was going to;
-   it is no longer running.
+1. **Reshoot the graph figures** on the latest plugin. The plugin's own `img/`
+   was reshot on 2026-09-27 (`scripts/shoot-figures.mjs`); the
+   jbrowse-components website's figures were not.
 2. **Saved sessions and copied configs** keep working: 4.0.9 still accepts
    `FeatureTrack` and `SyntenyTrack`.
 3. **Lanes on an rGFA GraphTrack**: beta.9 hosts can't filter displays by

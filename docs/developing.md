@@ -68,3 +68,16 @@ pnpm lint
 serves `dist/` to a shipped config on each hosted release, which catches what
 tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
 a re-export the host no longer serves.
+
+## Figures
+
+```console
+pnpm build
+node scripts/shoot-figures.mjs            # every figure in img/
+node scripts/shoot-figures.mjs force_mhc  # one
+```
+
+The script serves `dist/` to jbrowse.org's hosted HPRC demo, the way
+`host-compat` does, so a figure shows this checkout's drawing on real data. The
+two tube map figures draw local fixtures instead; the header of
+`scripts/shoot-figures.mjs` names the e2e tests that frame them.
