@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 
+import {
+  drawTubeMapRuler,
+  rulerBoxes,
+} from '@jbrowse/bandage-core/tubeMap/axis'
 import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
+import { drawTubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
@@ -15,8 +20,9 @@ const canvasStyle = {
   zIndex: 1,
 }
 
-// The tube map's ink, over the canvas, which draws nothing under a tube map
-// layout. Repainted by an autorun on every change of transform, so a pan in
+// The tube map's ink, the session's genes in rows above it and, unless a
+// linear view's ruler is right there, a reference ruler under it, over the
+// canvas, which draws nothing under a tube map layout. Repainted by an autorun on every change of transform, so a pan in
 // the linear view above moves the tubes in the same frame as its other tracks.
 const TubeMapOverlay = observer(function TubeMapOverlay({
   model,
@@ -40,12 +46,25 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
           canvas.height = Math.round(height * dpr)
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
           ctx.clearRect(0, 0, width, height)
-          drawTubeMap(ctx, picture, {
+          const tubeFrame = {
             ...frame,
             width,
             highlightNode: model.hoveredNode ?? model.selectedNode,
             darkMode: model.darkMode,
-          })
+          }
+          drawTubeMap(ctx, picture, tubeFrame)
+          const { bounds } = picture
+          drawTubeMapGenes(
+            ctx,
+            model.tubeMapGenes,
+            tubeFrame,
+            frame.y(bounds.minY) - 2,
+          )
+          const ruler = model.tubeMapReference
+          const boxes = ruler && !model.hostPlacesX && rulerBoxes(ruler)
+          if (boxes) {
+            drawTubeMapRuler(ctx, boxes, tubeFrame, frame.y(bounds.maxY) + 4)
+          }
         }
       }),
     [model],

@@ -49,11 +49,13 @@ import {
   buildGeometry,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import {
   tubeMapFrame,
   tubeMapNodeAt,
 } from '@jbrowse/bandage-core/tubeMap/frame'
+import { tubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
 import {
   axisScaleOf,
   contains,
@@ -1267,6 +1269,20 @@ export function GraphPaneMixin() {
       get tubeMapPicture() {
         const drawing = self.layoutResult?.tubeMap
         return drawing ? tubeMapPicture(drawing.layout) : undefined
+      },
+      get tubeMapReference() {
+        const drawing = self.layoutResult?.tubeMap
+        return drawing && self.graph
+          ? referenceBoxes(self.graph, drawing.layout)
+          : undefined
+      },
+    }))
+    .views(self => ({
+      get tubeMapGenes() {
+        const reference = self.tubeMapReference
+        return self.showGenes && reference && self.geneFeatures
+          ? tubeMapGenes(reference, self.geneFeatures)
+          : []
       },
       get tubeMapFrame() {
         const drawing = self.layoutResult?.tubeMap
