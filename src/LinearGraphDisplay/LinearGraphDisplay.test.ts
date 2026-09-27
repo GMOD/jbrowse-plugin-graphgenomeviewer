@@ -9,17 +9,20 @@ import {
   createBaseTrackConfig,
   createBaseTrackModel,
 } from '@jbrowse/core/pluggableElementTypes/models'
+import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
 import LinearGraphDisplayF from './index'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
+import graphGenomeViewModel from '../GraphGenomeView/viewModel'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
 import type { LinearGraphDisplayModel } from './model'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
+import type { MenuItem } from '@jbrowse/core/ui'
 
 const REF = 'chr1'
 const ASM = 'hg38'
@@ -221,6 +224,7 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
 
   const cuts: Cut[] = []
   const errors: string[] = []
+  const addedViews: [string, unknown][] = []
   // while set, a cut waits for the test to answer it
   let held: ((answer: () => void) => void) | undefined
   const signals: AbortSignal[] = []
@@ -308,6 +312,9 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
         errors.push(message)
       },
       queueDialog() {},
+      addView(type: string, snapshot: unknown) {
+        addedViews.push([type, snapshot])
+      },
     }))
 
   const session = Session.create({ configuration: {} }, { pluginManager })
@@ -316,7 +323,16 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
   )
   view.setWidth(WIDTH_PX)
   view.setDisplayedRegions(assemblyRegions)
-  return { session, view, cuts, errors, holdCuts, signals, rpcCall }
+  return {
+    session,
+    view,
+    cuts,
+    errors,
+    addedViews,
+    holdCuts,
+    signals,
+    rpcCall,
+  }
 }
 
 function lgvX(view: { bpPerPx: number; offsetPx: number }, bp: number) {
@@ -672,4 +688,55 @@ test('the track menu offers the layouts, colours and the settings dialog', async
     expect.arrayContaining(['Layout', 'Color', 'Mark bubbles', 'Settings']),
   )
   expect(labels).not.toContain('Zoom in')
+})
+
+function graphViewItem(display: LinearGraphDisplayModel) {
+  const launch = display
+    .trackMenuItems()
+    .find(item => 'label' in item && item.label === LAUNCH_LABEL) as
+    { subMenu: MenuItem[] } | undefined
+  return launch?.subMenu.find(
+    item => 'label' in item && item.label === 'Graph genome view',
+  ) as { disabled?: boolean; onClick: () => void } | undefined
+}
+
+test('the track menu opens the window on screen in a graph genome view, drawn as the track draws it', async () => {
+  const { display, addedViews } = await shownGraph()
+  display.setLayoutMode('tubemapref')
+  const item = graphViewItem(display)!
+  expect(item.disabled).toBe(false)
+
+  item.onClick()
+  expect(addedViews).toHaveLength(1)
+  const [type, spec] = addedViews[0]!
+  expect(type).toBe('GraphGenomeView')
+  expect(spec).toMatchObject({
+    loadedTrackId: 'graph',
+    loadedRegion: { refName: REF, assemblyName: ASM },
+    layoutMode: 'tubemapref',
+    subgraphContext: display.subgraphContext,
+  })
+  const { loadedRegion } = spec as { loadedRegion: SubgraphRegion }
+  expect(loadedRegion.start).toBeCloseTo(1_000_000, -1)
+  expect(loadedRegion.end).toBeCloseTo(1_060_000, -1)
+  expect(display.cutRegion!.start).toBeLessThan(loadedRegion.start)
+  expect(display.cutRegion!.end).toBeGreaterThan(loadedRegion.end)
+  expect(() =>
+    graphGenomeViewModel().create({
+      type: 'GraphGenomeView',
+      ...(spec as object),
+    }),
+  ).not.toThrow()
+})
+
+test('zoomed out to the coarse tier, the graph genome view launch is disabled', async () => {
+  const { view, display, addedViews } = await shownGraph()
+  view.zoomTo(3_000_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(display.cutTier).toBe('coarse')
+
+  const item = graphViewItem(display)!
+  expect(item.disabled).toBe(true)
+  item.onClick()
+  expect(addedViews).toHaveLength(0)
 })

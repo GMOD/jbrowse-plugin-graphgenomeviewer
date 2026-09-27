@@ -12,8 +12,9 @@ A `GraphTrack` cuts the graph for the view's window and redraws it as you pan.
 
 ## As its own view
 
-**Add → Graph genome view** opens a whole GFA file. A session spec's
-`loadedTrackId` and `loadedRegion` open a track's cut there instead.
+**Add → Graph genome view** opens a whole GFA file. A graph track's **Launch →
+Graph genome view** opens the cut on screen, drawn as the track draws it; a
+session spec does the same with `loadedTrackId` and `loadedRegion`.
 
 ![MICB's exons 2–4 as a tube map on its own axis, with the reference ruler under it](img/tube_map_micb.png)
 

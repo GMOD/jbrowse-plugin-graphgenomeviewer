@@ -3,6 +3,7 @@ import { lazy } from 'react'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { ConfigurationReference, getConf } from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
+import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
 import { addDisposer, types } from '@jbrowse/mobx-state-tree'
@@ -10,6 +11,7 @@ import {
   computeActivityPhase,
   computeDisplayStatusPhase,
 } from '@jbrowse/render-core/displayPhase'
+import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
@@ -28,11 +30,14 @@ import {
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { HostWindow } from '../GraphGenomeView/host'
+import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 import type { DisplayStatusPhase } from '@jbrowse/render-core/displayPhase'
+
+type GraphViewSpec = Omit<LaunchGraphGenomeViewArgs, 'session'>
 
 const GraphTrackSettingsDialog = lazy(
   () => import('./components/GraphTrackSettingsDialog'),
@@ -335,7 +340,62 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .views(self => ({
+        // The window on screen as a view of its own, drawn as the track draws
+        // it: the cut less the margins it holds for panning. A window forced
+        // past the cap carries its own span as the cap.
+        get graphViewSpec() {
+          const seen = self.host ? hostWindow(self.host) : undefined
+          const trackId = self.sourceTrackId
+          if (
+            !seen ||
+            !trackId ||
+            !self.hasGraph ||
+            self.coarseCut ||
+            self.regionTooLarge
+          ) {
+            return undefined
+          }
+          const start = Math.floor(seen.start)
+          const end = Math.ceil(seen.end)
+          return {
+            loadedTrackId: trackId,
+            loadedRegion: {
+              refName: seen.refName,
+              assemblyName: seen.assemblyName,
+              start,
+              end,
+            },
+            subgraphContext: self.subgraphContext,
+            subgraphHaplotypes: self.chosenHaplotypes,
+            maxRegionBp: Math.max(self.maxRegionBp, end - start),
+            layoutMode: self.chosenLayoutMode,
+            colorScheme: self.chosenColorScheme,
+            referencePath: self.referencePath,
+            geneTrackId: self.geneTrackId,
+            showGenes: self.showGenes,
+          } satisfies GraphViewSpec
+        },
+      }))
+      .actions(self => ({
+        openGraphView() {
+          const spec = self.graphViewSpec
+          if (spec) {
+            getSession(self).addView('GraphGenomeView', spec)
+          }
+        },
+      }))
+      .views(self => ({
         trackMenuItems(): MenuItem[] {
+          const launches = self.launchMenuItems()
+          pushLaunchViewMenuItem(launches, {
+            label: 'Graph genome view',
+            icon: BubbleChartIcon,
+            disabled: !self.graphViewSpec,
+            disabledHelpText: 'Zoom in until the track cuts a graph',
+            onClick: () => {
+              self.openGraphView()
+            },
+          })
           return [
             ...self.graphMenuItems(),
             {
@@ -348,7 +408,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                 ])
               },
             },
-            ...self.launchMenuItems(),
+            ...launches,
           ]
         },
       }))
