@@ -50,10 +50,13 @@ and `probe-graph-nodes.ts` read `display` not `display.pane`; jb2hubs
 5 tutorial's `loadedTrackId` fences and `graph-ecoli.ts` `rgfa_launch_out_menu`
 still open (the standalone view cuts a stated pair once) but no longer follow
 the linear view. A bubble is a repeat array only where the session's repeat
-track has one (classifyBubble), so a KIV-2 figure whose session has no repeat
-track now labels the array as a complex site. Then reshoot the graph figures:
-the track now keeps its configured height rather than shrinking to its rows, and
-errors and the too-large gate draw as core's banners.
+track has one (classifyBubble). The hosted HPRC demo's only repeat track is the
+ABCA7 TRGT VCF, so KIV-2 there and in its figures now reads as a complex site;
+keeping the label needs a curated VNTR track on the demo, since TRF catalogues
+such as UCSC simpleRepeat stop near a 2 kb period and the KIV-2 unit is 5.5 kb.
+Then reshoot the graph figures: the track now keeps its configured height rather
+than shrinking to its rows, and errors and the too-large gate draw as core's
+banners.
 
 `scripts/preview-candidate.mjs` screenshots any hosted session with this
 checkout's `dist/` served in place of the store bundle:
