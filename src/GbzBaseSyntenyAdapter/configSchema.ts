@@ -49,8 +49,8 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * The `.gbz.db` written by `gbz-base construct` and augmented by
-     * `gbz-haplotype-index`; read by HTTP range requests, so it can be large.
+     * The `.gbz.db` written by `gbz-base construct`; read by HTTP range
+     * requests, so it can be large.
      */
     gbzDbLocation: {
       type: 'fileLocation',
@@ -61,12 +61,10 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * A companion database written by `gbz-haplotype-index --output`, holding
-     * the `HaplotypeSamples` and `HaplotypeLengths` tables for a graph database
-     * that does not carry them itself, such as the one HPRC publishes. One
-     * built with anchor rows (the tool's default) lets a fetch for a chosen
-     * set of lanes walk only those haplotypes. Empty means the graph database
-     * carries the tables.
+     * The haplotype index `gbz-haplotype-index` writes beside the graph
+     * database, which names its walks. One built with anchor rows (the tool's
+     * default) lets a fetch for a chosen set of lanes walk only those
+     * haplotypes. Empty means the walks go unnamed.
      */
     haplotypeIndexLocation: {
       type: 'fileLocation',

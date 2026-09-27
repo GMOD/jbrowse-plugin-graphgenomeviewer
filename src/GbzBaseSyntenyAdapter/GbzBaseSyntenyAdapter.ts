@@ -51,7 +51,7 @@ export class NoHaplotypeIndexError extends Error {
 
   constructor() {
     super(
-      'this .gbz.db has no HaplotypeSamples/HaplotypeLengths tables, so its walks cannot be named; run gbz-haplotype-index (from @gmod/gbz-base) over it first',
+      'no haplotype index is set, so the walks cannot be named; build one with gbz-haplotype-index (cargo install gbz-haplotype-index) and set it as haplotypeIndexLocation',
     )
   }
 }
