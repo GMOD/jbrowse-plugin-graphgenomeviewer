@@ -15,7 +15,7 @@ import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
 import { backboneNodes, backboneSpan, isBackbone } from './anchoredNodes'
-import { BUBBLE_SPREAD_VALUES, spreadFor } from './bubbleSpreads'
+import { BUBBLE_SPREAD_VALUES } from './bubbleSpreads'
 import { bubbleHalos } from './bubbles/bubbleHalos'
 import { bubblesFromGraph } from './bubbles/bubblesFromGraph'
 import {
@@ -32,13 +32,8 @@ import {
   pickGeneTrack,
 } from './genes/geneFeatures'
 import { genePins } from './genes/genePins'
-import { convertGFAToGraph } from './gfa/gfaConverter'
 import { hostFrame, isLinearHost } from './host'
 import { layoutLabels } from './labelLayout'
-import { drawnNodeLength, layoutScaling } from './layout/drawnScale'
-import { mergeRuns, splitRuns } from './layout/mergeRuns'
-import { orientToReference } from './layout/orientToReference'
-import { seededNodes } from './layout/referenceSeeds'
 import { ROW_HEIGHT_PX } from './layout/rowSpacing'
 import { walkRowsExtent } from './layout/walkRowLayout'
 import { walkRows } from './layout/walkRows'
@@ -54,8 +49,17 @@ import {
   meanDepth,
   nodeWidthPx,
 } from './nodeWidths'
-import { anchorFromPaths, anchorGraph } from './pathAnchoring'
+import { anchorFromPaths } from './pathAnchoring'
 import { pathColorsLegible, pathLegend } from './pathColors'
+import {
+  FIT_PADDING,
+  clampZoom,
+  fitTransform,
+  fittedTranslateY,
+  forceLayout,
+  layoutExtent,
+  loadGraph,
+} from './pipeline'
 import { buildNeighbors, nodeReferenceSpan } from './referenceSpan'
 import { buildGeometry, computeReferenceRamp } from './renderer/GeometryBuilder'
 import {
@@ -65,7 +69,6 @@ import {
 } from './repeats/repeatFeatures'
 import { withCalls } from './repeats/walkCalls'
 import { walkHighlight } from './walkHighlight'
-import { parseGFA } from '../gfa-core/index'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -94,9 +97,9 @@ import type { BubbleSpread } from './bubbleSpreads'
 import type { ColorScheme, ResolvedColorScheme } from './colorSchemes'
 import type { GeneModel } from './genes/geneFeatures'
 import type { LinearHost } from './host'
-import type { LayoutScaling } from './layout/drawnScale'
 import type { LayoutModeValue } from './layoutModes'
 import type { NodeWidth } from './nodeWidths'
+import type { Bounds, EngineRequest } from './pipeline'
 import type { Renderer } from './renderer/types'
 import type { RepeatArray } from './repeats/repeatFeatures'
 import type { Graph, GraphNode, LayoutResult } from './types'
@@ -135,8 +138,6 @@ function bubblePrefix(adapterConfig: Record<string, unknown>) {
     ? uri.slice(0, -SEGMENTS_SUFFIX.length)
     : undefined
 }
-// Gap between the drawing and the edge of the pane, on all four sides.
-const FIT_PADDING = 40
 const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
@@ -194,18 +195,6 @@ export function formatSpanBp(bp: number) {
 // escape hatch strangepg gives with `-T N`.
 export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
-// The floor exists to keep a scale positive and finite, not to express a useful
-// zoom level, so it has to clear the smallest scale a real layout asks for. In
-// the reference-anchored layouts world units are bp: fitting a chromosome-scale
-// rGFA (250 Mbp) into ~720 px needs ~3e-6, and the old 0.001 floor clamped that
-// to 7x too wide — zoomToFit could not fit a whole-file import at all.
-const MIN_ZOOM = 1e-6
-const MAX_ZOOM = 100
-
-function clampZoom(zoom: number) {
-  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom))
-}
-
 // The zoom as a pair of axis scales. One expression, read by all three getters
 // below: they sit in one `.views()` block and so cannot reach each other through
 // `self`, which had each of them restating the `pixelRows ? 1 : scale` rule that
@@ -218,13 +207,6 @@ function axisScaleOf(scale: number, pixelRows: boolean): AxisScale {
 }
 
 type ViewportOwner = 'fit' | 'user' | 'host'
-
-interface Bounds {
-  minX: number
-  minY: number
-  maxX: number
-  maxY: number
-}
 
 // What the pane shows, in layout units.
 function viewportOf(model: {
@@ -257,24 +239,6 @@ function padded(v: Bounds, panes: number): Bounds {
     maxX: v.maxX + w,
     maxY: v.maxY + h,
   }
-}
-
-// Centre the leftover, but only when there IS leftover. A row layout fits on x
-// alone, so its drawing is routinely taller than the pane — that is the case
-// rowSpacing.ts means by "reached by panning" — and centring an overflow splits
-// the loss across both ends: at 41 rows the top row landed 100 px above the
-// pane. The top row is the reference backbone, i.e. the axis the whole layout
-// exists to put under the linear view, so it is the one row that must not be
-// the first thing to go. Pinned at the padding it opens where a fitting drawing
-// opens, and the rows past the ceiling are below, which is the direction a
-// reader already scrolls a track in.
-function fittedTranslateY(
-  bounds: { minY: number; h: number },
-  usableHeight: number,
-  yScale: number,
-) {
-  const leftoverY = usableHeight - bounds.h * yScale
-  return FIT_PADDING - bounds.minY * yScale + Math.max(0, leftoverY) / 2
 }
 
 function contains(outer: Bounds, inner: Bounds) {
@@ -991,20 +955,9 @@ export function GraphPaneMixin() {
         let bounds:
           { minX: number; minY: number; w: number; h: number } | undefined
         if (self.layoutResult) {
-          let minX = Infinity
-          let minY = Infinity
-          let maxX = -Infinity
-          let maxY = -Infinity
-          for (const segments of Object.values(
-            self.layoutResult.nodePositions,
-          )) {
-            for (const seg of segments) {
-              minX = Math.min(minX, seg.x)
-              minY = Math.min(minY, seg.y)
-              maxX = Math.max(maxX, seg.x)
-              maxY = Math.max(maxY, seg.y)
-            }
-          }
+          const extentOf = layoutExtent(self.layoutResult.nodePositions)
+          const { minY } = extentOf
+          let { minX, maxX, maxY } = extentOf
           const region =
             self.layoutResult.referenceAxis && self.popStack.length === 0
               ? self.graphRegion
@@ -1539,14 +1492,7 @@ export function GraphPaneMixin() {
         self.positionsVersion++
       },
       zoomToFit() {
-        // A layout is routinely degenerate on one axis: an anchored window
-        // holding only backbone segments puts every node on row 0. So each axis
-        // constrains the scale only when it has extent, and only a layout with
-        // no extent at all is unfittable. Requiring extent on both axes left
-        // that window at scale 1 with the graph off-screen entirely, since x
-        // there is reference bp.
         const bounds = self.layoutBounds
-        const usableWidth = self.paneWidth - FIT_PADDING * 2
         const usableHeight = self.canvasHeight - FIT_PADDING * 2
         // A host owns x, so a fit while hosted places the rows only.
         if (self.viewportOwner === 'host') {
@@ -1560,42 +1506,20 @@ export function GraphPaneMixin() {
           return
         }
         // Nothing to fit into before the canvas is measured. The autorun re-runs
-        // once width lands, so skipping here beats computing a negative scale
-        // and persisting that transform into the session snapshot.
-        if (
-          bounds &&
-          usableWidth > 0 &&
-          usableHeight > 0 &&
-          // A row layout needs x extent specifically: y cannot stand in for it
-          // there, having no scale left to solve for.
-          (bounds.w > 0 || (!self.pixelRows && bounds.h > 0))
-        ) {
-          // A row layout fits on x ALONE, which is the point of it: the pane is
-          // as tall as the rows are and the rows are as tall as they need to be,
-          // so there is no height to fit into and nothing that can make the
-          // backbone narrower than the pane it is supposed to line up with. That
-          // is the bug this axis change is for — past ~12 rows the drawing was
-          // taller than it was wide, the vertical axis bound the fit, and the
-          // backbone stopped matching the linear view above it.
-          //
-          // An isotropic layout still fits on whichever axis binds, and the
-          // leftover on the other is split evenly.
-          const fitX = bounds.w > 0 ? usableWidth / bounds.w : Infinity
-          const fitY = bounds.h > 0 ? usableHeight / bounds.h : Infinity
-          const newScale = clampZoom(
-            self.pixelRows ? fitX : Math.min(fitX, fitY),
-          )
-          self.scale = newScale
-          self.translateX =
-            FIT_PADDING -
-            bounds.minX * newScale +
-            (usableWidth - bounds.w * newScale) / 2
-          // scaleY, which a row layout pins at 1
-          self.translateY = fittedTranslateY(
-            bounds,
-            usableHeight,
-            self.pixelRows ? 1 : newScale,
-          )
+        // once width lands, so skipping beats persisting a negative scale into
+        // the session snapshot.
+        const fit = bounds
+          ? fitTransform(
+              bounds,
+              self.paneWidth,
+              self.canvasHeight,
+              self.pixelRows,
+            )
+          : undefined
+        if (fit) {
+          self.scale = fit.scale
+          self.translateX = fit.translateX
+          self.translateY = fit.translateY
         }
       },
       clearPerfMetrics() {
@@ -1700,28 +1624,10 @@ export function GraphPaneMixin() {
     .actions(self => {
       let loadController: AbortController | undefined
 
-      // `scaling.nodes` rather than the graph's own: under a compressing
-      // drawn-length law a node's `length` crosses this boundary as a drawn
-      // length, which is all the engine ever reads it as.
-      //
-      // An anchored graph also carries a seed per node, the backbone along x,
-      // and asks the engine not to rotate components: FMMM then keeps the
-      // reference's coarse shape instead of curling it into a C
-      // (docs/layout-experiments.md, experiment 2).
-      function callLayout(graph: Graph, scaling: LayoutScaling) {
+      function callEngine(request: EngineRequest) {
         const { rpcManager } = getSession(self)
-        const anchored = graph.nodes.some(isBackbone)
         return rpcManager.call(getRpcSessionId(self), 'GraphComputeLayout', {
-          graph: {
-            nodes: anchored ? seededNodes(graph, scaling) : scaling.nodes,
-            edges: graph.edges,
-          },
-          options: {
-            quality: self.layoutQuality,
-            linearLayout: self.linearLayout,
-            ...scaling.opts,
-            ...(anchored ? { rotateComponents: false } : {}),
-          },
+          ...request,
           signal: loadController?.signal,
           // A StatusCallback takes an RpcStatus, not a string — it may be a
           // bare label, a phase, or a phase that threw. `statusMessageText` is
@@ -1761,43 +1667,20 @@ export function GraphPaneMixin() {
         if (hit) {
           return { result: hit, duration: performance.now() - start }
         }
-        // The engine lays out the runs, not the nodes: a base-level cut is
-        // thousands of nodes in unbranching chains, and one chain per run is
-        // the same drawing at a third of the time. Members take their share of
-        // the run's polyline by drawn length, so the picture is per node again
-        // before anything else sees it.
-        const spread = spreadFor(self.bubbleSpread)
-        const merged = mergeRuns(graph)
-        const { result, duration } = (yield callLayout(
-          merged.graph,
-          layoutScaling(merged.graph, spread),
+        const oriented = (yield forceLayout(
+          graph,
+          {
+            quality: self.layoutQuality,
+            linearLayout: self.linearLayout,
+            bubbleSpread: self.bubbleSpread,
+          },
+          callEngine,
         )) as { result: LayoutResult; duration: number }
-        const scaling = layoutScaling(graph, spread)
-        const drawn = new Map(
-          scaling.nodes.map(n => [
-            n.id,
-            drawnNodeLength(scaling.opts, n.length),
-          ]),
-        )
-        const positions = splitRuns(
-          result.nodePositions,
-          merged.runs,
-          id => drawn.get(id) ?? 0,
-        )
-        // Turned so the reference reads left to right, like the linear view
-        // above it. Before `remember`, so the cache hands back the drawing as
-        // it was shown.
-        const oriented = {
-          ...result,
-          nodePositions: graph.nodes.some(isBackbone)
-            ? orientToReference(graph, positions)
-            : positions,
-        }
         // Under the key read BEFORE the call: the settings that produced this
         // drawing are not necessarily the ones on screen now, and filing it
         // under the current ones would serve it up as a layout it is not.
-        remember(cache, key, oriented)
-        return { result: oriented, duration }
+        remember(cache, key, oriented.result)
+        return oriented
       }
 
       // Which layout request is the live one. A layout is async and nothing in
@@ -1852,28 +1735,10 @@ export function GraphPaneMixin() {
         keepSelection = false,
       ) {
         self.setStatusMessage('Parsing GFA')
-        const gfaGraph = parseGFA(text)
-        // A general GFA states its coordinates only in its P/W lines, so the
-        // walk that recovers them happens before anything reads `stable` —
-        // otherwise the anchored layouts see an unanchored graph and hand off
-        // to force.
-        const graph = anchorGraph(
-          convertGFAToGraph(gfaGraph, name),
-          self.referencePath || region?.assemblyName,
-        )
-        // Checked here, between parsing and laying out, because this is the one
-        // point both load paths pass through and it is upstream of everything
-        // expensive: the layout, the geometry and the per-frame draw calls all
-        // scale with this number. The whole-file import path had no cap at all,
-        // so a chromosome-scale GFA would parse and then freeze the tab.
-        if (graph.nodes.length === 0) {
-          throw new Error(`No graph segments in ${name}`)
-        }
-        if (graph.nodes.length > self.maxGraphNodes) {
-          throw new Error(
-            `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Zoom in to a smaller region, or raise maxGraphNodes on this view.`,
-          )
-        }
+        const graph = loadGraph(text, name, {
+          referencePath: self.referencePath || region?.assemblyName,
+          maxNodes: self.maxGraphNodes,
+        })
         const selected = keepSelection ? self.selectedNode : null
         self.graph = graph
         self.graphRegion = region
