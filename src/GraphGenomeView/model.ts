@@ -932,7 +932,20 @@ export function GraphPaneMixin() {
                   a.label.localeCompare(b.label),
               )
           : bars.rows
-        return { ...bars, rows: withCalls(rows, repeat?.calls) }
+        const [reference, ...paired] = withCalls(
+          [bars.reference, ...rows],
+          repeat?.calls,
+        )
+        return { ...bars, reference: reference!, rows: paired }
+      },
+      // The units walk rows paint every bar by, once the selected repeat's
+      // record states a drawn walk's runs.
+      get walkRowUnits() {
+        const bars = this.walkRowBars
+        return bars &&
+          [bars.reference, ...bars.rows].some(row => row.call?.sequences)
+          ? self.selectedRepeat?.units
+          : undefined
       },
       // The labels drawn beside the rows. Walk rows label from the bars
       // themselves, which follow the selected repeat and sample filter that
@@ -1170,7 +1183,7 @@ export function GraphPaneMixin() {
       // neighbour walk to say what the first one already worked out.
       get referenceRampDomain() {
         const ramp = self.referenceRamp
-        return ramp
+        return ramp && !self.walkRowUnits
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },

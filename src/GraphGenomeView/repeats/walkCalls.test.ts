@@ -125,3 +125,21 @@ test('the threshold falls in a gap the ABCA7 cohort leaves empty', () => {
     uncalled: 0,
   })
 })
+
+// A phased genotype's k-th allele is PanSN haplotype k, so two walks of one
+// length with different runs still take their own; a phased allele whose
+// haplotype the cut lacks goes to no other walk.
+test('a phased allele pairs with its own haplotype, not by length', () => {
+  const hap = (haplotype: number, bp: number) => ({
+    ...walk('HG1', bp),
+    haplotype,
+  })
+  const rows = withCalls([hap(1, 100), hap(2, 100)], {
+    HG1: calls({ bp: 100, haplotype: 2 }, { bp: 100, haplotype: 1 }),
+  })
+  expect(rows.map(r => r.call?.haplotype)).toEqual([1, 2])
+  const lone = withCalls([hap(1, 100)], {
+    HG1: calls({ bp: 100, haplotype: 2 }),
+  })
+  expect(lone[0]!.call).toBeUndefined()
+})

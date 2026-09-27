@@ -112,3 +112,78 @@ test("a TRGT VCF's per-sample AL and SD are each sample's called alleles", () =>
   })
   expect(repeatArraysFrom([{ ...base, period: 2 }])[0]!.calls).toBe(undefined)
 })
+
+// Two copies of unit B then three of A, and a second allele of four A: RN
+// splits the flattened lists 2 + 1, and RUB lists every copy of every run.
+const A = 'ACGTACGTAC'
+const B = 'ACGTTCGTAC'
+const tandem = {
+  ...base,
+  ALT: ['<CNV:TR>', '<CNV:TR>'],
+  INFO: {
+    SVLEN: [30751, 30751],
+    RN: [2, 1],
+    RUS: [B, A, A],
+    RUC: [2, 3, 4],
+    RB: [20, 29, 40],
+    RUB: [10, 10, 10, 10, 9, 10, 10, 10, 10],
+  },
+  samples: {
+    HG00128: { GT: ['1|2'] },
+    HG00133: { GT: ['.|1'] },
+    GRCh38: { GT: ['0'] },
+    HG00099: { GT: ['2/1'] },
+  },
+}
+
+test("VCF 4.5 <CNV:TR>: each allele's runs off RN, RUS, RUC, RB and RUB", () => {
+  const [array] = repeatArraysFrom([tandem])
+  expect(array).toMatchObject({ start: 160616003, end: 160646754 })
+  const bThenA = [
+    { unit: B, unitLength: 10, count: 2, bp: 20, copyBp: [10, 10] },
+    { unit: A, unitLength: 10, count: 3, bp: 29, copyBp: [10, 10, 9] },
+  ]
+  const fourA = [
+    { unit: A, unitLength: 10, count: 4, bp: 40, copyBp: [10, 10, 10, 10] },
+  ]
+  expect(array!.calls).toEqual({
+    HG00128: [
+      { bp: 49, sequences: bThenA, haplotype: 1 },
+      { bp: 40, sequences: fourA, haplotype: 2 },
+    ],
+    HG00133: [{ bp: 49, sequences: bThenA, haplotype: 2 }],
+    GRCh38: [{ bp: 30751 }],
+    HG00099: [
+      { bp: 40, sequences: fourA },
+      { bp: 49, sequences: bThenA },
+    ],
+  })
+  expect(array!.units).toEqual([
+    { unit: A, unitLength: 10, copies: 7 },
+    { unit: B, unitLength: 10, copies: 2 },
+  ])
+})
+
+test('a run stating only RUL is keyed by its length, and a summary record states no calls', () => {
+  const [array] = repeatArraysFrom([
+    {
+      ...base,
+      ALT: ['<CNV:TR>'],
+      INFO: { RN: [1], RUL: [5548], RUC: [5.5] },
+      samples: { HG00097: { GT: ['1'] } },
+    },
+  ])
+  expect(array!.calls!.HG00097).toEqual([
+    {
+      bp: 30514,
+      sequences: [{ unit: '5548', unitLength: 5548, count: 5.5, bp: 30514 }],
+    },
+  ])
+  const [summary] = repeatArraysFrom([
+    { ...base, ALT: ['<CNV:TR>'], INFO: { RUL: '5548', RUC: '5.5' } },
+  ])
+  expect(summary!.calls).toBeUndefined()
+  expect(summary!.units).toEqual([
+    { unit: '5548', unitLength: 5548, copies: 5.5 },
+  ])
+})

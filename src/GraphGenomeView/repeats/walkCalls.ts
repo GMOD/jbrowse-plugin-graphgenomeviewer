@@ -67,20 +67,38 @@ function byLength<T>(items: T[], bp: (item: T) => number) {
 
 const backed = (call: RepeatCall) => call.spanningReads !== 0
 
-// The walks that span the array against the alleles reads spanned, then
-// everything else against what those two left. It decides the ambiguous cases
-// on merit: which walk carries the one allele a lone spanning read supports,
-// and which allele a walk that stops inside the array is drawn against.
-function pairSample<R extends { bp: number; complete: boolean }>(
-  rows: R[],
-  calls: RepeatCall[],
-) {
+function scored(row: { bp: number; complete: boolean }, call: RepeatCall) {
+  return {
+    ...call,
+    agrees: row.complete && backed(call) ? agrees(row.bp, call.bp) : undefined,
+  }
+}
+
+// A phased genotype names its walk's haplotype outright. The rest go by
+// length: the walks that span the array against the alleles reads spanned,
+// then everything else against what those two left. That decides the
+// ambiguous cases on merit: which walk carries the one allele a lone spanning
+// read supports, and which allele a walk that stops inside the array is drawn
+// against.
+function pairSample<
+  R extends { bp: number; complete: boolean; haplotype?: number },
+>(rows: R[], calls: RepeatCall[]) {
   const out = new Map<number, WalkCall>()
   const taken = new Set<RepeatCall>()
+  rows.forEach((row, i) => {
+    const call = calls.find(
+      c => c.haplotype !== undefined && c.haplotype === row.haplotype,
+    )
+    if (call) {
+      taken.add(call)
+      out.set(i, scored(row, call))
+    }
+  })
+  const unphased = calls.filter(call => call.haplotype === undefined)
   const ranked = byLength(rows, r => r.bp)
   const stages = [
-    [ranked.filter(r => r.item.complete), calls.filter(backed)],
-    [ranked, calls],
+    [ranked.filter(r => r.item.complete), unphased.filter(backed)],
+    [ranked, unphased],
   ] as const
   for (const [pool, group] of stages) {
     const free = pool.filter(r => !out.has(r.i))
@@ -96,13 +114,7 @@ function pairSample<R extends { bp: number; complete: boolean }>(
         const row = free[k]!
         const call = open[pick]!.item
         taken.add(call)
-        out.set(row.i, {
-          ...call,
-          agrees:
-            row.item.complete && backed(call)
-              ? agrees(row.item.bp, call.bp)
-              : undefined,
-        })
+        out.set(row.i, scored(row.item, call))
       }
     })
   }
@@ -110,7 +122,12 @@ function pairSample<R extends { bp: number; complete: boolean }>(
 }
 
 export function withCalls<
-  R extends { sample: string; bp: number; complete: boolean },
+  R extends {
+    sample: string
+    bp: number
+    complete: boolean
+    haplotype?: number
+  },
 >(rows: R[], calls: Record<string, RepeatCall[]> | undefined) {
   if (!calls) {
     return rows as (R & { call?: WalkCall })[]
