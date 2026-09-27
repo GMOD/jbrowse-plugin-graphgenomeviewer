@@ -552,6 +552,7 @@ test("a folded tube map draws the cut's reference as merged nodes, and the rest 
   await wait(SETTLE_MS)
   expect(labels()).toContain('Fold variants')
   expect(pane.drawnGraph).toBe(pane.graph)
+  expect(pane.tubeMapKeys.foldBp).toBeUndefined()
 
   // the haplotype's three 100 bp insertions fold under 1 kb
   pane.setTubeMapFold(1000)
@@ -562,6 +563,7 @@ test("a folded tube map draws the cut's reference as merged nodes, and the rest 
   expect(merged!.length).toBe(60_000)
   expect(pane.nodeById!.get(merged!.id)).toBe(merged)
   expect(pane.tubeMapDeviations).toHaveLength(3)
+  expect(pane.tubeMapKeys.foldBp).toBe(1000)
   expect(pane.tubeMapConnectors.map(c => c.node)).toEqual([merged!.id])
 
   // and stand as their own nodes under 50 bp
@@ -571,6 +573,7 @@ test("a folded tube map draws the cut's reference as merged nodes, and the rest 
   expect(nodes.filter(n => n.stable?.rank === 0)).toHaveLength(4)
   expect(nodes.filter(n => n.stable?.rank === 1)).toHaveLength(3)
   expect(pane.tubeMapDeviations).toEqual([])
+  expect(pane.tubeMapKeys.foldBp).toBeUndefined()
 })
 
 test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {

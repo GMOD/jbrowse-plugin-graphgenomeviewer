@@ -18,7 +18,7 @@ import BubbleOverlay from './BubbleOverlay'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
-import TubeMapOverlay from './TubeMapOverlay'
+import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { RAMP_GRADIENT_CSS } from './referenceRampCss'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -294,6 +294,7 @@ const Legends = observer(function Legends({
     <div ref={ref} style={legendStackStyle}>
       <ReferenceRampLegend model={model} />
       <PathLegend model={model} />
+      <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />
       <WalkReadout model={model} />
     </div>

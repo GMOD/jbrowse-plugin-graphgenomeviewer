@@ -58,7 +58,11 @@ import {
   buildGeometry,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
+import {
+  referenceBoxes,
+  rulerBoxes,
+  rulerMarks,
+} from '@jbrowse/bandage-core/tubeMap/axis'
 import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import {
   connectorAt,
@@ -1494,6 +1498,14 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // the reference ruler under the tubes, unless the linear view's ruler
+      // is already the axis
+      get tubeMapRulerBoxes() {
+        const reference = self.tubeMapReference
+        return reference && !self.hostPlacesX
+          ? rulerBoxes(reference)
+          : undefined
+      },
       // The connectors run from the top of the pane down to the tubes' top
       get connectorZoneBottom() {
         const picture = self.tubeMapPicture
@@ -1521,6 +1533,21 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // What the tube map's legend has to explain: a zigzag where the ruler
+      // squeezes a box on screen, and the fold its walks' ticks stand for
+      get tubeMapKeys() {
+        const boxes = self.tubeMapRulerBoxes
+        const frame = self.tubeMapFrame
+        const marks =
+          boxes && frame
+            ? rulerMarks(boxes, frame.x, self.paneWidth, () => 0)
+            : undefined
+        return {
+          squeezed: (marks?.squeezed.length ?? 0) > 0,
+          foldBp:
+            self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
+        }
+      },
       tubeMapNodeAt(sx: number, sy: number) {
         const drawing = self.layoutResult?.tubeMap
         const frame = self.tubeMapFrame
