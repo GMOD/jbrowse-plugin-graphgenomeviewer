@@ -347,6 +347,27 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
       end: target.bp1,
     })
     await screenshot(page, 'demo-04-reference-strip-hover')
+
+    await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          )
+          .displays[0].setShowReferenceStrip(false)
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    await waitForStage(
+      'the strip is turned off',
+      (selector: string) =>
+        !document.querySelector(
+          `${selector} [data-testid="graph-reference-strip"]`,
+        ),
+      DISPLAY,
+    )
   }, 240_000)
 
   // Last, since it closes the view. No action may run on the graph display

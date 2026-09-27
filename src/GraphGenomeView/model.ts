@@ -419,6 +419,9 @@ export function GraphPaneMixin() {
         // The session's genes drawn onto the backbone: exons along the nodes
         // that carry them, names pinned at their midpoints. See genes/.
         showGenes: types.optional(types.boolean, true),
+        // Whether a drawing in its own coordinates inside a linear view gets
+        // the strip of reference segments at their bp. See referenceStrip.ts.
+        showReferenceStrip: types.optional(types.boolean, true),
         // Variants under this many bp fold into the reference before a tube map
         // is laid out, each kept as a tick on its walk's tube (coarsen.ts); 0
         // draws every one
@@ -1400,21 +1403,28 @@ export function GraphPaneMixin() {
           : []
       },
       // A drawing of nodes in its own coordinates inside a linear view, whose
-      // reference segments the strip puts back at their bp. A tube map has
+      // reference segments the strip can put back at their bp. A tube map has
       // its own bands, and walk rows' bars are lengths, not nodes.
-      get referenceStripBlocks() {
-        const { host, graph, layoutResult } = self
-        return host?.initialized &&
-          graph &&
-          layoutResult &&
+      get referenceStripApplies() {
+        const { host, layoutResult } = self
+        return (
+          !!host?.initialized &&
+          !!layoutResult &&
           !layoutResult.tubeMap &&
           !self.hostPlacesX &&
           self.chosenLayoutMode !== 'walkrows'
-          ? referenceStripBlocks(
-              graph,
-              self.effectiveColorScheme,
-              self.referenceRamp,
-            )
+        )
+      },
+    }))
+    .views(self => ({
+      get referenceStripBlocks() {
+        const { graph } = self
+        return self.showReferenceStrip && self.referenceStripApplies && graph
+          ? referenceStripBlocks(graph, {
+              colorScheme: self.effectiveColorScheme,
+              referenceRamp: self.referenceRamp,
+              walkNodes: self.walkHighlight?.nodeIds,
+            })
           : []
       },
       // Read off the live blocks, so the strip follows every frame of a pan
@@ -1716,6 +1726,9 @@ export function GraphPaneMixin() {
       },
       setShowGenes(show: boolean) {
         self.showGenes = show
+      },
+      setShowReferenceStrip(show: boolean) {
+        self.showReferenceStrip = show
       },
       setTubeMapFold(bp: number) {
         self.tubeMapFold = bp
@@ -3069,6 +3082,18 @@ export function GraphPaneMixin() {
               self.setShowGenes(!self.showGenes)
             },
           },
+          ...(self.referenceStripApplies
+            ? [
+                {
+                  type: 'checkbox' as const,
+                  label: 'Reference strip at bp',
+                  checked: self.showReferenceStrip,
+                  onClick: () => {
+                    self.setShowReferenceStrip(!self.showReferenceStrip)
+                  },
+                },
+              ]
+            : []),
         ]
       },
       launchMenuItems(): MenuItem[] {

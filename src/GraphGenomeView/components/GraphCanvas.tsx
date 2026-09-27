@@ -702,8 +702,13 @@ const GraphCanvas = observer(function GraphCanvas({
     model.stopDragging()
   }
 
+  // also fired by the canvas unmounting under a resting pointer, after the
+  // view closing it has destroyed the model
   function handleMouseLeave() {
     dropPending()
+    if (!isAlive(model)) {
+      return
+    }
     model.stopDragging()
     model.setHoveredNode(null)
     model.setHoveredEdge(null)

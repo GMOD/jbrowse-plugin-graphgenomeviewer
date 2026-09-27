@@ -61,13 +61,13 @@ function graphView(props) {
 
 const gbzCut = { loadedTrackId: GBZ, loadedRegion: KIV2_ARRAY }
 
-const FIGURES = {
-  force_kiv2: {
+function trackView(loc, graphDisplay) {
+  return {
     views: [
       {
         type: 'LinearGenomeView',
         assembly: 'hg38',
-        loc: 'chr6:160,525,000-160,655,000',
+        loc,
         tracks: [
           {
             trackId: GENES,
@@ -76,19 +76,48 @@ const FIGURES = {
             displayMode: 'compact',
             height: 60,
           },
-          {
-            trackId: RGFA,
-            type: 'LinearGraphDisplay',
-            layoutMode: 'force',
-            colorScheme: 'reference-position',
-            showDeletionEdges: true,
-            maxRegionBp: 143000,
-            height: 400,
-          },
+          { type: 'LinearGraphDisplay', ...graphDisplay },
         ],
       },
     ],
-  },
+  }
+}
+
+const forceKiv2Track = trackView('chr6:160,525,000-160,655,000', {
+  trackId: RGFA,
+  layoutMode: 'force',
+  colorScheme: 'reference-position',
+  showDeletionEdges: true,
+  maxRegionBp: 143000,
+  height: 400,
+})
+
+// Points at the graph track's longest allele through its drawn midpoint, as a
+// reader would, so the strip boxes its span between its flanks
+async function hoverLongestAllele(page) {
+  const target = await page.evaluate(() => {
+    const display = window.JBrowseSession.views[0].tracks[1].displays[0]
+    const node = display.graph.nodes
+      .filter(n => n.stable?.rank > 0)
+      .reduce((a, b) => (b.length > a.length ? b : a))
+    const points = display.nodePositions[node.id]
+    const p = points[Math.floor(points.length / 2)]
+    const r = document
+      .querySelector(
+        '[data-testid="linear-graph-display"] [data-testid="graph-genome-canvas"]',
+      )
+      .getBoundingClientRect()
+    return {
+      x: r.x + p.x * display.scaleX + display.translateX,
+      y: r.y + p.y * display.scaleY + display.translateY,
+    }
+  })
+  await page.mouse.move(target.x, target.y)
+}
+
+const FIGURES = {
+  force_kiv2: forceKiv2Track,
+  force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
   force_kiv2_popped: {
     session: graphView({
       loadedTrackId: RGFA,
