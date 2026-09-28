@@ -46,6 +46,7 @@ const KIV2_LOC = 'chr6:160,525,000-160,655,000'
 const KIV2_ARRAY_LOC = 'chr6:160,614,798-160,647,758'
 const MHC_LOC = 'chr6:32,510,000-32,600,000'
 const MICB_LOC = 'chr6:31,505,400-31,507,400'
+const GSTM1_LOC = 'chr1:109,670,000-109,705,000'
 
 const GENE_TRACK = {
   trackId: GENES,
@@ -86,12 +87,12 @@ function linearView(loc, tracks, below = []) {
 }
 
 // the gene track, any others, then the graph track under them
-function trackView(loc, graphDisplay, above = []) {
-  return linearView(loc, [
-    GENE_TRACK,
-    ...above,
-    { type: 'LinearGraphDisplay', ...graphDisplay },
-  ])
+function trackView(loc, graphDisplay, above = [], below = []) {
+  return linearView(
+    loc,
+    [GENE_TRACK, ...above, { type: 'LinearGraphDisplay', ...graphDisplay }],
+    below,
+  )
 }
 
 const kiv2Force = {
@@ -182,15 +183,32 @@ const FIGURES = {
     VNTR_TRACK,
     BUBBLE_TRACK,
   ]),
-  // six of the eight lack GSTM1; the strip fades HG00133's missing stretch
-  force_gstm1_walk: trackView('chr1:109,670,000-109,705,000', {
-    trackId: GBZ,
-    layoutMode: 'force',
-    colorScheme: 'reference-position',
-    subgraphHaplotypes: HAPLOTYPES,
-    walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
-    height: 460,
-  }),
+  // six of the eight lack GSTM1; the strip pales HG00133's missing stretch, and
+  // the synteny view under it reads HG00133 against GRCh38 from the same graph,
+  // its deletion a wedge pinched to a point on HG00133's contig
+  force_gstm1_walk: trackView(
+    GSTM1_LOC,
+    {
+      trackId: GBZ,
+      layoutMode: 'force',
+      colorScheme: 'reference-position',
+      subgraphHaplotypes: HAPLOTYPES,
+      walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
+      height: 460,
+    },
+    [],
+    [
+      {
+        type: 'LinearSyntenyView',
+        tracks: [GBZ],
+        collapseEmptyRows: true,
+        views: [
+          { assembly: 'hg38', loc: GSTM1_LOC, tracks: [GENE_TRACK] },
+          { assembly: 'HG00133.1', loc: 'CM090045.1:109,741,100-109,757,750' },
+        ],
+      },
+    ],
+  ),
   force_kiv2_popped: {
     session: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
       VNTR_TRACK,
