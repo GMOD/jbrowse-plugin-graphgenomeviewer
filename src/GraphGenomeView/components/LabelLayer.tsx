@@ -52,7 +52,7 @@ const LabelLayer = observer(function LabelLayer({
       height={model.canvasHeight}
       data-testid="graph-label-layer"
     >
-      {genes.map(({ item: pin, x, y, w }) => {
+      {genes.map(({ item: pin, x, y, w, text }) => {
         const { gene } = pin
         const note = geneCoverageNote(pin)
         return (
@@ -71,7 +71,7 @@ const LabelLayer = observer(function LabelLayer({
               y={y}
               w={w}
               text={gene.name}
-              note={note}
+              note={text.slice(gene.name.length) || undefined}
               color={GENE_INK}
               edge={EXON_COLOR}
               italic

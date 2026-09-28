@@ -73,7 +73,7 @@ export default function LabelChip({
         {text}
         {note ? (
           <tspan fontStyle="normal" fontWeight="normal">
-            {` · ${note}`}
+            {note}
           </tspan>
         ) : null}
       </text>
