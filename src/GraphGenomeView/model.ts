@@ -20,10 +20,7 @@ import {
 import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
-import {
-  LEGEND_INSET_PX,
-  layoutLabels,
-} from '@jbrowse/bandage-core/labelLayout'
+import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
@@ -198,16 +195,6 @@ const MIN_CANVAS_HEIGHT = 160
 const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
-// The layouts whose overlay draws bars or cells rather than nodes, so nothing
-// that marks nodes is drawn over them
-const NODELESS_MODES = new Set<string>(['walkrows', 'matrix'])
-// Over a haplotype matrix: the bands tying each column to its bp, then the
-// strip naming each site's kind
-const MATRIX_BAND_PX = 40
-const MATRIX_STRIP_PX = 6
-const MATRIX_HEAD_PX = MATRIX_BAND_PX + MATRIX_STRIP_PX + 12
-// the hover readout's three lines
-const MATRIX_READOUT_PX = 72
 
 // The sizes a tube map folds variants under. MICB's 22 kb cut draws 475
 // columns whole, 34 under 3 bp and one under 50, where only its structural
@@ -542,8 +529,6 @@ export function GraphPaneMixin() {
       hoveredNode: null as string | null,
       // the bubble whose label the pointer is on
       hoveredBubble: null as MinigraphBubble | null,
-      // the haplotype matrix cell under the pointer
-      hoveredCell: null as { row: number; column: number } | null,
       // whether the pointer is over this pane, whose own hit test then says
       // what it is on
       pointerInPane: false,
@@ -970,15 +955,10 @@ export function GraphPaneMixin() {
       // over the backbone would only say it again, across the bars.
       get deletions() {
         return self.graph &&
-          !NODELESS_MODES.has(self.chosenLayoutMode) &&
+          self.chosenLayoutMode !== 'walkrows' &&
           !self.layoutResult?.tubeMap
           ? deletionEdges(self.graph)
           : []
-      },
-      get haplotypeMatrix() {
-        return self.chosenLayoutMode === 'matrix'
-          ? self.layoutResult?.matrix
-          : undefined
       },
       // One bar per haplotype walk on its own bp axis, for the walk-rows
       // overlay. Empty under every other layout.
@@ -1044,7 +1024,7 @@ export function GraphPaneMixin() {
         dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
         return self.showGenes &&
-          !NODELESS_MODES.has(self.chosenLayoutMode) &&
+          self.chosenLayoutMode !== 'walkrows' &&
           !self.layoutResult?.tubeMap &&
           self.graph &&
           self.backboneGenes &&
@@ -1059,7 +1039,7 @@ export function GraphPaneMixin() {
         const positions = self.layoutResult?.nodePositions
         if (
           !self.showBubbles ||
-          NODELESS_MODES.has(self.chosenLayoutMode) ||
+          self.chosenLayoutMode === 'walkrows' ||
           self.layoutResult?.tubeMap ||
           !self.graph ||
           !positions
@@ -1179,7 +1159,7 @@ export function GraphPaneMixin() {
       // neighbour walk to say what the first one already worked out.
       get referenceRampDomain() {
         const ramp = self.referenceRamp
-        return ramp && !self.walkRowUnits && !self.haplotypeMatrix
+        return ramp && !self.walkRowUnits
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },
@@ -1436,7 +1416,7 @@ export function GraphPaneMixin() {
           !!layoutResult &&
           !layoutResult.tubeMap &&
           !self.hostPlacesX &&
-          !NODELESS_MODES.has(self.chosenLayoutMode)
+          self.chosenLayoutMode !== 'walkrows'
         )
       },
     }))
@@ -1539,20 +1519,8 @@ export function GraphPaneMixin() {
         return (
           FIT_PADDING +
           Math.max(0, rows - 1) * GENE_ROW_PX +
-          self.referenceStripZonePx +
-          (self.haplotypeMatrix ? MATRIX_HEAD_PX : 0)
+          self.referenceStripZonePx
         )
-      },
-      // A matrix fills the rows the legend would otherwise sit on, so the fit
-      // leaves the legend its width
-      get fitPadRight() {
-        return self.haplotypeMatrix
-          ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
-          : FIT_PADDING
-      },
-      // Room under a matrix's last row for the hovered cell's readout
-      get fitPadBottom() {
-        return self.haplotypeMatrix ? MATRIX_READOUT_PX : FIT_PADDING
       },
       // A tube map on its own axis reads by panning along it, as in
       // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
@@ -1586,7 +1554,7 @@ export function GraphPaneMixin() {
             ceiling,
             Math.max(
               MIN_CANVAS_HEIGHT,
-              bounds.h + this.fitPadTop + this.fitPadBottom,
+              bounds.h + this.fitPadTop + FIT_PADDING,
             ),
           )
         }
@@ -1616,8 +1584,6 @@ export function GraphPaneMixin() {
                 minScale: this.minFitScale,
                 padLeft: self.fitPadLeft,
                 padTop: this.fitPadTop,
-                padRight: this.fitPadRight,
-                padBottom: this.fitPadBottom,
               },
             )
           : undefined
@@ -1654,86 +1620,6 @@ export function GraphPaneMixin() {
         const picture = self.tubeMapPicture
         const frame = self.tubeMapFrame
         return picture && frame ? frame.y(picture.bounds.minY) - 2 : 0
-      },
-      // The cell under a screen point
-      matrixCellAt(sx: number, sy: number) {
-        const matrix = self.haplotypeMatrix
-        if (!matrix) {
-          return undefined
-        }
-        const column = Math.floor((sx - self.translateX) / self.scaleX)
-        const row = Math.round(
-          (sy - self.translateY) / (ROW_HEIGHT_PX * self.scaleY),
-        )
-        return column >= 0 &&
-          column < matrix.columns.length &&
-          row >= 0 &&
-          row < matrix.rows.length
-          ? { row, column }
-          : undefined
-      },
-      // What kind of variation each column is, for its strip and its readout
-      get matrixKinds() {
-        return (self.haplotypeMatrix?.columns ?? []).map(c =>
-          classifyBubble(c.bubble, self.repeatArrays),
-        )
-      },
-      // A band from each column up to the bp its site spans. In a linear view
-      // that is the view's own bp, so the bands' tops follow every frame of a
-      // pan; on its own the matrix draws a ruler of the cut as wide as
-      // itself, and the bands run up to that.
-      get matrixBands() {
-        const matrix = self.haplotypeMatrix
-        if (!matrix || matrix.columns.length === 0) {
-          return undefined
-        }
-        const { host, graphRegion, translateX, scaleX, paneWidth } = self
-        const bottom =
-          self.translateY -
-          (ROW_HEIGHT_PX / 2) * self.scaleY -
-          MATRIX_STRIP_PX -
-          4
-        const x0 = translateX
-        const x1 = matrix.columns.length * scaleX + translateX
-        const hosted =
-          host?.initialized && graphRegion
-            ? hostFrame(host, graphRegion)
-            : undefined
-        const span =
-          graphRegion && self.popStack.length === 0
-            ? graphRegion
-            : {
-                start: Math.min(...matrix.columns.map(c => c.bubble.start)),
-                end: Math.max(...matrix.columns.map(c => c.bubble.end)),
-              }
-        const perBp = (x1 - x0) / Math.max(1, span.end - span.start)
-        const toScreen = hosted
-          ? (bp: number) => bp * hosted.scale + hosted.translateX
-          : (bp: number) => x0 + (bp - span.start) * perBp
-        const inset = Math.min(1, scaleX / 4)
-        const connectors = matrix.columns.flatMap((column, c) => {
-          const bottom0 = c * scaleX + translateX + inset
-          const bottom1 = (c + 1) * scaleX + translateX - inset
-          return bottom1 >= 0 && bottom0 <= paneWidth
-            ? [
-                {
-                  node: String(c),
-                  top0: toScreen(column.bubble.start),
-                  top1: toScreen(column.bubble.end),
-                  bottom0,
-                  bottom1,
-                },
-              ]
-            : []
-        })
-        return {
-          top: hosted ? self.referenceStripZonePx : bottom - MATRIX_BAND_PX,
-          bottom,
-          stripTop: bottom + 2,
-          stripPx: MATRIX_STRIP_PX,
-          connectors,
-          ruler: hosted ? undefined : { ...span, x0, x1 },
-        }
       },
       // Read off the live blocks, so the bands' tops follow every frame of a
       // pan in the linear view and their bottoms every pan of the tubes
@@ -1924,18 +1810,6 @@ export function GraphPaneMixin() {
       setHoveredBubble(bubble: MinigraphBubble | null) {
         self.hoveredBubble = bubble
       },
-      // The cell's site is the hovered bubble too, so a linear view lights
-      // its span
-      setHoveredCell(cell: { row: number; column: number } | null) {
-        const last = self.hoveredCell
-        if (cell?.row === last?.row && cell?.column === last?.column) {
-          return
-        }
-        self.hoveredCell = cell
-        self.hoveredBubble = cell
-          ? (self.haplotypeMatrix?.columns[cell.column]?.bubble ?? null)
-          : null
-      },
       setPointerInPane(inside: boolean) {
         self.pointerInPane = inside
       },
@@ -1963,7 +1837,6 @@ export function GraphPaneMixin() {
       clearInteractionState() {
         self.hoveredNode = null
         self.hoveredBubble = null
-        self.hoveredCell = null
         self.hoveredEdge = null
         self.selectedNode = null
         self.draggingNode = null
@@ -2717,10 +2590,6 @@ export function GraphPaneMixin() {
           self.indexBubbles = undefined
           const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble, self.repeatArrays).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
           self.graph = { ...sub, name: label }
-          // the matrix draws no nodes, and a pop is for seeing them
-          if (self.chosenLayoutMode === 'matrix') {
-            self.layoutMode = 'force'
-          }
           self.clearInteractionState()
           self.viewportOwner = 'fit'
           self.isLoading = true

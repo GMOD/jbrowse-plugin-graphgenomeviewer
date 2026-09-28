@@ -2454,23 +2454,22 @@ describe('popping a bubble', () => {
   })
 })
 
-// one site: B#1 and A#1 carry segment 2, GRCh38 and A#2 skip it
-const WALKS_GFA = [
-  'H\tVN:Z:1.1',
-  'S\t1\tACGT',
-  'S\t2\tGGCCGGCC',
-  'S\t3\tTTTT',
-  'L\t1\t+\t2\t+\t0M',
-  'L\t2\t+\t3\t+\t0M',
-  'L\t1\t+\t3\t+\t0M',
-  'W\tGRCh38\t0\tchr1\t0\t8\t>1>3',
-  'W\tB\t1\tctg\t0\t16\t>1>2>3',
-  'W\tA\t2\tctg\t0\t8\t>1>3',
-  'W\tA\t1\tctg\t0\t16\t>1>2>3',
-  '',
-].join('\n')
-
 describe('walk rows', () => {
+  const WALKS_GFA = [
+    'H\tVN:Z:1.1',
+    'S\t1\tACGT',
+    'S\t2\tGGCCGGCC',
+    'S\t3\tTTTT',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t2\t+\t3\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'W\tGRCh38\t0\tchr1\t0\t8\t>1>3',
+    'W\tB\t1\tctg\t0\t16\t>1>2>3',
+    'W\tA\t2\tctg\t0\t8\t>1>3',
+    'W\tA\t1\tctg\t0\t16\t>1>2>3',
+    '',
+  ].join('\n')
+
   test('a sample filter keeps its walks, paired in the order named, and labels follow', async () => {
     rpcRespond()
     const model = stateModelFactory().create({
@@ -2484,60 +2483,6 @@ describe('walk rows', () => {
     expect(model.drawnRowLabels.map(r => r.label).slice(1)).toEqual(labels)
     model.setWalkRowSamples(['B'])
     expect(model.walkRowBars!.rows.map(r => r.label)).toEqual(['B#1'])
-  })
-})
-
-describe('haplotype matrix', () => {
-  beforeEach(() => {
-    mockRpcCall.mockReset()
-    mockSession.tracks = []
-  })
-
-  async function matrixModel() {
-    rpcRespond()
-    const model = stateModelFactory().create({
-      type: 'GraphGenomeView',
-      layoutMode: 'matrix',
-      showBubbles: true,
-    })
-    await model.loadGFA(WALKS_GFA, 'walks')
-    return model
-  }
-
-  test('a row per walk, chained from the reference, and no node marks', async () => {
-    const model = await matrixModel()
-    expect(model.haplotypeMatrix!.columns).toHaveLength(1)
-    expect(model.drawnRowLabels.map(r => r.label)).toEqual([
-      'GRCh38#0',
-      'A#2',
-      'A#1',
-      'B#1',
-    ])
-    expect(model.nodePositions).toEqual({})
-    expect(model.bubbleHalos).toEqual([])
-    expect(model.deletions).toEqual([])
-    expect(model.referenceRampDomain).toBeUndefined()
-  })
-
-  test('the cell under the pointer names its site as the hovered bubble', async () => {
-    const model = await matrixModel()
-    model.setTransform(10, 0, 0)
-    expect(model.matrixCellAt(5, 20)).toEqual({ row: 1, column: 0 })
-    expect(model.matrixCellAt(15, 20)).toBeUndefined()
-    expect(model.matrixCellAt(5, -30)).toBeUndefined()
-    model.setHoveredCell({ row: 1, column: 0 })
-    expect(model.hoveredBubble).toBe(model.haplotypeMatrix!.columns[0]!.bubble)
-    model.setHoveredCell(null)
-    expect(model.hoveredBubble).toBeNull()
-  })
-
-  test('a site opens force-directed and comes back to the matrix', async () => {
-    const model = await matrixModel()
-    await model.popBubble(model.haplotypeMatrix!.columns[0]!.bubble)
-    expect(model.layoutMode).toBe('force')
-    await model.unpopBubble()
-    expect(model.layoutMode).toBe('matrix')
-    expect(model.haplotypeMatrix!.columns).toHaveLength(1)
   })
 })
 
