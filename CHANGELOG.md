@@ -1,3 +1,9 @@
+## [4.0.17](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.16...v4.0.17) (2026-09-28)
+
+### Other Changes
+
+- Remove the variant map; a saved option this build lacks opens on the default ([0126586](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/012658604b63e725cd7e48d9bbfcb3ae9b093632))
+
 ## [4.0.16](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.15...v4.0.16) (2026-09-28)
 
 ### Other Changes
