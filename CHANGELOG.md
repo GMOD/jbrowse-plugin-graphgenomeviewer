@@ -1,3 +1,22 @@
+## [4.0.24](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.23...v4.0.24) (2026-09-28)
+
+### Other Changes
+
+- Exons outline in the gene track's goldenrod, and the legend gets room of its own ([18180a3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/18180a38e7b57ccd2f189f5b99c006d4fc3a2943))
+- Figures reshot: goldenrod exons, the legend clear of the drawing, titled tube maps ([c2efcb4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c2efcb4648c2091a063c446ac919ad43d15009ff))
+- The strip's key names its pale shade, and blocks snap to whole pixels ([0f0f4cd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0f0f4cdc8f9387b7c9da91676f760b0d0d614258))
+- Figures as SVG from a spec, and facets by sample ([0d8f6ba](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0d8f6ba8058d399df5e3f6aa0fb6e5d70f729ddb))
+- Side by side by sample, Export SVG, and figures made again from a spec ([ea8163e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ea8163e34698ab18ba6357443572f9e301d3cee6))
+- The 1q21.1 figure reshot by sample on the current drawing ([593af3f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/593af3fd87e1cb87c23c96745e96480aa7924067))
+- Core 0.1.20: the figure CLI and facets by sample reach npm ([53c62e0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/53c62e04b1d07524db00c489e11f059d995bc777))
+- The strip takes each lifted walk's lane, a row per walk, and its edge marks read ([60b3bdd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/60b3bdd08f535820b73f5d19f3b5707295744e3f))
+- One release, one version: the core takes the plugin's version ([cf50bb3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/cf50bb36546f028dc7b7155b02729732bddf5f67))
+- A gene label too wide for its spot falls back to its short form ([b6911d3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b6911d3690dee95fa0f87bb3a95bf6f7e4f2a441))
+- The strip reads as a feature track over the gridlines; walk rows draw the reference as a bar ([624d1d5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/624d1d5a087db575d1c0008546dd68c793d8c9ca))
+- Every figure is a linear view, and each says what it shows ([4b02fb3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4b02fb33df5f62fc2dd016049cc341057f6a1bac))
+- A gene label placed in its short form draws that form ([237773e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/237773e67cdc78faacefd3c820dce27b05a93d6a))
+- The GSTM1 figure shows HG00133 against GRCh38 in a synteny view under the graph ([affbea7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/affbea77e9e06153b5fd40f5cf6cbb7b1f9f6e31))
+
 ## [4.0.23](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.22...v4.0.23) (2026-09-28)
 
 ### Other Changes
