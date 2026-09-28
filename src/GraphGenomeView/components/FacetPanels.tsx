@@ -46,12 +46,14 @@ const FacetPanel = observer(function FacetPanel({
   lift,
   width,
   height,
+  cell,
   handlers,
 }: {
   model: GraphPaneModel
   lift: WalkLift
   width: number
   height: number
+  cell: { gridRow: number; gridColumn: number }
   handlers: PaneHandlers
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
@@ -86,7 +88,7 @@ const FacetPanel = observer(function FacetPanel({
 
   const label = model.walkLabel(walk.name)
   return (
-    <div>
+    <div style={cell}>
       <button
         type="button"
         style={titleStyle}
@@ -127,7 +129,8 @@ const FacetPanels = observer(function FacetPanels({
 }) {
   const panels = model.facetPanels
   const grid = model.facetGrid
-  if (!panels || !grid) {
+  const place = model.facetPlacement
+  if (!panels || !grid || !place) {
     return null
   }
   const { columns, width, height } = grid
@@ -142,13 +145,17 @@ const FacetPanels = observer(function FacetPanels({
         background: model.darkMode ? '#1f1f1f' : 'white',
       }}
     >
-      {panels.map(lift => (
+      {panels.map((lift, i) => (
         <FacetPanel
           key={lift.walks[0]!.name}
           model={model}
           lift={lift}
           width={width}
           height={height}
+          cell={{
+            gridRow: Math.floor(place.cells[i]! / columns) + 1,
+            gridColumn: (place.cells[i]! % columns) + 1,
+          }}
           handlers={handlers}
         />
       ))}

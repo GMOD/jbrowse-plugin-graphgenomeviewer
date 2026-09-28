@@ -2606,6 +2606,36 @@ describe('walk rows', () => {
     expect(columns.subMenu!.map(item => item.label)).toEqual(['Auto', '1', '2'])
   })
 
+  test('by sample, a sample takes a row and its haplotypes the columns', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+      facet: 'sample',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['GRCh38#0#chr1', 'A#1#ctg', 'A#2#ctg', 'B#1#ctg'])
+    expect(model.facetPlacement).toEqual({
+      columns: 2,
+      count: 6,
+      cells: [0, 2, 3, 4],
+    })
+    expect(model.facetGrid!.columns).toBe(2)
+  })
+
+  test('the drawing exports as an SVG with its walks keyed', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['B#1#ctg'])
+    const svg = model.figure()!
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
+    expect(svg).toContain('not on B#1')
+  })
+
   test('a tube map lifts no walk: its tubes are the walks', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

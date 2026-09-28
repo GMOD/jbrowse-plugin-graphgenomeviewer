@@ -194,7 +194,7 @@ const FIGURES = {
     paneHeight: 600,
   }),
   // GRCh38 reads the 1q21.1 inversion the way a minority of haplotypes do;
-  // HG01123 carries one orientation on each haplotype
+  // HG01123 carries one orientation on each haplotype, which its row shows
   force_1q21_strand: graphView({
     loadedTrackId: GBZ,
     loadedRegion: {
@@ -212,7 +212,7 @@ const FIGURES = {
       { walk: 'HG002#1#chr1' },
       { walk: 'HG01123#1#CM089081.1' },
     ],
-    facet: 'walk',
+    facet: 'sample',
     paneHeight: 700,
   }),
   walk_rows_kiv2: {

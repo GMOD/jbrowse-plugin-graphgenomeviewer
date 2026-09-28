@@ -18,7 +18,12 @@ import {
   resolveColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
 import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
-import { FACET_PAD_PX, facetGrid } from '@jbrowse/bandage-core/facetGrid'
+import {
+  FACET_PAD_PX,
+  facetCells,
+  facetGrid,
+} from '@jbrowse/bandage-core/facetGrid'
+import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
@@ -119,6 +124,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
+import { downloadText } from './download'
 import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
@@ -168,7 +174,7 @@ import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
-import type { FacetGrid } from '@jbrowse/bandage-core/facetGrid'
+import type { FacetBy, FacetGrid } from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
@@ -207,6 +213,12 @@ const MIN_CANVAS_HEIGHT = 160
 const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
+
+const FACETS = [
+  { value: 'none', label: 'Off' },
+  { value: 'walk', label: 'A panel per walk' },
+  { value: 'sample', label: 'A row per sample, a column per haplotype' },
+] as const
 
 // The sizes a tube map folds variants under. MICB's 22 kb cut draws 475
 // columns whole, 34 under 3 bp and one under 50, where only its structural
@@ -457,8 +469,12 @@ export function GraphPaneMixin() {
         walkLayers: types.optional(types.frozen<WalkLayer[]>(), []),
         // Facets, as a grammar of graphics splits a plot: 'walk' draws the
         // pane once per lifted walk, side by side on the same layout, each
-        // panel with that walk alone. See facetPanels.
-        facet: lenientOptionalEnum<'none' | 'walk'>(['none', 'walk'], 'none'),
+        // panel with that walk alone; 'sample' puts a sample's haplotypes in a
+        // row. See facetPanels and facetCells.
+        facet: lenientOptionalEnum<'none' | FacetBy>(
+          ['none', 'walk', 'sample'],
+          'none',
+        ),
         // How many facet panels go across; unset takes whichever count draws
         // each largest. See facetGrid.
         facetColumns: types.maybe(types.number),
@@ -790,7 +806,7 @@ export function GraphPaneMixin() {
       get facetPanels() {
         const { graph } = self
         const lift = this.walkLift
-        return self.facet === 'walk' && graph && lift && lift.walks.length > 1
+        return self.facet !== 'none' && graph && lift && lift.walks.length > 1
           ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
           : undefined
       },
@@ -1673,17 +1689,29 @@ export function GraphPaneMixin() {
       // How the facet panels tile the pane. A track's height is its own, and
       // a track whose x the linear view places stacks full-width panels so
       // each keeps that x.
-      get facetGrid(): FacetGrid | undefined {
+      // Which grid cell each panel takes; see facetCells
+      get facetPlacement() {
         const panels = self.facetPanels
+        return panels
+          ? facetCells(
+              panels.map(p => p.walks[0]!.name),
+              self.hostPlacesX || self.facet === 'none' ? 'walk' : self.facet,
+            )
+          : undefined
+      },
+      get facetGrid(): FacetGrid | undefined {
+        const place = this.facetPlacement
         const bounds = self.layoutBounds
-        return panels && bounds && bounds.w > 0
+        return place && bounds && bounds.w > 0
           ? facetGrid({
-              count: panels.length,
+              count: place.count,
               bounds,
               pixelRows: self.pixelRows,
               width: self.paneWidth,
               room: self.host ? this.canvasHeight : this.paneCeiling,
-              columns: self.hostPlacesX ? 1 : self.facetColumns,
+              columns: self.hostPlacesX
+                ? 1
+                : (place.columns ?? self.facetColumns),
             })
           : undefined
       },
@@ -1849,6 +1877,26 @@ export function GraphPaneMixin() {
       },
       get overlayLabels() {
         return layoutLabels(self)
+      },
+      // The drawing as a standalone SVG, fitted, with its lifted walks' keys
+      // and facet panels; see figureSvg
+      figure() {
+        const { graph, layoutResult } = self
+        return graph && layoutResult && !layoutResult.tubeMap
+          ? figureSvg(graph, layoutResult, {
+              width: self.paneWidth,
+              height: self.paneCeiling,
+              walks: self.walkLayers,
+              facet: self.facet,
+              columns: self.facetColumns,
+              colorScheme: self.effectiveColorScheme,
+              nodeWidth: self.nodeWidth,
+              showDeletionEdges: self.showDeletionEdges,
+              contigThickness: self.contigThickness,
+              connectorThickness: self.connectorThickness,
+              region: self.graphRegion,
+            })
+          : undefined
       },
       get tubeMapFrame() {
         const drawing = self.layoutResult?.tubeMap
@@ -2039,7 +2087,7 @@ export function GraphPaneMixin() {
         const had = new Map(self.walkLayers.map(l => [l.walk, l]))
         self.walkLayers = names.map(walk => had.get(walk) ?? { walk })
       },
-      setFacet(facet: 'none' | 'walk') {
+      setFacet(facet: 'none' | FacetBy) {
         self.facet = facet
       },
       setFacetColumns(columns: number | undefined) {
@@ -3267,18 +3315,21 @@ export function GraphPaneMixin() {
                     ...(self.walkLayers.length > 1
                       ? [
                           {
-                            type: 'checkbox' as const,
                             label: 'Side by side',
-                            checked: self.facet === 'walk',
-                            onClick: () => {
-                              self.setFacet(
-                                self.facet === 'walk' ? 'none' : 'walk',
-                              )
-                            },
+                            subMenu: FACETS.map(({ value, label }) => ({
+                              type: 'radio' as const,
+                              label,
+                              checked: self.facet === value,
+                              onClick: () => {
+                                self.setFacet(value)
+                              },
+                            })),
                           },
                         ]
                       : []),
-                    ...(self.facetPanels && !self.hostPlacesX
+                    ...(self.facetPanels &&
+                    self.facet === 'walk' &&
+                    !self.hostPlacesX
                       ? [
                           {
                             label: 'Columns',
@@ -3450,6 +3501,20 @@ export function GraphPaneMixin() {
                 },
               ]
             : []),
+          {
+            label: 'Export SVG',
+            disabled: !self.layoutResult || !!self.layoutResult.tubeMap,
+            disabledHelpText: 'A tube map draws no nodes to export',
+            onClick: () => {
+              const svg = self.figure()
+              if (svg) {
+                downloadText(
+                  svg,
+                  `${(self.graph?.name ?? 'graph').replaceAll(/[^\w.-]+/g, '_')}.svg`,
+                )
+              }
+            },
+          },
         ]
       },
       launchMenuItems(): MenuItem[] {

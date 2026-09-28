@@ -33,9 +33,11 @@ session spec does the same with `loadedTrackId` and `loadedRegion`.
 - Genes from the session's annotation track, drawn on the graph
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, walks lifted out as
-  metro-map lanes or side by side, one panel per walk, each shading from its
-  start to its end
+  metro-map lanes or side by side, a panel per walk or a row per sample, each
+  shading from its start to its end
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
+- Figures as SVG, from the view's Export SVG or from a JSON spec with no browser
+  ([docs/figures.md](docs/figures.md))
 
 ## Usage
 
