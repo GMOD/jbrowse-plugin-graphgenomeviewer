@@ -2500,7 +2500,7 @@ describe('walk rows', () => {
     expect(model.walkLift!.walks.map(w => [w.name, w.encoding])).toEqual([
       ['GRCh38#0#chr1', { field: 'progress', scheme: 'grey' }],
       ['B#1#ctg', { field: 'walk', scheme: 'green' }],
-      ['A#1#ctg', { field: 'progress', scheme: 'vermillion' }],
+      ['A#1#ctg', { field: 'progress', scheme: 'red' }],
     ])
     // the reference is coloured by position whatever the node colour scheme
     const ref = model.walkLift!.walks[0]!
@@ -2516,7 +2516,7 @@ describe('walk rows', () => {
     const colour = walkMenu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
       colour.subMenu!.filter(item => item.checked).map(item => item.label),
-    ).toEqual(['One colour for the walk', 'Bluish green'])
+    ).toEqual(['One colour for the walk', 'Lime to forest'])
     // the rainbow is offered for reference position only
     expect(colour.subMenu!.some(item => item.label === 'Rainbow')).toBe(false)
     model.liftWalks(['B#1#ctg'])

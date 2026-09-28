@@ -20,7 +20,10 @@ import {
 import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
-import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
+import {
+  LEGEND_INSET_PX,
+  layoutLabels,
+} from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { trimToWindow } from '@jbrowse/bandage-core/layout/trimToWindow'
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
@@ -1433,6 +1436,7 @@ export function GraphPaneMixin() {
               colorScheme: self.effectiveColorScheme,
               referenceRamp: self.referenceRamp,
               walkNodes: self.walkLift?.nodeIds,
+              walkColors: self.walkLift?.walks.find(w => w.reference)?.colors,
             })
           : []
       },
@@ -1547,27 +1551,38 @@ export function GraphPaneMixin() {
       // isotropic layout has no height of its own and takes its aspect ratio
       // at the width's fit. Neither reads `scale`, so the fit reads this
       // without feeding back into it.
+      // Lifted walks' legend rows carry their scales, which makes the legend
+      // wide, so the fit leaves it that width rather than draw under it
+      get fitPadRight() {
+        return self.walkLift
+          ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
+          : FIT_PADDING
+      },
       get canvasHeight() {
         const bounds = self.layoutBounds
-        const usableWidth = self.paneWidth - FIT_PADDING * 2
+        const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
         const ceiling = this.paneCeiling
         if (!bounds) {
           return ceiling
         }
+        // never shorter than the legend, which a flat drawing would clip
+        const floor = Math.max(
+          MIN_CANVAS_HEIGHT,
+          self.legendSize.height +
+            2 * LEGEND_INSET_PX +
+            self.referenceStripZonePx,
+        )
         if (self.pixelRows) {
           return Math.min(
             ceiling,
-            Math.max(
-              MIN_CANVAS_HEIGHT,
-              bounds.h + this.fitPadTop + FIT_PADDING,
-            ),
+            Math.max(floor, bounds.h + this.fitPadTop + FIT_PADDING),
           )
         }
         return bounds.w > 0 && usableWidth > 0
           ? Math.min(
               ceiling,
               Math.max(
-                MIN_CANVAS_HEIGHT,
+                floor,
                 bounds.h * Math.max(usableWidth / bounds.w, this.minFitScale) +
                   this.fitPadTop +
                   FIT_PADDING,
@@ -1589,6 +1604,7 @@ export function GraphPaneMixin() {
                 minScale: this.minFitScale,
                 padLeft: self.fitPadLeft,
                 padTop: this.fitPadTop,
+                padRight: this.fitPadRight,
               },
             )
           : undefined

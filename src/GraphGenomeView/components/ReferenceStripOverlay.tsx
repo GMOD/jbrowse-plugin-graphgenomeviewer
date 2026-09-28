@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { drawReferenceStrip } from '@jbrowse/bandage-core/referenceStrip'
+import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
@@ -75,14 +76,25 @@ const legendBoxStyle = {
 const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const SWATCH_PX = 18
 
-function StripSwatch() {
+// the strip's own colours: the reference lane's under lifted walks, grey
+// when the reference is not one of them, else the node scheme's ramp
+function StripSwatch({ background }: { background: string }) {
   return (
-    <svg width={SWATCH_PX} height={4} style={{ flex: 'none' }}>
-      <rect x={0} y={0} width={6} height={4} fill="hsl(0, 70%, 50%)" />
-      <rect x={6} y={0} width={5} height={4} fill="hsl(120, 70%, 50%)" />
-      <rect x={11} y={0} width={7} height={4} fill="hsl(240, 70%, 50%)" />
-    </svg>
+    <div style={{ width: SWATCH_PX, height: 4, flex: 'none', background }} />
   )
+}
+
+const RAMP_SWATCH =
+  'linear-gradient(to right, hsl(0, 70%, 50%) 0 33%, hsl(120, 70%, 50%) 33% 61%, hsl(240, 70%, 50%) 61%)'
+
+function stripBackground(model: GraphPaneModel) {
+  const lift = model.walkLift
+  const reference = lift?.walks.find(w => w.reference)
+  return reference
+    ? encodingSwatchCss(reference.encoding)
+    : lift
+      ? 'rgb(160, 160, 160)'
+      : RAMP_SWATCH
 }
 
 function OverhangSwatch() {
@@ -102,7 +114,7 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
   return model.referenceStripShown ? (
     <div style={legendBoxStyle} data-testid="graph-reference-strip-legend">
       <div style={legendRowStyle}>
-        <StripSwatch />
+        <StripSwatch background={stripBackground(model)} />
         <span>top strip: reference segments at their bp</span>
       </div>
       {model.referenceStripOverhangs ? (

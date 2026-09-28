@@ -7,11 +7,7 @@ import {
   findHoveredNode,
 } from '@jbrowse/bandage-core/util/hitDetection'
 import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
-import {
-  WALK_FIELDS,
-  encodingSwatchCss,
-  fieldLegend,
-} from '@jbrowse/bandage-core/walkEncoding'
+import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -181,14 +177,13 @@ const PathLegend = observer(function PathLegend({
   ) : null
 })
 
-const walkSwatchStyle = { width: 26, height: 8, borderRadius: 2, flex: 'none' }
+const walkBlockStyle = { marginBottom: 3 }
+const walkBarRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
+const walkBarStyle = { flex: 1, minWidth: 60, height: 8, borderRadius: 2 }
 
 // What each lifted walk carries through the window, against the reference
 // walk where the graph has one, beside the scale its lane is coloured by, and
 // what each field in use means
-function fieldName(field: string) {
-  return WALK_FIELDS.find(f => f.value === field)!.label.toLowerCase()
-}
 
 const WalkReadout = observer(function WalkReadout({
   model,
@@ -201,6 +196,7 @@ const WalkReadout = observer(function WalkReadout({
   }
   const labelOf = (name: string) =>
     model.walkChoices.find(c => c.name === name)?.label ?? name
+  const referenceName = model.graphRegion?.refName
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       {lift.walks.map(w => {
@@ -209,41 +205,45 @@ const WalkReadout = observer(function WalkReadout({
             ? ''
             : w.bp === w.referenceBp
               ? ', the reference length'
-              : `, ${w.bp > w.referenceBp ? '+' : '−'}${Math.abs(w.bp - w.referenceBp).toLocaleString()} bp against the reference`
+              : `, ${w.bp > w.referenceBp ? '+' : '−'}${formatBp(Math.abs(w.bp - w.referenceBp))} against the reference`
+        // the stretch the lane's colours run over, on the walk's own contig
+        // for progress and on the reference for reference position
+        const ends =
+          w.encoding.field === 'progress' && w.range
+            ? { ...w.range, name: w.range.contig }
+            : w.encoding.field === 'reference' && lift.referenceDomain
+              ? { ...lift.referenceDomain, name: referenceName }
+              : undefined
         return (
-          <div key={w.name} style={pathLegendRowStyle}>
-            <div
-              style={{
-                ...walkSwatchStyle,
-                background: encodingSwatchCss(w.encoding),
-              }}
-            />
-            <span>
-              <strong>{labelOf(w.name)}</strong>: {w.bp.toLocaleString()} bp
+          <div key={w.name} style={walkBlockStyle}>
+            <div>
+              <strong>{labelOf(w.name)}</strong> {formatBp(w.bp)}
               {delta}
               {w.reversedBp > 0
-                ? `, ${w.reversedBp.toLocaleString()} bp reversed against the reference`
+                ? `, ${formatBp(w.reversedBp)} reversed against the reference`
                 : ''}
-            </span>
+            </div>
+            <div style={walkBarRowStyle}>
+              {ends ? (
+                <span>
+                  {ends.name ? `${ends.name}:` : ''}
+                  {Math.round(ends.start).toLocaleString()}
+                </span>
+              ) : null}
+              <div
+                style={{
+                  ...walkBarStyle,
+                  background: encodingSwatchCss(w.encoding),
+                }}
+              />
+              {ends ? (
+                <span>{Math.round(ends.end).toLocaleString()}</span>
+              ) : null}
+            </div>
           </div>
         )
       })}
-      {WALK_FIELDS.filter(
-        f =>
-          fieldLegend(f.value) &&
-          // the ramp's own legend already says what reference position is
-          !(f.value === 'reference' && model.referenceRampDomain) &&
-          lift.walks.some(w => w.encoding.field === f.value),
-      ).map(f => (
-        <div key={f.value}>
-          {fieldName(f.value)}: {fieldLegend(f.value)}
-        </div>
-      ))}
-
-      <div>
-        paler nodes: on none of{' '}
-        {lift.walks.length > 1 ? 'these walks' : 'this walk'}
-      </div>
+      <div>paler nodes: on none of the walks above</div>
     </div>
   )
 })
@@ -270,7 +270,8 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
 }: {
   model: GraphPaneModel
 }) {
-  const domain = model.referenceRampDomain
+  // under lifted walks each lane states its own scale, and the rest is grey
+  const domain = model.walkLift ? undefined : model.referenceRampDomain
   return domain ? (
     <div style={legendBoxStyle} data-testid="graph-ramp-legend">
       <div style={rampStripStyle} />
