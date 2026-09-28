@@ -13,6 +13,10 @@ Accepted (2026-09-13). Extends ADR-041. Measured on the six HPRC release 2.1
 rGFA loci in `scripts/layout-lab/README.md` and the eight-haplotype KIV-2 GBZ
 cut; `scripts/layout-lab/` reproduces the measurements.
 
+We removed the variant map on 2026-09-27: every glyph hit the same height cap, a
+deletion's most visible mark was the reference it keeps, and it showed nothing
+per haplotype. Bubble halos and pops cover what it did.
+
 ## Context
 
 The two ADR-041 layouts read badly on a pangenome window:

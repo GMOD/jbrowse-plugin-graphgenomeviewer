@@ -148,12 +148,6 @@ const FIGURES = {
         view.popBubble(array)
       }),
   },
-  variant_map_kiv2: graphView({
-    loadedTrackId: RGFA,
-    loadedRegion: KIV2,
-    layoutMode: 'variants',
-    paneHeight: 340,
-  }),
   force_kiv2_gbz: graphView({
     ...gbzCut,
     subgraphHaplotypes: HAPLOTYPES,
