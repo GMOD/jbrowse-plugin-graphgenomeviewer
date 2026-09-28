@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -53,22 +52,6 @@ const REPEAT_VCF = [
   '',
 ].join('\n')
 
-// Every haplotype's copies of the same array, as scripts/tandem-repeat-vcf.mjs
-// states them from the fixture itself: two units, B leading most arrays.
-function unitsVcf() {
-  const served = (file: string) => path.join(TEST_JBROWSE_DIR, file)
-  return execFileSync(
-    'node',
-    [
-      'scripts/tandem-repeat-vcf.mjs',
-      served(KIV2),
-      '--bed',
-      served('kiv2_repeats.bed'),
-    ],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  )
-}
-
 function config() {
   const served = (file: string) => ({
     uri: `${BASE_URL}/${file}`,
@@ -96,13 +79,6 @@ function config() {
         name: 'KIV-2 tandem repeat calls',
         assemblyNames: ['hg38'],
         adapter: { type: 'VcfAdapter', vcfLocation: served('kiv2_tr.vcf') },
-      },
-      {
-        type: 'VariantTrack',
-        trackId: 'kiv2_units_vcf',
-        name: 'KIV-2 copies by unit',
-        assemblyNames: ['hg38'],
-        adapter: { type: 'VcfAdapter', vcfLocation: served('kiv2_units.vcf') },
       },
       {
         type: 'FeatureTrack',
@@ -148,7 +124,6 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
     writeServedFile('hg38_chr6.chrom.sizes', 'chr6\t170805979\n')
     writeServedFile('kiv2_repeats.bed', REPEAT_BED)
     writeServedFile('kiv2_tr.vcf', REPEAT_VCF)
-    writeServedFile('kiv2_units.vcf', unitsVcf())
     await startJBrowseServer()
     browser = await launchBrowser()
     page = await createJBrowsePage(browser)
@@ -253,53 +228,5 @@ describe.skipIf(!runE2E || !hasFixture)('walk rows at KIV-2', () => {
       ),
     )
     expect(readouts[0]).toMatch(/^147 kb ≈ 27 units \(\+116 kb\)$/)
-  }, 90_000)
-
-  // A record stating each allele's runs paints every bar by unit, GRCh38's
-  // included, and counts copies rather than estimating them from length.
-  it("paints each copy by the unit a VCF 4.5 record's allele states", async () => {
-    const key = await page.evaluate(async () => {
-      const view = (
-        window as unknown as {
-          JBrowseSession: {
-            views: {
-              setRepeatTrackId: (id: string) => void
-              setRepeatKey: (key: string) => void
-              reloadRepeats: () => Promise<void>
-              repeatChoices: { key: string }[]
-            }[]
-          }
-        }
-      ).JBrowseSession.views[0]!
-      view.setRepeatTrackId('kiv2_units_vcf')
-      await view.reloadRepeats()
-      view.setRepeatKey(view.repeatChoices[0]!.key)
-      return view.repeatChoices[0]!.key
-    })
-    expect(key).toBe(REPEAT_KEY)
-    await page.waitForFunction(
-      () =>
-        [...document.querySelectorAll('[data-testid="graph-walk-row"] text')]
-          .map(el => el.textContent)
-          .some(t => t.includes('copies')),
-      { timeout: 60_000 },
-    )
-    const readouts = await page.evaluate(() =>
-      [
-        ...document.querySelectorAll('[data-testid="graph-walk-rows"] text'),
-      ].map(el => el.textContent),
-    )
-    expect(readouts[0]).toBe('31 kb · 6 copies')
-    expect(readouts[1]).toBe('147 kb · 27 copies (+116 kb)')
-    const legend = await page.evaluate(
-      () =>
-        document.querySelector('[data-testid="graph-walk-rows-legend"]')
-          ?.textContent,
-    )
-    expect(legend).toMatch(/unit 1 · 5,5\d\d bp/)
-    expect(legend).toMatch(/unit 2 · 5,5\d\d bp/)
-    expect(legend).not.toContain('unit 3')
-    expect(await page.$('[data-testid="graph-ramp-legend"]')).toBeNull()
-    await screenshot(page, 'walk-rows-kiv2-units')
   }, 90_000)
 })

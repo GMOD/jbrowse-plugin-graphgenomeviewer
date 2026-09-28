@@ -990,15 +990,6 @@ export function GraphPaneMixin() {
         )
         return { ...bars, reference: reference!, rows: paired }
       },
-      // The units walk rows paint every bar by, once the selected repeat's
-      // record states a drawn walk's runs.
-      get walkRowUnits() {
-        const bars = this.walkRowBars
-        return bars &&
-          [bars.reference, ...bars.rows].some(row => row.call?.sequences)
-          ? self.selectedRepeat?.units
-          : undefined
-      },
       // The labels drawn beside the rows. Walk rows label from the bars
       // themselves, which follow the selected repeat and sample filter that
       // the layout, run once per cut, cannot.
@@ -1160,7 +1151,7 @@ export function GraphPaneMixin() {
       // neighbour walk to say what the first one already worked out.
       get referenceRampDomain() {
         const ramp = self.referenceRamp
-        return ramp && !self.walkRowUnits
+        return ramp
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },

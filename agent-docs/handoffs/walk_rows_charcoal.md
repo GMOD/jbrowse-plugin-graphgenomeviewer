@@ -1,5 +1,12 @@
 # Handoff: decoding the charcoal in walk rows (2026-09-27)
 
+Superseded 2026-09-28: colouring each copy by its unit, and
+`scripts/tandem-repeat-vcf.mjs`, moved to
+[jbrowse-plugin-tandem-repeat](https://github.com/GMOD/jbrowse-plugin-tandem-repeat).
+A `<CNV:TR>` record states every copy, so drawing it is a VCF view, not a graph
+one. Walk rows keep the Repeat picker: flank-to-flank lengths, unit tiles, and
+each allele's length as a tick against its walk.
+
 Walk rows paint each haplotype walk on its own bp axis. On KIV-2 most of each
 bar was charcoal, sequence off the reference walk. The charcoal is now decoded
 by repeat unit: a VCF 4.5 `<CNV:TR>` record that states each allele's repeat

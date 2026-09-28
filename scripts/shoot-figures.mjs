@@ -167,7 +167,8 @@ const FIGURES = {
       ...gbzCut,
       subgraphHaplotypes: HAPLOTYPES,
       layoutMode: 'walkrows',
-      repeatTrackId: 'hprc_kiv2_copies',
+      colorScheme: 'uniform',
+      repeatTrackId: 'hprc_curated_vntrs',
       paneHeight: 420,
     }),
     // the Repeat picker lists the arrays the repeat track has over the cut
