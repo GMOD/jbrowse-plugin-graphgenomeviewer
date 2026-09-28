@@ -1,3 +1,11 @@
+## [4.0.18](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.17...v4.0.18) (2026-09-28)
+
+### Other Changes
+
+- Haplotype matrix: a row per walk, a column per site, cells by route ([7dad225](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7dad2259cc42d8779af679782572e0b14ae70468))
+- Revert the haplotype matrix ([4511eff](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4511effad340ee644665619a1ea7c9c20095d4e0))
+- Gbz-base 4.0.0: a kept cut spans window plus context, so walk rows sees a truncated walk ([61b7aa9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/61b7aa9aa0081141066cbe9f44f41a6004ad1e89))
+
 ## [4.0.17](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.16...v4.0.17) (2026-09-28)
 
 ### Other Changes
