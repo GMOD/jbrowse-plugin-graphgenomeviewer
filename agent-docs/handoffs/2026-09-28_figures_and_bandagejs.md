@@ -17,8 +17,9 @@
   (`genesFromGff3Lines`, `genesFromBed`, `genesFromText`, moved from BandageJS's
   `src/geneModels.ts`), and `@gmod/tabix` as a dependency. The CLI
   (`src/cli/figure.ts`) uses them and reads a spec's
-  `genes: { file, index?, format? }` for the backbone's contigs.
-  `figures/mapt_sample.json` now pins RefSeq genes.
+  `genes: { file, index?, format? }` for the backbone's contigs. A spec pins
+  RefSeq genes with
+  `"genes": { "file": "https://jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz", "index": "https://jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz.csi" }`.
 - `walkPosition(walk, nodeId, length)`: the plugin's walk keys (legend rows and
   facet titles) show the hovered node's stretch on each walk, or "not on this
   walk" (`model.hoveredOn`).
@@ -64,8 +65,8 @@
    `git restore --staged --worktree CHANGELOG.md package.json packages/core/package.json src/version.ts packages/core/src/version.ts`
    and rerun.
 4. Check
-   `npx -y -p @jbrowse/bandage-core@4.0.25 bandage-figure figures/mapt_sample.json -o x.svg`
-   matches `img/figure_mapt_sample.svg`.
+   `npx -y -p @jbrowse/bandage-core@4.0.25 bandage-figure figures/kiv2_walks.json -o x.svg`
+   matches what `node scripts/render-figures.mjs kiv2_walks` wrote.
 5. `pnpm deploy` in BandageJS updates jbrowse.org/demos/bandagejs (needs the
    user's AWS credentials).
 
