@@ -1,3 +1,10 @@
+## [4.0.20](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.19...v4.0.20) (2026-09-28)
+
+### Other Changes
+
+- GBZ figures reshot on plugin 4.0.19 and gbz-base 4.0.0 ([e389d9b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e389d9b0e20ed0414b42d3f9788bfdc62893bdc7))
+- Lift several walks at once, each lane coloured by an encoding ([f9e7b57](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f9e7b576418ad92758d226a15673d6c33d153291))
+
 ## [4.0.19](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.18...v4.0.19) (2026-09-28)
 
 ### Other Changes
