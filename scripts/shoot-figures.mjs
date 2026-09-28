@@ -209,6 +209,19 @@ const FIGURES = {
       },
     ],
   ),
+  // three routes through GSTM1: HG01960 through GRCh38's copy, HG00133 past
+  // it, and HG03041 round a copy of its own the graph never merged with it
+  force_gstm1_three_ways: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'force',
+    subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
+    walkLayers: [
+      { walk: 'HG01960#1#CM088644.1' },
+      { walk: 'HG00133#1#CM090045.1' },
+      { walk: 'HG03041#2#CM088727.1' },
+    ],
+    height: 460,
+  }),
   force_kiv2_popped: {
     session: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
       VNTR_TRACK,
