@@ -16,6 +16,10 @@ import { observer } from 'mobx-react'
 import BubbleHalos, { HaloLegend } from './BubbleHalos'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
+import HaplotypeMatrixOverlay, {
+  HaplotypeMatrixLegend,
+  HaplotypeMatrixReadout,
+} from './HaplotypeMatrixOverlay'
 import LabelLayer from './LabelLayer'
 import ReferenceStripOverlay, {
   ReferenceStripLegend,
@@ -309,6 +313,7 @@ const Legends = observer(function Legends({
       <PathLegend model={model} />
       <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />
+      <HaplotypeMatrixLegend model={model} />
       <WalkReadout model={model} />
     </div>
   )
@@ -395,6 +400,11 @@ const HoverTooltips = observer(function HoverTooltips({
 
   return (
     <>
+      {model.hoveredCell ? (
+        <div style={tooltipStyle}>
+          <HaplotypeMatrixReadout model={model} />
+        </div>
+      ) : null}
       {hoveredNodeData ? (
         <div style={tooltipStyle}>
           <strong>{hoveredNodeData.name}</strong> — length:{' '}
@@ -635,6 +645,12 @@ const GraphCanvas = observer(function GraphCanvas({
       )
       pending.pan = null
     }
+    if (pending.hover && model.haplotypeMatrix) {
+      model.setHoveredCell(
+        model.matrixCellAt(pending.hover.x, pending.hover.y) ?? null,
+      )
+      pending.hover = null
+    }
     if (pending.hover && model.nodePositions && model.graph) {
       const { x, y } = screenToGraph(pending.hover.x, pending.hover.y)
       pending.hover = null
@@ -715,6 +731,7 @@ const GraphCanvas = observer(function GraphCanvas({
     model.stopDragging()
     model.setHoveredNode(null)
     model.setHoveredEdge(null)
+    model.setHoveredCell(null)
   }
 
   // Right-clicking a node is the gesture that asks "where is this?", and until
@@ -733,6 +750,12 @@ const GraphCanvas = observer(function GraphCanvas({
   function handleClick(e: React.MouseEvent) {
     // a click that ended a drag selects nothing
     if (!hasMovedRef.current) {
+      const cell = model.hoveredCell
+      const site = cell && model.haplotypeMatrix?.columns[cell.column]
+      if (site) {
+        void model.popBubble(site.bubble)
+        return
+      }
       const { x, y } = getMouseCoord(e)
       const node = nodeAt(x, y)
       model.setSelectedNode(node)
@@ -783,6 +806,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <LabelLayer model={model} />
         <UnpopButton model={model} />
         <WalkRowsOverlay model={model} />
+        <HaplotypeMatrixOverlay model={model} />
         <Legends model={model} />
 
         {ownChrome ? (

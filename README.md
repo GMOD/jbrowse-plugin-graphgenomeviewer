@@ -14,6 +14,8 @@ graph back to the linear view's coordinates.
 
 ![MICB's exons 2–4 as a tube map track, eight HPRC haplotypes, each reference node tied to its bp on the ruler](img/tube_map_micb_track.png)
 
+![The KIV-2 array as a haplotype matrix track: a row per haplotype, a column per site, each column tied to its bp on the ruler](img/haplotype_matrix_kiv2_track.png)
+
 ## As its own view
 
 **Add → Graph genome view** opens a whole GFA file. A graph track's **Launch →
@@ -26,8 +28,9 @@ session spec does the same with `loadedTrackId` and `loadedRegion`.
 
 ## Features
 
-- Seven layouts: force-directed (Bandage FMMM), ordered, anchored, sample rows,
-  walk rows, and sequenceTubeMap's tube map on its own axis or the reference's
+- Eight layouts: force-directed (Bandage FMMM), haplotype matrix, ordered,
+  anchored, sample rows, walk rows, and sequenceTubeMap's tube map on its own
+  axis or the reference's
 - Genes from the session's annotation track, drawn on the graph
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, one walk lifted out

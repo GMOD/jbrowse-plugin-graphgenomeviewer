@@ -162,6 +162,18 @@ const FIGURES = {
     highlightedPath: 'HG00133#1#CM090050.1',
     paneHeight: 620,
   }),
+  haplotype_matrix_kiv2: graphView({
+    ...gbzCut,
+    subgraphHaplotypes: HAPLOTYPES,
+    layoutMode: 'matrix',
+    paneHeight: 360,
+  }),
+  haplotype_matrix_kiv2_track: trackView('chr6:160,614,798-160,647,758', {
+    trackId: GBZ,
+    layoutMode: 'matrix',
+    subgraphHaplotypes: HAPLOTYPES,
+    height: 320,
+  }),
   walk_rows_kiv2: {
     session: graphView({
       ...gbzCut,
