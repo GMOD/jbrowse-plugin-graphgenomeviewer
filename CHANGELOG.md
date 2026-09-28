@@ -1,3 +1,13 @@
+## [4.0.23](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.22...v4.0.23) (2026-09-28)
+
+### Other Changes
+
+- Legends share one box and row style ([c323db9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c323db9df99138a0b2afb170f59a8ed87acf923c))
+- Facet panels pan, zoom and hover together, and tile as facet_wrap does ([bdb60bd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bdb60bde1f39b4f8b238d536c5bae038bec15c68))
+- Zoom buttons centre on a facet panel, not the whole faceted pane ([f235ebd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f235ebdb39a256b7b10e117a3f3db67b04ac1c12))
+- A walk's key is a short gradient with its stretch written under it ([f0787c0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f0787c0c02e5716f22e142672ffdf6c285cddae9))
+- Core 0.1.18: the facet grid and a walk's key in words move into the core ([87943b1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/87943b1782983ac93a4b8ec54f3c74d442de298f))
+
 ## [4.0.22](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.21...v4.0.22) (2026-09-28)
 
 ### Other Changes
