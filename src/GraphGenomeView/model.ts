@@ -814,6 +814,13 @@ export function GraphPaneMixin() {
       walkLabel(name: string) {
         return this.walkChoices.find(c => c.name === name)?.label ?? name
       },
+      // what the faded rest of the drawing is not on
+      get liftedWalksLabel() {
+        const walks = this.walkLift?.walks ?? []
+        return walks.length === 1
+          ? this.walkLabel(walks[0]!.name)
+          : 'these walks'
+      },
       // The scheme the renderer actually paints with, which is the raw prop
       // unless it is 'auto'. A bare getter returns a resolved value (root
       // CLAUDE.md): every consumer of a colour reads this one, and the two
@@ -1534,6 +1541,9 @@ export function GraphPaneMixin() {
           self.paneWidth,
         )
         return left > 0 || right > 0
+      },
+      get referenceStripFaded() {
+        return self.referenceStripBlocks.some(b => b.faded)
       },
     }))
     .views(self => ({

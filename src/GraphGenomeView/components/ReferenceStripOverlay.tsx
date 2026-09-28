@@ -6,7 +6,7 @@ import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
-import { legendBoxStyle, legendRowStyle } from './legendStyles'
+import { FADED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
 
 import type { GraphPaneModel } from '../model'
 
@@ -46,6 +46,7 @@ const ReferenceStripOverlay = observer(function ReferenceStripOverlay({
             width,
             lit: model.referenceStripLit,
             darkMode: model.darkMode,
+            dpr,
           })
         }
       }),
@@ -110,6 +111,12 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
         <StripSwatch background={stripBackground(model)} />
         <span>top strip: reference segments at their bp</span>
       </div>
+      {model.referenceStripFaded ? (
+        <div style={legendRowStyle}>
+          <StripSwatch background={FADED_SWATCH} />
+          <span>reference not on {model.liftedWalksLabel}</span>
+        </div>
+      ) : null}
       {model.referenceStripOverhangs ? (
         <div style={legendRowStyle}>
           <OverhangSwatch />

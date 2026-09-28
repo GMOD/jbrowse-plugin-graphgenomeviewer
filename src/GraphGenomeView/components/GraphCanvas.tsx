@@ -21,7 +21,7 @@ import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import UnpopButton from './UnpopButton'
 import WalkKey, { walkSwatchStyle } from './WalkKey'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
-import { legendBoxStyle, legendRowStyle } from './legendStyles'
+import { FADED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
 import { RAMP_GRADIENT_CSS } from './referenceRampCss'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -166,9 +166,6 @@ const PathLegend = observer(function PathLegend({
   ) : null
 })
 
-// a faded node: grey at the fade's alpha
-const FADED_SWATCH = 'rgba(160, 160, 160, 0.18)'
-
 // Each lifted walk's key, then what the faded rest is
 const WalkReadout = observer(function WalkReadout({
   model,
@@ -179,7 +176,6 @@ const WalkReadout = observer(function WalkReadout({
   if (!lift) {
     return null
   }
-  const alone = lift.walks.length === 1
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       {lift.walks.map(w => (
@@ -192,9 +188,7 @@ const WalkReadout = observer(function WalkReadout({
       ))}
       <div style={legendRowStyle}>
         <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
-        <span>
-          not on {alone ? model.walkLabel(lift.walks[0]!.name) : 'these walks'}
-        </span>
+        <span>not on {model.liftedWalksLabel}</span>
       </div>
     </div>
   )
