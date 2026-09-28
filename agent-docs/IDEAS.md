@@ -137,6 +137,3 @@ already under 100 ms.
 - Model caches (hitDetection, edgeCurves, graphLabels, GeometryBuilder,
   forceLayouts) are WeakMaps that could be observed computeds; force and ordered
   could cut with margins and re-cut only when the window leaves the cut
-- The hosted HPRC demo's only repeat track is the ABCA7 TRGT VCF, so KIV-2 reads
-  as a complex site rather than a repeat array. TRF catalogues stop near a 2 kb
-  period and the KIV-2 unit is 5.5 kb, so the label needs a curated VNTR track
