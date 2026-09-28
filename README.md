@@ -4,27 +4,41 @@ Pangenome graphs in JBrowse 2.
 
 ## As a track of a linear view
 
-A `GraphTrack` cuts the graph for the view's window and redraws it as you pan.
+A `GraphTrack` cuts the graph for the view's window and redraws it as you pan. A
+force-directed track draws a strip of the reference segments at their bp above
+the graph, each in its node's colour, so the graph reads against the tracks
+above it.
 
-A force-directed track draws a strip of the reference segments at their bp above
-the graph, each in its node's colour, so the reference-position ramp ties the
-graph back to the linear view's coordinates.
+- **LPA's KIV-2 repeat.** The goldenrod outlines on the graph are the gene
+  track's LPA exons. The charcoal loops, sequence off the reference, hang inside
+  the array the curated VNTR track marks.
 
-![KIV-2 as a graph track under RefSeq genes, force-directed, its reference segments on a strip at their bp](img/force_kiv2.png)
+![KIV-2 as a graph track under RefSeq genes and the curated KIV-2 annotation, its reference segments on a strip at their bp](img/force_kiv2.png)
 
-![MICB's exons 2–4 as a tube map track, eight HPRC haplotypes, each reference node tied to its bp on the ruler](img/tube_map_micb_track.png)
+- **Each haplotype takes its own loops.** Side by side, one walk per panel:
+  HG01960 skips most of GRCh38's loops for the big one, and HG00133 takes both.
+
+![The KIV-2 array side by side: GRCh38, HG00097, HG01960 and HG00133 each followed start to end](img/force_kiv2_facet.png)
+
+- **Copy number off a bar.** Walk rows tile each haplotype by the 5,548 bp
+  kringle: GRCh38's six units are the six LPA exon pairs above, and HG00133
+  carries 27.
+
+![KIV-2 walk rows under LPA and the curated KIV-2 annotation](img/walk_rows_kiv2.png)
+
+- **Variants at their bp.** A tube map on the reference axis puts each of MICB's
+  variant columns under its exon.
+
+![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes](img/tube_map_micb_ref.png)
 
 ## As its own view
 
 **Add → Graph genome view** opens a whole GFA file. A graph track's **Launch →
 Graph genome view** opens the cut on screen, drawn as the track draws it; a
-session spec does the same with `loadedTrackId` and `loadedRegion`.
+session spec does the same with `loadedTrackId` and `loadedRegion`. Hovering a
+node in the view bands its bp in the linear view:
 
-![MICB's exons 2–4 as a tube map on its own axis, with the reference ruler under it](img/tube_map_micb.png)
-
-![KIV-2 walk rows: eight haplotypes, each bar tiled by the kringle unit](img/walk_rows_kiv2.png)
-
-![The KIV-2 cut side by side: GRCh38, HG00097 and HG00133 each followed through the same graph, start to end](img/force_kiv2_facet.png)
+![The MICB cut as a view under its linear view, a variant's box hovered and its bp banded in exon 2](img/tube_map_micb.png)
 
 ## Features
 

@@ -7,9 +7,11 @@
 //   node scripts/shoot-figures.mjs                 # every figure, into img/
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //
-// tube_map.png and tube_map_reads.png draw local fixtures, not the demo: they
-// are frames of test/tubeMap.test.ts (its two standalone views, cropped) and
-// test/tubeMapReads.test.ts, which writes test-screenshots/tube_map_reads.png.
+// Every figure is a linear view on the demo's hg38, the graph as one of its
+// tracks or as a view opened under it, so each reads against the genes and
+// annotations at their bp. tube_map_reads.png draws a local fixture instead: it
+// is a frame of test/tubeMapReads.test.ts, which writes
+// test-screenshots/tube_map_reads.png.
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -21,15 +23,12 @@ const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
 const GENES = 'hg38_ncbiRefSeq_ucsc'
 const RGFA = 'hprc_minigraph_segments'
 const GBZ = 'hprc_v2_1_gbz_lanes'
-const KIV2 = {
+const MICB_EXONS = {
   refName: 'chr6',
   assemblyName: 'hg38',
-  start: 160525000,
-  end: 160655000,
+  start: 31505400,
+  end: 31507400,
 }
-const KIV2_ARRAY = { ...KIV2, start: 160614798, end: 160647758 }
-const MHC = { ...KIV2, start: 32510000, end: 32600000 }
-const MICB_EXONS = { ...KIV2, start: 31505400, end: 31507400 }
 const HAPLOTYPES = [
   'HG00097.1',
   'HG00099.1',
@@ -43,43 +42,56 @@ const HAPLOTYPES = [
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
+const KIV2_LOC = 'chr6:160,525,000-160,655,000'
+const KIV2_ARRAY_LOC = 'chr6:160,614,798-160,647,758'
+const MHC_LOC = 'chr6:32,510,000-32,600,000'
+const MICB_LOC = 'chr6:31,505,400-31,507,400'
+
+const GENE_TRACK = {
+  trackId: GENES,
+  type: 'LinearBasicDisplay',
+  geneGlyphMode: 'longestCoding',
+  displayMode: 'compact',
+  height: 60,
+}
+const VNTR_TRACK = {
+  trackId: 'hprc_curated_vntrs',
+  type: 'LinearBasicDisplay',
+  height: 45,
+}
+const BUBBLE_TRACK = {
+  trackId: 'hprc_minigraph_bubbles',
+  type: 'LinearBasicDisplay',
+  displayMode: 'compact',
+  height: 70,
+}
 function graphView(props) {
   return {
+    type: 'GraphGenomeView',
+    displayName: 'hg38',
+    subgraphContext: 0,
+    colorScheme: 'reference-position',
+    geneTrackId: GENES,
+    ...props,
+  }
+}
+
+function linearView(loc, tracks, below = []) {
+  return {
     views: [
-      {
-        type: 'GraphGenomeView',
-        displayName: 'hg38',
-        subgraphContext: 0,
-        colorScheme: 'reference-position',
-        geneTrackId: GENES,
-        ...props,
-      },
+      { type: 'LinearGenomeView', assembly: 'hg38', loc, tracks },
+      ...below,
     ],
   }
 }
 
-const gbzCut = { loadedTrackId: GBZ, loadedRegion: KIV2_ARRAY }
-
-function trackView(loc, graphDisplay) {
-  return {
-    views: [
-      {
-        type: 'LinearGenomeView',
-        assembly: 'hg38',
-        loc,
-        tracks: [
-          {
-            trackId: GENES,
-            type: 'LinearBasicDisplay',
-            geneGlyphMode: 'longestCoding',
-            displayMode: 'compact',
-            height: 60,
-          },
-          { type: 'LinearGraphDisplay', ...graphDisplay },
-        ],
-      },
-    ],
-  }
+// the gene track, any others, then the graph track under them
+function trackView(loc, graphDisplay, above = []) {
+  return linearView(loc, [
+    GENE_TRACK,
+    ...above,
+    { type: 'LinearGraphDisplay', ...graphDisplay },
+  ])
 }
 
 const kiv2Force = {
@@ -89,13 +101,21 @@ const kiv2Force = {
   maxRegionBp: 143000,
   height: 400,
 }
-const forceKiv2Track = trackView('chr6:160,525,000-160,655,000', kiv2Force)
+const kiv2Gbz = {
+  trackId: GBZ,
+  layoutMode: 'force',
+  colorScheme: 'reference-position',
+  subgraphHaplotypes: HAPLOTYPES,
+}
+const forceKiv2Track = trackView(KIV2_LOC, kiv2Force, [VNTR_TRACK])
 
 // Points at the graph track's longest allele through its drawn midpoint, as a
 // reader would, so the strip boxes its span between its flanks
 async function hoverLongestAllele(page) {
   const target = await page.evaluate(() => {
-    const display = window.JBrowseSession.views[0].tracks[1].displays[0]
+    const display = window.JBrowseSession.views[0].tracks
+      .map(t => t.displays[0])
+      .find(d => d.type === 'LinearGraphDisplay')
     const node = display.graph.nodes
       .filter(n => n.stable?.rank > 0)
       .reduce((a, b) => (b.length > a.length ? b : a))
@@ -114,13 +134,54 @@ async function hoverLongestAllele(page) {
   await page.mouse.move(target.x, target.y)
 }
 
+// Points at the first allele the graph view draws inside an exon: the box
+// whose reference span, between its flanks, lies in one of the gene's exons
+// and is shortest
+async function hoverExonVariant(page) {
+  const target = await page.evaluate(() => {
+    const view = window.JBrowseSession.views[1]
+    const r = document
+      .querySelector(
+        `[data-testid="view-container-${view.id}"] [data-testid="graph-genome-canvas"]`,
+      )
+      .getBoundingClientRect()
+    const exons = view.backboneGenes.flatMap(g => g.exons)
+    const hits = new Map()
+    for (let sx = 0; sx < r.width; sx += 2) {
+      for (let sy = 0; sy < r.height; sy += 3) {
+        const id = view.tubeMapNodeAt(sx, sy)
+        if (id && !hits.has(id)) {
+          hits.set(id, { sx, sy, span: view.nodeSpan(id) })
+        }
+      }
+    }
+    const inExon = [...hits.values()]
+      .filter(
+        h =>
+          h.span &&
+          exons.some(e => h.span.start >= e.start && h.span.end <= e.end),
+      )
+      .sort(
+        (a, b) =>
+          a.span.end - a.span.start - (b.span.end - b.span.start) ||
+          a.sx - b.sx,
+      )
+    const hit = inExon[0]
+    return hit ? { x: r.x + hit.sx, y: r.y + hit.sy } : undefined
+  })
+  if (!target) {
+    throw new Error('no allele inside an exon to hover')
+  }
+  await page.mouse.move(target.x, target.y)
+}
+
 const FIGURES = {
   force_kiv2: forceKiv2Track,
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
-  force_kiv2_bubbles: trackView('chr6:160,525,000-160,655,000', {
-    ...kiv2Force,
-    showBubbles: true,
-  }),
+  force_kiv2_bubbles: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
+    VNTR_TRACK,
+    BUBBLE_TRACK,
+  ]),
   // six of the eight lack GSTM1; the strip fades HG00133's missing stretch
   force_gstm1_walk: trackView('chr1:109,670,000-109,705,000', {
     trackId: GBZ,
@@ -131,149 +192,121 @@ const FIGURES = {
     height: 460,
   }),
   force_kiv2_popped: {
-    session: graphView({
-      loadedTrackId: RGFA,
-      loadedRegion: KIV2,
-      layoutMode: 'force',
-      showBubbles: true,
-      paneHeight: 480,
-    }),
+    session: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
+      VNTR_TRACK,
+    ]),
     // opens the largest bubble in the window, the KIV-2 array
     act: page =>
       page.evaluate(() => {
-        const view = window.JBrowseSession.views[0]
-        const [array] = [...view.bubbles].sort(
+        const display = window.JBrowseSession.views[0].tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearGraphDisplay')
+        const [array] = [...display.bubbles].sort(
           (a, b) => b.segmentCount - a.segmentCount,
         )
-        view.popBubble(array)
+        display.popBubble(array)
       }),
   },
-  force_kiv2_gbz: graphView({
-    ...gbzCut,
-    subgraphHaplotypes: HAPLOTYPES,
-    layoutMode: 'force',
-    showBubbles: true,
-    paneHeight: 620,
-  }),
-  force_kiv2_walk: graphView({
-    ...gbzCut,
-    subgraphHaplotypes: HAPLOTYPES,
-    layoutMode: 'force',
-    walkLayers: [
-      { walk: 'GRCh38#0#chr6' },
-      { walk: 'HG00097#1#JBIRDD010000043.1' },
-      { walk: 'HG00133#1#CM090050.1' },
-    ],
-    paneHeight: 620,
-  }),
-  // the same three walks side by side, one panel each
-  force_kiv2_facet: graphView({
-    ...gbzCut,
-    subgraphHaplotypes: HAPLOTYPES,
-    layoutMode: 'force',
-    walkLayers: [
-      { walk: 'GRCh38#0#chr6' },
-      { walk: 'HG00097#1#JBIRDD010000043.1' },
-      { walk: 'HG00133#1#CM090050.1' },
-    ],
-    facet: 'walk',
-    paneHeight: 480,
-  }),
-  // HG002#1 carries the H2 inversion, HG00097#1 does not
-  force_mapt_strand: graphView({
-    loadedTrackId: GBZ,
-    loadedRegion: { ...KIV2, refName: 'chr17', start: 45960000, end: 45962000 },
-    subgraphHaplotypes: ['HG00097#1', 'HG002#1'],
-    layoutMode: 'force',
-    walkLayers: [
-      { walk: 'GRCh38#0#chr17' },
-      { walk: 'HG00097#1#JBIRDD010000008.1' },
-      { walk: 'HG002#1#chr17' },
-    ],
-    facet: 'walk',
-    paneHeight: 600,
-  }),
-  // GRCh38 reads the 1q21.1 inversion the way a minority of haplotypes do;
-  // HG01123 carries one orientation on each haplotype, which its row shows
-  force_1q21_strand: graphView({
-    loadedTrackId: GBZ,
-    loadedRegion: {
-      ...KIV2,
-      refName: 'chr1',
-      start: 144480000,
-      end: 144482000,
+  // each walk takes its own loops through the array: HG01960 skips GRCh38's
+  force_kiv2_facet: trackView(
+    KIV2_ARRAY_LOC,
+    {
+      ...kiv2Gbz,
+      walkLayers: [
+        { walk: 'GRCh38#0#chr6' },
+        { walk: 'HG00097#1#JBIRDD010000043.1' },
+        { walk: 'HG01960#1#JBHIHM010000036.1' },
+        { walk: 'HG00133#1#CM090050.1' },
+      ],
+      facet: 'walk',
+      height: 560,
     },
-    subgraphHaplotypes: ['HG002#1', 'HG005#1', 'HG01123#1', 'HG01123#2'],
-    layoutMode: 'force',
-    walkLayers: [
-      { walk: 'GRCh38#0#chr1' },
-      { walk: 'HG005#1#JAHEPO020000011.1' },
-      { walk: 'HG01123#2#CM089095.1' },
-      { walk: 'HG002#1#chr1' },
-      { walk: 'HG01123#1#CM089081.1' },
-    ],
-    facet: 'sample',
-    paneHeight: 700,
-  }),
+    [VNTR_TRACK],
+  ),
   walk_rows_kiv2: {
-    session: graphView({
-      ...gbzCut,
-      subgraphHaplotypes: HAPLOTYPES,
-      layoutMode: 'walkrows',
-      colorScheme: 'uniform',
-      repeatTrackId: 'hprc_curated_vntrs',
-      paneHeight: 420,
-    }),
+    session: trackView(
+      KIV2_ARRAY_LOC,
+      {
+        ...kiv2Gbz,
+        layoutMode: 'walkrows',
+        colorScheme: 'uniform',
+        repeatTrackId: 'hprc_curated_vntrs',
+        height: 300,
+      },
+      [VNTR_TRACK],
+    ),
     // the Repeat picker lists the arrays the repeat track has over the cut
     act: async page => {
       await page.waitForFunction(
-        () => window.JBrowseSession.views[0].repeatChoices.length > 0,
+        () =>
+          window.JBrowseSession.views[0].tracks
+            .map(t => t.displays[0])
+            .find(d => d.type === 'LinearGraphDisplay')?.repeatChoices.length >
+          0,
         { timeout: 60_000 },
       )
       await page.evaluate(() => {
-        const view = window.JBrowseSession.views[0]
-        view.setRepeatKey(view.repeatChoices[0].key)
+        const display = window.JBrowseSession.views[0].tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearGraphDisplay')
+        display.setRepeatKey(display.repeatChoices[0].key)
       })
     },
   },
-  tube_map_micb_track: {
-    views: [
-      {
-        type: 'LinearGenomeView',
-        assembly: 'hg38',
-        loc: 'chr6:31,505,400-31,507,400',
-        tracks: [
-          {
-            trackId: GENES,
-            type: 'LinearBasicDisplay',
-            geneGlyphMode: 'longestCoding',
-            displayMode: 'compact',
-            height: 60,
-          },
-          {
-            trackId: GBZ,
-            type: 'LinearGraphDisplay',
-            layoutMode: 'tubemap',
-            subgraphHaplotypes: HAPLOTYPES,
-            height: 360,
-          },
-        ],
-      },
-    ],
-  },
-  tube_map_micb: graphView({
-    loadedTrackId: GBZ,
-    loadedRegion: MICB_EXONS,
-    subgraphHaplotypes: HAPLOTYPES,
+  tube_map_micb_track: trackView(MICB_LOC, {
+    trackId: GBZ,
     layoutMode: 'tubemap',
-    paneHeight: 360,
+    subgraphHaplotypes: HAPLOTYPES,
+    height: 360,
   }),
-  force_mhc: graphView({
-    loadedTrackId: RGFA,
-    loadedRegion: MHC,
-    layoutMode: 'force',
-    paneHeight: 480,
+  tube_map_micb_ref: trackView(MICB_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: HAPLOTYPES,
+    height: 420,
   }),
+  // the cut opened as a view under the linear view it came from; hovering a
+  // variant's box in the view bands its bp in the linear view
+  tube_map_micb: {
+    session: linearView(
+      MICB_LOC,
+      [GENE_TRACK],
+      [
+        graphView({
+          loadedTrackId: GBZ,
+          loadedRegion: MICB_EXONS,
+          subgraphHaplotypes: HAPLOTYPES,
+          layoutMode: 'tubemap',
+          paneHeight: 360,
+        }),
+      ],
+    ),
+    act: hoverExonVariant,
+  },
+  // HG01071's 47 kb allele comes in between HLA-DRB5 and HLA-DRB6
+  force_mhc: {
+    session: trackView(MHC_LOC, {
+      trackId: RGFA,
+      layoutMode: 'force',
+      colorScheme: 'reference-position',
+      height: 420,
+    }),
+    act: hoverLongestAllele,
+  },
+}
+
+// The curated VNTR track paints its array goldenrod, the colour exons take
+// on the graph
+async function recolorAnnotations(page) {
+  await page.evaluate(() => {
+    for (const view of window.JBrowseSession.views) {
+      for (const track of view.tracks ?? []) {
+        if (track.configuration.trackId === 'hprc_curated_vntrs') {
+          track.displays[0].setFeatureColor('rgb(110,110,110)')
+        }
+      }
+    }
+  })
 }
 
 // Painted, not merely loaded: a 15,808-node cut reports its node count seconds
@@ -330,13 +363,14 @@ try {
     const { session, act } = figure.views ? { session: figure } : figure
     const context = await browser.createBrowserContext()
     const page = await context.newPage()
-    await page.setViewport({ width: 1400, height: 900 })
+    await page.setViewport({ width: 1400, height: 1600 })
     await candidateServer(values.dist)(page)
     await page.goto(
       `https://jbrowse.org/code/jb2/${values.version}/?config=${encodeURIComponent(CONFIG)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
       { waitUntil: 'domcontentloaded', timeout: 60_000 },
     )
     await waitPainted(page)
+    await recolorAnnotations(page)
     if (act) {
       await act(page)
       await sleep(1000)
@@ -347,10 +381,17 @@ try {
       .catch(() => {})
     await sleep(2500)
     const clip = await page.evaluate(() => {
-      const r = document
-        .querySelector('[data-testid^="view-container"]')
-        .getBoundingClientRect()
-      return { x: r.x, y: r.y, width: r.width, height: r.height }
+      const rects = [
+        ...document.querySelectorAll('[data-testid^="view-container"]'),
+      ].map(el => el.getBoundingClientRect())
+      const x = Math.min(...rects.map(r => r.x))
+      const y = Math.min(...rects.map(r => r.y))
+      return {
+        x,
+        y,
+        width: Math.max(...rects.map(r => r.right)) - x,
+        height: Math.max(...rects.map(r => r.bottom)) - y,
+      }
     })
     // captureBeyondViewport resizes the page for the capture, and the pane
     // re-lays out into a blank frame
