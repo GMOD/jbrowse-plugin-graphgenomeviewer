@@ -154,6 +154,7 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
         return {
           error: pane.error ? String(pane.error) : undefined,
           reads: layout?.reads.length ?? 0,
+          loaded: pane.graph?.reads?.length ?? 0,
           readsShown: pane.readsShown,
           marks: pane.tubeMapPicture?.mismatches.length ?? 0,
         }
@@ -244,7 +245,11 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
     const plain = await readsState(TRACK)
     const indexed = await readsState(INDEXED)
     expect(indexed.error).toBeUndefined()
-    expect(indexed.reads).toBe(plain.reads)
+    // the tracks' cuts need not match (the first was cut before the view
+    // narrowed and still holds it), and a tube map draws only its own window,
+    // so the index is judged on the reads it loads
+    expect(indexed.loaded).toBeGreaterThan(0)
+    expect(indexed.loaded).toBe(plain.loaded)
     expect(indexed.readsShown).toEqual(plain.readsShown)
   }, 180_000)
 })
