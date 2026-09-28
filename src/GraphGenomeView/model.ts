@@ -18,6 +18,7 @@ import {
   resolveColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
 import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
+import { FACET_PAD_PX, facetGrid } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
@@ -118,7 +119,6 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
-import { FACET_PAD_PX, facetGrid } from './facetGrid'
 import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
@@ -157,7 +157,6 @@ import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget, withRows } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
-import type { FacetGrid } from './facetGrid'
 import type { LinearHost } from './host'
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
 import type { RepeatArray } from './repeats/repeatFeatures'
@@ -169,6 +168,7 @@ import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
+import type { FacetGrid } from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
@@ -805,6 +805,11 @@ export function GraphPaneMixin() {
       // A tube map draws every walk as a tube of its own
       get liftsWalks() {
         return !TUBE_MAP_MODES.has(self.chosenLayoutMode)
+      },
+      // The window a lane coloured by reference position spans, by name
+      get walkReference() {
+        const domain = this.walkLift?.referenceDomain
+        return domain && { ...domain, name: self.graphRegion?.refName }
       },
       walkLabel(name: string) {
         return this.walkChoices.find(c => c.name === name)?.label ?? name

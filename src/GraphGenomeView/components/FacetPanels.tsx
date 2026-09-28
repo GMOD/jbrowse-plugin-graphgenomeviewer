@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 
+import { FACET_GAP_PX, FACET_TITLE_PX } from '@jbrowse/bandage-core/facetGrid'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { autorun, computed } from 'mobx'
 import { observer } from 'mobx-react'
 
 import WalkKey from './WalkKey'
 import { useWheelZoom } from './usePaneGestures'
-import { FACET_GAP_PX, FACET_TITLE_PX } from '../facetGrid'
 
 import type { PaneHandlers } from './usePaneGestures'
 import type { GraphPaneModel } from '../model'
@@ -99,8 +99,7 @@ const FacetPanel = observer(function FacetPanel({
         <WalkKey
           walk={walk}
           label={label}
-          referenceDomain={lift.referenceDomain}
-          referenceName={model.graphRegion?.refName}
+          reference={model.walkReference}
           hint={`click to lift ${label} alone`}
         />
       </button>

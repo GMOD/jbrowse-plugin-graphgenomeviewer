@@ -186,8 +186,7 @@ const WalkReadout = observer(function WalkReadout({
           key={w.name}
           walk={w}
           label={model.walkLabel(w.name)}
-          referenceDomain={lift.referenceDomain}
-          referenceName={model.graphRegion?.refName}
+          reference={model.walkReference}
         />
       ))}
       <div style={legendRowStyle}>
