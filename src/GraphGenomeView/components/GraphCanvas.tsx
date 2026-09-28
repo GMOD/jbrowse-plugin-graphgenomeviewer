@@ -8,7 +8,6 @@ import {
 } from '@jbrowse/bandage-core/util/hitDetection'
 import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
 import {
-  REVERSED_SWATCH_CSS,
   WALK_FIELDS,
   encodingSwatchCss,
   fieldLegend,
@@ -202,7 +201,6 @@ const WalkReadout = observer(function WalkReadout({
   }
   const labelOf = (name: string) =>
     model.walkChoices.find(c => c.name === name)?.label ?? name
-  const reversed = lift.walks.filter(w => w.reversed.size > 0)
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       {lift.walks.map(w => {
@@ -223,9 +221,9 @@ const WalkReadout = observer(function WalkReadout({
             <span>
               <strong>{labelOf(w.name)}</strong>: {w.bp.toLocaleString()} bp
               {delta}
-              {w.encoding.field === 'walk'
-                ? ''
-                : ` · ${fieldName(w.encoding.field)}`}
+              {w.reversedBp > 0
+                ? `, ${w.reversedBp.toLocaleString()} bp reversed against the reference`
+                : ''}
             </span>
           </div>
         )
@@ -241,21 +239,7 @@ const WalkReadout = observer(function WalkReadout({
           {fieldName(f.value)}: {fieldLegend(f.value)}
         </div>
       ))}
-      {reversed.length > 0 ? (
-        <div style={pathLegendRowStyle}>
-          <div
-            style={{ ...walkSwatchStyle, background: REVERSED_SWATCH_CSS }}
-          />
-          <span>
-            dashed: against the reference,{' '}
-            {reversed
-              .map(
-                w => `${labelOf(w.name)} ${w.reversedBp.toLocaleString()} bp`,
-              )
-              .join(', ')}
-          </span>
-        </div>
-      ) : null}
+
       <div>
         paler nodes: on none of{' '}
         {lift.walks.length > 1 ? 'these walks' : 'this walk'}
