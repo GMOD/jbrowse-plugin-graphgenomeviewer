@@ -6,6 +6,8 @@ import {
 import { HALO_FACTOR } from '@jbrowse/bandage-core/labelLayout'
 import { observer } from 'mobx-react'
 
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
+
 import type { GraphPaneModel } from '../model'
 import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 
@@ -82,16 +84,6 @@ const BubbleHalos = observer(function BubbleHalos({
 })
 
 export default BubbleHalos
-
-const legendBoxStyle = {
-  background: 'rgba(255,255,255,0.82)',
-  padding: '4px 6px',
-  borderRadius: 3,
-  fontSize: 11,
-  lineHeight: '15px',
-  whiteSpace: 'nowrap' as const,
-}
-const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 
 function HaloSwatch({ color }: { color: string }) {
   return (

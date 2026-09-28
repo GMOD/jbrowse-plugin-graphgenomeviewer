@@ -18,6 +18,8 @@ import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
+
 import type { GraphPaneModel } from '../model'
 
 const canvasStyle = {
@@ -109,15 +111,6 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
 
 export default TubeMapOverlay
 
-const legendBoxStyle = {
-  background: 'rgba(255,255,255,0.82)',
-  padding: '4px 6px',
-  borderRadius: 3,
-  fontSize: 11,
-  lineHeight: '15px',
-  whiteSpace: 'nowrap' as const,
-}
-const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const SWATCH_PX = 18
 
 // Two boxes' brackets, as the ruler draws them under every box

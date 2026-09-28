@@ -6,6 +6,8 @@ import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
+
 import type { GraphPaneModel } from '../model'
 
 const canvasStyle = {
@@ -65,15 +67,6 @@ const ReferenceStripOverlay = observer(function ReferenceStripOverlay({
 
 export default ReferenceStripOverlay
 
-const legendBoxStyle = {
-  background: 'rgba(255,255,255,0.82)',
-  padding: '4px 6px',
-  borderRadius: 3,
-  fontSize: 11,
-  lineHeight: '15px',
-  whiteSpace: 'nowrap' as const,
-}
-const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const SWATCH_PX = 18
 
 // the strip's own colours: the reference lane's under lifted walks, grey

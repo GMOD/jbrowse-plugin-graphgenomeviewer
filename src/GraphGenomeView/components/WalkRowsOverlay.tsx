@@ -5,6 +5,7 @@ import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { observer } from 'mobx-react'
 
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { RAMP_GRADIENT_CSS, rampHueCss, rampStops } from './referenceRampCss'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
@@ -44,15 +45,6 @@ const DISAGREES = '#c62828'
 const OFF_REFERENCE = '#8e3fbf'
 const BAR_PX = 12
 
-const legendBoxStyle = {
-  background: 'rgba(255,255,255,0.82)',
-  padding: '4px 6px',
-  borderRadius: 3,
-  fontSize: 11,
-  lineHeight: '15px',
-  whiteSpace: 'nowrap' as const,
-}
-const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
 const tickSwatchStyle = {
   ...swatchStyle,
