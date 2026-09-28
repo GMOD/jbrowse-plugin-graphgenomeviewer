@@ -127,7 +127,7 @@ const FIGURES = {
     layoutMode: 'force',
     colorScheme: 'reference-position',
     subgraphHaplotypes: HAPLOTYPES,
-    highlightedPath: 'HG00133#1#CM090045.1',
+    walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
     height: 460,
   }),
   force_kiv2_popped: {
@@ -159,8 +159,25 @@ const FIGURES = {
     ...gbzCut,
     subgraphHaplotypes: HAPLOTYPES,
     layoutMode: 'force',
-    highlightedPath: 'HG00133#1#CM090050.1',
+    walkLayers: [
+      { walk: 'GRCh38#0#chr6' },
+      { walk: 'HG00097#1#JBIRDD010000043.1' },
+      { walk: 'HG00133#1#CM090050.1' },
+    ],
     paneHeight: 620,
+  }),
+  // HG002#1 carries the H2 inversion, HG00097#1 does not
+  force_mapt_strand: graphView({
+    loadedTrackId: GBZ,
+    loadedRegion: { ...KIV2, refName: 'chr17', start: 45960000, end: 45962000 },
+    subgraphHaplotypes: ['HG00097#1', 'HG002#1'],
+    layoutMode: 'force',
+    walkLayers: [
+      { walk: 'GRCh38#0#chr17' },
+      { walk: 'HG00097#1#JBIRDD010000008.1', color: { field: 'strand' } },
+      { walk: 'HG002#1#chr17', color: { field: 'strand' } },
+    ],
+    paneHeight: 300,
   }),
   walk_rows_kiv2: {
     session: graphView({
