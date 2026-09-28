@@ -1,3 +1,10 @@
+## [4.0.21](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.20...v4.0.21) (2026-09-28)
+
+### Other Changes
+
+- Walk rows cut every snarl a walk takes past the window, so each walk comes back whole ([ed72bc3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ed72bc33e09de3218f6d3648c8d4c15f378d2ffa))
+- The HPRC demo has its curated VNTR track, so KIV-2 reads as a repeat array ([c3ad203](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c3ad2034df040f2d89a0bc7c585799605f1b82ab))
+
 ## [4.0.20](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.19...v4.0.20) (2026-09-28)
 
 ### Other Changes
