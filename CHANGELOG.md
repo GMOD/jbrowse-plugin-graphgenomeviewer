@@ -1,3 +1,9 @@
+## [4.0.16](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.15...v4.0.16) (2026-09-28)
+
+### Other Changes
+
+- Walk rows drop a piece of a walk that meets no reference node when another piece does ([9d1bab0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9d1bab0f6bed8c00264dd9c40f8e28aceaae9e27))
+
 ## [4.0.15](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.14...v4.0.15) (2026-09-27)
 
 ### Other Changes
