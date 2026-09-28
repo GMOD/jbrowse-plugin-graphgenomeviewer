@@ -59,6 +59,12 @@ export default function stateModelFactory() {
       get paneWidth() {
         return self.width
       },
+      get cutHaplotypes() {
+        return self.subgraphHaplotypes
+      },
+      get sourceGfaLocation() {
+        return self.gfaLocation
+      },
       get sourceTrack(): AnyConfigurationModel | undefined {
         return self.loadedTrackId
           ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)

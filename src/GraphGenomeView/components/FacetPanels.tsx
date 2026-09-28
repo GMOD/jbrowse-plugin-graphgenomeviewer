@@ -103,6 +103,7 @@ const FacetPanel = observer(function FacetPanel({
           label={label}
           reference={model.walkReference}
           hint={`click to lift ${label} alone`}
+          at={model.hoveredOn(walk)}
         />
       </button>
       <canvas

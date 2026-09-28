@@ -198,6 +198,7 @@ const WalkReadout = observer(function WalkReadout({
           walk={w}
           label={model.walkLabel(w.name)}
           reference={model.walkReference}
+          at={model.hoveredOn(w)}
         />
       ))}
       <div style={legendRowStyle}>

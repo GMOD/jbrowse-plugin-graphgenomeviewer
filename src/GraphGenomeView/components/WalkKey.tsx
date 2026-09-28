@@ -15,17 +15,20 @@ const walkBlockStyle = { marginBottom: 2 }
 const walkBarStyle = { ...walkSwatchStyle, width: 48 }
 
 // One walk's key: a swatch, or a short bar of the scale its lane shades by,
-// then its name; see walkKey for the words
+// then its name; see walkKey for the words. `at`, where the hovered node sits
+// on the walk, stands in for the scale's stretch while there is one.
 export default function WalkKey({
   walk,
   label,
   reference,
   hint,
+  at,
 }: {
   walk: LiftedWalk
   label: string
   reference?: { name?: string; start: number; end: number }
   hint?: string
+  at?: string
 }) {
   const key = walkKey(walk, reference)
   return (
@@ -46,7 +49,11 @@ export default function WalkKey({
           {key.reversed}
         </span>
       </div>
-      {key.scale ? <div>{key.scale}</div> : null}
+      {at ? (
+        <div data-testid="graph-walk-at">{at}</div>
+      ) : key.scale ? (
+        <div>{key.scale}</div>
+      ) : null}
     </div>
   )
 }

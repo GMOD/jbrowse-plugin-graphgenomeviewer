@@ -105,6 +105,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get canRetryLoad() {
           return self.cutRegion !== undefined
         },
+        get cutHaplotypes() {
+          return this.chosenHaplotypes
+        },
         get chosenHaplotypes() {
           return (
             self.subgraphHaplotypes ??

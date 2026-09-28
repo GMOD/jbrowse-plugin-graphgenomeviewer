@@ -552,6 +552,26 @@ describe('loadGFAFromLocation', () => {
     expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
+  test('a graph read from a url gives the figure spec that reads it again', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      gfaLocation: location,
+      loadedRegion: TEST_REGION,
+      layoutMode: 'auto',
+    })
+    await model.load()
+    expect(model.figureSpec()).toMatchObject({
+      gfa: location.uri,
+      region: 'chr1:1000-5000',
+      layout: 'auto',
+    })
+    expect(model.figure()).toContain(
+      '&quot;gfa&quot;:&quot;https://example.com/graphs/small.gfa&quot;',
+    )
+  })
+
   test('canceling aborts the fetch without reporting an error', async () => {
     mockReadFile.mockImplementation(
       ({ signal }: { signal: AbortSignal }) =>

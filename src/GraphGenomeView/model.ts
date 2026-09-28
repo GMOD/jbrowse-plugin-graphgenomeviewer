@@ -108,6 +108,7 @@ import {
 } from '@jbrowse/bandage-core/viewport'
 import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
+import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
@@ -195,7 +196,7 @@ import type {
   WalkEncoding,
   WalkLayer,
 } from '@jbrowse/bandage-core/walkEncoding'
-import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
+import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'
@@ -317,6 +318,13 @@ export function formatSpanBp(bp: number) {
 // it is a view prop rather than a constant so a session can raise it — the same
 // escape hatch strangepg gives with `-T N`.
 export const DEFAULT_MAX_GRAPH_NODES = 20_000
+
+// A url bandage-figure can read again, or undefined for a local file
+function uriOf(location: FileLocation | undefined) {
+  return location && 'uri' in location && location.uri
+    ? new URL(location.uri, location.baseUri ?? window.location.href).href
+    : undefined
+}
 
 type ViewportOwner = 'fit' | 'user' | 'host'
 
@@ -914,6 +922,14 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // the haplotypes the graph on screen was cut for, where a host says
+      get cutHaplotypes(): string[] | undefined {
+        return undefined
+      },
+      // the GFA the graph on screen was read from, where a host says
+      get sourceGfaLocation(): FileLocation | undefined {
+        return undefined
+      },
       get sourceAdapter() {
         const track = self.sourceTrack
         return track
@@ -1897,8 +1913,94 @@ export function GraphPaneMixin() {
       get overlayLabels() {
         return layoutLabels(self)
       },
-      // The drawing as a standalone SVG, fitted, with its lifted walks' keys
-      // and facet panels; see figureSvg
+      // where the hovered node sits on a lifted walk, while one is hovered
+      hoveredOn(walk: LiftedWalk) {
+        const id = self.hoveredNode
+        const node = id ? self.nodeById?.get(id) : undefined
+        return node
+          ? (walkPosition(walk, node.id, node.length) ?? 'not on this walk')
+          : undefined
+      },
+      // The spec bandage-figure makes this drawing from with no browser, or
+      // undefined for a graph it cannot read again: one cut from a gbz-base
+      // track or read from a GFA url, with the genes of a GFF3 tabix track
+      figureSpec() {
+        const region = self.graphRegion
+        const adapter = self.sourceAdapter
+        const window =
+          region && `${region.refName}:${region.start}-${region.end}`
+        const gfa = uriOf(self.sourceGfaLocation)
+        const db =
+          adapter?.type === 'GbzBaseSyntenyAdapter'
+            ? uriOf(adapter.gbzDbLocation as FileLocation)
+            : undefined
+        const source = gfa
+          ? { gfa, region: window }
+          : db && region && window
+            ? {
+                gbz: {
+                  db,
+                  index: uriOf(adapter!.haplotypeIndexLocation as FileLocation),
+                  region: window,
+                  haplotypes: self.cutHaplotypes,
+                  referenceSample:
+                    (adapter!.referenceSample as string | undefined) ||
+                    (
+                      adapter!.assemblyNameToPanSN as
+                        Record<string, string> | undefined
+                    )?.[region.assemblyName] ||
+                    region.assemblyName,
+                  context: adapter!.context as number | undefined,
+                  snarls: adapter!.subgraphSnarls as string | undefined,
+                },
+              }
+            : undefined
+        if (!source) {
+          return undefined
+        }
+        const geneTrack = self.showGenes ? self.geneTrack : undefined
+        const geneConf = geneTrack
+          ? getSession(self).tracks.find(t => t.trackId === geneTrack.trackId)
+          : undefined
+        const geneAdapter = geneConf
+          ? (readConfObject(geneConf, 'adapter') as Record<string, unknown>)
+          : undefined
+        const genes =
+          geneAdapter?.type === 'Gff3TabixAdapter'
+            ? {
+                file: uriOf(geneAdapter.gffGzLocation as FileLocation),
+                index: uriOf(
+                  (geneAdapter.index as { location: FileLocation }).location,
+                ),
+                format: 'gff3',
+              }
+            : undefined
+        return JSON.parse(
+          JSON.stringify({
+            ...source,
+            genes: genes?.file && genes.index ? genes : undefined,
+            referencePath: self.referencePath || undefined,
+            layout: self.chosenLayoutMode,
+            quality: self.layoutQuality,
+            bubbleSpread: self.bubbleSpread,
+            walks: self.walkLayers.length
+              ? self.walkLayers.map(l => (l.color ? l : l.walk))
+              : undefined,
+            facet:
+              self.walkLayers.length > 1 && self.facet !== 'none'
+                ? self.facet
+                : undefined,
+            columns: self.facet === 'walk' ? self.facetColumns : undefined,
+            width: self.paneWidth,
+            height: self.paneCeiling,
+            colorScheme: self.chosenColorScheme,
+            nodeWidth: self.nodeWidth,
+            showDeletionEdges: self.showDeletionEdges || undefined,
+          }),
+        ) as Record<string, unknown>
+      },
+      // The drawing as a standalone SVG, fitted, with its genes, its lifted
+      // walks' keys and facet panels; see figureSvg
       figure() {
         const { graph, layoutResult } = self
         return graph && layoutResult && !layoutResult.tubeMap
@@ -1914,6 +2016,8 @@ export function GraphPaneMixin() {
               contigThickness: self.contigThickness,
               connectorThickness: self.connectorThickness,
               region: self.graphRegion,
+              genes: self.showGenes ? self.backboneGenes : undefined,
+              spec: this.figureSpec(),
             })
           : undefined
       },
@@ -3547,6 +3651,27 @@ export function GraphPaneMixin() {
                   `${(self.graph?.name ?? 'graph').replaceAll(/[^\w.-]+/g, '_')}.svg`,
                 )
               }
+            },
+          },
+          {
+            label: 'Copy figure spec',
+            disabled: !self.figureSpec(),
+            disabledHelpText:
+              'bandage-figure reads a graph cut from a gbz-base track or a GFA url',
+            onClick: () => {
+              const spec = self.figureSpec()
+              const session = getSession(self)
+              navigator.clipboard
+                .writeText(`${JSON.stringify(spec, null, 2)}\n`)
+                .then(() => {
+                  session.notify(
+                    'Figure spec copied. Save it as spec.json and run: npx -p @jbrowse/bandage-core bandage-figure spec.json -o figure.svg',
+                    'info',
+                  )
+                })
+                .catch((e: unknown) => {
+                  session.notify(`Could not copy the figure spec: ${String(e)}`)
+                })
             },
           },
         ]

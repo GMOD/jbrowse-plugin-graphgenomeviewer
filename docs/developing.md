@@ -69,6 +69,11 @@ serves `dist/` to a shipped config on each hosted release, which catches what
 tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
 a re-export the host no longer serves.
 
+BandageJS draws with this repo's core from npm, so CI's **BandageJS on this
+core** job packs the core as it would publish, installs it into BandageJS's main
+and runs BandageJS's tests on it. Check it passed on the commit you tag: a core
+change can pass everything here and still break that page.
+
 ## Figures
 
 ```console
@@ -81,3 +86,8 @@ The script serves `dist/` to jbrowse.org's hosted HPRC demo, the way
 `host-compat` does, so a figure shows this checkout's drawing on real data. The
 two tube map figures draw local fixtures instead; the header of
 `scripts/shoot-figures.mjs` names the e2e tests that frame them.
+
+`node scripts/render-figures.mjs` renders the specs in `figures/` with the
+core's `bandage-figure` (build the core first), and `figure.test.ts` keeps one
+saved figure: a change to what figures draw shows up as its diff, accepted with
+`vitest -u`. See [figures.md](figures.md).
