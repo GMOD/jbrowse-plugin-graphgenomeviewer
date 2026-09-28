@@ -1,3 +1,12 @@
+## [4.0.22](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.21...v4.0.22) (2026-09-28)
+
+### Other Changes
+
+- A lane's hue names its walk; a walk running against the reference dashes ([bbfe671](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bbfe671cf463ba416df0ca5ecdabcf0d8c7b07bd))
+- Lanes shade along their walks again: the reference in grey, each haplotype in its own hue ([b255970](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b25597070f372f0269147b84069d2a1be3643f8c))
+- Lanes shade across two hues, and each walk's legend row is its own scale ([3be5874](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3be587489483cfea12a0982153aea0e6605c8952))
+- Walks side by side: a facet per walk; lanes flat when lifted together ([e356204](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e35620464e30bb73a393af9e57b6a269e5f15afc))
+
 ## [4.0.21](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.20...v4.0.21) (2026-09-28)
 
 ### Other Changes
