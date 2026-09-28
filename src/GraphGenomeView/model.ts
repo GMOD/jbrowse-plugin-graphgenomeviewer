@@ -209,6 +209,11 @@ const MAX_CANVAS_HEIGHT = 600
 // Floor, so a window holding only backbone — one row, no height at all — still
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
+// the pane's background, as the renderer clears to it and as CSS
+const PAPER_LIGHT: [number, number, number, number] = [1, 1, 1, 1]
+const PAPER_DARK: [number, number, number, number] = [0.12, 0.12, 0.12, 1]
+const paperCss = ([r, g, b]: number[]) =>
+  `rgb(${[r, g, b].map(v => Math.round(v! * 255)).join(', ')})`
 // The thinnest a fit draws a tube map's tubes
 const MIN_FIT_TUBE_PX = 5
 
@@ -1596,6 +1601,9 @@ export function GraphPaneMixin() {
           ? stripBlockAt(self.referenceStripBlocks, frame, sx, sy)
           : undefined
       },
+      get paperCss() {
+        return paperCss(self.darkMode ? PAPER_DARK : PAPER_LIGHT)
+      },
       // the strip, and the gap the fit leaves under it
       get referenceStripZonePx() {
         return self.referenceStripShown ? REFERENCE_STRIP_ZONE_PX : 0
@@ -1623,9 +1631,9 @@ export function GraphPaneMixin() {
       // The fit draws nothing under the legend. It leaves the legend room on
       // the side that costs the drawing less scale: beside a tall drawing,
       // which has width to spare, or above a wide flat one, which takes the
-      // height instead. Not beside a drawing whose x the host places, and not
-      // over reads, whose letters and the legend row naming them come and go
-      // with the fit's scale.
+      // height instead. A drawing whose x the host places can only move down.
+      // Reads get no room: their letters, and the legend row naming them, come
+      // and go with the fit's scale.
       get legendRoom(): 'right' | 'top' | undefined {
         const bounds = self.layoutBounds
         const { width, height } = self.legendSize
@@ -1634,10 +1642,12 @@ export function GraphPaneMixin() {
           bounds.w <= 0 ||
           width === 0 ||
           self.facetPanels ||
-          self.hostPlacesX ||
           self.layoutResult?.tubeMap?.layout.reads.length
         ) {
           return undefined
+        }
+        if (self.hostPlacesX) {
+          return 'top'
         }
         const base = this.fitPadTopBase
         // a track's height is its own
@@ -1833,7 +1843,15 @@ export function GraphPaneMixin() {
           // above were already multiplied by. See TransformUniform.dpr.
           dpr,
         })
-        b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
+        // Clear under a reference strip: GraphCanvas lays the paper below the
+        // strip, so the linear view's gridlines show through between its blocks
+        b.render(
+          self.referenceStripShown
+            ? [0, 0, 0, 0]
+            : self.darkMode
+              ? PAPER_DARK
+              : PAPER_LIGHT,
+        )
       },
     }))
     .views(self => ({
@@ -1849,7 +1867,9 @@ export function GraphPaneMixin() {
         dependOn(self.viewportDirty, self.positionsVersion)
         const viewportBounds = untracked(() => self.viewportToBuild())
         const batch = buildGeometry({
-          nodePositions,
+          // walk rows' overlay draws every bar, the reference's among them;
+          // its nodes stay in the hit index, so hovering the bar finds them
+          nodePositions: self.walkRowBars ? {} : nodePositions,
           graph,
           nodeById,
           colorScheme: self.effectiveColorScheme,
@@ -2259,14 +2279,16 @@ export function GraphPaneMixin() {
         // A host owns x, so a fit while hosted places the rows only.
         if (self.viewportOwner === 'host') {
           const bounds = self.layoutBounds
-          const pad = self.facetGrid ? FACET_PAD_PX : FIT_PADDING
-          const usableHeight = self.viewBox.height - pad * 2
+          const faceted = self.facetGrid !== undefined
+          const pad = faceted ? FACET_PAD_PX : FIT_PADDING
+          const padTop = faceted ? FACET_PAD_PX : self.fitPadTop
+          const usableHeight = self.viewBox.height - padTop - pad
           if (bounds && usableHeight > 0) {
             self.translateY = fittedTranslateY(
               bounds,
               usableHeight,
               self.scaleY,
-              pad,
+              padTop,
             )
           }
           return
@@ -3016,6 +3038,19 @@ export function GraphPaneMixin() {
               () => self.facetGrid !== undefined,
               () => {
                 self.refitView()
+              },
+            ),
+          )
+          // A host fits the rows once, when it takes the pane over, which is
+          // before the legend measures the room it needs above them
+          addDisposer(
+            self,
+            reaction(
+              () => self.fitPadTop,
+              () => {
+                if (self.viewportOwner === 'host') {
+                  self.zoomToFit()
+                }
               },
             ),
           )

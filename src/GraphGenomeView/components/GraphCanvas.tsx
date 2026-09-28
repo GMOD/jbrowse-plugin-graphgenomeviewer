@@ -52,7 +52,21 @@ const wrapperStyle = { position: 'relative' as const }
 // The overlay origin has to be the canvas, not the wrapper: the wrapper also
 // holds the toolbar, so anything positioned against it is offset by the
 // toolbar's height, and a row label lands a whole row off the row it names.
-const canvasAreaStyle = { position: 'relative' as const, lineHeight: 0 }
+const canvasAreaStyle = {
+  position: 'relative' as const,
+  lineHeight: 0,
+  isolation: 'isolate' as const,
+}
+
+// Under a transparent canvas, from below the reference strip down, so the
+// linear view's gridlines show only behind the strip
+const paperStyle = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 0,
+}
 
 // Above the labels, pins and legends drawn over the canvas, and with the line
 // height the canvas area zeroes, which would collapse the overlay's label
@@ -557,6 +571,15 @@ const GraphCanvas = observer(function GraphCanvas({
           }
         }}
       >
+        {model.referenceStripShown ? (
+          <div
+            style={{
+              ...paperStyle,
+              top: model.referenceStripZonePx,
+              background: model.paperCss,
+            }}
+          />
+        ) : null}
         <canvas
           ref={canvasRef}
           data-testid="graph-genome-canvas"
@@ -565,6 +588,8 @@ const GraphCanvas = observer(function GraphCanvas({
             height: model.canvasHeight,
             cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
             display: 'block',
+            position: 'relative',
+            zIndex: 1,
           }}
           {...handlers}
         />

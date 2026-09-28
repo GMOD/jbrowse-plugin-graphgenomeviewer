@@ -146,7 +146,7 @@ function calledReadout(call: { bp: number; spanningReads?: number }) {
 }
 
 // One separator per unit along a bar, so copies are countable, dropped when a
-// unit is under a few px. The reference bar is the canvas's, so it gets none.
+// unit is under a few px
 const MIN_TILE_PX = 3
 
 function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
@@ -214,22 +214,9 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   const X = (bp: number) => bp * scaleX + translateX
   const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
   const { origin, unit, reference, rows } = walkRowBars
-  // The backbone the canvas draws spans the cut window, which reaches past a
-  // selected array on both sides, so the reference readout sits after it.
-  const backboneEnd = Math.max(
-    origin + reference.bp,
-    model.graphRegion?.end ?? 0,
-  )
-  // A readout that would leave the pane is written inside the end of its bar.
-  // The canvas rounds the backbone's ends, so its readout clears the cap.
-  const label = (
-    text: string,
-    endBp: number,
-    y: number,
-    fill = '#333',
-    gap = 6,
-  ) => {
-    const x = X(endBp) + gap
+  // A readout that would leave the pane is written inside the end of its bar
+  const label = (text: string, endBp: number, y: number, fill = '#333') => {
+    const x = X(endBp) + 6
     const fits = x + text.length * LABEL_CHAR_PX < width
     return (
       <text
@@ -278,21 +265,17 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
       height={canvasHeight}
       data-testid="graph-walk-rows"
     >
-      {label(
-        `${kb(reference.bp)}${units(reference.bp, unit)}`,
-        backboneEnd,
-        Y(0),
-        undefined,
-        6 + BAR_PX / 2,
-      )}
-      {rows.map((row, i) => {
-        const y = Y(i + 1)
+      {[reference, ...rows].map((row, i) => {
+        const y = Y(i)
         if (y < -BAR_PX || y > canvasHeight + BAR_PX) {
           return null
         }
         const { call } = row
         return (
-          <g key={row.name} data-testid="graph-walk-row">
+          <g
+            key={row.name}
+            data-testid={i === 0 ? 'graph-walk-reference' : 'graph-walk-row'}
+          >
             {row.runs.map(run => {
               const { fill, gradient } = runFill(
                 run,
@@ -324,7 +307,9 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
               />
             ) : null}
             {label(
-              readout(row, reference.bp, unit),
+              i === 0
+                ? `${kb(row.bp)}${units(row.bp, unit)}`
+                : readout(row, reference.bp, unit),
               origin + row.bp,
               y,
               call?.agrees === false ? DISAGREES : undefined,
