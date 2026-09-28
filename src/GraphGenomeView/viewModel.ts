@@ -1,3 +1,4 @@
+import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { getSession } from '@jbrowse/core/util'
@@ -10,6 +11,7 @@ import {
 } from '../graphTrackConfig'
 
 import type { SubgraphRegion } from '../GetSubgraph'
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
 import type { Instance } from '@jbrowse/mobx-state-tree'
@@ -109,6 +111,9 @@ export default function stateModelFactory() {
             return self.cutSubgraph(readConfObject(track, 'adapter'), region, {
               hops: self.subgraphContext,
               haplotypes: self.subgraphHaplotypes,
+              ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
+                ? { snarls: 'overlapping' as const }
+                : {}),
             })
           }
           return undefined
@@ -118,6 +123,16 @@ export default function stateModelFactory() {
     .actions(self => ({
       retryLoad() {
         void self.load()
+      },
+      // walk rows measures whole walks, which a GBZ cut only follows when
+      // asked, so entering or leaving it cuts the track again
+      switchLayout(mode: LayoutModeValue) {
+        const from = layoutModeByValue(self.chosenLayoutMode)
+        self.setLayoutMode(mode)
+        return self.loadedTrackId &&
+          layoutModeByValue(mode).wholeWalks !== from.wholeWalks
+          ? self.load()
+          : self.recomputeLayout()
       },
       // Here rather than when the rendering backend starts: the canvas only
       // mounts once there is a graph, so a view whose graph must be fetched

@@ -220,6 +220,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             hops: coarse ? 0 : self.subgraphContext,
             haplotypes: self.chosenHaplotypes,
             tier: coarse ? 'coarse' : undefined,
+            ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
+              ? { snarls: 'overlapping' as const }
+              : {}),
           })
         },
       }))
@@ -257,13 +260,15 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           return true
         },
         switchLayout(mode: LayoutModeValue) {
-          const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
+          const from = layoutModeByValue(self.chosenLayoutMode)
           self.setLayoutMode(mode)
+          const to = layoutModeByValue(mode)
           const seen = self.host ? hostWindow(self.host) : undefined
           if (
             seen &&
             !self.regionTooLarge &&
-            layoutModeByValue(mode).cutMargins !== margins
+            (to.cutMargins !== from.cutMargins ||
+              to.wholeWalks !== from.wholeWalks)
           ) {
             return self.recutAt(seen)
           }

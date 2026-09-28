@@ -20,6 +20,9 @@ export interface SubgraphCutOptions {
   hops?: number
   haplotypes?: string[]
   tier?: SubgraphTier
+  // which snarls a GBZ cut follows past the window, over the track's
+  // `subgraphSnarls`; 'overlapping' when the layout measures whole walks
+  snarls?: 'none' | 'contained' | 'overlapping'
 }
 
 // What an adapter's cut is handed: the payload, plus the call's own signal so

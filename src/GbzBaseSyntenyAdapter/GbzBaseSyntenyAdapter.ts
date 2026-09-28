@@ -381,7 +381,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const keep = this.keepPredicate(opts.haplotypes)
     return cutWindowGFA(db, query, start, end, {
       context: this.getConf('context'),
-      snarls: this.getConf('subgraphSnarls'),
+      snarls: opts.snarls ?? this.getConf('subgraphSnarls'),
       limit: this.getConf('nodeLimit'),
       signal: opts.signal,
       ...(keep === undefined ? {} : { keep }),

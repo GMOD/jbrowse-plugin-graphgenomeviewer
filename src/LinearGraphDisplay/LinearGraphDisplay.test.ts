@@ -81,6 +81,7 @@ function syntheticGraph(
 interface Cut {
   tier: SubgraphTier
   region: SubgraphRegion
+  snarls?: string
 }
 
 const FORCE_LAYOUT = {
@@ -234,7 +235,7 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
       method: string,
       args: {
         region: SubgraphRegion
-        opts?: { tier?: SubgraphTier }
+        opts?: { tier?: SubgraphTier; snarls?: string }
         signal?: AbortSignal
       },
     ) => {
@@ -247,7 +248,11 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
       if (method !== 'GetSubgraph') {
         return Promise.reject(new Error(`Unexpected RPC: ${method}`))
       }
-      const cut = { tier: args.opts?.tier ?? 'fine', region: args.region }
+      const cut = {
+        tier: args.opts?.tier ?? 'fine',
+        region: args.region,
+        snarls: args.opts?.snarls,
+      }
       cuts.push(cut)
       if (args.signal) {
         signals.push(args.signal)
@@ -602,6 +607,22 @@ test('walk rows fit their own bars in the track, since a walk can be longer than
   expect(pane.layoutResult?.referenceAxis).toBe(true)
   expect(pane.hostPlacesX).toBe(false)
   expect(pane.viewportOwner).toBe('fit')
+})
+
+test('walk rows cut every snarl a walk takes past the window, so a walk comes whole', async () => {
+  const { pane, cuts } = await shownGraph({ paths: true })
+  await pane.switchLayout('force')
+  await wait(SETTLE_MS)
+  const before = cuts.length
+  expect(cuts.at(-1)!.snarls).toBeUndefined()
+  await pane.switchLayout('walkrows')
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(before + 1)
+  expect(cuts.at(-1)!.snarls).toBe('overlapping')
+  await pane.switchLayout('force')
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(before + 2)
+  expect(cuts.at(-1)!.snarls).toBeUndefined()
 })
 
 test('a launch in the force layout cuts the window alone', async () => {
