@@ -2494,13 +2494,14 @@ describe('walk rows', () => {
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     model.liftWalks(['B#1#ctg', 'GRCh38#0#chr1'])
-    model.setWalkColor('B#1#ctg', { field: 'strand' })
-    model.setWalkColor('B#1#ctg', { scheme: 'greens' })
+    model.setWalkColor('B#1#ctg', { field: 'progress' })
+    model.setWalkColor('B#1#ctg', { scheme: 'green' })
+    model.setWalkReversedMark('B#1#ctg', false)
     model.toggleWalk('A#1#ctg')
     expect(model.walkLift!.walks.map(w => [w.name, w.encoding])).toEqual([
       ['GRCh38#0#chr1', { field: 'reference', scheme: 'rainbow' }],
-      ['B#1#ctg', { field: 'strand', scheme: 'greens' }],
-      ['A#1#ctg', { field: 'progress', scheme: 'reds' }],
+      ['B#1#ctg', { field: 'progress', scheme: 'green' }],
+      ['A#1#ctg', { field: 'walk', scheme: 'vermillion' }],
     ])
     // the reference is coloured by position whatever the node colour scheme
     const ref = model.walkLift!.walks[0]!
@@ -2515,11 +2516,17 @@ describe('walk rows', () => {
     )!
     const colour = walkMenu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
-      colour.subMenu.filter(item => item.checked).map(item => item.label),
-    ).toEqual(['Strand against the reference', 'Greens'])
+      colour.subMenu!.filter(item => item.checked).map(item => item.label),
+    ).toEqual(['Progress along the walk', 'Bluish green'])
+    // the rainbow is offered for reference position only
+    expect(colour.subMenu!.some(item => item.label === 'Rainbow')).toBe(false)
     model.liftWalks(['B#1#ctg'])
     expect(model.walkLayers).toEqual([
-      { walk: 'B#1#ctg', color: { field: 'strand', scheme: 'greens' } },
+      {
+        walk: 'B#1#ctg',
+        color: { field: 'progress', scheme: 'green' },
+        reversedMark: false,
+      },
     ])
     model.toggleWalk('B#1#ctg')
     expect(model.walkLift).toBeUndefined()

@@ -1797,6 +1797,11 @@ export function GraphPaneMixin() {
           l.walk === walk ? { ...l, color: { ...l.color, ...color } } : l,
         )
       },
+      setWalkReversedMark(walk: string, reversedMark: boolean) {
+        self.walkLayers = self.walkLayers.map(l =>
+          l.walk === walk ? { ...l, reversedMark } : l,
+        )
+      },
       // Undefined restores the built-in ceiling. Nothing recomputes: the pane
       // reads canvasHeight and the drawing is placed by zoomToFit, which the
       // caller runs if it wants the drawing refitted into the new pane.
@@ -3059,7 +3064,12 @@ export function GraphPaneMixin() {
                           },
                         })),
                         { type: 'subHeader' as const, label: 'Palette' },
-                        ...WALK_SCHEMES.map(scheme => ({
+                        // the rainbow is the reference-position ramp
+                        ...WALK_SCHEMES.filter(
+                          scheme =>
+                            scheme.value !== 'rainbow' ||
+                            lifted.encoding.field === 'reference',
+                        ).map(scheme => ({
                           type: 'radio' as const,
                           label: scheme.label,
                           checked: lifted.encoding.scheme === scheme.value,
@@ -3069,6 +3079,28 @@ export function GraphPaneMixin() {
                             })
                           },
                         })),
+                        ...(lifted.reference
+                          ? []
+                          : [
+                              { type: 'divider' as const },
+                              {
+                                type: 'checkbox' as const,
+                                label:
+                                  'Dash where it runs against the reference',
+                                checked:
+                                  self.walkLayers.find(
+                                    l => l.walk === lifted.name,
+                                  )?.reversedMark !== false,
+                                onClick: () => {
+                                  self.setWalkReversedMark(
+                                    lifted.name,
+                                    self.walkLayers.find(
+                                      l => l.walk === lifted.name,
+                                    )?.reversedMark === false,
+                                  )
+                                },
+                              },
+                            ]),
                       ],
                     })),
                   ],

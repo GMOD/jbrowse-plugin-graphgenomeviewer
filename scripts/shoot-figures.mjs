@@ -174,8 +174,29 @@ const FIGURES = {
     layoutMode: 'force',
     walkLayers: [
       { walk: 'GRCh38#0#chr17' },
-      { walk: 'HG00097#1#JBIRDD010000008.1', color: { field: 'strand' } },
-      { walk: 'HG002#1#chr17', color: { field: 'strand' } },
+      { walk: 'HG00097#1#JBIRDD010000008.1' },
+      { walk: 'HG002#1#chr17' },
+    ],
+    paneHeight: 300,
+  }),
+  // GRCh38 reads the 1q21.1 inversion the way a minority of haplotypes do;
+  // HG01123 carries one orientation on each haplotype
+  force_1q21_strand: graphView({
+    loadedTrackId: GBZ,
+    loadedRegion: {
+      ...KIV2,
+      refName: 'chr1',
+      start: 144480000,
+      end: 144482000,
+    },
+    subgraphHaplotypes: ['HG002#1', 'HG005#1', 'HG01123#1', 'HG01123#2'],
+    layoutMode: 'force',
+    walkLayers: [
+      { walk: 'GRCh38#0#chr1' },
+      { walk: 'HG005#1#JAHEPO020000011.1' },
+      { walk: 'HG01123#2#CM089095.1' },
+      { walk: 'HG002#1#chr1' },
+      { walk: 'HG01123#1#CM089081.1' },
     ],
     paneHeight: 300,
   }),

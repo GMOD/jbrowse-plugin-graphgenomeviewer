@@ -31,7 +31,8 @@ session spec does the same with `loadedTrackId` and `loadedRegion`.
 - Genes from the session's annotation track, drawn on the graph
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, several walks lifted
-  out at once, each lane coloured by progress, reference position or strand
+  out at once, each lane in a colour of its own and dashed where it runs against
+  the reference
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 
 ## Usage
