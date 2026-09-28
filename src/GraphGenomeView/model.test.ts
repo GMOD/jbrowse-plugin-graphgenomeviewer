@@ -2498,13 +2498,13 @@ describe('walk rows', () => {
     model.setWalkColor('B#1#ctg', { scheme: 'green' })
     model.toggleWalk('A#1#ctg')
     expect(model.walkLift!.walks.map(w => [w.name, w.encoding])).toEqual([
-      ['GRCh38#0#chr1', { field: 'progress', scheme: 'grey' }],
+      ['GRCh38#0#chr1', { field: 'walk', scheme: 'grey' }],
       ['B#1#ctg', { field: 'walk', scheme: 'green' }],
-      ['A#1#ctg', { field: 'progress', scheme: 'red' }],
+      ['A#1#ctg', { field: 'walk', scheme: 'red' }],
     ])
-    // the reference is coloured by position whatever the node colour scheme
+    // lifted together, each walk is one flat colour
     const ref = model.walkLift!.walks[0]!
-    expect(new Set(ref.colors.values()).size).toBe(2)
+    expect(new Set(ref.colors.values()).size).toBe(1)
     interface Item {
       label?: string
       checked?: boolean
@@ -2525,6 +2525,30 @@ describe('walk rows', () => {
     ])
     model.toggleWalk('B#1#ctg')
     expect(model.walkLift).toBeUndefined()
+  })
+
+  test('faceted by walk, the pane draws one panel per lifted walk on one scale', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['GRCh38#0#chr1'])
+    model.setFacet('walk')
+    // one walk needs no facet
+    expect(model.facetPanels).toBeUndefined()
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg', 'A#1#ctg'])
+    expect(
+      model.facetPanels!.map(p => [p.walks[0]!.name, p.walks[0]!.encoding]),
+    ).toEqual([
+      ['GRCh38#0#chr1', { field: 'progress', scheme: 'red' }],
+      ['B#1#ctg', { field: 'progress', scheme: 'red' }],
+      ['A#1#ctg', { field: 'progress', scheme: 'red' }],
+    ])
+    expect(model.facetGrid!.columns).toBe(3)
+    model.setFacet('none')
+    expect(model.facetPanels).toBeUndefined()
   })
 
   test('a session naming the one walk the old field lifted opens with none', () => {

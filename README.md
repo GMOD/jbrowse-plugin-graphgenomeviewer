@@ -24,15 +24,17 @@ session spec does the same with `loadedTrackId` and `loadedRegion`.
 
 ![KIV-2 walk rows: eight haplotypes, each bar tiled by the kringle unit](img/walk_rows_kiv2.png)
 
+![The KIV-2 cut side by side: GRCh38, HG00097 and HG00133 each followed through the same graph, start to end](img/force_kiv2_facet.png)
+
 ## Features
 
 - Seven layouts: force-directed (Bandage FMMM), ordered, anchored, sample rows,
   walk rows, and sequenceTubeMap's tube map on its own axis or the reference's
 - Genes from the session's annotation track, drawn on the graph
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
-- gbz-base haplotypes as walks: carriage as node thickness, several walks lifted
-  out at once, each lane shading pale to deep along its walk in a colour of its
-  own
+- gbz-base haplotypes as walks: carriage as node thickness, walks lifted out as
+  metro-map lanes or side by side, one panel per walk, each shading from its
+  start to its end
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 
 ## Usage

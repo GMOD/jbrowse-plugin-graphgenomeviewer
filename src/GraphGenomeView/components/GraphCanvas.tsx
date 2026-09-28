@@ -15,6 +15,7 @@ import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
 
 import BubbleHalos, { HaloLegend } from './BubbleHalos'
+import FacetPanels from './FacetPanels'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
@@ -30,6 +31,7 @@ import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
 import type { GraphPaneModel } from '../model'
+import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 
 // Bottom RIGHT, not bottom left: the row labels of a row-structured layout are
 // pinned to the left edge, so a bottom-left tooltip lands on top of them and
@@ -177,7 +179,10 @@ const PathLegend = observer(function PathLegend({
   ) : null
 })
 
-const walkBlockStyle = { marginBottom: 3 }
+const walkBlockStyle = { marginBottom: 2 }
+const walkSwatchStyle = { width: 18, height: 8, borderRadius: 2, flex: 'none' }
+// a faded node: grey at the fade's alpha
+const FADED_SWATCH = 'rgba(160, 160, 160, 0.18)'
 const walkBarRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 const walkBarStyle = { flex: 1, minWidth: 60, height: 8, borderRadius: 2 }
 
@@ -191,62 +196,91 @@ const WalkReadout = observer(function WalkReadout({
   model: GraphPaneModel
 }) {
   const lift = model.walkLift
-  if (!lift) {
+  // faceted, each panel's title is its walk's key
+  if (!lift || model.facetPanels) {
     return null
   }
   const labelOf = (name: string) =>
     model.walkChoices.find(c => c.name === name)?.label ?? name
-  const referenceName = model.graphRegion?.refName
+  const alone = lift.walks.length === 1
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
-      {lift.walks.map(w => {
-        const delta =
-          w.referenceBp === undefined
-            ? ''
-            : w.bp === w.referenceBp
-              ? ', the reference length'
-              : `, ${w.bp > w.referenceBp ? '+' : '−'}${formatBp(Math.abs(w.bp - w.referenceBp))} against the reference`
-        // the stretch the lane's colours run over, on the walk's own contig
-        // for progress and on the reference for reference position
-        const ends =
-          w.encoding.field === 'progress' && w.range
-            ? { ...w.range, name: w.range.contig }
-            : w.encoding.field === 'reference' && lift.referenceDomain
-              ? { ...lift.referenceDomain, name: referenceName }
-              : undefined
-        return (
-          <div key={w.name} style={walkBlockStyle}>
-            <div>
-              <strong>{labelOf(w.name)}</strong> {formatBp(w.bp)}
-              {delta}
-              {w.reversedBp > 0
-                ? `, ${formatBp(w.reversedBp)} reversed against the reference`
-                : ''}
-            </div>
-            <div style={walkBarRowStyle}>
-              {ends ? (
-                <span>
-                  {ends.name ? `${ends.name}:` : ''}
-                  {Math.round(ends.start).toLocaleString()}
-                </span>
-              ) : null}
-              <div
-                style={{
-                  ...walkBarStyle,
-                  background: encodingSwatchCss(w.encoding),
-                }}
-              />
-              {ends ? (
-                <span>{Math.round(ends.end).toLocaleString()}</span>
-              ) : null}
-            </div>
-          </div>
-        )
-      })}
-      <div>paler nodes: on none of the walks above</div>
+      {lift.walks.map(w => (
+        <WalkRow
+          key={w.name}
+          walk={w}
+          label={labelOf(w.name)}
+          referenceDomain={lift.referenceDomain}
+          referenceName={model.graphRegion?.refName}
+        />
+      ))}
+      <div style={pathLegendRowStyle}>
+        <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
+        <span>
+          not on {alone ? labelOf(lift.walks[0]!.name) : 'these walks'}
+        </span>
+      </div>
     </div>
   )
 })
+
+// One walk's key: its swatch, its name and its length against the reference.
+// A lane shading along the walk shows its scale, the walk's first and last
+// coordinate either side of the bar; where it sits hovers on the row.
+function WalkRow({
+  walk: w,
+  label,
+  referenceDomain,
+  referenceName,
+}: {
+  walk: LiftedWalk
+  label: string
+  referenceDomain?: { start: number; end: number }
+  referenceName?: string
+}) {
+  const delta =
+    w.referenceBp === undefined || w.bp === w.referenceBp
+      ? ''
+      : ` ${w.bp > w.referenceBp ? '+' : '−'}${formatBp(Math.abs(w.bp - w.referenceBp))}`
+  const ends =
+    w.encoding.field === 'progress'
+      ? w.range
+      : w.encoding.field === 'reference'
+        ? referenceDomain
+        : undefined
+  const where = w.range
+    ? `${w.range.contig}:${w.range.start.toLocaleString()}-${w.range.end.toLocaleString()}`
+    : w.encoding.field === 'reference' && referenceName
+      ? referenceName
+      : undefined
+  const bar = (
+    <div
+      style={{
+        ...(ends ? walkBarStyle : walkSwatchStyle),
+        background: encodingSwatchCss(w.encoding),
+      }}
+    />
+  )
+  return (
+    <div style={walkBlockStyle} title={where}>
+      <div style={pathLegendRowStyle}>
+        {ends ? null : bar}
+        <span>
+          <strong>{label}</strong>
+          {delta}
+          {w.reversedBp > 0 ? `, ${formatBp(w.reversedBp)} reversed` : ''}
+        </span>
+      </div>
+      {ends ? (
+        <div style={walkBarRowStyle}>
+          <span>{Math.round(ends.start).toLocaleString()}</span>
+          {bar}
+          <span>{Math.round(ends.end).toLocaleString()}</span>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 // The reference-position ramp, as a strip labelled with the interval it runs
 // over. Nothing on screen used to say that red-to-magenta means left-to-right of
@@ -828,6 +862,7 @@ const GraphCanvas = observer(function GraphCanvas({
         <LabelLayer model={model} />
         <UnpopButton model={model} />
         <WalkRowsOverlay model={model} />
+        <FacetPanels model={model} />
         <Legends model={model} />
 
         {ownChrome ? (

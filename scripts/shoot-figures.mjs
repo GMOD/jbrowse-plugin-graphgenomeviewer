@@ -166,6 +166,19 @@ const FIGURES = {
     ],
     paneHeight: 620,
   }),
+  // the same three walks side by side, one panel each
+  force_kiv2_facet: graphView({
+    ...gbzCut,
+    subgraphHaplotypes: HAPLOTYPES,
+    layoutMode: 'force',
+    walkLayers: [
+      { walk: 'GRCh38#0#chr6' },
+      { walk: 'HG00097#1#JBIRDD010000043.1' },
+      { walk: 'HG00133#1#CM090050.1' },
+    ],
+    facet: 'walk',
+    paneHeight: 480,
+  }),
   // HG002#1 carries the H2 inversion, HG00097#1 does not
   force_mapt_strand: graphView({
     loadedTrackId: GBZ,
@@ -177,7 +190,8 @@ const FIGURES = {
       { walk: 'HG00097#1#JBIRDD010000008.1' },
       { walk: 'HG002#1#chr17' },
     ],
-    paneHeight: 300,
+    facet: 'walk',
+    paneHeight: 600,
   }),
   // GRCh38 reads the 1q21.1 inversion the way a minority of haplotypes do;
   // HG01123 carries one orientation on each haplotype
@@ -198,7 +212,8 @@ const FIGURES = {
       { walk: 'HG002#1#chr1' },
       { walk: 'HG01123#1#CM089081.1' },
     ],
-    paneHeight: 300,
+    facet: 'walk',
+    paneHeight: 700,
   }),
   walk_rows_kiv2: {
     session: graphView({

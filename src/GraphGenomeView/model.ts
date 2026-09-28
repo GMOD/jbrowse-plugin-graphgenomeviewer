@@ -200,6 +200,15 @@ const MAX_CANVAS_HEIGHT = 600
 // Floor, so a window holding only backbone — one row, no height at all — still
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
+// The facet grid: panels this far apart, each with a title row over a drawing
+// padded this much, at most this many across. A drawing this much wider than
+// it is tall stacks its panels in one column.
+export const FACET_GAP_PX = 8
+export const FACET_TITLE_PX = 34
+export const FACET_PAD_PX = 12
+const FACET_MAX_COLUMNS = 3
+const FACET_WIDE = 2.5
+const MIN_FACET_PANEL_PX = 60
 // The thinnest a fit draws a tube map's tubes
 const MIN_FIT_TUBE_PX = 5
 
@@ -452,6 +461,10 @@ export function GraphPaneMixin() {
         // and the rest fading, coloured by the encoding it states or by the
         // default one. See walkEncoding.ts. Empty lifts none.
         walkLayers: types.optional(types.frozen<WalkLayer[]>(), []),
+        // Facets, as a grammar of graphics splits a plot: 'walk' draws the
+        // pane once per lifted walk, side by side on the same layout, each
+        // panel with that walk alone. See facetPanels.
+        facet: lenientOptionalEnum<'none' | 'walk'>(['none', 'walk'], 'none'),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
         // reference, so this is a choice; empty means "infer", which is the
@@ -768,6 +781,32 @@ export function GraphPaneMixin() {
               computeReferenceRamp(graph, this.rampDomain),
             )
           : undefined
+      },
+      // One panel per lifted walk while the pane is faceted by walk, each a
+      // lift of that walk alone. The panels share one scale, light to dark
+      // along each walk, as a faceted plot shares its axes, so they compare
+      // at a glance; a colour a layer states still wins.
+      get facetPanels() {
+        const { graph } = self
+        const lift = this.walkLift
+        if (self.facet !== 'walk' || !graph || !lift || lift.walks.length < 2) {
+          return undefined
+        }
+        const ramp = computeReferenceRamp(graph, this.rampDomain)
+        return lift.walks.flatMap(w => {
+          const layer = self.walkLayers.find(l => l.walk === w.name)
+          const panel = walkLift(
+            graph,
+            [
+              {
+                walk: w.name,
+                color: { field: 'progress', scheme: 'red', ...layer?.color },
+              },
+            ],
+            ramp,
+          )
+          return panel ? [panel] : []
+        })
       },
       // The scheme the renderer actually paints with, which is the raw prop
       // unless it is 'auto'. A bare getter returns a resolved value (root
@@ -1558,12 +1597,54 @@ export function GraphPaneMixin() {
           ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
           : FIT_PADDING
       },
+      // How the facet panels tile the pane: columns, and each panel's drawing
+      // size, as tall as its drawing needs at the panel's width but no taller
+      // than the pane's ceiling leaves room for
+      get facetGrid() {
+        const panels = self.facetPanels
+        const bounds = self.layoutBounds
+        if (!panels || !bounds || !(bounds.w > 0)) {
+          return undefined
+        }
+        const columns =
+          bounds.w > FACET_WIDE * bounds.h
+            ? 1
+            : Math.min(panels.length, FACET_MAX_COLUMNS)
+        const rows = Math.ceil(panels.length / columns)
+        const width = Math.floor(
+          (self.paneWidth - (columns - 1) * FACET_GAP_PX) / columns,
+        )
+        const drawn = self.pixelRows
+          ? bounds.h
+          : (bounds.h * (width - 2 * FACET_PAD_PX)) / bounds.w
+        const room =
+          (this.paneCeiling -
+            rows * FACET_TITLE_PX -
+            (rows - 1) * FACET_GAP_PX) /
+          rows
+        const height = Math.floor(
+          Math.max(
+            MIN_FACET_PANEL_PX,
+            Math.min(drawn + 2 * FACET_PAD_PX, room),
+          ),
+        )
+        return {
+          columns,
+          width,
+          height,
+          total: rows * (height + FACET_TITLE_PX) + (rows - 1) * FACET_GAP_PX,
+        }
+      },
       get canvasHeight() {
         const bounds = self.layoutBounds
         const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
         const ceiling = this.paneCeiling
         if (!bounds) {
           return ceiling
+        }
+        const grid = this.facetGrid
+        if (grid) {
+          return Math.max(MIN_CANVAS_HEIGHT, grid.total)
         }
         // never shorter than the legend, which a flat drawing would clip
         const floor = Math.max(
@@ -1802,6 +1883,9 @@ export function GraphPaneMixin() {
       liftWalks(names: string[]) {
         const had = new Map(self.walkLayers.map(l => [l.walk, l]))
         self.walkLayers = names.map(walk => had.get(walk) ?? { walk })
+      },
+      setFacet(facet: 'none' | 'walk') {
+        self.facet = facet
       },
       toggleWalk(walk: string) {
         const layers = self.walkLayers
@@ -3054,6 +3138,20 @@ export function GraphPaneMixin() {
                         self.setWalkLayers([])
                       },
                     },
+                    ...(self.walkLayers.length > 1
+                      ? [
+                          {
+                            type: 'checkbox' as const,
+                            label: 'Side by side',
+                            checked: self.facet === 'walk',
+                            onClick: () => {
+                              self.setFacet(
+                                self.facet === 'walk' ? 'none' : 'walk',
+                              )
+                            },
+                          },
+                        ]
+                      : []),
                     ...walks.map(walk => ({
                       type: 'checkbox' as const,
                       label: walk.label,
