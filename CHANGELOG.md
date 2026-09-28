@@ -1,3 +1,14 @@
+## [4.0.25](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.24...v4.0.25) (2026-09-28)
+
+### Other Changes
+
+- The strip staggers only segments wide enough to read one by one ([02d63ee](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/02d63ee8cbbc7f7681a3804f993976a3098b57b2))
+- SVG figures write a sub-pixel subpath as a dot, one per quarter pixel ([7748462](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/77484620cecf8d9ddcd8b705f7d6860b5a3c9b3c))
+- The figure CLI's example is KIV-2, where each walk takes its own loops ([7c6c37b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7c6c37ba517a0f6d86269ce34f17e4d01fc9e8f2))
+- Figures draw genes and name their version; Copy figure spec; hover says where a node sits on each walk ([d22b392](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d22b3927a5e43c7eacfa92652374a91ef4915b0d))
+- Handoff names the KIV-2 figure spec ([d1cbcc0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d1cbcc0dae010042f4a3d262528d48064ffbf51d))
+- Gbz-base 4.1.0: a walk's alignment joins across a detour out of the cut ([86c81cd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/86c81cd716279d79aae02f43ab710c7857e51b1f))
+
 ## [4.0.24](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.23...v4.0.24) (2026-09-28)
 
 ### Other Changes
