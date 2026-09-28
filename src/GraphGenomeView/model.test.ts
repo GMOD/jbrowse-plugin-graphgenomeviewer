@@ -1126,6 +1126,26 @@ describe('canvas height follows the drawing', () => {
     await model.loadGFA(SIMPLE_GFA, 'square')
 
     expect(model.canvasHeight).toBe(600)
+    model.setLegendSize({ width: 150, height: 60 })
+    expect(model.legendRoom).toBe('right')
+    expect(model.canvasHeight).toBe(600)
+  })
+
+  // Beside a wide flat drawing the legend would cost it width; above, it
+  // costs the pane only height
+  test('a wide flat layout leaves the legend room above it', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.zoomToFit()
+    const { scale, translateY, canvasHeight } = model
+
+    model.setLegendSize({ width: 150, height: 60 })
+    model.zoomToFit()
+    expect(model.legendRoom).toBe('top')
+    expect(model.scale).toBeCloseTo(scale, 10)
+    expect(model.translateY).toBeCloseTo(translateY + 66, 5)
+    expect(model.canvasHeight).toBe(canvasHeight + 66)
   })
 
   test('a pane with no layout in it yet is full height', () => {

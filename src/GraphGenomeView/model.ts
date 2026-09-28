@@ -1216,6 +1216,24 @@ export function GraphPaneMixin() {
           ? { start: ramp.start, end: ramp.start + ramp.span }
           : undefined
       },
+      // The ramp's two colours for nodes off it, as getNodeColor paints them:
+      // charcoal where an rGFA rank puts a node off the reference, grey where
+      // a node has no reference position at all
+      get referenceRampOffKeys() {
+        const ramp = self.referenceRamp
+        let offReference = false
+        let unplaced = false
+        if (ramp && self.graph) {
+          for (const node of self.graph.nodes) {
+            if (!ramp.midpoints.has(node.id)) {
+              unplaced = true
+            } else if (node.stable && node.stable.rank > 0) {
+              offReference = true
+            }
+          }
+        }
+        return { offReference, unplaced }
+      },
       // A node's reference interval, an allele's between its flanks
       nodeSpan(nodeId: string) {
         const { nodeById, nodeNeighbors: neighbors } = self
@@ -1569,13 +1587,63 @@ export function GraphPaneMixin() {
       // Room over a tube map for the rows its genes need, one inside the
       // padding and one more for each further gene that overlaps it, and
       // room for the reference strip
-      get fitPadTop() {
+      get fitPadTopBase() {
         const rows = tubeMapGeneRows(self.tubeMapGenes)
         return (
           FIT_PADDING +
           Math.max(0, rows - 1) * GENE_ROW_PX +
           self.referenceStripZonePx
         )
+      },
+      // The fit draws nothing under the legend. It leaves the legend room on
+      // the side that costs the drawing less scale: beside a tall drawing,
+      // which has width to spare, or above a wide flat one, which takes the
+      // height instead. Not beside a drawing whose x the host places, and not
+      // over reads, whose letters and the legend row naming them come and go
+      // with the fit's scale.
+      get legendRoom(): 'right' | 'top' | undefined {
+        const bounds = self.layoutBounds
+        const { width, height } = self.legendSize
+        if (
+          !bounds ||
+          bounds.w <= 0 ||
+          width === 0 ||
+          self.facetPanels ||
+          self.hostPlacesX ||
+          self.layoutResult?.tubeMap?.layout.reads.length
+        ) {
+          return undefined
+        }
+        const base = this.fitPadTopBase
+        // a track's height is its own
+        const room = self.host ? this.canvasHeight : this.paneCeiling
+        const across = (padRight: number) =>
+          (self.paneWidth - self.fitPadLeft - padRight) / bounds.w
+        const down = (padTop: number) =>
+          self.pixelRows
+            ? bounds.h + padTop + FIT_PADDING <= room
+              ? Infinity
+              : 0
+            : (room - padTop - FIT_PADDING) / bounds.h
+        const beside = Math.min(across(width + 2 * LEGEND_INSET_PX), down(base))
+        const above = Math.min(
+          across(FIT_PADDING),
+          down(base + height + LEGEND_INSET_PX),
+        )
+        return above >= beside ? 'top' : 'right'
+      },
+      get fitPadTop() {
+        return (
+          this.fitPadTopBase +
+          (this.legendRoom === 'top'
+            ? self.legendSize.height + LEGEND_INSET_PX
+            : 0)
+        )
+      },
+      get fitPadRight() {
+        return this.legendRoom === 'right'
+          ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
+          : FIT_PADDING
       },
       // A tube map on its own axis reads by panning along it, as in
       // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
@@ -1591,18 +1659,6 @@ export function GraphPaneMixin() {
               (this.paneCeiling - this.fitPadTop - FIT_PADDING) / bounds.h,
             )
           : 0
-      },
-      // The pane is as tall as the drawing, rather than a fixed box the drawing
-      // floats in. A row layout's rows are px, so its height is a sum; an
-      // isotropic layout has no height of its own and takes its aspect ratio
-      // at the width's fit. Neither reads `scale`, so the fit reads this
-      // without feeding back into it.
-      // Lifted walks' legend rows carry their scales, which makes the legend
-      // wide, so the fit leaves it that width rather than draw under it
-      get fitPadRight() {
-        return self.walkLift
-          ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
-          : FIT_PADDING
       },
       // How the facet panels tile the pane. A track's height is its own, and
       // a track whose x the linear view places stacks full-width panels so
@@ -1621,6 +1677,11 @@ export function GraphPaneMixin() {
             })
           : undefined
       },
+      // The pane is as tall as the drawing, rather than a fixed box the drawing
+      // floats in. A row layout's rows are px, so its height is a sum; an
+      // isotropic layout has no height of its own and takes its aspect ratio
+      // at the width's fit. Neither reads `scale`, so the fit reads this
+      // without feeding back into it.
       get canvasHeight(): number {
         const bounds = self.layoutBounds
         const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight

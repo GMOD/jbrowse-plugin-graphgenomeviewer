@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
+import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -10,7 +11,7 @@ import { observer } from 'mobx-react'
 
 import BubbleHalos, { HaloLegend } from './BubbleHalos'
 import FacetPanels from './FacetPanels'
-import GenePins from './GenePins'
+import GenePins, { EXON_COLOR } from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import LabelLayer from './LabelLayer'
 import ReferenceStripOverlay, {
@@ -223,6 +224,7 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
 }) {
   // under lifted walks each lane states its own scale, and the rest is grey
   const domain = model.walkLift ? undefined : model.referenceRampDomain
+  const { offReference, unplaced } = model.referenceRampOffKeys
   return domain ? (
     <div style={legendBoxStyle} data-testid="graph-ramp-legend">
       <div style={rampStripStyle} />
@@ -230,6 +232,45 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
         <span>{domain.start.toLocaleString()}</span>
         <span>({formatBp(domain.end - domain.start)})</span>
         <span>{domain.end.toLocaleString()}</span>
+      </div>
+      {offReference ? (
+        <div style={legendRowStyle}>
+          <div
+            style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }}
+          />
+          <span>off the reference</span>
+        </div>
+      ) : null}
+      {unplaced ? (
+        <div style={legendRowStyle}>
+          <div style={{ ...walkSwatchStyle, background: UNPLACED_SWATCH }} />
+          <span>no reference position</span>
+        </div>
+      ) : null}
+    </div>
+  ) : null
+})
+
+// getNodeColor's grey for a node the ramp cannot place
+const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
+
+const exonSwatchStyle = {
+  ...walkSwatchStyle,
+  border: `2px solid ${EXON_COLOR}`,
+  borderRadius: 5,
+  boxSizing: 'border-box' as const,
+}
+
+const GeneLegend = observer(function GeneLegend({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  return model.genePins.some(pin => pin.exonsByNode.length > 0) ? (
+    <div style={legendBoxStyle} data-testid="graph-gene-legend">
+      <div style={legendRowStyle}>
+        <div style={exonSwatchStyle} />
+        <span>exon</span>
       </div>
     </div>
   ) : null
@@ -302,6 +343,7 @@ const Legends = observer(function Legends({
       <ReferenceRampLegend model={model} />
       <ReferenceStripLegend model={model} />
       <HaloLegend model={model} />
+      <GeneLegend model={model} />
       <PathLegend model={model} />
       <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />
@@ -393,8 +435,8 @@ const HoverTooltips = observer(function HoverTooltips({
     <>
       {hoveredNodeData ? (
         <div style={tooltipStyle}>
-          <strong>{hoveredNodeData.name}</strong> — length:{' '}
-          {hoveredNodeData.length.toLocaleString()}, depth:{' '}
+          <strong>{hoveredNodeData.name}</strong> —{' '}
+          {hoveredNodeData.length.toLocaleString()} bp, depth{' '}
           {hoveredNodeData.depth.toFixed(1)}
           {/* Which assembly contributed this segment, and where it sits on it.
               rGFA states both, and until now neither reached the screen: the

@@ -77,6 +77,7 @@ function config() {
         {
           id: OWN_VIEW,
           type: 'GraphGenomeView',
+          displayName: 'E. coli, 5 strains',
           layoutMode: 'tubemap',
           referencePath: 'K12',
           gfaLocation: served('test.gfa'),
@@ -84,6 +85,7 @@ function config() {
         {
           id: REFERENCE_VIEW,
           type: 'GraphGenomeView',
+          displayName: 'E. coli, 5 strains',
           layoutMode: 'tubemapref',
           referencePath: 'K12',
           gfaLocation: served('test.gfa'),

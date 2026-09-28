@@ -17,12 +17,28 @@ const ColorSchemeSelect = observer(function ColorSchemeSelect({
   model: GraphPaneModel
 }) {
   const { classes } = useStyles()
+  // Lifted walks colour their own lanes and grey the rest, and a tube map
+  // colours each tube by its path, so no scheme is on screen to pick
+  const fixed = model.walkLift
+    ? {
+        value: 'By walk',
+        why: 'Each lifted walk colours its own lane: set it under the menu, Walk, Colour',
+      }
+    : model.layoutResult?.tubeMap
+      ? { value: 'By path', why: 'A tube map colours each tube by its path' }
+      : undefined
   return (
-    <FormControl size="small" className={classes.formControl}>
+    <FormControl
+      size="small"
+      className={classes.formControl}
+      disabled={fixed !== undefined}
+      title={fixed?.why}
+    >
       <InputLabel>Color</InputLabel>
       <Select
         value={model.chosenColorScheme}
         label="Color"
+        renderValue={fixed ? () => fixed.value : undefined}
         onChange={e => {
           model.setColorScheme(e.target.value)
         }}

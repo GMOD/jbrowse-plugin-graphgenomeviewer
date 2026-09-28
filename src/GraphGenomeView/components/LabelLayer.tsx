@@ -1,4 +1,5 @@
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { geneCoverageNote } from '@jbrowse/bandage-core/labelLayout'
 import { LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
@@ -25,6 +26,8 @@ const svgStyle = {
   zIndex: 3,
 }
 
+const GENE_INK = '#1c1c22'
+
 const LabelLayer = observer(function LabelLayer({
   model,
 }: {
@@ -49,29 +52,35 @@ const LabelLayer = observer(function LabelLayer({
       height={model.canvasHeight}
       data-testid="graph-label-layer"
     >
-      {genes.map(({ item: pin, x, y, w, text }) => (
-        <g key={`${pin.gene.name}-${pin.gene.start}`}>
-          <line
-            x1={x}
-            x2={x}
-            y1={y - LABEL_PX - 2}
-            y2={pin.at.y * scaleY + translateY + contigThickness / 2}
-            stroke={EXON_COLOR}
-            strokeWidth={0.8}
-            strokeOpacity={0.6}
-          />
-          <LabelChip
-            x={x}
-            y={y}
-            w={w}
-            text={text}
-            color={EXON_COLOR}
-            italic
-            title={`${pin.gene.name} ${pin.gene.refName}:${pin.gene.start.toLocaleString()}-${pin.gene.end.toLocaleString()}${pin.covered < 0.98 ? ', runs past the cut' : ''}`}
-            testId="graph-gene-pin-label"
-          />
-        </g>
-      ))}
+      {genes.map(({ item: pin, x, y, w }) => {
+        const { gene } = pin
+        const note = geneCoverageNote(pin)
+        return (
+          <g key={`${gene.name}-${gene.start}`}>
+            <line
+              x1={x}
+              x2={x}
+              y1={y - LABEL_PX - 2}
+              y2={pin.at.y * scaleY + translateY + contigThickness / 2}
+              stroke={GENE_INK}
+              strokeWidth={0.8}
+              strokeOpacity={0.6}
+            />
+            <LabelChip
+              x={x}
+              y={y}
+              w={w}
+              text={gene.name}
+              note={note}
+              color={GENE_INK}
+              edge={EXON_COLOR}
+              italic
+              title={`${gene.name} ${gene.refName}:${gene.start.toLocaleString()}-${gene.end.toLocaleString()}${note ? `, ${note} in the cut` : ''}`}
+              testId="graph-gene-pin-label"
+            />
+          </g>
+        )
+      })}
       {routes.map(({ item: { halo: h, route }, x, y, w, text }) => (
         <LabelChip
           key={`${h.bubble.start}-${h.bubble.end}-${route.route.steps.join(',')}`}

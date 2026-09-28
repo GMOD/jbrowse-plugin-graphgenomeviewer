@@ -1,13 +1,15 @@
 import { LABEL_PAD, LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
 
 // One label on an overlay: a white chip with a coloured edge and text, its
-// baseline at y and centred on x.
+// baseline at y and centred on x. A note follows the text in plain type.
 export default function LabelChip({
   x,
   y,
   w,
   text,
+  note,
   color,
+  edge = color,
   italic,
   small,
   dimmed,
@@ -20,7 +22,9 @@ export default function LabelChip({
   y: number
   w: number
   text: string
+  note?: string
   color: string
+  edge?: string
   italic?: boolean
   small?: boolean
   dimmed?: boolean
@@ -53,7 +57,7 @@ export default function LabelChip({
         height={LABEL_PX + LABEL_PAD * 2 - 2}
         rx={3}
         fill="rgba(255,255,255,0.85)"
-        stroke={color}
+        stroke={edge}
         strokeWidth={small ? 0.6 : 1}
       />
       <text
@@ -67,6 +71,11 @@ export default function LabelChip({
         textAnchor="middle"
       >
         {text}
+        {note ? (
+          <tspan fontStyle="normal" fontWeight="normal">
+            {` · ${note}`}
+          </tspan>
+        ) : null}
       </text>
     </g>
   )

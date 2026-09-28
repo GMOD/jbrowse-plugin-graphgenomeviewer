@@ -16,6 +16,19 @@ import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
+// the last segment of a file's path, its query dropped, or a blob's own name
+function fileName(location: FileLocation) {
+  const path =
+    'uri' in location
+      ? location.uri.split(/[?#]/)[0]!
+      : 'localPath' in location
+        ? location.localPath
+        : 'name' in location
+          ? location.name
+          : ''
+  return path.split(/[\\/]/).at(-1) ?? ''
+}
+
 export default function stateModelFactory() {
   return types
     .compose(
@@ -80,6 +93,10 @@ export default function stateModelFactory() {
         load() {
           const region = self.loadedRegion
           if (self.gfaLocation) {
+            // a whole file has no assembly to name the view by
+            if (!self.displayName) {
+              self.setDisplayName(fileName(self.gfaLocation))
+            }
             return self.loadGFAFromLocation(self.gfaLocation, region)
           }
           if (!self.loadedTrackId || !region) {
