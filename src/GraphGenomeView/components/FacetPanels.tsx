@@ -38,7 +38,7 @@ const titleStyle = {
   border: 'none',
   background: 'none',
   textAlign: 'left' as const,
-  width: '100%',
+  display: 'block',
 }
 
 const FacetPanel = observer(function FacetPanel({
