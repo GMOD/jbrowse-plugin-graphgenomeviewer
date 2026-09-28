@@ -1522,8 +1522,7 @@ export function GraphPaneMixin() {
           ? referenceStripBlocks(graph, {
               colorScheme: self.effectiveColorScheme,
               referenceRamp: self.referenceRamp,
-              walkNodes: self.walkLift?.nodeIds,
-              walkColors: self.walkLift?.walks.find(w => w.reference)?.colors,
+              walks: self.walkLift?.walks,
             })
           : []
       },

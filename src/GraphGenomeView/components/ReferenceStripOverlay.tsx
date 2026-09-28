@@ -70,31 +70,41 @@ export default ReferenceStripOverlay
 
 const SWATCH_PX = 18
 
-// the strip's own colours: the reference lane's under lifted walks, grey
-// when the reference is not one of them, else the node scheme's ramp
-function StripSwatch({ background }: { background: string }) {
-  return (
-    <div style={{ width: SWATCH_PX, height: 4, flex: 'none', background }} />
-  )
-}
-
 const RAMP_SWATCH =
   'linear-gradient(to right, hsl(0, 70%, 50%) 0 33%, hsl(120, 70%, 50%) 33% 61%, hsl(240, 70%, 50%) 61%)'
 
-function stripBackground(model: GraphPaneModel) {
-  const lift = model.walkLift
-  const reference = lift?.walks.find(w => w.reference)
-  return reference
-    ? encodingSwatchCss(reference.encoding)
-    : lift
-      ? 'rgb(160, 160, 160)'
-      : RAMP_SWATCH
+// the strip's own colours: a row per lifted walk in its lane's, else the
+// node scheme's ramp
+function StripSwatch({
+  rows,
+}: {
+  rows: { key: string; background: string }[]
+}) {
+  return (
+    <div style={{ width: SWATCH_PX, flex: 'none' }}>
+      {rows.map(({ key, background }) => (
+        <div
+          key={key}
+          style={{ height: rows.length > 1 ? 3 : 4, background }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function stripRows(model: GraphPaneModel) {
+  return (
+    model.walkLift?.walks.map(w => ({
+      key: w.name,
+      background: encodingSwatchCss(w.encoding),
+    })) ?? [{ key: 'ramp', background: RAMP_SWATCH }]
+  )
 }
 
 function OverhangSwatch() {
   return (
-    <svg width={SWATCH_PX} height={8} style={{ flex: 'none' }}>
-      <path d="M0,4 L5,0.5 L5,7.5 Z M18,4 L13,0.5 L13,7.5 Z" fill="#18181c" />
+    <svg width={SWATCH_PX} height={10} style={{ flex: 'none' }}>
+      <path d="M0,5 L8,0 L8,10 Z M18,5 L10,0 L10,10 Z" fill="#18181c" />
     </svg>
   )
 }
@@ -105,22 +115,29 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
 }: {
   model: GraphPaneModel
 }) {
+  const rowPerWalk = (model.walkLift?.walks.length ?? 0) > 1
   return model.referenceStripShown ? (
     <div style={legendBoxStyle} data-testid="graph-reference-strip-legend">
       <div style={legendRowStyle}>
-        <StripSwatch background={stripBackground(model)} />
-        <span>top strip: reference segments at their bp</span>
+        <StripSwatch rows={stripRows(model)} />
+        <span>
+          top strip: reference segments at their bp
+          {rowPerWalk ? ', a row per walk' : ''}
+        </span>
       </div>
       {model.referenceStripFaded ? (
         <div style={legendRowStyle}>
-          <StripSwatch background={FADED_SWATCH} />
-          <span>reference not on {model.liftedWalksLabel}</span>
+          <StripSwatch rows={[{ key: 'pale', background: FADED_SWATCH }]} />
+          <span>
+            reference not on{' '}
+            {rowPerWalk ? "that row's walk" : model.liftedWalksLabel}
+          </span>
         </div>
       ) : null}
       {model.referenceStripOverhangs ? (
         <div style={legendRowStyle}>
           <OverhangSwatch />
-          <span>the graph runs past this edge</span>
+          <span>the graph draws reference past this edge</span>
         </div>
       ) : null}
     </div>
