@@ -3314,7 +3314,11 @@ export function GraphPaneMixin() {
                 {
                   label: 'Zoom in',
                   onClick: () => {
-                    self.zoom(1.5, self.paneWidth / 2, self.canvasHeight / 2)
+                    self.zoom(
+                      1.5,
+                      self.viewBox.width / 2,
+                      self.viewBox.height / 2,
+                    )
                   },
                 },
                 {
@@ -3322,8 +3326,8 @@ export function GraphPaneMixin() {
                   onClick: () => {
                     self.zoom(
                       1 / 1.5,
-                      self.paneWidth / 2,
-                      self.canvasHeight / 2,
+                      self.viewBox.width / 2,
+                      self.viewBox.height / 2,
                     )
                   },
                 },

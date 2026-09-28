@@ -48,7 +48,7 @@ const GraphToolbar = observer(function GraphToolbar({
         <IconButton
           size="small"
           onClick={() => {
-            model.zoom(1.5, model.paneWidth / 2, model.canvasHeight / 2)
+            model.zoom(1.5, model.viewBox.width / 2, model.viewBox.height / 2)
           }}
         >
           <ZoomInIcon />
@@ -58,7 +58,11 @@ const GraphToolbar = observer(function GraphToolbar({
         <IconButton
           size="small"
           onClick={() => {
-            model.zoom(1 / 1.5, model.paneWidth / 2, model.canvasHeight / 2)
+            model.zoom(
+              1 / 1.5,
+              model.viewBox.width / 2,
+              model.viewBox.height / 2,
+            )
           }}
         >
           <ZoomOutIcon />
