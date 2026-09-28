@@ -1,23 +1,21 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
-import { formatBp } from '@jbrowse/bandage-core/graphLabels'
-import { fitTransform } from '@jbrowse/bandage-core/pipeline'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
-import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import { axisScaleOf } from '@jbrowse/bandage-core/viewport'
-import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
-import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
+import { autorun, computed } from 'mobx'
 import { observer } from 'mobx-react'
 
-import { FACET_GAP_PX, FACET_PAD_PX, FACET_TITLE_PX } from '../model'
+import WalkKey from './WalkKey'
+import { useWheelZoom } from './usePaneGestures'
+import { FACET_GAP_PX, FACET_TITLE_PX } from '../facetGrid'
 
+import type { PaneHandlers } from './usePaneGestures'
 import type { GraphPaneModel } from '../model'
 import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 
 // The pane faceted by walk: the same layout drawn once per lifted walk, each
 // panel with that walk alone shading along itself, so walks compare by where
-// they go rather than by which lane is which colour. A panel's title is its
-// scale, and clicking it lifts that walk alone in the whole pane.
+// they go rather than by which lane is which colour. The panels share the
+// pane's transform, so a pan, zoom or hover in one is in all of them.
 
 const gridStyle = {
   position: 'absolute' as const,
@@ -33,7 +31,9 @@ const titleStyle = {
   height: FACET_TITLE_PX,
   padding: '2px 6px',
   boxSizing: 'border-box' as const,
+  fontFamily: 'inherit',
   fontSize: 11,
+  color: 'inherit',
   cursor: 'pointer',
   border: 'none',
   background: 'none',
@@ -41,126 +41,79 @@ const titleStyle = {
   width: '100%',
 }
 
-const barRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
-const barStyle = { flex: 1, height: 8, borderRadius: 2 }
-
 const FacetPanel = observer(function FacetPanel({
   model,
   lift,
   width,
   height,
+  handlers,
 }: {
   model: GraphPaneModel
   lift: WalkLift
   width: number
   height: number
+  handlers: PaneHandlers
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { graph, nodePositions, nodeById, layoutBounds, pixelRows } = model
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
   const walk = lift.walks[0]!
+  useWheelZoom(canvas, model)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !graph || !nodePositions || !nodeById || !layoutBounds) {
-      return
+    if (!canvas) {
+      return undefined
     }
     const renderer = new Canvas2DRenderer(canvas)
     renderer.resize(width, height)
-    const fit = fitTransform(layoutBounds, width, height, pixelRows, {
-      padLeft: FACET_PAD_PX,
-      padTop: FACET_PAD_PX,
-      padRight: FACET_PAD_PX,
-      padBottom: FACET_PAD_PX,
+    const drawing = computed(() => model.buildDrawing(lift, false))
+    let uploaded: ReturnType<typeof model.buildDrawing>
+    const dispose = autorun(() => {
+      const built = drawing.get()
+      if (!built) {
+        return
+      }
+      if (built !== uploaded) {
+        renderer.uploadGeometry(built.batch)
+        uploaded = built
+      }
+      model.applyHighlights(renderer)
+      model.paint(renderer)
     })
-    if (fit) {
-      const axis = axisScaleOf(fit.scale, pixelRows)
-      renderer.uploadGeometry(
-        buildGeometry({
-          nodePositions,
-          graph,
-          nodeById,
-          colorScheme: model.effectiveColorScheme,
-          contigThickness: model.contigThickness,
-          connectorThickness: model.connectorThickness,
-          drawPaths: false,
-          nodeWidth: model.nodeWidth,
-          highlight: lift,
-          axis,
-          linearLayout: model.linearLayout,
-          referenceRamp: model.referenceRamp,
-          deletions: model.deletionEdgeIndexes,
-          hiddenEdges: model.hiddenEdgeIndexes,
-          version: model.positionsVersion,
-        }),
-      )
-      const dpr = getDpr()
-      renderer.updateTransform({
-        scaleX: axis.scaleX * dpr,
-        scaleY: axis.scaleY * dpr,
-        translateX: fit.translateX * dpr,
-        translateY: fit.translateY * dpr,
-        dpr,
-      })
-      renderer.render(model.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
-    }
     return () => {
+      dispose()
       renderer.dispose()
     }
-  }, [
-    model,
-    lift,
-    width,
-    height,
-    graph,
-    nodePositions,
-    nodeById,
-    layoutBounds,
-    pixelRows,
-  ])
+  }, [canvas, model, lift, width, height])
 
-  const label =
-    model.walkChoices.find(c => c.name === walk.name)?.label ?? walk.name
-  const delta =
-    walk.referenceBp === undefined || walk.bp === walk.referenceBp
-      ? ''
-      : ` ${walk.bp > walk.referenceBp ? '+' : '−'}${formatBp(Math.abs(walk.bp - walk.referenceBp))}`
-  const range = walk.range
+  const label = model.walkLabel(walk.name)
   return (
     <div>
       <button
         type="button"
         style={titleStyle}
         data-testid="graph-facet-title"
-        title={
-          range
-            ? `${range.contig}:${range.start.toLocaleString()}-${range.end.toLocaleString()} · click to lift ${label} alone`
-            : `click to lift ${label} alone`
-        }
         onClick={() => {
           model.liftWalks([walk.name])
           model.setFacet('none')
         }}
       >
-        <div>
-          <strong>{label}</strong>
-          {delta}
-          {walk.reversedBp > 0 ? `, ${formatBp(walk.reversedBp)} reversed` : ''}
-        </div>
-        <div style={barRowStyle}>
-          {range ? <span>{range.start.toLocaleString()}</span> : null}
-          <div
-            style={{
-              ...barStyle,
-              background: encodingSwatchCss(walk.encoding),
-            }}
-          />
-          {range ? <span>{range.end.toLocaleString()}</span> : null}
-        </div>
+        <WalkKey
+          walk={walk}
+          label={label}
+          referenceDomain={lift.referenceDomain}
+          referenceName={model.graphRegion?.refName}
+          hint={`click to lift ${label} alone`}
+        />
       </button>
       <canvas
-        ref={canvasRef}
+        ref={setCanvas}
         data-testid="graph-facet-canvas"
-        style={{ width, height, display: 'block' }}
+        style={{
+          width,
+          height,
+          display: 'block',
+          cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+        }}
+        {...handlers}
       />
     </div>
   )
@@ -168,8 +121,10 @@ const FacetPanel = observer(function FacetPanel({
 
 const FacetPanels = observer(function FacetPanels({
   model,
+  handlers,
 }: {
   model: GraphPaneModel
+  handlers: PaneHandlers
 }) {
   const panels = model.facetPanels
   const grid = model.facetGrid
@@ -195,6 +150,7 @@ const FacetPanels = observer(function FacetPanels({
           lift={lift}
           width={width}
           height={height}
+          handlers={handlers}
         />
       ))}
     </div>

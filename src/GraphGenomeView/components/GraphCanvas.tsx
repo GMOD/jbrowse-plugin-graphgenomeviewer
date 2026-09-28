@@ -1,13 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
-import {
-  findHoveredEdge,
-  findHoveredNode,
-} from '@jbrowse/bandage-core/util/hitDetection'
-import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
-import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -24,14 +18,16 @@ import ReferenceStripOverlay, {
 } from './ReferenceStripOverlay'
 import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import UnpopButton from './UnpopButton'
+import WalkKey, { walkSwatchStyle } from './WalkKey'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { RAMP_GRADIENT_CSS } from './referenceRampCss'
+import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
 import type { GraphPaneModel } from '../model'
-import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 
 // Bottom RIGHT, not bottom left: the row labels of a row-structured layout are
 // pinned to the left edge, so a bottom-left tooltip lands on top of them and
@@ -47,6 +43,7 @@ const tooltipStyle = {
   borderRadius: 4,
   fontSize: 12,
   pointerEvents: 'none' as const,
+  zIndex: 6,
 }
 
 const wrapperStyle = { position: 'relative' as const }
@@ -145,17 +142,6 @@ const legendStackStyle = {
   zIndex: 4,
 }
 
-const legendBoxStyle = {
-  background: 'rgba(255,255,255,0.82)',
-  padding: '4px 6px',
-  borderRadius: 3,
-  fontSize: 11,
-  lineHeight: '15px',
-  whiteSpace: 'nowrap' as const,
-}
-
-const pathLegendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
-
 const pathSwatchStyle = { width: 18, height: 3, borderRadius: 2 }
 
 // Which haplotype each ribbon colour is. The ribbons are one stroke per path
@@ -170,7 +156,7 @@ const PathLegend = observer(function PathLegend({
   return pathLegend.length > 0 ? (
     <div style={legendBoxStyle} data-testid="graph-path-legend">
       {pathLegend.map(({ name, label, color }) => (
-        <div key={name} style={pathLegendRowStyle}>
+        <div key={name} style={legendRowStyle}>
           <div style={{ ...pathSwatchStyle, backgroundColor: color }} />
           <span>{label}</span>
         </div>
@@ -179,108 +165,40 @@ const PathLegend = observer(function PathLegend({
   ) : null
 })
 
-const walkBlockStyle = { marginBottom: 2 }
-const walkSwatchStyle = { width: 18, height: 8, borderRadius: 2, flex: 'none' }
 // a faded node: grey at the fade's alpha
 const FADED_SWATCH = 'rgba(160, 160, 160, 0.18)'
-const walkBarRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
-const walkBarStyle = { flex: 1, minWidth: 60, height: 8, borderRadius: 2 }
 
-// What each lifted walk carries through the window, against the reference
-// walk where the graph has one, beside the scale its lane is coloured by, and
-// what each field in use means
-
+// Each lifted walk's key, then what the faded rest is
 const WalkReadout = observer(function WalkReadout({
   model,
 }: {
   model: GraphPaneModel
 }) {
   const lift = model.walkLift
-  // faceted, each panel's title is its walk's key
-  if (!lift || model.facetPanels) {
+  if (!lift) {
     return null
   }
-  const labelOf = (name: string) =>
-    model.walkChoices.find(c => c.name === name)?.label ?? name
   const alone = lift.walks.length === 1
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       {lift.walks.map(w => (
-        <WalkRow
+        <WalkKey
           key={w.name}
           walk={w}
-          label={labelOf(w.name)}
+          label={model.walkLabel(w.name)}
           referenceDomain={lift.referenceDomain}
           referenceName={model.graphRegion?.refName}
         />
       ))}
-      <div style={pathLegendRowStyle}>
+      <div style={legendRowStyle}>
         <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
         <span>
-          not on {alone ? labelOf(lift.walks[0]!.name) : 'these walks'}
+          not on {alone ? model.walkLabel(lift.walks[0]!.name) : 'these walks'}
         </span>
       </div>
     </div>
   )
 })
-
-// One walk's key: its swatch, its name and its length against the reference.
-// A lane shading along the walk shows its scale, the walk's first and last
-// coordinate either side of the bar; where it sits hovers on the row.
-function WalkRow({
-  walk: w,
-  label,
-  referenceDomain,
-  referenceName,
-}: {
-  walk: LiftedWalk
-  label: string
-  referenceDomain?: { start: number; end: number }
-  referenceName?: string
-}) {
-  const delta =
-    w.referenceBp === undefined || w.bp === w.referenceBp
-      ? ''
-      : ` ${w.bp > w.referenceBp ? '+' : '−'}${formatBp(Math.abs(w.bp - w.referenceBp))}`
-  const ends =
-    w.encoding.field === 'progress'
-      ? w.range
-      : w.encoding.field === 'reference'
-        ? referenceDomain
-        : undefined
-  const where = w.range
-    ? `${w.range.contig}:${w.range.start.toLocaleString()}-${w.range.end.toLocaleString()}`
-    : w.encoding.field === 'reference' && referenceName
-      ? referenceName
-      : undefined
-  const bar = (
-    <div
-      style={{
-        ...(ends ? walkBarStyle : walkSwatchStyle),
-        background: encodingSwatchCss(w.encoding),
-      }}
-    />
-  )
-  return (
-    <div style={walkBlockStyle} title={where}>
-      <div style={pathLegendRowStyle}>
-        {ends ? null : bar}
-        <span>
-          <strong>{label}</strong>
-          {delta}
-          {w.reversedBp > 0 ? `, ${formatBp(w.reversedBp)} reversed` : ''}
-        </span>
-      </div>
-      {ends ? (
-        <div style={walkBarRowStyle}>
-          <span>{Math.round(ends.start).toLocaleString()}</span>
-          {bar}
-          <span>{Math.round(ends.end).toLocaleString()}</span>
-        </div>
-      ) : null}
-    </div>
-  )
-}
 
 // The reference-position ramp, as a strip labelled with the interval it runs
 // over. Nothing on screen used to say that red-to-magenta means left-to-right of
@@ -585,241 +503,9 @@ const GraphCanvas = observer(function GraphCanvas({
     error: renderError,
     retry: retryRender,
   } = useRenderingBackend(createGraphRenderer, model)
-  // Where the pointer was last, and whether it has travelled since mousedown —
-  // per-gesture scratch that nothing renders from, which is what a ref is for.
-  // Whether a drag is in progress is model state (`isPanning`/`draggingNode`),
-  // because the cursor renders from it.
-  const lastMouseRef = useRef({ x: 0, y: 0 })
-  const hasMovedRef = useRef(false)
-  // A pan and a hover are applied once per frame, not once per mousemove:
-  // mousemove fires in bursts well above the frame rate, and each pan step
-  // repainted the canvas and re-placed every overlay label, while each hover
-  // step ran both hit indexes. The pending pan is the summed delta; the pending
-  // hover is the last pointer position, since only the last one can be right.
-  const pendingRef = useRef<{
-    frame: number
-    pan: { dx: number; dy: number } | null
-    hover: { x: number; y: number } | null
-  }>({ frame: 0, pan: null, hover: null })
-  useEffect(
-    () => () => {
-      cancelAnimationFrame(pendingRef.current.frame)
-    },
-    [],
-  )
-  const [contextNode, setContextNode] = useState<
-    { nodeId: string; top: number; left: number } | undefined
-  >(undefined)
-
-  // wheel events need passive:false to call preventDefault — React registers
-  // wheel listeners as passive, so we must add this imperatively
-  useEffect(() => {
-    if (canvas) {
-      const c = canvas
-      function handleWheel(e: WheelEvent) {
-        if (model.hostPlacesX) {
-          return
-        }
-        if (model.host) {
-          e.stopPropagation()
-        }
-        e.preventDefault()
-        const rect = c.getBoundingClientRect()
-        model.zoom(
-          wheelZoomFactor(e),
-          e.clientX - rect.left,
-          e.clientY - rect.top,
-        )
-      }
-      c.addEventListener('wheel', handleWheel, { passive: false })
-      return () => {
-        c.removeEventListener('wheel', handleWheel)
-      }
-    }
-    return undefined
-  }, [canvas, model])
-
-  function screenToGraph(screenX: number, screenY: number) {
-    return {
-      x: (screenX - model.translateX) / model.scaleX,
-      y: (screenY - model.translateY) / model.scaleY,
-    }
-  }
-
-  function getMouseCoord(e: React.MouseEvent) {
-    const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect()
-    return screenToGraph(e.clientX - rect.left, e.clientY - rect.top)
-  }
-
-  // The node at a graph coordinate, which mousedown, mousemove and click all
-  // need. Takes the coordinate rather than the event so a caller that already
-  // has one does not pay for a second getBoundingClientRect.
-  function nodeAt(x: number, y: number) {
-    const { nodePositions } = model
-    const sx = x * model.scaleX + model.translateX
-    const sy = y * model.scaleY + model.translateY
-    if (model.layoutResult?.tubeMap) {
-      return model.tubeMapNodeAt(sx, sy)
-    }
-    const onStrip = model.referenceStripNodeAt(sx, sy)
-    if (onStrip) {
-      return onStrip
-    }
-    return nodePositions
-      ? findHoveredNode(
-          nodePositions,
-          x,
-          y,
-          model.axisScale,
-          model.positionsVersion,
-          model.nodeInk,
-        )
-      : null
-  }
-
-  function handleMouseDown(e: React.MouseEvent) {
-    if (e.button === 0) {
-      hasMovedRef.current = false
-      if (model.hostPlacesX) {
-        return
-      }
-      if (model.host) {
-        e.stopPropagation()
-      }
-      const { x, y } = getMouseCoord(e)
-      // a tube map's boxes are the layout's, and the strip's are bp, not
-      // positions to drag
-      const node =
-        model.layoutResult?.tubeMap ||
-        e.nativeEvent.offsetY < model.referenceStripZonePx
-          ? null
-          : nodeAt(x, y)
-      if (node) {
-        model.setDraggingNode(node)
-      } else {
-        model.setPanning(true)
-      }
-      lastMouseRef.current = { x: e.clientX, y: e.clientY }
-    }
-  }
-
-  function applyPending() {
-    const pending = pendingRef.current
-    pending.frame = 0
-    if (pending.pan) {
-      model.setTransform(
-        model.scale,
-        model.translateX + pending.pan.dx,
-        model.translateY + pending.pan.dy,
-      )
-      pending.pan = null
-    }
-    if (pending.hover && model.nodePositions && model.graph) {
-      const { x, y } = screenToGraph(pending.hover.x, pending.hover.y)
-      pending.hover = null
-      const node = nodeAt(x, y)
-      model.setHoveredNode(node)
-      model.setHoveredEdge(
-        node || model.layoutResult?.tubeMap
-          ? null
-          : findHoveredEdge(
-              model.nodePositions,
-              model.graph,
-              x,
-              y,
-              model.axisScale,
-              // resolved, so the hit index bounds the ribbons that are
-              // actually drawn — see effectiveDrawPaths
-              model.effectiveDrawPaths,
-              model.positionsVersion,
-              model.deletionEdgeIndexes,
-              model.hiddenEdgeIndexes,
-            ),
-      )
-    }
-  }
-
-  function scheduleFrame() {
-    if (!pendingRef.current.frame) {
-      pendingRef.current.frame = requestAnimationFrame(applyPending)
-    }
-  }
-
-  function dropPending() {
-    const pending = pendingRef.current
-    cancelAnimationFrame(pending.frame)
-    pending.frame = 0
-    pending.pan = null
-    pending.hover = null
-  }
-
-  function handleMouseMove(e: React.MouseEvent) {
-    const dx = e.clientX - lastMouseRef.current.x
-    const dy = e.clientY - lastMouseRef.current.y
-    lastMouseRef.current = { x: e.clientX, y: e.clientY }
-
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-      hasMovedRef.current = true
-    }
-
-    const pending = pendingRef.current
-    if (model.draggingNode) {
-      model.moveNode(model.draggingNode, dx / model.scaleX, dy / model.scaleY)
-    } else if (model.isPanning) {
-      pending.pan = {
-        dx: (pending.pan?.dx ?? 0) + dx,
-        dy: (pending.pan?.dy ?? 0) + dy,
-      }
-      scheduleFrame()
-    } else {
-      const rect = (
-        e.currentTarget as HTMLCanvasElement
-      ).getBoundingClientRect()
-      pending.hover = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-      scheduleFrame()
-    }
-  }
-
-  function handleMouseUp() {
-    model.stopDragging()
-  }
-
-  // also fired by the canvas unmounting under a resting pointer, after the
-  // view closing it has destroyed the model
-  function handleMouseLeave() {
-    dropPending()
-    if (!isAlive(model)) {
-      return
-    }
-    model.stopDragging()
-    model.setHoveredNode(null)
-    model.setHoveredEdge(null)
-  }
-
-  // Right-clicking a node is the gesture that asks "where is this?", and until
-  // now the graph had no answer: a node named an assembly and an offset in its
-  // tags that nothing surfaced. The items come from the model's launch targets,
-  // so what is offered is what can actually be opened.
-  function handleContextMenu(e: React.MouseEvent) {
-    const { x, y } = getMouseCoord(e)
-    const node = nodeAt(x, y)
-    if (node) {
-      e.preventDefault()
-      setContextNode({ nodeId: node, top: e.clientY, left: e.clientX })
-    }
-  }
-
-  function handleClick(e: React.MouseEvent) {
-    // a click that ended a drag selects nothing
-    if (!hasMovedRef.current) {
-      const { x, y } = getMouseCoord(e)
-      const node = nodeAt(x, y)
-      model.setSelectedNode(node)
-      if (node) {
-        model.showNodeDetails(node)
-      }
-    }
-  }
+  const { handlers, contextNode, closeContextMenu } = usePaneGestures(model)
+  useWheelZoom(canvas, model)
+  const faceted = model.facetPanels !== undefined
 
   return (
     <div style={wrapperStyle}>
@@ -845,25 +531,25 @@ const GraphCanvas = observer(function GraphCanvas({
             cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
             display: 'block',
           }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          onClick={handleClick}
-          onContextMenu={handleContextMenu}
+          {...handlers}
         />
 
-        <TubeMapOverlay model={model} />
-        <ReferenceStripOverlay model={model} />
-        <RowLabels model={model} />
-        <GraphSizeLabels model={model} />
-        <BubbleHalos model={model} />
-        <GenePins model={model} />
-        <LabelLayer model={model} />
+        {faceted ? (
+          <FacetPanels model={model} handlers={handlers} />
+        ) : (
+          <>
+            <TubeMapOverlay model={model} />
+            <ReferenceStripOverlay model={model} />
+            <RowLabels model={model} />
+            <GraphSizeLabels model={model} />
+            <BubbleHalos model={model} />
+            <GenePins model={model} />
+            <LabelLayer model={model} />
+            <WalkRowsOverlay model={model} />
+            <Legends model={model} />
+          </>
+        )}
         <UnpopButton model={model} />
-        <WalkRowsOverlay model={model} />
-        <FacetPanels model={model} />
-        <Legends model={model} />
 
         {ownChrome ? (
           <div style={loadingLayerStyle}>
@@ -891,9 +577,7 @@ const GraphCanvas = observer(function GraphCanvas({
           nodeId={contextNode.nodeId}
           top={contextNode.top}
           left={contextNode.left}
-          onClose={() => {
-            setContextNode(undefined)
-          }}
+          onClose={closeContextMenu}
         />
       ) : null}
 

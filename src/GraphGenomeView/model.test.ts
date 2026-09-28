@@ -2546,9 +2546,75 @@ describe('walk rows', () => {
       ['B#1#ctg', { field: 'progress', scheme: 'red' }],
       ['A#1#ctg', { field: 'progress', scheme: 'red' }],
     ])
-    expect(model.facetGrid!.columns).toBe(3)
+    // a row layout's x is bp, so its panels stack full width
+    expect(model.facetGrid!.columns).toBe(1)
+    model.setFacetColumns(2)
+    expect(model.facetGrid!.columns).toBe(2)
     model.setFacet('none')
     expect(model.facetPanels).toBeUndefined()
+  })
+
+  test("faceted, the transform is each panel's and the menu keys what the panels draw", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.startRenderingBackend(fakeRenderer())
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
+    const whole = model.scale
+    model.setFacet('walk')
+    const grid = model.facetGrid!
+    expect(model.viewBox).toEqual({ width: grid.width, height: grid.height })
+    expect(model.canvasHeight).toBe(Math.max(160, grid.total))
+    expect(model.scale).toBeCloseTo(grid.scale, 10)
+    expect(model.scale).not.toBeCloseTo(whole, 10)
+    interface Item {
+      label?: string
+      checked?: boolean
+      subMenu?: Item[]
+    }
+    const walkMenu = (model.graphMenuItems() as Item[]).find(
+      item => item.label === 'Walk',
+    )!
+    const colour = walkMenu.subMenu!.find(item => item.label === 'Colour B#1')!
+    expect(
+      colour.subMenu!.filter(item => item.checked).map(item => item.label),
+    ).toEqual(['Progress along the walk', 'Yellow to red'])
+    const columns = walkMenu.subMenu!.find(item => item.label === 'Columns')!
+    expect(columns.subMenu!.map(item => item.label)).toEqual(['Auto', '1', '2'])
+  })
+
+  test('a tube map lifts no walk: its tubes are the walks', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+      walkLayers: [{ walk: 'GRCh38#0#chr1' }, { walk: 'B#1#ctg' }],
+      facet: 'walk',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    expect(model.walkLift).toBeUndefined()
+    expect(model.facetPanels).toBeUndefined()
+    expect(
+      (model.graphMenuItems() as { label?: string }[]).some(
+        item => item.label === 'Walk',
+      ),
+    ).toBe(false)
+  })
+
+  test('a lane reads the reference ramp only when it is coloured by it', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['B#1#ctg'])
+    expect(model.walkRamp).toBeUndefined()
+    model.setWalkColor('B#1#ctg', { field: 'reference' })
+    expect(model.walkLift!.referenceDomain).toBeDefined()
   })
 
   test('a session naming the one walk the old field lifted opens with none', () => {

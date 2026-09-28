@@ -380,6 +380,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             showGenes: self.showGenes,
             showBubbles: self.showBubbles,
             showDeletionEdges: self.showDeletionEdges,
+            walkLayers: self.walkLayers,
+            facet: self.facet,
           } satisfies GraphViewSpec
         },
       }))

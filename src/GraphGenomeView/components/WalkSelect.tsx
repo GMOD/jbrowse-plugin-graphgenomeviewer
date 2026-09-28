@@ -20,7 +20,7 @@ const useStyles = makeStyles()({
 
 // Which walks to lift out of the drawing: Bandage's path highlight, for as many
 // of the haplotypes a GBZ cut carries as the reader picks. Absent from a graph
-// with no walks.
+// with no walks, and from a tube map, whose tubes are the walks.
 const WalkSelect = observer(function WalkSelect({
   model,
 }: {
@@ -28,7 +28,7 @@ const WalkSelect = observer(function WalkSelect({
 }) {
   const { classes } = useStyles()
   const { walkChoices } = model
-  if (walkChoices.length === 0) {
+  if (walkChoices.length === 0 || !model.liftsWalks) {
     return null
   }
   const names = new Set(walkChoices.map(c => c.name))

@@ -101,7 +101,7 @@ import {
   zoomAbout,
 } from '@jbrowse/bandage-core/viewport'
 import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
-import { walkLift } from '@jbrowse/bandage-core/walkHighlight'
+import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
@@ -118,6 +118,7 @@ import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun, reaction, untracked } from 'mobx'
 
+import { FACET_PAD_PX, facetGrid } from './facetGrid'
 import {
   GENE_ADAPTER_TYPES,
   geneModelsFrom,
@@ -156,6 +157,7 @@ import { launchTracks } from '../launchFromGraph/launchTracks'
 import { linearViewTarget, withRows } from '../launchFromGraph/linearViewTarget'
 import { launchableSyntenyTracks } from '../launchFromGraph/syntenyTracks'
 
+import type { FacetGrid } from './facetGrid'
 import type { LinearHost } from './host'
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
 import type { RepeatArray } from './repeats/repeatFeatures'
@@ -187,6 +189,7 @@ import type {
   WalkEncoding,
   WalkLayer,
 } from '@jbrowse/bandage-core/walkEncoding'
+import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Feature } from '@jbrowse/core/util'
@@ -200,15 +203,6 @@ const MAX_CANVAS_HEIGHT = 600
 // Floor, so a window holding only backbone — one row, no height at all — still
 // leaves room to hover a node and read its tooltip.
 const MIN_CANVAS_HEIGHT = 160
-// The facet grid: panels this far apart, each with a title row over a drawing
-// padded this much, at most this many across. A drawing this much wider than
-// it is tall stacks its panels in one column.
-export const FACET_GAP_PX = 8
-export const FACET_TITLE_PX = 34
-export const FACET_PAD_PX = 12
-const FACET_MAX_COLUMNS = 3
-const FACET_WIDE = 2.5
-const MIN_FACET_PANEL_PX = 60
 // The thinnest a fit draws a tube map's tubes
 const MIN_FIT_TUBE_PX = 5
 
@@ -329,15 +323,15 @@ function geometryPainted(model: {
   )
 }
 
-// What the pane shows, in layout units.
+// What the pane shows, in layout units: what each panel shows while faceted
 function paneViewportOf(model: {
   translateX: number
   translateY: number
-  paneWidth: number
   axisScale: AxisScale
-  canvasHeight: number
+  viewBox: { width: number; height: number }
 }): Bounds {
-  return viewportOf(model, model.axisScale, model.paneWidth, model.canvasHeight)
+  const { width, height } = model.viewBox
+  return viewportOf(model, model.axisScale, width, height)
 }
 
 // Force layouts already computed for a graph, keyed by the view props the
@@ -465,6 +459,9 @@ export function GraphPaneMixin() {
         // pane once per lifted walk, side by side on the same layout, each
         // panel with that walk alone. See facetPanels.
         facet: lenientOptionalEnum<'none' | 'walk'>(['none', 'walk'], 'none'),
+        // How many facet panels go across; unset takes whichever count draws
+        // each largest. See facetGrid.
+        facetColumns: types.maybe(types.number),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
         // reference, so this is a choice; empty means "infer", which is the
@@ -769,44 +766,48 @@ export function GraphPaneMixin() {
       get rampDomain() {
         return self.colorDomain ?? self.graphRegion
       },
+      // The ramp a lane coloured by reference position reads, computed only
+      // when a layer asks for one: it is a neighbour walk per node
+      get walkRamp() {
+        const { graph } = self
+        return graph &&
+          self.walkLayers.some(layer => layer.color?.field === 'reference')
+          ? computeReferenceRamp(graph, this.rampDomain)
+          : undefined
+      },
       // The lifted walks the graph on screen carries, or undefined when none
-      // is named or it carries none of those that were. A walk coloured by
-      // reference position reads the ramp whatever the node colour scheme.
+      // is named or it carries none of those that were
       get walkLift() {
         const { graph } = self
-        return graph && self.walkLayers.length > 0
-          ? walkLift(
-              graph,
-              self.walkLayers,
-              computeReferenceRamp(graph, this.rampDomain),
-            )
+        return graph &&
+          self.walkLayers.length > 0 &&
+          !self.layoutResult?.tubeMap
+          ? walkLift(graph, self.walkLayers, this.walkRamp)
           : undefined
       },
       // One panel per lifted walk while the pane is faceted by walk, each a
-      // lift of that walk alone. The panels share one scale, light to dark
-      // along each walk, as a faceted plot shares its axes, so they compare
-      // at a glance; a colour a layer states still wins.
+      // lift of that walk alone. See facetLifts.
       get facetPanels() {
         const { graph } = self
         const lift = this.walkLift
-        if (self.facet !== 'walk' || !graph || !lift || lift.walks.length < 2) {
-          return undefined
-        }
-        const ramp = computeReferenceRamp(graph, this.rampDomain)
-        return lift.walks.flatMap(w => {
-          const layer = self.walkLayers.find(l => l.walk === w.name)
-          const panel = walkLift(
-            graph,
-            [
-              {
-                walk: w.name,
-                color: { field: 'progress', scheme: 'red', ...layer?.color },
-              },
-            ],
-            ramp,
-          )
-          return panel ? [panel] : []
-        })
+        return self.facet === 'walk' && graph && lift && lift.walks.length > 1
+          ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
+          : undefined
+      },
+      // The lifted walks as drawn, each panel's own while faceted
+      get drawnWalks() {
+        return (
+          this.facetPanels?.map(panel => panel.walks[0]!) ??
+          this.walkLift?.walks ??
+          []
+        )
+      },
+      // A tube map draws every walk as a tube of its own
+      get liftsWalks() {
+        return !TUBE_MAP_MODES.has(self.chosenLayoutMode)
+      },
+      walkLabel(name: string) {
+        return this.walkChoices.find(c => c.name === name)?.label ?? name
       },
       // The scheme the renderer actually paints with, which is the raw prop
       // unless it is 'auto'. A bare getter returns a resolved value (root
@@ -1463,6 +1464,7 @@ export function GraphPaneMixin() {
           !!layoutResult &&
           !layoutResult.tubeMap &&
           !self.hostPlacesX &&
+          !self.facetPanels &&
           self.chosenLayoutMode !== 'walkrows'
         )
       },
@@ -1597,45 +1599,24 @@ export function GraphPaneMixin() {
           ? Math.max(FIT_PADDING, self.legendSize.width + 2 * LEGEND_INSET_PX)
           : FIT_PADDING
       },
-      // How the facet panels tile the pane: columns, and each panel's drawing
-      // size, as tall as its drawing needs at the panel's width but no taller
-      // than the pane's ceiling leaves room for
-      get facetGrid() {
+      // How the facet panels tile the pane. A track's height is its own, and
+      // a track whose x the linear view places stacks full-width panels so
+      // each keeps that x.
+      get facetGrid(): FacetGrid | undefined {
         const panels = self.facetPanels
         const bounds = self.layoutBounds
-        if (!panels || !bounds || !(bounds.w > 0)) {
-          return undefined
-        }
-        const columns =
-          bounds.w > FACET_WIDE * bounds.h
-            ? 1
-            : Math.min(panels.length, FACET_MAX_COLUMNS)
-        const rows = Math.ceil(panels.length / columns)
-        const width = Math.floor(
-          (self.paneWidth - (columns - 1) * FACET_GAP_PX) / columns,
-        )
-        const drawn = self.pixelRows
-          ? bounds.h
-          : (bounds.h * (width - 2 * FACET_PAD_PX)) / bounds.w
-        const room =
-          (this.paneCeiling -
-            rows * FACET_TITLE_PX -
-            (rows - 1) * FACET_GAP_PX) /
-          rows
-        const height = Math.floor(
-          Math.max(
-            MIN_FACET_PANEL_PX,
-            Math.min(drawn + 2 * FACET_PAD_PX, room),
-          ),
-        )
-        return {
-          columns,
-          width,
-          height,
-          total: rows * (height + FACET_TITLE_PX) + (rows - 1) * FACET_GAP_PX,
-        }
+        return panels && bounds && bounds.w > 0
+          ? facetGrid({
+              count: panels.length,
+              bounds,
+              pixelRows: self.pixelRows,
+              width: self.paneWidth,
+              room: self.host ? this.canvasHeight : this.paneCeiling,
+              columns: self.hostPlacesX ? 1 : self.facetColumns,
+            })
+          : undefined
       },
-      get canvasHeight() {
+      get canvasHeight(): number {
         const bounds = self.layoutBounds
         const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
         const ceiling = this.paneCeiling
@@ -1671,27 +1652,125 @@ export function GraphPaneMixin() {
             )
           : ceiling
       },
+      // What the transform maps the drawing into: one facet panel while the
+      // pane is faceted, since every panel shares it, else the pane
+      get viewBox() {
+        const grid = this.facetGrid
+        return grid
+          ? { width: grid.width, height: grid.height }
+          : { width: self.paneWidth, height: this.canvasHeight }
+      },
       // Where the fit puts the drawing, or undefined until there is a layout
       // and a measured canvas to fit it into
       get fittedTransform() {
         const bounds = self.layoutBounds
-        return bounds
-          ? fitTransform(
-              bounds,
-              self.paneWidth,
-              this.canvasHeight,
-              self.pixelRows,
-              {
-                minScale: this.minFitScale,
-                padLeft: self.fitPadLeft,
-                padTop: this.fitPadTop,
-                padRight: this.fitPadRight,
-              },
-            )
-          : undefined
+        const grid = this.facetGrid
+        return !bounds
+          ? undefined
+          : grid
+            ? fitTransform(bounds, grid.width, grid.height, self.pixelRows, {
+                padLeft: FACET_PAD_PX,
+                padTop: FACET_PAD_PX,
+                padRight: FACET_PAD_PX,
+                padBottom: FACET_PAD_PX,
+              })
+            : fitTransform(
+                bounds,
+                self.paneWidth,
+                this.canvasHeight,
+                self.pixelRows,
+                {
+                  minScale: this.minFitScale,
+                  padLeft: self.fitPadLeft,
+                  padTop: this.fitPadTop,
+                  padRight: this.fitPadRight,
+                },
+              )
       },
     }))
     .views(self => ({
+      // The window the transform shows plus a pane of overscan all round,
+      // which a pan inside needs no rebuild for
+      viewportToBuild() {
+        return padded(paneViewportOf(self), VIEWPORT_PANES_BUILT)
+      },
+      // Hover and selection as draw-time colour overrides, stated whole, so
+      // there is nothing to restore and nothing to go stale when a rebuild
+      // renumbers the batch
+      applyHighlights(b: Renderer) {
+        const { hoveredNode, hoveredEdge, selectedNode } = self
+        const nodes = new Map<string, number>()
+        if (selectedNode !== null) {
+          nodes.set(selectedNode, SELECT_BRIGHTEN)
+        }
+        if (hoveredNode !== null && hoveredNode !== selectedNode) {
+          nodes.set(hoveredNode, HOVER_BRIGHTEN)
+        }
+        b.setNodeHighlights(nodes)
+        b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
+      },
+      // Draws the uploaded batch through the pane's transform
+      paint(b: Renderer) {
+        // getDpr(), never a bare `devicePixelRatio`: it is capped at
+        // MAX_DPR so this canvas costs what every other canvas in the app
+        // costs on a 3x display (the square of the ratio, i.e. 9x the
+        // pixels of 1x against the 4x everything else pays), and it is the
+        // same read `syncCanvasSize` sizes the backing store with — two
+        // call sites reading the global separately can disagree, and then
+        // the geometry lands at a different scale from the canvas under it.
+        const dpr = getDpr()
+        b.updateTransform({
+          scaleX: self.scaleX * dpr,
+          scaleY: self.scaleY * dpr,
+          translateX: self.translateX * dpr,
+          translateY: self.translateY * dpr,
+          // Handed over rather than read again by the backend: the
+          // thicknesses in the vertex buffer are css px and are expanded
+          // after this transform, so they need the same ratio the fields
+          // above were already multiplied by. See TransformUniform.dpr.
+          dpr,
+        })
+        b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
+      },
+    }))
+    .views(self => ({
+      // The drawing's batch with `highlight`'s walks lifted, for the window
+      // the transform shows. A caller's autorun rebuilds it when the window
+      // settles after a pan or zoom, when a drag moves the positions, and when
+      // any display option read here changes.
+      buildDrawing(highlight: WalkLift | undefined, drawPaths: boolean) {
+        const { nodePositions, graph, nodeById } = self
+        if (!nodePositions || !graph || !nodeById) {
+          return undefined
+        }
+        dependOn(self.viewportDirty, self.positionsVersion)
+        const viewportBounds = untracked(() => self.viewportToBuild())
+        const batch = buildGeometry({
+          nodePositions,
+          graph,
+          nodeById,
+          colorScheme: self.effectiveColorScheme,
+          contigThickness: self.contigThickness,
+          connectorThickness: self.connectorThickness,
+          drawPaths,
+          nodeWidth: self.nodeWidth,
+          highlight,
+          // Untracked, so a zoom does not eagerly rebuild geometry — the
+          // debounced viewportDirty bump drives the scale-dependent rebuild
+          // (flatness, arrow visibility, viewport culling), same as pan.
+          axis: untracked(() => self.axisScale),
+          linearLayout: self.linearLayout,
+          viewportBounds,
+          // Held against the graph rather than derived here, the same way
+          // `deletions` is and for the same reason — see `referenceRamp`.
+          referenceRamp: self.referenceRamp,
+          deletions: self.deletionEdgeIndexes,
+          hiddenEdges: self.hiddenEdgeIndexes,
+          // passed so the shared edge-curve cache can tell a drag from a pan
+          version: self.positionsVersion,
+        })
+        return { batch, viewportBounds }
+      },
       get overlayLabels() {
         return layoutLabels(self)
       },
@@ -1887,6 +1966,9 @@ export function GraphPaneMixin() {
       setFacet(facet: 'none' | 'walk') {
         self.facet = facet
       },
+      setFacetColumns(columns: number | undefined) {
+        self.facetColumns = columns
+      },
       toggleWalk(walk: string) {
         const layers = self.walkLayers
         self.walkLayers = layers.some(l => l.walk === walk)
@@ -2054,12 +2136,14 @@ export function GraphPaneMixin() {
         // A host owns x, so a fit while hosted places the rows only.
         if (self.viewportOwner === 'host') {
           const bounds = self.layoutBounds
-          const usableHeight = self.canvasHeight - FIT_PADDING * 2
+          const pad = self.facetGrid ? FACET_PAD_PX : FIT_PADDING
+          const usableHeight = self.viewBox.height - pad * 2
           if (bounds && usableHeight > 0) {
             self.translateY = fittedTranslateY(
               bounds,
               usableHeight,
               self.scaleY,
+              pad,
             )
           }
           return
@@ -2096,6 +2180,14 @@ export function GraphPaneMixin() {
         if (engaging) {
           self.zoomToFit()
         }
+      },
+      // Faceting changes the box the drawing is fitted into, so a drawing the
+      // user placed is fitted again; a host keeps its x
+      refitView() {
+        if (self.viewportOwner === 'user') {
+          self.viewportOwner = 'fit'
+        }
+        self.zoomToFit()
       },
       // A drawing still on the reference stays where the host left it; one
       // whose x no longer means bp is refit.
@@ -2795,6 +2887,16 @@ export function GraphPaneMixin() {
             }),
           )
 
+          addDisposer(
+            self,
+            reaction(
+              () => self.facetGrid !== undefined,
+              () => {
+                self.refitView()
+              },
+            ),
+          )
+
           // Autorun: mirror a connected linear view's hover onto the graph. An
           // LGV writes `{hoverPosition, hoverFeature}` to session.hovered on
           // every mousemove; neither field names the source view, so the guard
@@ -2882,28 +2984,15 @@ export function GraphPaneMixin() {
             }),
           )
 
-          // Autorun: hover/select are draw-time colour overrides, stated whole
-          // on every change, so there is nothing to restore and nothing to go
-          // stale when a rebuild renumbers the batch. Tracks `geometryVersion`
-          // because an upload drops the renderer's edge highlight.
+          // Autorun: hover and selection. Tracks `geometryVersion` because an
+          // upload drops the renderer's edge highlight.
           addDisposer(
             self,
             autorun(() => {
               const b = self.currentRenderingBackend as Renderer | undefined
-              const hoveredNode = self.hoveredNode
-              const hoveredEdge = self.hoveredEdge
-              const selectedNode = self.selectedNode
               dependOn(self.geometryVersion)
               if (b) {
-                const nodes = new Map<string, number>()
-                if (selectedNode !== null) {
-                  nodes.set(selectedNode, SELECT_BRIGHTEN)
-                }
-                if (hoveredNode !== null && hoveredNode !== selectedNode) {
-                  nodes.set(hoveredNode, HOVER_BRIGHTEN)
-                }
-                b.setNodeHighlights(nodes)
-                b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
+                self.applyHighlights(b)
                 self.renderNow()
               }
             }),
@@ -2919,7 +3008,6 @@ export function GraphPaneMixin() {
           // rebuild — only the debounced viewportDirty flag does.
           upload: (b: Renderer) => {
             b.resize(self.paneWidth, self.canvasHeight)
-            const nodeById = self.nodeById
             if (self.layoutResult?.tubeMap) {
               dependOn(self.viewportDirty)
               b.uploadGeometry(EMPTY_BATCH)
@@ -2929,48 +3017,29 @@ export function GraphPaneMixin() {
               })
               return true
             }
-            if (self.nodePositions && self.graph && nodeById) {
-              // The window moved (debounced pan/zoom), or the positions did (a
-              // node drag, coalesced to a frame). Both change the drawing;
-              // everything below reads them untracked or not at all.
-              dependOn(self.viewportDirty, self.positionsVersion)
-              const geometryStart = performance.now()
-              const viewportBounds = untracked(() =>
-                padded(paneViewportOf(self), VIEWPORT_PANES_BUILT),
-              )
-              const batch = buildGeometry({
-                nodePositions: self.nodePositions,
-                graph: self.graph,
-                nodeById,
-                colorScheme: self.effectiveColorScheme,
-                contigThickness: self.contigThickness,
-                connectorThickness: self.connectorThickness,
-                drawPaths: self.effectiveDrawPaths,
-                nodeWidth: self.nodeWidth,
-                highlight: self.walkLift,
-                // Untracked, so a zoom does not eagerly rebuild geometry — the
-                // debounced viewportDirty bump drives the scale-dependent
-                // rebuild (flatness, arrow visibility, viewport culling), same
-                // as pan.
-                axis: untracked(() => self.axisScale),
-                linearLayout: self.linearLayout,
-                viewportBounds,
-                // Where each node sits on the reference and what interval the
-                // hue spans. Held against the graph rather than derived here,
-                // the same way `deletions` is and for the same reason — see
-                // the `referenceRamp` view.
-                referenceRamp: self.referenceRamp,
-                deletions: self.deletionEdgeIndexes,
-                hiddenEdges: self.hiddenEdgeIndexes,
-                // Read tracked above; passed here so the shared edge-curve
-                // cache can tell a drag from a pan.
-                version: self.positionsVersion,
+            if (self.facetPanels) {
+              dependOn(self.viewportDirty)
+              b.uploadGeometry(EMPTY_BATCH)
+              self.setGeometryMetrics(0, 0, {
+                scale: untracked(() => self.scale),
+                bounds: untracked(() => self.viewportToBuild()),
               })
-              b.uploadGeometry(batch)
+              return true
+            }
+            const geometryStart = performance.now()
+            const built = self.buildDrawing(
+              self.walkLift,
+              self.effectiveDrawPaths,
+            )
+            if (built) {
+              b.uploadGeometry(built.batch)
               self.setGeometryMetrics(
                 performance.now() - geometryStart,
-                batch.nodeStrokes.length,
-                { scale: untracked(() => self.scale), bounds: viewportBounds },
+                built.batch.nodeStrokes.length,
+                {
+                  scale: untracked(() => self.scale),
+                  bounds: built.viewportBounds,
+                },
               )
               return true
             }
@@ -2985,26 +3054,7 @@ export function GraphPaneMixin() {
             if (!self.nodePositions) {
               return false
             }
-            // getDpr(), never a bare `devicePixelRatio`: it is capped at
-            // MAX_DPR so this canvas costs what every other canvas in the app
-            // costs on a 3x display (the square of the ratio, i.e. 9x the
-            // pixels of 1x against the 4x everything else pays), and it is the
-            // same read `syncCanvasSize` sizes the backing store with — two
-            // call sites reading the global separately can disagree, and then
-            // the geometry lands at a different scale from the canvas under it.
-            const dpr = getDpr()
-            b.updateTransform({
-              scaleX: self.scaleX * dpr,
-              scaleY: self.scaleY * dpr,
-              translateX: self.translateX * dpr,
-              translateY: self.translateY * dpr,
-              // Handed over rather than read again by the backend: the
-              // thicknesses in the vertex buffer are css px and are expanded
-              // after this transform, so they need the same ratio the fields
-              // above were already multiplied by. See TransformUniform.dpr.
-              dpr,
-            })
-            b.render(self.darkMode ? [0.12, 0.12, 0.12, 1] : [1, 1, 1, 1])
+            self.paint(b)
             self.markPainted()
             return true
           },
@@ -3127,7 +3177,7 @@ export function GraphPaneMixin() {
               },
             })),
           },
-          ...(walks.length > 0
+          ...(walks.length > 0 && self.liftsWalks
             ? [
                 {
                   label: 'Walk',
@@ -3152,6 +3202,25 @@ export function GraphPaneMixin() {
                           },
                         ]
                       : []),
+                    ...(self.facetPanels && !self.hostPlacesX
+                      ? [
+                          {
+                            label: 'Columns',
+                            subMenu: [
+                              undefined,
+                              ...self.facetPanels.map((_, i) => i + 1),
+                            ].map(columns => ({
+                              type: 'radio' as const,
+                              label:
+                                columns === undefined ? 'Auto' : `${columns}`,
+                              checked: self.facetColumns === columns,
+                              onClick: () => {
+                                self.setFacetColumns(columns)
+                              },
+                            })),
+                          },
+                        ]
+                      : []),
                     ...walks.map(walk => ({
                       type: 'checkbox' as const,
                       label: walk.label,
@@ -3160,8 +3229,8 @@ export function GraphPaneMixin() {
                         self.toggleWalk(walk.name)
                       },
                     })),
-                    ...(self.walkLift?.walks ?? []).map(lifted => ({
-                      label: `Colour ${walks.find(w => w.name === lifted.name)?.label ?? lifted.name}`,
+                    ...self.drawnWalks.map(lifted => ({
+                      label: `Colour ${self.walkLabel(lifted.name)}`,
                       subMenu: [
                         { type: 'subHeader' as const, label: 'Colour by' },
                         ...WALK_FIELDS.map(field => ({
