@@ -1,3 +1,10 @@
+## [4.0.19](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.18...v4.0.19) (2026-09-28)
+
+### Other Changes
+
+- A tube map draws its window: the cut's context is for walk rows ([6efb851](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6efb8514476e5eee01063d0e025a39fd4f6a8c73))
+- Walk rows stop colouring copies by unit; jbrowse-plugin-tandem-repeat does that ([0cd2b86](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0cd2b864e3b85d0d884ca9a825c0f831fc5e0541))
+
 ## [4.0.18](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.17...v4.0.18) (2026-09-28)
 
 ### Other Changes
