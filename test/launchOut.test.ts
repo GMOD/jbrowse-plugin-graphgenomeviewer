@@ -190,26 +190,40 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     const target = await page.evaluate(
       ([selector, viewId]: string[]) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
-        const rect = document
-          .querySelector<HTMLCanvasElement>(selector!)!
-          .getBoundingClientRect()
-        // a backbone segment: its own coordinates are on the one loaded
-        // assembly, so the exact-span item is the one offered
+        // the pane sits below the linear view, mostly past the page's bottom
+        // edge, where a click lands on nothing
+        const canvas = document.querySelector<HTMLCanvasElement>(selector!)!
+        canvas.scrollIntoView({ block: 'start' })
+        const rect = canvas.getBoundingClientRect()
+        // a backbone segment on screen: its own coordinates are on the one
+        // loaded assembly, so the exact-span item is the one offered
+        const bottom = Math.min(rect.bottom, window.innerHeight)
+        const at = (id: string) => {
+          const segments = view.nodePositions[id]
+          const first = segments[0]
+          const last = segments.at(-1)
+          return {
+            x:
+              rect.left +
+              (((first.x + last.x) / 2) * view.scaleX + view.translateX),
+            y:
+              rect.top +
+              (((first.y + last.y) / 2) * view.scaleY + view.translateY),
+          }
+        }
         const node = view.graph.nodes.find(
-          (n: { stable?: { rank: number } }) => n.stable?.rank === 0,
+          (n: { id: string; stable?: { rank: number } }) => {
+            if (n.stable?.rank !== 0) {
+              return false
+            }
+            const { x, y } = at(n.id)
+            return x > rect.left && x < rect.right && y > rect.top && y < bottom
+          },
         )
-        const segments = view.nodePositions[node.id]
-        const first = segments[0]
-        const last = segments.at(-1)
         return {
           nodeId: node.id as string,
           start: node.stable.start as number,
-          x:
-            rect.left +
-            (((first.x + last.x) / 2) * view.scale + view.translateX),
-          y:
-            rect.top +
-            (((first.y + last.y) / 2) * view.scale + view.translateY),
+          ...at(node.id),
         }
       },
       [GRAPH_CANVAS, GRAPH_ID],

@@ -53,8 +53,8 @@ subgraph".
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in only because it needs a jbrowse-web static build to serve. **All 18 tests
-pass on 5.0.0-beta.9 as of 2026-09-26.**
+Opt-in only because it needs a jbrowse-web static build to serve. **All 33 tests
+pass on 5.0.0-beta.9 as of 2026-09-30.**
 
 Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 

@@ -91,7 +91,7 @@ describe.skipIf(!runE2E)('pointer interaction', () => {
   async function tooltipText() {
     return await page.evaluate(() => {
       const el = [...document.querySelectorAll('div')].find(d =>
-        /length:|^Edge: /.test(d.textContent),
+        / bp, depth |^Edge: /.test(d.textContent),
       )
       return el ? el.textContent : null
     })
@@ -119,8 +119,8 @@ describe.skipIf(!runE2E)('pointer interaction', () => {
   // distance test -> model -> React. A tooltip naming a length is a node hit; the
   // GFA is small, so a node is reachable among the painted pixels.
   it('hovering a drawn node shows its tooltip', async () => {
-    const hit = await hoverUntilTooltip(/length:/)
-    expect(hit?.text).toMatch(/length:/)
+    const hit = await hoverUntilTooltip(/ bp, depth /)
+    expect(hit?.text).toMatch(/ bp, depth /)
   }, 120_000)
 
   // The node only moves on screen when geometry is rebuilt, and that rebuild is
@@ -133,7 +133,7 @@ describe.skipIf(!runE2E)('pointer interaction', () => {
   // baseline is captured with the hover highlight already applied, and mousemove
   // takes the draggingNode branch rather than recomputing hover.
   it('dragging a node repaints the canvas', async () => {
-    const hit = await hoverUntilTooltip(/length:/)
+    const hit = await hoverUntilTooltip(/ bp, depth /)
     expect(hit).toBeDefined()
     const { point } = hit!
 
