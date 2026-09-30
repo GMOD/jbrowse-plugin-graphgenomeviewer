@@ -705,11 +705,10 @@ test('clipToRegion keeps a lane pair whole and drops its CIGAR', async () => {
   }
 })
 
-// CHM13's contigs are several fragments each in HPRC v2.1, and a cut takes the
-// fragment its window starts in alone; this fixture's are whole, so a second
-// GRCh38 chr6 fragment is reported starting mid-window
-test('a lane pair across a reference fragment boundary is cut once per fragment', async () => {
-  const adapter = anchoredAdapter()
+// CHM13's contigs are several fragments each in HPRC v2.1, and gbz-base cuts
+// the fragment its window starts in alone; this fixture's are whole, so a
+// second GRCh38 chr6 fragment is reported starting at `boundary`
+async function splitReferenceAt(adapter: Adapter, boundary: number) {
   const { db } = await (
     adapter as unknown as {
       graph: () => Promise<{
@@ -729,22 +728,44 @@ test('a lane pair across a reference fragment boundary is cut once per fragment'
   const grch38 = paths.find(
     p => p.isIndexed && p.name.sample === 'GRCh38' && p.name.contig === 'chr6',
   )!
-  const boundary = 31498700
-  const listed = vi
-    .spyOn(db, 'paths')
-    .mockResolvedValue([
-      ...paths,
-      { ...grch38, name: { ...grch38.name, fragment: boundary } },
-    ])
+  vi.spyOn(db, 'paths').mockResolvedValue([
+    ...paths,
+    { ...grch38, name: { ...grch38.name, fragment: boundary } },
+  ])
   const cut = vi.spyOn(db, 'getSubgraphForRange')
+  return () => cut.mock.calls.map(([, start, end]) => [start, end]).sort()
+}
+
+test('a lane pair across a reference fragment boundary is cut once per fragment', async () => {
+  const adapter = anchoredAdapter()
+  const boundary = 31498700
+  const cuts = await splitReferenceAt(adapter, boundary)
   const records = await feats(adapter, insertionWindow, pair)
-  expect(cut.mock.calls.map(([, start, end]) => [start, end]).sort()).toEqual([
+  expect(cuts()).toEqual([
     [insertionWindow.start, boundary],
     [boundary, insertionWindow.end],
   ])
   expect(records.length).toBeGreaterThan(1)
-  cut.mockRestore()
-  listed.mockRestore()
+  vi.restoreAllMocks()
+})
+
+test('getSubgraph across a reference fragment boundary holds both fragments, reference walks first', async () => {
+  const adapter = makeAdapter()
+  const boundary = 31500500
+  const cuts = await splitReferenceAt(adapter, boundary)
+  const gfa = await adapter.getSubgraph(window)
+  expect(cuts()).toEqual([
+    [window.start, boundary],
+    [boundary, window.end],
+  ])
+  for (const kind of ['H', 'S', 'L']) {
+    const lines = gfaLines(gfa, kind)
+    expect(new Set(lines).size).toBe(lines.length)
+  }
+  const walks = gfaLines(gfa, 'W').map(line => line.split('\t'))
+  expect(walks.slice(0, 2).map(walk => walk[1])).toEqual(['GRCh38', 'GRCh38'])
+  expect(walks.slice(2).every(walk => walk[1] !== 'GRCh38')).toBe(true)
+  vi.restoreAllMocks()
 })
 
 test('a lane pair without its target lane is refused', async () => {

@@ -6,6 +6,7 @@ import {
   haplotypeWanted,
   nodeLimitError,
   referencePathQuery,
+  referencePieces,
   referenceSamplesOf,
   resolveReferenceSample,
 } from '@jbrowse/bandage-core/gbzWindow'
@@ -249,7 +250,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   /**
    * The indexed reference path a window on `refName` resolves against, or
    * undefined when the reference sample has no indexed path by that contig.
-   * gbz-base spans the path's fragments itself from here.
    */
   private async referenceQuery(
     refName: string,
@@ -438,35 +438,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
   }
 
-  /**
-   * The window split wherever the reference sample's contig starts another
-   * fragment, so each piece lies inside one: getSubgraphForRange cuts the
-   * first fragment alone, where getAlignmentsForRange walks them all
-   */
-  private async referencePieces(
-    refName: string,
-    start: number,
-    end: number,
-    opts: BaseOptions,
-  ) {
-    const { db, referenceSample } = await this.graph(opts)
-    const inside = (await db.paths())
-      .filter(
-        path =>
-          path.isIndexed &&
-          path.name.sample === referenceSample &&
-          path.name.contig === refName &&
-          path.name.fragment > start &&
-          path.name.fragment < end,
-      )
-      .map(path => path.name.fragment)
-    const bounds = [start, ...[...new Set(inside)].sort((a, b) => a - b), end]
-    return bounds.slice(1).map((pieceEnd, i) => ({
-      start: bounds[i]!,
-      end: pieceEnd,
-    }))
-  }
-
   private async anchorFeatures(region: Region, opts: GbzFeatureOptions) {
     const { db } = await this.graph(opts)
     const { assemblyName, refName, start, end } = region
@@ -561,8 +532,8 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
               opts.statusCallback,
               async () =>
                 Promise.all(
-                  (await this.referencePieces(refName, start, end, opts)).map(
-                    piece => cut(query, piece),
+                  (await referencePieces(db, query, start, end)).map(piece =>
+                    cut(query, piece),
                   ),
                 ),
             )
