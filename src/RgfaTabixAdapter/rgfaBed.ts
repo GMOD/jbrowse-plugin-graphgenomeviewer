@@ -144,8 +144,9 @@ export function formatSubgraph(
   segments: Map<string, RgfaSegment>,
   links: Map<string, RgfaLink>,
 ) {
-  const sortedSegments = [...segments.values()].sort((a, b) =>
-    a.refName === b.refName ? a.start - b.start : compare(a.refName, b.refName),
+  const sortedSegments = [...segments.values()].sort(
+    (a, b) =>
+      compare(a.refName, b.refName) || a.start - b.start || compare(a.id, b.id),
   )
   const sortedLinks = [...links.keys()].sort((a, b) => compare(a, b))
   return [

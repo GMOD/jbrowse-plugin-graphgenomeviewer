@@ -34,6 +34,14 @@ test('an rGFA row has no tags and synthesizes the S-line it always did', () => {
   )
 })
 
+// The hops' tabix queries run together and fill the map in arrival order
+test('segments at one position come out in the same order whichever arrived first', () => {
+  const at = (id: string) => parseSegmentLine(`K12#1#chr\t100\t100\t${id}\t1`)
+  expect(subgraphOf([at('s2'), at('s1')])).toBe(
+    subgraphOf([at('s1'), at('s2')]),
+  )
+})
+
 test('a tag column reaches the S-line as tab-separated GFA tags', () => {
   const segment = parseSegmentLine(TAGGED_SEG)
   expect(segment.tags).toBe(
