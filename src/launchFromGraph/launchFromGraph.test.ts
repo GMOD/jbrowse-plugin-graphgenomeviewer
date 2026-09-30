@@ -39,6 +39,7 @@ function testSession(views: unknown[] = [], tracks = [] as never[]) {
       added.push([type, snapshot])
       return { id: `view-${added.length}` }
     },
+    addHighlight: vi.fn(),
   }
   // The launch functions read only these members, which is why they are typed
   // structurally rather than against AbstractSessionModel.
@@ -51,7 +52,6 @@ function linearView(id: string, assemblyNames: string[]) {
     type: 'LinearGenomeView',
     assemblyNames,
     navToLocString: vi.fn(),
-    addToHighlights: vi.fn(),
   }
 }
 
@@ -348,7 +348,7 @@ test('highlighting marks the view beside the graph and moves nothing', () => {
   })
 
   expect(marked).toBe(true)
-  expect(view.addToHighlights).toHaveBeenCalledWith({
+  expect(session.addHighlight).toHaveBeenCalledWith({
     refName: 'chr',
     start: 1000,
     end: 6000,
@@ -371,6 +371,7 @@ test('highlighting with no linear view on the assembly does nothing', () => {
       connectedViewId: undefined,
     }),
   ).toBe(false)
+  expect(session.addHighlight).not.toHaveBeenCalled()
   expect(added).toEqual([])
 })
 

@@ -24,6 +24,13 @@ export interface GraphLaunchSession extends TrackScanSession {
   views: unknown[]
   // optional, as a hand-built session in a test has none
   notifyError?: (message: string, error?: unknown) => void
+  // a highlight every linear view on its assembly draws
+  addHighlight?: (highlight: {
+    refName: string
+    start: number
+    end: number
+    assemblyName: string
+  }) => void
 }
 
 // A launch is a promise nothing waits on. Let go, a refusal moved nothing and
@@ -146,7 +153,7 @@ export function showInLinearView({
 //
 // The other half of the pair above, and the half that survives being let go of:
 // hover sync draws a band for as long as the pointer is over the node, where a
-// highlight is written into the view's own list and stays until it is removed.
+// highlight is written into the session's list and stays until it is removed.
 // It also keeps the reader's frame — the interesting comparison at a pangenome
 // locus is usually the whole window, not the 200 bp the node occupies.
 //
@@ -168,12 +175,14 @@ export function highlightInLinearView({
     connectedViewId,
     assemblyName: assembly,
   })
-  target?.addToHighlights?.({
-    refName: location.refName,
-    start: location.start,
-    end: location.end,
-    assemblyName: assembly,
-  })
+  if (target) {
+    session.addHighlight?.({
+      refName: location.refName,
+      start: location.start,
+      end: location.end,
+      assemblyName: assembly,
+    })
+  }
   return target !== undefined
 }
 
