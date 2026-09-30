@@ -1,3 +1,25 @@
+## [4.0.28](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.27...v4.0.28) (2026-09-30)
+
+### Other Changes
+
+- A hovered lane row lifts nothing over walk rows; the lift's fade is one colour ([d615114](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d6151142ad8dd1a9ae933f9c330730533000ee6c))
+- The row hover figure finds its cell along one row, and shows the lift's fade ([f127b7b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f127b7b72788e9ad213fffc3c4938342de04df11))
+- The row hover's docs leave walk rows out, which draw no nodes to lift over ([b7ed82b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b7ed82b67033aa9a1b20dc654f4c850de439b30a))
+- A gbz-base cut's defaults are stated once, for the track and for a standalone cut ([cb6b6d6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/cb6b6d677732490a63e22602e9ddd6e627c853f1))
+- Pnpm version refuses unless CI passed on the commit it releases ([da5a874](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/da5a8740c176b39d6a157435061ecb1b07de688d))
+- One isRecord for the modules that read host state structurally ([64a6b84](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/64a6b844072c7794edb757a96c2d2a68fa3cffa9))
+- Highlight in <assembly> writes the session's highlight, which hosts now draw ([12a538c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/12a538c33eed9716f57f23e64188269d389fc0c8))
+- A graph track in a synteny panel bands its hover in that panel ([0bdb1cc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0bdb1cc4b16efa8c09164e27ed092fc5654a97ee))
+- A file picked in the browser asks for a URL where Add track needs its siblings ([977ee67](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/977ee67939e0c71f177d642d63e0971bc39ee2c9))
+- A lane row named like an accession finds its walks as a bare sample ([3dd95ba](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3dd95baece6255cb38968c4f7ebab15eaa49cb08))
+- A synteny track naming its assemblies by alias is offered and fills its panels ([70ce360](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/70ce360670917f40331d30be33c391a0dbb1e433))
+- A graph track tells the linear view when its x is not genomic, so highlight bands skip it ([61bf916](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/61bf916a26db02db7eaeac170233ab724cbb9c9e))
+- Side by side grows a track too short for its panels ([97be388](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/97be388e827cd01fd4096d1af19da83f0a3b8bca))
+- A superseded read no longer fails the reads sharing an unindexed GAF's download ([c1c1b13](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c1c1b13c79fdeca7fa6e3ee8434a24eac3c8a9a3))
+- A graph cut across a reference gap draws every fragment in the window ([7ef3aea](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7ef3aea3b1ac3ea299bd95a0f4a8657c5ad49754))
+- Segments at one position keep one order in an rGFA cut ([d208d9b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d208d9b78fae360b9c16628f18ed02c9b9abf6bd))
+- The GAF reads index opens through openTabixSlot like the other tabix slots ([077bd7a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/077bd7ad0cbe07c6a104aaaacee76de2f5bc6b72))
+
 ## [4.0.27](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.26...v4.0.27) (2026-09-30)
 
 ### Other Changes
