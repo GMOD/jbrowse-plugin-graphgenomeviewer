@@ -66,6 +66,29 @@ const BUBBLE_TRACK = {
   displayMode: 'compact',
   height: 70,
 }
+// The multiple alignment from the gbz graph's Minigraph-Cactus build, whose
+// rows carry the walks' own names, so a lane of the walks a figure draws reads
+// row for row against the graph. The adapter's samples pick the rows because a
+// display's row focus covers the first label with its chip.
+const MAF = 'hprc_v2_1_mc_grch38_maf'
+function mafLane(samples) {
+  return {
+    trackId: MAF,
+    type: 'LinearMafDisplay',
+    showCoverage: false,
+    sessionTrack: {
+      type: 'MafTrack',
+      trackId: MAF,
+      name: 'HPRC release 2 alignment',
+      assemblyNames: ['hg38'],
+      adapter: {
+        type: 'BgzipMafAdapter',
+        uri: 'https://s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/release2/minigraph-cactus/v2.1/hprc-v2.1-mc-grch38/hprc-v2.1-mc-grch38.full.maf.gz',
+        samples,
+      },
+    },
+  }
+}
 function graphView(props) {
   return {
     type: 'GraphGenomeView',
@@ -79,8 +102,14 @@ function graphView(props) {
 
 function linearView(loc, tracks, below = []) {
   return {
+    sessionTracks: tracks.flatMap(t => t.sessionTrack ?? []),
     views: [
-      { type: 'LinearGenomeView', assembly: 'hg38', loc, tracks },
+      {
+        type: 'LinearGenomeView',
+        assembly: 'hg38',
+        loc,
+        tracks: tracks.map(({ sessionTrack, ...track }) => track),
+      },
       ...below,
     ],
   }
@@ -196,7 +225,7 @@ const FIGURES = {
       walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
       height: 460,
     },
-    [],
+    [mafLane(HAPLOTYPES)],
     [
       {
         type: 'LinearSyntenyView',
@@ -211,17 +240,21 @@ const FIGURES = {
   ),
   // three routes through GSTM1: HG01960 through GRCh38's copy, HG00133 past
   // it, and HG03041 round a copy of its own the graph never merged with it
-  force_gstm1_three_ways: trackView(GSTM1_LOC, {
-    trackId: GBZ,
-    layoutMode: 'force',
-    subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
-    walkLayers: [
-      { walk: 'HG01960#1#CM088644.1' },
-      { walk: 'HG00133#1#CM090045.1' },
-      { walk: 'HG03041#2#CM088727.1' },
-    ],
-    height: 460,
-  }),
+  force_gstm1_three_ways: trackView(
+    GSTM1_LOC,
+    {
+      trackId: GBZ,
+      layoutMode: 'force',
+      subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
+      walkLayers: [
+        { walk: 'HG01960#1#CM088644.1' },
+        { walk: 'HG00133#1#CM090045.1' },
+        { walk: 'HG03041#2#CM088727.1' },
+      ],
+      height: 460,
+    },
+    [mafLane(['HG01960.1', 'HG00133.1', 'HG03041.2'])],
+  ),
   force_kiv2_popped: {
     session: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
       VNTR_TRACK,
@@ -284,18 +317,26 @@ const FIGURES = {
       })
     },
   },
-  tube_map_micb_track: trackView(MICB_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemap',
-    subgraphHaplotypes: HAPLOTYPES,
-    height: 360,
-  }),
-  tube_map_micb_ref: trackView(MICB_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: HAPLOTYPES,
-    height: 420,
-  }),
+  tube_map_micb_track: trackView(
+    MICB_LOC,
+    {
+      trackId: GBZ,
+      layoutMode: 'tubemap',
+      subgraphHaplotypes: HAPLOTYPES,
+      height: 360,
+    },
+    [mafLane(HAPLOTYPES)],
+  ),
+  tube_map_micb_ref: trackView(
+    MICB_LOC,
+    {
+      trackId: GBZ,
+      layoutMode: 'tubemapref',
+      subgraphHaplotypes: HAPLOTYPES,
+      height: 420,
+    },
+    [mafLane(HAPLOTYPES)],
+  ),
   // the cut opened as a view under the linear view it came from; hovering a
   // variant's box in the view bands its bp in the linear view
   tube_map_micb: {
@@ -336,6 +377,29 @@ async function recolorAnnotations(page) {
           track.displays[0].setFeatureColor('rgb(110,110,110)')
         }
       }
+    }
+  })
+}
+
+// The alignment's rows in the order the graph's key lists the walks, so the two
+// read top to bottom alike. A drawing with no key keeps the samples' order.
+async function orderMafRowsByKey(page) {
+  await page.evaluate(() => {
+    const displays = window.JBrowseSession.views[0].tracks.map(
+      t => t.displays[0],
+    )
+    const maf = displays.find(d => d.type === 'LinearMafDisplay')
+    const graph = displays.find(d => d.type === 'LinearGraphDisplay')
+    if (maf && graph) {
+      const rows = new Set(maf.sources.map(s => s.name))
+      maf.setRowOrder(
+        graph.pathLegend
+          .map(({ name }) => {
+            const [sample, haplotype] = name.split('#')
+            return { name: `${sample}.${haplotype}` }
+          })
+          .filter(r => rows.has(r.name)),
+      )
     }
   })
 }
@@ -402,6 +466,7 @@ try {
     )
     await waitPainted(page)
     await recolorAnnotations(page)
+    await orderMafRowsByKey(page)
     if (act) {
       await act(page)
       await sleep(1000)

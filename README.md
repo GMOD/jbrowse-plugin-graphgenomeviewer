@@ -27,9 +27,11 @@ above it.
 ![KIV-2 walk rows under LPA and the curated KIV-2 annotation](img/walk_rows_kiv2.png)
 
 - **Variants at their bp.** A tube map on the reference axis puts each of MICB's
-  variant columns under its exon.
+  variant columns under its exon. HPRC's multiple alignment, cut to the same
+  eight haplotypes, marks a mismatch in a row wherever its tube leaves GRCh38's
+  route.
 
-![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes](img/tube_map_micb_ref.png)
+![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes and the eight haplotypes' alignment rows](img/tube_map_micb_ref.png)
 
 ## As its own view
 
