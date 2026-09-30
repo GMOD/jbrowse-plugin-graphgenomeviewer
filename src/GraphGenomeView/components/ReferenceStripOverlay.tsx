@@ -75,6 +75,24 @@ const RAMP_SWATCH =
 
 // the strip's own colours: a row per lifted walk in its lane's, else the
 // node scheme's ramp
+//
+// A scheme other than the ramp shows a few of the strip's own blocks in bp
+// order, as the strip draws them, rather than a rainbow it does not
+const SAMPLED_BLOCKS = 6
+
+function sampledSwatch(colors: string[]) {
+  const distinct = colors.filter((c, i) => c !== colors[i - 1])
+  const n = Math.min(SAMPLED_BLOCKS, distinct.length)
+  const picked = Array.from(
+    { length: n },
+    (_, i) =>
+      distinct[n > 1 ? Math.round((i * (distinct.length - 1)) / (n - 1)) : 0]!,
+  )
+  return picked.length > 1
+    ? `linear-gradient(to right, ${picked.join(', ')})`
+    : (picked[0] ?? FADED_SWATCH)
+}
+
 function StripSwatch({
   rows,
 }: {
@@ -97,7 +115,15 @@ function stripRows(model: GraphPaneModel) {
     model.walkLift?.walks.map(w => ({
       key: w.name,
       background: encodingSwatchCss(w.encoding),
-    })) ?? [{ key: 'ramp', background: RAMP_SWATCH }]
+    })) ?? [
+      {
+        key: 'scheme',
+        background:
+          model.effectiveColorScheme === 'reference-position'
+            ? RAMP_SWATCH
+            : sampledSwatch(model.referenceStripBlocks.map(b => b.colors[0]!)),
+      },
+    ]
   )
 }
 

@@ -201,6 +201,15 @@ const WalkReadout = observer(function WalkReadout({
           at={model.hoveredOn(w)}
         />
       ))}
+      {/* the ramp's own key, which names this, is off while walks are lifted */}
+      {model.liftPaintsOffReference ? (
+        <div style={legendRowStyle}>
+          <div
+            style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }}
+          />
+          <span>off the reference</span>
+        </div>
+      ) : null}
       <div style={legendRowStyle}>
         <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
         <span>not on {model.liftedWalksLabel}</span>

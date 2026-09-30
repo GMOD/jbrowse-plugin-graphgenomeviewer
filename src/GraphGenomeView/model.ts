@@ -111,7 +111,11 @@ import {
   viewportOf,
   zoomAbout,
 } from '@jbrowse/bandage-core/viewport'
-import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
+import {
+  NO_VALUE_COLOR,
+  WALK_FIELDS,
+  WALK_SCHEMES,
+} from '@jbrowse/bandage-core/walkEncoding'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -805,12 +809,22 @@ export function GraphPaneMixin() {
       },
       // One panel per lifted walk while the pane is faceted by walk, each a
       // lift of that walk alone. See facetLifts.
+      //
+      // Walk rows give each walk a row already, drawn over the canvas the
+      // panels would split, so there a panel would be an empty box
       get facetPanels() {
         const { graph } = self
         const lift = this.walkLift
-        return self.facet !== 'none' && graph && lift && lift.walks.length > 1
+        return self.facet !== 'none' &&
+          this.facetsWalks &&
+          graph &&
+          lift &&
+          lift.walks.length > 1
           ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
           : undefined
+      },
+      get facetsWalks() {
+        return self.chosenLayoutMode !== 'walkrows'
       },
       // The lifted walks as drawn, each panel's own while faceted
       get drawnWalks() {
@@ -831,6 +845,17 @@ export function GraphPaneMixin() {
       },
       walkLabel(name: string) {
         return this.walkChoices.find(c => c.name === name)?.label ?? name
+      },
+      // Whether a lifted lane paints a node charcoal, the colour a lane coloured
+      // by reference position gives what is off the reference
+      get liftPaintsOffReference() {
+        return (
+          this.walkLift?.walks.some(
+            w =>
+              w.encoding.field !== 'walk' &&
+              [...w.colors.values()].includes(NO_VALUE_COLOR),
+          ) ?? false
+        )
       },
       // what the faded rest of the drawing is not on
       get liftedWalksLabel() {
@@ -3220,8 +3245,15 @@ export function GraphPaneMixin() {
 
           addDisposer(
             self,
+            // Faceting on or off, its columns, its count of panels and what
+            // they split by each reshape the boxes the drawing is fitted into
             reaction(
-              () => self.facetGrid !== undefined,
+              () => {
+                const grid = self.facetGrid
+                return grid
+                  ? `${self.facet} ${self.facetPanels?.length} ${grid.columns}`
+                  : ''
+              },
               () => {
                 self.refitView()
               },
@@ -3532,7 +3564,7 @@ export function GraphPaneMixin() {
                         self.setWalkLayers([])
                       },
                     },
-                    ...(self.walkLayers.length > 1
+                    ...(self.walkLayers.length > 1 && self.facetsWalks
                       ? [
                           {
                             label: 'Side by side',

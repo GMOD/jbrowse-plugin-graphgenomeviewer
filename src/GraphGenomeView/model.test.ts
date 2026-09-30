@@ -2433,6 +2433,50 @@ describe('the auto color scheme', () => {
   })
 })
 
+// A walk's positions read as its origin plus the bp before a step, so an
+// origin left at the whole walk's start put every step inside a popped bubble
+// the dropped front's length too early
+test('a popped bubble reads a node where it sits on each walk, as the whole graph does', async () => {
+  rpcRespond()
+  // 0 (10 bp) > 1 (4) > {2 (8) | 3 (4)} > 4 (4) > 5 (10)
+  const gfa = [
+    'H\tVN:Z:1.1',
+    'S\t0\tAAAAAAAAAA',
+    'S\t1\tACGT',
+    'S\t2\tGGCCGGCC',
+    'S\t3\tTTTT',
+    'S\t4\tCCCC',
+    'S\t5\tGGGGGGGGGG',
+    'L\t0\t+\t1\t+\t0M',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'L\t2\t+\t4\t+\t0M',
+    'L\t3\t+\t4\t+\t0M',
+    'L\t4\t+\t5\t+\t0M',
+    'W\tGRCh38\t0\tchr1\t0\t32\t>0>1>3>4>5',
+    'W\tB\t1\tctg\t0\t36\t>0>1>2>4>5',
+    '',
+  ].join('\n')
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+  })
+  await model.loadGFA(gfa, 'walks')
+  model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
+  const onB = () => model.walkLift!.walks.find(w => w.name === 'B#1#ctg')!
+  model.setHoveredNode('2+')
+  expect(model.hoveredOn(onB())).toBe('ctg:14-22')
+
+  await model.popBubble(model.bubbles[0]!)
+  model.setHoveredNode('2+')
+  expect(model.hoveredOn(onB())).toBe('ctg:14-22')
+  expect(onB().range).toEqual({
+    contig: 'ctg',
+    start: 10,
+    end: 10 + onB().bp,
+  })
+})
+
 describe('popping a bubble', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
@@ -2622,6 +2666,65 @@ describe('walk rows', () => {
     model.toggleWalk('B#1#ctg')
     expect(model.walkLift).toBeUndefined()
     expect(model.colorSchemeLock).toBeUndefined()
+  })
+
+  // The ramp's own key names charcoal, and it is off while walks are lifted
+  test('a lane coloured by reference position keys the charcoal it paints', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['B#1#ctg'])
+    model.setWalkColor('B#1#ctg', { field: 'walk' })
+    expect(model.liftPaintsOffReference).toBe(false)
+    // B takes node 2, which GRCh38 skips
+    model.setWalkColor('B#1#ctg', { field: 'reference' })
+    expect(model.liftPaintsOffReference).toBe(true)
+  })
+
+  // Walk rows draw their bars over the canvas the panels would split, so a
+  // panel there was an empty box
+  test('walk rows keep a row per walk rather than splitting into panels', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['B#1#ctg', 'A#1#ctg'])
+    interface Item {
+      label?: string
+      subMenu?: Item[]
+    }
+    const walkMenu = (model.graphMenuItems() as Item[]).find(
+      item => item.label === 'Walk',
+    )!
+    expect(walkMenu.subMenu!.some(item => item.label === 'Side by side')).toBe(
+      false,
+    )
+    model.setFacet('walk')
+    expect(model.facetPanels).toBeUndefined()
+  })
+
+  // Each reshapes the panels; a drawing zoomed for the old ones was left
+  // clipped in the new until Fit was pressed
+  test('a change of columns refits a drawing the user had zoomed', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.startRenderingBackend(fakeRenderer())
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
+    model.setFacet('walk')
+    model.zoom(2, 10, 10)
+    expect(model.viewportOwner).toBe('user')
+
+    model.setFacetColumns(model.facetGrid!.columns === 1 ? 2 : 1)
+    expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
   })
 
   test('faceted by walk, the pane draws one panel per lifted walk on one scale', async () => {
