@@ -6,7 +6,7 @@ import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
-import { addDisposer, types } from '@jbrowse/mobx-state-tree'
+import { addDisposer, getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import {
   computeActivityPhase,
   computeDisplayStatusPhase,
@@ -341,7 +341,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           addDisposer(
             self,
             reaction(
-              () => `${self.facet} ${self.facetPlacement?.count}`,
+              () => `${self.facet.field} ${self.facetPlacement?.count}`,
               () => {
                 const needs = self.facetGridIn(self.paneCeiling)?.total ?? 0
                 if ((self.facetGrid?.total ?? 0) > self.height) {
@@ -404,7 +404,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             showBubbles: self.showBubbles,
             showDeletionEdges: self.showDeletionEdges,
             walkLayers: self.walkLayers,
-            facet: self.facet,
+            facet: getSnapshot(self.facet),
           } satisfies GraphViewSpec
         },
       }))

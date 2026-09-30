@@ -2756,7 +2756,7 @@ describe('walk rows', () => {
     expect(model.facetGrid!.columns).toBe(1)
     model.setFacetColumns(2)
     expect(model.facetGrid!.columns).toBe(2)
-    model.setFacet('none')
+    model.setFacet('')
     expect(model.facetPanels).toBeUndefined()
   })
 
@@ -2800,6 +2800,34 @@ describe('walk rows', () => {
       cells: [0, 2, 3, 4],
     })
     expect(model.facetGrid!.columns).toBe(2)
+    expect(model.facetSpec).toBe('sample')
+  })
+
+  test('a facet written as an object orders its panels by domain, and a change of field drops the order', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+      facet: { field: 'sample', domain: ['B'], columns: 3 },
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.liftWalks(['GRCh38#0#chr1', 'A#1#ctg', 'A#2#ctg', 'B#1#ctg'])
+    expect(model.facetPlacement!.cells).toEqual([2, 4, 5, 0])
+    expect(model.facetSpec).toEqual({
+      field: 'sample',
+      domain: ['B'],
+      columns: 3,
+    })
+    model.setFacet('walk')
+    expect(model.facetSpec).toEqual({ field: 'walk', domain: [], columns: 3 })
+    model.setFacetColumns(undefined)
+    expect(model.facetSpec).toBe('walk')
+    expect(
+      stateModelFactory().create({
+        type: 'GraphGenomeView',
+        facet: 'none' as never,
+      }).facet.field,
+    ).toBe('')
   })
 
   test('the drawing exports as an SVG with its walks keyed', async () => {

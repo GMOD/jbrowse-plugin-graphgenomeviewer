@@ -22,6 +22,7 @@ import {
   FACET_PAD_PX,
   facetCells,
   facetGrid,
+  facetSettingOf,
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
@@ -186,7 +187,11 @@ import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
-import type { FacetBy, FacetGrid } from '@jbrowse/bandage-core/facetGrid'
+import type {
+  FacetGrid,
+  FacetInput,
+  FacetSetting,
+} from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
@@ -231,11 +236,25 @@ const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
 
-const FACETS = [
-  { value: 'none', label: 'Off' },
+const FACETS: { value: FacetSetting['field']; label: string }[] = [
+  { value: '', label: 'Off' },
   { value: 'walk', label: 'A panel per walk' },
   { value: 'sample', label: 'A row per sample, a column per haplotype' },
-] as const
+]
+
+// The facet as a session writes it, in the shape every JBrowse display's
+// `facet` takes: a bare field, or the field with the panels' order and how
+// many go across. A field this pane cannot split on reads as none.
+const facetModel = types.snapshotProcessor(
+  types.model('GraphFacet', {
+    field: types.optional(types.enumeration(['', 'walk', 'sample']), ''),
+    domain: types.optional(types.frozen<string[]>(), []),
+    columns: types.maybe(types.number),
+  }),
+  {
+    preProcessor: (snap: FacetInput | undefined) => facetSettingOf(snap),
+  },
+)
 
 // The sizes a tube map folds variants under. MICB's 22 kb cut draws 475
 // columns whole, 34 under 3 bp and one under 50, where only its structural
@@ -491,17 +510,12 @@ export function GraphPaneMixin() {
         // and the rest fading, coloured by the encoding it states or by the
         // default one. See walkEncoding.ts. Empty lifts none.
         walkLayers: types.optional(types.frozen<WalkLayer[]>(), []),
-        // Facets, as a grammar of graphics splits a plot: 'walk' draws the
+        // Facets, as a grammar of graphics splits a plot: `walk` draws the
         // pane once per lifted walk, side by side on the same layout, each
-        // panel with that walk alone; 'sample' puts a sample's haplotypes in a
-        // row. See facetPanels and facetCells.
-        facet: lenientOptionalEnum<'none' | FacetBy>(
-          ['none', 'walk', 'sample'],
-          'none',
-        ),
-        // How many facet panels go across; unset takes whichever count draws
-        // each largest. See facetGrid.
-        facetColumns: types.maybe(types.number),
+        // panel with that walk alone; `sample` puts a sample's haplotypes in
+        // a row; `domain` orders the panels and `columns` fixes how many go
+        // across. See facetPanels and facetCells.
+        facet: types.optional(facetModel, {}),
         // Which of a general GFA's paths the anchored layouts put on x. A path
         // GFA's names are arbitrary and none of them is marked as the
         // reference, so this is a choice; empty means "infer", which is the
@@ -827,7 +841,7 @@ export function GraphPaneMixin() {
       get facetPanels() {
         const { graph } = self
         const lift = this.walkLift
-        return self.facet !== 'none' &&
+        return self.facet.field !== '' &&
           this.modeDrawsNodes &&
           graph &&
           lift &&
@@ -1814,13 +1828,29 @@ export function GraphPaneMixin() {
             )
           : 0
       },
+      // The facet as a spec writes it: the bare field while nothing else is
+      // written, the whole setting otherwise, and nothing while off
+      get facetSpec(): string | FacetSetting | undefined {
+        const { field, domain, columns } = self.facet
+        return field === ''
+          ? undefined
+          : domain.length === 0 && columns === undefined
+            ? field
+            : {
+                field,
+                domain: [...domain],
+                ...(columns === undefined ? {} : { columns }),
+              }
+      },
       // Which grid cell each panel takes; see facetCells
       get facetPlacement() {
         const panels = self.facetPanels
+        const { field, domain } = self.facet
         return panels
           ? facetCells(
               panels.map(p => p.walks[0]!.name),
-              self.hostPlacesX || self.facet === 'none' ? 'walk' : self.facet,
+              self.hostPlacesX || field === '' ? 'walk' : field,
+              domain,
             )
           : undefined
       },
@@ -1838,7 +1868,7 @@ export function GraphPaneMixin() {
               room,
               columns: self.hostPlacesX
                 ? 1
-                : (place.columns ?? self.facetColumns),
+                : (place.columns ?? self.facet.columns),
             })
           : undefined
       },
@@ -2095,11 +2125,7 @@ export function GraphPaneMixin() {
             walks: self.walkLayers.length
               ? self.walkLayers.map(l => (l.color ? l : l.walk))
               : undefined,
-            facet:
-              self.walkLayers.length > 1 && self.facet !== 'none'
-                ? self.facet
-                : undefined,
-            columns: self.facet === 'walk' ? self.facetColumns : undefined,
+            facet: self.walkLayers.length > 1 ? self.facetSpec : undefined,
             width: self.paneWidth,
             height: self.paneCeiling,
             colorScheme: self.chosenColorScheme,
@@ -2125,8 +2151,7 @@ export function GraphPaneMixin() {
               width: self.paneWidth,
               height: self.paneCeiling,
               walks: self.walkLayers,
-              facet: self.facet,
-              columns: self.facetColumns,
+              facet: self.facetSpec,
               colorScheme: self.effectiveColorScheme,
               nodeWidth: self.nodeWidth,
               showDeletionEdges: self.showDeletionEdges,
@@ -2329,11 +2354,16 @@ export function GraphPaneMixin() {
         const had = new Map(self.walkLayers.map(l => [l.walk, l]))
         self.walkLayers = names.map(walk => had.get(walk) ?? { walk })
       },
-      setFacet(facet: 'none' | FacetBy) {
-        self.facet = facet
+      // The field the panels split on; a change of field drops the order
+      // written for the old one and keeps the column count
+      setFacet(field: FacetSetting['field']) {
+        if (field !== self.facet.field) {
+          self.facet.domain = []
+        }
+        self.facet.field = field
       },
       setFacetColumns(columns: number | undefined) {
-        self.facetColumns = columns
+        self.facet.columns = columns
       },
       toggleWalk(walk: string) {
         const layers = self.walkLayers
@@ -3268,7 +3298,7 @@ export function GraphPaneMixin() {
               () => {
                 const grid = self.facetGrid
                 return grid
-                  ? `${self.facet} ${self.facetPanels?.length} ${grid.columns}`
+                  ? `${self.facet.field} ${self.facetPanels?.length} ${grid.columns}`
                   : ''
               },
               () => {
@@ -3599,7 +3629,7 @@ export function GraphPaneMixin() {
                             subMenu: FACETS.map(({ value, label }) => ({
                               type: 'radio' as const,
                               label,
-                              checked: self.facet === value,
+                              checked: self.facet.field === value,
                               onClick: () => {
                                 self.setFacet(value)
                               },
@@ -3608,7 +3638,7 @@ export function GraphPaneMixin() {
                         ]
                       : []),
                     ...(self.facetPanels &&
-                    self.facet === 'walk' &&
+                    self.facet.field === 'walk' &&
                     !self.hostPlacesX
                       ? [
                           {
@@ -3620,7 +3650,7 @@ export function GraphPaneMixin() {
                               type: 'radio' as const,
                               label:
                                 columns === undefined ? 'Auto' : `${columns}`,
-                              checked: self.facetColumns === columns,
+                              checked: self.facet.columns === columns,
                               onClick: () => {
                                 self.setFacetColumns(columns)
                               },

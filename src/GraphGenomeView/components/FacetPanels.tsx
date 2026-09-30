@@ -95,7 +95,7 @@ const FacetPanel = observer(function FacetPanel({
         data-testid="graph-facet-title"
         onClick={() => {
           model.liftWalks([walk.name])
-          model.setFacet('none')
+          model.setFacet('')
         }}
       >
         <WalkKey
