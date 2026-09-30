@@ -2825,7 +2825,7 @@ describe('walk rows', () => {
     expect(
       stateModelFactory().create({
         type: 'GraphGenomeView',
-        facet: 'none' as never,
+        facet: 'none',
       }).facet.field,
     ).toBe('')
   })
