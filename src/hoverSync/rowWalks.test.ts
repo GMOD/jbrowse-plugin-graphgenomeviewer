@@ -43,6 +43,15 @@ test('a haplotype the cut does not hold names no walk', () => {
   expect(walksForRow('HG00133 HP1', HPRC)).toEqual([])
 })
 
+test('a bare sample ending in a version reads as the sample', () => {
+  expect(
+    walksForRow('GCA_000005845.2', [
+      { name: 'GCA_000005845.2#0#chr' },
+      { name: 'GCA_000008865.2#0#chr' },
+    ]),
+  ).toEqual(['GCA_000005845.2#0#chr'])
+})
+
 test('a row naming no sample in the graph names no walk', () => {
   expect(walksForRow('MICB', HPRC)).toEqual([])
   expect(walksForRow('s1278', HPRC)).toEqual([])

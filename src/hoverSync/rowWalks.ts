@@ -7,14 +7,18 @@ import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 const PHASED_ROW = /^(.+) HP(\d+)$/
 const DOTTED_ROW = /^(.+)\.(\d+)$/
 
-function sampleAndHaplotype(row: string) {
+// A bare sample can end in `.2` too, an accession for one, so each reading is
+// tried in turn
+function readings(row: string) {
   const phased = PHASED_ROW.exec(row)
   const dotted = DOTTED_ROW.exec(row)
-  return phased
-    ? { sample: phased[1]!, haplotype: String(Number(phased[2]) + 1) }
-    : dotted
-      ? { sample: dotted[1]!, haplotype: dotted[2]! }
-      : { sample: row, haplotype: undefined }
+  return [
+    ...(phased
+      ? [{ sample: phased[1]!, haplotype: String(Number(phased[2]) + 1) }]
+      : []),
+    ...(dotted ? [{ sample: dotted[1]!, haplotype: dotted[2] }] : []),
+    { sample: row, haplotype: undefined },
+  ]
 }
 
 function haplotypeOf(pathName: string) {
@@ -25,12 +29,16 @@ function haplotypeOf(pathName: string) {
 // walk of a bare sample. A cut often holds one haplotype of a sample, so a row
 // naming the other matches nothing rather than the one it holds.
 export function walksForRow(row: string, paths: readonly { name: string }[]) {
-  const { sample, haplotype } = sampleAndHaplotype(row)
-  return paths
-    .map(p => p.name)
-    .filter(
+  const names = paths.map(p => p.name)
+  for (const { sample, haplotype } of readings(row)) {
+    const walks = names.filter(
       name =>
         panSNSample(pathOrigin(name).name) === sample &&
         (haplotype === undefined || haplotypeOf(name) === haplotype),
     )
+    if (walks.length > 0) {
+      return walks
+    }
+  }
+  return []
 }
