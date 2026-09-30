@@ -62,8 +62,8 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     /**
      * #slot
      * The haplotype index `gbz-haplotype-index` writes beside the graph
-     * database, which names its walks. One built with anchor rows (the tool's
-     * default) lets a fetch for a chosen set of lanes walk only those
+     * database, which names its walks. One with stray rows (the tool from
+     * 0.2.0) lets a fetch for a chosen set of lanes walk only those
      * haplotypes. Empty means `graph.haplotype-index.db` beside
      * `graph.gbz.db` if there is one; otherwise the walks go unnamed.
      */

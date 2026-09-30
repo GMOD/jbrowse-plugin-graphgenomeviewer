@@ -342,10 +342,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
 
   /**
    * The predicate gbz-base builds a window for, from the lanes a fetch asks
-   * for. With a companion that carries anchor rows the reader walks only the
-   * wanted haplotypes from the anchor before the window and never names the
-   * rest; without them it names every walk and drops the ones the predicate
-   * rejects. Either way a cut holds those walks, the reference, and the nodes
+   * for. With a companion whose stray rows cover the window gbz-base walks
+   * only the wanted haplotypes; otherwise it names every walk and keeps the
+   * ones the predicate accepts, and throws rather than guess when a walk has
+   * no name. Either way a cut holds those walks, the reference, and the nodes
    * they visit. Undefined when every haplotype is wanted.
    */
   //

@@ -52,17 +52,15 @@ configs).
 
 ## How the reader identifies walks
 
-- **Anchored route** (reader 2.6.0, taken when `keep` is set): look up the
-  anchor at `floor(windowStart / S) * S`, walk the reference to map the window's
-  nodes, read the rows at the anchor, and `lf()` each wanted path through the
-  window. The anchor for k ≥ 1 is the node with the most GBWT positions in
-  `[kS - S/2, kS)`; "the node containing kS" missed most haplotypes at MHC and
-  sat inside the amylase bubble at AMY1. Two traps: a sample can be the path's
-  other orientation, whose walk leaves the window backwards, so only samples
-  running with the reference count; and a path can visit the anchor twice
-  (HG01109#1 at AMY1), so the reader tries visits nearest the reference's own
-  row first. A walk that cannot complete sends the whole window to the sampled
-  route, and `--stats` says why.
+- **Keep route** (reader after 4.1.0, taken when `keep` is set and the index has
+  the bin node lists and stray rows that `gbz-haplotype-index` 0.2.0 writes):
+  read the rows at the anchors around the window and walk each chosen haplotype
+  from one anchor to the next and along its stray rows, checked at query time so
+  that any walk it cannot show complete sends the whole window to the sampled
+  route. `gbz-base-js/docs/haplotype-index.md` has the account. The hosted
+  `anchored.db` predates both tables, so on it every keep query identifies every
+  walk. The route that placed haplotypes from anchor rows and samples alone
+  (reader 2.6.0 to 4.1.0) is gone: it dropped pieces.
 - **Sampled route** (every haplotype, or no anchors): one companion index scan
   per run of consecutive handles (gap over 4,096). A single scan from the
   smallest handle to the largest crossed two node-id gaps at AMY1 and read 7.9M
