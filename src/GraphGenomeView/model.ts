@@ -120,7 +120,10 @@ import {
 } from '@jbrowse/bandage-core/walkEncoding'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
-import { readConfObject } from '@jbrowse/core/configuration'
+import {
+  expandTabixShorthand,
+  readConfObject,
+} from '@jbrowse/core/configuration'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import {
   getContainingTrack,
@@ -2102,14 +2105,18 @@ export function GraphPaneMixin() {
           ? getSession(self).tracks.find(t => t.trackId === geneTrack.trackId)
           : undefined
         const geneAdapter = geneConf
-          ? (readConfObject(geneConf, 'adapter') as Record<string, unknown>)
+          ? expandTabixShorthand(
+              readConfObject(geneConf, 'adapter') as Record<string, unknown>,
+              'gffGzLocation',
+            )
           : undefined
         const genes =
           geneAdapter?.type === 'Gff3TabixAdapter'
             ? {
                 file: uriOf(geneAdapter.gffGzLocation as FileLocation),
                 index: uriOf(
-                  (geneAdapter.index as { location: FileLocation }).location,
+                  (geneAdapter.index as { location?: FileLocation } | undefined)
+                    ?.location,
                 ),
                 format: 'gff3',
               }

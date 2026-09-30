@@ -572,6 +572,36 @@ describe('loadGFAFromLocation', () => {
     )
   })
 
+  test('a gene track in tabix shorthand gives the figure spec its index', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    mockSession.tracks = [
+      {
+        trackId: 'ncbiRefSeq',
+        name: 'NCBI RefSeq',
+        assemblyNames: ['hg38'],
+        adapter: {
+          type: 'Gff3TabixAdapter',
+          uri: 'https://jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz',
+          csi: true,
+        },
+      },
+    ]
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      gfaLocation: location,
+      loadedRegion: TEST_REGION,
+    })
+    await model.load()
+    expect(model.showGenes).toBe(true)
+    expect(model.figureSpec()?.genes).toEqual({
+      file: 'https://jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz',
+      index: 'https://jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz.csi',
+      format: 'gff3',
+    })
+    mockSession.tracks = []
+  })
+
   test('canceling aborts the fetch without reporting an error', async () => {
     mockReadFile.mockImplementation(
       ({ signal }: { signal: AbortSignal }) =>
