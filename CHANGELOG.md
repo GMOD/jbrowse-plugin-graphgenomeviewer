@@ -1,3 +1,14 @@
+## [4.0.27](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.26...v4.0.27) (2026-09-30)
+
+### Other Changes
+
+- Hovering a callset cell lifts that haplotype's walk in the graph ([b2fa5ff](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b2fa5ffaae58153bb9a0567cd61bc44c2ebf0bc6))
+- A row hover takes the graph's hover from the node at its bp; a figure shows it ([7f6aa7f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7f6aa7f12517bea9fb419fb843d79dc262d6bbb2))
+- Genes bind to a contig by chr6 or 6, or by the name a spec states for it ([0df9ce9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0df9ce9cad09c7ee13fce00d520c2aa746f69c4a))
+- One drawsNodes answers what four features each asked the layout ([0a58a3a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0a58a3a386bf4c3182495fc3dbf6991b49e3c5c0))
+- One source per fact across today's changes ([68fa702](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/68fa702c080737e67dd534abd4c9acd5d9469f6a))
+- The e2e suites pass again: a right-click aimed on screen, a tooltip read as drawn ([beae79b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/beae79be9340147d40a2e55680a130d119d3ba84))
+
 ## [4.0.26](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.25...v4.0.26) (2026-09-30)
 
 ### Other Changes
