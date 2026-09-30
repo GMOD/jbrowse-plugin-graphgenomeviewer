@@ -1,5 +1,7 @@
 import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 
+import { isRecord } from '../isRecord'
+
 import type { GraphNode } from '@jbrowse/bandage-core/types'
 
 // What a LinearGenomeView writes to `session.hovered` on every mousemove (see
@@ -30,10 +32,6 @@ export interface LgvHover {
   // hover that states no assembly is taken at its word rather than dropped.
   assemblyName?: string
   featureName?: string
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 interface FeatureLike {

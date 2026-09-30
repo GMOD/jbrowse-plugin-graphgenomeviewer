@@ -1,3 +1,4 @@
+import { isRecord } from '../isRecord'
 import { withRows } from '../launchFromGraph/linearViewTarget'
 
 export interface HighlightRegion {
@@ -10,10 +11,6 @@ export interface HighlightRegion {
 export interface GraphViewHighlight {
   key: string
   region: HighlightRegion
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 function readRegion(value: unknown): HighlightRegion | undefined {

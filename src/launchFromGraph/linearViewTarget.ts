@@ -1,3 +1,5 @@
+import { isRecord } from '../isRecord'
+
 export interface NavigableLinearView {
   id: string
   assemblyNames: string[]
@@ -12,10 +14,6 @@ export interface NavigableLinearView {
     end: number
     assemblyName: string
   }) => unknown
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 // Reads `session.views` structurally, the same way graphViewHighlights does: the
