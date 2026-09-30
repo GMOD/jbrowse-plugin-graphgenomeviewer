@@ -1,5 +1,4 @@
 import { GBZBase } from '@gmod/gbz-base'
-import { TabixIndexedFile } from '@gmod/tabix'
 import {
   cutWindowGFA,
   haplotypePrefix,
@@ -17,11 +16,12 @@ import {
 } from '@jbrowse/bandage-core/pansn'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { updateStatus } from '@jbrowse/core/util'
-import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
+import { openLocation } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { findCompanion } from './companion.ts'
 import { GafFile } from '../gaf/gafFile.ts'
+import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
@@ -393,24 +393,14 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     setup: async () => {
       const location: FileLocation = this.getConf('readsLocation')
       const index: FileLocation = this.getConf(['readsIndex', 'location'])
-      const pm = this.pluginManager
-      if (!isSet(location)) {
-        return undefined
-      }
-      const file = openLocation(location, pm)
-      return new GafFile(
-        file,
-        isSet(index)
-          ? new TabixIndexedFile({
-              filehandle: file,
-              ...openTabixIndexFilehandle(
-                index,
-                this.getConf(['readsIndex', 'indexType']),
-                pm,
-              ),
-            })
-          : undefined,
-      )
+      return isSet(location)
+        ? new GafFile(
+            openLocation(location, this.pluginManager),
+            isSet(index)
+              ? openTabixSlot(this, ['readsLocation'], ['readsIndex'])
+              : undefined,
+          )
+        : undefined
     },
   })
 

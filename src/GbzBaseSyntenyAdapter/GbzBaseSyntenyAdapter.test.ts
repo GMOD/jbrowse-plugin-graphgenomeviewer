@@ -849,6 +849,20 @@ test('reads come from readsLocation, over the segments named', async () => {
   )
 })
 
+test('an indexed readsLocation answers the same reads as reading it whole', async () => {
+  const gz = require.resolve('../../test_data/cactus/cactus_240_280.gaf.gz')
+  const indexed = makeAdapter({
+    readsLocation: { localPath: gz, locationType: 'LocalPathLocation' },
+    readsIndex: {
+      location: { localPath: `${gz}.tbi`, locationType: 'LocalPathLocation' },
+    },
+  })
+  const whole = makeAdapter({ readsLocation: cactusReads() })
+  const sorted = async (adapter: Adapter) =>
+    (await adapter.getReads(['249'])).records.map(r => JSON.stringify(r)).sort()
+  expect(await sorted(indexed)).toEqual(await sorted(whole))
+})
+
 test('an adapter without readsLocation answers no reads', async () => {
   expect(await makeAdapter().getReads(['249'])).toEqual({
     records: [],
