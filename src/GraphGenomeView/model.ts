@@ -45,7 +45,11 @@ import {
   anchorFromPaths,
   chooseReferencePath,
 } from '@jbrowse/bandage-core/pathAnchoring'
-import { pathColorsLegible, pathLegend } from '@jbrowse/bandage-core/pathColors'
+import {
+  pathColorsLegible,
+  pathGreyCssColor,
+  pathLegend,
+} from '@jbrowse/bandage-core/pathColors'
 import {
   FIT_PADDING,
   clampZoom,
@@ -99,6 +103,7 @@ import {
   tubeMapGeneRows,
   tubeMapGenes,
 } from '@jbrowse/bandage-core/tubeMap/genes'
+import { tubeMapNodeColors } from '@jbrowse/bandage-core/tubeMap/nodeColors'
 import {
   axisScaleOf,
   contains,
@@ -750,22 +755,6 @@ export function GraphPaneMixin() {
       get anchorPaths() {
         return self.graph?.anchorPaths ?? []
       },
-      // Which haplotype each ribbon colour belongs to, in the order the file
-      // states the paths — the same list and the same order the geometry keys
-      // its colours off, so the key cannot name a colour that is not drawn.
-      // Empty unless the ribbons are actually on: a colour key beside a drawing
-      // with no colours in it is a legend for nothing.
-      // The tube map colours its tubes whether or not paths are drawn on the
-      // nodes, so under it the key follows the tubes, and names the colours
-      // the tubes were drawn in.
-      get pathLegend() {
-        const paths = self.graph?.paths
-        const tubeMap = self.layoutResult?.tubeMap
-        const colouring = self.drawPaths || tubeMap
-        return colouring && paths && pathColorsLegible(paths.length)
-          ? pathLegend(paths, tubeMap?.pathColors)
-          : []
-      },
       // Every walk the graph carries, named for a picker, whatever the count.
       get walkChoices() {
         const paths = self.graph?.paths
@@ -862,8 +851,17 @@ export function GraphPaneMixin() {
       // an rGFA is the case that proves it: the layout has no reference axis and
       // the ramp still says where on the reference each node came from, which is
       // the only quantity a linear track beside it can be painted with too.
+      //
+      // A tube map tells its paths apart by their tubes' hues, so there 'auto'
+      // leaves the boxes clear and a node scheme is the user's pick. Beside
+      // reads, which take the reds and the blues, the boxes stay clear
+      // whatever was picked.
       get effectiveColorScheme(): ResolvedColorScheme {
-        return resolveColorScheme(self.chosenColorScheme, self.graph)
+        const tubeMap = self.layoutResult?.tubeMap
+        return tubeMap &&
+          (tubeMap.layout.reads.length > 0 || self.chosenColorScheme === 'auto')
+          ? 'uniform'
+          : resolveColorScheme(self.chosenColorScheme, self.graph)
       },
       get nodePositions() {
         return self.layoutResult?.nodePositions
@@ -1163,11 +1161,12 @@ export function GraphPaneMixin() {
       // reruns on each debounced pan and each drag frame. `reference-position`
       // is also what `auto` resolves to on any anchored graph, so this was the
       // default path rather than an opt-in one.
+      //
+      // On the drawn graph, whose ids a folded tube map's boxes carry
       get referenceRamp() {
         return self.effectiveColorScheme === 'reference-position' &&
-          self.graph &&
-          !self.layoutResult?.tubeMap
-          ? computeReferenceRamp(self.graph, self.rampDomain)
+          self.drawnGraph
+          ? computeReferenceRamp(self.drawnGraph, self.rampDomain)
           : undefined
       },
       // The assemblies this view is showing, which is the interface every
@@ -1262,13 +1261,19 @@ export function GraphPaneMixin() {
       },
       // The ramp's two colours for nodes off it, as getNodeColor paints them:
       // charcoal where an rGFA rank puts a node off the reference, grey where
-      // a node has no reference position at all
+      // a node has no reference position at all. A tube map draws the window
+      // alone (trimToWindow), so there only the boxes it drew count.
       get referenceRampOffKeys() {
         const ramp = self.referenceRamp
+        const layout = self.layoutResult
+        const drawn = layout?.tubeMap ? layout.nodePositions : undefined
         let offReference = false
         let unplaced = false
-        if (ramp && self.graph) {
-          for (const node of self.graph.nodes) {
+        if (ramp && self.drawnGraph) {
+          for (const node of self.drawnGraph.nodes) {
+            if (drawn && !drawn[node.id]) {
+              continue
+            }
             if (!ramp.midpoints.has(node.id)) {
               unplaced = true
             } else if (node.stable && node.stable.rank > 0) {
@@ -1277,6 +1282,25 @@ export function GraphPaneMixin() {
           }
         }
         return { offReference, unplaced }
+      },
+      // Each tube map box in its node's colour, where the scheme paints one
+      get tubeMapNodeColors() {
+        const graph = self.drawnGraph
+        return self.layoutResult?.tubeMap && graph
+          ? tubeMapNodeColors(
+              graph,
+              self.effectiveColorScheme,
+              self.referenceRamp,
+            )
+          : undefined
+      },
+      // Beside tinted boxes the tubes step through greys, as they do beside
+      // reads, so no tube shares a box's hue
+      get tubeMapTubeColors() {
+        const colors = self.layoutResult?.tubeMap?.pathColors
+        return colors && this.tubeMapNodeColors
+          ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
+          : colors
       },
       // A node's reference interval, an allele's between its flanks
       nodeSpan(nodeId: string) {
@@ -1287,6 +1311,22 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
+      // Which haplotype each ribbon colour belongs to, in the order the file
+      // states the paths — the same list and the same order the geometry keys
+      // its colours off, so the key cannot name a colour that is not drawn.
+      // Empty unless the ribbons are actually on: a colour key beside a drawing
+      // with no colours in it is a legend for nothing.
+      // The tube map colours its tubes whether or not paths are drawn on the
+      // nodes, so under it the key follows the tubes, and names the colours
+      // the tubes were drawn in.
+      get pathLegend() {
+        const paths = self.graph?.paths
+        const tubeMap = self.layoutResult?.tubeMap
+        const colouring = self.drawPaths || tubeMap
+        return colouring && paths && pathColorsLegible(paths.length)
+          ? pathLegend(paths, self.tubeMapTubeColors)
+          : []
+      },
       // The reference interval under the pointer: the hovered node's, or the
       // hovered bubble's
       get hoveredSpan() {
@@ -1488,7 +1528,12 @@ export function GraphPaneMixin() {
       },
       get tubeMapPicture() {
         const drawing = self.layoutResult?.tubeMap
-        return drawing ? tubeMapPicture(drawing.layout) : undefined
+        return drawing
+          ? tubeMapPicture(drawing.layout, {
+              tubes: self.tubeMapTubeColors,
+              nodes: self.tubeMapNodeColors,
+            })
+          : undefined
       },
       get tubeMapReference() {
         const drawing = self.layoutResult?.tubeMap

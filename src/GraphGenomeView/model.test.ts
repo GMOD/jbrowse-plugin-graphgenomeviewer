@@ -1329,6 +1329,57 @@ describe('zoomToFit on a tube map', () => {
     expect(left).toBeGreaterThanOrEqual(40 - 1e-6)
     expect(right).toBeLessThanOrEqual(model.width - 40 + 1e-6)
   })
+
+  test('Reference position tints the boxes on the ramp and greys the tubes', async () => {
+    const model = await tubeMap(2)
+    model.setColorScheme('reference-position')
+    expect(model.referenceRampDomain).toBeDefined()
+
+    const colors = model.tubeMapNodeColors!
+    const picture = model.tubeMapPicture!
+    expect(picture.nodes.map(n => n.color)).toEqual(
+      picture.nodes.map(n => colors.get(n.name)),
+    )
+    // red to magenta along the backbone, the alleles off it charcoal
+    expect(colors.get('b0+')).toBe('rgba(217,38,38,1)')
+    expect(colors.get('b2+')).toBe('rgba(217,38,217,1)')
+    expect(colors.get('a1+')).toBe('rgba(60,65,72,1)')
+    expect(model.tubeMapTubeColors).toEqual([
+      'hsl(0, 0%, 25%)',
+      'hsl(0, 0%, 70%)',
+    ])
+    expect(model.pathLegend.map(e => e.color)).toEqual(model.tubeMapTubeColors)
+  })
+
+  // on an anchored graph, where Auto paints every other layout on the ramp
+  test('Auto leaves the boxes clear and the tubes their path hues', async () => {
+    const model = await tubeMap(2)
+    expect(model.graph!.anchoredBy).toBeDefined()
+
+    expect(model.effectiveColorScheme).toBe('uniform')
+    expect(model.tubeMapNodeColors).toBeUndefined()
+    expect(model.tubeMapPicture!.nodes.every(n => n.color === undefined)).toBe(
+      true,
+    )
+    expect(model.tubeMapTubeColors).toEqual(
+      model.layoutResult!.tubeMap!.pathColors,
+    )
+    expect(model.referenceRampDomain).toBeUndefined()
+  })
+
+  // the folded drawing's boxes are the coarse graph's nodes, not the cut's
+  test('a folded tube map tints its merged boxes', async () => {
+    const model = await tubeMap(2)
+    model.setColorScheme('reference-position')
+    model.setTubeMapFold(1000)
+    await model.recomputeLayout()
+
+    expect(model.drawnGraph).not.toBe(model.graph)
+    const picture = model.tubeMapPicture!
+    expect(picture.nodes.length).toBeGreaterThan(0)
+    expect(picture.nodes.every(n => n.color !== undefined)).toBe(true)
+    expect(model.referenceRampOffKeys.unplaced).toBe(false)
+  })
 })
 
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set

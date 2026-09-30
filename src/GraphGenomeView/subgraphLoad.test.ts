@@ -327,6 +327,45 @@ describe('reads', () => {
     expect(model.graph?.reads).toEqual([READ])
     expect(model.readsShown).toEqual({ shown: 1, total: 3 })
     expect(model.layoutResult?.tubeMap?.layout.reads).toHaveLength(1)
+    // the reads take the reds and blues, so the boxes stay clear
+    model.setColorScheme('reference-position')
+    expect(model.effectiveColorScheme).toBe('uniform')
+    expect(model.tubeMapNodeColors).toBeUndefined()
+  })
+
+  // A tube map draws the window alone, so its ramp key speaks for its boxes:
+  // h0 is an allele before the window that the tube map trims away
+  test("a tube map's ramp key names no node the window trimmed away", async () => {
+    const OUTSIDE = [
+      'H\tVN:Z:1.0',
+      'S\ts0\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:31999000\tSR:i:0',
+      'S\th0\t*\tLN:i:50\tSN:Z:NA20809#2#CM094351.1\tSO:i:31900000\tSR:i:1',
+      'S\ts1\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:32000000\tSR:i:0',
+      'S\ts2\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:32001000\tSR:i:0',
+      'L\ts0\t+\th0\t+\t0M',
+      'L\th0\t+\ts1\t+\t0M',
+      'L\ts0\t+\ts1\t+\t0M',
+      'L\ts1\t+\ts2\t+\t0M',
+      'P\tref\ts0+,s1+,s2+\t*',
+      'P\talt\ts0+,h0+,s1+,s2+\t*',
+    ].join('\n')
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(OUTSIDE)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createView({
+      layoutMode: 'tubemap',
+      colorScheme: 'reference-position',
+      loadedTrackId: TRACK.trackId,
+      loadedRegion: ON_HG38,
+    })
+    await model.load()
+
+    const drawn = model.tubeMapPicture!.nodes.map(n => n.name)
+    const h0 = model.graph!.nodes.find(n => n.name === 'h0')!
+    expect(drawn).not.toContain(h0.id)
+    expect(model.referenceRampOffKeys.offReference).toBe(false)
   })
 
   test('reads that fail to load leave the graph drawn without them', async () => {

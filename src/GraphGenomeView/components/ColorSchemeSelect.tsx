@@ -17,15 +17,18 @@ const ColorSchemeSelect = observer(function ColorSchemeSelect({
   model: GraphPaneModel
 }) {
   const { classes } = useStyles()
-  // Lifted walks colour their own lanes and grey the rest, and a tube map
-  // colours each tube by its path, so no scheme is on screen to pick
+  // Lifted walks colour their own lanes and grey the rest, and reads take the
+  // reds and blues of a tube map, so no scheme is on screen to pick
   const fixed = model.walkLift
     ? {
         value: 'By walk',
         why: 'Each lifted walk colours its own lane: set it under the menu, Walk, Colour',
       }
-    : model.layoutResult?.tubeMap
-      ? { value: 'By path', why: 'A tube map colours each tube by its path' }
+    : model.layoutResult?.tubeMap?.layout.reads.length
+      ? {
+          value: 'By strand',
+          why: 'Reads take the reds and blues, so the tube map leaves its nodes clear',
+        }
       : undefined
   return (
     <FormControl
