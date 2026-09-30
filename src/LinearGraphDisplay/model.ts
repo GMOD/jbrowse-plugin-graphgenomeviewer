@@ -99,6 +99,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get defaultColorScheme(): ColorScheme {
           return getConf(self, 'colorScheme')
         },
+        // The linear view leaves its highlight bands off this track while false
+        get drawsGenomicCoordinates() {
+          return self.layoutResult === undefined || self.hostPlacesX
+        },
         get canvasHeight() {
           return self.height
         },

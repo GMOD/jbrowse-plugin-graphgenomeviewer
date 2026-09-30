@@ -606,6 +606,7 @@ test('walk rows fit their own bars in the track, since a walk can be longer than
   await wait(SETTLE_MS)
   expect(pane.layoutResult?.referenceAxis).toBe(true)
   expect(pane.hostPlacesX).toBe(false)
+  expect(pane.drawsGenomicCoordinates).toBe(false)
   expect(pane.viewportOwner).toBe('fit')
 })
 
@@ -672,6 +673,27 @@ test("a launch names the pane's props without its type, and opens in that layout
   expect(display.colorScheme).toBe('uniform')
   expect(display.hostPlacesX).toBe(false)
 })
+
+test.each([
+  ['force', false],
+  ['auto', true],
+])(
+  'a %s drawing reports whether its x is genomic to the linear view',
+  async (layoutMode, genomic) => {
+    const { view } = createEnvironment()
+    view.zoomTo(60_000 / WIDTH_PX)
+    view.scrollTo(1_000_000 / view.bpPerPx)
+    view.showTrack(
+      'graph',
+      {},
+      { type: 'LinearGraphDisplay', pane: { layoutMode } },
+    )
+    const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+    display.startRenderingBackend(fakeRenderer())
+    await wait(SETTLE_MS)
+    expect(display.drawsGenomicCoordinates).toBe(genomic)
+  },
+)
 
 test('a launch that states one choice takes the rest from the config', async () => {
   const { view, cuts } = createEnvironment()
