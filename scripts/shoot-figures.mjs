@@ -89,6 +89,27 @@ function mafLane(samples) {
     },
   }
 }
+// The callset's phased rows of the cut's haplotypes, first and labelled as the
+// graph names its walks, the lane tall enough for them alone and the rest of
+// the 464 scrolled below. A row focus would narrow the rows the same way but
+// cover the first label with its chip.
+function phasedRow(haplotype) {
+  const [sample, n] = haplotype.split('.')
+  return `${sample} HP${Number(n) - 1}`
+}
+const CALLSET_ROW_PX = 18
+const CALLSET_TRACK = {
+  trackId: 'hprc2_wave_grch38',
+  type: 'LinearMultiSampleVariantDisplay',
+  rows: {
+    domain: HAPLOTYPES.map(phasedRow),
+    labels: Object.fromEntries(HAPLOTYPES.map(h => [phasedRow(h), h])),
+  },
+  rowHeight: CALLSET_ROW_PX,
+  height: HAPLOTYPES.length * CALLSET_ROW_PX,
+  showTree: false,
+}
+
 function graphView(props) {
   return {
     type: 'GraphGenomeView',
@@ -337,6 +358,20 @@ const FIGURES = {
     },
     [mafLane(HAPLOTYPES)],
   ),
+  // hovering one of HG00133's genotype cells keeps its tube and greys the rest
+  tube_map_micb_row_hover: {
+    session: trackView(
+      MICB_LOC,
+      {
+        trackId: GBZ,
+        layoutMode: 'tubemapref',
+        subgraphHaplotypes: HAPLOTYPES,
+        height: 420,
+      },
+      [CALLSET_TRACK],
+    ),
+    act: hoverCallsetCell('HG00133 HP0'),
+  },
   // the cut opened as a view under the linear view it came from; hovering a
   // variant's box in the view bands its bp in the linear view
   tube_map_micb: {
@@ -381,27 +416,59 @@ async function recolorAnnotations(page) {
   })
 }
 
-// The alignment's rows in the order the graph's key lists the walks, so the two
-// read top to bottom alike. A drawing with no key keeps the samples' order.
-async function orderMafRowsByKey(page) {
+// A lane's rows in the order the graph's key lists the walks, so the two read
+// top to bottom alike: the MAF names a walk's row `HG00097.1`, the phased
+// callset `HG00097 HP0`. A drawing with no key keeps the lane's own order.
+async function orderLaneRowsByKey(page) {
   await page.evaluate(() => {
     const displays = window.JBrowseSession.views[0].tracks.map(
       t => t.displays[0],
     )
-    const maf = displays.find(d => d.type === 'LinearMafDisplay')
     const graph = displays.find(d => d.type === 'LinearGraphDisplay')
-    if (maf && graph) {
-      const rows = new Set(maf.sources.map(s => s.name))
-      maf.setRowOrder(
-        graph.pathLegend
-          .map(({ name }) => {
-            const [sample, haplotype] = name.split('#')
-            return { name: `${sample}.${haplotype}` }
-          })
-          .filter(r => rows.has(r.name)),
-      )
+    const spellings = {
+      LinearMafDisplay: (sample, n) => `${sample}.${n}`,
+      LinearMultiSampleVariantDisplay: (sample, n) => `${sample} HP${n - 1}`,
+    }
+    for (const lane of displays) {
+      const spell = spellings[lane.type]
+      if (graph && spell) {
+        const rows = new Set(lane.sources.map(s => s.name))
+        lane.setRowOrder(
+          graph.pathLegend
+            .map(({ name }) => {
+              const [sample, n] = name.split('#')
+              return { name: spell(sample, Number(n)) }
+            })
+            .filter(r => rows.has(r.name)),
+        )
+      }
     }
   })
+}
+
+// Points at a cell of one haplotype's callset row, so the lane publishes that
+// row and the graph lifts its walk
+function hoverCallsetCell(row) {
+  return async page => {
+    const box = await page.evaluate(() => {
+      const r = document
+        .querySelector('[data-testid="variant-display"]')
+        .getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    })
+    for (let y = 2; y < box.height; y += 3) {
+      for (let x = 100; x < box.width; x += 1) {
+        await page.mouse.move(box.x + x, box.y + y)
+        const name = await page.evaluate(
+          () => window.JBrowseSession.hovered?.hoverFeature?.name,
+        )
+        if (name === row) {
+          return
+        }
+      }
+    }
+    throw new Error(`no cell of ${row} to hover`)
+  }
 }
 
 // Painted, not merely loaded: a 15,808-node cut reports its node count seconds
@@ -466,7 +533,7 @@ try {
     )
     await waitPainted(page)
     await recolorAnnotations(page)
-    await orderMafRowsByKey(page)
+    await orderLaneRowsByKey(page)
     if (act) {
       await act(page)
       await sleep(1000)

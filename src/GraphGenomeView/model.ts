@@ -3325,18 +3325,20 @@ export function GraphPaneMixin() {
                   hover && region && hoverInRegion(hover, region)
                     ? hover
                     : undefined
+                // a row naming a walk is the hover, not the node at its bp,
+                // whose band would cover the row's own cells
+                const rowWalks =
+                  inRegion?.featureName && graph?.paths
+                    ? walksForRow(inRegion.featureName, graph.paths)
+                    : []
                 if (region && graph && !self.pointerInPane) {
                   self.setHoveredNode(
-                    inRegion
+                    inRegion && rowWalks.length === 0
                       ? nodeForLgvHover({ hover: inRegion, nodes: graph.nodes })
                       : null,
                   )
                 }
-                self.setHoveredRowWalks(
-                  inRegion?.featureName && graph?.paths
-                    ? walksForRow(inRegion.featureName, graph.paths)
-                    : [],
-                )
+                self.setHoveredRowWalks(rowWalks)
               })
             }),
           )

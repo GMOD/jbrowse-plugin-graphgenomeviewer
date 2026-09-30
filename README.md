@@ -47,6 +47,7 @@ node in the view bands its bp in the linear view:
 - Seven layouts: force-directed (Bandage FMMM), ordered, anchored, sample rows,
   walk rows, and sequenceTubeMap's tube map on its own axis or the reference's
 - Genes from the session's annotation track, drawn on the graph
+- Hovering a callset or MAF row in the same view lifts that haplotype's walk
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
 - gbz-base haplotypes as walks: carriage as node thickness, walks lifted out as
   metro-map lanes or side by side, a panel per walk or a row per sample, each
