@@ -234,13 +234,16 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
   // under lifted walks each lane states its own scale, and the rest is grey
   const domain = model.walkLift ? undefined : model.referenceRampDomain
   const { offReference, unplaced } = model.referenceRampOffKeys
+  // a measured domain runs between node midpoints, which can fall on a half bp
+  const start = Math.round(domain?.start ?? 0)
+  const end = Math.round(domain?.end ?? 0)
   return domain ? (
     <div style={legendBoxStyle} data-testid="graph-ramp-legend">
       <div style={rampStripStyle} />
       <div style={rampEndsStyle}>
-        <span>{domain.start.toLocaleString()}</span>
-        <span>({formatBp(domain.end - domain.start)})</span>
-        <span>{domain.end.toLocaleString()}</span>
+        <span>{start.toLocaleString()}</span>
+        <span>({formatBp(end - start)})</span>
+        <span>{end.toLocaleString()}</span>
       </div>
       {offReference ? (
         <div style={legendRowStyle}>
