@@ -51,9 +51,11 @@ export {
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'
 
-  constructor() {
+  constructor(unreadable?: string) {
     super(
-      'no haplotype index is set, so the walks cannot be named; build one with gbz-haplotype-index (cargo install gbz-haplotype-index) and set it as haplotypeIndexLocation',
+      unreadable === undefined
+        ? 'no haplotype index is set, so the walks cannot be named; build one with gbz-haplotype-index (cargo install gbz-haplotype-index) and set it as haplotypeIndexLocation'
+        : `the haplotype index beside the graph database could not be checked (${unreadable}), so the walks cannot be named; reload to try again, or set haplotypeIndexLocation`,
     )
   }
 }
@@ -220,9 +222,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     setup: async () => {
       const gbzDb: FileLocation = this.getConf('gbzDbLocation')
       const configured: FileLocation = this.getConf('haplotypeIndexLocation')
-      const indexLocation = isSet(configured)
-        ? configured
+      const companion = isSet(configured)
+        ? { location: configured }
         : await findCompanion(gbzDb, this.pluginManager)
+      const indexLocation = companion.location
       const db = await GBZBase.open(
         openLocation(gbzDb, this.pluginManager),
         indexLocation
@@ -243,7 +246,13 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         anchorPrefix: resolvePanSNPrefix(this, anchor),
         referenceSamples,
       })
-      return { db, anchor, referenceSample, referenceSamples }
+      return {
+        db,
+        anchor,
+        referenceSample,
+        referenceSamples,
+        unreadableIndex: companion.unreadable,
+      }
     },
   })
 
@@ -554,9 +563,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
 
   getFeatures(region: Region, opts: GbzFeatureOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
-      const { db, anchor } = await this.graph(opts)
+      const { db, anchor, unreadableIndex } = await this.graph(opts)
       if (!db.hasHaplotypeIndex) {
-        throw new NoHaplotypeIndexError()
+        throw new NoHaplotypeIndexError(unreadableIndex)
       }
       // the graph is indexed on its reference alone, so a window on a
       // haplotype lane has no answer: a lane pair is read inside the anchor's

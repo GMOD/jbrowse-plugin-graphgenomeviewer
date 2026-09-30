@@ -16,18 +16,30 @@ export function siblingCompanion(gbzDb: FileLocation) {
     : undefined
 }
 
+// 404 is a missing file, and so is 403 from a bucket that does not let a
+// reader list it; anything else leaves the file's presence unknown
+function isMissing(error: unknown) {
+  return (
+    error instanceof Error &&
+    (/\bHTTP 40[34]\b/.test(error.message) ||
+      (error as { code?: unknown }).code === 'ENOENT')
+  )
+}
+
+// `unreadable` is why a companion that may be there could not be checked, such
+// as a network error, or a server that answers a missing file without CORS
 export async function findCompanion(
   gbzDb: FileLocation,
   pluginManager?: PluginManager,
-) {
+): Promise<{ location?: FileLocation; unreadable?: string }> {
   const candidate = siblingCompanion(gbzDb)
   if (!candidate) {
-    return undefined
+    return {}
   }
   try {
     await openLocation(candidate, pluginManager).stat()
-    return candidate
-  } catch {
-    return undefined
+    return { location: candidate }
+  } catch (error) {
+    return isMissing(error) ? {} : { unreadable: String(error) }
   }
 }
