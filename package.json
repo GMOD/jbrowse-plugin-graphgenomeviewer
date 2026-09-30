@@ -44,7 +44,7 @@
     "bench": "vitest bench --run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "prepack": "pnpm build",
-    "preversion": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm host-compat",
+    "preversion": "node scripts/ci-green.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm host-compat",
     "version": "node scripts/version.mjs",
     "postversion": "git push --follow-tags"
   },

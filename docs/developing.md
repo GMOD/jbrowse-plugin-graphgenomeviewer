@@ -71,8 +71,10 @@ a re-export the host no longer serves.
 
 BandageJS draws with this repo's core from npm, so CI's **BandageJS on this
 core** job packs the core as it would publish, installs it into BandageJS's main
-and runs BandageJS's tests on it. Check it passed on the commit you tag: a core
-change can pass everything here and still break that page.
+and runs BandageJS's tests on it: a core change can pass everything here and
+still break that page. `pnpm version` refuses unless the Push workflow, that job
+and the browser suites among it, passed on the commit being released
+(`scripts/ci-green.mjs`), so push the commit and let CI finish first.
 
 ## Figures
 
