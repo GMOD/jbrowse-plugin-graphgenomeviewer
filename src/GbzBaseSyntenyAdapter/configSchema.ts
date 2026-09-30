@@ -1,3 +1,4 @@
+import { GBZ_CUT_DEFAULTS } from '@jbrowse/bandage-core/gbzWindow'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { types } from '@jbrowse/mobx-state-tree'
 
@@ -128,7 +129,7 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
         'contained',
         'overlapping',
       ]),
-      defaultValue: 'contained',
+      defaultValue: GBZ_CUT_DEFAULTS.snarls,
     },
     /**
      * #slot
@@ -163,7 +164,7 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
      */
     context: {
       type: 'number',
-      defaultValue: 1000,
+      defaultValue: GBZ_CUT_DEFAULTS.context,
       advanced: true,
     },
     /**
@@ -173,7 +174,7 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
      */
     nodeLimit: {
       type: 'number',
-      defaultValue: 100000,
+      defaultValue: GBZ_CUT_DEFAULTS.limit,
       advanced: true,
     },
   },
