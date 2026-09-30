@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 
 import { drawReferenceStrip } from '@jbrowse/bandage-core/referenceStrip'
+import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
 import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
-import { FADED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
 
 import type { GraphPaneModel } from '../model'
 
@@ -87,7 +88,7 @@ function sampledSwatch(colors: string[]) {
   )
   return picked.length > 1
     ? `linear-gradient(to right, ${picked.join(', ')})`
-    : (picked[0] ?? FADED_SWATCH)
+    : (picked[0] ?? LIFT_BACKDROP_CSS)
 }
 
 // the strip's own colours: a row per lifted walk in its lane's, else the
@@ -152,7 +153,9 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
       </div>
       {model.referenceStripFaded ? (
         <div style={legendRowStyle}>
-          <StripSwatch rows={[{ key: 'pale', background: FADED_SWATCH }]} />
+          <StripSwatch
+            rows={[{ key: 'pale', background: LIFT_BACKDROP_CSS }]}
+          />
           <span>
             reference not on{' '}
             {rowPerWalk ? "that row's walk" : model.liftedWalksLabel}

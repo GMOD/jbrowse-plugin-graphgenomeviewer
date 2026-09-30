@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
-import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import {
+  LIFT_BACKDROP_CSS,
+  REFERENCE_RAMP_ALT_CSS,
+} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -21,7 +24,7 @@ import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import UnpopButton from './UnpopButton'
 import WalkKey, { walkSwatchStyle } from './WalkKey'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
-import { FADED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
+import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { RAMP_GRADIENT_CSS } from './referenceRampCss'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -204,7 +207,7 @@ const WalkReadout = observer(function WalkReadout({
       {/* the ramp's own key, which names this, is off while walks are lifted */}
       {model.liftPaintsOffReference ? <OffReferenceRow /> : null}
       <div style={legendRowStyle}>
-        <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
+        <div style={{ ...walkSwatchStyle, background: LIFT_BACKDROP_CSS }} />
         <span>not on {model.liftedWalksLabel}</span>
       </div>
     </div>

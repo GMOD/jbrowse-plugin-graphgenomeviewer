@@ -9,6 +9,3 @@ export const legendBoxStyle = {
 }
 
 export const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
-
-// a faded node: grey at the fade's alpha
-export const FADED_SWATCH = 'rgba(160, 160, 160, 0.18)'

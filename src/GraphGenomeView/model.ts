@@ -78,6 +78,7 @@ import {
   stripOverhang,
 } from '@jbrowse/bandage-core/referenceStrip'
 import {
+  LIFT_BACKDROP_CSS,
   buildGeometry,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -229,9 +230,6 @@ const paperCss = ([r, g, b]: number[]) =>
 const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
-// a tube that is not the hovered lane row's, on light paper and on dark
-const FADED_TUBE = 'rgb(222, 222, 222)'
-const FADED_TUBE_DARK = 'rgb(70, 70, 70)'
 
 const FACETS = [
   { value: 'none', label: 'Off' },
@@ -803,9 +801,14 @@ export function GraphPaneMixin() {
           ? computeReferenceRamp(graph, this.rampDomain)
           : undefined
       },
+      // Whether the chosen layout draws the graph's nodes, which a facet
+      // splits and a hovered lane row's walk is lifted over
+      get modeDrawsNodes() {
+        return layoutModeByValue(self.chosenLayoutMode).drawsNodes
+      },
       // The walks picked, or while none is, those of the lane row hovered
       get liftedWalkLayers(): WalkLayer[] {
-        return self.walkLayers.length > 0
+        return self.walkLayers.length > 0 || !this.modeDrawsNodes
           ? self.walkLayers
           : self.hoveredRowWalks.map(walk => ({ walk }))
       },
@@ -825,16 +828,13 @@ export function GraphPaneMixin() {
         const { graph } = self
         const lift = this.walkLift
         return self.facet !== 'none' &&
-          this.facetsWalks &&
+          this.modeDrawsNodes &&
           graph &&
           lift &&
           self.walkLayers.length > 1 &&
           lift.walks.length > 1
           ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
           : undefined
-      },
-      get facetsWalks() {
-        return layoutModeByValue(self.chosenLayoutMode).drawsNodes
       },
       // The lifted walks as drawn, each panel's own while faceted
       get drawnWalks() {
@@ -1364,11 +1364,7 @@ export function GraphPaneMixin() {
         const paths = self.drawnGraph?.paths
         return tubes && paths && hovered.size > 0
           ? tubes.map((color, i) =>
-              hovered.has(paths[i]?.name ?? '')
-                ? color
-                : self.darkMode
-                  ? FADED_TUBE_DARK
-                  : FADED_TUBE,
+              hovered.has(paths[i]?.name ?? '') ? color : LIFT_BACKDROP_CSS,
             )
           : tubes
       },
@@ -3592,7 +3588,7 @@ export function GraphPaneMixin() {
                         self.setWalkLayers([])
                       },
                     },
-                    ...(self.walkLayers.length > 1 && self.facetsWalks
+                    ...(self.walkLayers.length > 1 && self.modeDrawsNodes
                       ? [
                           {
                             label: 'Side by side',

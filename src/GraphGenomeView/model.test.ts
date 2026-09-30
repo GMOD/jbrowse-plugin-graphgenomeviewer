@@ -2854,6 +2854,21 @@ describe('walk rows', () => {
     expect(model.walkLayers).toEqual([])
   })
 
+  // walk rows draw no nodes to lift a walk over, and the colour lock would
+  // name a scheme nothing paints
+  test('a hovered lane row lifts nothing over walk rows', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const lock = model.colorSchemeLock
+    model.setHoveredRowWalks(['A#1#ctg'])
+    expect(model.walkLift).toBeUndefined()
+    expect(model.colorSchemeLock).toEqual(lock)
+  })
+
   test('a hovered lane row lifts its walks while none is picked', async () => {
     rpcRespond()
     const model = stateModelFactory().create({
