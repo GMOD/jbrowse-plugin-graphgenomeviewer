@@ -11,6 +11,7 @@ Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 | `launchAndHover.test.ts` | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints |
 | `tubeMap.test.ts`        | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view    |
 | `tubeMapReads.test.ts`   | a GBZ track's GAF reads load through the worker and lay out under its tube map           |
+| `walkHover.test.ts`      | hovering a node with walks lifted keeps the view still, since only a browser sizes a key |
 
 ## What `launchAndHover` demonstrates
 

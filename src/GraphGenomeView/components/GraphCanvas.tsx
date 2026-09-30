@@ -322,6 +322,11 @@ const leaderStyle = {
 
 // Measures itself for the model, so no label is placed under a legend and
 // none gives way to one that is not drawn.
+//
+// At rest only: a hovered node writes its place on each lifted walk into the
+// walks' keys, and a legend that grew by those rows refitted the view, which
+// cleared the hover that grew it. The rows go when the hover does, and that
+// resize lands with the hover cleared.
 const Legends = observer(function Legends({
   model,
 }: {
@@ -335,7 +340,7 @@ const Legends = observer(function Legends({
     }
     // the last callback can land after the track is closed
     const observer = new ResizeObserver(() => {
-      if (isAlive(model)) {
+      if (isAlive(model) && model.hoveredNode === null) {
         model.setLegendSize({ width: el.offsetWidth, height: el.offsetHeight })
       }
     })
