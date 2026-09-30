@@ -92,6 +92,66 @@ describe('buildTrackConfig', () => {
     })
   })
 
+  it('a .CSI index of either case implies one beside the links', () => {
+    const conf = buildTrackConfig({
+      choice: 'RgfaTabixAdapter',
+      loc: segs,
+      indexLoc: {
+        uri: 'https://example.com/hprc.segs.bed.gz.CSI',
+        locationType: 'UriLocation',
+      },
+      assembly: 'hg38',
+      sample: '',
+      trackId: 'hprc',
+      name: 'HPRC graph',
+    })
+    expect(conf.adapter).toMatchObject({
+      segmentsIndex: { indexType: 'CSI' },
+      linksIndex: { indexType: 'CSI' },
+    })
+  })
+
+  // A file picked in the browser brings nothing from beside it, so a guessed
+  // sibling would be the file itself
+  it('asks for a URL where a picked file needs a file beside it', () => {
+    const picked = (name: string) => ({
+      name,
+      blobId: name,
+      locationType: 'BlobLocation' as const,
+    })
+    const args = {
+      indexLoc: undefined,
+      assembly: 'K12',
+      sample: '',
+      trackId: 'g',
+      name: 'g',
+    }
+    expect(() =>
+      buildTrackConfig({
+        ...args,
+        choice: 'RgfaTabixAdapter',
+        loc: picked('g.segs.bed.gz'),
+      }),
+    ).toThrow('open it by URL')
+    expect(() =>
+      buildTrackConfig({
+        ...args,
+        choice: 'MinigraphBubbleAdapter',
+        loc: picked('g.bubbles.bed.gz'),
+      }),
+    ).toThrow('open it by URL')
+    expect(
+      buildTrackConfig({
+        ...args,
+        choice: 'MinigraphBubbleAdapter',
+        loc: picked('g.bubbles.bed.gz'),
+        indexLoc: picked('g.bubbles.bed.gz.csi'),
+      }).adapter,
+    ).toMatchObject({
+      index: { indexType: 'CSI', location: { name: 'g.bubbles.bed.gz.csi' } },
+    })
+  })
+
   it('refuses a segments file without the .segs.bed.gz suffix', () => {
     expect(() =>
       buildTrackConfig({

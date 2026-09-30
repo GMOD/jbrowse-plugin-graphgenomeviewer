@@ -71,6 +71,18 @@ test('other files and other adapter hints defer', () => {
   })
 })
 
+// its links BED is out of the browser's reach, so it opens as whatever else
+// guesses it rather than failing the guess
+test('a segments BED picked in the browser defers', () => {
+  expect(
+    guessers().adapter({
+      name: 'g.segs.bed.gz',
+      blobId: 'b1',
+      locationType: 'BlobLocation',
+    }),
+  ).toEqual({ type: 'Fallback' })
+})
+
 test('both graph adapters guess a GraphTrack', () => {
   const { trackType } = guessers()
   expect(trackType('RgfaTabixAdapter')).toBe('GraphTrack')

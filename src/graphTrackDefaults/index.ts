@@ -1,7 +1,7 @@
 import {
   buildAdapterConfig,
   isSegmentsLocation,
-  splitUri,
+  locationName,
 } from '../GraphAddTrackWorkflow/buildTrackConfig'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
@@ -17,14 +17,6 @@ interface TrackConfigSnapshot {
 }
 
 const GRAPH_ADAPTERS = new Set(['RgfaTabixAdapter', 'GbzBaseSyntenyAdapter'])
-
-function locationName(loc: FileLocation) {
-  return 'uri' in loc
-    ? splitUri(loc.uri).name
-    : 'localPath' in loc
-      ? loc.localPath
-      : loc.name
-}
 
 export function isGbzLocation(loc: FileLocation) {
   return locationName(loc).toLowerCase().endsWith('.gbz.db')

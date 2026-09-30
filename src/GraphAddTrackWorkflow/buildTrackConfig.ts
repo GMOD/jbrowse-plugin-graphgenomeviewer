@@ -31,29 +31,40 @@ export function locationName(loc: FileLocation) {
     ? splitUri(loc.uri).name
     : 'localPath' in loc
       ? loc.localPath
-      : ''
+      : loc.name
+}
+
+// A file picked in the browser comes without the directory it sat in
+export function readsSiblings(loc: FileLocation) {
+  return 'uri' in loc || 'localPath' in loc
 }
 
 export function renamed(loc: FileLocation, rename: (name: string) => string) {
   if ('uri' in loc) {
     const { name, query } = splitUri(loc.uri)
     return { ...loc, uri: rename(name) + query }
+  } else if ('localPath' in loc) {
+    return { ...loc, localPath: rename(loc.localPath) }
+  } else {
+    throw new Error(
+      `${loc.name} was picked in the browser, which reads no file beside it; open it by URL`,
+    )
   }
-  return 'localPath' in loc ? { ...loc, localPath: rename(loc.localPath) } : loc
 }
 
 function sibling(loc: FileLocation, suffix: string) {
   return renamed(loc, name => name + suffix)
 }
 
+// A segments BED the links BED can be found beside
 export function isSegmentsLocation(loc: FileLocation) {
-  return locationName(loc).endsWith(SEGMENTS_SUFFIX)
+  return readsSiblings(loc) && locationName(loc).endsWith(SEGMENTS_SUFFIX)
 }
 
 function linksLocation(loc: FileLocation) {
-  if (!isSegmentsLocation(loc)) {
+  if (!locationName(loc).endsWith(SEGMENTS_SUFFIX)) {
     throw new Error(
-      `Expected a segments BED ending in ${SEGMENTS_SUFFIX}, got ${locationName(loc) || 'a blob'}`,
+      `Expected a segments BED ending in ${SEGMENTS_SUFFIX}, got ${locationName(loc)}`,
     )
   }
   return renamed(
@@ -73,7 +84,9 @@ function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
 
 // The links file's index is assumed beside it, of the kind the segments' is.
 function siblingIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
-  const csi = indexLoc !== undefined && locationName(indexLoc).endsWith('.csi')
+  const csi =
+    indexLoc !== undefined &&
+    makeIndexType(locationName(indexLoc), 'CSI', 'TBI') === 'CSI'
   return csi
     ? { location: sibling(loc, '.csi'), indexType: 'CSI' }
     : { location: sibling(loc, '.tbi'), indexType: 'TBI' }

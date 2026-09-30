@@ -3,6 +3,7 @@ import { openLocation } from '@jbrowse/core/util/io'
 
 import {
   locationName,
+  readsSiblings,
   renamed,
 } from '../GraphAddTrackWorkflow/buildTrackConfig.ts'
 
@@ -10,7 +11,7 @@ import type PluginManager from '@jbrowse/core/PluginManager'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 export function siblingCompanion(gbzDb: FileLocation) {
-  return haplotypeIndexBeside(locationName(gbzDb))
+  return readsSiblings(gbzDb) && haplotypeIndexBeside(locationName(gbzDb))
     ? renamed(gbzDb, name => haplotypeIndexBeside(name)!)
     : undefined
 }
