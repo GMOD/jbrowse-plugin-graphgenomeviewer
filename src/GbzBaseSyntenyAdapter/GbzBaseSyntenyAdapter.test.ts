@@ -779,13 +779,25 @@ test('a haplotype bridging the gap is one walk, and its link across the gap is k
   expect(gfaLines(gfa, 'L')).toContain('L\t6\t+\t7\t+\t0M')
 })
 
-test('two paths of a haplotype that meet with no edge between them stay two walks', async () => {
-  const gfa = await fragmented(1000).getSubgraph(acrossGap)
-  expect(walksOf(gfa, 'HG004')).toEqual([
-    '1 0-4000 >1>2>4>5',
-    '1 4000-8000 >8>9>11>12',
-  ])
-  expect(gfaLines(gfa, 'L')).not.toContain('L\t5\t+\t8\t+\t0M')
+// at context 0 each cut holds its own fragment's nodes alone, so HG007's one
+// path through 5 -> 8 comes back as two pieces meeting at 4000, and neither
+// cut writes the link
+test('a walk whose pieces meet between cuts is one walk, with the link between them', async () => {
+  const gfa = await fragmented(0).getSubgraph(acrossGap)
+  expect(walksOf(gfa, 'HG007')).toEqual(['1 0-8000 >1>2>4>5>8>9>11>12'])
+  expect(walksOf(gfa, 'HG008')).toEqual(['1 0-8000 <12<11<9<8<5<4<2<1'])
+  expect(gfaLines(gfa, 'L')).toContain('L\t5\t+\t8\t+\t0M')
+})
+
+// HG007 and HG008 walk 5 -> 8, so the graph links HG004's two paths
+test('two paths of a haplotype that meet stay two walks, though the graph links them', async () => {
+  for (const context of [0, 1000, 1500]) {
+    const gfa = await fragmented(context).getSubgraph(acrossGap)
+    expect(walksOf(gfa, 'HG004')).toEqual([
+      '1 0-4000 >1>2>4>5',
+      '1 4000-8000 >8>9>11>12',
+    ])
+  }
 })
 
 test('a lane pair across a reference gap is cut once per fragment', async () => {

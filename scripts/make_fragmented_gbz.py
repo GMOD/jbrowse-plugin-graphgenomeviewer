@@ -1,7 +1,8 @@
 """The GFA behind src/GbzBaseSyntenyAdapter/test_data/fragmented.*: GRCh38 chr1
 in two fragments, [0, 4L) and [6L, 10L), and haplotypes that bridge the gap,
 break at it, walk it backwards, visit it twice, and meet at one coordinate as
-two paths with no edge between them. L is each node's length.
+two paths that the graph links through other haplotypes' 5 -> 8 edge. L is
+each node's length.
 
     python3 scripts/make_fragmented_gbz.py 1000 fragmented.gfa
     vg gbwt -G fragmented.gfa --gbz-format -g fragmented.gbz
@@ -40,6 +41,8 @@ W = [
     ('HG006', '1', 'chr1', 0, ['1', '2', '4', '5', '6', '7', '6', '7', '8', '9', '11', '12']),
     ('HG004', '1', 'chr1', 0, f1),
     ('HG004', '1', 'chr1', length(f1), f2),
+    ('HG007', '1', 'chr1', 0, f1 + f2),
+    ('HG008', '1', 'chr1', 0, ['-12', '-11', '-9', '-8', '-5', '-4', '-2', '-1']),
 ]
 edges = set()
 for w in W:
