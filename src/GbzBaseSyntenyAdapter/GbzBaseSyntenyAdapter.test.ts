@@ -726,67 +726,86 @@ test('clipToRegion keeps a lane pair whole and drops its CIGAR', async () => {
   }
 })
 
-// CHM13's contigs are several fragments each in HPRC v2.1, and gbz-base cuts
-// the fragment its window starts in alone; this fixture's are whole, so a
-// second GRCh38 chr6 fragment is reported starting at `boundary`
-async function splitReferenceAt(adapter: Adapter, boundary: number) {
-  const { db } = await (
-    adapter as unknown as {
-      graph: () => Promise<{
-        db: {
-          paths: () => Promise<
-            {
-              isIndexed: boolean
-              name: { sample: string; contig: string; fragment: number }
-            }[]
-          >
-          getSubgraphForRange: unknown
-        }
-      }>
-    }
-  ).graph()
-  const paths = await db.paths()
-  const grch38 = paths.find(
-    p => p.isIndexed && p.name.sample === 'GRCh38' && p.name.contig === 'chr6',
-  )!
-  vi.spyOn(db, 'paths').mockResolvedValue([
-    ...paths,
-    { ...grch38, name: { ...grch38.name, fragment: boundary } },
-  ])
-  const cut = vi.spyOn(db, 'getSubgraphForRange')
-  return () => cut.mock.calls.map(([, start, end]) => [start, end]).sort()
+// GRCh38 chr1 in two fragments, [0, 4000) and [6000, 10000), over 1 kb nodes;
+// scripts/make_fragmented_gbz.py builds it. CHM13's contigs are several
+// fragments each in HPRC v2.1, and gbz-base cuts only the fragment a window
+// starts in.
+const fragmented = (context: number) =>
+  new Adapter(
+    configSchema.create({
+      gbzDbLocation: {
+        localPath: require.resolve('./test_data/fragmented.gbz.db'),
+        locationType: 'LocalPathLocation',
+      },
+      haplotypeIndexLocation: {
+        localPath: require.resolve('./test_data/fragmented.haplotype-index.db'),
+        locationType: 'LocalPathLocation',
+      },
+      assemblyNames: ['hg38'],
+      assemblyNameToPanSN: { hg38: 'GRCh38#0' },
+      context,
+    }),
+  )
+const acrossGap = {
+  refName: 'chr1',
+  start: 0,
+  end: 10000,
+  assemblyName: 'hg38',
 }
+const walksOf = (gfa: string, sample: string) =>
+  gfaLines(gfa, 'W')
+    .map(line => line.split('\t'))
+    .filter(walk => walk[1] === sample)
+    .map(walk => `${walk[2]} ${walk[4]}-${walk[5]} ${walk[6]}`)
 
-test('a lane pair across a reference fragment boundary is cut once per fragment', async () => {
-  const adapter = anchoredAdapter()
-  const boundary = 31498700
-  const cuts = await splitReferenceAt(adapter, boundary)
-  const records = await feats(adapter, insertionWindow, pair)
-  expect(cuts()).toEqual([
-    [insertionWindow.start, boundary],
-    [boundary, insertionWindow.end],
-  ])
-  expect(records.length).toBeGreaterThan(1)
-  vi.restoreAllMocks()
-})
-
-test('getSubgraph across a reference fragment boundary holds both fragments, reference walks first', async () => {
-  const adapter = makeAdapter()
-  const boundary = 31500500
-  const cuts = await splitReferenceAt(adapter, boundary)
-  const gfa = await adapter.getSubgraph(window)
-  expect(cuts()).toEqual([
-    [window.start, boundary],
-    [boundary, window.end],
+test('getSubgraph across a reference gap holds both fragments, the reference walks first', async () => {
+  const gfa = await fragmented(1000).getSubgraph(acrossGap)
+  const walks = gfaLines(gfa, 'W').map(line => line.split('\t')[1])
+  expect(walks.slice(0, 2)).toEqual(['GRCh38', 'GRCh38'])
+  expect(walksOf(gfa, 'GRCh38')).toEqual([
+    '0 0-4000 >1>2>4>5',
+    '0 6000-10000 >8>9>11>12',
   ])
   for (const kind of ['H', 'S', 'L']) {
     const lines = gfaLines(gfa, kind)
     expect(new Set(lines).size).toBe(lines.length)
   }
-  const walks = gfaLines(gfa, 'W').map(line => line.split('\t'))
-  expect(walks.slice(0, 2).map(walk => walk[1])).toEqual(['GRCh38', 'GRCh38'])
-  expect(walks.slice(2).every(walk => walk[1] !== 'GRCh38')).toBe(true)
-  vi.restoreAllMocks()
+})
+
+test('a haplotype bridging the gap is one walk, and its link across the gap is kept', async () => {
+  const gfa = await fragmented(1000).getSubgraph(acrossGap)
+  expect(walksOf(gfa, 'HG003')).toEqual(['1 0-10000 >1>2>4>5>6>7>8>9>11>12'])
+  expect(walksOf(gfa, 'HG005')).toEqual(['1 0-10000 <12<11<9<8<7<6<5<4<2<1'])
+  expect(gfaLines(gfa, 'L')).toContain('L\t6\t+\t7\t+\t0M')
+})
+
+test('two paths of a haplotype that meet with no edge between them stay two walks', async () => {
+  const gfa = await fragmented(1000).getSubgraph(acrossGap)
+  expect(walksOf(gfa, 'HG004')).toEqual([
+    '1 0-4000 >1>2>4>5',
+    '1 4000-8000 >8>9>11>12',
+  ])
+  expect(gfaLines(gfa, 'L')).not.toContain('L\t5\t+\t8\t+\t0M')
+})
+
+test('a lane pair across a reference gap is cut once per fragment', async () => {
+  const adapter = fragmented(1000)
+  const { db } = await (
+    adapter as unknown as {
+      graph: () => Promise<{ db: { getSubgraphForRange: unknown } }>
+    }
+  ).graph()
+  const cut = vi.spyOn(db, 'getSubgraphForRange')
+  const records = await feats(adapter, acrossGap, {
+    queryAssemblyName: 'HG003#1',
+    targetAssemblyName: 'HG002#1',
+  })
+  expect(cut.mock.calls.map(([, start, end]) => [start, end]).sort()).toEqual([
+    [0, 6000],
+    [6000, 10000],
+  ])
+  expect(records.length).toBeGreaterThan(0)
+  cut.mockRestore()
 })
 
 test('a lane pair without its target lane is refused', async () => {
