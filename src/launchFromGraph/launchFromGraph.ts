@@ -9,6 +9,19 @@ import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 export interface TrackScanSession {
   tracks: AnyConfigurationModel[]
   assemblies: AnyConfigurationModel[]
+  // optional, as a hand-built session in a test has none
+  assemblyManager?: {
+    has: (name: string) => boolean
+    get: (name: string) => { name: string } | undefined
+  }
+}
+
+// A track may name an assembly by an alias, and contributors are resolved to
+// canonical names. `has` before `get`, as assemblyResolver does: `get` asks
+// every plugin to go supply a name it does not know.
+export function canonicalAssemblyName(session: TrackScanSession, name: string) {
+  const manager = session.assemblyManager
+  return manager?.has(name) ? (manager.get(name)?.name ?? name) : name
 }
 
 export interface GraphLaunchSession extends TrackScanSession {
@@ -201,7 +214,11 @@ function assemblyNamesOfTrack(
     t => readConfObject(t, 'trackId') === trackId,
   )
   const names: unknown = track ? readConfObject(track, 'assemblyNames') : []
-  return Array.isArray(names) ? names.filter(n => typeof n === 'string') : []
+  return Array.isArray(names)
+    ? names
+        .filter(n => typeof n === 'string')
+        .map(n => canonicalAssemblyName(session, n))
+    : []
 }
 
 // One panel per contributing assembly, each framed on the locus that assembly

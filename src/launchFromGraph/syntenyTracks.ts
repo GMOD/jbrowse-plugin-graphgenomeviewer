@@ -2,6 +2,8 @@ import { readConfObject } from '@jbrowse/core/configuration'
 import { getTrackName } from '@jbrowse/core/util/tracks'
 import { getEnv, isStateTreeNode } from '@jbrowse/mobx-state-tree'
 
+import { canonicalAssemblyName } from './launchFromGraph'
+
 import type { TrackScanSession } from './launchFromGraph'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
@@ -54,7 +56,11 @@ export function launchableSyntenyTracks(
       typeof trackId === 'string' &&
       Array.isArray(trackAssemblies)
     ) {
-      const coverage = trackAssemblies.filter(name => wanted.has(name)).length
+      const coverage = trackAssemblies.filter(
+        name =>
+          typeof name === 'string' &&
+          wanted.has(canonicalAssemblyName(session, name)),
+      ).length
       if (coverage >= 2) {
         found.push({ trackId, name: getTrackName(track, session), coverage })
       }
