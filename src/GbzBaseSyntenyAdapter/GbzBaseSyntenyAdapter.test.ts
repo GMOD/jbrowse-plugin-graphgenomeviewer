@@ -1,3 +1,7 @@
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+
 import { Subgraph } from '@gmod/gbz-base'
 import { numericCigarToString } from '@jbrowse/cigar-utils'
 import PluginManager from '@jbrowse/core/PluginManager'
@@ -6,6 +10,7 @@ import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter, {
+  NoHaplotypeIndexError,
   NoReferenceSampleError,
   PairTargetError,
   laneAssemblyName,
@@ -431,6 +436,22 @@ test('getFeatures for a haplotype set answers the same records as filtering the 
 // A lane's window is in its own contig's coordinates, which the graph is not
 // indexed on; the adapter says so rather than answering '' for the view to
 // report as "no GFA".
+test('getSubgraph for a haplotype set without a haplotype index says so', async () => {
+  const bare = path.join(
+    fs.mkdtempSync(path.join(os.tmpdir(), 'gbz-')),
+    'graph.db',
+  )
+  fs.symlinkSync(loc().localPath, bare)
+  const adapter = makeAdapter({
+    gbzDbLocation: { localPath: bare, locationType: 'LocalPathLocation' },
+    haplotypeIndexLocation: { uri: '', locationType: 'UriLocation' },
+  })
+  await expect(
+    adapter.getSubgraph(window, { haplotypes: ['HG01106#1'] }),
+  ).rejects.toThrow(NoHaplotypeIndexError)
+  expect(await adapter.getSubgraph(window)).toContain('W\tunknown\t')
+})
+
 test('getSubgraph refuses a window on a haplotype lane with a message naming the anchor', async () => {
   await expect(
     makeAdapter().getSubgraph({ ...window, assemblyName: 'HG01106#1' }),

@@ -55,7 +55,7 @@ export class NoHaplotypeIndexError extends Error {
     super(
       unreadable === undefined
         ? 'no haplotype index is set, so the walks cannot be named; build one with gbz-haplotype-index (cargo install gbz-haplotype-index) and set it as haplotypeIndexLocation'
-        : `the haplotype index beside the graph database could not be checked (${unreadable}), so the walks cannot be named; reload to try again, or set haplotypeIndexLocation`,
+        : `the haplotype index beside the graph database could not be checked (${unreadable}), so the walks cannot be named; if it is there, reload to try again, or set haplotypeIndexLocation`,
     )
   }
 }
@@ -381,13 +381,16 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * reference sample's paths alone.
    */
   async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
-    const { db, anchor } = await this.graph()
+    const { db, anchor, unreadableIndex } = await this.graph()
     const { assemblyName, refName, start, end } = region
     if (assemblyName !== anchor) {
       throw new HaplotypeWindowError(assemblyName, anchor)
     }
     const query = await this.referenceQuery(refName, {})
     const keep = this.keepPredicate(opts.haplotypes)
+    if (keep !== undefined && !db.hasHaplotypeIndex) {
+      throw new NoHaplotypeIndexError(unreadableIndex)
+    }
     return cutWindowGFA(db, query, start, end, {
       context: this.getConf('context'),
       snarls: opts.snarls ?? this.getConf('subgraphSnarls'),
@@ -517,7 +520,14 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             ),
         })
         .catch((error: unknown) => {
-          throw nodeLimitError(error, nodeLimit, end - start) ?? error
+          throw (
+            nodeLimitError(
+              error,
+              nodeLimit,
+              end - start,
+              piece.start - start,
+            ) ?? error
+          )
         })
     const subgraphs =
       query && featureSide.length > 0 && mateSide.length > 0
