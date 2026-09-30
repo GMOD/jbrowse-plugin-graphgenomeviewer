@@ -2614,8 +2614,11 @@ describe('walk rows', () => {
     expect(model.walkLayers).toEqual([
       { walk: 'B#1#ctg', color: { field: 'walk', scheme: 'green' } },
     ])
+    // the node scheme has nothing on screen to colour while walks are lifted
+    expect(model.colorSchemeLock?.value).toBe('By walk')
     model.toggleWalk('B#1#ctg')
     expect(model.walkLift).toBeUndefined()
+    expect(model.colorSchemeLock).toBeUndefined()
   })
 
   test('faceted by walk, the pane draws one panel per lifted walk on one scale', async () => {

@@ -311,6 +311,11 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               ))}
             </Select>
           </FormControl>
+          {model.colorSchemeLock ? (
+            <Typography variant="caption" color="warning.main">
+              No effect now. {model.colorSchemeLock.why}
+            </Typography>
+          ) : null}
         </div>
       </DialogContent>
 

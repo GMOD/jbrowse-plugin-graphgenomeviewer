@@ -331,6 +331,7 @@ describe('reads', () => {
     model.setColorScheme('reference-position')
     expect(model.effectiveColorScheme).toBe('uniform')
     expect(model.tubeMapNodeColors).toBeUndefined()
+    expect(model.colorSchemeLock?.value).toBe('By strand')
   })
 
   // A tube map draws the window alone, so its ramp key speaks for its boxes:

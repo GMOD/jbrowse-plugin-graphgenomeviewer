@@ -863,6 +863,22 @@ export function GraphPaneMixin() {
           ? 'uniform'
           : resolveColorScheme(self.chosenColorScheme, self.graph)
       },
+      // Why no node scheme is on screen to pick, for every control that
+      // offers one: lifted walks colour their own lanes and grey the rest,
+      // and reads take a tube map's reds and blues
+      get colorSchemeLock() {
+        return this.walkLift
+          ? {
+              value: 'By walk',
+              why: 'Each lifted walk colours its own lane: set it under the menu, Walk, Colour',
+            }
+          : self.layoutResult?.tubeMap?.layout.reads.length
+            ? {
+                value: 'By strand',
+                why: 'Reads take the reds and blues, so the tube map leaves its nodes clear',
+              }
+            : undefined
+      },
       get nodePositions() {
         return self.layoutResult?.nodePositions
       },
