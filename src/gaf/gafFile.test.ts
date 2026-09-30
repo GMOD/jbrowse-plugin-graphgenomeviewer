@@ -30,6 +30,26 @@ test('an unindexed GAF answers the reads touching the named segments', async () 
   expect((await gaf.readsOver(names(1, 2))).total).toBe(0)
 })
 
+test('a superseded read leaves the whole-file download to the reads still waiting on it', async () => {
+  const readFile = vi.fn(async (opts?: { signal?: AbortSignal }) => {
+    await new Promise(resolve => setTimeout(resolve, 10))
+    opts?.signal?.throwIfAborted()
+    return bytes
+  })
+  const gaf = new GafFile({
+    stat: async () => ({ size: bytes.length }),
+    readFile,
+  })
+  const superseded = new AbortController()
+  const first = gaf.readsOver(names(249), { signal: superseded.signal })
+  const second = gaf.readsOver(names(249))
+  superseded.abort()
+  await first.catch(() => undefined)
+  expect((await second).total).toBeGreaterThan(0)
+  await gaf.readsOver(names(250))
+  expect(readFile).toHaveBeenCalledTimes(1)
+})
+
 // the bgzipped copy is sorted by node id for tabix, so compare as sets
 const unordered = (records: unknown[]) =>
   records.map(r => JSON.stringify(r)).sort()

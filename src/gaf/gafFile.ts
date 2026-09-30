@@ -1,12 +1,13 @@
 import { unzip } from '@gmod/bgzf-filehandle'
 import { parseGaf, parseGafLine } from '@jbrowse/bandage-core/gaf/parseGaf'
+import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 
 import type { TabixIndexedFile } from '@gmod/tabix'
 import type { GafRecord } from '@jbrowse/bandage-core/gaf/parseGaf'
 
 interface WholeFile {
   stat(): Promise<{ size: number }>
-  readFile(opts?: { signal?: AbortSignal }): Promise<Uint8Array>
+  readFile(): Promise<Uint8Array>
 }
 
 export interface GafReads {
@@ -47,30 +48,26 @@ const touches = (record: GafRecord, names: ReadonlySet<string>) =>
 // which keys each line by its lowest and highest node id and so needs numeric
 // segment names, or plain or gzipped and read whole.
 export class GafFile {
-  private whole?: Promise<GafRecord[]>
+  // Shared by every window, so cachedSetup withholds each caller's signal: a
+  // superseded fetch would otherwise fail the fetches waiting beside it
+  private whole = cachedSetup({
+    setup: async () => {
+      const { size } = await this.file.stat()
+      if (size > MAX_UNINDEXED_BYTES) {
+        throw new UnindexedGafTooLargeError(size)
+      }
+      const bytes = await this.file.readFile()
+      const text = new TextDecoder().decode(
+        bytes[0] === 0x1f && bytes[1] === 0x8b ? await unzip(bytes) : bytes,
+      )
+      return parseGaf(text)
+    },
+  })
 
   constructor(
     private file: WholeFile,
     private tabix?: TabixIndexedFile,
   ) {}
-
-  private readWhole(signal?: AbortSignal) {
-    this.whole ??= (async () => {
-      const { size } = await this.file.stat()
-      if (size > MAX_UNINDEXED_BYTES) {
-        throw new UnindexedGafTooLargeError(size)
-      }
-      const bytes = await this.file.readFile({ signal })
-      const text = new TextDecoder().decode(
-        bytes[0] === 0x1f && bytes[1] === 0x8b ? await unzip(bytes) : bytes,
-      )
-      return parseGaf(text)
-    })().catch((error: unknown) => {
-      this.whole = undefined
-      throw error
-    })
-    return this.whole
-  }
 
   private async readIndexed(
     tabix: TabixIndexedFile,
@@ -107,7 +104,7 @@ export class GafFile {
   ): Promise<GafReads> {
     const records = this.tabix
       ? await this.readIndexed(this.tabix, names, signal)
-      : (await this.readWhole(signal)).filter(r => touches(r, names))
+      : (await this.whole({ signal })).filter(r => touches(r, names))
     return { records: sample(records, MAX_READS), total: records.length }
   }
 }
