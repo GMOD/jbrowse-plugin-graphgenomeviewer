@@ -1,3 +1,18 @@
+## [4.0.26](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.25...v4.0.26) (2026-09-30)
+
+### Other Changes
+
+- A GSTM1 figure of three routes: through GRCh38's copy, past it, round an unmerged one ([e111a1f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e111a1fe52a087ccfff37023f64bab27c9ebbeda))
+- The MICB and GSTM1 figures read the graph against HPRC's alignment rows ([39107bf](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/39107bf5c436c1486d2fa973fc85aa1b29bd1897))
+- A tube map's boxes can take the node colour scheme, its tubes going grey beside them ([72de52e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/72de52e223422aacdc1e0f9795223bb5b8fe00a1))
+- The ramp key's ends read in whole bp ([c6c5eb8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c6c5eb843206eae214c57978d622793de66b42c2))
+- The settings dialog says when its colour scheme has no effect ([a519f8b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a519f8b7acbd58e3c873cb92485205247eb55fb5))
+- Hovering a node with walks lifted no longer refits the view and drops the hover ([395eeb0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/395eeb0562ff4503fc845ba4070d964b6133ae3d))
+- Export SVG draws what the pane shows, and a copied spec names the lanes it cut ([37a777a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/37a777aa60d2bbe8386a48c0ccc9f44eddd80d77))
+- Bandage-figure says what went wrong, and reads specs as the plugin does ([8b85e30](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8b85e30e4874fa08426b2088470ef85777aba986))
+- A popped bubble's walks start where their first kept step does ([8a535d2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8a535d2d6a5c1cc3196f9ab995498ab81629f715))
+- Side by side stays off walk rows, refits on new columns, and keys say what is drawn ([7dbd10f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7dbd10fd82a3bc83b6b2ce435a0ae710c0400871))
+
 ## [4.0.25](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.24...v4.0.25) (2026-09-28)
 
 ### Other Changes
