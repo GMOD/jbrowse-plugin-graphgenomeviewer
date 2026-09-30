@@ -450,21 +450,27 @@ async function orderLaneRowsByKey(page) {
 // row and the graph lifts its walk
 function hoverCallsetCell(row) {
   return async page => {
-    const box = await page.evaluate(() => {
-      const r = document
-        .querySelector('[data-testid="variant-display"]')
-        .getBoundingClientRect()
-      return { x: r.x, y: r.y, width: r.width, height: r.height }
-    })
-    for (let y = 2; y < box.height; y += 3) {
-      for (let x = 100; x < box.width; x += 1) {
-        await page.mouse.move(box.x + x, box.y + y)
-        const name = await page.evaluate(
-          () => window.JBrowseSession.hovered?.hoverFeature?.name,
-        )
-        if (name === row) {
-          return
-        }
+    const lane = await page.evaluate(
+      (name, rowPx) => {
+        const display = window.JBrowseSession.views[0].tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearMultiSampleVariantDisplay')
+        const r = document
+          .querySelector('[data-testid="variant-display"]')
+          .getBoundingClientRect()
+        const index = display.sources.findIndex(s => s.name === name)
+        return { x: r.x, width: r.width, y: r.y + (index + 0.5) * rowPx }
+      },
+      row,
+      CALLSET_ROW_PX,
+    )
+    for (let x = 0; x < lane.width; x += 1) {
+      await page.mouse.move(lane.x + x, lane.y)
+      const name = await page.evaluate(
+        () => window.JBrowseSession.hovered?.hoverFeature?.name,
+      )
+      if (name === row) {
+        return
       }
     }
     throw new Error(`no cell of ${row} to hover`)
