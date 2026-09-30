@@ -2003,7 +2003,14 @@ export function GraphPaneMixin() {
                   db,
                   index: uriOf(adapter!.haplotypeIndexLocation as FileLocation),
                   region: window,
-                  haplotypes: self.cutHaplotypes,
+                  // the adapter cuts a lane by its PanSN prefix
+                  haplotypes: self.cutHaplotypes?.map(
+                    lane =>
+                      (
+                        adapter!.assemblyNameToPanSN as
+                          Record<string, string> | undefined
+                      )?.[lane] ?? lane,
+                  ),
                   referenceSample:
                     (adapter!.referenceSample as string | undefined) ||
                     (
@@ -2060,11 +2067,23 @@ export function GraphPaneMixin() {
           }),
         ) as Record<string, unknown>
       },
+      // Why the drawing cannot be written as SVG: figureSvg draws the
+      // canvas's nodes, and a tube map and walk rows draw theirs over it
+      get figureUnavailable() {
+        const layout = self.layoutResult
+        return !layout
+          ? 'Nothing is drawn yet'
+          : layout.tubeMap
+            ? 'A tube map draws no nodes to export'
+            : self.walkRowBars
+              ? 'Walk rows draw bars the SVG export does not'
+              : undefined
+      },
       // The drawing as a standalone SVG, fitted, with its genes, its lifted
       // walks' keys and facet panels; see figureSvg
       figure() {
         const { graph, layoutResult } = self
-        return graph && layoutResult && !layoutResult.tubeMap
+        return graph && layoutResult && !this.figureUnavailable
           ? figureSvg(graph, layoutResult, {
               width: self.paneWidth,
               height: self.paneCeiling,
@@ -2077,6 +2096,8 @@ export function GraphPaneMixin() {
               contigThickness: self.contigThickness,
               connectorThickness: self.connectorThickness,
               region: self.graphRegion,
+              colorDomain: self.colorDomain,
+              fitToDrawing: self.popStack.length > 0,
               genes: self.showGenes ? self.backboneGenes : undefined,
               spec: this.figureSpec(),
             })
@@ -3702,8 +3723,8 @@ export function GraphPaneMixin() {
             : []),
           {
             label: 'Export SVG',
-            disabled: !self.layoutResult || !!self.layoutResult.tubeMap,
-            disabledHelpText: 'A tube map draws no nodes to export',
+            disabled: self.figureUnavailable !== undefined,
+            disabledHelpText: self.figureUnavailable,
             onClick: () => {
               const svg = self.figure()
               if (svg) {

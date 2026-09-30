@@ -2574,6 +2574,9 @@ describe('walk rows', () => {
     expect(model.drawnRowLabels.map(r => r.label).slice(1)).toEqual(labels)
     model.setWalkRowSamples(['B'])
     expect(model.walkRowBars!.rows.map(r => r.label)).toEqual(['B#1'])
+    // the bars are an overlay the SVG export does not draw
+    expect(model.figureUnavailable).toMatch(/Walk rows/)
+    expect(model.figure()).toBeUndefined()
   })
 
   test('walks lift together, each keeping the colour it was given', async () => {
