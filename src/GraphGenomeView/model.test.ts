@@ -1380,6 +1380,20 @@ describe('zoomToFit on a tube map', () => {
     expect(picture.nodes.every(n => n.color !== undefined)).toBe(true)
     expect(model.referenceRampOffKeys.unplaced).toBe(false)
   })
+  test('a hovered lane row keeps its tube and fades the rest', async () => {
+    const model = await tubeMap(2)
+    const drawn = model.layoutResult!.tubeMap!.pathColors
+    const alt = model.drawnGraph!.paths!.findIndex(p => p.name === 'alt')
+    model.setHoveredRowWalks(['alt'])
+    const tubes = model.tubeMapTubeColors!
+    expect(tubes[alt]).toBe(drawn[alt])
+    expect(tubes.filter((_, i) => i !== alt).every(c => c !== drawn[alt])).toBe(
+      true,
+    )
+    expect(new Set(tubes.filter((_, i) => i !== alt)).size).toBe(1)
+    model.setHoveredRowWalks([])
+    expect(model.tubeMapTubeColors).toEqual(drawn)
+  })
 })
 
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set
@@ -2853,6 +2867,28 @@ describe('walk rows', () => {
       highlightedPath: 'A#1#ctg',
     } as never)
     expect(model.walkLayers).toEqual([])
+  })
+
+  test('a hovered lane row lifts its walks while none is picked', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setFacet('walk')
+    model.setHoveredRowWalks(['A#1#ctg', 'A#2#ctg'])
+    expect(model.walkLift!.walks.map(w => w.name)).toEqual([
+      'A#1#ctg',
+      'A#2#ctg',
+    ])
+    // a facet is a choice the picked walks make
+    expect(model.facetPanels).toBeUndefined()
+    model.liftWalks(['B#1#ctg'])
+    expect(model.walkLift!.walks.map(w => w.name)).toEqual(['B#1#ctg'])
+    model.liftWalks([])
+    model.setHoveredRowWalks([])
+    expect(model.walkLift).toBeUndefined()
   })
 })
 

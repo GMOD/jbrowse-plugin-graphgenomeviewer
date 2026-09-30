@@ -154,6 +154,7 @@ import {
   nodeForLgvHover,
   readLgvHover,
 } from '../hoverSync/lgvHover'
+import { walksForRow } from '../hoverSync/rowWalks'
 import {
   contributingAssemblies,
   locLabel,
@@ -228,6 +229,9 @@ const paperCss = ([r, g, b]: number[]) =>
 const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
+// a tube that is not the hovered lane row's, on light paper and on dark
+const FADED_TUBE = 'rgb(222, 222, 222)'
+const FADED_TUBE_DARK = 'rgb(70, 70, 70)'
 
 const FACETS = [
   { value: 'none', label: 'Off' },
@@ -585,6 +589,8 @@ export function GraphPaneMixin() {
       loadCanceled: false,
       statusMessage: '',
       hoveredNode: null as string | null,
+      // the walks of the per-sample lane row the linear view's pointer is on
+      hoveredRowWalks: [] as string[],
       // the bubble whose label the pointer is on
       hoveredBubble: null as MinigraphBubble | null,
       // whether the pointer is over this pane, whose own hit test then says
@@ -797,14 +803,19 @@ export function GraphPaneMixin() {
           ? computeReferenceRamp(graph, this.rampDomain)
           : undefined
       },
+      // The walks picked, or while none is, those of the lane row hovered
+      get liftedWalkLayers(): WalkLayer[] {
+        return self.walkLayers.length > 0
+          ? self.walkLayers
+          : self.hoveredRowWalks.map(walk => ({ walk }))
+      },
       // The lifted walks the graph on screen carries, or undefined when none
       // is named or it carries none of those that were
       get walkLift() {
         const { graph } = self
-        return graph &&
-          self.walkLayers.length > 0 &&
-          !self.layoutResult?.tubeMap
-          ? walkLift(graph, self.walkLayers, this.walkRamp)
+        const layers = this.liftedWalkLayers
+        return graph && layers.length > 0 && !self.layoutResult?.tubeMap
+          ? walkLift(graph, layers, this.walkRamp)
           : undefined
       },
       // One panel per lifted walk while the pane is faceted by walk, each a
@@ -819,6 +830,7 @@ export function GraphPaneMixin() {
           this.facetsWalks &&
           graph &&
           lift &&
+          self.walkLayers.length > 1 &&
           lift.walks.length > 1
           ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
           : undefined
@@ -1339,9 +1351,21 @@ export function GraphPaneMixin() {
       // reads, so no tube shares a box's hue
       get tubeMapTubeColors() {
         const colors = self.layoutResult?.tubeMap?.pathColors
-        return colors && this.tubeMapNodeColors
-          ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
-          : colors
+        const tubes =
+          colors && this.tubeMapNodeColors
+            ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
+            : colors
+        const hovered = new Set(self.hoveredRowWalks)
+        const paths = self.drawnGraph?.paths
+        return tubes && paths && hovered.size > 0
+          ? tubes.map((color, i) =>
+              hovered.has(paths[i]?.name ?? '')
+                ? color
+                : self.darkMode
+                  ? FADED_TUBE_DARK
+                  : FADED_TUBE,
+            )
+          : tubes
       },
       // A node's reference interval, an allele's between its flanks
       nodeSpan(nodeId: string) {
@@ -2366,6 +2390,11 @@ export function GraphPaneMixin() {
       setHoveredNode(nodeId: string | null) {
         self.hoveredNode = nodeId
       },
+      setHoveredRowWalks(walks: string[]) {
+        if (walks.join('\n') !== self.hoveredRowWalks.join('\n')) {
+          self.hoveredRowWalks = walks
+        }
+      },
       setHoveredBubble(bubble: MinigraphBubble | null) {
         self.hoveredBubble = bubble
       },
@@ -3292,13 +3321,22 @@ export function GraphPaneMixin() {
               untracked(() => {
                 const region = self.graphRegion
                 const graph = self.graph
+                const inRegion =
+                  hover && region && hoverInRegion(hover, region)
+                    ? hover
+                    : undefined
                 if (region && graph && !self.pointerInPane) {
                   self.setHoveredNode(
-                    hover && hoverInRegion(hover, region)
-                      ? nodeForLgvHover({ hover, nodes: graph.nodes })
+                    inRegion
+                      ? nodeForLgvHover({ hover: inRegion, nodes: graph.nodes })
                       : null,
                   )
                 }
+                self.setHoveredRowWalks(
+                  inRegion?.featureName && graph?.paths
+                    ? walksForRow(inRegion.featureName, graph.paths)
+                    : [],
+                )
               })
             }),
           )
