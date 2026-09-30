@@ -43,6 +43,29 @@ test("a graph display inside this linear view's own track contributes its highli
   expect(graphViewHighlights([view], 'lgv2')).toEqual([])
 })
 
+// A synteny view's panel is a linear view nested in it, and the synteny launch
+// puts the graph track in one
+test('a graph display in a synteny panel draws its band in that panel', () => {
+  const panel = {
+    ...linearView('row1'),
+    tracks: [
+      {
+        displays: [
+          {
+            id: 'display1',
+            type: 'LinearGraphDisplay',
+            hoverHighlight: HIGHLIGHT,
+          },
+        ],
+      },
+    ],
+  }
+  const synteny = { id: 'lsv1', type: 'LinearSyntenyView', views: [panel] }
+  expect(graphViewHighlights([synteny], 'row1')).toEqual([
+    { key: 'display1', region: HIGHLIGHT },
+  ])
+})
+
 test('a graph view launched from a different linear view is ignored', () => {
   expect(
     graphViewHighlights(

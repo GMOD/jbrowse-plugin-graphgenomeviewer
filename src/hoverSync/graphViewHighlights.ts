@@ -108,10 +108,11 @@ export function graphViewHighlights(
   linearAssemblyNames?: string[],
 ): GraphViewHighlight[] {
   const highlights: GraphViewHighlight[] = []
+  const candidates = withRows(views)
   const liveViewIds = new Set(
-    withRows(views).map(view => (isRecord(view) ? view.id : undefined)),
+    candidates.map(view => (isRecord(view) ? view.id : undefined)),
   )
-  for (const view of views) {
+  for (const view of candidates) {
     if (isRecord(view) && view.id === linearViewId) {
       for (const display of trackGraphs(view)) {
         const region = readRegion(display.hoverHighlight)
