@@ -202,14 +202,7 @@ const WalkReadout = observer(function WalkReadout({
         />
       ))}
       {/* the ramp's own key, which names this, is off while walks are lifted */}
-      {model.liftPaintsOffReference ? (
-        <div style={legendRowStyle}>
-          <div
-            style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }}
-          />
-          <span>off the reference</span>
-        </div>
-      ) : null}
+      {model.liftPaintsOffReference ? <OffReferenceRow /> : null}
       <div style={legendRowStyle}>
         <div style={{ ...walkSwatchStyle, background: FADED_SWATCH }} />
         <span>not on {model.liftedWalksLabel}</span>
@@ -254,14 +247,7 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
         <span>({formatBp(end - start)})</span>
         <span>{end.toLocaleString()}</span>
       </div>
-      {offReference ? (
-        <div style={legendRowStyle}>
-          <div
-            style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }}
-          />
-          <span>off the reference</span>
-        </div>
-      ) : null}
+      {offReference ? <OffReferenceRow /> : null}
       {unplaced ? (
         <div style={legendRowStyle}>
           <div style={{ ...walkSwatchStyle, background: UNPLACED_SWATCH }} />
@@ -274,6 +260,17 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
 
 // getNodeColor's grey for a node the ramp cannot place
 const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
+
+// The charcoal both the ramp and a lane coloured by reference position give
+// sequence the reference does not carry
+function OffReferenceRow() {
+  return (
+    <div style={legendRowStyle}>
+      <div style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }} />
+      <span>off the reference</span>
+    </div>
+  )
+}
 
 const exonSwatchStyle = {
   ...walkSwatchStyle,
@@ -332,10 +329,8 @@ const leaderStyle = {
 // Measures itself for the model, so no label is placed under a legend and
 // none gives way to one that is not drawn.
 //
-// At rest only: a hovered node writes its place on each lifted walk into the
-// walks' keys, and a legend that grew by those rows refitted the view, which
-// cleared the hover that grew it. The rows go when the hover does, and that
-// resize lands with the hover cleared.
+// At rest only: the walk keys' hover readout would otherwise refit the view,
+// and the refit clears the hover that grew it
 const Legends = observer(function Legends({
   model,
 }: {

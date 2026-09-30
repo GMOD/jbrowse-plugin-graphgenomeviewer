@@ -819,10 +819,8 @@ export function GraphPaneMixin() {
           : undefined
       },
       // One panel per lifted walk while the pane is faceted by walk, each a
-      // lift of that walk alone. See facetLifts.
-      //
-      // Walk rows give each walk a row already, drawn over the canvas the
-      // panels would split, so there a panel would be an empty box
+      // lift of that walk alone, on a layout whose nodes the panels can split.
+      // See facetLifts.
       get facetPanels() {
         const { graph } = self
         const lift = this.walkLift
@@ -836,7 +834,7 @@ export function GraphPaneMixin() {
           : undefined
       },
       get facetsWalks() {
-        return self.chosenLayoutMode !== 'walkrows'
+        return layoutModeByValue(self.chosenLayoutMode).drawsNodes
       },
       // The lifted walks as drawn, each panel's own while faceted
       get drawnWalks() {
@@ -861,13 +859,16 @@ export function GraphPaneMixin() {
       // Whether a lifted lane paints a node charcoal, the colour a lane coloured
       // by reference position gives what is off the reference
       get liftPaintsOffReference() {
-        return (
-          this.walkLift?.walks.some(
-            w =>
-              w.encoding.field !== 'walk' &&
-              [...w.colors.values()].includes(NO_VALUE_COLOR),
-          ) ?? false
-        )
+        for (const w of this.walkLift?.walks ?? []) {
+          if (w.encoding.field !== 'walk') {
+            for (const color of w.colors.values()) {
+              if (color === NO_VALUE_COLOR) {
+                return true
+              }
+            }
+          }
+        }
+        return false
       },
       // what the faded rest of the drawing is not on
       get liftedWalksLabel() {
@@ -894,11 +895,13 @@ export function GraphPaneMixin() {
       // reads, which take the reds and the blues, the boxes stay clear
       // whatever was picked.
       get effectiveColorScheme(): ResolvedColorScheme {
-        const tubeMap = self.layoutResult?.tubeMap
-        return tubeMap &&
-          (tubeMap.layout.reads.length > 0 || self.chosenColorScheme === 'auto')
+        return self.layoutResult?.tubeMap &&
+          (this.tubeMapReads || self.chosenColorScheme === 'auto')
           ? 'uniform'
           : resolveColorScheme(self.chosenColorScheme, self.graph)
+      },
+      get tubeMapReads() {
+        return (self.layoutResult?.tubeMap?.layout.reads.length ?? 0) > 0
       },
       // Why no node scheme is on screen to pick, for every control that
       // offers one: lifted walks colour their own lanes and grey the rest,
@@ -909,7 +912,7 @@ export function GraphPaneMixin() {
               value: 'By walk',
               why: 'Each lifted walk colours its own lane: set it under the menu, Walk, Colour',
             }
-          : self.layoutResult?.tubeMap?.layout.reads.length
+          : this.tubeMapReads
             ? {
                 value: 'By strand',
                 why: 'Reads take the reds and blues, so the tube map leaves its nodes clear',
@@ -1595,12 +1598,7 @@ export function GraphPaneMixin() {
       },
       get tubeMapPicture() {
         const drawing = self.layoutResult?.tubeMap
-        return drawing
-          ? tubeMapPicture(drawing.layout, {
-              tubes: self.tubeMapTubeColors,
-              nodes: self.tubeMapNodeColors,
-            })
-          : undefined
+        return drawing ? tubeMapPicture(drawing.layout) : undefined
       },
       get tubeMapReference() {
         const drawing = self.layoutResult?.tubeMap
@@ -1767,7 +1765,7 @@ export function GraphPaneMixin() {
           bounds.w <= 0 ||
           width === 0 ||
           self.facetPanels ||
-          self.layoutResult?.tubeMap?.layout.reads.length
+          self.tubeMapReads
         ) {
           return undefined
         }
@@ -2036,6 +2034,8 @@ export function GraphPaneMixin() {
       figureSpec() {
         const region = self.graphRegion
         const adapter = self.sourceAdapter
+        const panSN = adapter?.assemblyNameToPanSN as
+          Record<string, string> | undefined
         const window =
           region && `${region.refName}:${region.start}-${region.end}`
         const gfa = uriOf(self.sourceGfaLocation)
@@ -2053,18 +2053,11 @@ export function GraphPaneMixin() {
                   region: window,
                   // the adapter cuts a lane by its PanSN prefix
                   haplotypes: self.cutHaplotypes?.map(
-                    lane =>
-                      (
-                        adapter!.assemblyNameToPanSN as
-                          Record<string, string> | undefined
-                      )?.[lane] ?? lane,
+                    lane => panSN?.[lane] ?? lane,
                   ),
                   referenceSample:
                     (adapter!.referenceSample as string | undefined) ||
-                    (
-                      adapter!.assemblyNameToPanSN as
-                        Record<string, string> | undefined
-                    )?.[region.assemblyName] ||
+                    panSN?.[region.assemblyName] ||
                     region.assemblyName,
                   context: adapter!.context as number | undefined,
                   snarls: adapter!.subgraphSnarls as string | undefined,
@@ -2115,17 +2108,13 @@ export function GraphPaneMixin() {
           }),
         ) as Record<string, unknown>
       },
-      // Why the drawing cannot be written as SVG: figureSvg draws the
-      // canvas's nodes, and a tube map and walk rows draw theirs over it
+      // Why the drawing cannot be written as SVG, which draws the canvas's nodes
       get figureUnavailable() {
-        const layout = self.layoutResult
-        return !layout
+        return !self.layoutResult
           ? 'Nothing is drawn yet'
-          : layout.tubeMap
-            ? 'A tube map draws no nodes to export'
-            : self.walkRowBars
-              ? 'Walk rows draw bars the SVG export does not'
-              : undefined
+          : self.drawsNodes
+            ? undefined
+            : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
       },
       // The drawing as a standalone SVG, fitted, with its genes, its lifted
       // walks' keys and facet panels; see figureSvg

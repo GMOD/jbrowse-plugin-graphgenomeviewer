@@ -73,9 +73,6 @@ const SWATCH_PX = 18
 const RAMP_SWATCH =
   'linear-gradient(to right, hsl(0, 70%, 50%) 0 33%, hsl(120, 70%, 50%) 33% 61%, hsl(240, 70%, 50%) 61%)'
 
-// the strip's own colours: a row per lifted walk in its lane's, else the
-// node scheme's ramp
-//
 // A scheme other than the ramp shows a few of the strip's own blocks in bp
 // order, as the strip draws them, rather than a rainbow it does not
 const SAMPLED_BLOCKS = 6
@@ -93,6 +90,8 @@ function sampledSwatch(colors: string[]) {
     : (picked[0] ?? FADED_SWATCH)
 }
 
+// the strip's own colours: a row per lifted walk in its lane's, else the
+// node scheme's
 function StripSwatch({
   rows,
 }: {

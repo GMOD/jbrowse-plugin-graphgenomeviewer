@@ -1336,9 +1336,8 @@ describe('zoomToFit on a tube map', () => {
     expect(model.referenceRampDomain).toBeDefined()
 
     const colors = model.tubeMapNodeColors!
-    const picture = model.tubeMapPicture!
-    expect(picture.nodes.map(n => n.color)).toEqual(
-      picture.nodes.map(n => colors.get(n.name)),
+    expect(model.tubeMapPicture!.nodes.every(n => colors.has(n.name))).toBe(
+      true,
     )
     // red to magenta along the backbone, the alleles off it charcoal
     expect(colors.get('b0+')).toBe('rgba(217,38,38,1)')
@@ -1358,9 +1357,6 @@ describe('zoomToFit on a tube map', () => {
 
     expect(model.effectiveColorScheme).toBe('uniform')
     expect(model.tubeMapNodeColors).toBeUndefined()
-    expect(model.tubeMapPicture!.nodes.every(n => n.color === undefined)).toBe(
-      true,
-    )
     expect(model.tubeMapTubeColors).toEqual(
       model.layoutResult!.tubeMap!.pathColors,
     )
@@ -1375,9 +1371,9 @@ describe('zoomToFit on a tube map', () => {
     await model.recomputeLayout()
 
     expect(model.drawnGraph).not.toBe(model.graph)
-    const picture = model.tubeMapPicture!
-    expect(picture.nodes.length).toBeGreaterThan(0)
-    expect(picture.nodes.every(n => n.color !== undefined)).toBe(true)
+    const { nodes } = model.tubeMapPicture!
+    expect(nodes.length).toBeGreaterThan(0)
+    expect(nodes.every(n => model.tubeMapNodeColors!.has(n.name))).toBe(true)
     expect(model.referenceRampOffKeys.unplaced).toBe(false)
   })
   test('a hovered lane row keeps its tube and fades the rest', async () => {
@@ -2447,9 +2443,6 @@ describe('the auto color scheme', () => {
   })
 })
 
-// A walk's positions read as its origin plus the bp before a step, so an
-// origin left at the whole walk's start put every step inside a popped bubble
-// the dropped front's length too early
 test('a popped bubble reads a node where it sits on each walk, as the whole graph does', async () => {
   rpcRespond()
   // 0 (10 bp) > 1 (4) > {2 (8) | 3 (4)} > 4 (4) > 5 (10)
@@ -2603,6 +2596,18 @@ describe('popping a bubble', () => {
   })
 })
 
+interface MenuItem {
+  label?: string
+  checked?: boolean
+  subMenu?: MenuItem[]
+}
+
+function walkMenu(model: { graphMenuItems: () => unknown }) {
+  return (model.graphMenuItems() as MenuItem[]).find(
+    item => item.label === 'Walk',
+  )!
+}
+
 describe('walk rows', () => {
   const WALKS_GFA = [
     'H\tVN:Z:1.1',
@@ -2657,15 +2662,8 @@ describe('walk rows', () => {
     // lifted together, each walk is one flat colour
     const ref = model.walkLift!.walks[0]!
     expect(new Set(ref.colors.values()).size).toBe(1)
-    interface Item {
-      label?: string
-      checked?: boolean
-      subMenu?: Item[]
-    }
-    const walkMenu = (model.graphMenuItems() as Item[]).find(
-      item => item.label === 'Walk',
-    )!
-    const colour = walkMenu.subMenu!.find(item => item.label === 'Colour B#1')!
+    const menu = walkMenu(model)
+    const colour = menu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
       colour.subMenu!.filter(item => item.checked).map(item => item.label),
     ).toEqual(['One colour for the walk', 'Lime to forest'])
@@ -2708,14 +2706,8 @@ describe('walk rows', () => {
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     model.liftWalks(['B#1#ctg', 'A#1#ctg'])
-    interface Item {
-      label?: string
-      subMenu?: Item[]
-    }
-    const walkMenu = (model.graphMenuItems() as Item[]).find(
-      item => item.label === 'Walk',
-    )!
-    expect(walkMenu.subMenu!.some(item => item.label === 'Side by side')).toBe(
+    const menu = walkMenu(model)
+    expect(menu.subMenu!.some(item => item.label === 'Side by side')).toBe(
       false,
     )
     model.setFacet('walk')
@@ -2784,19 +2776,12 @@ describe('walk rows', () => {
     expect(model.canvasHeight).toBe(Math.max(160, grid.total))
     expect(model.scale).toBeCloseTo(grid.scale, 10)
     expect(model.scale).not.toBeCloseTo(whole, 10)
-    interface Item {
-      label?: string
-      checked?: boolean
-      subMenu?: Item[]
-    }
-    const walkMenu = (model.graphMenuItems() as Item[]).find(
-      item => item.label === 'Walk',
-    )!
-    const colour = walkMenu.subMenu!.find(item => item.label === 'Colour B#1')!
+    const menu = walkMenu(model)
+    const colour = menu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
       colour.subMenu!.filter(item => item.checked).map(item => item.label),
     ).toEqual(['Progress along the walk', 'Yellow to red'])
-    const columns = walkMenu.subMenu!.find(item => item.label === 'Columns')!
+    const columns = menu.subMenu!.find(item => item.label === 'Columns')!
     expect(columns.subMenu!.map(item => item.label)).toEqual(['Auto', '1', '2'])
   })
 

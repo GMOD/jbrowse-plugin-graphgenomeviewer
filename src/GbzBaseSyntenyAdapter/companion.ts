@@ -1,3 +1,4 @@
+import { haplotypeIndexBeside } from '@jbrowse/bandage-core/gbzCut'
 import { openLocation } from '@jbrowse/core/util/io'
 
 import {
@@ -8,11 +9,9 @@ import {
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
-const GBZ_DB = /\.gbz\.db$/i
-
 export function siblingCompanion(gbzDb: FileLocation) {
-  return GBZ_DB.test(locationName(gbzDb))
-    ? renamed(gbzDb, name => name.replace(GBZ_DB, '.haplotype-index.db'))
+  return haplotypeIndexBeside(locationName(gbzDb))
+    ? renamed(gbzDb, name => haplotypeIndexBeside(name)!)
     : undefined
 }
 

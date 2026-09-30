@@ -16,11 +16,8 @@ import type { Browser, Page } from 'puppeteer'
 
 // RUN_E2E=1 pnpm test:e2e test/walkHover.test.ts
 //
-// Hovering a node while walks are lifted writes where it sits on each walk
-// into that walk's key. The legend is measured in the DOM and the fit makes
-// room for it, so a readout that grew the legend refitted the view, and the
-// refit cleared the hover that grew it. Only a real browser measures the
-// legend, so only here can the loop show.
+// The hover readout in the walk keys once grew the legend, refitting the view
+// and so clearing the hover; only a browser gives a legend a size
 const runE2E = process.env.RUN_E2E === '1'
 const VIEW = 'walks_view'
 

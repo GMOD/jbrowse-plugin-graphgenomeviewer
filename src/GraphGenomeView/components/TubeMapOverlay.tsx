@@ -63,6 +63,8 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
             width,
             highlightNode: model.hoveredNode ?? model.selectedNode,
             darkMode: model.darkMode,
+            tubeColors: model.tubeMapTubeColors,
+            nodeColors: model.tubeMapNodeColors,
           }
           drawTubeMap(ctx, picture, tubeFrame)
           drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
