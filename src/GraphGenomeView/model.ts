@@ -1111,11 +1111,7 @@ export function GraphPaneMixin() {
       // Walk rows state what each walk skips as its own bar length, so the arcs
       // over the backbone would only say it again, across the bars.
       get deletions() {
-        return self.graph &&
-          self.chosenLayoutMode !== 'walkrows' &&
-          !self.layoutResult?.tubeMap
-          ? deletionEdges(self.graph)
-          : []
+        return self.graph && this.drawsNodes ? deletionEdges(self.graph) : []
       },
       // One bar per haplotype walk on its own bp axis, for the walk-rows
       // overlay. Empty under every other layout.
@@ -1146,6 +1142,14 @@ export function GraphPaneMixin() {
         )
         return { ...bars, reference: reference!, rows: paired }
       },
+      // Whether the canvas draws the graph's nodes. A tube map and walk rows
+      // draw a picture of their own over it, so what sits on nodes (genes,
+      // bubble halos, deletion arcs, the reference strip) has nowhere to go.
+      // Read off what was drawn rather than the mode asked for, which falls
+      // back to the force layout on a graph it cannot draw.
+      get drawsNodes() {
+        return !self.layoutResult?.tubeMap && !this.walkRowBars
+      },
       // The labels drawn beside the rows. Walk rows label from the bars
       // themselves, which follow the selected repeat and sample filter that
       // the layout, run once per cut, cannot.
@@ -1172,8 +1176,7 @@ export function GraphPaneMixin() {
         dependOn(self.positionsVersion)
         const positions = self.layoutResult?.nodePositions
         return self.showGenes &&
-          self.chosenLayoutMode !== 'walkrows' &&
-          !self.layoutResult?.tubeMap &&
+          this.drawsNodes &&
           self.graph &&
           self.backboneGenes &&
           positions
@@ -1187,8 +1190,7 @@ export function GraphPaneMixin() {
         const positions = self.layoutResult?.nodePositions
         if (
           !self.showBubbles ||
-          self.chosenLayoutMode === 'walkrows' ||
-          self.layoutResult?.tubeMap ||
+          !this.drawsNodes ||
           !self.graph ||
           !positions
         ) {
@@ -1632,17 +1634,14 @@ export function GraphPaneMixin() {
           : []
       },
       // A drawing of nodes in its own coordinates inside a linear view, whose
-      // reference segments the strip can put back at their bp. A tube map has
-      // its own bands, and walk rows' bars are lengths, not nodes.
+      // reference segments the strip can put back at their bp
       get referenceStripApplies() {
-        const { host, layoutResult } = self
         return (
-          !!host?.initialized &&
-          !!layoutResult &&
-          !layoutResult.tubeMap &&
+          !!self.host?.initialized &&
+          !!self.layoutResult &&
+          self.drawsNodes &&
           !self.hostPlacesX &&
-          !self.facetPanels &&
-          self.chosenLayoutMode !== 'walkrows'
+          !self.facetPanels
         )
       },
     }))
