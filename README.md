@@ -65,7 +65,7 @@ Needs JBrowse 5.0.0-beta.9 or later.
   "plugins": [
     {
       "name": "GraphGenomeView",
-      "esmUrl": "https://unpkg.com/jbrowse-plugin-graphgenomeviewer/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
+      "esmUrl": "https://jbrowse.org/plugins/jbrowse-plugin-graphgenomeviewer/latest/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
     }
   ]
 }

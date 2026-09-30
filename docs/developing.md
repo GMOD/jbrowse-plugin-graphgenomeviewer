@@ -76,6 +76,15 @@ still break that page. `pnpm version` refuses unless the Push workflow, that job
 and the browser suites among it, passed on the commit being released
 (`scripts/ci-green.mjs`), so push the commit and let CI finish first.
 
+The jbrowse-components tutorials, demos and figure fixtures load the plugin from
+the store's `latest/` url on jbrowse.org, so an npm release reaches them only
+once jbrowse-plugin-list promotes it:
+
+```console
+cd ~/src/jbrowse-plugin-list
+pnpm dep && pnpm invalidate
+```
+
 ## Figures
 
 ```console
