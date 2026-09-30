@@ -335,6 +335,22 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               },
             ),
           )
+          // A track clips what runs past its height, so side-by-side panels
+          // grow it to what they need as a pane of their own. Only a change in
+          // the panels does this, so a track shrunk afterwards stays shrunk.
+          addDisposer(
+            self,
+            reaction(
+              () => `${self.facet} ${self.facetPlacement?.count}`,
+              () => {
+                const needs = self.facetGridIn(self.paneCeiling)?.total ?? 0
+                if ((self.facetGrid?.total ?? 0) > self.height) {
+                  self.setHeight(Math.max(self.height, Math.ceil(needs)))
+                }
+              },
+              { name: 'GraphFacetHeight' },
+            ),
+          )
           addDisposer(
             self,
             reaction(

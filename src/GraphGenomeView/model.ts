@@ -1814,9 +1814,6 @@ export function GraphPaneMixin() {
             )
           : 0
       },
-      // How the facet panels tile the pane. A track's height is its own, and
-      // a track whose x the linear view places stacks full-width panels so
-      // each keeps that x.
       // Which grid cell each panel takes; see facetCells
       get facetPlacement() {
         const panels = self.facetPanels
@@ -1827,7 +1824,9 @@ export function GraphPaneMixin() {
             )
           : undefined
       },
-      get facetGrid(): FacetGrid | undefined {
+      // How the facet panels tile the pane in `room` px. A track whose x the
+      // linear view places stacks full-width panels so each keeps that x.
+      facetGridIn(room: number): FacetGrid | undefined {
         const place = this.facetPlacement
         const bounds = self.layoutBounds
         return place && bounds && bounds.w > 0
@@ -1836,12 +1835,17 @@ export function GraphPaneMixin() {
               bounds,
               pixelRows: self.pixelRows,
               width: self.paneWidth,
-              room: self.host ? this.canvasHeight : this.paneCeiling,
+              room,
               columns: self.hostPlacesX
                 ? 1
                 : (place.columns ?? self.facetColumns),
             })
           : undefined
+      },
+      get facetGrid() {
+        return this.facetGridIn(
+          self.host ? this.canvasHeight : this.paneCeiling,
+        )
       },
       // The pane is as tall as the drawing, rather than a fixed box the drawing
       // floats in. A row layout's rows are px, so its height is a sum; an

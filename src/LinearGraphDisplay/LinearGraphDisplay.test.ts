@@ -653,6 +653,18 @@ test('the drawing is the track height, and resizing the track resizes it', async
   expect(display.canvasHeight).toBe(200)
 })
 
+test('side by side grows a track too short for its panels, and a shrink after stays', async () => {
+  const { display } = await shownGraph({ paths: true })
+  display.resizeHeight(120 - display.height)
+  display.liftWalks([REF, 'HG1'])
+  display.setFacet('walk')
+  expect(display.facetGrid!.total).toBeLessThanOrEqual(display.height)
+  expect(display.height).toBeGreaterThan(120)
+
+  display.resizeHeight(-50)
+  expect(display.facetGrid!.total).toBeGreaterThan(display.height)
+})
+
 test("a launch names the pane's props without its type, and opens in that layout", async () => {
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
