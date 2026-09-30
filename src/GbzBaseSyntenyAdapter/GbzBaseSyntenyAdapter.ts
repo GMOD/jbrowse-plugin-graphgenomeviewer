@@ -482,11 +482,8 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * both visit, with no base compared. The records sit on the query lane's
    * contigs, the lane the display draws on top.
    *
-   * Only a cut walked from the haplotype index's anchor rows holds each walk
-   * whole. The sampled cut leaves a walk in pieces wherever it strays past the
-   * context, and pieces align only in part, so without anchor rows, or when
-   * the anchor walk of any reference fragment in the window fell back, the
-   * pair answers nothing and the display composes it through the reference.
+   * Whether the index has anchor rows changes only how fast gbz-base finds
+   * the walks: both routes cut the same pieces.
    */
   private async pairFeatures(
     region: Region,
@@ -504,7 +501,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const kept = [...featureSide, ...mateSide]
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
-    const anchored = (await db.haplotypeAnchorSpacing()) !== undefined
     const cut = (reference: PathQuery, piece: { start: number; end: number }) =>
       db
         .getSubgraphForRange(reference, piece.start, piece.end, {
@@ -524,7 +520,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
           throw nodeLimitError(error, nodeLimit, end - start) ?? error
         })
     const subgraphs =
-      query && anchored && featureSide.length > 0 && mateSide.length > 0
+      query && featureSide.length > 0 && mateSide.length > 0
         ? (
             await updateStatus(
               `Reading ${queryAssemblyName} against ${targetAssemblyName}`,
@@ -538,27 +534,21 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             )
           ).filter(subgraph => subgraph !== undefined)
         : []
-    const whole = subgraphs.every(subgraph => {
-      const keep = subgraph.stats.keep
-      return keep !== undefined && keep.fallback === undefined
-    })
-    return whole
-      ? subgraphs.flatMap(subgraph =>
-          featureSide.flatMap(target =>
-            mateSide.flatMap(mate =>
-              subgraph
-                .pairAlignments({ target, query: mate, bases: false })
-                .map(pair =>
-                  pairFeature({
-                    pair,
-                    lane: queryAssemblyName,
-                    mateLane: targetAssemblyName,
-                  }),
-                ),
+    return subgraphs.flatMap(subgraph =>
+      featureSide.flatMap(target =>
+        mateSide.flatMap(mate =>
+          subgraph
+            .pairAlignments({ target, query: mate, bases: false })
+            .map(pair =>
+              pairFeature({
+                pair,
+                lane: queryAssemblyName,
+                mateLane: targetAssemblyName,
+              }),
             ),
-          ),
-        )
-      : []
+        ),
+      ),
+    )
   }
 
   getFeatures(region: Region, opts: GbzFeatureOptions = {}) {

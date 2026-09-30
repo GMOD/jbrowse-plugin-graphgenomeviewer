@@ -776,10 +776,18 @@ test('a lane pair without its target lane is refused', async () => {
   ).rejects.toThrow(PairTargetError)
 })
 
-// the sampled companion holds no anchor rows, and at context 0
-// its sampled cut leaves both walks in pieces around the insertion
-test('without anchor rows a lane pair answers nothing, which the display composes through the reference', async () => {
-  expect(await feats(makeAdapter(), insertionWindow, pair)).toEqual([])
+// the sampled companion holds no anchor rows, so gbz-base finds the walks by
+// its other route
+test('a lane pair answers the same records with or without anchor rows', async () => {
+  const records = async (adapter: Adapter) =>
+    (await feats(adapter, insertionWindow, pair))
+      .map(f => `${f.get('start')}-${f.get('end')} ${f.get('CIGAR')}`)
+      .sort()
+  for (const context of [0, 1000]) {
+    const sampled = await records(makeAdapter({ context }))
+    expect(sampled.length).toBeGreaterThan(0)
+    expect(sampled).toEqual(await records(anchoredAdapter({ context })))
+  }
 })
 
 test('with no index set, opens the haplotype index beside the database', async () => {
