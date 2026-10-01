@@ -1,3 +1,25 @@
+## [4.0.29](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.28...v4.0.29) (2026-10-01)
+
+### Other Changes
+
+- README names the store's latest/ url on jbrowse.org, not unpkg ([718b33d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/718b33dbd3aed2e0fbee7ea178690a52efda98fd))
+- A haplotype index that could not be checked says so instead of asking for one ([4000f64](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4000f6485ed2b5279c5c4e52f9b3a7b7906035c4))
+- The facet is one object, as every JBrowse display writes it ([2f31ab9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2f31ab9e99a5226684bc673413d899557fd50902))
+- A walk bridging a reference gap draws once, and unnamed walks keep apart across the gap ([00fa84b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/00fa84b96efc6df6be1f1ed7b9f86704bfd20ccb))
+- A lane pair answers without anchor rows, and whatever route gbz-base took ([47d9b66](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/47d9b66e3aa8f2387d83f711db88fd88644d9791))
+- Pieces that meet across a gap join with their link, and a later piece's node limit counts from the window ([9cdf5c9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9cdf5c98942c14ab684696d759be061d23ef0d48))
+- Pieces that meet join only across an edge the graph has, and the reference's stray pieces fold into its walks ([7ce547f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7ce547f30970befe7eae83a429847402191b7851))
+- Pieces that meet stay apart where one of the haplotype's paths starts, linked or not ([6133b98](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6133b9840d31a95584af7fddb23f292578dc1183))
+- Walk rows lay out row 0 from the backbone over the window, sharing the tube map's overlap test ([ccfe3aa](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ccfe3aa0afa38dcd9659ddadbf983369c22c94eb))
+- Drop an assertion eslint now reports as unnecessary ([fa9380b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/fa9380b06134a2187be807df2e1e2ba982c7e8d0))
+- Format the walk-rows layout test ([84fa9de](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/84fa9de87a47945b134c151ef410fccdbac1a1d6))
+- Failing tests: a haplotype in several pieces loses all but the first ([9665fb2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9665fb2367b4368cd0ce40ae628c6f99b795322b))
+- A lifted walk holds every record of its name ([00885db](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/00885dbbece645838eae51bf43e19dcc7a9086bd))
+- Walk rows measure against every record of the reference and keep every piece ([40215cc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/40215cc894efb611214ede0d0d3f663b2066cc06))
+- Comments and GBZ.md describe the keep route, not the anchored one ([4e93611](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4e93611ea2c7762e6d5c3cc6c26991947ecf56c4))
+- FigureSpec reads a shorthand gene track's index; the view menu no longer throws on the HPRC portal ([37c546d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/37c546d6f369db7a37da4de8eced5ab60c4790e1))
+- Index fixtures carry stray rows, so keep queries in the tests take the keep route ([e248627](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e2486272b212c73c898318c3c0e18c71e2e3868f))
+
 ## [4.0.28](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.27...v4.0.28) (2026-09-30)
 
 ### Other Changes
