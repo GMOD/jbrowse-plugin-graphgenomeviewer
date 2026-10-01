@@ -384,6 +384,7 @@ const FIGURES = {
           loadedRegion: MICB_EXONS,
           subgraphHaplotypes: HAPLOTYPES,
           layoutMode: 'tubemap',
+          colorScheme: 'auto',
           paneHeight: 360,
         }),
       ],
