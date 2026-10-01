@@ -1,3 +1,10 @@
+## [4.0.30](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.29...v4.0.30) (2026-10-01)
+
+### Other Changes
+
+- A haplotype returned in pieces is one walk row, with the contig between the pieces as a gap run ([ac905af](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ac905afdc8557f9bf613ebe1cc27d79b865754e7))
+- Gbz-base 5.0.0: the keep route walks stray rows, and the hosted HPRC index carries them ([03b8807](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/03b88074edbff1b5ea4bb2ba3fd6bbbd68cb3357))
+
 ## [4.0.29](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.28...v4.0.29) (2026-10-01)
 
 ### Other Changes
