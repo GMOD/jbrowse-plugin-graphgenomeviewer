@@ -1,3 +1,9 @@
+## [4.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.1.1...v4.2.0) (2026-10-02)
+
+### Other Changes
+
+- Segments count their samples as sampleCount; the node popup lists samples ([94b6f39](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/94b6f39711d43a5191f7108af770e3205e09d2ba))
+
 ## [4.1.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.1.0...v4.1.1) (2026-10-02)
 
 ### Other Changes
