@@ -11,7 +11,6 @@ import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
-import LineStyleIcon from '@mui/icons-material/LineStyle'
 import { observer } from 'mobx-react'
 
 import BubbleHalos, { HaloLegend } from './BubbleHalos'
@@ -25,7 +24,10 @@ import ReferenceStripOverlay, {
 import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
 import UnpopButton from './UnpopButton'
 import WalkKey, { walkSwatchStyle } from './WalkKey'
+import { WalkRowContextMenu } from './WalkRowContextMenu'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
+import WalkStrip from './WalkStrip'
+import WalkStripLocator from './WalkStripLocator'
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -552,58 +554,6 @@ const NodeContextMenu = observer(function NodeContextMenu({
   )
 })
 
-// A walk row's bar stands for a span of its haplotype's own contig, so the
-// question a right-click asks is answered by a linear view on that assembly,
-// with its genes
-const WalkRowContextMenu = observer(function WalkRowContextMenu({
-  model,
-  row,
-  top,
-  left,
-  onClose,
-}: {
-  model: GraphPaneModel
-  row: number
-  top: number
-  left: number
-  onClose: () => void
-}) {
-  const target = model.walkRowLaunchTarget(row)
-  const assembly = target?.assembly
-  return (
-    <Menu
-      open
-      anchorReference="anchorPosition"
-      anchorPosition={{ top, left }}
-      onClose={() => {
-        onClose()
-      }}
-      onMenuItemClick={callback => {
-        callback()
-      }}
-      menuItems={[
-        target && assembly
-          ? {
-              label: `Linear genome view — ${assembly} ${locLabel(target.location)}`,
-              icon: LineStyleIcon,
-              onClick: () => {
-                model.showInLinearView({ location: target.location, assembly })
-              },
-            }
-          : {
-              label: 'Linear genome view',
-              icon: LineStyleIcon,
-              disabled: true,
-              disabledHelpText: target
-                ? `No assembly in this session is ${target.location.haplotype ?? target.label}`
-                : 'This walk states no contig coordinates',
-              onClick: () => {},
-            },
-      ]}
-    />
-  )
-})
-
 // `ownChrome` false for a pane inside a track, whose controls, loading state
 // and errors are the track's. A hosted pane whose x the host places takes no pan or wheel of its
 // own: those are the linear view's, as on any other track. One drawing its
@@ -676,6 +626,7 @@ const GraphCanvas = observer(function GraphCanvas({
             <GenePins model={model} />
             <LabelLayer model={model} />
             <WalkRowsOverlay model={model} />
+            <WalkStripLocator model={model} />
             <Legends model={model} />
           </>
         )}
@@ -698,6 +649,8 @@ const GraphCanvas = observer(function GraphCanvas({
           </div>
         ) : null}
       </div>
+
+      {model.walkStripShown ? <WalkStrip model={model} /> : null}
 
       <HoverTooltips model={model} />
 

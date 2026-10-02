@@ -2,7 +2,8 @@ import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { getSession } from '@jbrowse/core/util'
-import { types } from '@jbrowse/mobx-state-tree'
+import { addDisposer, types } from '@jbrowse/mobx-state-tree'
+import { reaction } from 'mobx'
 
 import { GraphPaneMixin, MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import {
@@ -134,7 +135,7 @@ export default function stateModelFactory() {
             return self.cutSubgraph(readConfObject(track, 'adapter'), region, {
               hops: self.subgraphContext,
               haplotypes: self.subgraphHaplotypes,
-              ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
+              ...(self.cutsWholeWalks
                 ? { snarls: 'overlapping' as const }
                 : {}),
             })
@@ -147,13 +148,14 @@ export default function stateModelFactory() {
       retryLoad() {
         void self.load()
       },
-      // walk rows measures whole walks, which a GBZ cut only follows when
-      // asked, so entering or leaving it cuts the track again
+      // walk rows, and the strip of them under a node layout, measure whole
+      // walks, which a GBZ cut only follows when asked, so a change in whether
+      // the drawing needs them cuts the track again; the strip's toggle does
+      // the same (afterAttach)
       switchLayout(mode: LayoutModeValue) {
-        const from = layoutModeByValue(self.chosenLayoutMode)
+        const before = self.cutsWholeWalks
         self.setLayoutMode(mode)
-        return self.loadedTrackId &&
-          layoutModeByValue(mode).wholeWalks !== from.wholeWalks
+        return self.loadedTrackId && self.cutsWholeWalks !== before
           ? self.load()
           : self.recomputeLayout()
       },
@@ -164,6 +166,20 @@ export default function stateModelFactory() {
         if (!self.graph) {
           void self.load()
         }
+        addDisposer(
+          self,
+          reaction(
+            () => self.walkStrip,
+            () => {
+              if (
+                self.loadedTrackId &&
+                !layoutModeByValue(self.chosenLayoutMode).wholeWalks
+              ) {
+                void self.load()
+              }
+            },
+          ),
+        )
       },
     }))
 }

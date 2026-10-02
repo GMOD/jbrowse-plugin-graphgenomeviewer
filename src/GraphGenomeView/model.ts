@@ -41,12 +41,18 @@ import {
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
+  segmentAt,
+  stripMarks,
+  walkStripFrame,
+} from '@jbrowse/bandage-core/layout/walkStrip'
+import {
   LAYOUT_MODES,
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import {
   anchorFromPaths,
   chooseReferencePath,
@@ -297,6 +303,25 @@ const VIEWPORT_DEBOUNCE_MS = 150
 const VIEWPORT_PANES_BUILT = 1
 // How many walk rows read their haplotype's genes, the first rows down
 const WALK_GENE_ROWS = 40
+// The most of the pane's height the strip of walk rows under a node layout
+// takes; past it rows shrink, down to a dense overview
+const WALK_STRIP_CEILING = 260
+
+// The rows a sample filter keeps, in the order it names them
+function filterSamples<R extends { sample: string; label: string }>(
+  rows: R[],
+  samples: string[] | undefined,
+) {
+  return samples
+    ? rows
+        .filter(r => samples.includes(r.sample))
+        .sort(
+          (a, b) =>
+            samples.indexOf(a.sample) - samples.indexOf(b.sample) ||
+            a.label.localeCompare(b.label),
+        )
+    : rows
+}
 
 // What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
 const EMPTY_BATCH: RenderBatch = {
@@ -517,6 +542,9 @@ export function GraphPaneMixin() {
         // Samples whose walks the walk rows show, by the name before the
         // haplotype number; undefined shows every walk the cut holds.
         walkRowSamples: types.maybe(types.frozen<string[]>()),
+        // Walk rows in a strip under a layout that draws nodes, linked to the
+        // drawing: a node's passes tick each bar, a bar's point lights its node
+        walkStrip: types.optional(types.boolean, false),
         // Walks lifted out of the drawing, each a layer with a lane of its own
         // and the rest fading, coloured by the encoding it states or by the
         // default one. See walkEncoding.ts. Empty lifts none.
@@ -622,6 +650,8 @@ export function GraphPaneMixin() {
       // whether the pointer is over this pane, whose own hit test then says
       // what it is on
       pointerInPane: false,
+      // the strip point the pointer is over, which lights its node above
+      stripHover: null as { row: string; offset: number } | null,
       hoveredEdge: null as number | null,
       selectedNode: null as string | null,
       viewportDirty: 0,
@@ -1157,16 +1187,7 @@ export function GraphPaneMixin() {
         if (!bars) {
           return undefined
         }
-        const samples = self.walkRowSamples
-        const rows = samples
-          ? bars.rows
-              .filter(r => samples.includes(r.sample))
-              .sort(
-                (a, b) =>
-                  samples.indexOf(a.sample) - samples.indexOf(b.sample) ||
-                  a.label.localeCompare(b.label),
-              )
-          : bars.rows
+        const rows = filterSamples(bars.rows, self.walkRowSamples)
         const [reference, ...paired] = withCalls(
           [bars.reference, ...rows],
           repeat?.calls,
@@ -1608,8 +1629,7 @@ export function GraphPaneMixin() {
       // open: the span of its contig the bar covers, on the session assembly
       // its haplotype names (the cut's own assembly for the reference row).
       // The label names the haplotype when no assembly is loaded for it.
-      walkRowLaunchTarget(index: number) {
-        const bars = self.walkRowBars
+      walkRowLaunchTarget(index: number, bars = self.walkRowBars) {
         const row = bars ? [bars.reference, ...bars.rows][index] : undefined
         if (!row?.axis) {
           return undefined
@@ -1738,6 +1758,76 @@ export function GraphPaneMixin() {
           return undefined
         }
         return isLinearHost(view) ? view : undefined
+      },
+    }))
+    .views(self => ({
+      // Whether the strip of walk rows sits under the drawing: asked for, on a
+      // standalone view whose layout draws nodes, for a graph with walks, and
+      // not while a bubble is popped
+      get walkStripShown() {
+        return (
+          self.walkStrip &&
+          !self.host &&
+          self.modeDrawsNodes &&
+          !self.layoutResult?.tubeMap &&
+          !self.walkRowBars &&
+          self.popStack.length === 0 &&
+          (self.graph?.paths?.length ?? 0) > 1
+        )
+      },
+      // The strip's rows: the cut's, with the sample filter and no repeat
+      // pick, which the Repeat menu only offers in walk rows
+      get walkStripRows() {
+        const graph = self.graph
+        const bars =
+          graph && this.walkStripShown
+            ? walkRows(graph, self.graphRegion)
+            : undefined
+        return bars
+          ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
+          : undefined
+      },
+      get walkStripFrame() {
+        const bars = this.walkStripRows
+        if (!bars) {
+          return undefined
+        }
+        const longest = Math.max(
+          ...[bars.reference, ...bars.rows].map(r => r.label.length),
+        )
+        return walkStripFrame(bars, {
+          width: self.paneWidth,
+          maxHeight: WALK_STRIP_CEILING,
+          labelPx: longest * LABEL_CHAR_PX + 16,
+        })
+      },
+      // Whether a cut must follow every snarl a walk leaves the window by, so
+      // walks come back whole: walk rows measure them, and so does the strip
+      get cutsWholeWalks() {
+        return (
+          layoutModeByValue(self.chosenLayoutMode).wholeWalks ||
+          (self.walkStrip && !self.host)
+        )
+      },
+      // Where each walk passes the hovered node, or the selected one
+      get walkStripMarks() {
+        const bars = this.walkStripRows
+        const id = self.hoveredNode ?? self.selectedNode
+        const node = id === null ? undefined : self.nodeById?.get(id)
+        return bars && node && self.graph
+          ? stripMarks(self.graph, [bars.reference, ...bars.rows], node)
+          : []
+      },
+      // Where the drawing has the node a strip point lights, for the ring
+      // that finds it in a hairball
+      get walkStripLocator() {
+        const id = self.stripHover ? self.hoveredNode : null
+        return id === null
+          ? undefined
+          : nodeAnchor(self.nodePositions?.[id], p => ({
+              x: p.x * self.scaleX + self.translateX,
+              y: p.y * self.scaleY + self.translateY,
+            }))
       },
     }))
     .views(self => ({
@@ -2597,6 +2687,26 @@ export function GraphPaneMixin() {
       },
       setPointerInPane(inside: boolean) {
         self.pointerInPane = inside
+      },
+      setWalkStrip(show: boolean) {
+        self.walkStrip = show
+        self.stripHover = null
+      },
+      // The pointer over the strip: the node under it becomes the hovered
+      // node, so the drawing, the tooltip and a linked linear view follow
+      setStripHover(hover: { row: string; offset: number } | null) {
+        self.stripHover = hover
+        const bars = self.walkStripRows
+        const frame = self.walkStripFrame
+        const row =
+          hover && bars
+            ? [bars.reference, ...bars.rows].find(r => r.name === hover.row)
+            : undefined
+        const node =
+          row && frame && self.graph
+            ? segmentAt(self.graph, row, hover!.offset, frame.scaleX)
+            : undefined
+        self.hoveredNode = node ?? null
       },
       setLegendSize(size: { width: number; height: number }) {
         self.legendSize = size
@@ -4039,6 +4149,18 @@ export function GraphPaneMixin() {
               self.setShowGenes(!self.showGenes)
             },
           },
+          ...(self.modeDrawsNodes && (self.graph?.paths?.length ?? 0) > 1
+            ? [
+                {
+                  type: 'checkbox' as const,
+                  label: 'Walk rows under the graph',
+                  checked: self.walkStrip,
+                  onClick: () => {
+                    self.setWalkStrip(!self.walkStrip)
+                  },
+                },
+              ]
+            : []),
           ...(self.referenceStripApplies
             ? [
                 {

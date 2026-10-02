@@ -2654,6 +2654,46 @@ describe('walk rows', () => {
     '',
   ].join('\n')
 
+  test('the walk strip shows under a node layout, and links bars and nodes both ways', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'ordered',
+      walkStrip: true,
+      referencePath: 'GRCh38',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    expect(model.walkStripShown).toBe(true)
+    // the layout keeps its own drawing: walk rows' bars are not the strip's
+    expect(model.walkRowBars).toBeUndefined()
+    const bars = model.walkStripRows!
+    expect(bars.rows.map(r => r.label).sort()).toEqual(['A#1', 'A#2', 'B#1'])
+    const two = model.graph!.nodes.find(n => n.name === '2')!
+    // a point on B#1's bar inside node 2 lights it
+    model.setStripHover({ row: 'B#1#ctg', offset: 6 })
+    expect(model.hoveredNode).toBe(two.id)
+    // and node 2 ticks the bars of the walks through it, not A#2's
+    const marked = new Set(model.walkStripMarks.map(m => m.row))
+    expect([...marked].sort()).toEqual(['A#1#ctg', 'B#1#ctg'])
+    model.setStripHover(null)
+    expect(model.hoveredNode).toBeNull()
+    model.setWalkStrip(false)
+    expect(model.walkStripShown).toBe(false)
+    expect(model.walkStripRows).toBeUndefined()
+  })
+
+  test('walk rows and tube maps take no strip', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      walkStrip: true,
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    expect(model.walkStripShown).toBe(false)
+  })
+
   test('a sample filter keeps its walks, paired in the order named, and labels follow', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

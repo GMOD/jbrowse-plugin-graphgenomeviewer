@@ -59,7 +59,7 @@ function TickSwatch({ color }: { color: string }) {
   )
 }
 
-function Swatch({ swatch }: { swatch: KeySwatch }) {
+export function Swatch({ swatch }: { swatch: KeySwatch }) {
   return swatch.kind === 'gene' ? (
     <div
       style={{
