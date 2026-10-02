@@ -1,3 +1,13 @@
+## [4.3.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.2.0...v4.3.0) (2026-10-02)
+
+### Other Changes
+
+- Core for walk rows under a node layout: ticks for a node's visits, the node under a bar point, a strip that fits every row ([0c24bce](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0c24bceedcaf6a70bb880223eb3a8dcef4718e1d))
+- Walk rows under a node layout, linked to the drawing ([8afeafe](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8afeafe2e162467ee497ed3535e1b94df252dc4d))
+- Walk-strip e2e waits for the force layout before hovering a bar; the page fits the whole strip ([69c2522](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/69c2522508c39615363240c231b4ff0a7887abde))
+- Prettier on the walk-strip handoff ([b4dca1e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b4dca1e15f920563c3939ccc5fead19d95435a61))
+- Force layouts route each deletion edge through the simulation ([6d0aa5a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6d0aa5a96622757bdff86834d63694c0af50c98c))
+
 ## [4.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.1.1...v4.2.0) (2026-10-02)
 
 ### Other Changes
