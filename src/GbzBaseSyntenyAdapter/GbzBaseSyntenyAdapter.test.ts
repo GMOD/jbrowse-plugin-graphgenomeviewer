@@ -182,13 +182,13 @@ test('a target assembly is what gbz-base is asked to walk', async () => {
     .find(name => name !== target)!
   const { db } = await (
     adapter as unknown as {
-      graph: () => Promise<{ db: { getAlignmentsForRange: unknown } }>
+      graph: () => Promise<{ db: { getAlignments: unknown } }>
     }
   ).graph()
-  const read = vi.spyOn(db, 'getAlignmentsForRange')
+  const read = vi.spyOn(db, 'getAlignments')
 
   await feats(adapter, window, { targetAssemblyName: target })
-  const { keep } = read.mock.calls.at(-1)![3] as {
+  const { keep } = read.mock.calls.at(-1)![0] as {
     keep?: (name: { sample: string; haplotype: number }) => boolean
   }
   const named = (lane: string) => {
@@ -655,12 +655,12 @@ test('a lane pair walks only its two lanes', async () => {
   const adapter = anchoredAdapter()
   const { db } = await (
     adapter as unknown as {
-      graph: () => Promise<{ db: { getSubgraphForRange: unknown } }>
+      graph: () => Promise<{ db: { getSubgraphs: unknown } }>
     }
   ).graph()
-  const cut = vi.spyOn(db, 'getSubgraphForRange')
+  const cut = vi.spyOn(db, 'getSubgraphs')
   await feats(adapter, insertionWindow, pair)
-  const { keep } = cut.mock.calls.at(-1)![3] as {
+  const { keep } = cut.mock.calls.at(-1)![0] as {
     keep: (name: { sample: string; haplotype: number }) => boolean
   }
   const named = (sample: string, haplotype: number) => ({
@@ -804,17 +804,19 @@ test('a lane pair across a reference gap is cut once per fragment', async () => 
   const adapter = fragmented(1000)
   const { db } = await (
     adapter as unknown as {
-      graph: () => Promise<{ db: { getSubgraphForRange: unknown } }>
+      graph: () => Promise<{ db: { getSubgraphs: unknown } }>
     }
   ).graph()
-  const cut = vi.spyOn(db, 'getSubgraphForRange')
+  const cut = vi.spyOn(db, 'getSubgraphs')
   const records = await feats(adapter, acrossGap, {
     queryAssemblyName: 'HG003#1',
     targetAssemblyName: 'HG002#1',
   })
-  expect(cut.mock.calls.map(([, start, end]) => [start, end]).sort()).toEqual([
-    [0, 6000],
-    [6000, 10000],
+  const subgraphs = (await cut.mock.results.at(-1)!.value) as {
+    referenceInterval?: { name: { fragment: number } }
+  }[]
+  expect(subgraphs.map(s => s.referenceInterval?.name.fragment)).toEqual([
+    0, 6000,
   ])
   expect(records.length).toBeGreaterThan(0)
   cut.mockRestore()

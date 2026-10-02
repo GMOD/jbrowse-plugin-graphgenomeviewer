@@ -5,7 +5,6 @@ import {
   haplotypeWanted,
   nodeLimitError,
   referencePathQuery,
-  referencePieces,
   referenceSamplesOf,
   resolveReferenceSample,
 } from '@jbrowse/bandage-core/gbzWindow'
@@ -226,14 +225,12 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         ? { location: configured }
         : await findCompanion(gbzDb, this.pluginManager)
       const indexLocation = companion.location
-      const db = await GBZBase.open(
-        openLocation(gbzDb, this.pluginManager),
-        indexLocation
-          ? {
-              haplotypeIndex: openLocation(indexLocation, this.pluginManager),
-            }
-          : {},
-      )
+      const db = await GBZBase.open({
+        source: openLocation(gbzDb, this.pluginManager),
+        haplotypeIndex: indexLocation
+          ? openLocation(indexLocation, this.pluginManager)
+          : undefined,
+      })
       const anchor = this.getConf('assemblyNames')[0]
       if (anchor === undefined) {
         throw new Error(
@@ -396,7 +393,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       snarls: opts.snarls ?? this.getConf('subgraphSnarls'),
       limit: this.getConf('nodeLimit'),
       signal: opts.signal,
-      ...(keep === undefined ? {} : { keep }),
+      keep,
     })
   }
 
@@ -454,12 +451,15 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
           opts.statusCallback,
           () =>
             db
-              .getAlignmentsForRange(query, start, end, {
+              .getAlignments({
+                path: query,
+                start,
+                end,
                 context: this.getConf('context'),
                 haplotypes: 'all',
                 limit: nodeLimit,
                 signal: opts.signal,
-                ...(keep === undefined ? {} : { keep }),
+                keep,
               })
               .catch((error: unknown) => {
                 throw nodeLimitError(error, nodeLimit, end - start) ?? error
@@ -504,9 +504,12 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const kept = [...featureSide, ...mateSide]
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
-    const cut = (reference: PathQuery, piece: { start: number; end: number }) =>
+    const cut = (path: PathQuery) =>
       db
-        .getSubgraphForRange(reference, piece.start, piece.end, {
+        .getSubgraphs({
+          path,
+          start,
+          end,
           context: this.getConf('context'),
           snarls: this.getConf('subgraphSnarls'),
           haplotypes: 'all',
@@ -520,29 +523,15 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             ),
         })
         .catch((error: unknown) => {
-          throw (
-            nodeLimitError(
-              error,
-              nodeLimit,
-              end - start,
-              piece.start - start,
-            ) ?? error
-          )
+          throw nodeLimitError(error, nodeLimit, end - start) ?? error
         })
     const subgraphs =
       query && featureSide.length > 0 && mateSide.length > 0
-        ? (
-            await updateStatus(
-              `Reading ${queryAssemblyName} against ${targetAssemblyName}`,
-              opts.statusCallback,
-              async () =>
-                Promise.all(
-                  (await referencePieces(db, query, start, end)).map(piece =>
-                    cut(query, piece),
-                  ),
-                ),
-            )
-          ).filter(subgraph => subgraph !== undefined)
+        ? await updateStatus(
+            `Reading ${queryAssemblyName} against ${targetAssemblyName}`,
+            opts.statusCallback,
+            () => cut(query),
+          )
         : []
     return subgraphs.flatMap(subgraph =>
       featureSide.flatMap(target =>
