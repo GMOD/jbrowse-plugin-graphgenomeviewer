@@ -1,42 +1,36 @@
 import { useId } from 'react'
 
-import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import {
   BAR_PX,
+  DISAGREES,
   GAP_PX,
   GENE_INK,
-  readoutPlacement,
-  rowGeneBoxes,
-  runPaint,
-  unitTicks,
-  walkRowReadout,
   walkRowsKey,
+  walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import { observer } from 'mobx-react'
 
+import ElTree from './ElTree'
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'
-import type {
-  KeySwatch,
-  RowGene,
-} from '@jbrowse/bandage-core/layout/walkRowDraw'
+import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference
-// row, each on its own bp axis from the window's left edge, with what core's
-// walkRowDraw says to draw: runs coloured by how the graph aligned the walk
-// to the reference, unit separators, a readout, and each row's genes from its
-// own assembly's annotation. Under the reference-position ramp an aligned run
-// takes the hue of the reference it is threaded through. In a tandem array
-// that is the aligner's pick among near-identical copies, so the hue says
-// which reference copy the graph used, not which one a copy resembles.
+// row, each on its own bp axis from the window's left edge, drawn from core's
+// walkRowsTree: runs coloured by how the graph aligned the walk to the
+// reference, unit separators, each row's genes from its own assembly's
+// annotation, the allele a repeat genotype called and a readout. Under the
+// reference-position ramp an aligned run takes the hue of the reference it is
+// threaded through. In a tandem array that is the aligner's pick among
+// near-identical copies, so the hue says which reference copy the graph used,
+// not which one a copy resembles.
 //
-// A repeat record's allele for a walk marks its length with a tick. The walk
-// rows pair them — see repeats/walkCalls.ts, which also holds the threshold
-// this reads a red readout off. Colouring each copy by its unit is
-// jbrowse-plugin-tandem-repeat's.
+// The walk rows pair a repeat record's allele with each walk — see
+// repeats/walkCalls.ts, which also holds the threshold a red readout is read
+// off. Colouring each copy by its unit is jbrowse-plugin-tandem-repeat's.
 
 const svgStyle = {
   position: 'absolute' as const,
@@ -49,7 +43,6 @@ const svgStyle = {
 
 const CALL_TICK = '#111'
 const UNBACKED_TICK = '#9e9e9e'
-const DISAGREES = '#c62828'
 
 const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
 const tickSwatchStyle = {
@@ -99,10 +92,9 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   if (!bars) {
     return null
   }
-  const ramp = model.referenceRampDomain
   const calls = [bars.reference, ...bars.rows].flatMap(row => row.call ?? [])
   const key = walkRowsKey(bars, {
-    ramp,
+    ramp: model.referenceRampDomain,
     rampCss: RAMP_GRADIENT_CSS,
     genes: model.walkRowGenes?.size ? model.walkRowGeneGaps : undefined,
   })
@@ -144,80 +136,17 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   )
 })
 
-function RowGenes({
-  genes,
-  X,
-  y,
-}: {
-  genes: RowGene[]
-  X: (offset: number) => number
-  y: number
-}) {
-  return rowGeneBoxes(genes, X, y).map(box => (
-    <g key={`${box.name}-${box.x}`} data-testid="graph-walk-gene">
-      <title>{box.name}</title>
-      {box.exons.map(e => (
-        <rect
-          key={e.x}
-          x={e.x}
-          y={y - BAR_PX / 2}
-          width={e.w}
-          height={BAR_PX}
-          fill={GENE_INK}
-          opacity={0.35}
-        />
-      ))}
-      <rect
-        x={box.x}
-        y={box.y}
-        width={box.w}
-        height={box.h}
-        fill="none"
-        stroke={GENE_INK}
-        strokeWidth={1.5}
-      />
-      {box.label ? (
-        <text
-          x={box.label.x}
-          y={box.label.y}
-          fontSize={box.label.size}
-          fontFamily="sans-serif"
-          fontWeight={600}
-          textAnchor="middle"
-          fill={GENE_INK}
-          stroke="white"
-          strokeWidth={2.5}
-          paintOrder="stroke"
-        >
-          {box.name}
-        </text>
-      ) : null}
-    </g>
-  ))
-}
-
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model,
 }: {
   model: GraphPaneModel
 }) {
   const idPrefix = useId().replace(/[^\w-]/g, '')
-  const { walkRowBars, referenceRampDomain: ramp, walkRowGenes } = model
-  if (!walkRowBars) {
+  const bars = model.walkRowBars
+  if (!bars) {
     return null
   }
-  const {
-    scaleX,
-    scaleY,
-    translateX,
-    translateY,
-    paneWidth: width,
-    canvasHeight,
-  } = model
-  const X = (bp: number) => bp * scaleX + translateX
-  const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
-  const { origin, unit, reference, rows } = walkRowBars
-  const along = (offset: number) => X(origin + offset)
+  const { paneWidth: width, canvasHeight } = model
   return (
     <svg
       style={svgStyle}
@@ -225,95 +154,24 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
       height={canvasHeight}
       data-testid="graph-walk-rows"
     >
-      {[reference, ...rows].map((row, i) => {
-        const y = Y(i)
-        if (y < -BAR_PX || y > canvasHeight + BAR_PX) {
-          return null
-        }
-        const { call } = row
-        const text = walkRowReadout(
-          row,
-          i === 0 ? undefined : reference,
-          unit,
-          call,
-        )
-        const at = readoutPlacement(text, along(row.bp), width)
-        return (
-          <g
-            key={row.name}
-            data-testid={i === 0 ? 'graph-walk-reference' : 'graph-walk-row'}
-          >
-            {row.runs.map(run => {
-              const paint = runPaint(run, ramp)
-              const id = `${idPrefix}-${i}-${run.start}`
-              const h = run.gap ? GAP_PX : BAR_PX
-              return (
-                <g key={run.start}>
-                  {'stops' in paint ? (
-                    <linearGradient id={id}>
-                      {paint.stops.map((color, k) => (
-                        <stop
-                          key={k}
-                          offset={k / (paint.stops.length - 1)}
-                          stopColor={color}
-                        />
-                      ))}
-                    </linearGradient>
-                  ) : null}
-                  <rect
-                    x={along(run.start)}
-                    y={y - h / 2}
-                    width={Math.max(1, run.bp * scaleX)}
-                    height={h}
-                    fill={'stops' in paint ? `url(#${id})` : paint.fill}
-                  />
-                </g>
-              )
-            })}
-            {unit
-              ? unitTicks(row.bp, unit, scaleX).map(k => (
-                  <line
-                    key={k}
-                    x1={along(k)}
-                    x2={along(k)}
-                    y1={y - BAR_PX / 2}
-                    y2={y + BAR_PX / 2}
-                    stroke="white"
-                    strokeWidth={1}
-                  />
-                ))
-              : null}
-            <RowGenes
-              genes={walkRowGenes?.get(row.name) ?? []}
-              X={along}
-              y={y}
-            />
-            {call ? (
-              <rect
-                data-testid="graph-walk-call"
-                x={along(call.bp) - 1}
-                y={y - BAR_PX / 2 - 3}
-                width={2}
-                height={BAR_PX + 6}
-                fill={call.spanningReads === 0 ? UNBACKED_TICK : CALL_TICK}
-              />
-            ) : null}
-            <text
-              x={at.x}
-              y={y + 4}
-              fontSize={11}
-              fontFamily="sans-serif"
-              fill={call?.agrees === false ? DISAGREES : '#333'}
-              stroke={at.halo ? 'white' : undefined}
-              strokeWidth={at.halo ? 3 : undefined}
-              paintOrder="stroke"
-              textAnchor={at.anchor}
-            >
-              {text}
-            </text>
-          </g>
-        )
-      })}
+      <ElTree
+        el={walkRowsTree(
+          bars,
+          {
+            scaleX: model.scaleX,
+            scaleY: model.scaleY,
+            translateX: model.translateX,
+            translateY: model.translateY,
+            width,
+            height: canvasHeight,
+          },
+          {
+            ramp: model.referenceRampDomain,
+            rowGenes: model.walkRowGenes,
+            idPrefix,
+          },
+        )}
+      />
     </svg>
   )
 })
