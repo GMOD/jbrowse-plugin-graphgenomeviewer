@@ -44,8 +44,8 @@ scratchpad.
    JBrowse and its fixtures live there; without it the fixture suites skip.
    `walkStrip.test.ts` once failed because it hovered before the force layout
    landed, leaving no node position to ring.
-2. Release as 4.3.0 (`pnpm version minor`; 4.2.0 went out with the
-   `sampleCount` rename) once CI is green and the user agrees.
+2. Release as 4.3.0 (`pnpm version minor`; 4.2.0 went out with the `sampleCount`
+   rename) once CI is green and the user agrees.
 3. **BandageJS port** after 4.3.0: a strip overlaying the bottom of the pane,
    since its `flex: 1` pane plus a ResizeObserver refits; DOM from the core
    trees; hover feeds `state.hoveredNode`; a click selects the row and toggles
