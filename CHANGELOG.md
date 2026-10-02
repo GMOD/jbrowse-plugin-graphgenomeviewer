@@ -1,3 +1,9 @@
+## [4.1.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.1.0...v4.1.1) (2026-10-02)
+
+### Other Changes
+
+- Walk-row colours say on or off the reference's path ([f8eb16a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f8eb16afc892d69d1603acd3ebf2fc2793a1c5f9))
+
 ## [4.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.0.30...v4.1.0) (2026-10-02)
 
 ### Other Changes
