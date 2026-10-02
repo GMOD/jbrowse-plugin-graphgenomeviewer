@@ -2344,7 +2344,9 @@ export function GraphPaneMixin() {
                     panSN?.[region.assemblyName] ||
                     region.assemblyName,
                   context: adapter!.context as number | undefined,
-                  snarls: adapter!.subgraphSnarls as string | undefined,
+                  snarls: self.cutsWholeWalks
+                    ? 'overlapping'
+                    : (adapter!.subgraphSnarls as string | undefined),
                 },
               }
             : undefined
