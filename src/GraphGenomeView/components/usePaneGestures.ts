@@ -171,6 +171,7 @@ export function usePaneGestures(model: GraphPaneModel) {
               model.positionsVersion,
               model.deletionEdgeIndexes,
               model.hiddenEdgeIndexes,
+              model.deletionRoutes,
             ),
       )
     }

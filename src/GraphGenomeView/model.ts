@@ -519,7 +519,7 @@ export function GraphPaneMixin() {
         // with a label that opens it. Off by default: on a base-level cut
         // every SNP's halo is a blob.
         showBubbles: types.optional(types.boolean, false),
-        showDeletionEdges: types.optional(types.boolean, false),
+        showDeletionEdges: types.optional(types.boolean, true),
         // The session's genes drawn onto the backbone: exons along the nodes
         // that carry them, names pinned at their midpoints. See genes/.
         showGenes: types.optional(types.boolean, true),
@@ -995,6 +995,9 @@ export function GraphPaneMixin() {
       // this one is the bare-edge kind, which every layout has.
       get alleleDeletions() {
         return self.layoutResult?.alleleDeletions ?? []
+      },
+      get deletionRoutes() {
+        return self.layoutResult?.deletionRoutes
       },
       // Whether the current layout states y in screen px rather than in the same
       // units as x (LayoutResult.pixelRows). Everything that has to put the two
@@ -2302,6 +2305,7 @@ export function GraphPaneMixin() {
           // `deletions` is and for the same reason — see `referenceRamp`.
           referenceRamp: self.referenceRamp,
           deletions: self.deletionEdgeIndexes,
+          deletionRoutes: self.deletionRoutes,
           hiddenEdges: self.hiddenEdgeIndexes,
           // passed so the shared edge-curve cache can tell a drag from a pan
           version: self.positionsVersion,

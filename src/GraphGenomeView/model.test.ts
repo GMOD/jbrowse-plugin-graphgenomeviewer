@@ -2335,12 +2335,11 @@ describe('what the row axis draws, in pixels', () => {
   })
 
   test('a deletion edge draws only in a view that shows it', async () => {
-    const hidden = await fitted()
-    expect(hidden.showDeletionEdges).toBe(false)
+    const hidden = await fitted({ showDeletionEdges: false })
     expect([...hidden.hiddenEdgeIndexes]).toEqual(
       hidden.deletions.map(d => d.edgeIndex),
     )
-    const shown = await fitted({ showDeletionEdges: true })
+    const shown = await fitted()
     expect(getSnapshot(shown).showDeletionEdges).toBe(true)
     expect(shown.hiddenEdgeIndexes.size).toBe(0)
 
