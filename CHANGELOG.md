@@ -1,3 +1,11 @@
+## [4.4.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.3.0...v4.4.0) (2026-10-02)
+
+### Other Changes
+
+- Walk-strip handoff: released in 4.3.0, ported to BandageJS ([3b82cf9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3b82cf9068095624061d58261108a34c1aaf3a79))
+- Walk strip boxes each row's genes; crowded rows leave them out ([195b555](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/195b555af0c4dd257ec0b932041dec691789d38d))
+- Export SVG and bandage-figure draw the walk strip under the drawing ([d369feb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d369feb4e88f4fc3b6a68a4535f91a35471a0c09))
+
 ## [4.3.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.2.0...v4.3.0) (2026-10-02)
 
 ### Other Changes
