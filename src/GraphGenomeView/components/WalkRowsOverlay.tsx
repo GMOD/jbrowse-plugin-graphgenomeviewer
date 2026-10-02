@@ -1,32 +1,37 @@
 import { useId } from 'react'
 
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
-import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import {
-  RAMP_GRADIENT_CSS,
-  rampHueCss,
-  rampStops,
-} from '@jbrowse/bandage-core/referenceRampCss'
-import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+  BAR_PX,
+  GAP_PX,
+  GENE_INK,
+  readoutPlacement,
+  rowGeneBoxes,
+  runPaint,
+  unitTicks,
+  walkRowReadout,
+  walkRowsKey,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
+import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import { observer } from 'mobx-react'
 
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'
-import type { WalkCall } from '../repeats/walkCalls'
-import type { WalkRun } from '@jbrowse/bandage-core/layout/walkRows'
+import type {
+  KeySwatch,
+  RowGene,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 
-// The walk-rows layout's bars: one per haplotype walk under the reference line
-// the canvas draws, each on its own bp axis from the window's left edge. Blue
-// marks sequence shared with the reference walk and purple sequence only the
-// haplotypes carry. Under the reference-position ramp, shared sequence takes
-// the hue of the reference it is threaded through and haplotype-only sequence
-// the charcoal the ramp reserves for rGFA's off-reference ranks. In a tandem
-// array the threading is the aligner's pick among near-identical copies, so
-// the hue there says which reference copy the graph used, not which one a copy
-// resembles. The readout at the end of a bar is what it carries against the
-// reference, which for a repeat array is the expansion.
+// The walk-rows layout's bars: one per haplotype walk under the reference
+// row, each on its own bp axis from the window's left edge, with what core's
+// walkRowDraw says to draw: runs coloured by how the graph aligned the walk
+// to the reference, unit separators, a readout, and each row's genes from its
+// own assembly's annotation. Under the reference-position ramp an aligned run
+// takes the hue of the reference it is threaded through. In a tandem array
+// that is the aligner's pick among near-identical copies, so the hue says
+// which reference copy the graph used, not which one a copy resembles.
 //
 // A repeat record's allele for a walk marks its length with a tick. The walk
 // rows pair them — see repeats/walkCalls.ts, which also holds the threshold
@@ -42,14 +47,9 @@ const svgStyle = {
   zIndex: 3,
 }
 
-const ON_REFERENCE = '#2f8fd6'
 const CALL_TICK = '#111'
 const UNBACKED_TICK = '#9e9e9e'
 const DISAGREES = '#c62828'
-const OFF_REFERENCE = '#8e3fbf'
-const OUTSIDE_CUT = '#bdbdbd'
-const BAR_PX = 12
-const GAP_PX = 4
 
 const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
 const tickSwatchStyle = {
@@ -66,10 +66,30 @@ function TickSwatch({ color }: { color: string }) {
   )
 }
 
-// What the bar colours and the ticks mean, in the legend stack with the other
-// keys. The reference row is named, so "the reference" here reads as that row.
-// Each tick row appears once the rows hold one, so a catalogue with no
-// genotypes keeps the two-colour key it had.
+function Swatch({ swatch }: { swatch: KeySwatch }) {
+  return swatch.kind === 'gene' ? (
+    <div
+      style={{
+        ...swatchStyle,
+        boxSizing: 'border-box',
+        border: `1.5px solid ${GENE_INK}`,
+        borderRadius: 0,
+      }}
+    />
+  ) : (
+    <div
+      style={{
+        ...swatchStyle,
+        height: swatch.kind === 'gap' ? GAP_PX : swatchStyle.height,
+        background: swatch.fill,
+      }}
+    />
+  )
+}
+
+// What the bar colours, genes and ticks mean, in the legend stack with the
+// other keys. Each tick row appears once the rows hold one, so a catalogue
+// with no genotypes keeps the plain key.
 export const WalkRowsLegend = observer(function WalkRowsLegend({
   model,
 }: {
@@ -81,38 +101,25 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   }
   const ramp = model.referenceRampDomain
   const calls = [bars.reference, ...bars.rows].flatMap(row => row.call ?? [])
+  const key = walkRowsKey(bars, {
+    ramp,
+    rampCss: RAMP_GRADIENT_CSS,
+    genes: model.walkRowGenes?.size ? model.walkRowGeneGaps : undefined,
+  })
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-rows-legend">
-      <div style={legendRowStyle}>
-        <div
-          style={{
-            ...swatchStyle,
-            background: ramp ? RAMP_GRADIENT_CSS : ON_REFERENCE,
-          }}
-        />
-        <span>shared with {bars.reference.label}</span>
-      </div>
-      <div style={legendRowStyle}>
-        <div
-          style={{
-            ...swatchStyle,
-            backgroundColor: ramp ? REFERENCE_RAMP_ALT_CSS : OFF_REFERENCE,
-          }}
-        />
-        <span>carried by haplotypes only</span>
-      </div>
-      {[bars.reference, ...bars.rows].some(row => row.gapBp > 0) ? (
-        <div style={legendRowStyle}>
-          <div
-            style={{
-              ...swatchStyle,
-              height: GAP_PX,
-              backgroundColor: OUTSIDE_CUT,
-            }}
-          />
-          <span>walked outside the cut</span>
-        </div>
-      ) : null}
+      {key.map(entry =>
+        entry.note ? (
+          <div key={entry.label} style={{ color: '#666', fontStyle: 'italic' }}>
+            {entry.label}
+          </div>
+        ) : (
+          <div key={entry.label} style={legendRowStyle}>
+            <Swatch swatch={entry.swatch} />
+            <span>{entry.label}</span>
+          </div>
+        ),
+      )}
       {calls.some(call => call.spanningReads !== 0) ? (
         <div style={legendRowStyle}>
           <TickSwatch color={CALL_TICK} />
@@ -137,82 +144,56 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   )
 })
 
-function kb(bp: number) {
-  return `${(bp / 1000).toFixed(bp < 10_000 ? 1 : 0)} kb`
-}
-
-function units(bp: number, unit: number | undefined) {
-  return unit ? ` ≈ ${Math.round(bp / unit)} units` : ''
-}
-
-function readout(
-  row: { bp: number; gapBp: number; complete: boolean; call?: WalkCall },
-  referenceBp: number,
-  unit: number | undefined,
-) {
-  const { bp, gapBp, complete, call } = row
-  const delta = bp - referenceBp
-  const against =
-    delta === 0 ? '' : ` (${delta > 0 ? '+' : '−'}${kb(Math.abs(delta))})`
-  const outside = gapBp > 0 ? ` · ${kb(gapBp)} outside the cut` : ''
-  const called = call ? calledReadout(call) : ''
-  return `${kb(bp)}${units(bp, unit)}${against}${outside}${complete ? '' : ' · partial walk'}${called}`
-}
-
-function calledReadout(call: { bp: number; spanningReads?: number }) {
-  const unbacked = call.spanningReads === 0 ? ' · no spanning read' : ''
-  return ` · called ${kb(call.bp)}${unbacked}`
-}
-
-// One separator per unit along a bar, so copies are countable, dropped when a
-// unit is under a few px
-const MIN_TILE_PX = 3
-
-function tileSeparators(bp: number, unit: number, X: (bp: number) => number) {
-  if (X(unit) - X(0) < MIN_TILE_PX) {
-    return []
-  }
-  const xs: number[] = []
-  for (let k = unit; k < bp; k += unit) {
-    xs.push(k)
-  }
-  return xs
-}
-
-// A shared run covers its reference contiguously, so a gradient along it
-// paints the hue of every base.
-function runFill(
-  run: WalkRun,
-  ramp: { start: number; end: number } | undefined,
-  gradientId: string,
-) {
-  if (run.gap) {
-    return { fill: OUTSIDE_CUT }
-  }
-  if (!ramp) {
-    return { fill: run.onReference ? ON_REFERENCE : OFF_REFERENCE }
-  }
-  if (run.referenceStart === undefined) {
-    return { fill: REFERENCE_RAMP_ALT_CSS }
-  }
-  const stops = rampStops({ ...run, start: run.referenceStart }, ramp)
-  if (stops.length === 1) {
-    return { fill: rampHueCss(stops[0]!) }
-  }
-  return {
-    fill: `url(#${gradientId})`,
-    gradient: (
-      <linearGradient id={gradientId}>
-        {stops.map((hue, i) => (
-          <stop
-            key={i}
-            offset={i / (stops.length - 1)}
-            stopColor={rampHueCss(hue)}
-          />
-        ))}
-      </linearGradient>
-    ),
-  }
+function RowGenes({
+  genes,
+  X,
+  y,
+}: {
+  genes: RowGene[]
+  X: (offset: number) => number
+  y: number
+}) {
+  return rowGeneBoxes(genes, X, y).map(box => (
+    <g key={`${box.name}-${box.x}`} data-testid="graph-walk-gene">
+      <title>{box.name}</title>
+      {box.exons.map(e => (
+        <rect
+          key={e.x}
+          x={e.x}
+          y={y - BAR_PX / 2}
+          width={e.w}
+          height={BAR_PX}
+          fill={GENE_INK}
+          opacity={0.35}
+        />
+      ))}
+      <rect
+        x={box.x}
+        y={box.y}
+        width={box.w}
+        height={box.h}
+        fill="none"
+        stroke={GENE_INK}
+        strokeWidth={1.5}
+      />
+      {box.label ? (
+        <text
+          x={box.label.x}
+          y={box.label.y}
+          fontSize={box.label.size}
+          fontFamily="sans-serif"
+          fontWeight={600}
+          textAnchor="middle"
+          fill={GENE_INK}
+          stroke="white"
+          strokeWidth={2.5}
+          paintOrder="stroke"
+        >
+          {box.name}
+        </text>
+      ) : null}
+    </g>
+  ))
 }
 
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
@@ -221,7 +202,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model: GraphPaneModel
 }) {
   const idPrefix = useId().replace(/[^\w-]/g, '')
-  const { walkRowBars, referenceRampDomain: ramp } = model
+  const { walkRowBars, referenceRampDomain: ramp, walkRowGenes } = model
   if (!walkRowBars) {
     return null
   }
@@ -236,56 +217,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   const X = (bp: number) => bp * scaleX + translateX
   const Y = (row: number) => row * ROW_HEIGHT_PX * scaleY + translateY
   const { origin, unit, reference, rows } = walkRowBars
-  // A readout that would leave the pane is written inside the end of its bar
-  const label = (text: string, endBp: number, y: number, fill = '#333') => {
-    const x = X(endBp) + 6
-    const fits = x + text.length * LABEL_CHAR_PX < width
-    return (
-      <text
-        x={fits ? x : X(endBp) - 6}
-        y={y + 4}
-        fontSize={11}
-        fontFamily="sans-serif"
-        fill={fill}
-        stroke={fits ? undefined : 'white'}
-        strokeWidth={fits ? undefined : 3}
-        paintOrder="stroke"
-        textAnchor={fits ? 'start' : 'end'}
-      >
-        {text}
-      </text>
-    )
-  }
-  const separators = (starts: number[], bp: number, y: number) =>
-    starts
-      .filter(k => k > 0 && k < bp)
-      .map(k => (
-        <line
-          key={k}
-          x1={X(origin + k)}
-          x2={X(origin + k)}
-          y1={y - BAR_PX / 2}
-          y2={y + BAR_PX / 2}
-          stroke="white"
-          strokeWidth={1}
-        />
-      ))
-  const rect = (
-    start: number,
-    bp: number,
-    y: number,
-    fill: string,
-    height = BAR_PX,
-  ) => (
-    <rect
-      key={start}
-      x={X(origin + start)}
-      y={y - height / 2}
-      width={Math.max(1, bp * scaleX)}
-      height={height}
-      fill={fill}
-    />
-  )
+  const along = (offset: number) => X(origin + offset)
   return (
     <svg
       style={svgStyle}
@@ -299,49 +231,86 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
           return null
         }
         const { call } = row
+        const text = walkRowReadout(
+          row,
+          i === 0 ? undefined : reference,
+          unit,
+          call,
+        )
+        const at = readoutPlacement(text, along(row.bp), width)
         return (
           <g
             key={row.name}
             data-testid={i === 0 ? 'graph-walk-reference' : 'graph-walk-row'}
           >
             {row.runs.map(run => {
-              const { fill, gradient } = runFill(
-                run,
-                ramp,
-                `${idPrefix}-${i}-${run.start}`,
-              )
+              const paint = runPaint(run, ramp)
+              const id = `${idPrefix}-${i}-${run.start}`
+              const h = run.gap ? GAP_PX : BAR_PX
               return (
                 <g key={run.start}>
-                  {gradient}
-                  {rect(run.start, run.bp, y, fill, run.gap ? GAP_PX : BAR_PX)}
+                  {'stops' in paint ? (
+                    <linearGradient id={id}>
+                      {paint.stops.map((color, k) => (
+                        <stop
+                          key={k}
+                          offset={k / (paint.stops.length - 1)}
+                          stopColor={color}
+                        />
+                      ))}
+                    </linearGradient>
+                  ) : null}
+                  <rect
+                    x={along(run.start)}
+                    y={y - h / 2}
+                    width={Math.max(1, run.bp * scaleX)}
+                    height={h}
+                    fill={'stops' in paint ? `url(#${id})` : paint.fill}
+                  />
                 </g>
               )
             })}
             {unit
-              ? separators(
-                  tileSeparators(row.bp, unit, bp => bp * scaleX),
-                  row.bp,
-                  y,
-                )
+              ? unitTicks(row.bp, unit, scaleX).map(k => (
+                  <line
+                    key={k}
+                    x1={along(k)}
+                    x2={along(k)}
+                    y1={y - BAR_PX / 2}
+                    y2={y + BAR_PX / 2}
+                    stroke="white"
+                    strokeWidth={1}
+                  />
+                ))
               : null}
             {call ? (
               <rect
                 data-testid="graph-walk-call"
-                x={X(origin + call.bp) - 1}
+                x={along(call.bp) - 1}
                 y={y - BAR_PX / 2 - 3}
                 width={2}
                 height={BAR_PX + 6}
                 fill={call.spanningReads === 0 ? UNBACKED_TICK : CALL_TICK}
               />
             ) : null}
-            {label(
-              i === 0
-                ? `${kb(row.bp)}${units(row.bp, unit)}`
-                : readout(row, reference.bp, unit),
-              origin + row.bp,
-              y,
-              call?.agrees === false ? DISAGREES : undefined,
-            )}
+            <RowGenes
+              genes={walkRowGenes?.get(row.name) ?? []}
+              X={along}
+              y={y}
+            />
+            <text
+              x={at.x}
+              y={y + 4}
+              fontSize={11}
+              fontFamily="sans-serif"
+              fill={call?.agrees === false ? DISAGREES : '#333'}
+              stroke={at.halo ? 'white' : undefined}
+              strokeWidth={at.halo ? 3 : undefined}
+              paintOrder="stroke"
+              textAnchor={at.anchor}
+            >
+              {text}
+            </text>
           </g>
         )
       })}

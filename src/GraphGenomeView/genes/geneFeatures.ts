@@ -1,3 +1,5 @@
+import { mergeOverlappingByName } from '@jbrowse/bandage-core/genes/geneFiles'
+
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { Feature } from '@jbrowse/core/util'
 
@@ -6,6 +8,8 @@ import type { Feature } from '@jbrowse/core/util'
 export const GENE_ADAPTER_TYPES = new Set([
   'Gff3TabixAdapter',
   'Gff3Adapter',
+  'BedTabixAdapter',
+  'BedAdapter',
   'GtfTabixAdapter',
   'GtfAdapter',
   'BigBedAdapter',
@@ -39,9 +43,19 @@ function field(f: FeatureLike, name: string): unknown {
     : (f as Record<string, unknown>)[name]
 }
 
+// JBrowse's BED parser splits a coding BED12 block into CDS and UTR parts and
+// keeps `exon` for non-coding ones, so all of them are exon
+const EXON_PARTS = new Set([
+  'exon',
+  'CDS',
+  'five_prime_UTR',
+  'three_prime_UTR',
+  'UTR',
+])
+
 function exonsOf(f: FeatureLike, into: { start: number; end: number }[]) {
   const type = field(f, 'type')
-  if (type === 'exon') {
+  if (typeof type === 'string' && EXON_PARTS.has(type)) {
     into.push({
       start: field(f, 'start') as number,
       end: field(f, 'end') as number,
@@ -69,7 +83,9 @@ function merged(intervals: { start: number; end: number }[]) {
 
 // Genes from a track's features: every top-level feature, named by the first
 // of gene_name, name and id it carries, with the exons found anywhere under it
-// merged. A feature with no exons is one exon, its whole span.
+// merged. A feature with no exons is one exon, its whole span. A BED track
+// gives one feature per transcript, so a name's overlapping features merge,
+// while its copies down the contig stay apart.
 export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
   const genes: GeneModel[] = []
   for (const f of features) {
@@ -93,5 +109,5 @@ export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
       exons: exons.length ? merged(exons) : [{ start, end }],
     })
   }
-  return genes
+  return mergeOverlappingByName(genes)
 }

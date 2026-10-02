@@ -33,6 +33,10 @@ import {
 } from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { trimToWindow } from '@jbrowse/bandage-core/layout/trimToWindow'
+import {
+  placeRowGenes,
+  rowSpan,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
@@ -289,6 +293,8 @@ const HOVER_BRIGHTEN = 1.4
 const SELECT_BRIGHTEN = 1.6
 const VIEWPORT_DEBOUNCE_MS = 150
 const VIEWPORT_PANES_BUILT = 1
+// How many walk rows read their haplotype's genes, the first rows down
+const WALK_GENE_ROWS = 40
 
 // What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
 const EMPTY_BATCH: RenderBatch = {
@@ -586,6 +592,9 @@ export function GraphPaneMixin() {
       indexBubbles: undefined as MinigraphBubble[] | undefined,
       // the genes over the cut window, read once per cut from the gene track
       geneFeatures: undefined as GeneModel[] | undefined,
+      // each walk row's genes, read from its haplotype's own assembly, by walk
+      // name
+      walkGeneFeatures: undefined as Map<string, GeneModel[]> | undefined,
       // the tandem repeat arrays over the cut window, from the repeat track
       repeatArrays: undefined as RepeatArray[] | undefined,
       // The graphs the open bubble was popped out of, outermost first, each
@@ -1482,6 +1491,101 @@ export function GraphPaneMixin() {
             : undefined
         return (sample: string) =>
           loaded(byPrefix.get(sample)) ?? loaded(sample)
+      },
+      // Each assembly's gene track among the session's tracks, picked as the
+      // backbone's is, so a walk row can read its haplotype's own annotation.
+      // One pass over the tracks, not one per row.
+      get geneTracksByAssembly() {
+        const byAssembly = new Map<
+          string,
+          { trackId: string; name: string; adapterType: string }[]
+        >()
+        for (const t of getSession(self).tracks) {
+          const adapterType = (readConfObject(t, 'adapter') as { type: string })
+            .type
+          if (!GENE_ADAPTER_TYPES.has(adapterType)) {
+            continue
+          }
+          const track = {
+            trackId: t.trackId as string,
+            name: readConfObject(t, 'name') as string,
+            adapterType,
+          }
+          for (const asm of readConfObject(t, 'assemblyNames') as string[]) {
+            byAssembly.set(asm, [...(byAssembly.get(asm) ?? []), track])
+          }
+        }
+        return new Map(
+          [...byAssembly].map(([asm, tracks]) => [
+            asm,
+            pickGeneTrack(tracks, '')!,
+          ]),
+        )
+      },
+    }))
+    .views(self => ({
+      // The gene reads walk rows need: for each row whose haplotype
+      // (`HG00097#1`) names an assembly with a gene track, that track over the
+      // span of its own contig the row's bar covers. The first WALK_GENE_ROWS
+      // such rows are read, and the rest counted for the key.
+      get walkGeneReads() {
+        const bars = self.walkRowBars
+        if (!bars || !self.showGenes) {
+          return undefined
+        }
+        const reads: {
+          row: string
+          trackId: string
+          region: SubgraphRegion
+        }[] = []
+        let untracked = 0
+        for (const row of bars.rows) {
+          const assemblyName =
+            row.axis && row.haplotype !== undefined
+              ? self.assemblyResolver(`${row.sample}#${row.haplotype}`)
+              : undefined
+          const track = assemblyName
+            ? self.geneTracksByAssembly.get(assemblyName)
+            : undefined
+          if (!row.axis || !assemblyName || !track) {
+            untracked++
+            continue
+          }
+          reads.push({
+            row: row.name,
+            trackId: track.trackId,
+            region: {
+              assemblyName,
+              refName: row.axis.contig,
+              ...rowSpan(row.axis, row.bp),
+            },
+          })
+        }
+        return {
+          reads: reads.slice(0, WALK_GENE_ROWS),
+          gaps: {
+            untracked,
+            unread: Math.max(0, reads.length - WALK_GENE_ROWS),
+          },
+        }
+      },
+      get walkRowGeneGaps() {
+        return this.walkGeneReads?.gaps
+      },
+      // Each row's genes as offsets along its bar: the reference row's from
+      // the backbone's gene track, every other row's from its own assembly
+      get walkRowGenes() {
+        const bars = self.walkRowBars
+        if (!bars || !self.showGenes) {
+          return undefined
+        }
+        const byRow = new Map(self.walkGeneFeatures ?? [])
+        if (self.geneFeatures) {
+          byRow.set(bars.reference.name, self.geneFeatures)
+        }
+        return byRow.size
+          ? placeRowGenes([bars.reference, ...bars.rows], byRow)
+          : undefined
       },
     }))
     .views(self => ({
@@ -2767,6 +2871,8 @@ export function GraphPaneMixin() {
       // one over the top of the chosen one seconds later, with the dropdown
       // still naming the choice that was discarded.
       let liveRequest = 0
+      // a haplotype's genes by track and contig span, kept across cuts
+      const walkGeneCache = new Map<string, GeneModel[]>()
 
       // Applied under a guard because a layout is async and the user can load a
       // different graph, or ask for a different layout of it, while one is in
@@ -2860,6 +2966,7 @@ export function GraphPaneMixin() {
         self.loadedReferencePath = loaded
         self.indexBubbles = undefined
         self.geneFeatures = undefined
+        self.walkGeneFeatures = undefined
         self.repeatArrays = undefined
         self.popStack = []
         // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
@@ -3175,6 +3282,42 @@ export function GraphPaneMixin() {
             )
           }
         }),
+        // The walk rows' genes, each row's from its haplotype's assembly. A
+        // row's genes are its own contig's, so they take the row's name for
+        // their contig, whatever the track calls it.
+        loadWalkGenes: flow(function* () {
+          const reads = self.walkGeneReads?.reads ?? []
+          const key = JSON.stringify(reads)
+          const graph = self.graph
+          const fetched = new Map<string, GeneModel[]>()
+          yield Promise.all(
+            reads.map(({ row, trackId, region }) =>
+              flow(function* () {
+                const cacheKey = `${trackId} ${region.refName}:${region.start}-${region.end}`
+                let genes = walkGeneCache.get(cacheKey)
+                if (!genes) {
+                  const features = yield* trackFeatures(
+                    trackId,
+                    region,
+                    'haplotype genes',
+                  )
+                  genes = (features ? geneModelsFrom(features) : []).map(g => ({
+                    ...g,
+                    refName: region.refName,
+                  }))
+                  walkGeneCache.set(cacheKey, genes)
+                }
+                fetched.set(row, genes)
+              })(),
+            ),
+          )
+          if (
+            self.graph === graph &&
+            JSON.stringify(self.walkGeneReads?.reads ?? []) === key
+          ) {
+            self.walkGeneFeatures = reads.length ? fetched : undefined
+          }
+        }),
         reloadGenes: flow(function* () {
           const region = self.graphRegion
           const trackId = self.geneTrack?.trackId
@@ -3310,6 +3453,24 @@ export function GraphPaneMixin() {
               },
               () => {
                 self.refitView()
+              },
+            ),
+          )
+          // The walk rows' genes follow the rows: a new cut, a repeat pick or
+          // a sample filter changes which haplotypes and spans they read
+          addDisposer(
+            self,
+            reaction(
+              () => ({
+                graph: self.graph,
+                reads: JSON.stringify(self.walkGeneReads?.reads ?? []),
+              }),
+              () => {
+                void self.loadWalkGenes()
+              },
+              {
+                fireImmediately: true,
+                equals: (a, b) => a.graph === b.graph && a.reads === b.reads,
               },
             ),
           )

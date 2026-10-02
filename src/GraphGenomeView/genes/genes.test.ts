@@ -54,6 +54,47 @@ test('a gene merges the exons of every transcript under it', () => {
   ])
 })
 
+// A BED track gives one feature per transcript, and JBrowse splits a coding
+// block into CDS and UTR parts
+const bedTranscript = (start: number, end: number, cdsEnd: number) => ({
+  type: 'mRNA',
+  name: 'AMY1C',
+  refName: 'ctg',
+  start,
+  end,
+  strand: 1,
+  subfeatures: [
+    { type: 'five_prime_UTR', start, end: start + 10 },
+    { type: 'CDS', start: start + 10, end: cdsEnd },
+    { type: 'three_prime_UTR', start: end - 10, end },
+  ],
+})
+
+test("a BED gene's transcripts merge, its copies stay apart, CDS and UTR count as exons", () => {
+  const genes = geneModelsFrom([
+    bedTranscript(1000, 1100, 1040),
+    bedTranscript(1020, 1100, 1060),
+    bedTranscript(9000, 9100, 9040),
+  ])
+  expect(genes.map(g => [g.name, g.start, g.end])).toEqual([
+    ['AMY1C', 1000, 1100],
+    ['AMY1C', 9000, 9100],
+  ])
+  expect(genes[0]!.exons).toEqual([
+    { start: 1000, end: 1060 },
+    { start: 1090, end: 1100 },
+  ])
+})
+
+test('BED tracks count as gene tracks', () => {
+  expect(
+    pickGeneTrack(
+      [{ trackId: 'HG00097.1_cat_genes', adapterType: 'BedTabixAdapter' }],
+      '',
+    )?.trackId,
+  ).toBe('HG00097.1_cat_genes')
+})
+
 test('the gene track is the named one, else the annotation-looking one', () => {
   const tracks = [
     { trackId: 'reads', adapterType: 'BamAdapter' },
