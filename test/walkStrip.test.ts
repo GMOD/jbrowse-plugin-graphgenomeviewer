@@ -13,6 +13,7 @@ import {
   screenshot,
   setupJBrowse,
   startJBrowseServer,
+  waitForAppReady,
   waitForReactMount,
   writeServedFile,
 } from './setup'
@@ -107,13 +108,16 @@ describe.skipIf(!runE2E || !hasFixture)(
       await startJBrowseServer()
       browser = await launchBrowser()
       page = await createJBrowsePage(browser)
+      await page.setViewport({ width: 1280, height: 1100 })
       await waitForReactMount(page)
-      await page.waitForFunction(
+      // the strip draws from the cut, long before the force layout lands
+      await waitForAppReady(
+        page,
         () =>
+          Boolean(window.JBrowseSession.views[0]?.layoutResult) &&
           document.querySelectorAll(
             '[data-testid="graph-walk-strip"] [data-testid="graph-walk-row"]',
           ).length >= 8,
-        { timeout: 120_000 },
       )
     }, 180_000)
 
