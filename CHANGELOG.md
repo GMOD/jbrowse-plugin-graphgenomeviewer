@@ -1,3 +1,10 @@
+## [4.4.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.4.0...v4.4.1) (2026-10-02)
+
+### Other Changes
+
+- Strip review fixes: a crowded strip always notes its genes, specs keep the cut ([7ab451c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7ab451cc22243c002b88b3c79b0d03a7214b0057))
+- StripGeneGaps takes the row genes as an optional third argument ([102f214](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/102f214a437f94c94269997c2f9be62ff4a83229))
+
 ## [4.4.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.3.0...v4.4.0) (2026-10-02)
 
 ### Other Changes
