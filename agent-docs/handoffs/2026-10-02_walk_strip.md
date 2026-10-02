@@ -44,12 +44,10 @@ scratchpad.
    JBrowse and its fixtures live there; without it the fixture suites skip.
    `walkStrip.test.ts` once failed because it hovered before the force layout
    landed, leaving no node position to ring.
-2. Release as 4.3.0 (`pnpm version minor`; 4.2.0 went out with the `sampleCount`
-   rename) once CI is green and the user agrees.
-3. **BandageJS port** after 4.3.0: a strip overlaying the bottom of the pane,
-   since its `flex: 1` pane plus a ResizeObserver refits; DOM from the core
-   trees; hover feeds `state.hoveredNode`; a click selects the row and toggles
-   its lift.
+2. Released in 4.3.0. BandageJS has the strip too (its commit 07952f0): a
+   section under the pane, which shrinks and refits, toggled from View.
+3. The bars draw off-path stretches charcoal, while the force drawing greys the
+   same nodes as having no reference position.
 4. **Later:** gene boxes in the strip, SVG export of the strip, strip in
    LinearGraphDisplay, and a walk-lift colour on the lifted bar.
 
