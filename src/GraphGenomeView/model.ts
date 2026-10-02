@@ -52,7 +52,6 @@ import {
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
-import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import {
   anchorFromPaths,
   chooseReferencePath,
@@ -303,9 +302,6 @@ const VIEWPORT_DEBOUNCE_MS = 150
 const VIEWPORT_PANES_BUILT = 1
 // How many walk rows read their haplotype's genes, the first rows down
 const WALK_GENE_ROWS = 40
-// The most of the pane's height the strip of walk rows under a node layout
-// takes; past it rows shrink, down to a dense overview
-const WALK_STRIP_CEILING = 260
 
 // The rows a sample filter keeps, in the order it names them
 function filterSamples<R extends { sample: string; label: string }>(
@@ -1670,14 +1666,7 @@ export function GraphPaneMixin() {
         if (!bars) {
           return undefined
         }
-        const longest = Math.max(
-          ...[bars.reference, ...bars.rows].map(r => r.label.length),
-        )
-        return walkStripFrame(bars, {
-          width: self.paneWidth,
-          maxHeight: WALK_STRIP_CEILING,
-          labelPx: longest * LABEL_CHAR_PX + 16,
-        })
+        return walkStripFrame(bars, { width: self.paneWidth })
       },
       // Whether a cut must follow every snarl a walk leaves the window by, so
       // walks come back whole: walk rows measure them, and so does the strip
@@ -2395,6 +2384,7 @@ export function GraphPaneMixin() {
               ? self.walkLayers.map(l => (l.color ? l : l.walk))
               : undefined,
             facet: self.walkLayers.length > 1 ? self.facetSpec : undefined,
+            walkStrip: self.walkStripShown || undefined,
             width: self.paneWidth,
             height: self.paneCeiling,
             colorScheme: self.chosenColorScheme,
@@ -2413,7 +2403,7 @@ export function GraphPaneMixin() {
             : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
       },
       // The drawing as a standalone SVG, fitted, with its genes, its lifted
-      // walks' keys and facet panels; see figureSvg
+      // walks' keys, facet panels and the strip of walk rows; see figureSvg
       figure() {
         const { graph, layoutResult } = self
         return graph && layoutResult && !this.figureUnavailable
@@ -2434,6 +2424,11 @@ export function GraphPaneMixin() {
               walkRows: self.walkRowBars,
               rowGenes: self.walkRowGenes,
               rowGeneGaps: self.walkRowGeneGaps,
+              walkStrip: self.walkStripRows && {
+                rows: self.walkStripRows,
+                rowGenes: self.walkRowGenes,
+                rowGeneGaps: self.walkRowGeneGaps,
+              },
               spec: this.figureSpec(),
             })
           : undefined

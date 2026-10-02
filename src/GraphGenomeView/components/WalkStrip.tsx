@@ -6,8 +6,10 @@ import {
   walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import {
+  stripGeneGaps,
   stripRowAt,
   walkMarksTree,
+  walkStripLabelsTree,
 } from '@jbrowse/bandage-core/layout/walkStrip'
 import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import { isAlive } from '@jbrowse/mobx-state-tree'
@@ -88,18 +90,18 @@ const WalkStrip = observer(function WalkStrip({
   if (!bars || !frame) {
     return null
   }
-  const rows = [bars.reference, ...bars.rows]
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - box.left
     const y = e.clientY - box.top
     return { ...stripRowAt(bars, frame, x, y), x, y }
   }
-  const genes = model.walkRowGenes?.size ? model.walkRowGeneGaps : undefined
   const key = walkRowsKey(bars, {
     ramp: model.referenceRampDomain,
     rampCss: RAMP_GRADIENT_CSS,
-    genes: genes && !frame.boxesGenes ? { ...genes, crowded: true } : genes,
+    genes: model.walkRowGenes?.size
+      ? stripGeneGaps(frame, model.walkRowGeneGaps)
+      : undefined,
   })
   return (
     <div
@@ -162,23 +164,13 @@ const WalkStrip = observer(function WalkStrip({
           rowGenes={model.walkRowGenes}
         />
         <ElTree el={walkMarksTree(bars, frame, model.walkStripMarks)} />
-        {frame.labelled
-          ? rows.map((row, i) => (
-              <text
-                key={row.name}
-                x={6}
-                y={i * frame.rowPx + frame.translateY + 4}
-                fontSize={11}
-                fontFamily="sans-serif"
-                fill="#333"
-                fontWeight={
-                  model.walkLayers.some(l => l.walk === row.name) ? 600 : 400
-                }
-              >
-                {row.label}
-              </text>
-            ))
-          : null}
+        <ElTree
+          el={walkStripLabelsTree(
+            bars,
+            frame,
+            new Set(model.walkLayers.map(l => l.walk)),
+          )}
+        />
       </svg>
       {tip ? (
         <div style={{ ...tipStyle, left: tip.x + 12, top: tip.y - 18 }}>
