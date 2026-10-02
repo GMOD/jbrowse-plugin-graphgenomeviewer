@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
+import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import {
   LIFT_BACKDROP_CSS,
   REFERENCE_RAMP_ALT_CSS,
@@ -25,7 +26,6 @@ import UnpopButton from './UnpopButton'
 import WalkKey, { walkSwatchStyle } from './WalkKey'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
-import { RAMP_GRADIENT_CSS } from './referenceRampCss'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'

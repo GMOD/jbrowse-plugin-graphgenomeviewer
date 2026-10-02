@@ -1,4 +1,4 @@
-import { REFERENCE_RAMP_MAX_HUE } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { REFERENCE_RAMP_MAX_HUE } from './renderer/GeometryBuilder'
 
 // The reference-position ramp in CSS, from the same three numbers
 // `getNodeColor` paints with (hue 0 to REFERENCE_RAMP_MAX_HUE at 70%/50%), so

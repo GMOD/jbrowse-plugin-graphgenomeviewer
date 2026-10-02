@@ -2,11 +2,15 @@ import { useId } from 'react'
 
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
+import {
+  RAMP_GRADIENT_CSS,
+  rampHueCss,
+  rampStops,
+} from '@jbrowse/bandage-core/referenceRampCss'
 import { REFERENCE_RAMP_ALT_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { observer } from 'mobx-react'
 
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
-import { RAMP_GRADIENT_CSS, rampHueCss, rampStops } from './referenceRampCss'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
 
 import type { GraphPaneModel } from '../model'
