@@ -124,11 +124,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
             signal,
             lineCallback: line => {
               const segment = parseSegmentLine(line)
-              // `samples` is who, `carriers` is how many, and the second is not
-              // just a convenience: a lane colored by carriage is a jexl
-              // expression in a config, where counting a list means relying on
-              // jexl resolving `.length` through a member access on an array.
-              // The count is the axis the color reads, so the index states it.
+              // `samples` lists the haplotypes whose paths visit the segment and
+              // `sampleCount` counts them. A lane's color reads the count, and
+              // a count in jexl would otherwise rely on `.length` resolving
+              // through a member access on an array.
               const samples = segmentSamples(segment)
               observer.next(
                 new SimpleFeature({
@@ -140,7 +139,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
                   type: 'segment',
                   rank: segment.rank,
                   stableName: segment.refName,
-                  ...(samples && { samples, carriers: samples.length }),
+                  ...(samples && { samples, sampleCount: samples.length }),
                 }),
               )
             },

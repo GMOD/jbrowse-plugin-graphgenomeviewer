@@ -119,15 +119,15 @@ test('a valid tag beside a malformed one keeps only the valid one', () => {
   )
 })
 
-test('segmentSamples reads the carriers off the tag column', () => {
+test('segmentSamples reads the samples off the tag column', () => {
   const segment = parseSegmentLine(
     'K12#1#chr\t1004477\t1004500\ts119690\t0\tSM:Z:K12.1,Sakai.1,NCTC86.1',
   )
   expect(segmentSamples(segment)).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
 })
 
-// Undefined, not [], so a lane can tell a graph that states nothing about
-// carriage apart from a segment nothing carries.
+// Undefined, not [], so a lane can tell a graph that records no samples from a
+// segment no path visits.
 test('segmentSamples is undefined when the column says nothing', () => {
   expect(segmentSamples(parseSegmentLine(RGFA_SEG))).toBeUndefined()
   expect(segmentSamples(parseSegmentLine(TAGGED_SEG))).toBeUndefined()
@@ -148,11 +148,11 @@ test('segmentSamples finds the tag beside other tags', () => {
   expect(segmentSamples(segment)).toEqual(['HG002.1', 'HG002.2'])
 })
 
-// The whole carriage chain in one test, because it spans three files and each
+// The whole samples chain in one test, because it spans three files and each
 // half is covered on its own: a segs.bed SM:Z: column -> the synthesized S-line
-// -> the GFA parser -> GraphNode.samples, which is what model.ts renders as
-// `carriedBy` in the node popup. An indexed cut has no P/W lines, so this tag is
-// the only statement of carriage it can carry, and nothing else asserts that it
+// -> the GFA parser -> GraphNode.samples, which model.ts renders as `samples`
+// in the node popup. An indexed cut has no P/W lines, so this tag is its only
+// record of which haplotypes visit a segment, and nothing else asserts that it
 // survives the round trip.
 test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
   const { parseGFA } = await import('@jbrowse/bandage-core/gfa-core/index')

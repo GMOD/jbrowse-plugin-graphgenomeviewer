@@ -22,7 +22,7 @@ above it.
 
 - **Copy number off a bar.** Walk rows tile each haplotype by the 5,548 bp
   kringle: GRCh38's six units are the six LPA exon pairs above, and HG00133
-  carries 27.
+  has 27.
 
 ![KIV-2 walk rows under LPA and the curated KIV-2 annotation](img/walk_rows_kiv2.png)
 
@@ -49,9 +49,9 @@ node in the view bands its bp in the linear view:
 - Genes from the session's annotation track, drawn on the graph
 - Hovering a callset or MAF row in the same view lifts that haplotype's walk
 - Bubbles from `gfatools bubble` or the graph itself, opened level by level
-- gbz-base haplotypes as walks: carriage as node thickness, walks lifted out as
-  metro-map lanes or side by side, a panel per walk or a row per sample, each
-  shading from its start to its end
+- gbz-base haplotypes as walks: the number of walks through a node as its
+  thickness, walks lifted out as metro-map lanes or side by side, a panel per
+  walk or a row per sample, each shading from its start to its end
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 - Figures as SVG, from the view's Export SVG or from a JSON spec with no browser
   ([docs/figures.md](docs/figures.md))

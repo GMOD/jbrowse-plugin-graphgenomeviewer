@@ -203,7 +203,7 @@ test('getFeatures carries SM:Z: onto the feature', async () => {
   const private1199 = features.find(f => f.get('name') === '196827')!
   expect(private1199.get('end') - private1199.get('start')).toBe(1199)
   expect(private1199.get('samples')).toEqual(['K12.1'])
-  expect(private1199.get('carriers')).toBe(1)
+  expect(private1199.get('sampleCount')).toBe(1)
 
   const core = features.find(f => f.get('name') === '196843')!
   expect(core.get('samples')).toEqual([
@@ -213,10 +213,10 @@ test('getFeatures carries SM:Z: onto the feature', async () => {
     'NCTC86.1',
     'IAI39.1',
   ])
-  expect(core.get('carriers')).toBe(5)
+  expect(core.get('sampleCount')).toBe(5)
 })
 
-// The other half of the same fixture: the graph route reads carriage off the
+// The other half of the same fixture: the graph route reads the samples off the
 // synthesized S-line, and rgfaBed.test.ts asserts that from a hand-written row.
 // This is the same claim against a real indexed file.
 test('getSubgraph keeps the tag on the S-line it synthesizes', async () => {
@@ -226,16 +226,16 @@ test('getSubgraph keeps the tag on the S-line it synthesizes', async () => {
   )
 })
 
-// An rGFA has no sixth column, so the attribute is absent rather than 0 — a
-// color expression reading `carriers` on such a track gets undefined, not a
-// claim that nothing carries the segment.
-test('getFeatures omits carriage on a graph that states none', async () => {
+// An rGFA has no sixth column, so the attribute is absent rather than 0: a
+// color expression reading `sampleCount` on such a track gets undefined, not a
+// count of zero.
+test('getFeatures omits samples on a graph that records none', async () => {
   const features = await firstValueFrom(
     makeAdapter().getFeatures(k12).pipe(toArray()),
   )
   expect(features.length).toBeGreaterThan(0)
   expect(features.every(f => f.get('samples') === undefined)).toBe(true)
-  expect(features.every(f => f.get('carriers') === undefined)).toBe(true)
+  expect(features.every(f => f.get('sampleCount') === undefined)).toBe(true)
 })
 
 // Minigraph-Cactus writes PanSN stable names, so HPRC release 2 calls the

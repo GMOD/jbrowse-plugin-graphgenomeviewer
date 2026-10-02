@@ -31,8 +31,8 @@ because the entry loads its chunks relative to `import.meta.url`:
 To host the engine on another origin, rebuild with the chunk emitted there; no
 config names its url.
 
-A dynamic `import()` cannot carry a subresource-integrity hash. For pinned
-bytes, serve the plugin from an immutable, versioned url on a host you control.
+A dynamic `import()` takes no subresource-integrity hash. For pinned bytes,
+serve the plugin from an immutable, versioned url on a host you control.
 
 ## Rebuilding the engine
 

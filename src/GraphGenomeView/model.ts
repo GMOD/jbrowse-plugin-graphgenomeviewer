@@ -2658,12 +2658,10 @@ export function GraphPaneMixin() {
                   // the assembly to load to open this node on its own
                   // coordinates
                   contributingHaplotype: nodeOwnLocation(node)?.haplotype,
-                  // Every assembly that traverses it, which is a different
-                  // question and one only a path GFA can answer. Absent on an
-                  // rGFA rather than approximated, so the two are never
-                  // confused: there `contributingAssembly` is first-seen, not
-                  // carriage.
-                  carriedBy: node.samples?.join(', '),
+                  // Every haplotype whose path visits it, which only a path
+                  // GFA records. Absent on an rGFA, where
+                  // `contributingAssembly` is the first-seen assembly alone.
+                  samples: node.samples?.join(', '),
                   ...(region && span
                     ? {
                         refName: region.refName,
