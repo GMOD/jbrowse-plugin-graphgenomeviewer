@@ -39,10 +39,11 @@
 - Route: transcripts as GAF on the graph, drawn through the reads pipeline
   (`GetGraphReads`, `src/gaf/gafFile.ts`, `tubeMap/reads.ts`). Each transcript
   gets a lane through the nodes it uses, and its cs tag marks the edits.
-- Open question: where per-haplotype alignments come from. Projecting the
-  reference annotation onto the graph repeats what the gene lane already draws;
-  the gain needs each haplotype's own annotation, or transcripts aligned to each
-  haplotype's path. Nobody has tried either.
+- Where per-haplotype annotation comes from: the hosted HPRC config gives every
+  release 2 haplotype assembly its CAT gene track (`HG00097.1_cat_genes`, tabix
+  BED), aliased by PanSN name (`HG00097#1`). Walk rows read it per row through
+  `walkGeneReads`; the tube map could read the same tracks, then map each gene
+  through the nodes of that haplotype's walk.
 - Limits inherited from reads (`HANDOFF_tubemap_reads.md`):
   - only gbz-base tracks take reads
   - a tabix GAF index needs numeric node ids; without one a file is read whole,

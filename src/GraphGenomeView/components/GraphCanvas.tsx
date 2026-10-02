@@ -11,6 +11,7 @@ import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
+import LineStyleIcon from '@mui/icons-material/LineStyle'
 import { observer } from 'mobx-react'
 
 import BubbleHalos, { HaloLegend } from './BubbleHalos'
@@ -551,6 +552,58 @@ const NodeContextMenu = observer(function NodeContextMenu({
   )
 })
 
+// A walk row's bar stands for a span of its haplotype's own contig, so the
+// question a right-click asks is answered by a linear view on that assembly,
+// with its genes
+const WalkRowContextMenu = observer(function WalkRowContextMenu({
+  model,
+  row,
+  top,
+  left,
+  onClose,
+}: {
+  model: GraphPaneModel
+  row: number
+  top: number
+  left: number
+  onClose: () => void
+}) {
+  const target = model.walkRowLaunchTarget(row)
+  const assembly = target?.assembly
+  return (
+    <Menu
+      open
+      anchorReference="anchorPosition"
+      anchorPosition={{ top, left }}
+      onClose={() => {
+        onClose()
+      }}
+      onMenuItemClick={callback => {
+        callback()
+      }}
+      menuItems={[
+        target && assembly
+          ? {
+              label: `Linear genome view — ${assembly} ${locLabel(target.location)}`,
+              icon: LineStyleIcon,
+              onClick: () => {
+                model.showInLinearView({ location: target.location, assembly })
+              },
+            }
+          : {
+              label: 'Linear genome view',
+              icon: LineStyleIcon,
+              disabled: true,
+              disabledHelpText: target
+                ? `No assembly in this session is ${target.location.haplotype ?? target.label}`
+                : 'This walk states no contig coordinates',
+              onClick: () => {},
+            },
+      ]}
+    />
+  )
+})
+
 // `ownChrome` false for a pane inside a track, whose controls, loading state
 // and errors are the track's. A hosted pane whose x the host places takes no pan or wheel of its
 // own: those are the linear view's, as on any other track. One drawing its
@@ -568,7 +621,8 @@ const GraphCanvas = observer(function GraphCanvas({
     error: renderError,
     retry: retryRender,
   } = useRenderingBackend(createGraphRenderer, model)
-  const { handlers, contextNode, closeContextMenu } = usePaneGestures(model)
+  const { handlers, contextNode, contextRow, closeContextMenu } =
+    usePaneGestures(model)
   useWheelZoom(canvas, model)
   const faceted = model.facetPanels !== undefined
 
@@ -653,6 +707,16 @@ const GraphCanvas = observer(function GraphCanvas({
           nodeId={contextNode.nodeId}
           top={contextNode.top}
           left={contextNode.left}
+          onClose={closeContextMenu}
+        />
+      ) : null}
+
+      {contextRow ? (
+        <WalkRowContextMenu
+          model={model}
+          row={contextRow.row}
+          top={contextRow.top}
+          left={contextRow.left}
           onClose={closeContextMenu}
         />
       ) : null}

@@ -283,6 +283,11 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                   />
                 ))
               : null}
+            <RowGenes
+              genes={walkRowGenes?.get(row.name) ?? []}
+              X={along}
+              y={y}
+            />
             {call ? (
               <rect
                 data-testid="graph-walk-call"
@@ -293,11 +298,6 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
                 fill={call.spanningReads === 0 ? UNBACKED_TICK : CALL_TICK}
               />
             ) : null}
-            <RowGenes
-              genes={walkRowGenes?.get(row.name) ?? []}
-              X={along}
-              y={y}
-            />
             <text
               x={at.x}
               y={y + 4}

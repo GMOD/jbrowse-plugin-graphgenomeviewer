@@ -34,6 +34,7 @@ import {
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { trimToWindow } from '@jbrowse/bandage-core/layout/trimToWindow'
 import {
+  BAR_PX as WALK_BAR_PX,
   placeRowGenes,
   rowSpan,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -173,6 +174,7 @@ import {
 } from '../launchFromGraph/contributors'
 import { graphLaunchMenuItems } from '../launchFromGraph/graphMenuItems'
 import {
+  canonicalAssemblyName,
   highlightInLinearView,
   launchSyntenyView,
   paddedLocation,
@@ -1511,15 +1513,16 @@ export function GraphPaneMixin() {
             name: readConfObject(t, 'name') as string,
             adapterType,
           }
-          for (const asm of readConfObject(t, 'assemblyNames') as string[]) {
+          for (const name of readConfObject(t, 'assemblyNames') as string[]) {
+            const asm = canonicalAssemblyName(getSession(self), name)
             byAssembly.set(asm, [...(byAssembly.get(asm) ?? []), track])
           }
         }
         return new Map(
-          [...byAssembly].map(([asm, tracks]) => [
-            asm,
-            pickGeneTrack(tracks, '')!,
-          ]),
+          [...byAssembly].flatMap(([asm, tracks]) => {
+            const picked = pickGeneTrack(tracks, '')
+            return picked ? [[asm, picked] as const] : []
+          }),
         )
       },
     }))
@@ -1539,15 +1542,23 @@ export function GraphPaneMixin() {
           region: SubgraphRegion
         }[] = []
         let untracked = 0
+        let unplaced = 0
         for (const row of bars.rows) {
-          const assemblyName =
-            row.axis && row.haplotype !== undefined
-              ? self.assemblyResolver(`${row.sample}#${row.haplotype}`)
-              : undefined
+          if (!row.axis) {
+            unplaced++
+            continue
+          }
+          const assemblyName = resolveLocationAssembly(self.assemblyResolver, {
+            sample: row.sample,
+            haplotype:
+              row.haplotype === undefined
+                ? undefined
+                : `${row.sample}#${row.haplotype}`,
+          })
           const track = assemblyName
             ? self.geneTracksByAssembly.get(assemblyName)
             : undefined
-          if (!row.axis || !assemblyName || !track) {
+          if (!assemblyName || !track) {
             untracked++
             continue
           }
@@ -1565,12 +1576,65 @@ export function GraphPaneMixin() {
           reads: reads.slice(0, WALK_GENE_ROWS),
           gaps: {
             untracked,
+            unplaced,
             unread: Math.max(0, reads.length - WALK_GENE_ROWS),
           },
         }
       },
       get walkRowGeneGaps() {
         return this.walkGeneReads?.gaps
+      },
+      // The walk row under a pane point, as its index among the reference row
+      // and the rows below it, where the point is on its bar
+      walkRowAt(screenX: number, screenY: number) {
+        const bars = self.walkRowBars
+        if (!bars) {
+          return undefined
+        }
+        const i = Math.round(
+          (screenY - self.translateY) / (ROW_HEIGHT_PX * self.scaleY),
+        )
+        const row = [bars.reference, ...bars.rows][i]
+        const y = i * ROW_HEIGHT_PX * self.scaleY + self.translateY
+        const bp = (screenX - self.translateX) / self.scaleX - bars.origin
+        return row &&
+          Math.abs(screenY - y) <= WALK_BAR_PX / 2 + 2 &&
+          bp >= 0 &&
+          bp <= row.bp
+          ? i
+          : undefined
+      },
+      // Where a walk row's bar lies in its own assembly, for a linear view to
+      // open: the span of its contig the bar covers, on the session assembly
+      // its haplotype names (the cut's own assembly for the reference row).
+      // The label names the haplotype when no assembly is loaded for it.
+      walkRowLaunchTarget(index: number) {
+        const bars = self.walkRowBars
+        const row = bars ? [bars.reference, ...bars.rows][index] : undefined
+        if (!row?.axis) {
+          return undefined
+        }
+        const haplotype =
+          row.haplotype === undefined
+            ? undefined
+            : `${row.sample}#${row.haplotype}`
+        const assembly =
+          index === 0
+            ? self.graphRegion?.assemblyName
+            : resolveLocationAssembly(self.assemblyResolver, {
+                sample: row.sample,
+                haplotype,
+              })
+        return {
+          label: row.label,
+          assembly,
+          location: {
+            sample: row.sample,
+            haplotype,
+            refName: row.axis.contig,
+            ...rowSpan(row.axis, row.bp),
+          },
+        }
       },
       // Each row's genes as offsets along its bar: the reference row's from
       // the backbone's gene track, every other row's from its own assembly
@@ -2245,11 +2309,12 @@ export function GraphPaneMixin() {
           }),
         ) as Record<string, unknown>
       },
-      // Why the drawing cannot be written as SVG, which draws the canvas's nodes
+      // Why the drawing cannot be written as SVG, which draws the canvas's
+      // nodes, or walk rows' bars
       get figureUnavailable() {
         return !self.layoutResult
           ? 'Nothing is drawn yet'
-          : self.drawsNodes
+          : self.drawsNodes || self.walkRowBars
             ? undefined
             : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
       },
@@ -2272,6 +2337,9 @@ export function GraphPaneMixin() {
               colorDomain: self.colorDomain,
               fitToDrawing: self.popStack.length > 0,
               genes: self.showGenes ? self.backboneGenes : undefined,
+              walkRows: self.walkRowBars,
+              rowGenes: self.walkRowGenes,
+              rowGeneGaps: self.walkRowGeneGaps,
               spec: this.figureSpec(),
             })
           : undefined
@@ -2967,6 +3035,7 @@ export function GraphPaneMixin() {
         self.indexBubbles = undefined
         self.geneFeatures = undefined
         self.walkGeneFeatures = undefined
+        walkGeneCache.clear()
         self.repeatArrays = undefined
         self.popStack = []
         // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
@@ -3301,7 +3370,10 @@ export function GraphPaneMixin() {
                     region,
                     'haplotype genes',
                   )
-                  genes = (features ? geneModelsFrom(features) : []).map(g => ({
+                  if (!features) {
+                    return
+                  }
+                  genes = geneModelsFrom(features).map(g => ({
                     ...g,
                     refName: region.refName,
                   }))
@@ -3312,6 +3384,7 @@ export function GraphPaneMixin() {
             ),
           )
           if (
+            isAlive(self) &&
             self.graph === graph &&
             JSON.stringify(self.walkGeneReads?.reads ?? []) === key
           ) {
@@ -3319,6 +3392,7 @@ export function GraphPaneMixin() {
           }
         }),
         reloadGenes: flow(function* () {
+          walkGeneCache.clear()
           const region = self.graphRegion
           const trackId = self.geneTrack?.trackId
           if (region) {

@@ -2667,9 +2667,12 @@ describe('walk rows', () => {
     expect(model.drawnRowLabels.map(r => r.label).slice(1)).toEqual(labels)
     model.setWalkRowSamples(['B'])
     expect(model.walkRowBars!.rows.map(r => r.label)).toEqual(['B#1'])
-    // the bars are an overlay the SVG export does not draw
-    expect(model.figureUnavailable).toMatch(/Walk rows/)
-    expect(model.figure()).toBeUndefined()
+    // the SVG export draws the bars the filter left, labelled
+    expect(model.figureUnavailable).toBeUndefined()
+    const svg = model.figure()!
+    expect(svg).toContain('>B#1</text>')
+    expect(svg).not.toContain('>A#1</text>')
+    expect(svg).toContain('aligned to')
   })
 
   test('walks lift together, each keeping the colour it was given', async () => {

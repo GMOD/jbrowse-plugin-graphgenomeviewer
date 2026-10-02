@@ -86,6 +86,12 @@ test("a BED gene's transcripts merge, its copies stay apart, CDS and UTR count a
   ])
 })
 
+test('a BED track counts as genes only where its name says so', () => {
+  expect(
+    pickGeneTrack([{ trackId: 'peaks', adapterType: 'BedTabixAdapter' }], ''),
+  ).toBeUndefined()
+})
+
 test('BED tracks count as gene tracks', () => {
   expect(
     pickGeneTrack(

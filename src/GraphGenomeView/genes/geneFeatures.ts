@@ -18,9 +18,13 @@ export const GENE_ADAPTER_TYPES = new Set([
 
 const GENE_TRACK_HINT = /gene|refseq|gencode|ensembl|annotation/i
 
+// A BED track is as often peaks or repeats as genes, so one counts only where
+// its name says it is annotation
+const BED_ADAPTER_TYPES = new Set(['BedTabixAdapter', 'BedAdapter'])
+
 // Which of the session's tracks to read genes from: the named one, else the
 // first gene-bearing track on the assembly whose name says it is annotation,
-// else the first gene-bearing track at all.
+// else the first non-BED gene-bearing track.
 export function pickGeneTrack<
   T extends { trackId: string; name?: string; adapterType: string },
 >(tracks: T[], named: string) {
@@ -31,7 +35,7 @@ export function pickGeneTrack<
   return (
     candidates.find(t =>
       GENE_TRACK_HINT.test(`${t.trackId} ${t.name ?? ''}`),
-    ) ?? candidates[0]
+    ) ?? candidates.find(t => !BED_ADAPTER_TYPES.has(t.adapterType))
   )
 }
 

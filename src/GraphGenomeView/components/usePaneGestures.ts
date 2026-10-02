@@ -71,6 +71,9 @@ export function usePaneGestures(model: GraphPaneModel) {
   const [contextNode, setContextNode] = useState<
     { nodeId: string; top: number; left: number } | undefined
   >(undefined)
+  const [contextRow, setContextRow] = useState<
+    { row: number; top: number; left: number } | undefined
+  >(undefined)
 
   function screenToGraph(screenX: number, screenY: number) {
     return {
@@ -240,6 +243,15 @@ export function usePaneGestures(model: GraphPaneModel) {
     if (node) {
       e.preventDefault()
       setContextNode({ nodeId: node, top: e.clientY, left: e.clientX })
+      return
+    }
+    const row = model.walkRowAt(
+      x * model.scaleX + model.translateX,
+      y * model.scaleY + model.translateY,
+    )
+    if (row !== undefined) {
+      e.preventDefault()
+      setContextRow({ row, top: e.clientY, left: e.clientX })
     }
   }
 
@@ -265,8 +277,10 @@ export function usePaneGestures(model: GraphPaneModel) {
       onContextMenu,
     },
     contextNode,
+    contextRow,
     closeContextMenu: () => {
       setContextNode(undefined)
+      setContextRow(undefined)
     },
   }
 }
