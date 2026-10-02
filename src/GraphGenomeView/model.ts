@@ -1551,131 +1551,6 @@ export function GraphPaneMixin() {
       },
     }))
     .views(self => ({
-      // The gene reads walk rows need: for each row whose haplotype
-      // (`HG00097#1`) names an assembly with a gene track, that track over the
-      // span of its own contig the row's bar covers. The first WALK_GENE_ROWS
-      // such rows are read, and the rest counted for the key.
-      get walkGeneReads() {
-        const bars = self.walkRowBars
-        if (!bars || !self.showGenes) {
-          return undefined
-        }
-        const reads: {
-          row: string
-          trackId: string
-          region: SubgraphRegion
-        }[] = []
-        let untracked = 0
-        let unplaced = 0
-        for (const row of bars.rows) {
-          if (!row.axis) {
-            unplaced++
-            continue
-          }
-          const assemblyName = resolveLocationAssembly(self.assemblyResolver, {
-            sample: row.sample,
-            haplotype:
-              row.haplotype === undefined
-                ? undefined
-                : `${row.sample}#${row.haplotype}`,
-          })
-          const track = assemblyName
-            ? self.geneTracksByAssembly.get(assemblyName)
-            : undefined
-          if (!assemblyName || !track) {
-            untracked++
-            continue
-          }
-          reads.push({
-            row: row.name,
-            trackId: track.trackId,
-            region: {
-              assemblyName,
-              refName: row.axis.contig,
-              ...rowSpan(row.axis, row.bp),
-            },
-          })
-        }
-        return {
-          reads: reads.slice(0, WALK_GENE_ROWS),
-          gaps: {
-            untracked,
-            unplaced,
-            unread: Math.max(0, reads.length - WALK_GENE_ROWS),
-          },
-        }
-      },
-      get walkRowGeneGaps() {
-        return this.walkGeneReads?.gaps
-      },
-      // The walk row under a pane point, as its index among the reference row
-      // and the rows below it, where the point is on its bar
-      walkRowAt(screenX: number, screenY: number) {
-        const bars = self.walkRowBars
-        if (!bars) {
-          return undefined
-        }
-        const i = Math.round(
-          (screenY - self.translateY) / (ROW_HEIGHT_PX * self.scaleY),
-        )
-        const row = [bars.reference, ...bars.rows][i]
-        const y = i * ROW_HEIGHT_PX * self.scaleY + self.translateY
-        const bp = (screenX - self.translateX) / self.scaleX - bars.origin
-        return row &&
-          Math.abs(screenY - y) <= WALK_BAR_PX / 2 + 2 &&
-          bp >= 0 &&
-          bp <= row.bp
-          ? i
-          : undefined
-      },
-      // Where a walk row's bar lies in its own assembly, for a linear view to
-      // open: the span of its contig the bar covers, on the session assembly
-      // its haplotype names (the cut's own assembly for the reference row).
-      // The label names the haplotype when no assembly is loaded for it.
-      walkRowLaunchTarget(index: number, bars = self.walkRowBars) {
-        const row = bars ? [bars.reference, ...bars.rows][index] : undefined
-        if (!row?.axis) {
-          return undefined
-        }
-        const haplotype =
-          row.haplotype === undefined
-            ? undefined
-            : `${row.sample}#${row.haplotype}`
-        const assembly =
-          index === 0
-            ? self.graphRegion?.assemblyName
-            : resolveLocationAssembly(self.assemblyResolver, {
-                sample: row.sample,
-                haplotype,
-              })
-        return {
-          label: row.label,
-          assembly,
-          location: {
-            sample: row.sample,
-            haplotype,
-            refName: row.axis.contig,
-            ...rowSpan(row.axis, row.bp),
-          },
-        }
-      },
-      // Each row's genes as offsets along its bar: the reference row's from
-      // the backbone's gene track, every other row's from its own assembly
-      get walkRowGenes() {
-        const bars = self.walkRowBars
-        if (!bars || !self.showGenes) {
-          return undefined
-        }
-        const byRow = new Map(self.walkGeneFeatures ?? [])
-        if (self.geneFeatures) {
-          byRow.set(bars.reference.name, self.geneFeatures)
-        }
-        return byRow.size
-          ? placeRowGenes([bars.reference, ...bars.rows], byRow)
-          : undefined
-      },
-    }))
-    .views(self => ({
       // The contributors a view can actually be opened on: those naming an
       // assembly this session has loaded. Every strain of an E. coli pangenome
       // demo is its own assembly, so all of them resolve; an HPRC graph names
@@ -1831,6 +1706,131 @@ export function GraphPaneMixin() {
               x: p.x * self.scaleX + self.translateX,
               y: p.y * self.scaleY + self.translateY,
             }))
+      },
+    }))
+    .views(self => ({
+      // The gene reads walk rows need, as the layout or the strip: for each row whose haplotype
+      // (`HG00097#1`) names an assembly with a gene track, that track over the
+      // span of its own contig the row's bar covers. The first WALK_GENE_ROWS
+      // such rows are read, and the rest counted for the key.
+      get walkGeneReads() {
+        const bars = self.walkRowBars ?? self.walkStripRows
+        if (!bars || !self.showGenes) {
+          return undefined
+        }
+        const reads: {
+          row: string
+          trackId: string
+          region: SubgraphRegion
+        }[] = []
+        let untracked = 0
+        let unplaced = 0
+        for (const row of bars.rows) {
+          if (!row.axis) {
+            unplaced++
+            continue
+          }
+          const assemblyName = resolveLocationAssembly(self.assemblyResolver, {
+            sample: row.sample,
+            haplotype:
+              row.haplotype === undefined
+                ? undefined
+                : `${row.sample}#${row.haplotype}`,
+          })
+          const track = assemblyName
+            ? self.geneTracksByAssembly.get(assemblyName)
+            : undefined
+          if (!assemblyName || !track) {
+            untracked++
+            continue
+          }
+          reads.push({
+            row: row.name,
+            trackId: track.trackId,
+            region: {
+              assemblyName,
+              refName: row.axis.contig,
+              ...rowSpan(row.axis, row.bp),
+            },
+          })
+        }
+        return {
+          reads: reads.slice(0, WALK_GENE_ROWS),
+          gaps: {
+            untracked,
+            unplaced,
+            unread: Math.max(0, reads.length - WALK_GENE_ROWS),
+          },
+        }
+      },
+      get walkRowGeneGaps() {
+        return this.walkGeneReads?.gaps
+      },
+      // The walk row under a pane point, as its index among the reference row
+      // and the rows below it, where the point is on its bar
+      walkRowAt(screenX: number, screenY: number) {
+        const bars = self.walkRowBars
+        if (!bars) {
+          return undefined
+        }
+        const i = Math.round(
+          (screenY - self.translateY) / (ROW_HEIGHT_PX * self.scaleY),
+        )
+        const row = [bars.reference, ...bars.rows][i]
+        const y = i * ROW_HEIGHT_PX * self.scaleY + self.translateY
+        const bp = (screenX - self.translateX) / self.scaleX - bars.origin
+        return row &&
+          Math.abs(screenY - y) <= WALK_BAR_PX / 2 + 2 &&
+          bp >= 0 &&
+          bp <= row.bp
+          ? i
+          : undefined
+      },
+      // Where a walk row's bar lies in its own assembly, for a linear view to
+      // open: the span of its contig the bar covers, on the session assembly
+      // its haplotype names (the cut's own assembly for the reference row).
+      // The label names the haplotype when no assembly is loaded for it.
+      walkRowLaunchTarget(index: number, bars = self.walkRowBars) {
+        const row = bars ? [bars.reference, ...bars.rows][index] : undefined
+        if (!row?.axis) {
+          return undefined
+        }
+        const haplotype =
+          row.haplotype === undefined
+            ? undefined
+            : `${row.sample}#${row.haplotype}`
+        const assembly =
+          index === 0
+            ? self.graphRegion?.assemblyName
+            : resolveLocationAssembly(self.assemblyResolver, {
+                sample: row.sample,
+                haplotype,
+              })
+        return {
+          label: row.label,
+          assembly,
+          location: {
+            sample: row.sample,
+            haplotype,
+            refName: row.axis.contig,
+            ...rowSpan(row.axis, row.bp),
+          },
+        }
+      },
+      // Each row's genes as offsets along its bar: the reference row's from
+      // the backbone's gene track, every other row's from its own assembly
+      get walkRowGenes() {
+        const bars = self.walkRowBars ?? self.walkStripRows
+        if (!bars || !self.showGenes) {
+          return undefined
+        }
+        const byRow = new Map(self.walkGeneFeatures ?? [])
+        if (self.geneFeatures) {
+          byRow.set(bars.reference.name, self.geneFeatures)
+        }
+        return byRow.size
+          ? placeRowGenes([bars.reference, ...bars.rows], byRow)
+          : undefined
       },
     }))
     .views(self => ({

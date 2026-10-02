@@ -19,6 +19,7 @@ import { Swatch } from './WalkRowsOverlay'
 import { legendRowStyle } from './legendStyles'
 
 import type { GraphPaneModel } from '../model'
+import type { RowGene } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { WalkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import type { StripFrame } from '@jbrowse/bandage-core/layout/walkStrip'
 
@@ -50,20 +51,23 @@ const tipStyle = {
   zIndex: 4,
 }
 
-// The bars, built once per rows, frame and colouring rather than per hover
+// The bars, built once per rows, frame, colouring and genes rather than per
+// hover
 const StripBars = observer(function StripBars({
   bars,
   frame,
   ramp,
+  rowGenes,
 }: {
   bars: WalkRows
   frame: StripFrame
   ramp: { start: number; end: number } | undefined
+  rowGenes: Map<string, RowGene[]> | undefined
 }) {
   const idPrefix = useId().replace(/[^\w-]/g, '')
   const tree = useMemo(
-    () => walkRowsTree(bars, frame, { ramp, idPrefix }),
-    [bars, frame, ramp, idPrefix],
+    () => walkRowsTree(bars, frame, { ramp, rowGenes, idPrefix }),
+    [bars, frame, ramp, rowGenes, idPrefix],
   )
   return <ElTree el={tree} />
 })
@@ -91,9 +95,11 @@ const WalkStrip = observer(function WalkStrip({
     const y = e.clientY - box.top
     return { ...stripRowAt(bars, frame, x, y), x, y }
   }
+  const genes = model.walkRowGenes?.size ? model.walkRowGeneGaps : undefined
   const key = walkRowsKey(bars, {
     ramp: model.referenceRampDomain,
     rampCss: RAMP_GRADIENT_CSS,
+    genes: genes && !frame.boxesGenes ? { ...genes, crowded: true } : genes,
   })
   return (
     <div
@@ -149,7 +155,12 @@ const WalkStrip = observer(function WalkStrip({
           }
         }}
       >
-        <StripBars bars={bars} frame={frame} ramp={model.referenceRampDomain} />
+        <StripBars
+          bars={bars}
+          frame={frame}
+          ramp={model.referenceRampDomain}
+          rowGenes={model.walkRowGenes}
+        />
         <ElTree el={walkMarksTree(bars, frame, model.walkStripMarks)} />
         {frame.labelled
           ? rows.map((row, i) => (
