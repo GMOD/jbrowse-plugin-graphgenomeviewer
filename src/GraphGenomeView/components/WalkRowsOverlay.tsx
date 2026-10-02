@@ -20,8 +20,8 @@ import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference
 // row, each on its own bp axis from the window's left edge, drawn from core's
-// walkRowsTree: runs coloured by how the graph aligned the walk to the
-// reference, unit separators, each row's genes from its own assembly's
+// walkRowsTree: runs coloured by whether they are on the reference walk's
+// path, unit separators, each row's genes from its own assembly's
 // annotation, the allele a repeat genotype called and a readout. Under the
 // reference-position ramp an aligned run takes the hue of the reference it is
 // threaded through. In a tandem array that is the aligner's pick among

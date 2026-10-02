@@ -2672,7 +2672,7 @@ describe('walk rows', () => {
     const svg = model.figure()!
     expect(svg).toContain('>B#1</text>')
     expect(svg).not.toContain('>A#1</text>')
-    expect(svg).toContain('aligned to')
+    expect(svg).toContain("'s path")
   })
 
   test('walks lift together, each keeping the colour it was given', async () => {
