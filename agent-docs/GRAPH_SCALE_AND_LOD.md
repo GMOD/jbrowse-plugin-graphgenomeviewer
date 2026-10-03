@@ -149,10 +149,10 @@ proportional at the default quality on the same graph. Both are legitimate
 choices — see BUBBLE_SPREADS for what each buys — but they are the reason a
 force layout is ever slow, and neither said so.
 
-Two consequences, both now in place. `model.ts` holds a per-graph cache keyed on
-exactly these three inputs, so a comparison that goes back to a drawing already
-computed pays nothing; and the settings dialog states the quality's cost and
-says outright when an anchored layout is ignoring both controls.
+Two consequences, both now in place. `pane/paneBase.ts` holds a per-graph cache
+keyed on exactly these three inputs, so a comparison that goes back to a drawing
+already computed pays nothing; and the settings dialog states the quality's cost
+and says outright when an anchored layout is ignoring both controls.
 
 **Fragmentation is not a cost.**
 `rotateComponentsAndCalculateBoundingRectangles` allocates two
