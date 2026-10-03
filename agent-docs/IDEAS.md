@@ -127,10 +127,24 @@ That takes 111 s to ~45 s and 5.3 s to ~2.3 s — neither crosses into
 interactive, and at the node counts a force layout is legible at, the layout is
 already under 100 ms.
 
+## Tube map layout in a worker
+
+The tube map lays out on the main thread, at about 50 ms for 857 nodes plus
+about 40 ms per 1000 reads, so a large GBZ window with its 5000-read sample can
+stutter. A worker would take that off the main thread. **What it costs:**
+tubemap-core keeps module-level state, so it isn't re-entrant, and a worker has
+to run its layouts one at a time.
+
+## Reads on an rGFA or a standalone GFA
+
+Only gbz-base tracks take reads. A tabix GAF index keys each read by its lowest
+and highest numeric node id, and Minigraph's rGFA names its segments `s1`, `s2`,
+…, so no index can key them. An unindexed GAF, read whole up to 50 MB, would
+work on `RgfaTabixAdapter` and on a GFA opened with **Add → Graph genome view**,
+neither of which has a reads input today.
+
 ## Loose ends
 
-- Add track matches `.gbz.db` and `.segs.bed.gz` with `endsWith`, so a presigned
-  url's query string defeats it (`graphTrackDefaults/index.ts`)
 - `paintedGeometryVersion` and `geometryViewportDirty` could fold into one stamp
 - LinearGraphDisplay shows render errors through GraphCanvas's own banner;
   moving to core's `DisplayChrome` would give it core's renderError phase

@@ -72,7 +72,9 @@ Needs JBrowse 5.0.0-beta.11 or later.
 ```
 
 - **File → Open track** opens an rGFA index (`.segs.bed.gz` from
-  `build_rgfa_tabix.sh`) or a gbz-base database (`.gbz.db`) as a `GraphTrack`
+  `build_rgfa_tabix.sh`) or a gbz-base database (`.gbz.db`) as a `GraphTrack`.
+  It finds the links and indexes beside the url, which a presigned url's
+  signature doesn't cover; spell out each location in a config instead
 - A hand-written track needs only the adapter:
 
 ```json
