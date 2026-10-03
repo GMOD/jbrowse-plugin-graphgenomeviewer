@@ -85,6 +85,8 @@ export class GafFile {
     }
     const records: GafRecord[] = []
     if (lo <= hi) {
+      // a GAF index ignores the refName, and getLines keeps a read whose node
+      // ids span min..max when min < end && max >= start, hence hi + 1
       await tabix.getLines('{node}', lo, hi + 1, {
         signal,
         lineCallback: line => {
