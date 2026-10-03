@@ -6,6 +6,7 @@ import { NODE_WIDTHS } from '@jbrowse/bandage-core/nodeWidths'
 import { MAX_PATH_COLORS } from '@jbrowse/bandage-core/pathColors'
 import { Dialog } from '@jbrowse/core/ui'
 import {
+  Button,
   DialogActions,
   DialogContent,
   FormControl,
@@ -20,7 +21,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import Button from '@mui/material/Button'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 

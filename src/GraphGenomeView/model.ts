@@ -1082,6 +1082,11 @@ export function GraphPaneMixin() {
       get backbone() {
         return self.graph ? graphBackbone(self.graph) : undefined
       },
+      // Each walk sliced to the window, for walk rows and the strip; a repeat
+      // pick slices again by its own array
+      get cutWalkRows() {
+        return self.graph ? walkRows(self.graph, self.graphRegion) : undefined
+      },
       // An assembly by each name a backbone may spell it with: the session's
       // name and aliases, and the PanSN prefix the source track maps each of
       // those to.
@@ -1166,7 +1171,7 @@ export function GraphPaneMixin() {
         const repeat = self.selectedRepeat
         const bars = repeat
           ? walkRows(self.graph, repeat, repeat.unit)
-          : walkRows(self.graph, self.graphRegion)
+          : self.cutWalkRows
         if (!bars) {
           return undefined
         }
@@ -1636,11 +1641,7 @@ export function GraphPaneMixin() {
       // The strip's rows: the cut's, with the sample filter and no repeat
       // pick, which the Repeat menu only offers in walk rows
       get walkStripRows() {
-        const graph = self.graph
-        const bars =
-          graph && this.walkStripShown
-            ? walkRows(graph, self.graphRegion)
-            : undefined
+        const bars = this.walkStripShown ? self.cutWalkRows : undefined
         return bars
           ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
           : undefined
@@ -1696,7 +1697,7 @@ export function GraphPaneMixin() {
           trackId: string
           region: SubgraphRegion
         }[] = []
-        let untracked = 0
+        let untrackedRows = 0
         let unplaced = 0
         for (const row of bars.rows) {
           if (!row.axis) {
@@ -1714,7 +1715,7 @@ export function GraphPaneMixin() {
             ? self.geneTracksByAssembly.get(assemblyName)
             : undefined
           if (!assemblyName || !track) {
-            untracked++
+            untrackedRows++
             continue
           }
           reads.push({
@@ -1730,7 +1731,7 @@ export function GraphPaneMixin() {
         return {
           reads: reads.slice(0, WALK_GENE_ROWS),
           gaps: {
-            untracked,
+            untracked: untrackedRows,
             unplaced,
             unread: Math.max(0, reads.length - WALK_GENE_ROWS),
           },
@@ -2768,7 +2769,8 @@ export function GraphPaneMixin() {
                   // Every haplotype whose path visits it, which only a path
                   // GFA records. Absent on an rGFA, where
                   // `contributingAssembly` is the first-seen assembly alone.
-                  samples: node.samples?.join(', '),
+                  sampleCount: node.samples?.length,
+                  samples: node.samples,
                   ...(region && span
                     ? {
                         refName: region.refName,
@@ -3318,26 +3320,41 @@ export function GraphPaneMixin() {
         liveRequest++
       }
 
+      // The graph and everything derived from it, dropped; any load in
+      // flight ends too, or it would land its graph afterwards
+      function dropGraph() {
+        abortLoad()
+        self.graph = undefined
+        self.graphRegion = undefined
+        self.loadedReferencePath = undefined
+        self.layoutResult = undefined
+        self.indexBubbles = undefined
+        self.geneFeatures = undefined
+        self.walkGeneFeatures = undefined
+        walkGeneCache.clear()
+        self.repeatArrays = undefined
+        self.readsShown = undefined
+        self.popStack = []
+        self.error = undefined
+        self.isLoading = false
+        self.loadCanceled = false
+        self.statusMessage = ''
+        self.clearInteractionState()
+        self.clearPerfMetrics()
+      }
+
       return {
-        // Back to the import form: drop the graph and everything derived from
-        // it. Any load in flight ends here too, or it would land its graph
-        // afterwards.
+        // back to the import form
         clearGraph() {
-          abortLoad()
-          self.graph = undefined
-          self.graphRegion = undefined
-          self.loadedReferencePath = undefined
-          self.layoutResult = undefined
-          self.indexBubbles = undefined
-          self.geneFeatures = undefined
-          self.repeatArrays = undefined
-          self.popStack = []
-          self.error = undefined
-          self.isLoading = false
-          self.loadCanceled = false
-          self.statusMessage = ''
-          self.clearInteractionState()
-          self.clearPerfMetrics()
+          dropGraph()
+        },
+        // The user's stop before anything is drawn. The source stays, so a
+        // retry can load it again.
+        cancelLoad() {
+          if (self.canCancelLoad) {
+            dropGraph()
+            self.loadCanceled = true
+          }
         },
         // The user's stop, leaving whatever is drawn under it
         stopLoad() {
@@ -3850,12 +3867,6 @@ export function GraphPaneMixin() {
       switchLayout(mode: LayoutModeValue) {
         self.setLayoutMode(mode)
         return self.recomputeLayout()
-      },
-      cancelLoad() {
-        if (self.canCancelLoad) {
-          self.stopLoad()
-          self.graph = undefined
-        }
       },
       // loads the source again, for a host that has one
       retryLoad() {},
