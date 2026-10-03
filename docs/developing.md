@@ -19,6 +19,10 @@ pnpm build        # code-split ESM bundle via esbuild
 pnpm typecheck    # esbuild strips types without checking them
 ```
 
+`pnpm typecheck` runs TypeScript 7 through the `typescript7` npm alias, while
+`typescript` stays on 6: typescript-eslint needs 6's JavaScript API, and the
+core's declaration build runs 6's `tsc`. `npx tsc` would pick 6.
+
 The build writes `dist/`, and a host has to serve the **whole directory**,
 because the entry loads its chunks relative to `import.meta.url`:
 
@@ -70,11 +74,23 @@ tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
 a re-export the host no longer serves.
 
 BandageJS draws with this repo's core from npm, so CI's **BandageJS on this
-core** job packs the core as it would publish, installs it into BandageJS's main
-and runs BandageJS's tests on it: a core change can pass everything here and
-still break that page. `pnpm version` refuses unless the Push workflow, that job
-and the browser suites among it, passed on the commit being released
+core** job packs the core as it would publish, installs it into BandageJS and
+runs BandageJS's tests on it: a core change can pass everything here and still
+break that page. `pnpm version` refuses unless the Push workflow, that job and
+the browser suites among it, passed on the commit being released
 (`scripts/ci-green.mjs`), so push the commit and let CI finish first.
+
+The job tests BandageJS's `core-next` branch when one exists, and its main
+otherwise. A breaking core API change lands here with its BandageJS side pushed
+to `core-next`, so CI tests the two together. After the release, BandageJS bumps
+core on `core-next`, fast-forwards main to it, and deletes the remote branch.
+
+If the version commit fails with `cannot lock ref 'HEAD'`, another session
+landed mid-run. Unstage and restore what the version script wrote, then rerun:
+
+```console
+git restore --staged --worktree CHANGELOG.md package.json packages/core/package.json src/version.ts packages/core/src/version.ts
+```
 
 The jbrowse-components tutorials, demos and figure fixtures load the plugin from
 the store's `latest/` url on jbrowse.org, so an npm release reaches them only
