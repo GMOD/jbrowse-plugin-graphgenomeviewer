@@ -200,6 +200,8 @@ export const TubeMapLegend = observer(function TubeMapLegend({
 }) {
   const { logWidths, foldBp, forwardReads, reverseReads, mismatches } =
     model.tubeMapKeys
+  const reads = model.readsShown
+  const sampled = reads && reads.shown < reads.total ? reads : undefined
   const rows = [
     forwardReads && (
       <LegendRow key="fwd" swatch={<ReadSwatch colors={FORWARD_READ_COLORS} />}>
@@ -209,6 +211,12 @@ export const TubeMapLegend = observer(function TubeMapLegend({
     reverseReads && (
       <LegendRow key="rev" swatch={<ReadSwatch colors={REVERSE_READ_COLORS} />}>
         read on the reverse strand
+      </LegendRow>
+    ),
+    sampled && (
+      <LegendRow key="sampled" swatch={<span style={glyphSwatchStyle} />}>
+        {sampled.shown.toLocaleString('en-US')} of{' '}
+        {sampled.total.toLocaleString('en-US')} reads shown
       </LegendRow>
     ),
     mismatches.has('substitution') && (
