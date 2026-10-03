@@ -1,3 +1,10 @@
+## [5.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.8.0...v5.0.0) (2026-10-03)
+
+### Other Changes
+
+- A GBZ track past the cut draws the haplotype index's overview ([6258110](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/62581101e17c8aa60c60e4172eadac01e918264c))
+- The HPRC preset names the format 3 index, which gbz-base 7 reads ([471aabc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/471aabca231fafa268de2b9b70d840f25b27a99e))
+
 ## [4.8.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.7.0...v4.8.0) (2026-10-03)
 
 ### Other Changes
