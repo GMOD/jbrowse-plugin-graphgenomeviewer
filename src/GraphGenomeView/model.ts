@@ -4149,7 +4149,9 @@ export function GraphPaneMixin() {
               self.setShowGenes(!self.showGenes)
             },
           },
-          ...(self.modeDrawsNodes && (self.graph?.paths?.length ?? 0) > 1
+          ...(!self.host &&
+          self.modeDrawsNodes &&
+          (self.graph?.paths?.length ?? 0) > 1
             ? [
                 {
                   type: 'checkbox' as const,

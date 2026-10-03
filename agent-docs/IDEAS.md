@@ -145,7 +145,6 @@ neither of which has a reads input today.
 
 ## Loose ends
 
-- `paintedGeometryVersion` and `geometryViewportDirty` could fold into one stamp
 - LinearGraphDisplay shows render errors through GraphCanvas's own banner;
   moving to core's `DisplayChrome` would give it core's renderError phase
 - Model caches (hitDetection, edgeCurves, graphLabels, GeometryBuilder,

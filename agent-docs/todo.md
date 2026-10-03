@@ -42,8 +42,6 @@
 
 - The view draws walk rows under the graph (`WalkStrip.tsx`); a graph track in a
   linear view has no strip, since `walkStripShown` requires `!self.host`.
-- Meanwhile the track menu still offers "Walk rows under the graph", through
-  `graphMenuItems`, and the checkbox changes nothing there.
 
 ### The lifted walk's colour on its bar
 
