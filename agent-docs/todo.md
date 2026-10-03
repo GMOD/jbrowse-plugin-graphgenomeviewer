@@ -27,7 +27,43 @@
 - First step: have each layout emit a per-node drawn strand, then taper the node
   end in `buildGeometry`. Force and tube map could go first.
 
+## Walk strip
+
+### Each row's own genes in bandage-figure
+
+- Goal: a figure's strip boxes every row's genes, as the view's strip does.
+  Today the spec's `genes` are the backbone's, so `renderSpec` in
+  `packages/core/src/cli/figure.ts` boxes the reference row only and the key
+  says "no gene track" for the rest.
+- Needs a spec field mapping each sample to its gene file, plus contig aliases
+  per file, as `genes.refNames` gives the backbone's.
+
+### Strip under LinearGraphDisplay
+
+- The view draws walk rows under the graph (`WalkStrip.tsx`); a graph track in a
+  linear view has no strip, since `walkStripShown` requires `!self.host`.
+- Meanwhile the track menu still offers "Walk rows under the graph", through
+  `graphMenuItems`, and the checkbox changes nothing there.
+
+### The lifted walk's colour on its bar
+
+- A lifted walk's name goes bold on the strip, but its bar doesn't take its lane
+  colour. A chip beside the label or an outline round the bar would; decide
+  whether `bandage-figure` follows.
+- `walkStripLabelsTree` in `packages/core/src/layout/walkStrip.ts` takes the
+  lifted set as `bold`. An additive optional argument with each walk's colour
+  avoids a breaking core change.
+
 ## Tube map
+
+### Reads
+
+- Fetch reads only for the tube map layouts: a track that names reads fetches
+  them in every layout, though only a tube map draws them. A switch into a tube
+  map then has to fetch when the graph has none.
+- Keep mismatch text visible in a squeezed track; today it shows only once the
+  track is dragged taller.
+- Add a hover leader on read marks.
 
 ### Genes per haplotype through GAF
 
@@ -44,7 +80,7 @@
   BED), aliased by PanSN name (`HG00097#1`). Walk rows read it per row through
   `walkGeneReads`; the tube map could read the same tracks, then map each gene
   through the nodes of that haplotype's walk.
-- Limits inherited from reads (`HANDOFF_tubemap_reads.md`):
+- Limits inherited from reads (`docs/layouts.md`, Reads):
   - only gbz-base tracks take reads
   - a tabix GAF index needs numeric node ids; without one a file is read whole,
     up to 50 MB
