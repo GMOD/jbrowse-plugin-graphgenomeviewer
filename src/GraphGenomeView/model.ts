@@ -2391,6 +2391,15 @@ export function GraphPaneMixin() {
             ? undefined
             : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
       },
+      // Why bandage-figure can't make this drawing again: it draws only
+      // layouts with nodes, from a graph it can read for itself
+      get figureSpecUnavailable() {
+        return !self.drawsNodes
+          ? `bandage-figure draws no ${layoutModeByValue(self.chosenLayoutMode).label} layout`
+          : this.figureSpec()
+            ? undefined
+            : 'bandage-figure reads a graph cut from a gbz-base track or a GFA url'
+      },
       // The drawing as a standalone SVG, fitted, with its genes, its lifted
       // walks' keys, facet panels and the strip of walk rows; see figureSvg
       figure() {
@@ -4180,9 +4189,8 @@ export function GraphPaneMixin() {
           },
           {
             label: 'Copy figure spec',
-            disabled: !self.figureSpec(),
-            disabledHelpText:
-              'bandage-figure reads a graph cut from a gbz-base track or a GFA url',
+            disabled: self.figureSpecUnavailable !== undefined,
+            disabledHelpText: self.figureSpecUnavailable,
             onClick: () => {
               const spec = self.figureSpec()
               const session = getSession(self)
