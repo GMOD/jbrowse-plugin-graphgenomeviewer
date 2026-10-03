@@ -1,3 +1,9 @@
+## [4.5.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.4.1...v4.5.0) (2026-10-03)
+
+### Other Changes
+
+- JBrowse 5.0.0-beta.11, latest deps, stripGeneGaps(frame, rowGenes, gaps) ([0f87136](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0f87136d4078e40b5a07f0059712b30f6d7143f5))
+
 ## [4.4.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.4.0...v4.4.1) (2026-10-02)
 
 ### Other Changes
