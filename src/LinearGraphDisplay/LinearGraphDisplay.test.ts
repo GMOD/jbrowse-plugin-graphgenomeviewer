@@ -229,6 +229,9 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
   // while set, a cut waits for the test to answer it
   let held: ((answer: () => void) => void) | undefined
   const signals: AbortSignal[] = []
+  const overviews: { region: SubgraphRegion; bpPerPx: number }[] = []
+  // a GBZ cut of more than this many bp fails over its node limit
+  let denseAbove = Infinity
   const rpcCall = vi.fn(
     (
       _sid: unknown,
@@ -237,8 +240,33 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
         region: SubgraphRegion
         opts?: { tier?: SubgraphTier; snarls?: string }
         signal?: AbortSignal
+        bpPerPx?: number
+        adapterConfig?: { type?: string }
       },
     ) => {
+      if (method === 'GetHaplotypeOverview') {
+        overviews.push({ region: args.region, bpPerPx: args.bpPerPx! })
+        return Promise.resolve(syntheticOverview(args.region))
+      }
+      if (
+        method === 'GetSubgraph' &&
+        args.adapterConfig?.type === 'GbzBaseSyntenyAdapter' &&
+        args.region.end - args.region.start > denseAbove
+      ) {
+        cuts.push({ tier: 'fine', region: args.region })
+        const error = new Error(
+          'this window reads more than nodeLimit (100,000) graph nodes; zoom in',
+        )
+        error.name = 'NodeLimitError'
+        const hold = held
+        return hold
+          ? new Promise<string>((_, reject) => {
+              hold(() => {
+                reject(error)
+              })
+            })
+          : Promise.reject(error)
+      }
       if (method === 'GraphComputeLayout') {
         return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
       }
@@ -337,6 +365,38 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
     holdCuts,
     signals,
     rpcCall,
+    overviews,
+    setDenseAbove(bp: number) {
+      denseAbove = bp
+    },
+  }
+}
+
+// Two haplotypes and the reference in 4 kb bins over the region, the second
+// haplotype variant in every bin
+function syntheticOverview(region: SubgraphRegion) {
+  const bin = 4096
+  const first = Math.floor(region.start / bin)
+  const count = Math.ceil(region.end / bin) - first
+  const cells = new Uint8Array(count * 3)
+  for (let b = 0; b < count; b++) {
+    cells.set([1, 3, 1], b * 3)
+  }
+  return {
+    level: 0,
+    bin,
+    rows: ['HG1.1', 'HG2.1', 'GRCh38#0'],
+    pinned: [0],
+    reference: [2],
+    bins: Array.from({ length: count }, (_, b) => ({
+      start: (first + b) * bin,
+      end: (first + b + 1) * bin,
+      classes: [0, 2, 0, 1],
+      excursions: 1,
+      variants: 1,
+      longestExcursion: 60,
+    })),
+    cells,
   }
 }
 
@@ -774,6 +834,130 @@ test('a GBZ track cuts for the lanes it names', async () => {
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   expect(display.type).toBe('LinearGraphDisplay')
   expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
+})
+
+async function shownWalks(windowBp: number, setup?: (env: Env) => void) {
+  const env = createEnvironment()
+  setup?.(env)
+  const { view } = env
+  view.zoomTo(windowBp / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('walks')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  return { ...env, display }
+}
+
+type Env = ReturnType<typeof createEnvironment>
+
+test('past the bp cap a GBZ track reads the overview for the window and a window each side, and a pan inside it reads nothing', async () => {
+  const { view, display, overviews, cuts } = await shownWalks(6_000_000)
+  expect(cuts).toHaveLength(0)
+  expect(display.showsOverview).toBe(true)
+  expect(display.displayPhase).not.toBe('tooLarge')
+  expect(overviews).toHaveLength(1)
+  const seen = display.settledWindow!
+  expect(overviews[0]!.region.start).toBeLessThan(seen.start)
+  expect(overviews[0]!.bpPerPx).toBe(view.bpPerPx * 2)
+  expect(display.overview?.rows).toEqual(['HG1.1', 'HG2.1', 'GRCh38#0'])
+  view.horizontalScroll(10)
+  await wait(SETTLE_MS)
+  expect(overviews).toHaveLength(1)
+  view.zoomTo(60_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(display.showsOverview).toBe(false)
+  expect(cuts).toHaveLength(1)
+})
+
+test('a GBZ cut over its node limit draws the overview at that span and wider, and zooming in cuts again', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const { view, display, overviews, cuts } = await shownWalks(
+    1_000_000,
+    env => {
+      env.setDenseAbove(1_500_000)
+    },
+  )
+  await vi.waitFor(() => {
+    expect(display.showsOverview).toBe(true)
+  })
+  expect(cuts).toHaveLength(1)
+  expect(display.dense!.end - display.dense!.start).toBe(1_000_000)
+  expect(display.displayPhase).not.toBe('error')
+  expect(overviews).toHaveLength(1)
+  view.zoomTo(2_000_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  view.zoomTo(400_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(2)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
+  expect(display.showsOverview).toBe(false)
+})
+
+test('a refused cut stands only near where it was refused: far along the contig the same zoom cuts again', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const env = await shownWalks(1_000_000, e => {
+    e.setDenseAbove(1_500_000)
+  })
+  const { view, display, cuts } = env
+  await vi.waitFor(() => {
+    expect(display.showsOverview).toBe(true)
+  })
+  env.setDenseAbove(Infinity)
+  view.scrollTo(7_000_000 / view.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(2)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
+  expect(display.showsOverview).toBe(false)
+})
+
+test('a cut refused over its node limit still switches when the window moved while it ran', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const env = createEnvironment()
+  env.setDenseAbove(500_000)
+  const answers = env.holdCuts()
+  const { view } = env
+  view.zoomTo(1_000_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('walks')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  view.horizontalScroll(20)
+  await wait(SETTLE_MS)
+  expect(env.cuts).toHaveLength(1)
+  answers.shift()!()
+  await vi.waitFor(() => {
+    expect(display.showsOverview).toBe(true)
+  })
+  expect(display.displayPhase).not.toBe('error')
+  expect(env.overviews).toHaveLength(1)
+})
+
+test('editing the haplotypes past the cap reads the overview again for them', async () => {
+  const { display, overviews, cuts } = await shownWalks(6_000_000)
+  expect(overviews).toHaveLength(1)
+  display.setSubgraphHaplotypes(['HG1.1'])
+  void display.cut()
+  await vi.waitFor(() => {
+    expect(display.overview).toBeDefined()
+  })
+  expect(overviews).toHaveLength(2)
+  expect(cuts).toHaveLength(0)
+})
+
+test('an rGFA track past the cap stays too large: only a GBZ track has an overview', async () => {
+  const { pane, view, overviews } = await shownGraph({ tiered: false })
+  view.zoomTo((pane.maxRegionBp * 2) / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(pane.showsOverview).toBe(false)
+  expect(pane.displayPhase).toBe('tooLarge')
+  expect(overviews).toHaveLength(0)
 })
 
 test('the track menu offers the layouts, colours and the settings dialog', async () => {

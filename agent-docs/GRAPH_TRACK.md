@@ -110,3 +110,29 @@ carry, is cut once on attach; following the linear view is the track's job.
 A 4.0 track entry nests the graph's state as `pane: {...}`, which the display
 folds flat. Entries now state `layoutMode` and `colorScheme` flat, and
 `paneHeight` is inert in a track; use `height`.
+
+## Past the cut: the haplotype overview
+
+A GBZ track whose window is too large to cut draws the haplotype index's
+overview in its place (`src/HaplotypeOverview/`): every haplotype classed per
+bin of the reference as reference-like, diverging by 50 bp or more, partial or
+absent, at the coarsest level whose bins fit two pixels. "Too large" is the bp
+cap, or a cut that came back over the adapter's `nodeLimit`. The second is
+learned by failing: `dense` records the refused window, and windows as wide or
+wider on that contig within one window-width of it draw the overview without
+trying again, so where the track switches follows how dense the graph is. A
+narrower window cuts again.
+
+The overview is read for the window plus a window each side and refetched when
+the window leaves it or the zoom moves past a factor of two. The band above the
+rows stacks the share of haplotypes in each class up to 16 kb bins; past them
+nearly every bin holds an excursion for most haplotypes, so it counts the bin's
+excursions instead, and its label says which. The rows put the track's lanes
+first at a height their labels fit, then every other haplotype unless the menu
+asks for the lanes alone. SNPs and small indels never show, and the tooltip says
+so. A click zooms to the bin.
+
+The haplotype lanes display does not swap yet: `MultiWaySyntenyDisplay` is
+core's, and doing it from here means overriding its internals through
+`Core-extendPluggableElement`. Past its node limit its error names the Graph
+display instead.

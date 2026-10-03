@@ -25,6 +25,10 @@ import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
+import type {
+  HaplotypeOverviewData,
+  OverviewAdapterOptions,
+} from '../GetHaplotypeOverview.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type { GafReads } from '../gaf/gafFile.ts'
 import type {
@@ -212,6 +216,17 @@ export function pairFeature({
   })
 }
 
+// Lanes past their node limit point at the display that draws the window
+// anyway
+function lanesLimitError(error: unknown, limit: number, windowBp: number) {
+  const limitError = nodeLimitError(error, limit, windowBp)
+  if (limitError) {
+    limitError.message +=
+      "; the track's Graph display draws every haplotype's overview at any size"
+  }
+  return limitError
+}
+
 const isSet = (location: FileLocation) =>
   !('uri' in location) || location.uri !== ''
 
@@ -397,6 +412,57 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     })
   }
 
+  /**
+   * The haplotype index's overview of a window on the anchor, at the
+   * coarsest level whose bins fit `bpPerPx`: every haplotype classed per bin.
+   * Undefined when the index carries no overview or the reference sample has
+   * no path by that contig.
+   */
+  async getOverview(
+    region: Region,
+    opts: OverviewAdapterOptions,
+  ): Promise<HaplotypeOverviewData | undefined> {
+    const { db, anchor, referenceSample } = await this.graph()
+    const { assemblyName, refName, start, end } = region
+    if (assemblyName !== anchor) {
+      throw new HaplotypeWindowError(assemblyName, anchor)
+    }
+    const path = await this.referenceQuery(refName, {})
+    const overview = path
+      ? await db.haplotypeOverview({
+          path,
+          start,
+          end,
+          bpPerPixel: opts.bpPerPx,
+        })
+      : undefined
+    if (!overview) {
+      return undefined
+    }
+    const asmByPrefix = assemblyByPanSNPrefix(this)
+    const prefixes = overview.haplotypes.map(h => haplotypePrefix(h))
+    const pinned = new Set<number>()
+    for (const lane of opts.haplotypes ?? []) {
+      const wanted = resolvePanSNPrefix(this, lane)
+      prefixes.forEach((prefix, row) => {
+        if (panSNMatchesPrefix(prefix, wanted)) {
+          pinned.add(row)
+        }
+      })
+    }
+    return {
+      level: overview.level,
+      bin: overview.bin,
+      rows: overview.haplotypes.map(h => laneAssemblyName(asmByPrefix, h)),
+      pinned: [...pinned],
+      reference: overview.haplotypes.flatMap((h, row) =>
+        h.sample === referenceSample ? [row] : [],
+      ),
+      bins: overview.bins,
+      cells: overview.cells,
+    }
+  }
+
   private gaf = cachedSetup({
     label: 'Opening reads',
     setup: async () => {
@@ -462,7 +528,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
                 keep,
               })
               .catch((error: unknown) => {
-                throw nodeLimitError(error, nodeLimit, end - start) ?? error
+                throw lanesLimitError(error, nodeLimit, end - start) ?? error
               }),
         )
       : []

@@ -6,7 +6,12 @@ import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
-import { addDisposer, getSnapshot, types } from '@jbrowse/mobx-state-tree'
+import {
+  addDisposer,
+  getSnapshot,
+  isAlive,
+  types,
+} from '@jbrowse/mobx-state-tree'
 import {
   computeActivityPhase,
   computeDisplayStatusPhase,
@@ -21,6 +26,11 @@ import {
   MAX_GRAPH_REGION_BP,
   formatSpanBp,
 } from '../GraphGenomeView/model'
+import {
+  HaplotypeOverviewMixin,
+  denseCovers,
+  isNodeLimitError,
+} from '../HaplotypeOverview/model'
 import {
   graphReferenceAssembly,
   offReferenceProblem,
@@ -51,6 +61,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         BaseDisplay,
         TrackHeightMixin(),
         GraphPaneMixin(),
+        HaplotypeOverviewMixin(),
         types.model({
           type: types.literal('LinearGraphDisplay'),
           configuration: ConfigurationReference(configSchema),
@@ -158,6 +169,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             ? `Region too large for a graph cut (${formatSpanBp(seen.end - seen.start)}, max ${formatSpanBp(self.settledCapBp)})`
             : ''
         },
+        get overviewCapable() {
+          return self.adapterConfig.type === 'GbzBaseSyntenyAdapter'
+        },
         get zoomCanReleaseGate() {
           return true
         },
@@ -166,7 +180,47 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .views(self => ({
+        // Past the cut a GBZ track draws its haplotype index's overview: past
+        // the bp cap, and at or past the span whose cut ran over its node
+        // limit, so where it switches follows how dense the graph is
+        get showsOverview() {
+          const seen = self.settledWindow
+          return (
+            self.overviewCapable &&
+            seen !== undefined &&
+            (self.regionTooLarge || denseCovers(self.dense, seen))
+          )
+        },
+      }))
+      .views(self => ({
+        get overviewPhase(): DisplayStatusPhase {
+          return computeDisplayStatusPhase(
+            { regionTooLarge: false, error: self.overviewError },
+            () =>
+              computeActivityPhase(
+                {
+                  isMinimized: self.isMinimized,
+                  fetchInert: false,
+                  viewportEmpty:
+                    self.host?.initialized === true &&
+                    self.host.hasVisibleContent === false,
+                  isLoading: self.overviewLoading || !self.overview,
+                  fetchCanceled: false,
+                  awaitingDependentData: false,
+                  rendersCanvas: true,
+                  canvasDrawn:
+                    self.overview !== undefined &&
+                    self.overviewPainted === self.overview,
+                },
+                () => true,
+                () => self.host?.effectiveBodyMounted ?? true,
+              ),
+          )
+        },
         get displayPhase(): DisplayStatusPhase {
+          if (self.showsOverview) {
+            return this.overviewPhase
+          }
           // A backend that failed is an error the canvas reports with its
           // retry; the status chrome has no renderError phase of its own.
           return computeDisplayStatusPhase(
@@ -201,6 +255,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
         setSubgraphHaplotypes(haplotypes: string[] | undefined) {
           self.subgraphHaplotypes = haplotypes
+          self.forgetOverview()
         },
         setMaxRegionBp(bp: number) {
           self.maxRegionBp = bp
@@ -208,7 +263,16 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // Cut `cutRegion` again with the current options. A hop past a coarse
         // cut reaches nothing new: every bubble node's two links are indexed
         // under the backbone either side of it.
+        // Past the cut, the overview is what the options re-read
         cut() {
+          const seen = self.settledWindow
+          if (seen && self.showsOverview) {
+            return self.fetchOverview(
+              self.adapterConfig,
+              seen,
+              self.chosenHaplotypes,
+            )
+          }
           const region = self.cutRegion
           if (!region) {
             return
@@ -252,8 +316,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // when the host places x and the window alone when the layout draws
         // its own picture of it. A canceled cut is re-made by the next move.
         // Returns whether it re-cut.
-        settleOn(seen: HostWindow) {
+        settleOn(seen: HostWindow): boolean {
           self.settledWindow = seen
+          if (self.showsOverview) {
+            if (!self.overviewHolds(seen)) {
+              void self.fetchOverview(
+                self.adapterConfig,
+                seen,
+                self.chosenHaplotypes,
+              )
+            }
+            return false
+          }
           const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
           if (
             self.regionTooLarge ||
@@ -263,8 +337,25 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           ) {
             return false
           }
-          void self.recutAt(seen)
+          // The error is the latest cut's, since a cut clears it as it
+          // starts and an outrun cut sets nothing
+          void Promise.resolve(self.recutAt(seen)).then(() => {
+            if (
+              isAlive(self) &&
+              self.overviewCapable &&
+              isNodeLimitError(self.error)
+            ) {
+              this.refuseDenseCut(seen)
+            }
+          })
           return true
+        },
+        // A cut refused for its node count holds nothing, so a window
+        // narrower than this one cuts again
+        refuseDenseCut(seen: HostWindow) {
+          self.setDense(seen)
+          self.cutRegion = undefined
+          this.settleOn(self.settledWindow ?? seen)
         },
         switchLayout(mode: LayoutModeValue) {
           const from = layoutModeByValue(self.chosenLayoutMode)
@@ -430,6 +521,19 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           })
           return [
             ...self.graphMenuItems(),
+            ...(self.overviewCapable
+              ? [
+                  {
+                    label: 'Zoomed out: every haplotype',
+                    subLabel: 'Off draws only the lanes the track names',
+                    type: 'checkbox' as const,
+                    checked: self.overviewAllRows,
+                    onClick: () => {
+                      self.setOverviewAllRows(!self.overviewAllRows)
+                    },
+                  },
+                ]
+              : []),
             {
               label: 'Settings',
               icon: SettingsIcon,

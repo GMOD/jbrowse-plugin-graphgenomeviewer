@@ -98,6 +98,10 @@ Needs JBrowse 5.0.0-beta.11 or later.
   lane or, for gbz-base, the haplotype lanes
 - Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`, the
   `coarse` tier (`build_bubble_tier.sh` in jbrowse-components)
+- gbz-base past the cut (5 Mb, or the adapter's `nodeLimit`) draws the haplotype
+  index's overview instead: a band of how many haplotypes diverge from the
+  reference by 50 bp or more, then a row per haplotype, the track's lanes first.
+  Needs an index from `gbz-haplotype-index` 0.3 or later
 - gbz-base swaps in `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`; an
   `hg38` or `hs1` track finds the graph's GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names

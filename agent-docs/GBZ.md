@@ -40,11 +40,12 @@ configs).
   `s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/release2/minigraph-cactus/v2.1/hprc-v2.1-mc-grch38/hprc-v2.1-mc-grch38.gbz.db`
   (10.05 GB, 139.5M nodes, 464 haplotypes, reference samples GRCh38 and CHM13).
   It needs no rehosting.
-- Companion:
-  `jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.anchored.db` (~7.9
-  GB, per-path samples every 16,384 plus anchors every 131,072 on the 292 GRCh38
-  and CHM13 paths). The demo configs name it. The un-anchored 7.0 GB
-  `haplotype-index.db` is also hosted.
+- Companion: `jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.f3.db`
+  (5.1 GB, format 3 from `gbz-haplotype-index` 0.3.0: per-path samples every
+  16,384, anchors every 131,072 on the 292 GRCh38 and CHM13 paths, stray rows,
+  and a 467 MB overview). Plugin 5.0 and gbz-base 7 read format 3 only. The
+  format 2 `anchored.db` (8.1 GB) and the un-anchored `haplotype-index.db` stay
+  hosted for plugin 4.x.
 - `demos/ivg/hprc/hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we
   serve points at it.
 - `build_rgfa_tabix.sh` needs gawk: BSD awk ran the links join 25 minutes
