@@ -1,3 +1,10 @@
+## [4.6.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.5.0...v4.6.0) (2026-10-03)
+
+### Other Changes
+
+- The figure spec keeps the strip's sample filter, and bandage-figure applies it ([ab67f0c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ab67f0cdbf7863231c6d023546e588ebfd86580e))
+- An SVG walk-rows key paints its on-path swatch as the reference ramp ([e2648b2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e2648b2eb90ce293d1bbc091a18befc41d48863f))
+
 ## [4.5.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.4.1...v4.5.0) (2026-10-03)
 
 ### Other Changes
