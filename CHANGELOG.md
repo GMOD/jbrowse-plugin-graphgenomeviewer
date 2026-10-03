@@ -1,3 +1,10 @@
+## [4.7.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.6.0...v4.7.0) (2026-10-03)
+
+### Other Changes
+
+- Bandage-figure boxes the reference row's genes in the strip ([4009f02](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4009f02d0b674bbada9e7b52057ed5c135094eb4))
+- Copy figure spec is off for layouts bandage-figure refuses, and says why ([f31a219](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f31a219c430bea2ce25d67ef80b3684567689bab))
+
 ## [4.6.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.5.0...v4.6.0) (2026-10-03)
 
 ### Other Changes
