@@ -1,3 +1,26 @@
+## [4.8.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.7.0...v4.8.0) (2026-10-03)
+
+### Other Changes
+
+- The BandageJS job tests core-next when it exists, and why TypeScript is on two versions ([7041363](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7041363282c28c8b3c6f57806050ab5275557651))
+- Figures.md documents walkRowSamples, strip genes on the reference row, and checkLayout ([6984fc1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6984fc1487ce32b1fbb86b0b778bee362a15f0aa))
+- IDEAS gains the tube map worker and reads on rGFA; README states the presigned url limit ([6ce9be0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6ce9be061668c427266e65e4e086a2ef7ab63c3f))
+- Walk strip follow-ups and tube map reads, from the retiring handoffs ([8f55109](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8f551090c6e7f9e02efbdc2fa6833e4bb20d2e4b))
+- Say why the tabix GAF query asks for hi + 1 ([e333727](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e33372719e371d0ae14aa3a3d85320ab256736b5))
+- Why walk rows keep charcoal off the path while unplaced nodes are grey ([f7eddcc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f7eddcc26f8cd30b3643d5d118a6a310fab66927))
+- Retire the handoff docs ([9d5d6b3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9d5d6b332dbd7ddf015ce05e49c1bba069d09137))
+- A graph track's menu no longer offers the walk strip it can't show ([eb984f6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/eb984f693b31fab8945e802165141b5ec05b7818))
+- The tube map legend says how many of a sampled read set's reads it draws ([478aaed](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/478aaed0dc9920aca38a4fab312b54824744408f))
+- Cancelling a load drops everything the graph derived, and node details count the samples ([55dd418](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/55dd41818ac9344a40668bc799b934fb2b4ad937))
+- Past a dozen walks the Walk menu lists the lifted ones and offers Choose walks... ([1ed1f75](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1ed1f7537385bbff0b33e878dd19197d55f71bcc))
+- The settings dialog builds its switches and dropdowns from two components ([031fda6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/031fda6f49c82a94195ab5dceb591bbadfd13acc))
+- The pane model is built in stages under pane/, one module each ([595df72](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/595df72367ccda2029307fa1d872e1177febf13e))
+
+### Tests
+
+- E2e from a worktree needs the primary checkout's host dir; where the cactus reads live ([7abc6c0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7abc6c040eebebd54d72d8531a33493f190f30e7))
+- Test/README lists every e2e suite, and the flake note gives advice, not stale counts ([9767c30](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9767c30f31a30b1045283c1d44128a1a6d43565c))
+
 ## [4.7.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.6.0...v4.7.0) (2026-10-03)
 
 ### Other Changes
