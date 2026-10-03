@@ -10,11 +10,6 @@ import type { Feature } from '@jbrowse/core/util'
 import type { AugmentedRegion as Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
-/** `keepAlignment` is core's, which synteny-core 5.0.0-beta.9 lacks */
-export interface ClipOptions extends ComparativeOptions {
-  keepAlignment?: boolean
-}
-
 /**
  * What every adapter in this plugin answers the same way.
  *
@@ -55,7 +50,10 @@ export abstract class ComparativeAdapterBase<
    * multi-way display's lane sort tie-breaks on first appearance in this list,
    * and its weights tie exactly, so arrival order would decide the stack.
    */
-  getFeaturesInMultipleRegions(regions: Region[], opts: ClipOptions = {}) {
+  getFeaturesInMultipleRegions(
+    regions: Region[],
+    opts: ComparativeOptions = {},
+  ) {
     const { clipToRegion, splitAtGapBp, keepAlignment, ...rest } = opts
     const clip = clipToRegion && this.recordsAreAlignments
     const slot = createStatusFanOut(rest.statusCallback)

@@ -117,6 +117,7 @@ test('renames the region onto the adapter spelling before the call', async () =>
   // at the call rather than failing a type check, since the cast below is what
   // gets it past one.
   const assemblyManager = {
+    confByName: new Map(),
     waitForAssembly: async () => assembly,
     requireAssembly: async () => assembly,
   }

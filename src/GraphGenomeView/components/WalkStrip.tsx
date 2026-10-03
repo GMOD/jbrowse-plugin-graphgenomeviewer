@@ -99,7 +99,7 @@ const WalkStrip = observer(function WalkStrip({
   const key = walkRowsKey(bars, {
     ramp: model.referenceRampDomain,
     rampCss: RAMP_GRADIENT_CSS,
-    genes: stripGeneGaps(frame, model.walkRowGeneGaps, model.walkRowGenes),
+    genes: stripGeneGaps(frame, model.walkRowGenes, model.walkRowGeneGaps),
   })
   return (
     <div

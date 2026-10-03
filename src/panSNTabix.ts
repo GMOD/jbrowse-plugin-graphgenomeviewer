@@ -100,7 +100,8 @@ export function resolveRefName(
 export class PanSNRefNames {
   // Read once and shared by every query, so it takes on no caller's signal: a
   // track fetch the user panned away from once aborted the read a graph cut
-  // was waiting on. cachedSetup withholds the signal and retries a failed read.
+  // was waiting on. cachedSetup rejects only the caller that aborts, keeps the
+  // read going for the rest, and retries a failed read.
   private lookup = cachedSetup({
     setup: async opts =>
       buildRefNameLookup(await this.file.getReferenceSequenceNames(opts)),

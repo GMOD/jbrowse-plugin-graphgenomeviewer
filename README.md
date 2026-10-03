@@ -58,7 +58,7 @@ node in the view bands its bp in the linear view:
 
 ## Usage
 
-Needs JBrowse 5.0.0-beta.9 or later.
+Needs JBrowse 5.0.0-beta.11 or later.
 
 ```json
 {

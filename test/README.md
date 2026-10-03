@@ -53,8 +53,8 @@ subgraph".
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in only because it needs a jbrowse-web static build to serve. **All 33 tests
-pass on 5.0.0-beta.9 as of 2026-09-30.**
+Opt-in only because it needs a jbrowse-web static build to serve. **All 37 tests
+pass on 5.0.0-beta.11 as of 2026-10-02.**
 
 Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 
@@ -64,7 +64,7 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 
 `JBROWSE_PORT` (9876) moves the server, so two sessions can run at once.
 
-**The host has to be at least 5.0.0-beta.9**, the version the plugin's
+**The host has to be at least 5.0.0-beta.11**, the version the plugin's
 `@jbrowse/*` dependencies are pinned to. An older host lacks core APIs the
 plugin calls, and the failure is that the plugin throws while INSTALLING, so
 every suite dies in setup with a minified `e.<something> is not a function` and

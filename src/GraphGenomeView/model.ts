@@ -3843,6 +3843,9 @@ export function GraphPaneMixin() {
             self.markPainted()
             return true
           },
+          releaseTargets: (b: Renderer) => {
+            b.releaseOffscreenTargets()
+          },
         }))
       },
     }))

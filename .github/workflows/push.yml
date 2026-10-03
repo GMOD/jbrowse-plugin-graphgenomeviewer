@@ -93,22 +93,31 @@ jobs:
       - name: Create JBrowse test instance
         run:
           npx @jbrowse/cli create .test-jbrowse --url
-          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.9/jbrowse-web-v5.0.0-beta.9.zip
+          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.11/jbrowse-web-v5.0.0-beta.11.zip
       - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e
 
   # BandageJS draws with this repo's core from npm, so a core change that breaks
   # it shows only after a release: 4.0.24's gene labels vanished there against
   # the pane's edge. This packs the core as it would publish, installs it into
-  # BandageJS's main and runs BandageJS's unit and browser tests on it.
+  # BandageJS and runs BandageJS's unit and browser tests on it. A core API
+  # change lands with BandageJS's side on its core-next branch, tested here in
+  # place of main until the release, when main takes it and the branch goes.
   bandagejs:
     name: BandageJS on this core
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: bandagejs
+        run: |
+          if git ls-remote --exit-code --heads https://github.com/cmdcolin/BandageJS core-next > /dev/null; then
+            echo ref=core-next >> "$GITHUB_OUTPUT"
+          else
+            echo ref=main >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: cmdcolin/BandageJS
-          ref: main
+          ref: ${{ steps.bandagejs.outputs.ref }}
           path: bandagejs
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
         with:

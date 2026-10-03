@@ -51,9 +51,9 @@ describe('the shared read of the index names', () => {
     const first = refNames.resolve(region, { signal: gaveUp.signal })
     const second = refNames.resolve(region)
     gaveUp.abort()
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
     release(['chr6'])
     await expect(second).resolves.toBe('chr6')
-    await expect(first).resolves.toBe('chr6')
     expect(reads).toBe(1)
   })
 

@@ -8,7 +8,6 @@ import { ComparativeAdapterBase } from './ComparativeAdapterBase.ts'
 import SyntenyFeature from './SyntenyFeature.ts'
 import { clipFeatureToRegion } from './clipFeatureToRegion.ts'
 
-import type { ClipOptions } from './ComparativeAdapterBase.ts'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
 import type { ComparativeOptions } from '@jbrowse/synteny-core'
@@ -273,7 +272,7 @@ const regions: Region[] = [
 
 function fetchAll(
   adapter: ComparativeAdapterBase,
-  opts: ClipOptions,
+  opts: ComparativeOptions,
   over = regions,
 ) {
   return firstValueFrom(

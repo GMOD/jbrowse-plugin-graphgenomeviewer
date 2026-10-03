@@ -14,7 +14,7 @@ export const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
 // JBROWSE_TEST_DIR points at another, such as a jbrowse-web built from a
 // graph_viz checkout (see forceLayout.test.ts), and TEST_JBROWSE_VERSION picks
 // another `.test-jbrowse-<version>` dir.
-const TEST_JBROWSE_VERSION = process.env.TEST_JBROWSE_VERSION || 'beta9'
+const TEST_JBROWSE_VERSION = process.env.TEST_JBROWSE_VERSION || 'beta11'
 export const TEST_JBROWSE_DIR =
   process.env.JBROWSE_TEST_DIR ??
   path.join(process.cwd(), `.test-jbrowse-${TEST_JBROWSE_VERSION}`)
@@ -69,6 +69,7 @@ const HOST_REQUIRES = [
   ['contributeToExtensionPoint', 'core 2026-08-05'],
   ['requireAssembly', 'core 2026-08-04'],
   ['packAbgr', 'the colorBits re-export, 5.0.0-beta.9'],
+  ['releaseTargets', 'the render callback, 5.0.0-beta.11'],
 ] as const
 
 function assertHostIsCurrentEnough() {
