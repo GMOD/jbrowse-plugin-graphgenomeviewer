@@ -1,3 +1,5 @@
+import { lazy } from 'react'
+
 import {
   backboneNodes,
   backboneSpan,
@@ -249,6 +251,12 @@ const paperCss = ([r, g, b]: number[]) =>
 const MIN_FIT_TUBE_PX = 5
 
 const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
+
+const ChooseWalksDialog = lazy(() => import('./components/ChooseWalksDialog'))
+
+// Past this many walks the Walk menu lists only the lifted ones and offers a
+// searchable picker
+const WALK_MENU_ITEMS = 12
 
 const FACETS: { value: FacetSetting['field']; label: string }[] = [
   { value: '', label: 'Off' },
@@ -4019,7 +4027,25 @@ export function GraphPaneMixin() {
                           },
                         ]
                       : []),
-                    ...walks.map(walk => ({
+                    ...(walks.length > WALK_MENU_ITEMS
+                      ? [
+                          {
+                            label: 'Choose walks...',
+                            onClick: () => {
+                              getSession(self).queueDialog(onClose => [
+                                ChooseWalksDialog,
+                                { model: self, onClose },
+                              ])
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(walks.length > WALK_MENU_ITEMS
+                      ? walks.filter(walk =>
+                          self.walkLayers.some(l => l.walk === walk.name),
+                        )
+                      : walks
+                    ).map(walk => ({
                       type: 'checkbox' as const,
                       label: walk.label,
                       checked: self.walkLayers.some(l => l.walk === walk.name),
