@@ -1041,7 +1041,7 @@ describe('node budget', () => {
 
     await model.loadGFA(SIMPLE_GFA, 'two nodes')
 
-    expect(model.graph).toBeUndefined()
+    expect(model.layoutResult).toBeUndefined()
     expect(String(model.error)).toMatch(/too large to draw/i)
     expect(String(model.error)).toMatch(/2 nodes/)
     // the layout is downstream of the check, so it must not have run
@@ -1050,6 +1050,15 @@ describe('node budget', () => {
     ).toHaveLength(0)
     expect(model.isLoading).toBe(false)
     consoleSpy.mockRestore()
+  })
+
+  test('walk rows draw a graph over the budget, since they draw no nodes', async () => {
+    rpcRespond()
+    const model = withLimit(1)
+    model.setLayoutMode('walkrows')
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    expect(model.error).toBeUndefined()
+    expect(model.layoutResult).toBeDefined()
   })
 
   test('draws the same graph once the budget is raised', async () => {

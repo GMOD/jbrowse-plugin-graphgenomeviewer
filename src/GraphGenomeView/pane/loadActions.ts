@@ -151,6 +151,12 @@ export const withLoadActions = withSettingActions.actions(self => {
     const signal = loadController?.signal
     let computed
     try {
+      // the node cap is a drawing's cost, and walk rows draw a bar per walk
+      if (self.modeDrawsNodes && graph.nodes.length > self.maxGraphNodes) {
+        throw new Error(
+          `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Pick Layout → Walk rows, zoom in to a smaller region, or raise maxGraphNodes on this view.`,
+        )
+      }
       computed = yield* computeLayout(graph)
     } catch (e) {
       // A discarded layout's failure is not the user's problem: the drawing
@@ -198,7 +204,6 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.setStatusMessage('Parsing GFA')
     const parsed = loadGraph(text, name, {
       referencePath: self.referencePath || region?.assemblyName,
-      maxNodes: self.maxGraphNodes,
     })
     const loaded = region ? loadedReference(parsed, region) : undefined
     const graph =

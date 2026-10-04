@@ -145,7 +145,14 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   if (!bars) {
     return null
   }
-  const { paneWidth: width, canvasHeight } = model
+  const { paneWidth: width, canvasHeight, walkRowPitch: pitch } = model
+  const hovered = model.hoveredWalkRowText
+    ? [bars.reference, ...bars.rows].findIndex(
+        r => r.name === model.hoveredWalkRow,
+      )
+    : -1
+  const row =
+    hovered >= 0 ? [bars.reference, ...bars.rows][hovered]! : undefined
   return (
     <svg
       style={svgStyle}
@@ -172,6 +179,23 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
           },
         )}
       />
+      {row && pitch ? (
+        <rect
+          data-testid="graph-walk-row-hovered"
+          x={bars.origin * model.scaleX + model.translateX - 2}
+          y={
+            hovered * pitch.rowPx * model.scaleY +
+            model.translateY -
+            pitch.rowPx / 2 -
+            1
+          }
+          width={row.bp * model.scaleX + 4}
+          height={pitch.rowPx + 2}
+          fill="none"
+          stroke="#111"
+          strokeWidth={1}
+        />
+      ) : null}
     </svg>
   )
 })
