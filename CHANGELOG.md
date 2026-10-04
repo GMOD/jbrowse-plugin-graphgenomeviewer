@@ -1,3 +1,14 @@
+## [6.1.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.1...v6.1.2) (2026-10-04)
+
+### Other Changes
+
+- Walk rows pack into the pane, names and readouts on hover ([e5f71fc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e5f71fc4cb47dde46cdf54a47519cc4c3985d790))
+- Pick haplotypes and samples from menus ([909f477](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/909f4778eb381acba1d5627cdd798116529bfcc0))
+- Walk rows draw a graph past the node cap, and outline the hovered row ([796a387](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/796a387c8123d4591a562e6e735a9440092e9607))
+- Depend on @jbrowse/bandage-core 7.1.0 ([1b452d8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1b452d8ef2e7fd18507de5830b4a00ff8e43271e))
+- Samples menu labels are literal, so a doc can name them ([39955b9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/39955b9b1a37aa916ab415ea2b5a64e722f43d6d))
+- Bump deps ([d57f085](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d57f085e263b48454ef3a5282c5e1d47a6d176c1))
+
 ## [6.1.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.0...v6.1.1) (2026-10-04)
 
 ### Other Changes
