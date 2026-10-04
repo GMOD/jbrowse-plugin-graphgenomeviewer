@@ -368,7 +368,8 @@ Where the linear view shows the gene track as a lane, the graph names only what
 that lane draws, so a lane filtered to `type == 'gene'` keeps mobile elements
 and repeats off the graph as well. A record spanning a whole sequence, such as
 the `region` RefSeq opens each molecule with, gets no name, and neither does one
-with no `Name` or `gene` of its own, whose ID only restates where it is.
+with no `gene_name`, `Name`, `gene` or `gene_id` of its own, whose ID only
+restates where it is.
 
 In MHC class II the gene track's HLA-DRB5, HLA-DRB6 and HLA-DRB1 sit over their
 exons on the graph's backbone. HLA-DR haplotypes differ in which DRB genes they

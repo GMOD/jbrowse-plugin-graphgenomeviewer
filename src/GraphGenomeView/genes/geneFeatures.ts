@@ -119,10 +119,11 @@ function merged(intervals: { start: number; end: number }[]) {
 }
 
 // Genes from a track's features: every top-level feature but a whole-sequence
-// record, named by the first of gene_name, name and gene it carries, with the
-// exons found anywhere under it merged. A feature with no exons is one exon,
+// record, named by the first of gene_name, name, gene and gene_id it carries,
+// with the exons found anywhere under it merged. A feature with no exons is one exon,
 // its whole span. A BED track gives one feature per transcript, so a name's
-// overlapping features merge, while its copies down the contig stay apart. A
+// overlapping features merge, while its copies down the contig stay apart.
+// UCSC's ncbiRefSeq.gff gene records carry their symbol only as gene_id. A
 // feature with none of those names is left out: its raw ID, RefSeq's
 // `id-NC_000913.3:1978503..1979270`, only restates where it is.
 export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
@@ -131,7 +132,8 @@ export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
     const name =
       (field(f, 'gene_name') as string | undefined) ??
       (field(f, 'name') as string | undefined) ??
-      (field(f, 'gene') as string | undefined)
+      (field(f, 'gene') as string | undefined) ??
+      (field(f, 'gene_id') as string | undefined)
     const start = field(f, 'start') as number
     const end = field(f, 'end') as number
     if (

@@ -91,6 +91,44 @@ test('a record is named by its name or gene, never by its raw ID', () => {
   ])
 })
 
+// jbrowse.org/ucsc/hg38/ncbiRefSeq.gff.gz at CFH, as the GFF3 adapter serializes
+// it: the gene record's only names are its ID and gene_id
+test('a UCSC ncbiRefSeq gene is named by its gene_id', () => {
+  const cfh = {
+    type: 'gene',
+    id: 'CFH',
+    gene_id: 'CFH',
+    refName: 'chr1',
+    start: 196_652_042,
+    end: 196_747_504,
+    strand: 1,
+    subfeatures: [
+      {
+        type: 'transcript',
+        id: 'NM_000186.4',
+        name: 'NM_000186.4',
+        gene_name: 'CFH',
+        gene_id: 'CFH',
+        start: 196_652_042,
+        end: 196_747_504,
+        subfeatures: [
+          { type: 'exon', start: 196_652_042, end: 196_652_175 },
+          { type: 'exon', start: 196_746_000, end: 196_747_504 },
+        ],
+      },
+    ],
+  }
+  expect(geneModelsFrom([cfh])).toMatchObject([
+    {
+      name: 'CFH',
+      exons: [
+        { start: 196_652_042, end: 196_652_175 },
+        { start: 196_746_000, end: 196_747_504 },
+      ],
+    },
+  ])
+})
+
 // A BED track gives one feature per transcript, and JBrowse splits a coding
 // block into CDS and UTR parts
 const bedTranscript = (start: number, end: number, cdsEnd: number) => ({
