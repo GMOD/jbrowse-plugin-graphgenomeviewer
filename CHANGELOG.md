@@ -1,3 +1,9 @@
+## [6.0.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.2...v6.0.3) (2026-10-04)
+
+### Other Changes
+
+- Lock @jbrowse/bandage-core 6.1.0 ([c6e4c0a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c6e4c0a88154979525bd911d94d7c6a8aab6c2b9))
+
 ## [6.0.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.1...v6.0.2) (2026-10-04)
 
 ### Other Changes
