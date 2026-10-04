@@ -1,3 +1,9 @@
+## [6.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.3...v6.1.0) (2026-10-04)
+
+### Other Changes
+
+- Turning deletion edges off in a force layout lays it out without them ([409e502](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/409e502ff172e8fd31c7c7766a35f882830f4ebf))
+
 ## [6.0.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.2...v6.0.3) (2026-10-04)
 
 ### Other Changes
