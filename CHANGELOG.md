@@ -1,3 +1,14 @@
+## [6.0.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.1...v6.0.2) (2026-10-04)
+
+### Other Changes
+
+- Install @jbrowse/bandage-core from npm ([aad9513](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/aad9513973e6136aff2171584676a91a4d8748ad))
+- Format the files the core split touched ([e32afd0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e32afd08a2ad9b94a27ba0121b7850ff062d8386))
+- Lock @jbrowse/bandage-core 6.0.2 ([2fbcc21](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2fbcc21bc898c6b232d2898cab46ba6e21dcabc6))
+- Allow the core's chunk hash in the engine chunk name ([2026b52](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2026b52625f4fd953572bbec8bb6906e45b92c67))
+- Lock @jbrowse/bandage-core 6.0.3, which holds a dragged node's link ends ([212f54a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/212f54a719b596c4ec1d052849fce8da5bab5326))
+- Take getDpr from the core and lock bandage-core 6.0.4 ([3593d38](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3593d386b9c2107717f27a14e88cd0ef29729210))
+
 ## [6.0.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.2.0...v6.0.1) (2026-10-04)
 
 ## [5.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.0...v5.2.0) (2026-10-04)
