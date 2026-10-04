@@ -33,8 +33,8 @@
 
 - Goal: a figure's strip boxes every row's genes, as the view's strip does.
   Today the spec's `genes` are the backbone's, so `renderSpec` in
-  `bandage-core/src/cli/figure.ts` boxes the reference row only and the key
-  says "no gene track" for the rest.
+  `bandage-core/src/cli/figure.ts` boxes the reference row only and the key says
+  "no gene track" for the rest.
 - Needs a spec field mapping each sample to its gene file, plus contig aliases
   per file, as `genes.refNames` gives the backbone's.
 

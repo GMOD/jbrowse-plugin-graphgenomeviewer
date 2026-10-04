@@ -15,10 +15,7 @@ import {
   parseLinkLine,
   parseSegmentLine,
 } from '../src/RgfaTabixAdapter/rgfaBed.ts'
-import type {
-  RgfaLink,
-  RgfaSegment,
-} from '../src/RgfaTabixAdapter/rgfaBed.ts'
+import type { RgfaLink, RgfaSegment } from '../src/RgfaTabixAdapter/rgfaBed.ts'
 const [uri, panSN, refName, start, end, out, hopsArg] = process.argv.slice(2)
 const hops = Number(hopsArg ?? 1)
 const segs = new TabixIndexedFile({ path: `${uri}.segs.bed.gz` })

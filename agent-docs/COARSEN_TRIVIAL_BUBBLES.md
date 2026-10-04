@@ -5,10 +5,10 @@ collapsed unit's path lanes say — so it is a proposal rather than an action
 item.
 
 **The tube map answered that question on 2026-09-27**
-(`bandage-core/src/tubeMap/coarsen.ts`, **Fold variants**): a merged node's
-lane for each walk carries a tick at the bp of every variant the walk folded
-there, and a detour too large to fold stays one node per distinct route. It cuts
-from each walk's runs over the reference rather than from bubbles, since derived
+(`bandage-core/src/tubeMap/coarsen.ts`, **Fold variants**): a merged node's lane
+for each walk carries a tick at the bp of every variant the walk folded there,
+and a detour too large to fold stays one node per distinct route. It cuts from
+each walk's runs over the reference rather than from bubbles, since derived
 bubbles are chain level and a one-node inversion forms none. The force layout
 case below is still open; the same pass could feed it.
 
