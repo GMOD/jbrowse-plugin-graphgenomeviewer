@@ -49,8 +49,8 @@ importers:
         specifier: ^2.1.2
         version: 2.1.2
       '@jbrowse/bandage-core':
-        specifier: ^6.0.2
-        version: 6.0.2(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)
+        specifier: ^6.0.3
+        version: 6.0.3(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -654,8 +654,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@6.0.2':
-    resolution: {integrity: sha512-iFf124YgMGQOf6VpOgYgLYp7rL1r7PvVB0ZDtvAo+oF7cFtZrD8keTnmrd/26r4lkYFzI0dHVZ6S+u2cgXkL0A==}
+  '@jbrowse/bandage-core@6.0.3':
+    resolution: {integrity: sha512-ZicC/LxOBAZr+meAsg2AYAPpISOKYSWa98hASOqt8o5pNjt0j51xRhdQQqGQVufENuk9xKsA9pdlpjwBVI3PVw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4118,7 +4118,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@6.0.2(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)':
+  '@jbrowse/bandage-core@6.0.3(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)':
     dependencies:
       '@gmod/gbz-base': 7.0.0
       '@gmod/tabix': 3.9.1
