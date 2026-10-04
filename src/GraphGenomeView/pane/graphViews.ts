@@ -1,7 +1,10 @@
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 import { bubblesFromGraph } from '@jbrowse/bandage-core/bubbles/bubblesFromGraph'
 import { resolveColorScheme } from '@jbrowse/bandage-core/colorSchemes'
-import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
+import {
+  deletionDrawing,
+  deletionEdges,
+} from '@jbrowse/bandage-core/deletionEdges'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
@@ -569,7 +572,7 @@ export const withGraphViews = paneBase
     // a pass over the edges and the drawing rebuilds on every pan.
     // Walk rows state what each walk skips as its own bar length, so the arcs
     // over the backbone would only say it again, across the bars.
-    get deletions() {
+    get allDeletions() {
       return self.graph && this.drawsNodes ? deletionEdges(self.graph) : []
     },
     // One bar per haplotype walk on its own bp axis, for the walk-rows
@@ -728,17 +731,20 @@ export const withGraphViews = paneBase
     },
   }))
   .views(self => ({
-    // Which of `graph.edges` are deletions, and what each one bypasses, keyed
-    // the way the geometry and the hit index address an edge. One map per
-    // graph rather than per rebuild, since both of those take it on every
-    // pan.
+    get deletionDrawing() {
+      return self.graph
+        ? deletionDrawing(self.graph, self.allDeletions, self.showDeletionEdges)
+        : undefined
+    },
+    // the deletions drawn, which their labels and hover name
+    get deletions() {
+      return this.deletionDrawing?.shown ?? []
+    },
     get deletionEdgeIndexes() {
-      return new Map(self.deletions.map(d => [d.edgeIndex, d.bypassed]))
+      return this.deletionDrawing?.bypassed
     },
     get hiddenEdgeIndexes() {
-      return new Set(
-        self.showDeletionEdges ? [] : self.deletions.map(d => d.edgeIndex),
-      )
+      return this.deletionDrawing?.hidden
     },
     // The interval the reference-position ramp runs over, for the key beside
     // the drawing, and undefined when no key should be drawn. Two tutorials

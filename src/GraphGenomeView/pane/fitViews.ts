@@ -455,7 +455,7 @@ export const withFitViews = withHostViews
           height: self.paneCeiling,
           colorScheme: self.chosenColorScheme,
           nodeWidth: self.nodeWidth,
-          showDeletionEdges: self.showDeletionEdges || undefined,
+          showDeletionEdges: self.showDeletionEdges ? undefined : false,
         }),
       ) as Record<string, unknown>
     },

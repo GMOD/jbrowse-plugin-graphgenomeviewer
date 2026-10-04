@@ -2360,17 +2360,18 @@ describe('what the row axis draws, in pixels', () => {
 
   test('a deletion edge draws only in a view that shows it', async () => {
     const hidden = await fitted({ showDeletionEdges: false })
-    expect([...hidden.hiddenEdgeIndexes]).toEqual(
-      hidden.deletions.map(d => d.edgeIndex),
+    expect([...hidden.hiddenEdgeIndexes!]).toEqual(
+      hidden.allDeletions.map(d => d.edgeIndex),
     )
+    expect(hidden.deletions).toEqual([])
     const shown = await fitted()
     expect(getSnapshot(shown).showDeletionEdges).toBe(true)
-    expect(shown.hiddenEdgeIndexes.size).toBe(0)
+    expect(shown.hiddenEdgeIndexes!.size).toBe(0)
 
     expect(render(hidden).length).toBeLessThan(render(shown).length)
 
     hidden.setShowDeletionEdges(true)
-    expect(hidden.hiddenEdgeIndexes.size).toBe(0)
+    expect(hidden.hiddenEdgeIndexes!.size).toBe(0)
   })
 
   // The panel-alignment half: the backbone is drawn across the pane rather than
@@ -2760,6 +2761,25 @@ describe('walk rows', () => {
     })
     model.setWalkStrip(false)
     expect(model.figureSpec()?.walkRowSamples).toBeUndefined()
+  })
+
+  // bandage-figure shows deletion edges unless a spec says otherwise
+  test('the figure spec states deletion edges only when they are off', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(WALKS_GFA)
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      gfaLocation: {
+        uri: 'https://example.com/graphs/walks.gfa',
+        locationType: 'UriLocation',
+      },
+      loadedRegion: TEST_REGION,
+      layoutMode: 'ordered',
+    })
+    await model.load()
+    expect(model.figureSpec()).not.toHaveProperty('showDeletionEdges')
+    model.setShowDeletionEdges(false)
+    expect(model.figureSpec()?.showDeletionEdges).toBe(false)
   })
 
   test('walk rows offer no figure spec, since bandage-figure draws no walk rows', async () => {
