@@ -6,7 +6,7 @@ import configSchema from './configSchema.ts'
 // A level-of-detail tier: the same two files the adapter always reads, but one
 // node per bubble instead of one per GFA segment. Built by
 // jbrowse-components/scripts/bubbles_to_tier_bed.py from HPRC release 2's
-// hosted `hprc-v2.0-mc-grch38.bubbles.bed.gz`, filtered to chrY at
+// v2.0 `hprc-v2.0-mc-grch38.bubbles.bed.gz`, filtered to chrY at
 // `--min-content 10000`. The whole chromosome is 57 bubbles and 57 backbone
 // nodes in 5.5 kB, which is the point of the tier.
 const prefix = require

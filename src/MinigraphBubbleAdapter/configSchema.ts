@@ -18,7 +18,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * ```js
  * {
  *   type: 'MinigraphBubbleAdapter',
- *   uri: 'https://jbrowse.org/demos/hprc/hprc-v2.0-mc-grch38.bubbles.bed.gz',
+ *   uri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.bubbles.bed.gz',
  *   assemblyNameToPanSN: { hg38: 'GRCh38' },
  * }
  * ```
