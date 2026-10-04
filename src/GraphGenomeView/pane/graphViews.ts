@@ -359,6 +359,9 @@ export const withGraphViews = paneBase
     get deletionRoutes() {
       return self.layoutResult?.deletionRoutes
     },
+    get stranded() {
+      return self.layoutResult?.stranded
+    },
     // Whether the current layout states y in screen px rather than in the same
     // units as x (LayoutResult.pixelRows). Everything that has to put the two
     // axes in one expression reads this through scaleX/scaleY.

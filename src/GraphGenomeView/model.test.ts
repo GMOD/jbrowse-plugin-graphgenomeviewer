@@ -698,7 +698,7 @@ describe('layoutMode', () => {
     expect(options.rotateComponents).toBe(false)
     // MOCK_LAYOUT already reads left to right, so the orientation pass is a
     // no-op on it
-    expect(model.layoutResult).toEqual(MOCK_LAYOUT)
+    expect(model.layoutResult).toEqual({ ...MOCK_LAYOUT, stranded: true })
   })
 
   test('recomputeLayout follows a switch back to auto', async () => {

@@ -358,6 +358,7 @@ export const withFitViews = withHostViews
         referenceRamp: self.referenceRamp,
         deletions: self.deletionEdgeIndexes,
         deletionRoutes: self.deletionRoutes,
+        stranded: self.stranded,
         hiddenEdges: self.hiddenEdgeIndexes,
         // passed so the shared edge-curve cache can tell a drag from a pan
         version: self.positionsVersion,

@@ -172,6 +172,7 @@ export function usePaneGestures(model: GraphPaneModel) {
               model.deletionEdgeIndexes,
               model.hiddenEdgeIndexes,
               model.deletionRoutes,
+              model.layoutResult?.stranded,
             ),
       )
     }
