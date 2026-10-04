@@ -1,3 +1,14 @@
+## [5.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.0.1...v5.1.0) (2026-10-04)
+
+### Other Changes
+
+- Links join the ends their strands name under the force layout ([c528024](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c528024ba316d8a807c24d2a9f19bb08fbe87230))
+- Stranded self links, lane ends and figure reference names follow review ([ba555be](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ba555beeacea54706f64b4370633b64c22cc29d4))
+- A gene read only over its intron has no exons there ([7d7e14f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7d7e14f835da2d3ddcf8fc95b3a33f54b626edf7))
+- Arrowheads keep a plain link's size and wait for three heads of link ([ac489e5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ac489e51388e85dfe6509019bb5d61545b895980))
+- The Node length colour scheme's label takes sentence case ([0e8bd67](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0e8bd6790f4cc08fc582e8341e03eeb1a5e9bacd))
+- README's rGFA force figures reshot: the cut's closing reads add the deletion edges and close the KIV-2 and DRB loops ([8047f2e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8047f2e92ba57f370985cb946cbc5afb7a27ee02))
+
 ## [5.0.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.0.0...v5.0.1) (2026-10-04)
 
 ### Other Changes
