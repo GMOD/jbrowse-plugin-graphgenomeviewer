@@ -1,3 +1,11 @@
+## [5.0.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.0.0...v5.0.1) (2026-10-04)
+
+### Other Changes
+
+- An rGFA cut reads its last round's links, so an allele reached from both ends draws as a loop ([b62b236](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b62b2364fccc8aa4574b5ba0c53125070add6b9c))
+- A gbz-base lanes track reads each haplotype's PanSN name from its assembly's aliases ([7c56c31](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7c56c31c9c9ac098b48eff7f25ac83e789732fd4))
+- Document assemblyNameToPanSN as the override of the PanSN aliases ([4d505b3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4d505b3ced1154457bd2a21cd12a8151d6d679b2))
+
 ## [5.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v4.8.0...v5.0.0) (2026-10-03)
 
 ### Other Changes
