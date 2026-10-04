@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 
 import { drawReferenceStrip } from '@jbrowse/bandage-core/referenceStrip'
 import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { encodingSwatchCss } from '@jbrowse/bandage-core/walkEncoding'
-import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 

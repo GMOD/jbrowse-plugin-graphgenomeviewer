@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { drawTubeMapRuler, rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 import { drawTubeMapConnectors } from '@jbrowse/bandage-core/tubeMap/connectors'
 import {
@@ -14,7 +15,6 @@ import {
   FORWARD_READ_COLORS,
   REVERSE_READ_COLORS,
 } from '@jbrowse/bandage-core/tubeMap/reads'
-import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 

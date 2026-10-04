@@ -11,6 +11,7 @@ import {
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { FIT_PADDING, fitTransform } from '@jbrowse/bandage-core/pipeline'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import {
   connectorAt,
@@ -35,7 +36,6 @@ import {
   readConfObject,
 } from '@jbrowse/core/configuration'
 import { getSession } from '@jbrowse/core/util'
-import { getDpr } from '@jbrowse/render-core/canvas2dUtils'
 import { untracked } from 'mobx'
 
 import { hostFrame } from '../host'
