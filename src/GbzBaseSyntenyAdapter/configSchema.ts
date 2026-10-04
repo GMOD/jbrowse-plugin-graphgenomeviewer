@@ -38,10 +38,12 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     /**
      * #slot
      * The first entry is the anchor: the JBrowse assembly the graph's reference
-     * sample is loaded as. Further entries are haplotypes loaded as JBrowse
-     * assemblies under their PanSN prefix (`HG002#1`); one loaded under another
-     * name only needs its `assemblyNameToPanSN` entry. A haplotype named in
-     * neither is still a lane, labelled by its PanSN prefix.
+     * sample is loaded as. A haplotype needs no entry: its lane draws on the
+     * session assembly named or aliased by its PanSN prefix (`HG002.1` with the
+     * alias `HG002#1`), or the one `assemblyNameToPanSN` maps to it. A further
+     * entry names an assembly by its sample (`HG002`), which takes both of the
+     * sample's lanes. A haplotype with no assembly is still a lane, labelled by
+     * its PanSN prefix.
      */
     assemblyNames: {
       type: 'stringArray',
@@ -145,8 +147,10 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     /**
      * #slot
      * Maps a JBrowse assembly name to its PanSN prefix in the graph, sample or
-     * haplotype level (`{ hg38: 'GRCh38#0', 'HG002.1': 'HG002#1' }`). Defaults
-     * to identity.
+     * haplotype level (`{ hg38: 'GRCh38#0', 'HG002.1': 'HG002#1' }`). Each
+     * session assembly with a `sample#haplotype` alias (`HG002#1`) is mapped to
+     * it already, so this is the override: an entry takes its prefix from any
+     * assembly aliased to it. An assembly in neither maps to itself.
      */
     assemblyNameToPanSN: {
       type: 'frozen',

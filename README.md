@@ -104,7 +104,8 @@ Needs JBrowse 5.0.0-beta.11 or later.
   Needs an index from `gbz-haplotype-index` 0.3 or later
 - gbz-base swaps in `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`; an
   `hg38` or `hs1` track finds the graph's GRCh38 or CHM13 reference sample, and
-  `assemblyNameToPanSN` covers other names
+  `assemblyNameToPanSN` covers other names. A haplotype's lane draws on the
+  assembly aliased by its PanSN name (`HG002#1`) with no map entry
 - `"reads": "….gaf.gz"` on that adapter draws GAF reads in the tube map layouts,
   fetched through its tabix index; [docs/layouts.md](docs/layouts.md#reads) has
   the config and how to make one
