@@ -2781,7 +2781,7 @@ describe('walk rows', () => {
         ) as { subMenu: (MenuItem & { onClick: () => void })[] }
       ).subMenu
     expect(samples().map(item => item.label)).toEqual([
-      'Every sample (2)',
+      'Every sample',
       'Choose samples...',
     ])
     expect(samples()[0]!.checked).toBe(true)

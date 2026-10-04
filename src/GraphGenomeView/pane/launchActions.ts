@@ -98,13 +98,13 @@ export const withLaunchActions = withRenderingActions
     // Which samples' walks walk rows show: every one, those whose walk and
     // the picked repeat's call disagree, or a set picked by name
     walkRowSampleMenuItems(): MenuItem[] {
-      const { samples, disagreeing } = self.walkRowSampleChoices
+      const { disagreeing } = self.walkRowSampleChoices
       const shown = self.walkRowSamples
       const same = (a: string[]) => a.join('\n') === shown?.join('\n')
       return [
         {
           type: 'radio',
-          label: `Every sample (${samples.length.toLocaleString()})`,
+          label: 'Every sample',
           checked: shown === undefined,
           onClick: () => {
             self.setWalkRowSamples(undefined)
@@ -114,7 +114,7 @@ export const withLaunchActions = withRenderingActions
           ? [
               {
                 type: 'radio' as const,
-                label: `Where walk and call disagree (${disagreeing.length.toLocaleString()})`,
+                label: 'Where walk and call disagree',
                 checked: same(disagreeing),
                 onClick: () => {
                   self.setWalkRowSamples(disagreeing)
