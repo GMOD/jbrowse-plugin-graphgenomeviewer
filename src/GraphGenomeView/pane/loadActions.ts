@@ -64,16 +64,21 @@ export const withLoadActions = withSettingActions.actions(self => {
     }) as Promise<{ result: LayoutResult; duration: number }>
   }
 
+  function engineSettings() {
+    return {
+      quality: self.layoutQuality,
+      linearLayout: self.linearLayout,
+      bubbleSpread: self.bubbleSpread,
+      showDeletionEdges: self.showDeletionEdges,
+    }
+  }
+
   // The engine's inputs, and only those: the graph, plus what `callLayout`
   // puts in `options`. The reference path is there because the seeds are a
   // function of it; the colour scheme and the anchored modes' own settings
   // are absent because none of them reaches the engine.
   function forceLayoutKey(graph: Graph) {
-    return engineKey(graph, {
-      quality: self.layoutQuality,
-      linearLayout: self.linearLayout,
-      bubbleSpread: self.bubbleSpread,
-    })
+    return engineKey(graph, engineSettings())
   }
 
   // Single dispatch point for every layout mode. A mode that returns a
@@ -111,11 +116,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
     const oriented = (yield forceLayout(
       graph,
-      {
-        quality: self.layoutQuality,
-        linearLayout: self.linearLayout,
-        bubbleSpread: self.bubbleSpread,
-      },
+      engineSettings(),
       callEngine,
     )) as { result: LayoutResult; duration: number }
     // Under the key read BEFORE the call: the settings that produced this

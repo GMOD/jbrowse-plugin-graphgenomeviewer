@@ -315,7 +315,7 @@ export const withLaunchActions = withRenderingActions
           label: 'Show deletion edges',
           checked: self.showDeletionEdges,
           onClick: () => {
-            self.setShowDeletionEdges(!self.showDeletionEdges)
+            void self.toggleDeletionEdges()
           },
         },
         {

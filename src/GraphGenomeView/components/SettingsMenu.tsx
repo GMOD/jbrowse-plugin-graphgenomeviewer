@@ -36,7 +36,7 @@ const SettingsMenu = observer(function SettingsMenu({
             label: 'Show deletion edges',
             checked: model.showDeletionEdges,
             onClick: () => {
-              model.setShowDeletionEdges(!model.showDeletionEdges)
+              void model.toggleDeletionEdges()
             },
           },
           {

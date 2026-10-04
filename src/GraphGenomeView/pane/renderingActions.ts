@@ -269,6 +269,11 @@ export const withRenderingActions = withLoadActions
       self.setLayoutMode(mode)
       return self.recomputeLayout()
     },
+    // Deletion edges shape a force layout, so it is laid out again without them
+    toggleDeletionEdges() {
+      self.setShowDeletionEdges(!self.showDeletionEdges)
+      return self.usesLayoutEngine ? self.recomputeLayout() : undefined
+    },
     // loads the source again, for a host that has one
     retryLoad() {},
     afterAttach() {

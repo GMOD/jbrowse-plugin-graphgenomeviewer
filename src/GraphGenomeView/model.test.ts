@@ -754,6 +754,24 @@ describe('layoutMode', () => {
     expect(model.usesLayoutEngine).toBe(true)
   })
 
+  // A deletion edge holds its bubble open in a force layout, which an anchored
+  // drawing never lets it do
+  test('toggling deletion edges lays only a force layout out again', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    expect(layoutCalls()).toHaveLength(1)
+
+    await model.toggleDeletionEdges()
+    expect(model.showDeletionEdges).toBe(false)
+    expect(layoutCalls()).toHaveLength(2)
+
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    await model.toggleDeletionEdges()
+    expect(layoutCalls()).toHaveLength(2)
+  })
+
   // Comparing the two drawings is the workflow the README leads with, and the
   // force half of it costs seconds. Going back to a layout already computed
   // for this graph re-runs nothing.
