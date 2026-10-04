@@ -342,10 +342,18 @@ test('the graph lists its haplotypes with their contigs, and a fetch can be narr
   )
 })
 
-test('the node limit fails a window rather than reading it whole, naming a zoom that fits and the display that draws it anyway', async () => {
-  await expect(feats(makeAdapter({ nodeLimit: 2 }), window)).rejects.toThrow(
-    /nodeLimit \(2\) graph nodes; zoom in to about \d+ bp or raise nodeLimit; the track's Graph display draws/,
-  )
+test('the node limit fails a window as a zoom-in notice naming a span that fits and the display that draws it anyway', async () => {
+  const error: unknown = await feats(
+    makeAdapter({ nodeLimit: 2 }),
+    window,
+  ).catch((e: unknown) => e)
+  expect(error).toMatchObject({
+    name: 'NodeLimitError',
+    regionTooLarge: true,
+    message: expect.stringMatching(
+      /^Zoom in to about [\d.]+[KM]?bp to see lanes; the track's Graph display draws an overview at any size$/,
+    ),
+  })
 })
 
 test('a lane name resolves at haplotype depth before sample depth', () => {

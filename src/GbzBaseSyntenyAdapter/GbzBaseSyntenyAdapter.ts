@@ -14,7 +14,7 @@ import {
   resolvePanSNPrefix,
 } from '@jbrowse/bandage-core/pansn'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
-import { updateStatus } from '@jbrowse/core/util'
+import { getBpDisplayStr, updateStatus } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
@@ -216,13 +216,10 @@ export function pairFeature({
   })
 }
 
-// Lanes past their node limit point at the display that draws the window
-// anyway
 function lanesLimitError(error: unknown, limit: number, windowBp: number) {
   const limitError = nodeLimitError(error, limit, windowBp)
   if (limitError) {
-    limitError.message +=
-      "; the track's Graph display draws every haplotype's overview at any size"
+    limitError.message = `Zoom in to about ${getBpDisplayStr(limitError.fitsBp)} to see lanes; the track's Graph display draws an overview at any size`
   }
   return limitError
 }
