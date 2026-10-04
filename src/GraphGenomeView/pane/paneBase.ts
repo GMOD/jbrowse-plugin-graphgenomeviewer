@@ -22,6 +22,7 @@ import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
+import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
@@ -398,8 +399,8 @@ export const paneBase = types
     // one beside its segments. Undefined for a graph with no index, whose
     // bubbles are `derivedBubbles` instead.
     indexBubbles: undefined as MinigraphBubble[] | undefined,
-    // the genes over the cut window, read once per cut from the gene track
-    geneFeatures: undefined as GeneModel[] | undefined,
+    // the gene track's features over the cut window, read once per cut
+    geneTrackFeatures: undefined as Feature[] | undefined,
     // each walk row's genes, read from its haplotype's own assembly, by walk
     // name
     walkGeneFeatures: undefined as Map<string, GeneModel[]> | undefined,

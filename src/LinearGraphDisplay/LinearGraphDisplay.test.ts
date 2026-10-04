@@ -1,15 +1,20 @@
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
+  ConfigurationReference,
   ConfigurationSchema,
   readConfObject,
 } from '@jbrowse/core/configuration'
+import AdapterType from '@jbrowse/core/pluggableElementTypes/AdapterType'
+import DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 import TrackType from '@jbrowse/core/pluggableElementTypes/TrackType'
 import ViewType from '@jbrowse/core/pluggableElementTypes/ViewType'
 import {
+  BaseDisplay,
   createBaseTrackConfig,
   createBaseTrackModel,
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
+import SimpleFeature from '@jbrowse/core/util/simpleFeature'
 import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 
@@ -111,13 +116,72 @@ function fakeRenderer() {
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-function createEnvironment({ tiered = true, paths = false } = {}) {
+// What a gene lane needs for this file: a GFF3 adapter type to name, and a
+// display with the `filter` slot the canvas display reads, on a track type of
+// its own so no other track here can be shown with it
+function addGeneLaneTypes(pluginManager: PluginManager) {
+  pluginManager.addAdapterType(
+    () =>
+      new AdapterType({
+        name: 'Gff3TabixAdapter',
+        configSchema: ConfigurationSchema(
+          'Gff3TabixAdapter',
+          {},
+          { explicitlyTyped: true },
+        ),
+        getAdapterClass: () => Promise.reject(new Error('read by the RPC')),
+      }),
+  )
+  pluginManager.addDisplayType(() => {
+    const configSchema = ConfigurationSchema(
+      'GeneLaneDisplay',
+      { filter: { type: 'stringArray', defaultValue: [] } },
+      { explicitIdentifier: 'displayId', explicitlyTyped: true },
+    )
+    return new DisplayType({
+      name: 'GeneLaneDisplay',
+      configSchema,
+      stateModel: types.compose(
+        'GeneLaneDisplay',
+        BaseDisplay,
+        types.model({
+          type: types.literal('GeneLaneDisplay'),
+          configuration: ConfigurationReference(configSchema),
+        }),
+      ),
+      trackType: 'GeneLaneTrack',
+      viewType: 'LinearGenomeView',
+      ReactComponent: () => null,
+    })
+  })
+}
+
+// K12's annotation over the IS1 at 1,978,503, moved into the cut's window:
+// the molecule's source record, the element (named here, so only a filter
+// keeps it off), and the transposase gene inside it
+const GENE_FEATURES = [
+  { type: 'region', name: 'ANONYMOUS', gbkey: 'Src', start: 0, end: CONTIG },
+  {
+    type: 'mobile_genetic_element',
+    name: 'IS1',
+    start: 1_010_000,
+    end: 1_010_768,
+  },
+  { type: 'gene', name: 'insB5', start: 1_010_100, end: 1_010_600 },
+].map((f, i) => new SimpleFeature({ ...f, uniqueId: `g${i}`, refName: REF }))
+
+function createEnvironment({
+  tiered = true,
+  paths = false,
+  geneLaneFilter = undefined as string[] | undefined,
+} = {}) {
   console.warn = vi.fn()
   const pluginManager = new PluginManager()
   RgfaTabixAdapterF(pluginManager)
   GbzBaseSyntenyAdapterF(pluginManager)
-  // the track types a 4.0 config names its graph on
-  for (const name of ['FeatureTrack', 'SyntenyTrack']) {
+  addGeneLaneTypes(pluginManager)
+  // the track types a 4.0 config names its graph on, and the gene lane's
+  for (const name of ['FeatureTrack', 'SyntenyTrack', 'GeneLaneTrack']) {
     pluginManager.addTrackType(() => {
       const trackConfigSchema = ConfigurationSchema(
         name,
@@ -208,6 +272,27 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
     { pluginManager },
   )
   const trackConfigs = [trackConfig, gbzTrackConfig, featureTrackConfig]
+  if (geneLaneFilter) {
+    trackConfigs.push(
+      trackSchema.create(
+        {
+          type: 'GeneLaneTrack',
+          trackId: 'K12_genes',
+          name: 'K12 genes',
+          assemblyNames: [ASM],
+          adapter: { type: 'Gff3TabixAdapter' },
+          displays: [
+            {
+              type: 'GeneLaneDisplay',
+              displayId: 'K12_genes-GeneLaneDisplay',
+              filter: geneLaneFilter,
+            },
+          ],
+        },
+        { pluginManager },
+      ),
+    )
+  }
 
   const assemblyRegions = [
     { refName: REF, start: 0, end: CONTIG, assemblyName: ASM },
@@ -271,7 +356,9 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
         return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
       }
       if (method === 'CoreGetFeatures') {
-        return Promise.resolve([])
+        return Promise.resolve(
+          args.adapterConfig?.type === 'Gff3TabixAdapter' ? GENE_FEATURES : [],
+        )
       }
       if (method !== 'GetSubgraph') {
         return Promise.reject(new Error(`Unexpected RPC: ${method}`))
@@ -419,8 +506,9 @@ async function shownGraph({
   windowBp = 60_000,
   tiered = true,
   paths = false,
+  geneLaneFilter = undefined as string[] | undefined,
 } = {}) {
-  const env = createEnvironment({ tiered, paths })
+  const env = createEnvironment({ tiered, paths, geneLaneFilter })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
@@ -1101,4 +1189,19 @@ test('zoomed out to the coarse tier, the graph genome view launch is disabled', 
   expect(item.disabled).toBe(true)
   item.onClick()
   expect(addedViews).toHaveLength(0)
+})
+
+// `pangenome_cactus/graph_bubble` filters its gene lane to `type == 'gene'`
+// and still drew the IS1 element's chip over the graph, beside ANONYMOUS
+test("the gene chips name what the gene lane draws, and never the molecule's source record", async () => {
+  const { view, pane } = await shownGraph({
+    geneLaneFilter: ["jexl:feature.type=='gene'"],
+  })
+  const names = () => pane.geneFeatures?.map(g => g.name)
+  await wait(0)
+  expect(names()).toEqual(['IS1', 'insB5'])
+  view.showTrack('K12_genes')
+  expect(names()).toEqual(['insB5'])
+  view.hideTrack('K12_genes')
+  expect(names()).toEqual(['IS1', 'insB5'])
 })

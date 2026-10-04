@@ -36,15 +36,22 @@ import { axisScaleOf } from '@jbrowse/bandage-core/viewport'
 import { NO_VALUE_COLOR } from '@jbrowse/bandage-core/walkEncoding'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
+import SerializableFilterChain from '@jbrowse/core/pluggableElementTypes/renderers/util/serializableFilterChain'
 import {
   getContainingTrack,
   getContainingView,
+  getEnv,
   getSession,
 } from '@jbrowse/core/util'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
-import { GENE_ADAPTER_TYPES, pickGeneTrack } from '../genes/geneFeatures'
+import {
+  GENE_ADAPTER_TYPES,
+  geneModelsFrom,
+  laneFilters,
+  pickGeneTrack,
+} from '../genes/geneFeatures'
 import {
   REPEAT_ADAPTER_TYPES,
   pickRepeatTrack,
@@ -452,6 +459,9 @@ export const withGraphViews = paneBase
     get repeatTrack() {
       return pickRepeatTrack(self.repeatTrackChoices, self.repeatTrackId)
     },
+    get geneTrack() {
+      return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
+    },
     get selectedRepeat() {
       return self.repeatChoices.find(r => r.key === self.repeatKey)
     },
@@ -500,6 +510,30 @@ export const withGraphViews = paneBase
     get geneAssembly() {
       const region = self.graphRegion
       return region ? self.assemblySpellings(region.assemblyName) : undefined
+    },
+    // the filter of the gene track's lane in the view the pane draws in
+    get geneLaneFilter() {
+      let view: object
+      try {
+        view = getContainingView(self)
+      } catch {
+        return undefined
+      }
+      const filters = laneFilters(view, self.geneTrack?.trackId)
+      return filters.length
+        ? new SerializableFilterChain({
+            filters,
+            jexl: getEnv(self).pluginManager.jexl,
+          })
+        : undefined
+    },
+    // the genes over the cut that the lane admits
+    get geneFeatures() {
+      const features = self.geneTrackFeatures
+      const lane = this.geneLaneFilter
+      return features
+        ? geneModelsFrom(lane ? features.filter(f => lane.passes(f)) : features)
+        : undefined
     },
   }))
   .views(self => ({
@@ -694,9 +728,6 @@ export const withGraphViews = paneBase
     },
   }))
   .views(self => ({
-    get geneTrack() {
-      return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
-    },
     // Which of `graph.edges` are deletions, and what each one bypasses, keyed
     // the way the geometry and the hit index address an edge. One map per
     // graph rather than per rebuild, since both of those take it on every

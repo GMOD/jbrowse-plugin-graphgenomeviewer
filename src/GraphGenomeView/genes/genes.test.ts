@@ -49,8 +49,45 @@ test('a gene merges the exons of every transcript under it', () => {
       { start: 12, end: 18 },
     ],
   })
-  expect(geneModelsFrom([{ id: 'x', start: 0, end: 4 }])[0]!.exons).toEqual([
+  expect(geneModelsFrom([{ name: 'x', start: 0, end: 4 }])[0]!.exons).toEqual([
     { start: 0, end: 4 },
+  ])
+})
+
+// Every RefSeq GFF3 opens each molecule with one of these, named ANONYMOUS
+const ncbiRegion = {
+  type: 'region',
+  name: 'ANONYMOUS',
+  gbkey: 'Src',
+  refName: 'chr',
+  start: 0,
+  end: 4_641_652,
+}
+
+test('a whole-sequence record is no gene', () => {
+  expect(geneModelsFrom([ncbiRegion, gene]).map(g => g.name)).toEqual(['LPA'])
+})
+
+// RefSeq names its unnamed records by their span, `id-<accession>:<range>`,
+// and a gene record carries its symbol as `gene` too
+test('a record is named by its name or gene, never by its raw ID', () => {
+  const element = {
+    type: 'mobile_genetic_element',
+    id: 'id-NC_000913.3:1978503..1979270',
+    refName: 'chr',
+    start: 1_978_502,
+    end: 1_979_270,
+  }
+  const transposase = {
+    type: 'gene',
+    id: 'gene-b1993',
+    gene: 'insB5',
+    refName: 'chr',
+    start: 1_978_600,
+    end: 1_979_100,
+  }
+  expect(geneModelsFrom([element, transposase]).map(g => g.name)).toEqual([
+    'insB5',
   ])
 })
 

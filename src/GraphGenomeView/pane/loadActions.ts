@@ -230,7 +230,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.graphRegion = region
     self.loadedReferencePath = loaded
     self.indexBubbles = undefined
-    self.geneFeatures = undefined
+    self.geneTrackFeatures = undefined
     self.walkGeneFeatures = undefined
     walkGeneCache.clear()
     self.repeatArrays = undefined
@@ -344,8 +344,8 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
   }
 
-  // The genes over the cut, from the session's annotation track for the
-  // assembly, so the backbone can carry its exons and names.
+  // The gene track's features over the cut, which `geneFeatures` makes genes
+  // of for the backbone to carry.
   function* loadGenes(region: SubgraphRegion, isLive: () => boolean) {
     const features = yield* trackFeatures(
       self.geneTrack?.trackId,
@@ -353,7 +353,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       'genes',
     )
     if (features && isLive()) {
-      self.geneFeatures = geneModelsFrom(features)
+      self.geneTrackFeatures = features
     }
   }
 
@@ -417,7 +417,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.loadedReferencePath = undefined
     self.layoutResult = undefined
     self.indexBubbles = undefined
-    self.geneFeatures = undefined
+    self.geneTrackFeatures = undefined
     self.walkGeneFeatures = undefined
     walkGeneCache.clear()
     self.repeatArrays = undefined

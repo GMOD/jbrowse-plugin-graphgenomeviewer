@@ -1,6 +1,8 @@
 import { mergeOverlappingByName } from '@jbrowse/bandage-core/genes/geneFiles'
+import { readConfObject } from '@jbrowse/core/configuration'
 
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
+import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { Feature } from '@jbrowse/core/util'
 
 // The adapters whose tracks hold gene models, in the order the session's
@@ -38,6 +40,37 @@ export function pickGeneTrack<
     ) ?? candidates.find(t => !BED_ADAPTER_TYPES.has(t.adapterType))
   )
 }
+
+interface LaneView {
+  tracks?: readonly {
+    configuration: AnyConfigurationModel
+    displays: readonly { configuration: AnyConfigurationModel }[]
+  }[]
+}
+
+// The `filter` of the gene track's lane in the view the graph is drawn in, so
+// the chips name what the lane draws. None where the view shows no such lane,
+// or has no tracks, as a graph genome view of its own.
+export function laneFilters(view: object, trackId: string | undefined) {
+  const lane = (view as LaneView).tracks?.find(
+    t => readConfObject(t.configuration, 'trackId') === trackId,
+  )?.displays[0]
+  return lane
+    ? ((readConfObject(lane.configuration, 'filter') as string[] | undefined) ??
+        [])
+    : []
+}
+
+// Records spanning a whole sequence, the types the GFF3 adapter declines to
+// widen a fetch for. RefSeq opens every molecule with a `region` named
+// ANONYMOUS.
+const WHOLE_SEQUENCE_TYPES = new Set([
+  'chromosome',
+  'region',
+  'contig',
+  'supercontig',
+  'scaffold',
+])
 
 type FeatureLike = Feature | Record<string, unknown>
 
@@ -85,21 +118,27 @@ function merged(intervals: { start: number; end: number }[]) {
   return out
 }
 
-// Genes from a track's features: every top-level feature, named by the first
-// of gene_name, name and id it carries, with the exons found anywhere under it
-// merged. A feature with no exons is one exon, its whole span. A BED track
-// gives one feature per transcript, so a name's overlapping features merge,
-// while its copies down the contig stay apart.
+// Genes from a track's features: every top-level feature but a whole-sequence
+// record, named by the first of gene_name, name and gene it carries, with the
+// exons found anywhere under it merged. A feature with no exons is one exon,
+// its whole span. A BED track gives one feature per transcript, so a name's
+// overlapping features merge, while its copies down the contig stay apart. A
+// feature with none of those names is left out: its raw ID, RefSeq's
+// `id-NC_000913.3:1978503..1979270`, only restates where it is.
 export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
   const genes: GeneModel[] = []
   for (const f of features) {
     const name =
       (field(f, 'gene_name') as string | undefined) ??
       (field(f, 'name') as string | undefined) ??
-      (field(f, 'id') as string | undefined)
+      (field(f, 'gene') as string | undefined)
     const start = field(f, 'start') as number
     const end = field(f, 'end') as number
-    if (!name || !(end > start)) {
+    if (
+      !name ||
+      !(end > start) ||
+      WHOLE_SEQUENCE_TYPES.has(field(f, 'type') as string)
+    ) {
       continue
     }
     const exons: { start: number; end: number }[] = []
