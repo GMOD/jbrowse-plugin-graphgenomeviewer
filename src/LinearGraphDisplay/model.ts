@@ -465,6 +465,60 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .views(self => ({
+        // Which haplotypes a GBZ cut is for: every one in the graph, the
+        // assemblies the track names, or a list typed in Settings
+        haplotypeMenuItems(): MenuItem[] {
+          if (self.adapterConfig.type !== 'GbzBaseSyntenyAdapter') {
+            return []
+          }
+          const lanes = trackLanes(self.parentTrack.configuration)
+          const chosen = self.subgraphHaplotypes
+          const recut = (haplotypes: string[] | undefined) => {
+            self.setSubgraphHaplotypes(haplotypes)
+            void self.cut()
+          }
+          return [
+            {
+              label: 'Haplotypes',
+              subMenu: [
+                {
+                  type: 'radio',
+                  label: 'Every haplotype in the graph',
+                  checked: chosen ? chosen.length === 0 : !lanes,
+                  onClick: () => {
+                    recut([])
+                  },
+                },
+                ...(lanes
+                  ? [
+                      {
+                        type: 'radio' as const,
+                        label: `The track's ${lanes.length} assemblies`,
+                        checked: chosen === undefined,
+                        onClick: () => {
+                          recut(undefined)
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  type: 'radio',
+                  label: 'Chosen in Settings...',
+                  checked: (chosen?.length ?? 0) > 0,
+                  onClick: () => {
+                    this.openSettings()
+                  },
+                },
+              ],
+            },
+          ]
+        },
+        openSettings() {
+          getSession(self).queueDialog(onClose => [
+            GraphTrackSettingsDialog,
+            { model: self, open: true, onClose },
+          ])
+        },
         trackMenuItems(): MenuItem[] {
           const launches = self.launchMenuItems()
           pushLaunchViewMenuItem(launches, {
@@ -477,15 +531,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             },
           })
           return [
+            ...this.haplotypeMenuItems(),
             ...self.graphMenuItems(),
             {
               label: 'Settings',
               icon: SettingsIcon,
               onClick: () => {
-                getSession(self).queueDialog(onClose => [
-                  GraphTrackSettingsDialog,
-                  { model: self, open: true, onClose },
-                ])
+                this.openSettings()
               },
             },
             ...launches,
@@ -497,9 +549,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
 
 export type LinearGraphDisplayStateModel = ReturnType<typeof stateModelFactory>
 export type LinearGraphDisplayModel = Instance<LinearGraphDisplayStateModel>
-// what the track's own settings read, which the track menu that opens them
-// cannot name without naming itself
+// what the track's own settings read, which the menus that open them cannot
+// name without naming themselves
 export type LinearGraphCutModel = Omit<
   LinearGraphDisplayModel,
-  'trackMenuItems'
+  'trackMenuItems' | 'haplotypeMenuItems' | 'openSettings'
 >

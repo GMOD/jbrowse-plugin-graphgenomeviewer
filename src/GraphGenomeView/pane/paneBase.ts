@@ -44,6 +44,9 @@ export const MIN_FIT_TUBE_PX = 5
 
 export const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
 
+export const ChooseSamplesDialog = lazy(
+  () => import('../components/ChooseSamplesDialog'),
+)
 export const ChooseWalksDialog = lazy(
   () => import('../components/ChooseWalksDialog'),
 )

@@ -1,4 +1,6 @@
 import { Menu } from '@jbrowse/core/ui'
+import FilterListIcon from '@mui/icons-material/FilterList'
+import FilterListOffIcon from '@mui/icons-material/FilterListOff'
 import LineStyleIcon from '@mui/icons-material/LineStyle'
 import { observer } from 'mobx-react'
 
@@ -26,8 +28,13 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
   left: number
   onClose: () => void
 }) {
-  const target = model.walkRowLaunchTarget(row, bars ?? model.walkRowBars)
+  const rows = bars ?? model.walkRowBars
+  const target = model.walkRowLaunchTarget(row, rows)
   const assembly = target?.assembly
+  const sample = row > 0 ? rows?.rows[row - 1]?.sample : undefined
+  // the strip's rows are not walk rows', and take no sample filter
+  const filters = !bars && model.walkRowBars
+  const shown = model.walkRowSamples
   return (
     <Menu
       open
@@ -57,6 +64,28 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
                 : 'This walk states no contig coordinates',
               onClick: () => {},
             },
+        ...(filters && sample && !(shown?.length === 1 && shown[0] === sample)
+          ? [
+              {
+                label: `Show only ${sample}`,
+                icon: FilterListIcon,
+                onClick: () => {
+                  model.setWalkRowSamples([sample])
+                },
+              },
+            ]
+          : []),
+        ...(filters && shown
+          ? [
+              {
+                label: 'Show every sample',
+                icon: FilterListOffIcon,
+                onClick: () => {
+                  model.setWalkRowSamples(undefined)
+                },
+              },
+            ]
+          : []),
       ]}
     />
   )

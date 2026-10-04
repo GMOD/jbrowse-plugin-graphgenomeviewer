@@ -911,6 +911,36 @@ test('a GBZ track cuts for the lanes it names', async () => {
   expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
 })
 
+test("a GBZ track's Haplotypes menu cuts for every haplotype, the track's lanes, or a list", () => {
+  const { view } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('walks')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  const menu = () =>
+    (
+      display
+        .trackMenuItems()
+        .find(item => 'label' in item && item.label === 'Haplotypes') as {
+        subMenu: { label: string; checked?: boolean; onClick: () => void }[]
+      }
+    ).subMenu
+  const checked = () => menu().find(item => item.checked)?.label
+  expect(menu().map(item => item.label)).toEqual([
+    'Every haplotype in the graph',
+    "The track's 2 assemblies",
+    'Chosen in Settings...',
+  ])
+  expect(checked()).toBe("The track's 2 assemblies")
+  menu()[0]!.onClick()
+  expect(display.chosenHaplotypes).toEqual([])
+  expect(checked()).toBe('Every haplotype in the graph')
+  display.setSubgraphHaplotypes(['HG1.1'])
+  expect(checked()).toBe('Chosen in Settings...')
+  menu()[1]!.onClick()
+  expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
+})
+
 async function shownWalks(windowBp: number, setup?: (env: Env) => void) {
   const env = createEnvironment()
   setup?.(env)

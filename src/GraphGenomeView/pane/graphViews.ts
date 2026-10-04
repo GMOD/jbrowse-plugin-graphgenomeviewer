@@ -571,9 +571,10 @@ export const withGraphViews = paneBase
     get allDeletions() {
       return self.graph && this.drawsNodes ? deletionEdges(self.graph) : []
     },
-    // One bar per haplotype walk on its own bp axis, for the walk-rows
-    // overlay. Empty under every other layout.
-    get walkRowBars() {
+    // One bar per haplotype walk on its own bp axis, each with the allele
+    // the picked repeat called for it, before the sample filter. Empty under
+    // every other layout.
+    get cohortWalkRows() {
       if (self.chosenLayoutMode !== 'walkrows' || !self.graph) {
         return undefined
       }
@@ -584,12 +585,31 @@ export const withGraphViews = paneBase
       if (!bars) {
         return undefined
       }
-      const rows = filterSamples(bars.rows, self.walkRowSamples)
-      const [reference, ...paired] = withCalls(
-        [bars.reference, ...rows],
+      const [reference, ...rows] = withCalls(
+        [bars.reference, ...bars.rows],
         repeat?.calls,
       )
-      return { ...bars, reference: reference!, rows: paired }
+      return { ...bars, reference: reference!, rows }
+    },
+    // The samples walk rows can show, by name, and those with a walk its
+    // call disagrees with, longest walk first
+    get walkRowSampleChoices() {
+      const rows = this.cohortWalkRows?.rows ?? []
+      return {
+        samples: [...new Set(rows.map(r => r.sample))].sort(),
+        disagreeing: [
+          ...new Set(
+            rows.filter(r => r.call?.agrees === false).map(r => r.sample),
+          ),
+        ],
+      }
+    },
+    // The bars the overlay draws: the cohort's, narrowed by the sample filter
+    get walkRowBars() {
+      const bars = this.cohortWalkRows
+      return bars
+        ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
+        : undefined
     },
     // Whether the canvas draws the graph's nodes. A tube map and walk rows
     // draw a picture of their own over it, so what sits on nodes (genes,

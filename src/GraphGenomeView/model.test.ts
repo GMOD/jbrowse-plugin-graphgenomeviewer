@@ -2758,6 +2758,32 @@ describe('walk rows', () => {
     expect(model.hoveredWalkRowText).toBeUndefined()
   })
 
+  test("walk rows' Samples menu shows every sample or a chosen few", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const samples = () =>
+      (
+        (model.graphMenuItems() as MenuItem[]).find(
+          item => item.label === 'Samples',
+        ) as { subMenu: (MenuItem & { onClick: () => void })[] }
+      ).subMenu
+    expect(samples().map(item => item.label)).toEqual([
+      'Every sample (2)',
+      'Choose samples...',
+    ])
+    expect(samples()[0]!.checked).toBe(true)
+    model.setWalkRowSamples(['B'])
+    expect(samples()[1]!.checked).toBe(true)
+    expect(model.walkRowSampleChoices.samples).toEqual(['A', 'B'])
+    samples()[0]!.onClick()
+    expect(model.walkRowSamples).toBeUndefined()
+    expect(model.walkRowBars!.rows).toHaveLength(3)
+  })
+
   test('a sample filter keeps its walks, paired in the order named, and labels follow', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

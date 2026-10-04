@@ -5,6 +5,7 @@ import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 
 import {
+  ChooseSamplesDialog,
   ChooseWalksDialog,
   FACETS,
   TUBE_MAP_FOLDS,
@@ -94,6 +95,46 @@ export const withLaunchActions = withRenderingActions
     // other view contributes to. Until this existed the triangle had two edges:
     // a linear view could open a graph or a synteny view of a locus, and the
     // graph could open nothing at all.
+    // Which samples' walks walk rows show: every one, those whose walk and
+    // the picked repeat's call disagree, or a set picked by name
+    walkRowSampleMenuItems(): MenuItem[] {
+      const { samples, disagreeing } = self.walkRowSampleChoices
+      const shown = self.walkRowSamples
+      const same = (a: string[]) => a.join('\n') === shown?.join('\n')
+      return [
+        {
+          type: 'radio',
+          label: `Every sample (${samples.length.toLocaleString()})`,
+          checked: shown === undefined,
+          onClick: () => {
+            self.setWalkRowSamples(undefined)
+          },
+        },
+        ...(disagreeing.length > 0
+          ? [
+              {
+                type: 'radio' as const,
+                label: `Where walk and call disagree (${disagreeing.length.toLocaleString()})`,
+                checked: same(disagreeing),
+                onClick: () => {
+                  self.setWalkRowSamples(disagreeing)
+                },
+              },
+            ]
+          : []),
+        {
+          type: 'radio',
+          label: 'Choose samples...',
+          checked: shown !== undefined && !same(disagreeing),
+          onClick: () => {
+            getSession(self).queueDialog(onClose => [
+              ChooseSamplesDialog,
+              { model: self, onClose },
+            ])
+          },
+        },
+      ]
+    },
     graphMenuItems(): MenuItem[] {
       const walks = self.walkChoices
       return [
@@ -271,6 +312,9 @@ export const withLaunchActions = withRenderingActions
                 ],
               },
             ]
+          : []),
+        ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
+          ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
           : []),
         ...(self.hostPlacesX
           ? []
