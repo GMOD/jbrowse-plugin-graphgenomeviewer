@@ -377,22 +377,23 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
   }
 }
 
-// Two haplotypes and the reference in 4 kb bins over the region, the second
-// haplotype variant in every bin
+// Four haplotypes and the reference in 4 kb bins over the region: HG2.1
+// variant in every bin, HG4.1 in every bin but the first, HG1.1 and HG3.1 in
+// none
 function syntheticOverview(region: SubgraphRegion) {
   const bin = 4096
   const first = Math.floor(region.start / bin)
   const count = Math.ceil(region.end / bin) - first
-  const cells = new Uint8Array(count * 3)
+  const cells = new Uint8Array(count * 5)
   for (let b = 0; b < count; b++) {
-    cells.set([1, 3, 1], b * 3)
+    cells.set([1, 3, 1, b === 0 ? 1 : 3, 1], b * 5)
   }
   return {
     level: 0,
     bin,
-    rows: ['HG1.1', 'HG2.1', 'GRCh38#0'],
+    rows: ['HG1.1', 'HG2.1', 'HG3.1', 'HG4.1', 'GRCh38#0'],
     pinned: [0],
-    reference: [2],
+    reference: [4],
     bins: Array.from({ length: count }, (_, b) => ({
       start: (first + b) * bin,
       end: (first + b + 1) * bin,
@@ -889,7 +890,13 @@ test('past the bp cap a GBZ track reads the overview for the window and a window
   const seen = display.settledWindow!
   expect(overviews[0]!.region.start).toBeLessThan(seen.start)
   expect(overviews[0]!.bpPerPx).toBe(view.bpPerPx * 2)
-  expect(display.overview?.rows).toEqual(['HG1.1', 'HG2.1', 'GRCh38#0'])
+  expect(display.overview?.rows).toEqual([
+    'HG1.1',
+    'HG2.1',
+    'HG3.1',
+    'HG4.1',
+    'GRCh38#0',
+  ])
   view.horizontalScroll(10)
   await wait(SETTLE_MS)
   expect(overviews).toHaveLength(1)
@@ -978,6 +985,51 @@ test('editing the haplotypes past the cap reads the overview again for them', as
   })
   expect(overviews).toHaveLength(2)
   expect(cuts).toHaveLength(0)
+})
+
+function menuItem(display: LinearGraphDisplayModel, label: string) {
+  return display
+    .trackMenuItems()
+    .find(item => 'label' in item && item.label === label) as
+    (MenuItem & { onClick: () => void; disabled?: boolean }) | undefined
+}
+
+test('past the cap the menu clusters the rows under the lanes, a pan keeps their order, and a reset drops it', async () => {
+  const { view, display, overviews } = await shownWalks(6_000_000)
+  await vi.waitFor(() => {
+    expect(display.overview).toBeDefined()
+  })
+  expect(menuItem(display, 'Reset row order')).toBeUndefined()
+  const cluster = menuItem(display, 'Cluster rows by divergence')!
+  expect(cluster.disabled).toBe(false)
+  cluster.onClick()
+  await vi.waitFor(() => {
+    expect(display.overviewRowOrder).toBeDefined()
+  })
+  const order = display.overviewRowOrder!
+  expect([...order].sort()).toEqual(['HG2.1', 'HG3.1', 'HG4.1'])
+  expect(Math.abs(order.indexOf('HG2.1') - order.indexOf('HG4.1'))).toBe(1)
+  expect(getSnapshot(display).overviewRowOrder).toEqual(order)
+  view.horizontalScroll(10)
+  await wait(SETTLE_MS)
+  expect(overviews).toHaveLength(1)
+  expect(display.overviewRowOrder).toBe(order)
+  menuItem(display, 'Reset row order')!.onClick()
+  expect(display.overviewRowOrder).toBeUndefined()
+  expect(getSnapshot(display).overviewRowOrder).toBeUndefined()
+})
+
+test('clustering is offered only while the overview draws every haplotype', async () => {
+  const { display } = await shownWalks(60_000)
+  expect(menuItem(display, 'Cluster rows by divergence')!.disabled).toBe(true)
+  const past = await shownWalks(6_000_000)
+  await vi.waitFor(() => {
+    expect(past.display.overview).toBeDefined()
+  })
+  past.display.setOverviewAllRows(false)
+  expect(menuItem(past.display, 'Cluster rows by divergence')!.disabled).toBe(
+    true,
+  )
 })
 
 test('an rGFA track past the cap stays too large: only a GBZ track has an overview', async () => {

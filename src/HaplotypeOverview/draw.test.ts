@@ -45,6 +45,15 @@ test('the lane comes first at a readable height, then every other haplotype, nev
   expect(rowTop(layout, 3) + layout.restHeight).toBeCloseTo(400)
 })
 
+test('an order names the rows under the lane, and rows it leaves out follow in index order', () => {
+  expect(overviewLayout(overview(), true, 400, ['D.1', 'A.1']).rows).toEqual([
+    2, 3, 0, 1,
+  ])
+  expect(overviewLayout(overview(), true, 400, ['C.1', 'B.1']).rows).toEqual([
+    2, 1, 0, 3,
+  ])
+})
+
 test('with only the lanes asked for, the lane alone fills the rows', () => {
   const layout = overviewLayout(overview(), false, 400)
   expect(layout.rows).toEqual([2])

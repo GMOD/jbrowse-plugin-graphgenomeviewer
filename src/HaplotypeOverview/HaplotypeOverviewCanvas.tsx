@@ -25,6 +25,7 @@ export interface OverviewCanvasModel {
   overviewRegion: SubgraphRegion | undefined
   overviewCounts: number[][] | undefined
   overviewAllRows: boolean
+  overviewRowOrder: readonly string[] | undefined
   height: number
   host: LinearHost | undefined
   setOverviewPainted: (data: HaplotypeOverviewData) => void
@@ -86,6 +87,7 @@ const HaplotypeOverviewCanvas = observer(function HaplotypeOverviewCanvas({
     overviewRegion,
     overviewCounts,
     overviewAllRows,
+    overviewRowOrder,
     height,
     host,
   } = model
@@ -96,8 +98,10 @@ const HaplotypeOverviewCanvas = observer(function HaplotypeOverviewCanvas({
   const translateX = frame?.translateX
   const layout = useMemo<OverviewLayout | undefined>(
     () =>
-      overview ? overviewLayout(overview, overviewAllRows, height) : undefined,
-    [overview, overviewAllRows, height],
+      overview
+        ? overviewLayout(overview, overviewAllRows, height, overviewRowOrder)
+        : undefined,
+    [overview, overviewAllRows, height, overviewRowOrder],
   )
 
   const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1

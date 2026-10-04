@@ -4,6 +4,7 @@ import { flow, types } from '@jbrowse/mobx-state-tree'
 import { FINE_BIN_BP, densityCounts } from './draw'
 import { cutHolds, hostCut } from '../GraphGenomeView/host'
 
+import type * as ClusterModuleNs from './cluster'
 import type { HaplotypeOverviewData } from '../GetHaplotypeOverview'
 import type { SubgraphRegion } from '../GetSubgraph'
 import type { HostWindow } from '../GraphGenomeView/host'
@@ -45,6 +46,8 @@ export function denseCovers(dense: DenseWindow | undefined, seen: HostWindow) {
   )
 }
 
+type ClusterModule = typeof ClusterModuleNs
+
 export class NoOverviewError extends Error {
   override name = 'NoOverviewError'
 
@@ -64,6 +67,10 @@ export function HaplotypeOverviewMixin() {
       // every haplotype as a row, or only the lanes the track names; unset
       // is every haplotype, and keeps the key out of snapshots
       overviewRowsChoice: types.maybe(types.boolean),
+      // the rows under the lanes in a clustering's order, by name, kept
+      // across pans and saved with the session as the variant display keeps
+      // its own; unset is index order
+      overviewRowOrder: types.maybe(types.frozen<string[]>()),
     })
     .volatile(() => ({
       overview: undefined as HaplotypeOverviewData | undefined,
@@ -74,6 +81,8 @@ export function HaplotypeOverviewMixin() {
       overviewPainted: undefined as HaplotypeOverviewData | undefined,
       overviewController: undefined as AbortController | undefined,
       dense: undefined as DenseWindow | undefined,
+      overviewClustering: false,
+      overviewClusterController: undefined as AbortController | undefined,
     }))
     .views(self => ({
       get overviewAllRows() {
@@ -100,8 +109,13 @@ export function HaplotypeOverviewMixin() {
       setOverviewAllRows(all: boolean) {
         self.overviewRowsChoice = all
       },
+      setOverviewRowOrder(order: string[] | undefined) {
+        self.overviewClusterController?.abort()
+        self.overviewRowOrder = order
+      },
       beforeDestroy() {
         self.overviewController?.abort()
+        self.overviewClusterController?.abort()
       },
       setOverviewPainted(data: HaplotypeOverviewData) {
         self.overviewPainted = data
@@ -115,6 +129,40 @@ export function HaplotypeOverviewMixin() {
         self.overviewRegion = undefined
         self.overviewLoading = false
       },
+      // Orders the rows under the lanes by how alike their divergence is
+      // over [start, end) of the overview drawn now
+      clusterOverview: flow(function* (start: number, end: number) {
+        const data = self.overview
+        if (!data) {
+          return
+        }
+        self.overviewClusterController?.abort()
+        const controller = new AbortController()
+        self.overviewClusterController = controller
+        self.overviewClustering = true
+        try {
+          const { clusterOverviewRows } =
+            (yield import('./cluster')) as ClusterModule
+          const order = (yield clusterOverviewRows(
+            data,
+            start,
+            end,
+            controller.signal,
+          )) as string[] | undefined
+          if (!controller.signal.aborted && order) {
+            self.overviewRowOrder = order
+          }
+        } catch (e) {
+          if (!controller.signal.aborted) {
+            console.error('[HaplotypeOverview]', e)
+            getSession(self).notify(`Clustering the rows failed: ${String(e)}`)
+          }
+        } finally {
+          if (self.overviewClusterController === controller) {
+            self.overviewClustering = false
+          }
+        }
+      }),
       fetchOverview: flow(function* (
         adapterConfig: Record<string, unknown>,
         seen: HostWindow,

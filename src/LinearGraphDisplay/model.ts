@@ -26,6 +26,7 @@ import {
   MAX_GRAPH_REGION_BP,
   formatSpanBp,
 } from '../GraphGenomeView/model'
+import { clusterableRows } from '../HaplotypeOverview/draw'
 import {
   HaplotypeOverviewMixin,
   denseCovers,
@@ -193,6 +194,16 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             self.overviewCapable &&
             seen !== undefined &&
             (self.regionTooLarge || denseCovers(self.dense, seen))
+          )
+        },
+      }))
+      .views(self => ({
+        get overviewClusterable() {
+          return (
+            self.showsOverview &&
+            self.overviewAllRows &&
+            self.overview !== undefined &&
+            clusterableRows(self.overview).length >= 2
           )
         },
       }))
@@ -536,6 +547,33 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                       self.setOverviewAllRows(!self.overviewAllRows)
                     },
                   },
+                  {
+                    label: self.overviewClustering
+                      ? 'Clustering rows...'
+                      : 'Cluster rows by divergence',
+                    subLabel:
+                      'Groups haplotypes that diverge in the same bins of this window',
+                    disabled:
+                      !self.overviewClusterable || self.overviewClustering,
+                    disabledHelpText:
+                      'Zoom out until the track draws every haplotype',
+                    onClick: () => {
+                      const seen = self.settledWindow
+                      if (seen) {
+                        void self.clusterOverview(seen.start, seen.end)
+                      }
+                    },
+                  },
+                  ...(self.overviewRowOrder
+                    ? [
+                        {
+                          label: 'Reset row order',
+                          onClick: () => {
+                            self.setOverviewRowOrder(undefined)
+                          },
+                        },
+                      ]
+                    : []),
                 ]
               : []),
             {

@@ -76,19 +76,32 @@ export interface OverviewLayout {
   restTop: number
 }
 
+// Every row but the track's lanes and the reference sample's: what draws
+// under the lanes, and what a clustering reorders
+export function clusterableRows(
+  data: Pick<HaplotypeOverviewData, 'rows' | 'pinned' | 'reference'>,
+) {
+  const skip = new Set([...data.reference, ...data.pinned])
+  return data.rows.flatMap((_, row) => (skip.has(row) ? [] : [row]))
+}
+
 // The track's lanes first, at a height their labels fit when there is room,
 // then every other haplotype unless only the lanes are wanted, sharing what
-// is left. The reference sample's rows never draw.
+// is left: in `order` where it names them, a clustering's, and index order
+// after. The reference sample's rows never draw.
 export function overviewLayout(
   data: Pick<HaplotypeOverviewData, 'rows' | 'pinned' | 'reference'>,
   allRows: boolean,
   height: number,
+  order?: readonly string[],
 ): OverviewLayout {
-  const skip = new Set([...data.reference, ...data.pinned])
   const pinned = data.pinned.filter(row => !data.reference.includes(row))
-  const rest = allRows
-    ? data.rows.flatMap((_, row) => (skip.has(row) ? [] : [row]))
-    : []
+  const rest = allRows ? clusterableRows(data) : []
+  if (order) {
+    const rank = new Map(order.map((name, i) => [name, i]))
+    const at = (row: number) => rank.get(data.rows[row]!) ?? order.length
+    rest.sort((a, b) => at(a) - at(b) || a - b)
+  }
   const rowsTop = DENSITY_PX + GAP_PX
   const available = Math.max(0, height - rowsTop)
   const gap = pinned.length > 0 && rest.length > 0 ? PIN_GAP_PX : 0

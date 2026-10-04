@@ -132,6 +132,16 @@ first at a height their labels fit, then every other haplotype unless the menu
 asks for the lanes alone. SNPs and small indels never show, and the tooltip says
 so. A click zooms to the bin.
 
+**Cluster rows by divergence** orders the rows under the lanes the way the
+variant display's "Cluster rows by genotype" orders samples: `@gmod/hclust`
+(Euclidean, average linkage) over the window's bins, 1 for diverging and 0 for
+reference-like, with absent and partial cells imputed to the bin's mean as a
+no-call is. The order is kept by name across pans and saved with the session,
+since rows that jumped on every pan would be harder to follow than a stale
+order; the menu re-clusters on demand and **Reset row order** drops it.
+`@gmod/hclust` is bundled into a lazy chunk, since `@jbrowse/tree-sidebar` is
+not in the plugin ABI.
+
 The haplotype lanes display does not swap yet: `MultiWaySyntenyDisplay` is
 core's, and doing it from here means overriding its internals through
 `Core-extendPluggableElement`. Past its node limit its error names the Graph
