@@ -43,9 +43,9 @@ configs).
 - Companion: `jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.haplotype-index.f3.db`
   (5.1 GB, format 3 from `gbz-haplotype-index` 0.3.0: per-path samples every
   16,384, anchors every 131,072 on the 292 GRCh38 and CHM13 paths, stray rows,
-  and a 467 MB overview). Plugin 5.0 and gbz-base 7 read format 3 only. The
-  format 2 `anchored.db` (8.1 GB) and the un-anchored `haplotype-index.db` stay
-  hosted for plugin 4.x.
+  and a 467 MB overview, which plugin 6 no longer draws). Plugin 5.0 and later
+  and gbz-base 7 read format 3 only. The format 2 `anchored.db` and the
+  un-anchored `haplotype-index.db` were deleted from S3 on 2026-10-04.
 - `demos/ivg/hprc/hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we
   serve points at it.
 - `build_rgfa_tabix.sh` needs gawk: BSD awk ran the links join 25 minutes

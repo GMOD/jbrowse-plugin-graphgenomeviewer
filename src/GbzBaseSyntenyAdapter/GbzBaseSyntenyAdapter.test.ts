@@ -342,16 +342,24 @@ test('the graph lists its haplotypes with their contigs, and a fetch can be narr
   )
 })
 
-test('the node limit fails a window as a zoom-in notice naming a span that fits and the display that draws it anyway', async () => {
-  const error: unknown = await feats(
-    makeAdapter({ nodeLimit: 2 }),
-    window,
-  ).catch((e: unknown) => e)
-  expect(error).toMatchObject({
+test('the node limit fails lanes and a graph cut as a zoom-in notice naming a span that fits', async () => {
+  const adapter = makeAdapter({ nodeLimit: 2 })
+  const lanes: unknown = await feats(adapter, window).catch((e: unknown) => e)
+  expect(lanes).toMatchObject({
     name: 'NodeLimitError',
     regionTooLarge: true,
     message: expect.stringMatching(
-      /^Zoom in to about [\d.]+[KM]?bp to see lanes; the track's Graph display draws an overview at any size$/,
+      /^Zoom in to about [\d.]+[KM]?bp to see lanes$/,
+    ),
+  })
+  const graph: unknown = await adapter
+    .getSubgraph(window)
+    .catch((e: unknown) => e)
+  expect(graph).toMatchObject({
+    name: 'NodeLimitError',
+    regionTooLarge: true,
+    message: expect.stringMatching(
+      /^Zoom in to about [\d.]+[KM]?bp to see the graph$/,
     ),
   })
 })
@@ -952,38 +960,4 @@ test('a bgzipped reads shorthand takes the .tbi beside it', () => {
   )
   const plain = configSchema.create({ reads: 'reads.gaf', assemblyNames: [] })
   expect(readConfObject(plain, ['readsIndex', 'location']).uri).toBe('')
-})
-
-test('the overview classes every haplotype per bin, labels rows as the lanes do, and pins the lanes asked for in their order', async () => {
-  const adapter = makeAdapter({
-    haplotypeIndexLocation: {
-      localPath: require.resolve('./test_data/micb-kir3dl1.haplotype-index.db'),
-      locationType: 'LocalPathLocation',
-    },
-    assemblyNameToPanSN: { hg38: 'GRCh38#0', 'HG00438.1': 'HG00438#1' },
-  })
-  const region = { ...window, start: 31_500_000, end: 31_520_000 }
-  const overview = (await adapter.getOverview(region, {
-    bpPerPx: 100,
-    haplotypes: ['HG00621', 'HG00438.1'],
-  }))!
-  expect(overview.bin).toBeLessThanOrEqual(100)
-  expect(overview.cells).toHaveLength(
-    overview.bins.length * overview.rows.length,
-  )
-  expect(overview.bins[0]!.start).toBeLessThanOrEqual(region.start)
-  expect(overview.rows).toContain('HG00438.1')
-  expect(overview.rows).toContain('HG00621#2')
-  expect(overview.pinned.map(row => overview.rows[row])).toEqual([
-    'HG00621#1',
-    'HG00621#2',
-    'HG00438.1',
-  ])
-  expect(overview.reference.map(row => overview.rows[row])).toEqual(['hg38'])
-})
-
-test('a companion with no anchors has no overview', async () => {
-  await expect(
-    makeAdapter().getOverview(window, { bpPerPx: 100 }),
-  ).resolves.toBeUndefined()
 })

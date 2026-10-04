@@ -2,7 +2,6 @@ import { DisplayStatusChrome } from '@jbrowse/display-kit/DisplayChrome'
 import { observer } from 'mobx-react'
 
 import GraphCanvas from '../../GraphGenomeView/components/GraphCanvas'
-import HaplotypeOverviewCanvas from '../../HaplotypeOverview/HaplotypeOverviewCanvas'
 
 import type { LinearGraphDisplayModel } from '../model'
 
@@ -15,12 +14,7 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
     <DisplayStatusChrome
       model={model}
       phase={model.displayPhase}
-      drawn={
-        model.showsOverview
-          ? model.overview !== undefined &&
-            model.overviewPainted === model.overview
-          : model.painted && model.geometryPainted
-      }
+      drawn={model.painted && model.geometryPainted}
       testid="linear-graph-display"
       data-layout={model.chosenLayoutMode}
       data-cut-tier={model.cutTier}
@@ -33,11 +27,7 @@ const LinearGraphDisplay = observer(function LinearGraphDisplay({
         overflow: 'hidden',
       }}
     >
-      {model.showsOverview ? (
-        <HaplotypeOverviewCanvas model={model} />
-      ) : (
-        <GraphCanvas model={model} ownChrome={false} />
-      )}
+      <GraphCanvas model={model} ownChrome={false} />
     </DisplayStatusChrome>
   )
 })

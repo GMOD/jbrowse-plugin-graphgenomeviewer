@@ -1,5 +1,6 @@
 import { GBZBase } from '@gmod/gbz-base'
 import {
+  NodeLimitError,
   cutWindowGFA,
   haplotypePrefix,
   haplotypeWanted,
@@ -25,10 +26,6 @@ import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
-import type {
-  HaplotypeOverviewData,
-  OverviewAdapterOptions,
-} from '../GetHaplotypeOverview.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type { GafReads } from '../gaf/gafFile.ts'
 import type {
@@ -216,12 +213,13 @@ export function pairFeature({
   })
 }
 
-function lanesLimitError(error: unknown, limit: number, windowBp: number) {
-  const limitError = nodeLimitError(error, limit, windowBp)
-  if (limitError) {
-    limitError.message = `Zoom in to about ${getBpDisplayStr(limitError.fitsBp)} to see lanes; the track's Graph display draws an overview at any size`
+// A window past the node limit fails as a zoom-in notice naming a span that
+// fits
+function zoomInNotice(error: unknown, what: string) {
+  if (error instanceof NodeLimitError) {
+    error.message = `Zoom in to about ${getBpDisplayStr(error.fitsBp)} to see ${what}`
   }
-  return limitError
+  return error
 }
 
 const isSet = (location: FileLocation) =>
@@ -406,58 +404,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       limit: this.getConf('nodeLimit'),
       signal: opts.signal,
       keep,
+    }).catch((error: unknown) => {
+      throw zoomInNotice(error, 'the graph')
     })
-  }
-
-  /**
-   * The haplotype index's overview of a window on the anchor, at the
-   * coarsest level whose bins fit `bpPerPx`: every haplotype classed per bin.
-   * Undefined when the index carries no overview or the reference sample has
-   * no path by that contig.
-   */
-  async getOverview(
-    region: Region,
-    opts: OverviewAdapterOptions,
-  ): Promise<HaplotypeOverviewData | undefined> {
-    const { db, anchor, referenceSample } = await this.graph()
-    const { assemblyName, refName, start, end } = region
-    if (assemblyName !== anchor) {
-      throw new HaplotypeWindowError(assemblyName, anchor)
-    }
-    const path = await this.referenceQuery(refName, {})
-    const overview = path
-      ? await db.haplotypeOverview({
-          path,
-          start,
-          end,
-          bpPerPixel: opts.bpPerPx,
-        })
-      : undefined
-    if (!overview) {
-      return undefined
-    }
-    const asmByPrefix = assemblyByPanSNPrefix(this)
-    const prefixes = overview.haplotypes.map(h => haplotypePrefix(h))
-    const pinned = new Set<number>()
-    for (const lane of opts.haplotypes ?? []) {
-      const wanted = resolvePanSNPrefix(this, lane)
-      prefixes.forEach((prefix, row) => {
-        if (panSNMatchesPrefix(prefix, wanted)) {
-          pinned.add(row)
-        }
-      })
-    }
-    return {
-      level: overview.level,
-      bin: overview.bin,
-      rows: overview.haplotypes.map(h => laneAssemblyName(asmByPrefix, h)),
-      pinned: [...pinned],
-      reference: overview.haplotypes.flatMap((h, row) =>
-        h.sample === referenceSample ? [row] : [],
-      ),
-      bins: overview.bins,
-      cells: overview.cells,
-    }
   }
 
   private gaf = cachedSetup({
@@ -525,7 +474,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
                 keep,
               })
               .catch((error: unknown) => {
-                throw lanesLimitError(error, nodeLimit, end - start) ?? error
+                throw zoomInNotice(
+                  nodeLimitError(error, nodeLimit, end - start) ?? error,
+                  'lanes',
+                )
               }),
         )
       : []

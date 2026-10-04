@@ -314,7 +314,6 @@ function createEnvironment({
   // while set, a cut waits for the test to answer it
   let held: ((answer: () => void) => void) | undefined
   const signals: AbortSignal[] = []
-  const overviews: { region: SubgraphRegion; bpPerPx: number }[] = []
   // a GBZ cut of more than this many bp fails over its node limit
   let denseAbove = Infinity
   const rpcCall = vi.fn(
@@ -325,24 +324,19 @@ function createEnvironment({
         region: SubgraphRegion
         opts?: { tier?: SubgraphTier; snarls?: string }
         signal?: AbortSignal
-        bpPerPx?: number
         adapterConfig?: { type?: string }
       },
     ) => {
-      if (method === 'GetHaplotypeOverview') {
-        overviews.push({ region: args.region, bpPerPx: args.bpPerPx! })
-        return Promise.resolve(syntheticOverview(args.region))
-      }
       if (
         method === 'GetSubgraph' &&
         args.adapterConfig?.type === 'GbzBaseSyntenyAdapter' &&
         args.region.end - args.region.start > denseAbove
       ) {
         cuts.push({ tier: 'fine', region: args.region })
-        const error = new Error(
-          'this window reads more than nodeLimit (100,000) graph nodes; zoom in',
+        const error = Object.assign(
+          new Error('Zoom in to about 1Mbp to see the graph'),
+          { name: 'NodeLimitError', regionTooLarge: true },
         )
-        error.name = 'NodeLimitError'
         const hold = held
         return hold
           ? new Promise<string>((_, reject) => {
@@ -457,39 +451,9 @@ function createEnvironment({
     holdCuts,
     signals,
     rpcCall,
-    overviews,
     setDenseAbove(bp: number) {
       denseAbove = bp
     },
-  }
-}
-
-// Four haplotypes and the reference in 4 kb bins over the region: HG2.1
-// variant in every bin, HG4.1 in every bin but the first, HG1.1 and HG3.1 in
-// none
-function syntheticOverview(region: SubgraphRegion) {
-  const bin = 4096
-  const first = Math.floor(region.start / bin)
-  const count = Math.ceil(region.end / bin) - first
-  const cells = new Uint8Array(count * 5)
-  for (let b = 0; b < count; b++) {
-    cells.set([1, 3, 1, b === 0 ? 1 : 3, 1], b * 5)
-  }
-  return {
-    level: 0,
-    bin,
-    rows: ['HG1.1', 'HG2.1', 'HG3.1', 'HG4.1', 'GRCh38#0'],
-    pinned: [0],
-    reference: [4],
-    bins: Array.from({ length: count }, (_, b) => ({
-      start: (first + b) * bin,
-      end: (first + b + 1) * bin,
-      classes: [0, 2, 0, 1],
-      excursions: 1,
-      variants: 1,
-      longestExcursion: 60,
-    })),
-    cells,
   }
 }
 
@@ -879,6 +843,23 @@ test('a launch that states one choice takes the rest from the config', async () 
   expect(display.hostPlacesX).toBe(true)
 })
 
+test("a 5.0 session's overview row choice still loads, and is not reported as an unknown key", () => {
+  const { view, errors } = createEnvironment()
+  view.showTrack(
+    'walks',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      overviewRowsChoice: false,
+      overviewRowOrder: ['HG2.1', 'HG1.1'],
+    },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  expect(errors).toEqual([])
+  expect(getSnapshot(display).overviewRowsChoice).toBeUndefined()
+  expect(getSnapshot(display).overviewRowOrder).toBeUndefined()
+})
+
 test("a 4.0 session's pane state still loads, and is not reported as an unknown key", () => {
   const { view, errors } = createEnvironment()
   view.showTrack(
@@ -954,71 +935,49 @@ function sentPanSN(rpcCall: Env['rpcCall'], method: string) {
     )
 }
 
-test("a GBZ track's cuts and overviews carry the PanSN names its lanes' assemblies alias, and an rGFA track's do not", async () => {
+test("a GBZ track's cuts carry the PanSN names its lanes' assemblies alias, and an rGFA track's do not", async () => {
   const aliased = { 'HG1.1': 'HG1#1', 'HG2.1': 'HG2#1' }
   const cut = sentPanSN((await shownWalks(60_000)).rpcCall, 'GetSubgraph')
   expect(cut.length).toBeGreaterThan(0)
   expect(cut).toEqual(cut.map(() => aliased))
-  const overview = sentPanSN(
-    (await shownWalks(6_000_000)).rpcCall,
-    'GetHaplotypeOverview',
-  )
-  expect(overview.length).toBeGreaterThan(0)
-  expect(overview).toEqual(overview.map(() => aliased))
   const rgfa = sentPanSN((await shownGraph()).rpcCall, 'GetSubgraph')
   expect(rgfa).toEqual([undefined])
 })
 
-test('past the bp cap a GBZ track reads the overview for the window and a window each side, and a pan inside it reads nothing', async () => {
-  const { view, display, overviews, cuts } = await shownWalks(6_000_000)
+test('past the bp cap a GBZ track is too large to cut, as any graph track is, and zooming in cuts', async () => {
+  const { view, display, cuts } = await shownWalks(6_000_000)
   expect(cuts).toHaveLength(0)
-  expect(display.showsOverview).toBe(true)
-  expect(display.displayPhase).not.toBe('tooLarge')
-  expect(overviews).toHaveLength(1)
-  const seen = display.settledWindow!
-  expect(overviews[0]!.region.start).toBeLessThan(seen.start)
-  expect(overviews[0]!.bpPerPx).toBe(view.bpPerPx * 2)
-  expect(display.overview?.rows).toEqual([
-    'HG1.1',
-    'HG2.1',
-    'HG3.1',
-    'HG4.1',
-    'GRCh38#0',
-  ])
-  view.horizontalScroll(10)
-  await wait(SETTLE_MS)
-  expect(overviews).toHaveLength(1)
+  expect(display.displayPhase).toBe('tooLarge')
   view.zoomTo(60_000 / WIDTH_PX)
   await wait(SETTLE_MS)
-  expect(display.showsOverview).toBe(false)
   expect(cuts).toHaveLength(1)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
 })
 
-test('a GBZ cut over its node limit draws the overview at that span and wider, and zooming in cuts again', async () => {
+test('a cut over its node limit shows its zoom-in notice at that span and wider without cutting again, and zooming in cuts', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
-  const { view, display, overviews, cuts } = await shownWalks(
-    1_000_000,
-    env => {
-      env.setDenseAbove(1_500_000)
-    },
-  )
+  const { view, display, cuts } = await shownWalks(1_000_000, env => {
+    env.setDenseAbove(1_500_000)
+  })
   await vi.waitFor(() => {
-    expect(display.showsOverview).toBe(true)
+    expect(display.dense).toBeDefined()
   })
   expect(cuts).toHaveLength(1)
   expect(display.dense!.end - display.dense!.start).toBe(1_000_000)
-  expect(display.displayPhase).not.toBe('error')
-  expect(overviews).toHaveLength(1)
+  expect(display.error).toMatchObject({ regionTooLarge: true })
   view.zoomTo(2_000_000 / WIDTH_PX)
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
+  expect(display.error).toMatchObject({ regionTooLarge: true })
   view.zoomTo(400_000 / WIDTH_PX)
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(2)
   await vi.waitFor(() => {
     expect(display.hasGraph).toBe(true)
   })
-  expect(display.showsOverview).toBe(false)
+  expect(display.error).toBeUndefined()
 })
 
 test('a refused cut stands only near where it was refused: far along the contig the same zoom cuts again', async () => {
@@ -1028,7 +987,7 @@ test('a refused cut stands only near where it was refused: far along the contig 
   })
   const { view, display, cuts } = env
   await vi.waitFor(() => {
-    expect(display.showsOverview).toBe(true)
+    expect(display.dense).toBeDefined()
   })
   env.setDenseAbove(Infinity)
   view.scrollTo(7_000_000 / view.bpPerPx)
@@ -1037,10 +996,9 @@ test('a refused cut stands only near where it was refused: far along the contig 
   await vi.waitFor(() => {
     expect(display.hasGraph).toBe(true)
   })
-  expect(display.showsOverview).toBe(false)
 })
 
-test('a cut refused over its node limit still switches when the window moved while it ran', async () => {
+test('a cut refused while the window moved stands for the moved window too, and is not tried again', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
   const env = createEnvironment()
   env.setDenseAbove(500_000)
@@ -1057,76 +1015,31 @@ test('a cut refused over its node limit still switches when the window moved whi
   expect(env.cuts).toHaveLength(1)
   answers.shift()!()
   await vi.waitFor(() => {
-    expect(display.showsOverview).toBe(true)
+    expect(display.dense).toBeDefined()
   })
-  expect(display.displayPhase).not.toBe('error')
-  expect(env.overviews).toHaveLength(1)
-})
-
-test('editing the haplotypes past the cap reads the overview again for them', async () => {
-  const { display, overviews, cuts } = await shownWalks(6_000_000)
-  expect(overviews).toHaveLength(1)
-  display.setSubgraphHaplotypes(['HG1.1'])
-  void display.cut()
-  await vi.waitFor(() => {
-    expect(display.overview).toBeDefined()
-  })
-  expect(overviews).toHaveLength(2)
-  expect(cuts).toHaveLength(0)
-})
-
-function menuItem(display: LinearGraphDisplayModel, label: string) {
-  return display
-    .trackMenuItems()
-    .find(item => 'label' in item && item.label === label) as
-    (MenuItem & { onClick: () => void; disabled?: boolean }) | undefined
-}
-
-test('past the cap the menu clusters the rows under the lanes, a pan keeps their order, and a reset drops it', async () => {
-  const { view, display, overviews } = await shownWalks(6_000_000)
-  await vi.waitFor(() => {
-    expect(display.overview).toBeDefined()
-  })
-  expect(menuItem(display, 'Reset row order')).toBeUndefined()
-  const cluster = menuItem(display, 'Cluster rows by divergence')!
-  expect(cluster.disabled).toBe(false)
-  cluster.onClick()
-  await vi.waitFor(() => {
-    expect(display.overviewRowOrder).toBeDefined()
-  })
-  const order = display.overviewRowOrder!
-  expect([...order].sort()).toEqual(['HG2.1', 'HG3.1', 'HG4.1'])
-  expect(Math.abs(order.indexOf('HG2.1') - order.indexOf('HG4.1'))).toBe(1)
-  expect(getSnapshot(display).overviewRowOrder).toEqual(order)
-  view.horizontalScroll(10)
   await wait(SETTLE_MS)
-  expect(overviews).toHaveLength(1)
-  expect(display.overviewRowOrder).toBe(order)
-  menuItem(display, 'Reset row order')!.onClick()
-  expect(display.overviewRowOrder).toBeUndefined()
-  expect(getSnapshot(display).overviewRowOrder).toBeUndefined()
+  expect(env.cuts).toHaveLength(1)
+  expect(display.error).toMatchObject({ regionTooLarge: true })
 })
 
-test('clustering is offered only while the overview draws every haplotype', async () => {
-  const { display } = await shownWalks(60_000)
-  expect(menuItem(display, 'Cluster rows by divergence')!.disabled).toBe(true)
-  const past = await shownWalks(6_000_000)
-  await vi.waitFor(() => {
-    expect(past.display.overview).toBeDefined()
+test('editing the haplotypes forgets a refused cut, since the next cut is for other walks', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const { display } = await shownWalks(1_000_000, env => {
+    env.setDenseAbove(1_500_000)
   })
-  past.display.setOverviewAllRows(false)
-  expect(menuItem(past.display, 'Cluster rows by divergence')!.disabled).toBe(
-    true,
-  )
+  await vi.waitFor(() => {
+    expect(display.dense).toBeDefined()
+  })
+  display.setSubgraphHaplotypes(['HG1.1'])
+  expect(display.dense).toBeUndefined()
 })
 
-test('an rGFA track past the cap stays too large: only a GBZ track has an overview', async () => {
-  const { pane, view, overviews } = await shownGraph({ tiered: false })
+test('an rGFA track past the cap is too large, with no notice of a refused cut', async () => {
+  const { pane, view } = await shownGraph({ tiered: false })
   view.zoomTo((pane.maxRegionBp * 2) / WIDTH_PX)
   await wait(SETTLE_MS)
-  expect(pane.showsOverview).toBe(false)
   expect(pane.displayPhase).toBe('tooLarge')
-  expect(overviews).toHaveLength(0)
+  expect(pane.dense).toBeUndefined()
 })
 
 test('the track menu offers the layouts, colours and the settings dialog', async () => {

@@ -111,38 +111,23 @@ A 4.0 track entry nests the graph's state as `pane: {...}`, which the display
 folds flat. Entries now state `layoutMode` and `colorScheme` flat, and
 `paneHeight` is inert in a track; use `height`.
 
-## Past the cut: the haplotype overview
+## Past the cut: a zoom-in notice
 
-A GBZ track whose window is too large to cut draws the haplotype index's
-overview in its place (`src/HaplotypeOverview/`): every haplotype classed per
-bin of the reference as reference-like, diverging by 50 bp or more, partial or
-absent, at the coarsest level whose bins fit two pixels. "Too large" is the bp
-cap, or a cut that came back over the adapter's `nodeLimit`. The second is
-learned by failing: `dense` records the refused window, and windows as wide or
-wider on that contig within one window-width of it draw the overview without
-trying again, so where the track switches follows how dense the graph is. A
-narrower window cuts again.
+A window too large to cut shows a notice and fetches nothing more. "Too large"
+is the bp cap, which draws core's region-too-large banner, or a cut that came
+back over the GBZ adapter's `nodeLimit`. The second is learned by failing: the
+adapter throws `NodeLimitError` marked `regionTooLarge`, which core's error bar
+(jbrowse-components `526ff487e6`) shows as a neutral "Zoom in to about … to see
+the graph" with no Retry; older hosts show it as a plain error. `dense` records
+the refused window, and windows as wide or wider on that contig within one
+window-width of it keep the notice without cutting again, so where the track
+stops follows how dense the graph is. A narrower window cuts again. The lanes
+display reads the same error and says "to see lanes".
 
-The overview is read for the window plus a window each side and refetched when
-the window leaves it or the zoom moves past a factor of two. The band above the
-rows stacks the share of haplotypes in each class up to 16 kb bins; past them
-nearly every bin holds an excursion for most haplotypes, so it counts the bin's
-excursions instead, and its label says which. The rows put the track's lanes
-first at a height their labels fit, then every other haplotype unless the menu
-asks for the lanes alone. SNPs and small indels never show, and the tooltip says
-so. A click zooms to the bin.
-
-**Cluster rows by divergence** orders the rows under the lanes the way the
-variant display's "Cluster rows by genotype" orders samples: `@gmod/hclust`
-(Euclidean, average linkage) over the window's bins, 1 for diverging and 0 for
-reference-like, with absent and partial cells imputed to the bin's mean as a
-no-call is. The order is kept by name across pans and saved with the session,
-since rows that jumped on every pan would be harder to follow than a stale
-order; the menu re-clusters on demand and **Reset row order** drops it.
-`@gmod/hclust` is bundled into a lazy chunk, since `@jbrowse/tree-sidebar` is
-not in the plugin ABI.
-
-The haplotype lanes display does not swap yet: `MultiWaySyntenyDisplay` is
-core's, and doing it from here means overriding its internals through
-`Core-extendPluggableElement`. Past its node limit its error names the Graph
-display instead.
+Retired 2026-10-04: 5.0 drew the haplotype index's overview here, a row per
+haplotype classed per bin. It was a coarse copy of core's multi-sample variant
+display and had started re-growing its features (row clustering), so a
+population view across a wide window belongs to a VariantTrack over the graph's
+VCF (`vg deconstruct` makes one from a GBZ). The index's overview tables and
+gbz-base's `haplotypeOverview` are untouched; a 5.x session's
+`overviewRowsChoice` and `overviewRowOrder` load and are dropped.

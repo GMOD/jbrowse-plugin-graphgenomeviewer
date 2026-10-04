@@ -26,20 +26,16 @@ import {
   MAX_GRAPH_REGION_BP,
   formatSpanBp,
 } from '../GraphGenomeView/model'
-import { clusterableRows } from '../HaplotypeOverview/draw'
-import {
-  HaplotypeOverviewMixin,
-  denseCovers,
-  isNodeLimitError,
-} from '../HaplotypeOverview/model'
 import {
   graphReferenceAssembly,
   offReferenceProblem,
   trackLanes,
 } from '../graphTrackConfig'
+import { denseCovers, isNodeLimitError } from './denseWindow'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
+import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { HostWindow } from '../GraphGenomeView/host'
 import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
@@ -63,7 +59,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         BaseDisplay,
         TrackHeightMixin(),
         GraphPaneMixin(),
-        HaplotypeOverviewMixin(),
         types.model({
           type: types.literal('LinearGraphDisplay'),
           configuration: ConfigurationReference(configSchema),
@@ -71,6 +66,11 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           // so never holds. Declared so a session spec stating it is not
           // reported as an unknown key.
           pane: types.maybe(types.frozen()),
+          // The retired haplotype overview's row choice and order, which a 5.x
+          // session may carry and preProcessSnapshot drops, declared for the
+          // same reason
+          overviewRowsChoice: types.maybe(types.frozen()),
+          overviewRowOrder: types.maybe(types.frozen()),
           // the window the graph on screen was asked for, so a restored
           // session cuts it again
           cutRegion: types.maybe(types.frozen<SubgraphRegion>()),
@@ -91,11 +91,21 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
         }),
       )
-      // a 4.0 session nests the graph's state under `pane`
+      // A 4.0 session nests the graph's state under `pane`; a 5.x one may
+      // carry the retired overview's row choice
       .preProcessSnapshot(snapshot => {
-        const { pane, ...rest } = snapshot as { pane?: { type?: string } }
+        const {
+          pane,
+          overviewRowsChoice: _rows,
+          overviewRowOrder: _order,
+          ...rest
+        } = snapshot as {
+          pane?: { type?: string }
+          overviewRowsChoice?: unknown
+          overviewRowOrder?: unknown
+        }
         if (!pane) {
-          return snapshot
+          return rest as typeof snapshot
         }
         const { type: _type, ...props } = pane
         return { ...props, ...rest } as typeof snapshot
@@ -104,6 +114,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         recuts: 0,
         // the host window the settle clock last woke on
         settledWindow: undefined as HostWindow | undefined,
+        dense: undefined as DenseWindow | undefined,
       }))
       .views(self => ({
         get adapterConfig() {
@@ -174,9 +185,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             ? `Region too large for a graph cut (${formatSpanBp(seen.end - seen.start)}, max ${formatSpanBp(self.settledCapBp)})`
             : ''
         },
-        get overviewCapable() {
-          return self.adapterConfig.type === 'GbzBaseSyntenyAdapter'
-        },
         get zoomCanReleaseGate() {
           return true
         },
@@ -185,59 +193,11 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .views(self => ({
-        // Past the cut a GBZ track draws its haplotype index's overview: past
-        // the bp cap, and at or past the span whose cut ran over its node
-        // limit, so where it switches follows how dense the graph is
-        get showsOverview() {
-          const seen = self.settledWindow
-          return (
-            self.overviewCapable &&
-            seen !== undefined &&
-            (self.regionTooLarge || denseCovers(self.dense, seen))
-          )
-        },
-      }))
-      .views(self => ({
-        get overviewClusterable() {
-          return (
-            self.showsOverview &&
-            self.overviewAllRows &&
-            self.overview !== undefined &&
-            clusterableRows(self.overview).length >= 2
-          )
-        },
-      }))
-      .views(self => ({
-        get overviewPhase(): DisplayStatusPhase {
-          return computeDisplayStatusPhase(
-            { regionTooLarge: false, error: self.overviewError },
-            () =>
-              computeActivityPhase(
-                {
-                  isMinimized: self.isMinimized,
-                  fetchInert: false,
-                  viewportEmpty:
-                    self.host?.initialized === true &&
-                    self.host.hasVisibleContent === false,
-                  isLoading: self.overviewLoading || !self.overview,
-                  fetchCanceled: false,
-                  awaitingDependentData: false,
-                  rendersCanvas: true,
-                  canvasDrawn:
-                    self.overview !== undefined &&
-                    self.overviewPainted === self.overview,
-                },
-                () => true,
-                () => self.host?.effectiveBodyMounted ?? true,
-              ),
-          )
-        },
+        // A backend that failed is an error the canvas reports with its retry;
+        // the status chrome has no renderError phase of its own. A cut refused
+        // over its node limit is an error marked regionTooLarge, which core's
+        // error bar shows as a zoom-in notice instead.
         get displayPhase(): DisplayStatusPhase {
-          if (self.showsOverview) {
-            return this.overviewPhase
-          }
-          // A backend that failed is an error the canvas reports with its
-          // retry; the status chrome has no renderError phase of its own.
           return computeDisplayStatusPhase(
             {
               regionTooLarge: self.regionTooLarge,
@@ -270,7 +230,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
         setSubgraphHaplotypes(haplotypes: string[] | undefined) {
           self.subgraphHaplotypes = haplotypes
-          self.forgetOverview()
+          self.dense = undefined
+        },
+        setDense(window: DenseWindow | undefined) {
+          self.dense = window
         },
         setMaxRegionBp(bp: number) {
           self.maxRegionBp = bp
@@ -278,16 +241,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // Cut `cutRegion` again with the current options. A hop past a coarse
         // cut reaches nothing new: every bubble node's two links are indexed
         // under the backbone either side of it.
-        // Past the cut, the overview is what the options re-read
         cut() {
-          const seen = self.settledWindow
-          if (seen && self.showsOverview) {
-            return self.fetchOverview(
-              self.adapterConfig,
-              seen,
-              self.chosenHaplotypes,
-            )
-          }
           const region = self.cutRegion
           if (!region) {
             return
@@ -329,23 +283,15 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // The settle clock. A window the cut still holds fetches nothing; one
         // past its edge re-cuts, on the tier the zoom asks for, with margins
         // when the host places x and the window alone when the layout draws
-        // its own picture of it. A canceled cut is re-made by the next move.
-        // Returns whether it re-cut.
+        // its own picture of it. A canceled cut is re-made by the next move,
+        // and a window a refused cut covers keeps its notice without asking
+        // again. Returns whether it re-cut.
         settleOn(seen: HostWindow): boolean {
           self.settledWindow = seen
-          if (self.showsOverview) {
-            if (!self.overviewHolds(seen)) {
-              void self.fetchOverview(
-                self.adapterConfig,
-                seen,
-                self.chosenHaplotypes,
-              )
-            }
-            return false
-          }
           const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
           if (
             self.regionTooLarge ||
+            denseCovers(self.dense, seen) ||
             (!self.loadCanceled &&
               self.tierAt(seen.bpPerPx) === self.cutTier &&
               cutHolds(self.cutRegion, seen, margins))
@@ -355,11 +301,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           // The error is the latest cut's, since a cut clears it as it
           // starts and an outrun cut sets nothing
           void Promise.resolve(self.recutAt(seen)).then(() => {
-            if (
-              isAlive(self) &&
-              self.overviewCapable &&
-              isNodeLimitError(self.error)
-            ) {
+            if (isAlive(self) && isNodeLimitError(self.error)) {
               this.refuseDenseCut(seen)
             }
           })
@@ -536,46 +478,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           })
           return [
             ...self.graphMenuItems(),
-            ...(self.overviewCapable
-              ? [
-                  {
-                    label: 'Zoomed out: every haplotype',
-                    subLabel: 'Off draws only the lanes the track names',
-                    type: 'checkbox' as const,
-                    checked: self.overviewAllRows,
-                    onClick: () => {
-                      self.setOverviewAllRows(!self.overviewAllRows)
-                    },
-                  },
-                  {
-                    label: self.overviewClustering
-                      ? 'Clustering rows...'
-                      : 'Cluster rows by divergence',
-                    subLabel:
-                      'Groups haplotypes that diverge in the same bins of this window',
-                    disabled:
-                      !self.overviewClusterable || self.overviewClustering,
-                    disabledHelpText:
-                      'Zoom out until the track draws every haplotype',
-                    onClick: () => {
-                      const seen = self.settledWindow
-                      if (seen) {
-                        void self.clusterOverview(seen.start, seen.end)
-                      }
-                    },
-                  },
-                  ...(self.overviewRowOrder
-                    ? [
-                        {
-                          label: 'Reset row order',
-                          onClick: () => {
-                            self.setOverviewRowOrder(undefined)
-                          },
-                        },
-                      ]
-                    : []),
-                ]
-              : []),
             {
               label: 'Settings',
               icon: SettingsIcon,
