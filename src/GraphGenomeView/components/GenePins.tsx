@@ -5,7 +5,7 @@ import { observer } from 'mobx-react'
 import type { GraphPaneModel } from '../model'
 
 // The session's genes drawn onto the graph: each exon outlined in the gene
-// track's CDS colour, a rounded box around the backbone stretch that carries
+// track's CDS colour, a rounded box around the stretch of node that carries
 // it, in layout units, moved by the same transform the halos use. The box
 // clears the node's ink, lifted lanes included, so a node or lane keeps its
 // colour inside it and an exon on a faded node reads as well as one on a lane.

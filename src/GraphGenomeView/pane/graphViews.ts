@@ -620,7 +620,7 @@ export const withGraphViews = paneBase
         ...this.drawnRowLabels.map(r => rowLabelBox(r.label, 0).x1 + 6),
       )
     },
-    // Exons and names on the backbone, in layout units. Reads
+    // Exons and names on the nodes that carry them, in layout units. Reads
     // positionsVersion so a dragged node takes its exons with it.
     get genePins() {
       dependOn(self.positionsVersion)

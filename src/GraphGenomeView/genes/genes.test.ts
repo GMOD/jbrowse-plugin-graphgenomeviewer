@@ -247,3 +247,53 @@ test('a gene inside a long node that begins well before it still lands on it', (
   expect(pin!.covered).toBe(1)
   expect(pin!.exons).toBe('M995,0L1000,0M1000,0L1005,0')
 })
+
+// `ecoli_pggb.tier50` at K12's IS5 insertion: the tier collapses the bubble to
+// one rank-1 node on K12's own coordinates, so the backbone has a hole where
+// the element is, and insH21 lies wholly inside it
+const TIER = [
+  'S\tbb_chr_1295416\t*\tLN:i:4081\tSN:Z:chr\tSO:i:1295416\tSR:i:0',
+  'S\t79945@1299497\t*\tLN:i:1200\tSN:Z:chr\tSO:i:1299497\tSR:i:1',
+  'S\tbb_chr_1300697\t*\tLN:i:15043\tSN:Z:chr\tSO:i:1300697\tSR:i:0',
+  'L\tbb_chr_1295416\t+\t79945@1299497\t+\t0M',
+  'L\t79945@1299497\t+\tbb_chr_1300697\t+\t0M',
+].join('\n')
+const tierPositions = {
+  'bb_chr_1295416+': [
+    { x: 1_295_416, y: 0 },
+    { x: 1_299_497, y: 0 },
+  ],
+  '79945@1299497+': [
+    { x: 1_299_497, y: 20 },
+    { x: 1_300_697, y: 20 },
+  ],
+  'bb_chr_1300697+': [
+    { x: 1_300_697, y: 0 },
+    { x: 1_315_740, y: 0 },
+  ],
+}
+const k12Gene = (name: string, start: number, end: number) => ({
+  name,
+  refName: 'chr',
+  start,
+  end,
+  strand: 1,
+  exons: [{ start, end }],
+})
+
+test("a tier's bubble node carries the genes on the reference span it stands for", () => {
+  const pins = genePins(
+    convertGFAToGraph(parseGFA(TIER)),
+    [
+      k12Gene('insH21', 1_299_566, 1_300_547),
+      k12Gene('oppA', 1_301_181, 1_302_813),
+    ],
+    tierPositions,
+  )
+  expect(
+    pins.map(p => [p.gene.name, p.at.y, [...p.nodeIds], p.covered]),
+  ).toEqual([
+    ['insH21', 20, ['79945@1299497+'], 1],
+    ['oppA', 0, ['bb_chr_1300697+'], 1],
+  ])
+})
