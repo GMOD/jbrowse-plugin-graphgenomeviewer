@@ -431,6 +431,8 @@ export const paneBase = types
     pointerInPane: false,
     // the strip point the pointer is over, which lights its node above
     stripHover: null as { row: string; offset: number } | null,
+    // the walk row the pointer is on, by walk name
+    hoveredWalkRow: null as string | null,
     hoveredEdge: null as number | null,
     selectedNode: null as string | null,
     viewportDirty: 0,

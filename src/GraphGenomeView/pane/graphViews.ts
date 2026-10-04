@@ -6,9 +6,6 @@ import {
   deletionEdges,
 } from '@jbrowse/bandage-core/deletionEdges'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
-import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
-import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
-import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { filterSamples, walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
   layoutModeByValue,
@@ -20,7 +17,6 @@ import {
   pathGreyCssColor,
   pathLegend,
 } from '@jbrowse/bandage-core/pathColors'
-import { FIT_PADDING, drawingBounds } from '@jbrowse/bandage-core/pipeline'
 import {
   backboneAssembly,
   featuresOnBackbone,
@@ -603,26 +599,6 @@ export const withGraphViews = paneBase
     get drawsNodes() {
       return !self.layoutResult?.tubeMap && !this.walkRowBars
     },
-    // The labels drawn beside the rows. Walk rows label from the bars
-    // themselves, which follow the selected repeat and sample filter that
-    // the layout, run once per cut, cannot.
-    get drawnRowLabels() {
-      const bars = this.walkRowBars
-      return bars
-        ? [bars.reference, ...bars.rows].map((row, i) => ({
-            label: row.label,
-            y: i * ROW_HEIGHT_PX,
-          }))
-        : self.rowLabels
-    },
-    // The row labels are pinned to the pane's left edge, so the fit starts
-    // the drawing past the widest one.
-    get fitPadLeft() {
-      return Math.max(
-        FIT_PADDING,
-        ...this.drawnRowLabels.map(r => rowLabelBox(r.label, 0).x1 + 6),
-      )
-    },
     // Exons and names on the nodes that carry them, in layout units. Reads
     // positionsVersion so a dragged node takes its exons with it.
     get genePins() {
@@ -711,23 +687,6 @@ export const withGraphViews = paneBase
     // a wrong picture. See AxisScale.
     get axisScale() {
       return axisScaleOf(self.scale, self.pixelRows)
-    },
-    // Extent of the drawing in layout units, shared by the pane height and
-    // zoomToFit. On a reference-bp layout x is the cut window rather than
-    // how far the drawing reaches: an allele anchored far outside it is a
-    // fact about the graph, not a reason to draw the window at 6% of the
-    // frame. A popped bubble fits to what it drew. Walk rows reach as far as
-    // the bars on screen, which a repeat pick or a sample filter narrows
-    // after the layout ran.
-    get layoutBounds() {
-      const layout = self.layoutResult
-      const bars = this.walkRowBars
-      return layout
-        ? drawingBounds(layout, {
-            region: self.popStack.length === 0 ? self.graphRegion : undefined,
-            extent: bars && layout.extent ? walkRowsExtent(bars) : undefined,
-          })
-        : undefined
     },
   }))
   .views(self => ({

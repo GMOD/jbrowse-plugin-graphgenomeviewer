@@ -1,6 +1,4 @@
-import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import {
-  BAR_PX as WALK_BAR_PX,
   placeRowGenes,
   rowSpan,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -135,26 +133,6 @@ export const withWalkRowViews = withLaunchViews
     },
     get walkRowGeneGaps() {
       return this.walkGeneReads?.gaps
-    },
-    // The walk row under a pane point, as its index among the reference row
-    // and the rows below it, where the point is on its bar
-    walkRowAt(screenX: number, screenY: number) {
-      const bars = self.walkRowBars
-      if (!bars) {
-        return undefined
-      }
-      const i = Math.round(
-        (screenY - self.translateY) / (ROW_HEIGHT_PX * self.scaleY),
-      )
-      const row = [bars.reference, ...bars.rows][i]
-      const y = i * ROW_HEIGHT_PX * self.scaleY + self.translateY
-      const bp = (screenX - self.translateX) / self.scaleX - bars.origin
-      return row &&
-        Math.abs(screenY - y) <= WALK_BAR_PX / 2 + 2 &&
-        bp >= 0 &&
-        bp <= row.bp
-        ? i
-        : undefined
     },
     // Where a walk row's bar lies in its own assembly, for a linear view to
     // open: the span of its contig the bar covers, on the session assembly

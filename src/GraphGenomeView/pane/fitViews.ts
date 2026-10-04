@@ -4,12 +4,22 @@ import {
   facetGrid,
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
+import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
   LEGEND_INSET_PX,
   layoutLabels,
 } from '@jbrowse/bandage-core/labelLayout'
+import {
+  rowPitch,
+  walkRowReadout,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
+import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { FIT_PADDING, fitTransform } from '@jbrowse/bandage-core/pipeline'
+import {
+  FIT_PADDING,
+  drawingBounds,
+  fitTransform,
+} from '@jbrowse/bandage-core/pipeline'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
@@ -55,6 +65,7 @@ import {
 } from './paneBase'
 
 import type { FacetGrid, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
+import type { RowPitch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -65,8 +76,108 @@ export const withFitViews = withHostViews
     // clamp under it, and the floor still wins: a pane shorter than
     // MIN_CANVAS_HEIGHT leaves no room to hover a node and read its tooltip,
     // which is the reason that floor exists.
-    get paneCeiling() {
+    get paneCeiling(): number {
       return Math.max(MIN_CANVAS_HEIGHT, self.paneHeight ?? MAX_CANVAS_HEIGHT)
+    },
+    // Walk rows pack to fill the pane, as the strip does, so every walk of a
+    // cohort is on screen; rows too thin to letter put their names and
+    // readouts on hover
+    get walkRowPitch(): RowPitch | undefined {
+      const bars = self.walkRowBars
+      if (!bars) {
+        return undefined
+      }
+      const room = self.host ? this.canvasHeight : this.paneCeiling
+      return rowPitch(
+        bars.rows.length + 1,
+        room - this.fitPadTopBase - FIT_PADDING,
+      )
+    },
+    // Walk rows label from the bars themselves, which follow the selected
+    // repeat and sample filter that the layout, run once per cut, cannot
+    get drawnRowLabels() {
+      const bars = self.walkRowBars
+      const pitch = this.walkRowPitch
+      return bars && pitch
+        ? pitch.labelled
+          ? [bars.reference, ...bars.rows].map((row, i) => ({
+              label: row.label,
+              y: i * pitch.rowPx,
+            }))
+          : []
+        : self.rowLabels
+    },
+    // The row labels are pinned to the pane's left edge, so the fit starts
+    // the drawing past the widest one.
+    get fitPadLeft() {
+      return Math.max(
+        FIT_PADDING,
+        ...this.drawnRowLabels.map(r => rowLabelBox(r.label, 0).x1 + 6),
+      )
+    },
+    // Extent of the drawing in layout units, shared by the pane height and
+    // zoomToFit. On a reference-bp layout x is the cut window rather than
+    // how far the drawing reaches: an allele anchored far outside it is a
+    // fact about the graph, not a reason to draw the window at 6% of the
+    // frame. A popped bubble fits to what it drew. Walk rows reach as far as
+    // the bars on screen, which a repeat pick or a sample filter narrows
+    // after the layout ran.
+    get layoutBounds() {
+      const layout = self.layoutResult
+      const bars = self.walkRowBars
+      return layout
+        ? drawingBounds(layout, {
+            region: self.popStack.length === 0 ? self.graphRegion : undefined,
+            extent:
+              bars && layout.extent
+                ? walkRowsExtent(bars, this.walkRowPitch)
+                : undefined,
+          })
+        : undefined
+    },
+    // What a hovered row's label and readout would say, while its rows are
+    // too thin to draw them
+    get hoveredWalkRowText() {
+      const bars = self.walkRowBars
+      const name = self.hoveredWalkRow
+      if (!bars || name === null || this.walkRowPitch?.readouts !== false) {
+        return undefined
+      }
+      const isReference = bars.reference.name === name
+      const row = isReference
+        ? bars.reference
+        : bars.rows.find(r => r.name === name)
+      return row
+        ? {
+            label: row.label,
+            readout: walkRowReadout(
+              row,
+              isReference ? undefined : bars.reference,
+              bars.unit,
+              row.call,
+            ),
+          }
+        : undefined
+    },
+    // The walk row under a pane point, as its index among the reference row
+    // and the rows below it, where the point is on its bar
+    walkRowAt(screenX: number, screenY: number) {
+      const bars = self.walkRowBars
+      const pitch = this.walkRowPitch
+      if (!bars || !pitch) {
+        return undefined
+      }
+      const rowPx = pitch.rowPx * self.scaleY
+      const i = Math.round((screenY - self.translateY) / rowPx)
+      const row = [bars.reference, ...bars.rows][i]
+      const y = i * rowPx + self.translateY
+      const bp = (screenX - self.translateX) / self.scaleX - bars.origin
+      return row &&
+        Math.abs(screenY - y) <= pitch.barPx / 2 + 2 &&
+        bp >= 0 &&
+        bp <= row.bp
+        ? i
+        : undefined
     },
     // Room over a tube map for the rows its genes need, one inside the
     // padding and one more for each further gene that overlaps it, and
@@ -86,7 +197,7 @@ export const withFitViews = withHostViews
     // Reads get no room: their letters, and the legend row naming them, come
     // and go with the fit's scale.
     get legendRoom(): 'right' | 'top' | undefined {
-      const bounds = self.layoutBounds
+      const bounds = this.layoutBounds
       const { width, height } = self.legendSize
       if (
         !bounds ||
@@ -104,7 +215,7 @@ export const withFitViews = withHostViews
       // a track's height is its own
       const room = self.host ? this.canvasHeight : this.paneCeiling
       const across = (padRight: number) =>
-        (self.paneWidth - self.fitPadLeft - padRight) / bounds.w
+        (self.paneWidth - this.fitPadLeft - padRight) / bounds.w
       const down = (padTop: number) =>
         self.pixelRows
           ? bounds.h + padTop + FIT_PADDING <= room
@@ -136,7 +247,7 @@ export const withFitViews = withHostViews
     // stops where its tubes are MIN_FIT_TUBE_PX wide, or at whatever fits
     // the tallest pane, with the cut's left end on screen.
     get minFitScale() {
-      const bounds = self.layoutBounds
+      const bounds = this.layoutBounds
       const layout = self.layoutResult
       const tubePx = layout?.tubeMap?.layout.tracks[0]?.width
       return bounds && bounds.h > 0 && tubePx && !layout.referenceAxis
@@ -176,7 +287,7 @@ export const withFitViews = withHostViews
     // linear view places stacks full-width panels so each keeps that x.
     facetGridIn(room: number): FacetGrid | undefined {
       const place = this.facetPlacement
-      const bounds = self.layoutBounds
+      const bounds = this.layoutBounds
       return place && bounds && bounds.w > 0
         ? facetGrid({
             count: place.count,
@@ -199,7 +310,7 @@ export const withFitViews = withHostViews
     // at the width's fit. Neither reads `scale`, so the fit reads this
     // without feeding back into it.
     get canvasHeight(): number {
-      const bounds = self.layoutBounds
+      const bounds = this.layoutBounds
       const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
       const ceiling = this.paneCeiling
       if (!bounds) {
@@ -245,7 +356,7 @@ export const withFitViews = withHostViews
     // Where the fit puts the drawing, or undefined until there is a layout
     // and a measured canvas to fit it into
     get fittedTransform() {
-      const bounds = self.layoutBounds
+      const bounds = this.layoutBounds
       const grid = this.facetGrid
       return !bounds
         ? undefined
@@ -263,7 +374,7 @@ export const withFitViews = withHostViews
               self.pixelRows,
               {
                 minScale: this.minFitScale,
-                padLeft: self.fitPadLeft,
+                padLeft: this.fitPadLeft,
                 padTop: this.fitPadTop,
                 padRight: this.fitPadRight,
               },
@@ -497,6 +608,7 @@ export const withFitViews = withHostViews
             fitToDrawing: self.popStack.length > 0,
             genes: self.showGenes ? self.backboneGenes : undefined,
             walkRows: self.walkRowBars,
+            walkRowPitch: self.walkRowPitch,
             rowGenes: self.walkRowGenes,
             rowGeneGaps: self.walkRowGeneGaps,
             walkStrip: self.walkStripRows && {

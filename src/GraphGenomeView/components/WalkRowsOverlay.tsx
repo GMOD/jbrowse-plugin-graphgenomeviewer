@@ -2,9 +2,11 @@ import { useId } from 'react'
 
 import {
   BAR_PX,
+  CALL_TICK,
   DISAGREES,
   GAP_PX,
   GENE_INK,
+  UNBACKED_TICK,
   walkRowsKey,
   walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -40,9 +42,6 @@ const svgStyle = {
   overflow: 'visible' as const,
   zIndex: 3,
 }
-
-const CALL_TICK = '#111'
-const UNBACKED_TICK = '#9e9e9e'
 
 const swatchStyle = { width: 18, height: BAR_PX - 4, borderRadius: 2 }
 const tickSwatchStyle = {
@@ -126,8 +125,8 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
       ) : null}
       {calls.some(call => call.agrees === false) ? (
         <div style={legendRowStyle}>
-          <div style={swatchStyle} />
-          <span style={{ color: DISAGREES }}>
+          <TickSwatch color={DISAGREES} />
+          <span>
             walk and call over {Math.round(CALL_TOLERANCE * 100)}% apart
           </span>
         </div>
@@ -164,6 +163,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
             translateY: model.translateY,
             width,
             height: canvasHeight,
+            ...model.walkRowPitch,
           },
           {
             ramp: model.referenceRampDomain,

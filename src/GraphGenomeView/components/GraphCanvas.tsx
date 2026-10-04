@@ -458,8 +458,15 @@ const HoverTooltips = observer(function HoverTooltips({
       ? undefined
       : model.deletions.find(d => d.edgeIndex === model.hoveredEdge)
 
+  const walkRow = model.hoveredWalkRowText
+
   return (
     <>
+      {walkRow && !hoveredNodeData ? (
+        <div style={tooltipStyle} data-testid="graph-walk-row-tooltip">
+          <strong>{walkRow.label}</strong> — {walkRow.readout}
+        </div>
+      ) : null}
       {hoveredNodeData ? (
         <div style={tooltipStyle}>
           <strong>{hoveredNodeData.name}</strong> —{' '}

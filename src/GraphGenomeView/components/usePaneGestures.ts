@@ -150,6 +150,13 @@ export function usePaneGestures(model: GraphPaneModel) {
       )
       pending.pan = null
     }
+    const bars = model.walkRowBars
+    if (pending.hover && bars) {
+      const i = model.walkRowAt(pending.hover.x, pending.hover.y)
+      model.setHoveredWalkRow(
+        i === undefined ? null : [bars.reference, ...bars.rows][i]!.name,
+      )
+    }
     if (pending.hover && model.nodePositions && model.graph) {
       const { x, y } = screenToGraph(pending.hover.x, pending.hover.y)
       pending.hover = null
@@ -233,6 +240,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     model.stopDragging()
     model.setHoveredNode(null)
     model.setHoveredEdge(null)
+    model.setHoveredWalkRow(null)
   }
 
   // Right-clicking a node is the gesture that asks "where is this?", and until

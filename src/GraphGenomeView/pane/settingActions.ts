@@ -190,6 +190,9 @@ export const withSettingActions = withFitViews
         self.hoveredRowWalks = walks
       }
     },
+    setHoveredWalkRow(name: string | null) {
+      self.hoveredWalkRow = name
+    },
     setHoveredBubble(bubble: MinigraphBubble | null) {
       self.hoveredBubble = bubble
     },
@@ -239,6 +242,7 @@ export const withSettingActions = withFitViews
     // is replaced, and by clearGraph.
     clearInteractionState() {
       self.hoveredNode = null
+      self.hoveredWalkRow = null
       self.hoveredBubble = null
       self.hoveredEdge = null
       self.selectedNode = null

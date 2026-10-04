@@ -2718,6 +2718,46 @@ describe('walk rows', () => {
     expect(model.walkStripShown).toBe(false)
   })
 
+  test('a cohort of walks packs into the pane, its names and readouts on hover', async () => {
+    rpcRespond()
+    const cohort = [
+      ...WALKS_GFA.trimEnd().split('\n'),
+      ...Array.from(
+        { length: 200 },
+        (_, i) => `W\tS${i}\t1\tctg\t0\t16\t>1>2>3`,
+      ),
+      '',
+    ].join('\n')
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(cohort, 'cohort')
+    model.setWidth(800)
+    const rows = model.walkRowBars!.rows.length + 1
+    const pitch = model.walkRowPitch!
+    expect(rows * pitch.rowPx).toBeLessThanOrEqual(model.paneCeiling)
+    expect(model.canvasHeight).toBeLessThanOrEqual(model.paneCeiling)
+    expect(pitch.labelled).toBe(false)
+    expect(model.drawnRowLabels).toEqual([])
+    const y = 5 * pitch.rowPx * model.scaleY + model.translateY
+    const x = (model.walkRowBars!.origin + 4) * model.scaleX + model.translateX
+    const i = model.walkRowAt(x, y)!
+    expect(i).toBe(5)
+    const row = model.walkRowBars!.rows[i - 1]!
+    model.setHoveredWalkRow(row.name)
+    expect(model.hoveredWalkRowText).toMatchObject({ label: row.label })
+    expect(model.hoveredWalkRowText!.readout).toContain('kb')
+    model.setWalkRowSamples(['A'])
+    expect(model.walkRowPitch!.labelled).toBe(true)
+    expect(model.drawnRowLabels.map(r => r.label)).toEqual([
+      'GRCh38#0',
+      'A#1',
+      'A#2',
+    ])
+    expect(model.hoveredWalkRowText).toBeUndefined()
+  })
+
   test('a sample filter keeps its walks, paired in the order named, and labels follow', async () => {
     rpcRespond()
     const model = stateModelFactory().create({
