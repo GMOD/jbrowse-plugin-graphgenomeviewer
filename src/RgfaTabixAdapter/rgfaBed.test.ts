@@ -1,4 +1,6 @@
 import {
+  closingLinks,
+  closingSpans,
   formatSubgraph,
   parseLinkLine,
   parseSegmentLine,
@@ -163,4 +165,90 @@ test('SM:Z: on a segs row reaches GraphNode.samples', async () => {
   )
   const graph = convertGFAToGraph(parseGFA(subgraphOf([segment])))
   expect(graph.nodes[0]!.samples).toEqual(['K12.1', 'Sakai.1', 'NCTC86.1'])
+})
+
+// The C4 allele's shape on NA18948#2: one hop reached 352179 and 352180 from
+// the left end and 352183 and 352184 from the right, with 352181 and 352182
+// between them unreached.
+const NA18948 = 'NA18948#2#CM101588.1'
+const piece = (id: string, start: number, end: number): RgfaSegment => ({
+  refName: NA18948,
+  start,
+  end,
+  id,
+  rank: 77,
+  tags: '',
+})
+const reached = [
+  piece('s352179', 32015241, 32036237),
+  piece('s352180', 32036237, 32036352),
+  piece('s352183', 32041508, 32047945),
+  piece('s352184', 32047945, 32047979),
+]
+
+const C4_WINDOW = { refName: 'GRCh38#0#chr6', start: 31979972, end: 32049972 }
+
+test('pieces of one stable sequence close as one span over the gap between them', () => {
+  expect(closingSpans(reached, new Set(), C4_WINDOW)).toEqual([
+    { refName: NA18948, start: 32015241, end: 32047979 },
+  ])
+})
+
+test('a gap wider than the window splits the span, and read pieces that abut need nothing', () => {
+  const narrow = { ...C4_WINDOW, end: C4_WINDOW.start + 1000 }
+  expect(closingSpans(reached, new Set(), narrow)).toEqual([])
+  expect(closingSpans(reached, new Set(['s352183']), narrow)).toEqual([
+    { refName: NA18948, start: 32041508, end: 32047979 },
+  ])
+})
+
+test('backbone past the window closes between abutting pieces only', () => {
+  const backbone = (id: string, start: number, end: number): RgfaSegment => ({
+    refName: C4_WINDOW.refName,
+    start,
+    end,
+    id,
+    rank: 0,
+    tags: '',
+  })
+  const held = [
+    backbone('s329760', 31932655, 31984683),
+    backbone('s400000', 32049000, 32050100),
+    backbone('s400001', 32050100, 32050200),
+    backbone('s400005', 32060000, 32060100),
+  ]
+  expect(closingSpans(held, new Set(), C4_WINDOW)).toEqual([
+    { refName: C4_WINDOW.refName, start: 32050100, end: 32050200 },
+    { refName: C4_WINDOW.refName, start: 32060000, end: 32060100 },
+  ])
+})
+
+test('a closing read keeps links between held segments and the pieces inside its span', () => {
+  const held = new Map(reached.map(s => [s.id, s]))
+  const link = (source: RgfaSegment, target: RgfaSegment): RgfaLink => ({
+    source: source.id,
+    sourceStrand: '+',
+    target: target.id,
+    targetStrand: '+',
+    sourceSegment: source,
+    targetSegment: target,
+  })
+  const s352181 = piece('s352181', 32036352, 32041501)
+  const s352182 = piece('s352182', 32041501, 32041508)
+  const elsewhere: RgfaSegment = {
+    ...piece('s355491', 31985674, 31985801),
+    refName: 'HG03688#1#JBHDTJ010000054.1',
+  }
+  const spans = closingSpans(reached, new Set(), C4_WINDOW)
+  const found = [
+    link(reached[1]!, s352181),
+    link(s352181, s352182),
+    link(s352182, reached[2]!),
+    link(s352181, elsewhere),
+  ]
+  expect(closingLinks(found, held, spans).map(l => l.target)).toEqual([
+    's352181',
+    's352182',
+    's352183',
+  ])
 })

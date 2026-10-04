@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
+
 import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
@@ -5,6 +8,7 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import { linkKey, parseLinkLine } from './rgfaBed.ts'
 
 // Built by scripts/build_rgfa_tabix.sh from the minigraph rGFA of four E. coli
 // strains at jbrowse.org/demos/ecoli_pangenome/ecoli_rgfa_slice.gfa (the
@@ -124,6 +128,49 @@ test('getSubgraph context adds another hop', async () => {
   const far = ids(await adapter.getSubgraph(k12, { hops: 1 }))
   expect(far.length).toBeGreaterThan(near.length)
   expect(far).toEqual(expect.arrayContaining(near))
+})
+
+// A hop reads the links of the round before it, so two segments reached in the
+// last round had the link between them dropped and an allele reached from
+// both ends drew as two stubs. Every window along K12, at one hop and two,
+// holds each fixture link whose two ends it holds.
+test('getSubgraph holds every link between two of its segments', async () => {
+  const adapter = makeAdapter()
+  const all = gunzipSync(readFileSync(`${prefix}.links.bed.gz`))
+    .toString()
+    .trim()
+    .split('\n')
+    .map(line => parseLinkLine(line))
+  const among = (gfa: string) => {
+    const lines = gfa.split('\n')
+    const ids = new Set(
+      lines.filter(l => l.startsWith('S')).map(l => l.split('\t')[1]!),
+    )
+    const held = new Set(
+      lines
+        .filter(l => l.startsWith('L'))
+        .map(l => l.split('\t').slice(1, 5).join('')),
+    )
+    return {
+      held,
+      expected: new Set(
+        all
+          .filter(link => ids.has(link.source) && ids.has(link.target))
+          .map(link => linkKey(link)),
+      ),
+    }
+  }
+  for (const hops of [1, 2]) {
+    for (let start = 993_000; start < 1_315_000; start += 4000) {
+      const { held, expected } = among(
+        await adapter.getSubgraph(
+          { ...k12, start, end: start + 8000 },
+          { hops },
+        ),
+      )
+      expect([...expected].filter(key => !held.has(key))).toEqual([])
+    }
+  }
 })
 
 // A hop is one query per off-reference segment, so a cut the view has replaced

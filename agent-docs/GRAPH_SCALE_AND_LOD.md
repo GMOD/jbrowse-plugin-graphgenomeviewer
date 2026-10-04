@@ -628,6 +628,18 @@ Both are legitimate answers to different questions; a figure that has to be an
 exact hop radius on the graph should be cut with the graph tool and loaded as a
 file (`gfaLocation`), which is what `pangenome/rgfa_paa_bubble` does.
 
+**The last round's links (2026-10-04).** Segment counts hid a missing link. A
+hop reads the links of the segments the round before it reached, so a link
+between two segments the last round reached was never read, though both drew.
+The tutorials' Nnt insertion (13.8 kb on CAST) and NA18948's extra C4 copy each
+drew as a stick with stubs at its tip; at two hops C4 still did. `getSubgraph`
+now closes the cut with one more parallel read (`closingSpans`): over each
+stable-sequence stretch of an allele's pieces, which also brings the pieces
+between, and over backbone reached past the window, keeping links between held
+segments only. At 1 hop that read is 6 to 11 queries at C4, Nnt, MHC class II
+and AMY1, against 12 to 93 for the hop itself. A hopless cut does not close, so
+None still draws stubs.
+
 A file-loaded graph has no `loadedRegion`, so the reference-position ramp had
 nothing to span and fell back to the file's own first/last backbone midpoints.
 `colorDomain` is how such a snapshot states the span instead, resolved with

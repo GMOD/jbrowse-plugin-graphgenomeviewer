@@ -110,6 +110,95 @@ export function linkKey(link: RgfaLink) {
 // indexed under each endpoint's stable sequence and arrives twice for a region
 // covering both. Callers dedupe on linkKey.
 
+export interface StableSpan {
+  refName: string
+  start: number
+  end: number
+}
+
+// Where a cut reads links once more to close itself. A hop reads the links of
+// the segments the round before it reached, so a link between two segments of
+// the last round is never read and an allele reached from both ends draws as
+// two stubs. rGFA lays an allele out as one stretch of the stable sequence that
+// introduced it, so pieces of one sequence within the window's length of each
+// other merge into a span, and reading it brings the pieces between too.
+// Backbone reached past the window is unread for the same reason; its spans
+// join only abutting pieces, since the reference past the window is not the
+// cut's to fill. A span whose segments were all read and abut is skipped.
+export function closingSpans(
+  held: RgfaSegment[],
+  unread: Set<string>,
+  window: StableSpan,
+) {
+  const outside = (segment: RgfaSegment) =>
+    segment.refName !== window.refName ||
+    segment.end <= window.start ||
+    segment.start >= window.end
+  return [
+    ...mergedSpans(
+      held.filter(segment => segment.rank > 0),
+      unread,
+      window.end - window.start,
+    ),
+    ...mergedSpans(
+      held.filter(segment => segment.rank === 0 && outside(segment)),
+      new Set(held.map(segment => segment.id)),
+      0,
+    ),
+  ]
+}
+
+function mergedSpans(
+  segments: RgfaSegment[],
+  unread: Set<string>,
+  maxGap: number,
+) {
+  const sorted = [...segments].sort(
+    (a, b) => compare(a.refName, b.refName) || a.start - b.start,
+  )
+  const spans: (StableSpan & { needed: boolean })[] = []
+  for (const segment of sorted) {
+    const span = spans.at(-1)
+    if (
+      span?.refName === segment.refName &&
+      segment.start - span.end <= maxGap
+    ) {
+      span.needed ||= segment.start > span.end || unread.has(segment.id)
+      span.end = Math.max(span.end, segment.end)
+    } else {
+      spans.push({
+        refName: segment.refName,
+        start: segment.start,
+        end: segment.end,
+        needed: unread.has(segment.id),
+      })
+    }
+  }
+  return spans
+    .filter(span => span.needed)
+    .map(({ refName, start, end }): StableSpan => ({ refName, start, end }))
+}
+
+// The links a closing read keeps: each end is a segment the cut holds or one
+// lying inside a span. Following anything else is what another hop is for.
+export function closingLinks(
+  found: RgfaLink[],
+  held: Map<string, RgfaSegment>,
+  spans: StableSpan[],
+) {
+  const inside = (segment: RgfaSegment) =>
+    held.has(segment.id) ||
+    spans.some(
+      span =>
+        span.refName === segment.refName &&
+        segment.start >= span.start &&
+        segment.end <= span.end,
+    )
+  return found.filter(
+    link => inside(link.sourceSegment) && inside(link.targetSegment),
+  )
+}
+
 // Segments carry no sequence here — the BED records only their span — so every
 // S-line is written with `*` and an LN tag, which is what the GFA spec asks for
 // and what packages/graph-core's parser reads back as the node length.

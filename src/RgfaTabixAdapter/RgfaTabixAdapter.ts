@@ -4,6 +4,8 @@ import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import {
+  closingLinks,
+  closingSpans,
   formatSubgraph,
   linkKey,
   parseLinkLine,
@@ -158,9 +160,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   //
   // `hops` is extra rounds of link-following past the region's own segments
   // and their immediate neighbours, each costing one tabix query per
-  // off-reference segment newly reached. One round is what closes a bubble, so
-  // it is the default the view asks for; see the frontier below. `signal` goes
-  // to every one of those queries, so a cut the view has replaced stops.
+  // off-reference segment newly reached. After the last round, one more read
+  // per stretch of stable sequence the cut holds closes it (closingSpans), so
+  // an allele reached from both ends draws whole. The view asks for one hop; a
+  // hopless cut stays as cheap as it was. `signal` goes to every one of those
+  // queries, so a cut the view has replaced stops.
   // `tier: 'coarse'` reads the `coarse` pair instead, the same way.
   async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
     const { hops = 0, signal, tier } = opts
@@ -218,6 +222,32 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         ),
       )
       frontier = offReference(reached.flat())
+    }
+    if (hops > 0) {
+      const spans = closingSpans(
+        [...segments.values()],
+        new Set(frontier.map(segment => segment.id)),
+        { refName: tabixRefName, start: region.start, end: region.end },
+      )
+      const found: RgfaLink[] = []
+      await Promise.all(
+        spans.map(span =>
+          index.links.getLines(span.refName, span.start, span.end, {
+            signal,
+            lineCallback: line => {
+              found.push(parseLinkLine(line))
+            },
+          }),
+        ),
+      )
+      for (const link of closingLinks(found, segments, spans)) {
+        links.set(linkKey(link), link)
+        for (const segment of [link.sourceSegment, link.targetSegment]) {
+          if (!segments.has(segment.id)) {
+            segments.set(segment.id, segment)
+          }
+        }
+      }
     }
 
     return formatSubgraph(segments, links)
