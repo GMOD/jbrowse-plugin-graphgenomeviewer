@@ -1,3 +1,14 @@
+## [6.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.1.0...v6.0.0) (2026-10-04)
+
+### Other Changes
+
+- The overview's rows can be clustered by divergence, as the variant display clusters samples ([7708211](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/77082118ed209abfc3bb35b69d5b93834d720ff8))
+- The graph's gene chips name what the gene lane draws ([393ee0b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/393ee0bf73c2caf40135fbcf892084beaf77de6c))
+- A gene's chip covers only nodes the gene lies on ([95e23dd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/95e23dd7a99740db58bd3256806b436c5a91c32e))
+- Exons outline the same way in every host, from one core element tree ([ef72f24](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ef72f24df95442ba8b7458c2a538ae4c627efa92))
+- A lanes window past nodeLimit reads as a zoom-in notice ([682c4ad](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/682c4ad15c4e381c877ebaa7c13c35907a8f54de))
+- Past the cut the graph track asks to zoom in; the haplotype overview is retired ([c71a5db](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c71a5db740086332c46efb478cdd2c17ce4bd8c6))
+
 ## [5.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.0.1...v5.1.0) (2026-10-04)
 
 ### Other Changes
