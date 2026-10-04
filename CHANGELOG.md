@@ -1,3 +1,12 @@
+## [6.1.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.0...v6.1.1) (2026-10-04)
+
+### Other Changes
+
+- Draw deletions by bandage-core's deletionDrawing ([f787f30](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f787f304f23798052603b36416b50036111b9b3a))
+- Depend on @jbrowse/bandage-core 7.0.0 ([424fb7c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/424fb7c4a1c2b1c57dd1c7ef6878de01ca01b9cb))
+- A gene record named only by gene_id gets its chip again ([d809e53](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d809e53b5ba0bc8354cc85942f8b61a583e29f46))
+- MinigraphBubbleAdapter's example reads the v2.1 bubbles file ([9d91c87](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9d91c8775e3141262e7ca2d25d8f62c7a51f7465))
+
 ## [6.1.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.3...v6.1.0) (2026-10-04)
 
 ### Other Changes
