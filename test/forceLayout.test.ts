@@ -24,7 +24,7 @@ const runE2E = process.env.RUN_E2E === '1'
 
 // esbuild emits `chunks/[name]-[hash]`; the hash alphabet is upper-case
 // alphanumeric, e.g. bandage-layout-6I4WKPOE.js.
-const ENGINE_CHUNK = /bandage-layout-[A-Z0-9]{8}\.js/
+const ENGINE_CHUNK = /bandage-layout(-[A-Z0-9]{8})+\.js/
 
 // End-to-end coverage of the one path unit tests can't reach: the force layout
 // running the Bandage WASM engine, fetched at runtime as the hashed sibling
@@ -65,9 +65,9 @@ describe.skipIf(!runE2E)('force-directed layout in a real JBrowse', () => {
       ),
     )
     expect(chunkRequests.length).toBeGreaterThan(0)
-    // esbuild's chunkNames is `chunks/[name]-[hash]`, so the engine arrives as
-    // bandage-layout-<hash>.js. What matters is that the name is content-hashed
-    // rather than a fixed bandage-layout.js resolved by hand.
+    // The core's build names the engine bandage-layout-<hash>, and this bundle
+    // hashes that file again. Either way the name is content-hashed rather than
+    // a fixed bandage-layout.js resolved by hand.
     expect(chunkRequests.every(u => ENGINE_CHUNK.test(u))).toBe(true)
   }, 180_000)
 
