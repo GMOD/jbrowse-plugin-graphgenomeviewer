@@ -1,3 +1,5 @@
+## [5.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.0.0...v5.2.0) (2026-10-04)
+
 ## [6.0.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v5.1.0...v6.0.0) (2026-10-04)
 
 ### Other Changes
