@@ -1,5 +1,4 @@
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { readConfObject } from '@jbrowse/core/configuration'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { getSession } from '@jbrowse/core/util'
 import { addDisposer, types } from '@jbrowse/mobx-state-tree'
@@ -10,6 +9,7 @@ import {
   graphReferenceAssembly,
   offReferenceProblem,
 } from '../graphTrackConfig'
+import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { SubgraphRegion } from '../GetSubgraph'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -132,7 +132,7 @@ export default function stateModelFactory() {
               ),
             )
           } else {
-            return self.cutSubgraph(readConfObject(track, 'adapter'), region, {
+            return self.cutSubgraph(trackAdapterConfig(self, track), region, {
               hops: self.subgraphContext,
               haplotypes: self.subgraphHaplotypes,
               ...(self.cutsWholeWalks

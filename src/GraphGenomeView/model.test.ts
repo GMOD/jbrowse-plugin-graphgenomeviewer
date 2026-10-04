@@ -37,6 +37,11 @@ function canonicalAssembly(name: string) {
       ? aliased
       : undefined
 }
+function aliasesOf(name: string) {
+  return Object.keys(mockSession.assemblyAliases).filter(
+    alias => mockSession.assemblyAliases[alias] === name,
+  )
+}
 const mockSession = {
   tracks: [] as { trackId: string; [key: string]: unknown }[],
   rpcManager: { call: mockRpcCall },
@@ -51,12 +56,13 @@ const mockSession = {
       const canonical = canonicalAssembly(name)
       return canonical === undefined
         ? undefined
-        : {
-            name: canonical,
-            aliases: Object.keys(mockSession.assemblyAliases).filter(
-              alias => mockSession.assemblyAliases[alias] === canonical,
-            ),
-          }
+        : { name: canonical, aliases: aliasesOf(canonical) }
+    },
+    get assemblyList(): { name: string; aliases: string[] }[] {
+      return mockSession.assemblyNames.map(name => ({
+        name,
+        aliases: aliasesOf(name),
+      }))
     },
   },
   views: [] as unknown[],

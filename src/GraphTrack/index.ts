@@ -10,7 +10,7 @@ import type DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 
 // core's synteny displays, copied to ask for headerLanes so only gbz-base
 // offers lanes or opens in a synteny, dotplot or circular view
-const SYNTENY_DISPLAYS = [
+export const SYNTENY_DISPLAYS = [
   'MultiWaySyntenyDisplay',
   'LinearSyntenyDisplay',
   'DotplotDisplay',

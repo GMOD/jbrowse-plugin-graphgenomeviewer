@@ -43,6 +43,7 @@ import {
 } from '@jbrowse/core/util'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
+import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
 import { GENE_ADAPTER_TYPES, pickGeneTrack } from '../genes/geneFeatures'
 import {
   REPEAT_ADAPTER_TYPES,
@@ -402,9 +403,7 @@ export const withGraphViews = paneBase
     },
     get sourceAdapter() {
       const track = self.sourceTrack
-      return track
-        ? (readConfObject(track, 'adapter') as Record<string, unknown>)
-        : undefined
+      return track ? trackAdapterConfig(self, track) : undefined
     },
     get sourceTrackId() {
       const track = self.sourceTrack

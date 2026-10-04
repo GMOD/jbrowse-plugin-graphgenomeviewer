@@ -36,6 +36,7 @@ import {
   offReferenceProblem,
   trackLanes,
 } from '../graphTrackConfig'
+import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
@@ -104,6 +105,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         settledWindow: undefined as HostWindow | undefined,
       }))
       .views(self => ({
+        get adapterConfig() {
+          return trackAdapterConfig(self, self.parentTrack.configuration)
+        },
         get defaultLayoutMode(): LayoutModeValue {
           return getConf(self, 'layoutMode')
         },

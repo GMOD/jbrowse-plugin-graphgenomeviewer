@@ -16,6 +16,7 @@ import MinigraphBubbleAdapterF from './MinigraphBubbleAdapter/index'
 import RgfaTabixAdapterF from './RgfaTabixAdapter/index'
 import GraphTrackDefaultsF from './graphTrackDefaults/index'
 import GraphHoverSyncF from './hoverSync/index'
+import PanSNAliasesF from './panSNAliases/index'
 import { PLUGIN_NAME } from './pluginName'
 import { version } from './version'
 
@@ -37,6 +38,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
     GbzBaseSyntenyAdapterF(pluginManager)
     GraphAddTrackWorkflowF(pluginManager)
     GraphTrackDefaultsF(pluginManager)
+    PanSNAliasesF(pluginManager)
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
     pluginManager.addRpcMethod(() => new GetGraphReads(pluginManager))

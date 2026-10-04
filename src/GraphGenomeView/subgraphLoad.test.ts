@@ -4,7 +4,10 @@ const mockRpcCall = vi.fn()
 const mockSession = {
   tracks: [] as Record<string, unknown>[],
   rpcManager: { call: mockRpcCall },
-  assemblyManager: { has: () => false },
+  assemblyManager: {
+    has: () => false,
+    assemblyList: [] as { name: string; aliases: string[] }[],
+  },
 }
 
 vi.mock('@jbrowse/core/util', () => ({
@@ -91,6 +94,7 @@ async function cut(region: typeof ON_HG38, gfa = GFA) {
 beforeEach(() => {
   mockRpcCall.mockReset()
   mockSession.tracks = [TRACK]
+  mockSession.assemblyManager.assemblyList = []
 })
 
 test('a cut on the reference draws', async () => {
@@ -379,6 +383,26 @@ describe('reads', () => {
     expect(model.layoutResult?.tubeMap?.layout.reads).toHaveLength(0)
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
+  })
+
+  test("a GBZ cut and its reads carry the PanSN names the session's assemblies alias", async () => {
+    mockSession.assemblyManager.assemblyList = [
+      { name: 'hg38', aliases: ['GRCh38'] },
+      { name: 'HG00097.1', aliases: ['HG00097#1'] },
+    ]
+    await cutWithReads(() => Promise.resolve({ records: [], total: 0 }))
+    const sent = mockRpcCall.mock.calls.map(
+      ([, method, args]) =>
+        [
+          method,
+          (args as { adapterConfig: Record<string, unknown> }).adapterConfig
+            .assemblyNameToPanSN,
+        ] as const,
+    )
+    expect(sent).toEqual([
+      ['GetSubgraph', { 'HG00097.1': 'HG00097#1' }],
+      ['GetGraphReads', { 'HG00097.1': 'HG00097#1' }],
+    ])
   })
 
   test('a track naming no reads asks for none', async () => {

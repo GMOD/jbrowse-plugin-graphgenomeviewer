@@ -311,6 +311,11 @@ function createEnvironment({ tiered = true, paths = false } = {}) {
     .volatile(() => ({
       rpcManager: { call: rpcCall },
       assemblyManager: {
+        assemblyList: [
+          { name: ASM, aliases: ['GRCh38'] },
+          { name: 'HG1.1', aliases: ['HG1#1'] },
+          { name: 'HG2.1', aliases: ['HG2#1'] },
+        ],
         get: (name: string) => (name === ASM ? assembly : undefined),
         has: (name: string) => name === ASM,
         waitForAssembly: () => Promise.resolve(assembly),
@@ -850,6 +855,30 @@ async function shownWalks(windowBp: number, setup?: (env: Env) => void) {
 }
 
 type Env = ReturnType<typeof createEnvironment>
+
+function sentPanSN(rpcCall: Env['rpcCall'], method: string) {
+  return rpcCall.mock.calls
+    .filter(([, m]) => m === method)
+    .map(
+      ([, , args]) =>
+        (args.adapterConfig as Record<string, unknown>).assemblyNameToPanSN,
+    )
+}
+
+test("a GBZ track's cuts and overviews carry the PanSN names its lanes' assemblies alias, and an rGFA track's do not", async () => {
+  const aliased = { 'HG1.1': 'HG1#1', 'HG2.1': 'HG2#1' }
+  const cut = sentPanSN((await shownWalks(60_000)).rpcCall, 'GetSubgraph')
+  expect(cut.length).toBeGreaterThan(0)
+  expect(cut).toEqual(cut.map(() => aliased))
+  const overview = sentPanSN(
+    (await shownWalks(6_000_000)).rpcCall,
+    'GetHaplotypeOverview',
+  )
+  expect(overview.length).toBeGreaterThan(0)
+  expect(overview).toEqual(overview.map(() => aliased))
+  const rgfa = sentPanSN((await shownGraph()).rpcCall, 'GetSubgraph')
+  expect(rgfa).toEqual([undefined])
+})
 
 test('past the bp cap a GBZ track reads the overview for the window and a window each side, and a pan inside it reads nothing', async () => {
   const { view, display, overviews, cuts } = await shownWalks(6_000_000)
