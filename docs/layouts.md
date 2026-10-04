@@ -302,7 +302,7 @@ runs red to yellow where GRCh38 runs yellow to red.
 
 **Export SVG** in the view's menu saves the drawing, its walks' keys and panels
 as a vector figure. The same renderer makes figures from a JSON spec with no
-browser; see [figures.md](figures.md).
+browser; see [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).
 
 While walks are lifted, node lengths are not labelled, since they would sit on
 the lanes.

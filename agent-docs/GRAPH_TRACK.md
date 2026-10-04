@@ -43,7 +43,7 @@ and a drag or a wheel on the canvas stays inside the track. The settle clock
 still re-cuts it as the view moves. A popped bubble is a picture of its own the
 same way.
 
-Such a drawing gets a reference strip (`packages/core/src/referenceStrip.ts`,
+Such a drawing gets a reference strip (`bandage-core/src/referenceStrip.ts`,
 `ReferenceStripOverlay`): each backbone node at its bp in the host's frame,
 painted the colour `getNodeColor` gives its node, so the strip and the graph
 cannot disagree about a hue. `fitPadTop` leaves the strip's zone clear, the

@@ -23,7 +23,6 @@ export default defineConfig({
     include: [
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
-      'packages/*/src/**/*.test.ts',
     ],
     setupFiles: [
       './config/vitest/textEncoder.js',

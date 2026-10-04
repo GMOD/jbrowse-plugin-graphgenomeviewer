@@ -38,29 +38,26 @@ config names its url.
 A dynamic `import()` takes no subresource-integrity hash. For pinned bytes,
 serve the plugin from an immutable, versioned url on a host you control.
 
-## Rebuilding the engine
+## The core
 
-`packages/core/src/bandage/bandage-layout.js` is a committed artifact, so
-`pnpm build` never needs Emscripten. After changing the C++ layout sources:
+The layout engine, renderers and graph logic live in
+[@jbrowse/bandage-core](https://github.com/GMOD/bandage-core), a separate repo
+this plugin installs from npm. To develop both at once, link a checkout into
+this one:
 
 ```console
-pnpm build:wasm   # needs emsdk only
+pnpm add -D @jbrowse/bandage-core@link:../bandage-core
 ```
 
-OGDF is vendored at `vendor/ogdf`, patched to build for wasm (see
-[vendor/README.md](../vendor/README.md)), so the build works offline. It takes
-about four minutes cold and seconds after. `-sSINGLE_FILE=1` embeds the wasm as
-base64, giving one ES module esbuild copies as-is.
-
-The artifact's bytes change for reasons the layout doesn't, so check a rebuild
-against the drawing with `scripts/layout-digest.mjs`
-([packages/core/src/bandage/README.md](../packages/core/src/bandage/README.md)).
+Run `pnpm build` in the core after each change, since the plugin reads its
+`dist/`. Undo the link with `pnpm add -D @jbrowse/bandage-core@^6` before
+committing `package.json` and the lockfile. The core's README covers rebuilding
+the WASM engine.
 
 ## Testing
 
 ```console
 pnpm test         # vitest unit tests
-pnpm test:wasm    # the committed Bandage engine
 pnpm test:e2e     # puppeteer, needs RUN_E2E=1 and a jbrowse-web build
 pnpm host-compat  # boots dist/ on hosted JBrowse releases and cuts a graph
 pnpm lint
@@ -73,23 +70,16 @@ serves `dist/` to a shipped config on each hosted release, which catches what
 tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
 a re-export the host no longer serves.
 
-BandageJS draws with this repo's core from npm, so CI's **BandageJS on this
-core** job packs the core as it would publish, installs it into BandageJS and
-runs BandageJS's tests on it: a core change can pass everything here and still
-break that page. `pnpm version` refuses unless the Push workflow, that job and
-the browser suites among it, passed on the commit being released
-(`scripts/ci-green.mjs`), so push the commit and let CI finish first.
-
-The job tests BandageJS's `core-next` branch when one exists, and its main
-otherwise. A breaking core API change lands here with its BandageJS side pushed
-to `core-next`, so CI tests the two together. After the release, BandageJS bumps
-core on `core-next`, fast-forwards main to it, and deletes the remote branch.
+`pnpm version` refuses unless the Push workflow, the browser suites among it,
+passed on the commit being released (`scripts/ci-green.mjs`), so push the commit
+and let CI finish first. The core's own CI packs the core and runs this plugin's
+tests on it, using a `core-next` branch here when one exists.
 
 If the version commit fails with `cannot lock ref 'HEAD'`, another session
 landed mid-run. Unstage and restore what the version script wrote, then rerun:
 
 ```console
-git restore --staged --worktree CHANGELOG.md package.json packages/core/package.json src/version.ts packages/core/src/version.ts
+git restore --staged --worktree CHANGELOG.md package.json src/version.ts
 ```
 
 The jbrowse-components tutorials, demos and figure fixtures load the plugin from
@@ -114,7 +104,5 @@ The script serves `dist/` to jbrowse.org's hosted HPRC demo, the way
 two tube map figures draw local fixtures instead; the header of
 `scripts/shoot-figures.mjs` names the e2e tests that frame them.
 
-`node scripts/render-figures.mjs` renders the specs in `figures/` with the
-core's `bandage-figure` (build the core first), and `figure.test.ts` keeps one
-saved figure: a change to what figures draw shows up as its diff, accepted with
-`vitest -u`. See [figures.md](figures.md).
+The core's `bandage-figure` renders figures from a spec; see its
+[figures guide](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).

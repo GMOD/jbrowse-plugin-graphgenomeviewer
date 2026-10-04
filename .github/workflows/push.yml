@@ -5,21 +5,6 @@ on:
   pull_request:
 
 jobs:
-  # Runs standalone: the engine artifact needs no JBrowse deps and no toolchain,
-  # only node. Guards against the committed wasm being corrupted by a formatter
-  # or truncated by a bad merge, which nothing else would notice until a user
-  # actually asked for a force-directed layout.
-  wasm-smoke:
-    name: Bandage engine smoke test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24.x
-      - name: Compute a layout with the committed engine
-        run: node scripts/smoke-wasm.mjs
-
   spellcheck:
     name: Spell check
     runs-on: ubuntu-latest
@@ -48,8 +33,6 @@ jobs:
       # eslint disagree about who owns layout and the repo lets prettier win.
       - run: pnpm format:check
       - run: pnpm test
-      - name: Verify the vendored engine still loads
-        run: pnpm test:wasm
 
   # The only check that sees a bundle fail on a host: tsc, eslint and the unit
   # tests all passed while an RPC argument no released core could post to its
@@ -95,47 +78,3 @@ jobs:
           npx @jbrowse/cli create .test-jbrowse --url
           https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.11/jbrowse-web-v5.0.0-beta.11.zip
       - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e
-
-  # BandageJS draws with this repo's core from npm, so a core change that breaks
-  # it shows only after a release: 4.0.24's gene labels vanished there against
-  # the pane's edge. This packs the core as it would publish, installs it into
-  # BandageJS and runs BandageJS's unit and browser tests on it. A core API
-  # change lands with BandageJS's side on its core-next branch, tested here in
-  # place of main until the release, when main takes it and the branch goes.
-  bandagejs:
-    name: BandageJS on this core
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: bandagejs
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/cmdcolin/BandageJS core-next > /dev/null; then
-            echo ref=core-next >> "$GITHUB_OUTPUT"
-          else
-            echo ref=main >> "$GITHUB_OUTPUT"
-          fi
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: cmdcolin/BandageJS
-          ref: ${{ steps.bandagejs.outputs.ref }}
-          path: bandagejs
-      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
-        with:
-          version: latest
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24.x
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm pack --pack-destination "$RUNNER_TEMP"
-        working-directory: packages/core
-      - run: pnpm install --frozen-lockfile
-        working-directory: bandagejs
-      - run: pnpm add -D "$RUNNER_TEMP"/jbrowse-bandage-core-*.tgz
-        working-directory: bandagejs
-      - run: pnpm exec playwright install --with-deps chromium
-        working-directory: bandagejs
-      - run: pnpm typecheck
-        working-directory: bandagejs
-      - run: pnpm test
-        working-directory: bandagejs

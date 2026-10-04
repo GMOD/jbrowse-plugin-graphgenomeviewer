@@ -11,7 +11,7 @@
 - Needs a halo that skips the shaft: clip the outline to the node strokes under
   the head, or stroke only the two barbs.
 - Code: `renderArrows` / `arrowheadOutline` in
-  `packages/core/src/renderer/Canvas2DRenderer.ts`.
+  `bandage-core/src/renderer/Canvas2DRenderer.ts`.
 
 ### Bandage-style pointed node ends
 
@@ -33,7 +33,7 @@
 
 - Goal: a figure's strip boxes every row's genes, as the view's strip does.
   Today the spec's `genes` are the backbone's, so `renderSpec` in
-  `packages/core/src/cli/figure.ts` boxes the reference row only and the key
+  `bandage-core/src/cli/figure.ts` boxes the reference row only and the key
   says "no gene track" for the rest.
 - Needs a spec field mapping each sample to its gene file, plus contig aliases
   per file, as `genes.refNames` gives the backbone's.
@@ -48,7 +48,7 @@
 - A lifted walk's name goes bold on the strip, but its bar doesn't take its lane
   colour. A chip beside the label or an outline round the bar would; decide
   whether `bandage-figure` follows.
-- `walkStripLabelsTree` in `packages/core/src/layout/walkStrip.ts` takes the
+- `walkStripLabelsTree` in `bandage-core/src/layout/walkStrip.ts` takes the
   lifted set as `bold`. An additive optional argument with each walk's colour
   avoids a breaking core change.
 

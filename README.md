@@ -54,7 +54,7 @@ node in the view bands its bp in the linear view:
   walk or a row per sample, each shading from its start to its end
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 - Figures as SVG, from the view's Export SVG or from a JSON spec with no browser
-  ([docs/figures.md](docs/figures.md))
+  ([docs/figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md))
 
 ## Usage
 
