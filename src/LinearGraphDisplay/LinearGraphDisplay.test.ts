@@ -669,7 +669,9 @@ test('a tube map on its own axis ties each reference box to its bp in the linear
 test("a folded tube map draws the cut's reference as merged nodes, and the rest as ticks or routes", async () => {
   const { pane } = await shownGraph({ paths: true })
   const labels = () =>
-    pane.trackMenuItems().map(item => ('label' in item ? item.label : ''))
+    pane
+      .layoutOptionMenuItems()
+      .map(item => ('label' in item ? item.label : ''))
   expect(labels()).not.toContain('Fold variants')
   await pane.switchLayout('tubemap')
   await wait(SETTLE_MS)
@@ -1078,9 +1080,9 @@ test('the track menu offers the layouts, colours and the settings dialog', async
     .trackMenuItems()
     .map(item => ('label' in item ? item.label : ''))
   expect(labels).toEqual(
-    expect.arrayContaining(['Layout', 'Color', 'Mark bubbles', 'Settings']),
+    expect.arrayContaining(['Layout', 'Color', 'Show...', 'Settings']),
   )
-  expect(labels).not.toContain('Zoom in')
+  expect(labels).not.toContain('Zoom')
 })
 
 function graphViewItem(display: LinearGraphDisplayModel) {

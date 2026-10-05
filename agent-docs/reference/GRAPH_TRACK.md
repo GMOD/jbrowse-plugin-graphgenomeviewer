@@ -43,10 +43,10 @@ made again by the next viewport change, as on the other linear-view tracks.
 
 A layout whose x is not reference bp — force-directed and ordered — draws in its
 own coordinates inside the track, the way a variant matrix does: the pane owns
-its viewport (`fit`, then `user`), the track menu carries zoom in, out and fit,
-and a drag or a wheel on the canvas stays inside the track. The settle clock
-still re-cuts it as the view moves. A popped bubble is a picture of its own the
-same way.
+its viewport (`fit`, then `user`), the track menu's Zoom carries in, out and
+fit, and a drag or a wheel on the canvas stays inside the track. The settle
+clock still re-cuts it as the view moves. A popped bubble is a picture of its
+own the same way.
 
 Such a drawing gets a reference strip (`bandage-core/src/referenceStrip.ts`,
 `ReferenceStripOverlay`): each backbone node at its bp in the host's frame,

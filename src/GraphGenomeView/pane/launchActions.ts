@@ -4,6 +4,12 @@ import { LAYOUT_MODES } from '@jbrowse/bandage-core/layoutModes'
 import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
+import HubIcon from '@mui/icons-material/Hub'
+import PaletteIcon from '@mui/icons-material/Palette'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
+import RouteIcon from '@mui/icons-material/Route'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import ZoomInIcon from '@mui/icons-material/ZoomIn'
 
 import {
   ChooseSamplesDialog,
@@ -157,23 +163,198 @@ export const withLaunchActions = withRenderingActions
         })),
       ]
     },
+    layoutOptionMenuItems(): MenuItem[] {
+      const items: MenuItem[] = [
+        ...(TUBE_MAP_MODES.has(self.chosenLayoutMode)
+          ? [
+              {
+                label: 'Fold variants',
+                subMenu: TUBE_MAP_FOLDS.map(({ bp, label }) => ({
+                  type: 'radio' as const,
+                  label,
+                  checked: self.tubeMapFold === bp,
+                  disabled: bp > 0 && self.graph?.reads !== undefined,
+                  onClick: () => {
+                    self.setTubeMapFold(bp)
+                    void self.recomputeLayout()
+                  },
+                })),
+              },
+            ]
+          : []),
+        ...(self.chosenLayoutMode === 'walkrows' &&
+        self.repeatChoices.length > 0
+          ? [
+              {
+                label: 'Repeat',
+                subMenu: [
+                  {
+                    type: 'radio' as const,
+                    label: 'Whole window',
+                    checked: self.repeatKey === '',
+                    onClick: () => {
+                      self.setRepeatKey('')
+                    },
+                  },
+                  ...self.repeatChoices.map(({ key, name, unit }) => ({
+                    type: 'radio' as const,
+                    label: `${name} · ${unit.toLocaleString()} bp unit`,
+                    checked: self.repeatKey === key,
+                    onClick: () => {
+                      self.setRepeatKey(key)
+                    },
+                  })),
+                ],
+              },
+            ]
+          : []),
+        ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
+          ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
+          : []),
+        ...(self.chosenLayoutMode === 'walkrows' &&
+        self.walkRowBars &&
+        self.walkRowGroupFields.length > 0
+          ? [{ label: 'Group by…', subMenu: this.walkRowGroupMenuItems() }]
+          : []),
+      ]
+      return items.length > 0 ? [{ type: 'divider' }, ...items] : []
+    },
+    showMenuItems(): MenuItem[] {
+      return [
+        {
+          type: 'checkbox',
+          label: 'Show bubble halos',
+          checked: self.showBubbles,
+          onClick: () => {
+            self.setShowBubbles(!self.showBubbles)
+          },
+        },
+        {
+          type: 'checkbox',
+          label: 'Show deletion edges',
+          checked: self.showDeletionEdges,
+          onClick: () => {
+            void self.toggleDeletionEdges()
+          },
+        },
+        {
+          type: 'checkbox',
+          label: 'Show genes on the backbone',
+          checked: self.showGenes,
+          onClick: () => {
+            self.setShowGenes(!self.showGenes)
+          },
+        },
+        ...(!self.host &&
+        self.modeDrawsNodes &&
+        (self.graph?.paths?.length ?? 0) > 1
+          ? [
+              {
+                type: 'checkbox' as const,
+                label: 'Show walk rows',
+                checked: self.walkStrip,
+                onClick: () => {
+                  self.setWalkStrip(!self.walkStrip)
+                },
+              },
+            ]
+          : []),
+        ...(self.referenceStripApplies
+          ? [
+              {
+                type: 'checkbox' as const,
+                label: 'Show reference strip',
+                checked: self.showReferenceStrip,
+                onClick: () => {
+                  self.setShowReferenceStrip(!self.showReferenceStrip)
+                },
+              },
+            ]
+          : []),
+      ]
+    },
+    zoomMenuItems(): MenuItem[] {
+      return [
+        {
+          label: 'Zoom in',
+          onClick: () => {
+            self.zoom(1.5, self.viewBox.width / 2, self.viewBox.height / 2)
+          },
+        },
+        {
+          label: 'Zoom out',
+          onClick: () => {
+            self.zoom(1 / 1.5, self.viewBox.width / 2, self.viewBox.height / 2)
+          },
+        },
+        {
+          label: 'Zoom to fit',
+          onClick: () => {
+            self.zoomToFit()
+          },
+        },
+      ]
+    },
+    exportMenuItems(): MenuItem[] {
+      return [
+        {
+          label: 'Save SVG',
+          disabled: self.figureUnavailable !== undefined,
+          disabledHelpText: self.figureUnavailable,
+          onClick: () => {
+            const svg = self.figure()
+            if (svg) {
+              downloadText(
+                svg,
+                `${(self.graph?.name ?? 'graph').replaceAll(/[^\w.-]+/g, '_')}.svg`,
+              )
+            }
+          },
+        },
+        {
+          label: 'Copy figure spec',
+          disabled: self.figureSpecUnavailable !== undefined,
+          disabledHelpText: self.figureSpecUnavailable,
+          onClick: () => {
+            const spec = self.figureSpec()
+            const session = getSession(self)
+            navigator.clipboard
+              .writeText(`${JSON.stringify(spec, null, 2)}\n`)
+              .then(() => {
+                session.notify(
+                  'Figure spec copied. Save it as spec.json and run: npx -p @jbrowse/bandage-core bandage-figure spec.json -o figure.svg',
+                  'info',
+                )
+              })
+              .catch((e: unknown) => {
+                session.notify(`Could not copy the figure spec: ${String(e)}`)
+              })
+          },
+        },
+      ]
+    },
     graphMenuItems(): MenuItem[] {
       const walks = self.walkChoices
       return [
         {
           label: 'Layout',
-          subMenu: LAYOUT_MODES.map(mode => ({
-            type: 'radio' as const,
-            label: mode.label,
-            checked: self.chosenLayoutMode === mode.value,
-            disabled: self.graph ? !mode.available(self.graph) : false,
-            onClick: () => {
-              void self.switchLayout(mode.value)
-            },
-          })),
+          icon: HubIcon,
+          subMenu: [
+            ...LAYOUT_MODES.map(mode => ({
+              type: 'radio' as const,
+              label: mode.label,
+              checked: self.chosenLayoutMode === mode.value,
+              disabled: self.graph ? !mode.available(self.graph) : false,
+              onClick: () => {
+                void self.switchLayout(mode.value)
+              },
+            })),
+            ...this.layoutOptionMenuItems(),
+          ],
         },
         {
           label: 'Color',
+          icon: PaletteIcon,
           subMenu: COLOR_SCHEMES.map(scheme => ({
             type: 'radio' as const,
             label: scheme.label,
@@ -187,6 +368,7 @@ export const withLaunchActions = withRenderingActions
           ? [
               {
                 label: 'Walk',
+                icon: RouteIcon,
                 subMenu: [
                   {
                     label: 'None',
@@ -292,170 +474,24 @@ export const withLaunchActions = withRenderingActions
               },
             ]
           : []),
-        ...(TUBE_MAP_MODES.has(self.chosenLayoutMode)
-          ? [
-              {
-                label: 'Fold variants',
-                subMenu: TUBE_MAP_FOLDS.map(({ bp, label }) => ({
-                  type: 'radio' as const,
-                  label,
-                  checked: self.tubeMapFold === bp,
-                  disabled: bp > 0 && self.graph?.reads !== undefined,
-                  onClick: () => {
-                    self.setTubeMapFold(bp)
-                    void self.recomputeLayout()
-                  },
-                })),
-              },
-            ]
-          : []),
-        ...(self.chosenLayoutMode === 'walkrows' &&
-        self.repeatChoices.length > 0
-          ? [
-              {
-                label: 'Repeat',
-                subMenu: [
-                  {
-                    type: 'radio' as const,
-                    label: 'Whole window',
-                    checked: self.repeatKey === '',
-                    onClick: () => {
-                      self.setRepeatKey('')
-                    },
-                  },
-                  ...self.repeatChoices.map(({ key, name, unit }) => ({
-                    type: 'radio' as const,
-                    label: `${name} · ${unit.toLocaleString()} bp unit`,
-                    checked: self.repeatKey === key,
-                    onClick: () => {
-                      self.setRepeatKey(key)
-                    },
-                  })),
-                ],
-              },
-            ]
-          : []),
-        ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
-          ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
-          : []),
-        ...(self.chosenLayoutMode === 'walkrows' &&
-        self.walkRowBars &&
-        self.walkRowGroupFields.length > 0
-          ? [{ label: 'Group by…', subMenu: this.walkRowGroupMenuItems() }]
-          : []),
+        {
+          label: 'Show...',
+          icon: VisibilityIcon,
+          subMenu: this.showMenuItems(),
+        },
         ...(self.hostPlacesX
           ? []
           : [
               {
-                label: 'Zoom in',
-                onClick: () => {
-                  self.zoom(
-                    1.5,
-                    self.viewBox.width / 2,
-                    self.viewBox.height / 2,
-                  )
-                },
-              },
-              {
-                label: 'Zoom out',
-                onClick: () => {
-                  self.zoom(
-                    1 / 1.5,
-                    self.viewBox.width / 2,
-                    self.viewBox.height / 2,
-                  )
-                },
-              },
-              {
-                label: 'Zoom to fit',
-                onClick: () => {
-                  self.zoomToFit()
-                },
+                label: 'Zoom',
+                icon: ZoomInIcon,
+                subMenu: this.zoomMenuItems(),
               },
             ]),
         {
-          type: 'checkbox',
-          label: 'Mark bubbles',
-          checked: self.showBubbles,
-          onClick: () => {
-            self.setShowBubbles(!self.showBubbles)
-          },
-        },
-        {
-          type: 'checkbox',
-          label: 'Show deletion edges',
-          checked: self.showDeletionEdges,
-          onClick: () => {
-            void self.toggleDeletionEdges()
-          },
-        },
-        {
-          type: 'checkbox',
-          label: 'Genes on the backbone',
-          checked: self.showGenes,
-          onClick: () => {
-            self.setShowGenes(!self.showGenes)
-          },
-        },
-        ...(!self.host &&
-        self.modeDrawsNodes &&
-        (self.graph?.paths?.length ?? 0) > 1
-          ? [
-              {
-                type: 'checkbox' as const,
-                label: 'Walk rows under the graph',
-                checked: self.walkStrip,
-                onClick: () => {
-                  self.setWalkStrip(!self.walkStrip)
-                },
-              },
-            ]
-          : []),
-        ...(self.referenceStripApplies
-          ? [
-              {
-                type: 'checkbox' as const,
-                label: 'Reference strip at bp',
-                checked: self.showReferenceStrip,
-                onClick: () => {
-                  self.setShowReferenceStrip(!self.showReferenceStrip)
-                },
-              },
-            ]
-          : []),
-        {
-          label: 'Export SVG',
-          disabled: self.figureUnavailable !== undefined,
-          disabledHelpText: self.figureUnavailable,
-          onClick: () => {
-            const svg = self.figure()
-            if (svg) {
-              downloadText(
-                svg,
-                `${(self.graph?.name ?? 'graph').replaceAll(/[^\w.-]+/g, '_')}.svg`,
-              )
-            }
-          },
-        },
-        {
-          label: 'Copy figure spec',
-          disabled: self.figureSpecUnavailable !== undefined,
-          disabledHelpText: self.figureSpecUnavailable,
-          onClick: () => {
-            const spec = self.figureSpec()
-            const session = getSession(self)
-            navigator.clipboard
-              .writeText(`${JSON.stringify(spec, null, 2)}\n`)
-              .then(() => {
-                session.notify(
-                  'Figure spec copied. Save it as spec.json and run: npx -p @jbrowse/bandage-core bandage-figure spec.json -o figure.svg',
-                  'info',
-                )
-              })
-              .catch((e: unknown) => {
-                session.notify(`Could not copy the figure spec: ${String(e)}`)
-              })
-          },
+          label: 'Export',
+          icon: PhotoCameraIcon,
+          subMenu: this.exportMenuItems(),
         },
       ]
     },

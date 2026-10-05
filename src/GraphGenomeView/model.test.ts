@@ -2793,7 +2793,7 @@ describe('walk rows', () => {
     await model.loadGFA(WALKS_GFA, 'walks')
     const samples = () =>
       (
-        (model.graphMenuItems() as MenuItem[]).find(
+        (model.layoutOptionMenuItems() as MenuItem[]).find(
           item => item.label === 'Samples',
         ) as { subMenu: (MenuItem & { onClick: () => void })[] }
       ).subMenu
@@ -3845,7 +3845,7 @@ describe('walk rows grouped by a sample column', () => {
     const model = await groupedModel()
     const groupBy = () =>
       (
-        (model.graphMenuItems() as MenuItem[]).find(
+        (model.layoutOptionMenuItems() as MenuItem[]).find(
           item => item.label === 'Group by…',
         ) as { subMenu: (MenuItem & { onClick: () => void })[] }
       ).subMenu
@@ -3867,7 +3867,7 @@ describe('walk rows grouped by a sample column', () => {
     mockSession.tracks = []
     const model = await groupedModel()
     expect(
-      (model.graphMenuItems() as MenuItem[]).some(
+      (model.layoutOptionMenuItems() as MenuItem[]).some(
         item => item.label === 'Group by…',
       ),
     ).toBe(false)

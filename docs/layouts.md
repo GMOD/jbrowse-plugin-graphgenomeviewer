@@ -50,7 +50,7 @@ Walks picker lifts haplotypes, the strip gives each lifted walk a row in its
 lane's colours, pale where that walk skips a reference segment, so a deletion is
 a pale gap in one haplotype's row. A triangle at either end of the strip says
 the graph draws reference past that edge of the window. The track menu's
-**Reference strip at bp** turns the strip off.
+**Show... › Show reference strip** turns the strip off.
 
 Where does KIV-2's longest allele go on GRCh38? Hovering HG02391's 68 kb segment
 boxes its span between its flanks on the strip, and the linear view bands the
@@ -181,10 +181,10 @@ what names the two that are not the reference:
 The plugin reads `gfatools bubble` output from `<prefix>.bubbles.bed.gz` beside
 the rGFA index, which HPRC's hosted graph has and `scripts/build_rgfa_tabix.sh`
 in jbrowse-components writes. For a GBZ cut, a pggb file or a popped bubble, the
-plugin derives bubbles from the ordered layout's layering. With **Mark bubbles**
-on, the node layouts draw each as a halo along its nodes, coloured by kind,
-which the legend names. It is off by default, since at base level every SNP's
-halo is a blob.
+plugin derives bubbles from the ordered layout's layering. With **Show... › Show
+bubble halos** on, the node layouts draw each as a halo along its nodes,
+coloured by kind, which the legend names. It is off by default, since at base
+level every SNP's halo is a blob.
 
 The HPRC bubbles track draws the same `gfatools bubble` records at their bp, so
 each halo is a feature above it: the 3,018–174,966 bp record, 29 segments and up
@@ -300,9 +300,9 @@ inverted haplotype visit the same nodes, so side by side is how a force drawing
 shows an inversion: at MAPT, HG002's first haplotype has the H2 inversion and
 runs red to yellow where GRCh38 runs yellow to red.
 
-**Export SVG** in the view's menu saves the drawing, its walks' keys and panels
-as a vector figure. The same renderer makes figures from a JSON spec with no
-browser; see
+**Export › Save SVG** in the track menu saves the drawing, its walks' keys and
+panels as a vector figure. The same renderer makes figures from a JSON spec with
+no browser; see
 [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).
 
 While walks are lifted, node lengths are not labelled, since they would sit on
