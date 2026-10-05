@@ -76,7 +76,7 @@ suites (`walkRows`, `walkStrip`) skip without a word.
 
 `tubeMapReads.test.ts` serves `test_data/cactus/`, sequenceTubeMap's cactus
 graph with NA12879's reads over nodes 240–280. The whole read set, 51k reads, is
-at `~/src/vendor/sequenceTubeMapModern/exampleData/cactus-NA12879.gaf.gz`.
+at `~/src/sequenceTubeMapModern/exampleData/cactus-NA12879.gaf.gz`.
 
 **The host has to be at least 5.0.0-beta.11**, the version the plugin's
 `@jbrowse/*` dependencies are pinned to. An older host lacks core APIs the
