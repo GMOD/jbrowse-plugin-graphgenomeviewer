@@ -52,6 +52,18 @@ export default function stateModelFactory() {
         maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
       }),
     )
+    .volatile(() => ({
+      widthMeasured: false,
+    }))
+    .actions(self => {
+      const setBaseWidth = self.setWidth
+      return {
+        setWidth(width: number) {
+          setBaseWidth(width)
+          self.widthMeasured = true
+        },
+      }
+    })
     .views(self => ({
       get rpcSessionId() {
         return self.id
@@ -59,6 +71,10 @@ export default function stateModelFactory() {
       // a view is not its own containing view
       get paneWidth() {
         return self.width
+      },
+      // until then the width is BaseViewModel's 800 px default
+      get paneMeasured() {
+        return self.widthMeasured
       },
       get cutHaplotypes() {
         return self.subgraphHaplotypes

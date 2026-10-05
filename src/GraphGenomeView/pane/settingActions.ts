@@ -25,6 +25,7 @@ import type { FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
+import type { LayoutResult } from '@jbrowse/bandage-core/types'
 import type {
   WalkEncoding,
   WalkLayer,
@@ -40,6 +41,7 @@ export const withSettingActions = withFitViews
       if (
         !bounds ||
         self.viewportOwner === 'fit' ||
+        !self.paneMeasured ||
         view.width <= 0 ||
         view.height <= 0
       ) {
@@ -418,19 +420,29 @@ export const withSettingActions = withFitViews
         self.zoomToFit()
       }
     },
-    // A new layout in place of one the user had moved. A force run or a
-    // fresh cut draws in coordinates of its own, where the old transform
-    // shows nothing in particular, so it is fitted; one on the reference's
-    // bp keeps the view while any of it is on screen. The first layout
-    // after a restored session is the view the session saved.
-    followNewLayout(replaced: boolean) {
+    // A new layout under a view the user placed. One that replaces a
+    // drawing is fitted unless both are on the reference's bp and some of it
+    // is still on screen: a force run or a fresh cut draws in coordinates of
+    // its own, where the old transform shows nothing in particular. The
+    // first layout after a restored session keeps the saved view, pulled
+    // into the pane once its width is known.
+    followNewLayout(previous: LayoutResult | undefined) {
       const bounds = self.layoutBounds
       if (
-        replaced &&
-        self.viewportOwner === 'user' &&
-        bounds &&
-        (!self.xIsReferenceBp || !onScreen(bounds, self, self.viewBox))
+        self.viewportOwner !== 'user' ||
+        !bounds ||
+        previous === self.layoutResult
       ) {
+        return
+      }
+      const keepsAxis = previous?.referenceAxis === true && self.xIsReferenceBp
+      if (
+        previous === undefined ||
+        (keepsAxis &&
+          (!self.paneMeasured || onScreen(bounds, self, self.viewBox)))
+      ) {
+        self.keepDrawingInView()
+      } else {
         self.viewportOwner = 'fit'
         self.zoomToFit()
       }

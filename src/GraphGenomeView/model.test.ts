@@ -336,6 +336,21 @@ describe('restoring a stated cut', () => {
     expect(model.viewportOwner).toBe('user')
     expect(model.translateX).toBe(1200)
   })
+
+  test('a restored view off a narrower pane is pulled back in, not refitted', async () => {
+    rpcRespond()
+    const model = restoredView()
+    model.setTransform(2, 1200, 80)
+    await model.load()
+    model.startRenderingBackend(fakeRenderer())
+    model.setWidth(600)
+    expect(model.viewportOwner).toBe('user')
+    expect(model.scale).toBe(2)
+    // a drawing narrower than the margin comes back whole, against the edge
+    const b = model.layoutBounds!
+    const left = b.minX * model.scaleX + model.translateX
+    expect(left + b.w * model.scaleX).toBeCloseTo(600, 6)
+  })
 })
 
 describe('performance instrumentation', () => {
@@ -3956,6 +3971,22 @@ describe('keeping the drawing on screen', () => {
     model.clearGraph()
     await model.loadGFA(SIMPLE_GFA, 'again')
 
+    expect(model.viewportOwner).toBe('fit')
+    expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
+  })
+
+  // the force drawing's scale means nothing on the reference's bp
+  test('switching from force to a layout on the reference refits a moved view', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    model.startRenderingBackend(fakeRenderer())
+    model.setWidth(800)
+    model.zoom(1.2, 400, 100)
+    expect(model.viewportOwner).toBe('user')
+
+    await model.switchLayout('auto')
+    expect(model.xIsReferenceBp).toBe(true)
     expect(model.viewportOwner).toBe('fit')
     expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
   })

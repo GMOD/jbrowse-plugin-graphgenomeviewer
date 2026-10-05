@@ -117,6 +117,10 @@ export const withGraphViews = paneBase
     get paneWidth() {
       return getContainingView(self).width
     },
+    // a linear view knows its width before its tracks draw
+    get paneMeasured() {
+      return true
+    },
     // The graph the drawing's node ids address: a folded tube map's coarse
     // graph, the cut otherwise. Hover, details and labels read it, so a
     // merged node reports its own span and length.
