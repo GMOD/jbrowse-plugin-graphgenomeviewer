@@ -46,8 +46,8 @@ importers:
         specifier: ^2.1.2
         version: 2.1.2
       '@jbrowse/bandage-core':
-        specifier: ^7.5.1
-        version: 7.5.1
+        specifier: ^8.0.0
+        version: 8.0.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -616,10 +616,6 @@ packages:
   '@gmod/tabix@3.9.1':
     resolution: {integrity: sha512-RaiSL3O4eclLOYaoHkkqdpr0EfhwmmGPj5xdbmsNNItdVlpnEM4lJ1dRzl26nFYVodEJSv+Krqr/5hWxMy1Q6w==}
 
-  '@gmod/tubemap-core@0.1.0':
-    resolution: {integrity: sha512-PUrfgB3QWDkeIxhi6CA9vS3zz1nru9mLo9GENwlyPKt0N8xMu/Fg6pz0L9kjnrUKSz9SjhW/vJPiY5hiTJODPw==}
-    deprecated: Moved to @jbrowse/tubemap-core
-
   '@gmod/vcf@7.2.0':
     resolution: {integrity: sha512-F5uZ3j1hzpEBtPppveZt+ngJ/6CbGy9wfqNdExBQ6h853ABr/2mOWnuuq5Uv5ekslhQEgxWr0+r9z0JSZU596w==}
 
@@ -652,8 +648,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@7.5.1':
-    resolution: {integrity: sha512-Oxyz301Z+8ffwLhxoSz/kpqnPIoISv8wRH9yPbo8Bn45wZ4SvLbBVkzqBE4GEarUR+5wvCxW52PT37mIt67gCA==}
+  '@jbrowse/bandage-core@8.0.0':
+    resolution: {integrity: sha512-uBfdy2hL8vqQO2UPX+a25jVB5mxyiFrbGi8L3jR5+pqL227dtzI/lE65c8J+b07KcHSpsrFWRprH0pTkkOEBPw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -727,6 +723,9 @@ packages:
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
+
+  '@jbrowse/tubemap-core@0.2.1':
+    resolution: {integrity: sha512-93MYJ6W6pJQij5y055GBFsNxp/cOplN7/hC+wBxI5xbySZI385V627ENR2HN0aNbnIysxF+pWhl2pnehNRg5VA==}
 
   '@jbrowse/wiggle-core@5.0.0-beta.11':
     resolution: {integrity: sha512-Z7fEVb/ZD4NJrxhkG2KsptrzQ4gNt51kPjSObjWzcuSG0P+55DveToYiQG1Zn4cXSy2sRnz2AsfMd/LA6797vQ==}
@@ -4079,8 +4078,6 @@ snapshots:
       '@jbrowse/quick-lru': 8.0.0
       generic-filehandle2: 2.5.0
 
-  '@gmod/tubemap-core@0.1.0': {}
-
   '@gmod/vcf@7.2.0': {}
 
   '@humanfs/core@0.19.2':
@@ -4116,11 +4113,11 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@7.5.1':
+  '@jbrowse/bandage-core@8.0.0':
     dependencies:
       '@gmod/gbz-base': 7.1.0
       '@gmod/tabix': 3.9.1
-      '@gmod/tubemap-core': 0.1.0
+      '@jbrowse/tubemap-core': 0.2.1
 
   '@jbrowse/cigar-utils@5.0.0-beta.11': {}
 
@@ -4314,6 +4311,8 @@ snapshots:
       - '@mui/material-pigment-css'
       - '@types/react'
       - supports-color
+
+  '@jbrowse/tubemap-core@0.2.1': {}
 
   '@jbrowse/wiggle-core@5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)':
     dependencies:

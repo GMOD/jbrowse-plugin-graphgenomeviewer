@@ -57,7 +57,7 @@ export const withHostViews = withWalkRowViews
     },
     get tubeMapPicture() {
       const drawing = self.layoutResult?.tubeMap
-      return drawing ? tubeMapPicture(drawing.layout) : undefined
+      return drawing ? tubeMapPicture(drawing) : undefined
     },
     get tubeMapReference() {
       const drawing = self.layoutResult?.tubeMap
