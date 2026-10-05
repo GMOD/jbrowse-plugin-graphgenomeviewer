@@ -6,6 +6,7 @@ import {
 } from '@jbrowse/bandage-core/layoutModes'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import HubIcon from '@mui/icons-material/Hub'
 import PaletteIcon from '@mui/icons-material/Palette'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
@@ -271,7 +272,8 @@ export const withLaunchActions = withRenderingActions
     exportMenuItems(): MenuItem[] {
       return [
         {
-          label: 'Save SVG',
+          label: 'Export SVG',
+          icon: PhotoCameraIcon,
           disabled: self.figureUnavailable !== undefined,
           disabledHelpText: self.figureUnavailable,
           onClick: () => {
@@ -286,6 +288,7 @@ export const withLaunchActions = withRenderingActions
         },
         {
           label: 'Copy figure spec',
+          icon: ContentCopyIcon,
           disabled: self.figureSpecUnavailable !== undefined,
           disabledHelpText: self.figureSpecUnavailable,
           onClick: () => {
@@ -428,11 +431,6 @@ export const withLaunchActions = withRenderingActions
           label: 'Show...',
           icon: VisibilityIcon,
           subMenu: this.showMenuItems(),
-        },
-        {
-          label: 'Export',
-          icon: PhotoCameraIcon,
-          subMenu: this.exportMenuItems(),
         },
       ]
     },

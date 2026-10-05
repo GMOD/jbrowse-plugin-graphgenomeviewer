@@ -302,9 +302,9 @@ inverted haplotype visit the same nodes, so side by side is how a force drawing
 shows an inversion: at MAPT, HG002's first haplotype has the H2 inversion and
 runs red to yellow where GRCh38 runs yellow to red.
 
-**Export › Save SVG** in the track menu saves the drawing, its walks' keys and
-panels as a vector figure. The same renderer makes figures from a JSON spec with
-no browser; see
+**Export SVG** in the graph genome view's menu saves the drawing, its walks'
+keys and panels as a vector figure. The same renderer makes figures from a JSON
+spec with no browser; see
 [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).
 
 While walks are lifted, node lengths are not labelled, since they would sit on

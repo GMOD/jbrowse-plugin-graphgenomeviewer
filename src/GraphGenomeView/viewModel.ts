@@ -83,7 +83,7 @@ export default function stateModelFactory() {
         return self.canRetryLoad && !self.graph && !self.loadCanceled
       },
       menuItems() {
-        return self.launchMenuItems()
+        return [...self.exportMenuItems(), ...self.launchMenuItems()]
       },
     }))
     .actions(self => {
