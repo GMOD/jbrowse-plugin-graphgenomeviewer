@@ -1,3 +1,8 @@
+---
+name: todo
+description: Open action items by area: drawing, walk strip, tube map. Read when picking up work, and before filing anything new here.
+---
+
 # Todo
 
 ## Drawing

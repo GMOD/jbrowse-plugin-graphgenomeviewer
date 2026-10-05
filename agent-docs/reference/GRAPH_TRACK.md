@@ -1,3 +1,8 @@
+---
+name: graph-track
+description: How LinearGraphDisplay draws the graph inside a linear genome view: the pane, its host, and what shipped.
+---
+
 # The graph as a track
 
 `LinearGraphDisplay` draws the graph inside a linear genome view. It composes

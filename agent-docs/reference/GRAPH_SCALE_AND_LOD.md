@@ -1,3 +1,8 @@
+---
+name: graph-scale-and-lod
+description: The scale envelope of the graph view: measured draw and layout costs, the legibility ceiling, why the region cap is the wrong knob, and why bubble coarsening is not built. Read before quoting a graph-size number.
+---
+
 # Graph scale: what we can draw, and what it would take to draw more
 
 Measured 2026-07-24 while removing the dead edge mesh, and re-measured
@@ -82,7 +87,7 @@ translucent ribbons per edge, which is the drawing asked for.
 Which wall you hit first depends on the layout mode:
 
 - **Anchored / sample-rows** (O(n), local): geometry build is the wall, and it
-  is a main-thread pass that no GPU backend would take — `IDEAS.md` prices the
+  is a main-thread pass that no GPU backend would take — `ideas/waiting-on-a-number/gpu-rendering-for-the-graph.md` prices the
   port against these numbers.
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
@@ -319,7 +324,7 @@ difference between them is degree 5.6 against 2.3.
 
 Two things this settles. `bench-layout.mjs`'s bubble chain is not misleading —
 its 1,201-node proportional q=2 case is 4,407 OGDF nodes at 521 ms, i.e. 0.118
-ms per node, the same order as everything here. And IDEAS.md's "not obviously
+ms per node, the same order as everything here. And the GPU idea's "not obviously
 the bottleneck for anything" is too generous for **base-level** graphs: a 5,000
 segment pggb/MC window is already 3-5 s, which is past interactive. It stays
 academic only because of the legibility ceiling above — 5,000 nodes in a 900 px
@@ -367,7 +372,7 @@ goes from 5.3 s to ~2.3 s: still not interactive. And at the sizes the
 legibility ceiling actually permits — tens of nodes, where a drawing is readable
 — the layout is already under 100 ms. **A GPU port does not move the boundary
 between interactive and not at any graph size**, which is the reason this is
-recorded here, beside its numbers, rather than in IDEAS.md.
+recorded here, beside its numbers, rather than in ideas/.
 
 The cheaper lever is in the table above: mean degree and `bubbleSpread` set the
 constant, and the quality knob is worth 4x on its own.

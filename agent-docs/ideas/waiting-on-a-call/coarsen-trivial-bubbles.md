@@ -1,3 +1,8 @@
+---
+name: coarsen-trivial-bubbles
+description: Collapse trivial bubbles in a graph loaded as a file so 1 bp alleles stop holding half the drawn length; the open question is what a collapsed unit's path lanes say.
+---
+
 # Coarsen a graph loaded as a file: collapse trivial bubbles
 
 Designed, not built, and the design has an open question at its centre — what a

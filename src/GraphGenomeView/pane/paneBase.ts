@@ -132,7 +132,7 @@ export function dependOn(..._values: unknown[]) {}
 // region is fetched through `getSubgraph`, and the rGFA cut is what this number
 // was chosen against (the GBZ cut is base-level and has its own `nodeLimit`,
 // which trips long before 5 Mb). Both measured rGFAs are sparse, and at 5 Mb
-// both land at or under the ~2k nodes that redraw in under 10 ms (see agent-docs/GRAPH_SCALE_AND_LOD.md):
+// both land at or under the ~2k nodes that redraw in under 10 ms (see agent-docs/reference/GRAPH_SCALE_AND_LOD.md):
 //
 //   HPRC MC GRCh38   ~7,000 bp/segment   whole 4.9 Mb MHC   1,173 nodes
 //   ecoli minigraph   3,078 bp/segment   whole 4.6 Mb genome 2,415 nodes
