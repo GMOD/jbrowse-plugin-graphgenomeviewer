@@ -2593,6 +2593,19 @@ describe('popping a bubble', () => {
     expect(model.poppedFrom).toBeUndefined()
   })
 
+  // A spec names the whole graph, so bandage-figure would draw the window
+  // rather than the bubble on screen
+  test('a popped bubble offers no figure spec', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    model.setLayoutMode('force')
+    await model.loadGFA(RGFA, 'rgfa')
+    await model.popBubble(bubble)
+    expect(model.figureSpecUnavailable).toMatch(/go back out of this bubble/)
+    await model.unpopBubble()
+    expect(model.figureSpecUnavailable).not.toMatch(/bubble/)
+  })
+
   // Without an index beside the source the bubbles come from the graph
   // itself, and a popped graph gets its own, so a superbubble opens in steps.
   const RGFA_BUBBLE = RGFA + 'L\t3\t+\t2\t+\t0M\n'
@@ -2855,6 +2868,29 @@ describe('walk rows', () => {
     expect(model.figureSpec()).not.toHaveProperty('showDeletionEdges')
     model.setShowDeletionEdges(false)
     expect(model.figureSpec()?.showDeletionEdges).toBe(false)
+  })
+
+  // bandage-figure laid a linear layout out as an ordinary one, and drew its
+  // own line widths, while the spec said nothing about either
+  test('the figure spec carries the settings that change the picture', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(WALKS_GFA)
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      gfaLocation: {
+        uri: 'https://example.com/graphs/walks.gfa',
+        locationType: 'UriLocation',
+      },
+      loadedRegion: TEST_REGION,
+      layoutMode: 'ordered',
+      contigThickness: 9,
+    })
+    await model.load()
+    expect(model.figureSpec()).toMatchObject({ contigThickness: 9 })
+    expect(model.figureSpec()).not.toHaveProperty('connectorThickness')
+    expect(model.figureSpec()).not.toHaveProperty('linearLayout')
+    model.setLinearLayout(true)
+    expect(model.figureSpec()?.linearLayout).toBe(true)
   })
 
   test('walk rows offer no figure spec, since bandage-figure draws no walk rows', async () => {

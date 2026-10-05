@@ -591,9 +591,11 @@ export const withFitViews = withHostViews
     get figureSpecUnavailable() {
       return !self.drawsNodes
         ? `bandage-figure draws no ${layoutModeByValue(self.chosenLayoutMode).label} layout`
-        : this.figureSpec()
-          ? undefined
-          : 'bandage-figure reads a graph cut from a gbz-base track or a GFA url'
+        : self.popStack.length
+          ? 'A spec names the whole graph, so go back out of this bubble first'
+          : this.figureSpec()
+            ? undefined
+            : 'bandage-figure reads a graph cut from a gbz-base track or a GFA url'
     },
     // The drawing as a standalone SVG, fitted, with its genes, its lifted
     // walks' keys, facet panels and the strip of walk rows; see figureSvg
@@ -624,7 +626,9 @@ export const withFitViews = withHostViews
               rowGenes: self.walkRowGenes,
               rowGeneGaps: self.walkRowGeneGaps,
             },
-            spec: this.figureSpec(),
+            // the SVG carries the spec only where the spec draws this same
+            // picture
+            spec: this.figureSpecUnavailable ? undefined : this.figureSpec(),
           })
         : undefined
     },
