@@ -1,3 +1,16 @@
+## [6.1.4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.3...v6.1.4) (2026-10-05)
+
+### Other Changes
+
+- Read the layout's drawing facts from core ([0533dbc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0533dbc162cbb21e27a75947bfb6861b4c9ea180))
+- Depend on @jbrowse/bandage-core 7.4.0 ([be113bb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/be113bb9b08830f0b45fc8f748c943b386d8d5b8))
+- Read the walk-strip rules from core ([43d2776](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/43d2776c2ff7c9a4d3f52cb6874f19f22dc2d58a))
+- Depend on @jbrowse/bandage-core 7.5.0 ([a50ce9e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a50ce9eb8606f3738dcfa72218467c7bb4011191))
+- The facet picker reads core's list of fields ([2b5bdf3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2b5bdf3c0afdc368c3e9ebbd38eb0ab85b37a734))
+- Depend on @jbrowse/bandage-core 7.5.1 ([b21d227](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b21d2277145ae4a4563cd7d2395435eb244c282f))
+- Group by… stacks walk rows into a section per samples TSV column value ([8f23d78](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8f23d782eed8b5fb5e8a4289e4f8e6d08b32bedc))
+- Walk-row sections draw at their own place, not stacked on the first ([01dbcb9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/01dbcb9afef6da9d2ce89d6755d03df3dbc0ce37))
+
 ## [6.1.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.2...v6.1.3) (2026-10-05)
 
 ### Other Changes
