@@ -4,7 +4,9 @@ import {
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { filterSamples } from '@jbrowse/bandage-core/layout/walkRows'
 import {
+  cutsWholeWalks as wholeWalksRule,
   stripMarks,
+  walkStripApplies,
   walkStripFrame,
 } from '@jbrowse/bandage-core/layout/walkStrip'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
@@ -22,15 +24,14 @@ export const withWalkRowViews = withLaunchViews
     // standalone view whose layout draws nodes, for a graph with walks, and
     // not while a bubble is popped
     get walkStripShown() {
-      return (
-        self.walkStrip &&
-        !self.host &&
-        self.modeDrawsNodes &&
-        !self.layoutResult?.tubeMap &&
-        !self.walkRowBars &&
-        self.popStack.length === 0 &&
-        (self.graph?.paths?.length ?? 0) > 1
-      )
+      return walkStripApplies({
+        walkStrip: self.walkStrip,
+        mode: { drawsNodes: self.modeDrawsNodes },
+        drawsPicture: !!self.layoutResult?.tubeMap || !!self.walkRowBars,
+        popped: self.popStack.length > 0,
+        walks: self.graph?.paths?.length ?? 0,
+        host: !!self.host,
+      })
     },
     // The strip's rows: the cut's, with the sample filter and no repeat
     // pick, which the Repeat menu only offers in walk rows
@@ -50,10 +51,10 @@ export const withWalkRowViews = withLaunchViews
     // Whether a cut must follow every snarl a walk leaves the window by, so
     // walks come back whole: walk rows measure them, and so does the strip
     get cutsWholeWalks() {
-      return (
-        layoutModeByValue(self.chosenLayoutMode).wholeWalks ||
-        (self.walkStrip && !self.host)
-      )
+      return wholeWalksRule(layoutModeByValue(self.chosenLayoutMode), {
+        walkStrip: self.walkStrip,
+        host: !!self.host,
+      })
     },
     // Where each walk passes the hovered node, or the selected one
     get walkStripMarks() {
