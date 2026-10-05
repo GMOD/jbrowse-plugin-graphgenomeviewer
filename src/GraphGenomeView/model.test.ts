@@ -19,11 +19,13 @@ import { readConfObject } from '@jbrowse/core/configuration'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
+import { walkRowTrees } from './components/WalkRowsOverlay'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 
+import type { El } from '@jbrowse/bandage-core/el'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph } from '@jbrowse/bandage-core/types'
@@ -3738,6 +3740,41 @@ describe('walk rows grouped by a sample column', () => {
     })
     expect(place.headersPx).toBe(3 * SECTION_HEADER_PX)
     expect(model.layoutBounds!.h).toBe(flat + place.headersPx)
+    // each bar is drawn on its placed row, section after section
+    const frame = {
+      scaleX: model.scaleX,
+      scaleY: model.scaleY,
+      translateX: model.translateX,
+      translateY: model.translateY,
+      width: 800,
+      height: 10_000,
+      ...pitch,
+    }
+    const drawn = walkRowTrees(
+      model.walkRowBars!,
+      model.walkRowGroups!.sections,
+      place.rowY,
+      frame,
+      { idPrefix: 't' },
+    )
+      .flatMap(tree =>
+        tree.tag === 'g' && !tree.attrs['data-testid'] ? tree.children : [tree],
+      )
+      .filter(
+        (c): c is El =>
+          typeof c !== 'string' && c.attrs['data-testid'] === 'graph-walk-row',
+      )
+      .map(row => {
+        const bar = row.children.find(
+          (c): c is El => typeof c !== 'string' && c.tag === 'rect',
+        )!
+        return Number(bar.attrs.y) + Number(bar.attrs.height) / 2
+      })
+    expect(drawn).toEqual(
+      model.walkRowBars!.rows.map(
+        (_, i) => place.rowY(i + 1) * model.scaleY + model.translateY,
+      ),
+    )
     // a point on a bar in the last section finds its row
     const last = model.walkRowBars!.rows.length
     const x = (model.walkRowBars!.origin + 4) * model.scaleX + model.translateX
