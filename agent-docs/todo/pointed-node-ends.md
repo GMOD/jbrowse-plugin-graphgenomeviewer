@@ -1,10 +1,13 @@
 ---
 name: pointed-node-ends
-description: Taper the forward end of a node to a point, once each layout records which way a node is drawn.
+description:
+  Taper the forward end of a node to a point, once each layout records which way
+  a node is drawn.
 metadata:
   category: ready
   area: drawing
-  first_move: "Emit a per-node drawn strand from the force and tube map layouts."
+  first_move:
+    'Emit a per-node drawn strand from the force and tube map layouts.'
   order: 1
 ---
 

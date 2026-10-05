@@ -1,10 +1,14 @@
 ---
 name: genes-per-haplotype-through-gaf
-description: Draw each gene through the nodes a haplotype carries it on, with that haplotype's edits marked, as transcripts in GAF.
+description:
+  Draw each gene through the nodes a haplotype carries it on, with that
+  haplotype's edits marked, as transcripts in GAF.
 metadata:
   category: measure
   area: tube map
-  first_move: "Map one gene through one haplotype's walk by hand and compare with the reference-box lane."
+  first_move:
+    "Map one gene through one haplotype's walk by hand and compare with the
+    reference-box lane."
   order: 1
 ---
 

@@ -1,6 +1,9 @@
 ---
 name: gpu-rendering-for-the-graph
-description: GPU drawing for the graph view is priced and not worth it below ~50k nodes; the trigger is a geometry builder off the main thread, so read this before reviving a triangle mesh.
+description:
+  GPU drawing for the graph view is priced and not worth it below ~50k nodes;
+  the trigger is a geometry builder off the main thread, so read this before
+  reviving a triangle mesh.
 ---
 
 # GPU rendering: priced, and not worth it at this view's node cap
@@ -10,10 +13,10 @@ the GPU; `createGraphRenderer` returns the Canvas2D backend unconditionally.
 
 **This is about drawing, not laying out.** Running FMMM itself on the GPU is a
 separate question with the opposite answer, measured and recorded in
-`ideas/waiting-on-a-number/fmmm-near-field-repulsion.md` and `reference/GRAPH_SCALE_AND_LOD.md`: near-field repulsion is 54%
-of a real layout, so a perfect port ceilings at ~2.3x and never reaches
-interactive. The two share the word "GPU" and nothing else, and both have been
-asked.
+`ideas/waiting-on-a-number/fmmm-near-field-repulsion.md` and
+`reference/GRAPH_SCALE_AND_LOD.md`: near-field repulsion is 54% of a real
+layout, so a perfect port ceilings at ~2.3x and never reaches interactive. The
+two share the word "GPU" and nothing else, and both have been asked.
 
 **The measurement that used to justify it is gone** (GRAPH_SCALE_AND_LOD.md,
 "Strokes, batched by paint"). The case rested on 12.6 draw calls per node from a

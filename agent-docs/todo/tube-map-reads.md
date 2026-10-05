@@ -1,10 +1,12 @@
 ---
 name: tube-map-reads
-description: Fetch reads only for tube map layouts, keep mismatch text visible in a squeezed track, and add a hover leader on read marks.
+description:
+  Fetch reads only for tube map layouts, keep mismatch text visible in a
+  squeezed track, and add a hover leader on read marks.
 metadata:
   category: ready
   area: tube map
-  first_move: "Gate the reads fetch on the tube map layouts."
+  first_move: 'Gate the reads fetch on the tube map layouts.'
   order: 4
 ---
 

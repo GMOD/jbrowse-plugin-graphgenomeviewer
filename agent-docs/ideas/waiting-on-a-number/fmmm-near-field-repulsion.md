@@ -1,6 +1,8 @@
 ---
 name: fmmm-near-field-repulsion
-description: What is left of FMMM layout time after -fcx-limited-range, why a GPU port ceilings at ~2.3x, and which FMMM options to try before editing vendored OGDF.
+description:
+  What is left of FMMM layout time after -fcx-limited-range, why a GPU port
+  ceilings at ~2.3x, and which FMMM options to try before editing vendored OGDF.
 ---
 
 # Past the build flag: FMMM's near-field repulsion

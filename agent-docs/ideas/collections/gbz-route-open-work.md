@@ -1,6 +1,9 @@
 ---
 name: gbz-route-open-work
-description: Open items on the GBZ route — after-open latency, twin registration, identity, AMY1 copy count, walks over the rGFA cut, the build-your-own pangenome recipe and the hosted entry point. Triage inside it.
+description:
+  Open items on the GBZ route — after-open latency, twin registration, identity,
+  AMY1 copy count, walks over the rGFA cut, the build-your-own pangenome recipe
+  and the hosted entry point. Triage inside it.
 ---
 
 # GBZ route: open work

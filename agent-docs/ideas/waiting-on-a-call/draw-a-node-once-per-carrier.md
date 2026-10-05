@@ -1,6 +1,8 @@
 ---
 name: draw-a-node-once-per-carrier
-description: Multi-row carriage needs synthetic per-carrier ids plus hit detection that resolves them back, since the row layout emits one position per node id.
+description:
+  Multi-row carriage needs synthetic per-carrier ids plus hit detection that
+  resolves them back, since the row layout emits one position per node id.
 ---
 
 # Draw a node once per carrier

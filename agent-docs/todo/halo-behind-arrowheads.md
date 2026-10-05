@@ -1,10 +1,12 @@
 ---
 name: halo-behind-arrowheads
-description: A halo that keeps an arrowhead legible over a node without cutting the edge shaft where it enters the notch.
+description:
+  A halo that keeps an arrowhead legible over a node without cutting the edge
+  shaft where it enters the notch.
 metadata:
   category: visual-call
   area: drawing
-  first_move: "Prototype the barb-only stroke and look at an abutting joint."
+  first_move: 'Prototype the barb-only stroke and look at an abutting joint.'
   order: 1
 ---
 

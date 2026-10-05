@@ -1,6 +1,9 @@
 ---
 name: reads-on-an-rgfa-or-a-standalone-gfa
-description: Only gbz-base tracks take reads because no tabix GAF index can key s1, s2 segment names; an unindexed GAF read whole would work on rGFA and standalone GFA.
+description:
+  Only gbz-base tracks take reads because no tabix GAF index can key s1, s2
+  segment names; an unindexed GAF read whole would work on rGFA and standalone
+  GFA.
 ---
 
 # Reads on an rGFA or a standalone GFA

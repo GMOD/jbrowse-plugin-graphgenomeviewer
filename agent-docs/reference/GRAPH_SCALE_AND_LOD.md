@@ -87,8 +87,9 @@ translucent ribbons per edge, which is the drawing asked for.
 Which wall you hit first depends on the layout mode:
 
 - **Anchored / sample-rows** (O(n), local): geometry build is the wall, and it
-  is a main-thread pass that no GPU backend would take — `ideas/waiting-on-a-number/gpu-rendering-for-the-graph.md` prices the
-  port against these numbers.
+  is a main-thread pass that no GPU backend would take —
+  `ideas/waiting-on-a-number/gpu-rendering-for-the-graph.md` prices the port
+  against these numbers.
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
   Fruchterman-Reingold is "still slow for 10k+ nodes". Ours is single-threaded
@@ -324,11 +325,12 @@ difference between them is degree 5.6 against 2.3.
 
 Two things this settles. `bench-layout.mjs`'s bubble chain is not misleading —
 its 1,201-node proportional q=2 case is 4,407 OGDF nodes at 521 ms, i.e. 0.118
-ms per node, the same order as everything here. And the GPU idea's "not obviously
-the bottleneck for anything" is too generous for **base-level** graphs: a 5,000
-segment pggb/MC window is already 3-5 s, which is past interactive. It stays
-academic only because of the legibility ceiling above — 5,000 nodes in a 900 px
-fit is 0.18 px each, so nobody can read the drawing that took 5 seconds.
+ms per node, the same order as everything here. And the GPU idea's "not
+obviously the bottleneck for anything" is too generous for **base-level**
+graphs: a 5,000 segment pggb/MC window is already 3-5 s, which is past
+interactive. It stays academic only because of the legibility ceiling above —
+5,000 nodes in a 900 px fit is 0.18 px each, so nobody can read the drawing that
+took 5 seconds.
 
 ### The profile on a real graph, and what it says about a GPU (2026-08-13)
 

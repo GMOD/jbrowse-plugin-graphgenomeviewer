@@ -1,6 +1,9 @@
 ---
 name: requested-row-set-on-the-rgfa-route
-description: An explicit haplotype list on the rGFA route would line a graph up row for row with a genotype matrix, pin row order across windows and label donors by haplotype.
+description:
+  An explicit haplotype list on the rGFA route would line a graph up row for row
+  with a genotype matrix, pin row order across windows and label donors by
+  haplotype.
 ---
 
 # A requested row set on the rGFA route

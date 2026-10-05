@@ -1,10 +1,12 @@
 ---
 name: figure-rows-own-genes
-description: A bandage-figure strip that boxes every row's genes, as the view's strip does, instead of the reference row only.
+description:
+  A bandage-figure strip that boxes every row's genes, as the view's strip does,
+  instead of the reference row only.
 metadata:
   category: ready
   area: walk strip
-  first_move: "Add a spec field mapping each sample to its gene file."
+  first_move: 'Add a spec field mapping each sample to its gene file.'
   order: 2
 ---
 

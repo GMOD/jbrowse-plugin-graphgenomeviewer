@@ -1,10 +1,13 @@
 ---
 name: lifted-walk-colour-on-its-bar
-description: Show a lifted walk's lane colour on its strip bar, and decide whether bandage-figure follows.
+description:
+  Show a lifted walk's lane colour on its strip bar, and decide whether
+  bandage-figure follows.
 metadata:
   category: visual-call
   area: walk strip
-  first_move: "Pick between a chip beside the label and an outline round the bar."
+  first_move:
+    'Pick between a chip beside the label and an outline round the bar.'
   order: 2
 ---
 

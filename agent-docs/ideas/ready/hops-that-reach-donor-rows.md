@@ -1,6 +1,9 @@
 ---
 name: hops-that-reach-donor-rows
-description: A reference-only segs/links pair silently returns the context-0 graph for a cut; a third small file keyed by segment id for allele interiors would let hops reach donor rows.
+description:
+  A reference-only segs/links pair silently returns the context-0 graph for a
+  cut; a third small file keyed by segment id for allele interiors would let
+  hops reach donor rows.
 ---
 
 # Hops that reach donor rows without indexing every donor contig
