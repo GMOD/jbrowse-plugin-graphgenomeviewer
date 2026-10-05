@@ -91,6 +91,16 @@ export interface GbzHeaderLane {
 export interface GbzFeatureOptions extends ComparativeOptions {
   haplotypes?: string[]
   queryAssemblyName?: string
+  lanePairs?: LanePair[]
+}
+
+/**
+ * Two lanes aligned to each other inside an anchor window: records on the
+ * query lane's contigs, with the target lane's walk as the mate
+ */
+export interface LanePair {
+  queryAssemblyName: string
+  targetAssemblyName: string
 }
 
 export class PairTargetError extends Error {
@@ -101,6 +111,16 @@ export class PairTargetError extends Error {
       `a pair query names both lanes: queryAssemblyName ${queryAssemblyName} came without a targetAssemblyName`,
     )
   }
+}
+
+function onePair(
+  queryAssemblyName: string,
+  targetAssemblyName: string | undefined,
+): LanePair {
+  if (targetAssemblyName === undefined) {
+    throw new PairTargetError(queryAssemblyName)
+  }
+  return { queryAssemblyName, targetAssemblyName }
 }
 
 export class HaplotypeWindowError extends Error {
@@ -495,71 +515,79 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   }
 
   /**
-   * The two lanes' walks cut out of the anchor window alone, and each walk
-   * of the query lane aligned to each walk of the target lane on the nodes
-   * both visit, with no base compared. The records sit on the query lane's
-   * contigs, the lane the display draws on top.
+   * Each pair's two lanes cut out of the anchor window alone, all pairs in one
+   * cut, and each walk of a pair's query lane aligned to each walk of its
+   * target lane on the nodes both visit, with no base compared. A pair's
+   * records sit on its query lane's contigs, the lane the display draws on top.
    *
    * Whether the index has anchor rows changes only how fast gbz-base finds
    * the walks: both routes cut the same pieces.
    */
   private async pairFeatures(
     region: Region,
-    queryAssemblyName: string,
+    pairs: LanePair[],
     opts: GbzFeatureOptions,
   ) {
-    const { targetAssemblyName } = opts
-    if (targetAssemblyName === undefined) {
-      throw new PairTargetError(queryAssemblyName)
-    }
     const { db } = await this.graph(opts)
     const { refName, start, end } = region
-    const featureSide = await this.laneHaplotypes(queryAssemblyName, opts)
-    const mateSide = await this.laneHaplotypes(targetAssemblyName, opts)
-    const kept = [...featureSide, ...mateSide]
+    const sides = await Promise.all(
+      pairs.map(async pair => ({
+        pair,
+        featureSide: await this.laneHaplotypes(pair.queryAssemblyName, opts),
+        mateSide: await this.laneHaplotypes(pair.targetAssemblyName, opts),
+      })),
+    )
+    const answerable = sides.filter(
+      ({ featureSide, mateSide }) =>
+        featureSide.length > 0 && mateSide.length > 0,
+    )
+    const kept = new Set(
+      answerable.flatMap(({ featureSide, mateSide }) =>
+        [...featureSide, ...mateSide].map(haplotypePrefix),
+      ),
+    )
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
-    const cut = (path: PathQuery) =>
-      db
-        .getSubgraphs({
-          path,
-          start,
-          end,
-          context: this.getConf('context'),
-          snarls: this.getConf('subgraphSnarls'),
-          haplotypes: 'all',
-          limit: nodeLimit,
-          signal: opts.signal,
-          keep: name =>
-            kept.some(
-              haplotype =>
-                haplotype.sample === name.sample &&
-                haplotype.haplotype === name.haplotype,
-            ),
-        })
-        .catch((error: unknown) => {
-          throw nodeLimitError(error, nodeLimit, end - start) ?? error
-        })
+    const [first] = pairs
     const subgraphs =
-      query && featureSide.length > 0 && mateSide.length > 0
+      query && first && answerable.length > 0
         ? await updateStatus(
-            `Reading ${queryAssemblyName} against ${targetAssemblyName}`,
+            pairs.length === 1
+              ? `Reading ${first.queryAssemblyName} against ${first.targetAssemblyName}`
+              : `Reading ${pairs.length} lane pairs`,
             opts.statusCallback,
-            () => cut(query),
+            () =>
+              db
+                .getSubgraphs({
+                  path: query,
+                  start,
+                  end,
+                  context: this.getConf('context'),
+                  snarls: this.getConf('subgraphSnarls'),
+                  haplotypes: 'all',
+                  limit: nodeLimit,
+                  signal: opts.signal,
+                  keep: name => kept.has(haplotypePrefix(name)),
+                })
+                .catch((error: unknown) => {
+                  throw nodeLimitError(error, nodeLimit, end - start) ?? error
+                }),
           )
         : []
     return subgraphs.flatMap(subgraph =>
-      featureSide.flatMap(target =>
-        mateSide.flatMap(mate =>
-          subgraph
-            .pairAlignments({ target, query: mate, bases: false })
-            .map(pair =>
-              pairFeature({
-                pair,
-                lane: queryAssemblyName,
-                mateLane: targetAssemblyName,
-              }),
-            ),
+      answerable.flatMap(({ pair, featureSide, mateSide }) =>
+        featureSide.flatMap(target =>
+          mateSide.flatMap(mate =>
+            subgraph
+              .pairAlignments({ target, query: mate, bases: false })
+              .map(alignment =>
+                pairFeature({
+                  pair: alignment,
+                  lane: pair.queryAssemblyName,
+                  mateLane: pair.targetAssemblyName,
+                }),
+              ),
+          ),
         ),
       ),
     )
@@ -574,10 +602,15 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       // the graph is indexed on its reference alone, so a window on a
       // haplotype lane has no answer: a lane pair is read inside the anchor's
       if (region.assemblyName === anchor) {
-        const features =
-          opts.queryAssemblyName === undefined
+        const features = opts.lanePairs?.length
+          ? await this.pairFeatures(region, opts.lanePairs, opts)
+          : opts.queryAssemblyName === undefined
             ? await this.anchorFeatures(region, opts)
-            : await this.pairFeatures(region, opts.queryAssemblyName, opts)
+            : await this.pairFeatures(
+                region,
+                [onePair(opts.queryAssemblyName, opts.targetAssemblyName)],
+                opts,
+              )
         for (const feature of features) {
           observer.next(feature)
         }

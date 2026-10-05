@@ -518,7 +518,7 @@ test('the adapter type declares that a window of its anchor answers any lane pai
   pluginManager.createPluggableElements()
   expect(
     pluginManager.getAdapterType('GbzBaseSyntenyAdapter').adapterCapabilities,
-  ).toContain('lanePairsOnAnchor')
+  ).toEqual(expect.arrayContaining(['lanePairsOnAnchor', 'lanePairBatches']))
 })
 
 // HG00673#1's insertion is 16 bp longer than HG01361#2's, so that pair holds
@@ -690,6 +690,41 @@ test('a lane pair walks only its two lanes', async () => {
   expect(keep(named('HG01361', 1))).toBe(false)
   expect(keep(named('HG00438', 1))).toBe(false)
   cut.mockRestore()
+})
+
+test('a batch of lane pairs answers each pair what it answers alone, from one cut', async () => {
+  const adapter = anchoredAdapter()
+  const pairs = [
+    { queryAssemblyName: 'HG01361#2', targetAssemblyName: 'HG02145#2' },
+    { queryAssemblyName: 'HG02145#2', targetAssemblyName: 'HG00673#1' },
+    { queryAssemblyName: 'HG00673#1', targetAssemblyName: 'HG00438#1' },
+  ]
+  const alone = await Promise.all(
+    pairs.map(async p =>
+      (await feats(adapter, insertionWindow, p)).map(f => f.toJSON()),
+    ),
+  )
+  const { db } = await (
+    adapter as unknown as {
+      graph: () => Promise<{ db: { getSubgraphs: unknown } }>
+    }
+  ).graph()
+  const cut = vi.spyOn(db, 'getSubgraphs')
+  const batch = await feats(adapter, insertionWindow, { lanePairs: pairs })
+  expect(cut).toHaveBeenCalledTimes(1)
+  cut.mockRestore()
+  pairs.forEach((p, i) => {
+    expect(alone[i]!.length).toBeGreaterThan(0)
+    expect(
+      batch
+        .filter(
+          f =>
+            f.get('assemblyName') === p.queryAssemblyName &&
+            mateOf(f).assemblyName === p.targetAssemblyName,
+        )
+        .map(f => f.toJSON()),
+    ).toEqual(alone[i])
+  })
 })
 
 test('lane pair ids are the same across two fetches of one window', async () => {
