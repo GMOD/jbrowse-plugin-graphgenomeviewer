@@ -3,6 +3,7 @@ import { lazy } from 'react'
 import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
+import { createForceLayoutCache } from '@jbrowse/bandage-core/layout/forceCache'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES } from '@jbrowse/bandage-core/nodeWidths'
 import { viewportOf } from '@jbrowse/bandage-core/viewport'
@@ -222,51 +223,8 @@ export function paneViewportOf(model: {
 // every control in the settings dialog calls `recomputeLayout` on change
 // whether or not the current mode reads what it changed, which made picking a
 // reference path in force mode a multi-second re-run of an identical layout.
-// Both are hits.
-//
-// Entries are the live position objects rather than copies, which a node drag
-// mutates in place (see moveNode), so a layout comes back arranged the way it
-// was left rather than snapping back.
-//
-// Weak on the graph so nothing has to invalidate it: a graph is rebuilt by
-// every load and dropped by `clearGraph`, and its layouts go with it.
-const forceLayouts = new WeakMap<Graph, Map<string, LayoutResult>>()
-
-// Enough to hold the settings a comparison moves between; past that the oldest
-// goes, since a big graph's positions are megabytes.
-const FORCE_LAYOUT_CACHE_SIZE = 4
-
-export function forceLayoutsOf(graph: Graph) {
-  let cache = forceLayouts.get(graph)
-  if (!cache) {
-    cache = new Map()
-    forceLayouts.set(graph, cache)
-  }
-  return cache
-}
-
-// Re-anchoring builds a new Graph, and the force layout of it is the same
-// drawing: `anchorFromPaths` rewrites each node's `stable` and `samples` and
-// touches neither the ids, the lengths, the depths nor the edges, which are all
-// the engine reads. So the layouts follow the graph they were computed for
-// rather than being thrown away with it.
-export function inheritForceLayouts(from: Graph, to: Graph) {
-  const cache = forceLayouts.get(from)
-  if (cache && from !== to) {
-    forceLayouts.set(to, cache)
-  }
-}
-
-export function remember(
-  cache: Map<string, LayoutResult>,
-  key: string,
-  result: LayoutResult,
-) {
-  if (cache.size >= FORCE_LAYOUT_CACHE_SIZE) {
-    cache.delete(cache.keys().next().value!)
-  }
-  cache.set(key, result)
-}
+// Both are hits. The cache itself is core's, which BandageJS keeps too.
+export const forceLayouts = createForceLayoutCache()
 
 export const paneBase = types
   .compose(

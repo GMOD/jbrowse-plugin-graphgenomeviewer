@@ -10,12 +10,7 @@ import {
   anchorFromPaths,
   chooseReferencePath,
 } from '@jbrowse/bandage-core/pathAnchoring'
-import {
-  engineKey,
-  engineSettingsOf,
-  forceLayout,
-  loadGraph,
-} from '@jbrowse/bandage-core/pipeline'
+import { engineSettingsOf, loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { assemblyWalk } from '@jbrowse/bandage-core/reference'
 import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -27,12 +22,7 @@ import {
 import { openLocation } from '@jbrowse/core/util/io'
 import { flow, isAlive } from '@jbrowse/mobx-state-tree'
 
-import {
-  TUBE_MAP_MODES,
-  bubblePrefix,
-  forceLayoutsOf,
-  remember,
-} from './paneBase'
+import { TUBE_MAP_MODES, bubblePrefix, forceLayouts } from './paneBase'
 import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
 import { locLabel } from '../../launchFromGraph/contributors'
@@ -74,14 +64,6 @@ export const withLoadActions = withSettingActions.actions(self => {
     })
   }
 
-  // The engine's inputs, and only those: the graph, plus what `callLayout`
-  // puts in `options`. The reference path is there because the seeds are a
-  // function of it; the colour scheme and the anchored modes' own settings
-  // are absent because none of them reaches the engine.
-  function forceLayoutKey(graph: Graph) {
-    return engineKey(graph, engineSettings())
-  }
-
   // Single dispatch point for every layout mode. A mode that returns a
   // result computed it locally; one that returns undefined can't draw this
   // graph and hands off to the remote FMMM engine, which is also how
@@ -109,22 +91,15 @@ export const withLoadActions = withSettingActions.actions(self => {
           : local
       return { result, duration: performance.now() - start }
     }
-    const cache = forceLayoutsOf(graph)
-    const key = forceLayoutKey(graph)
-    const hit = cache.get(key)
+    const settings = engineSettings()
+    const hit = forceLayouts.ready(graph, settings)
     if (hit) {
       return { result: hit, duration: performance.now() - start }
     }
-    const oriented = (yield forceLayout(
-      graph,
-      engineSettings(),
-      callEngine,
-    )) as { result: LayoutResult; duration: number }
-    // Under the key read BEFORE the call: the settings that produced this
-    // drawing are not necessarily the ones on screen now, and filing it
-    // under the current ones would serve it up as a layout it is not.
-    remember(cache, key, oriented.result)
-    return oriented
+    return (yield forceLayouts.layout(graph, settings, callEngine)) as {
+      result: LayoutResult
+      duration: number
+    }
   }
 
   // Which layout request is the live one. A layout is async and nothing in

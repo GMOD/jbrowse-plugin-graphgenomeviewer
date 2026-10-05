@@ -12,7 +12,7 @@ import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { withFitViews } from './fitViews'
-import { VIEWPORT_DEBOUNCE_MS, inheritForceLayouts } from './paneBase'
+import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 
@@ -79,7 +79,7 @@ export const withSettingActions = withFitViews
       const graph = self.graph
       if (graph?.anchoredBy === 'paths') {
         const reanchored = anchorFromPaths(graph, name)
-        inheritForceLayouts(graph, reanchored)
+        forceLayouts.inherit(graph, reanchored)
         self.graph = reanchored
       }
     },

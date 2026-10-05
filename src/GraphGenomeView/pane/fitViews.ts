@@ -15,7 +15,10 @@ import {
   rowPitch,
   walkRowReadout,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
+import {
+  walkRowLabels,
+  walkRowsExtent,
+} from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import {
   FIT_PADDING,
@@ -24,6 +27,7 @@ import {
 } from '@jbrowse/bandage-core/pipeline'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
+import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import { rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import {
   connectorAt,
@@ -123,16 +127,11 @@ export const withFitViews = withHostViews
     // Walk rows label from the bars themselves, which follow the selected
     // repeat and sample filter that the layout, run once per cut, cannot
     get drawnRowLabels() {
-      const bars = self.walkRowBars
-      const pitch = this.walkRowPitch
-      return bars && pitch
-        ? pitch.labelled
-          ? [bars.reference, ...bars.rows].map((row, i) => ({
-              label: row.label,
-              y: i * pitch.rowPx,
-            }))
-          : []
-        : self.rowLabels
+      return walkRowLabels(
+        self.walkRowBars,
+        self.layoutResult,
+        this.walkRowPitch,
+      )
     },
     // The row labels are pinned to the pane's left edge, so the fit starts
     // the drawing past the widest one.
@@ -467,8 +466,8 @@ export const withFitViews = withHostViews
     // settles after a pan or zoom, when a drag moves the positions, and when
     // any display option read here changes.
     buildDrawing(highlight: WalkLift | undefined, drawPaths: boolean) {
-      const { nodePositions, graph, nodeById } = self
-      if (!nodePositions || !graph || !nodeById) {
+      const { graph, nodeById, layoutResult, deletionDrawing } = self
+      if (!graph || !nodeById || !layoutResult || !deletionDrawing) {
         return undefined
       }
       dependOn(self.viewportDirty, self.positionsVersion)
@@ -476,7 +475,9 @@ export const withFitViews = withHostViews
       const batch = buildGeometry({
         // walk rows' overlay draws every bar, the reference's among them;
         // its nodes stay in the hit index, so hovering the bar finds them
-        nodePositions: self.walkRowBars ? {} : nodePositions,
+        ...layoutGeometryInputs(layoutResult, deletionDrawing, {
+          drawsRows: !!self.walkRowBars,
+        }),
         graph,
         nodeById,
         colorScheme: self.effectiveColorScheme,
@@ -491,13 +492,9 @@ export const withFitViews = withHostViews
         axis: untracked(() => self.axisScale),
         linearLayout: self.linearLayout,
         viewportBounds,
-        // Held against the graph rather than derived here, the same way
-        // `deletions` is and for the same reason — see `referenceRamp`.
+        // Held against the graph rather than derived here, the same way the
+        // deletion drawing is and for the same reason — see `referenceRamp`.
         referenceRamp: self.referenceRamp,
-        deletions: self.deletionEdgeIndexes,
-        deletionRoutes: self.deletionRoutes,
-        stranded: self.stranded,
-        hiddenEdges: self.hiddenEdgeIndexes,
         // passed so the shared edge-curve cache can tell a drag from a pan
         version: self.positionsVersion,
       })

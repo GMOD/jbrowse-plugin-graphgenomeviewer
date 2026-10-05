@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import { edgeHoverText } from '@jbrowse/bandage-core/hoverText'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import {
@@ -453,10 +454,13 @@ const HoverTooltips = observer(function HoverTooltips({
     ? nodeOwnLocation(hoveredNodeData)
     : undefined
 
-  const hoveredDeletion =
-    model.hoveredEdge === null
-      ? undefined
-      : model.deletions.find(d => d.edgeIndex === model.hoveredEdge)
+  const hoveredEdgeText = hoveredEdgeData
+    ? edgeHoverText(
+        hoveredEdgeData,
+        model.deletions.find(d => d.edgeIndex === model.hoveredEdge),
+        id => model.nodeById?.get(id)?.name ?? id,
+      )
+    : undefined
 
   const walkRow = model.hoveredWalkRowText
 
@@ -484,22 +488,19 @@ const HoverTooltips = observer(function HoverTooltips({
           ) : null}
         </div>
       ) : null}
-      {hoveredEdgeData ? (
+      {hoveredEdgeText ? (
         <div style={tooltipStyle}>
           {/* A deletion edge is the one link that means something on its own —
               the backbone it skips is sequence some haplotype does not carry —
               so it says how much rather than just naming its endpoints. */}
-          {hoveredDeletion ? (
+          {hoveredEdgeText.deletion ? (
             <>
-              <strong>Deletion</strong> {hoveredDeletion.bp.toLocaleString()} bp
+              <strong>Deletion</strong> {hoveredEdgeText.deletion.bp}
               <br />
-              {hoveredDeletion.refName}:{hoveredDeletion.start.toLocaleString()}
-              -{hoveredDeletion.end.toLocaleString()}
+              {hoveredEdgeText.deletion.where}
             </>
           ) : (
-            <>
-              Edge: {hoveredEdgeData.from} → {hoveredEdgeData.to}
-            </>
+            <>Edge: {hoveredEdgeText.ends}</>
           )}
         </div>
       ) : null}
