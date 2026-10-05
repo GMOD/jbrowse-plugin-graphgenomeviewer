@@ -1,3 +1,12 @@
+## [6.1.3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.2...v6.1.3) (2026-10-05)
+
+### Other Changes
+
+- One reading of the settings a figure is drawn from ([346ecf8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/346ecf86c79c332fd7ad05164c66fe8945d40d9b))
+- Depend on @jbrowse/bandage-core 7.3.0, and keep a popped bubble out of a spec ([1a22e33](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1a22e33bc984c7d985279cb84bd839f19a502ac9))
+- Packed walk rows key genes as left out, as the walk strip does ([4d9bfb9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4d9bfb976b9ecacb442691f62607a28e40dcea37))
+- Prettier formats walkRowGeneKey ([919d83b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/919d83b28009c00f80875705a8124b04f700e8b1))
+
 ## [6.1.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.1...v6.1.2) (2026-10-04)
 
 ### Other Changes
