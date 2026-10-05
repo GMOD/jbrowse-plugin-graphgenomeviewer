@@ -1,3 +1,14 @@
+## [6.3.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.3.0...v6.3.1) (2026-10-05)
+
+### Other Changes
+
+- Group the track menu: toggles under Show..., layout options under Layout, Zoom and Export submenus ([26eb1d9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/26eb1d9f9be6cbca3fbdfdab28d64b2a8eebb1a8))
+- Hover highlight is fainter and can be turned off ([a6d595b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a6d595b12543291dc668d4c8cc51612b9d695546))
+- Narrow the track menu the way BandageJS narrowed its bar ([f3195ab](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f3195ab2fa92ddaa92a8ca0a1415b79e9d67bc30))
+- Move Export SVG and Copy figure spec from the track menu to the graph genome view's menu ([1b044df](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1b044dfea2cca55e2c24a592a1ec5a63d98acd16))
+- Take @jbrowse/bandage-core 8.0.1 ([4d6fd7d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4d6fd7d2a715f38167186583ffdf924bb9a6cb3e))
+- Keep the drawing on screen across pans, zooms and new layouts ([271c0d8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/271c0d8c8e3146c54e6f96358bc52271ac9a85ce))
+
 ## [6.3.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.2.0...v6.3.0) (2026-10-05)
 
 ### Other Changes
