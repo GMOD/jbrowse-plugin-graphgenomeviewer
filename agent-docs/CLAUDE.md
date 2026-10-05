@@ -15,8 +15,9 @@ Top level is exactly `TODO.md` and this file. Everything else is filed:
 - `architecture-decision-records/` — *why*, one per file, `adr-NNN-slug.md`
   with `status:` and `summary:` frontmatter. Read the relevant one before
   "simplifying" a design that looks accidental.
-- `TODO.md` — committed work, grouped by area. `TODO.md` vs `ideas/` is
-  commitment, not size.
+- `todo/` — committed work, one file per item with `metadata.category`,
+  `area`, `first_move` and `order`; `TODO.md` indexes them. `todo/` vs `ideas/`
+  is commitment, not size.
 - Tried and declined → a sentence at the code that would re-try it, with the
   number. There is no rejected-ideas shelf.
 - What a session did and which commits → git already holds it.
