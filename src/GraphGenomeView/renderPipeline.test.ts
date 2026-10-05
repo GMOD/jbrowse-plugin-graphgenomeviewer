@@ -165,10 +165,13 @@ test('a pan drops it too', async () => {
 // is in layout units and had not changed.
 test('a pan past the built window moves the viewport signal and a node drag moves the positions one', async () => {
   const model = await drawnModel()
+  // zoomed in, so a pan of several panes still leaves the drawing on screen
+  model.zoom(8, model.width / 2, 0)
+  await sleep(300)
   const dirty = model.viewportDirty
   const positions = model.positionsVersion
 
-  model.setTransform(model.scale, model.translateX + 5 * model.width, 0)
+  model.setTransform(model.scale, model.translateX - 3 * model.width, 0)
   await sleep(300)
   expect(model.viewportDirty).toBeGreaterThan(dirty)
   expect(model.positionsVersion).toBe(positions)

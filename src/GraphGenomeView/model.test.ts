@@ -3872,3 +3872,80 @@ describe('walk rows grouped by a sample column', () => {
     ).toBe(false)
   })
 })
+
+describe('keeping the drawing on screen', () => {
+  function screenBox(model: ReturnType<typeof createModel>) {
+    const b = model.layoutBounds!
+    const left = b.minX * model.scaleX + model.translateX
+    const top = b.minY * model.scaleY + model.translateY
+    return {
+      left,
+      top,
+      right: left + b.w * model.scaleX,
+      bottom: top + b.h * model.scaleY,
+    }
+  }
+
+  async function forceModel() {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'simple')
+    model.startRenderingBackend(fakeRenderer())
+    model.setWidth(800)
+    return model
+  }
+
+  test('a pan stops with some of the drawing still in the pane', async () => {
+    const model = await forceModel()
+    model.setTransform(model.scale, model.translateX + 10_000, -10_000)
+    const box = screenBox(model)
+    expect(box.left).toBeLessThanOrEqual(model.viewBox.width - 48 + 1e-6)
+    expect(box.bottom).toBeGreaterThanOrEqual(48 - 1e-6)
+  })
+
+  test('a zoom about a point far from the drawing keeps it in the pane', async () => {
+    const model = await forceModel()
+    model.zoom(50, model.viewBox.width, model.viewBox.height)
+    const box = screenBox(model)
+    expect(box.right).toBeGreaterThan(0)
+    expect(box.left).toBeLessThan(model.viewBox.width)
+    expect(box.bottom).toBeGreaterThan(0)
+    expect(box.top).toBeLessThan(model.viewBox.height)
+  })
+
+  // A fresh force run, or a new cut as a linear view moves, lands in
+  // coordinates of its own; the old zoom showed empty paper
+  test('a new force layout refits a drawing the user had moved', async () => {
+    const model = await forceModel()
+    model.zoom(4, 0, 0)
+    expect(model.viewportOwner).toBe('user')
+    const shifted = {
+      nodePositions: Object.fromEntries(
+        Object.entries(MOCK_LAYOUT.nodePositions).map(([k, segs]) => [
+          k,
+          segs.map(p => ({ x: p.x + 5000, y: p.y - 3000 })),
+        ]),
+      ),
+    }
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? Promise.resolve({ result: shifted, duration: 5 })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    await model.toggleDeletionEdges()
+
+    expect(model.viewportOwner).toBe('fit')
+    expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
+    expect(model.translateX).toBeCloseTo(model.fittedTransform!.translateX, 10)
+  })
+
+  test('a layout handed back unchanged keeps the user’s zoom', async () => {
+    const model = await forceModel()
+    model.zoom(4, 100, 50)
+    const { scale, translateX } = model
+    await model.recomputeLayout()
+    expect(model.viewportOwner).toBe('user')
+    expect(model.scale).toBe(scale)
+    expect(model.translateX).toBe(translateX)
+  })
+})

@@ -12,6 +12,7 @@ import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { withFitViews } from './fitViews'
+import { keepInView, onScreen } from './keepInView'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
@@ -30,6 +31,21 @@ import type {
 } from '@jbrowse/bandage-core/walkEncoding'
 
 export const withSettingActions = withFitViews
+  .actions(self => ({
+    // A pan or zoom never leaves the drawing wholly off screen, where
+    // nothing says which way it went. A host's x is its own.
+    keepDrawingInView() {
+      const bounds = self.layoutBounds
+      if (!bounds || self.viewportOwner === 'fit') {
+        return
+      }
+      const t = keepInView(bounds, self, self.viewBox)
+      if (self.viewportOwner !== 'host') {
+        self.translateX = t.translateX
+      }
+      self.translateY = t.translateY
+    },
+  }))
   .actions(self => ({
     setError(error: unknown) {
       self.error = error
@@ -322,6 +338,7 @@ export const withSettingActions = withFitViews
         self.translateX = tx
       }
       self.translateY = ty
+      self.keepDrawingInView()
     },
     zoom(factor: number, centerX: number, centerY: number) {
       const { host } = self
@@ -334,6 +351,7 @@ export const withSettingActions = withFitViews
       self.scale = t.scale
       self.translateX = t.translateX
       self.translateY = t.translateY
+      self.keepDrawingInView()
     },
     setViewportDirty() {
       self.viewportRebuildPending = false
@@ -391,6 +409,23 @@ export const withSettingActions = withFitViews
       self.scale = scale
       self.translateX = translateX
       if (engaging) {
+        self.zoomToFit()
+      }
+    },
+    // A new layout under a view the user placed. A force run or a fresh cut
+    // draws in coordinates of its own, where the old transform shows
+    // nothing in particular, so it is fitted; one on the reference's bp, or
+    // the first after a restored session, keeps the view while any of it
+    // is on screen.
+    followNewLayout(replaced: boolean) {
+      const bounds = self.layoutBounds
+      if (
+        self.viewportOwner === 'user' &&
+        bounds &&
+        ((replaced && !self.xIsReferenceBp) ||
+          !onScreen(bounds, self, self.viewBox))
+      ) {
+        self.viewportOwner = 'fit'
         self.zoomToFit()
       }
     },

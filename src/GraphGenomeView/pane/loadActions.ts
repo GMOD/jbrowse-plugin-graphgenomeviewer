@@ -150,8 +150,11 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
     const live = isLive()
     if (live) {
+      const previous = self.layoutResult
+      const replaced = previous !== undefined && previous !== computed.result
       self.layoutResult = computed.result
       self.setLayoutMs(computed.duration)
+      self.followNewLayout(replaced)
     }
     return live
   }

@@ -37,6 +37,16 @@ export const withRenderingActions = withLoadActions
           }),
         )
 
+        // A narrower or shorter pane can leave a placed drawing off screen
+        addDisposer(
+          self,
+          reaction(
+            () => `${self.viewBox.width} ${self.viewBox.height}`,
+            () => {
+              self.keepDrawingInView()
+            },
+          ),
+        )
         addDisposer(
           self,
           // Faceting on or off, its columns, its count of panels and what
