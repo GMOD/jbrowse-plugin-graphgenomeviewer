@@ -20,6 +20,7 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
+import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
 
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -3584,4 +3585,13 @@ describe('genes on a backbone of another assembly', () => {
     await drawAlong(model, 'chr6')
     expect(pinned(model)).toEqual(['HLA-A'])
   })
+})
+
+test('a walk-rows key notes genes as left out once rows are too thin to box them', () => {
+  const gaps = { untracked: 3, unread: 421 }
+  const roomy = { rowPx: 22, barPx: 12, labelled: true, readouts: true }
+  const packed = { rowPx: 0.7, barPx: 0.7, labelled: false, readouts: false }
+  expect(walkRowGeneKey(roomy, true, gaps)).toEqual(gaps)
+  expect(walkRowGeneKey(packed, true, gaps)).toEqual({ ...gaps, crowded: true })
+  expect(walkRowGeneKey(packed, false, gaps)).toBeUndefined()
 })

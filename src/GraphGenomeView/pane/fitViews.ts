@@ -11,6 +11,7 @@ import {
   layoutLabels,
 } from '@jbrowse/bandage-core/labelLayout'
 import {
+  boxesGenes,
   rowPitch,
   walkRowReadout,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -66,10 +67,27 @@ import {
 } from './paneBase'
 
 import type { FacetGrid, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
-import type { RowPitch } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import type {
+  GeneGaps,
+  RowPitch,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
+
+
+export function walkRowGeneKey(
+  pitch: RowPitch | undefined,
+  hasGenes: boolean,
+  gaps: GeneGaps | undefined,
+): GeneGaps | undefined {
+  if (!pitch || !hasGenes) {
+    return undefined
+  }
+  return boxesGenes(pitch.rowPx, pitch.barPx)
+    ? gaps
+    : { untracked: 0, unread: 0, ...gaps, crowded: true }
+}
 
 export const withFitViews = withHostViews
   .views(self => ({
@@ -92,6 +110,15 @@ export const withFitViews = withHostViews
       return rowPitch(
         bars.rows.length + 1,
         room - this.fitPadTopBase - FIT_PADDING,
+      )
+    },
+    // What the walk-rows key says of genes: where they went unread, or one
+    // note that rows this thin box none, as the walk strip's key says
+    get walkRowGeneKey() {
+      return walkRowGeneKey(
+        this.walkRowPitch,
+        !!self.walkRowGenes?.size,
+        self.walkRowGeneGaps,
       )
     },
     // Walk rows label from the bars themselves, which follow the selected

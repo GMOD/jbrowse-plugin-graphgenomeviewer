@@ -95,7 +95,7 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   const key = walkRowsKey(bars, {
     ramp: model.referenceRampDomain,
     rampCss: RAMP_GRADIENT_CSS,
-    genes: model.walkRowGenes?.size ? model.walkRowGeneGaps : undefined,
+    genes: model.walkRowGeneKey,
   })
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-rows-legend">
