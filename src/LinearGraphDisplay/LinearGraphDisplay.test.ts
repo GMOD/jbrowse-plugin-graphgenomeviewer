@@ -929,17 +929,18 @@ test("a GBZ track's Haplotypes menu cuts for every haplotype, the track's lanes,
     ).subMenu
   const checked = () => menu().find(item => item.checked)?.label
   expect(menu().map(item => item.label)).toEqual([
+    'Load',
     'Every haplotype in the graph',
     "The track's 2 assemblies",
     'Chosen in Settings...',
   ])
   expect(checked()).toBe("The track's 2 assemblies")
-  menu()[0]!.onClick()
+  menu()[1]!.onClick()
   expect(display.chosenHaplotypes).toEqual([])
   expect(checked()).toBe('Every haplotype in the graph')
   display.setSubgraphHaplotypes(['HG1.1'])
   expect(checked()).toBe('Chosen in Settings...')
-  menu()[1]!.onClick()
+  menu()[2]!.onClick()
   expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
 })
 
@@ -1080,9 +1081,13 @@ test('the track menu offers the layouts, colours and the settings dialog', async
     .trackMenuItems()
     .map(item => ('label' in item ? item.label : ''))
   expect(labels).toEqual(
-    expect.arrayContaining(['Layout', 'Color', 'Show...', 'Settings']),
+    expect.arrayContaining([
+      'Layout: Anchored',
+      'Color: Auto (Reference position)',
+      'Show...',
+      'Settings',
+    ]),
   )
-  expect(labels).not.toContain('Zoom')
 })
 
 function graphViewItem(display: LinearGraphDisplayModel) {

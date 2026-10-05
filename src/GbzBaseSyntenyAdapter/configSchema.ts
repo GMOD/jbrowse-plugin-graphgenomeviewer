@@ -115,7 +115,7 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     /**
      * #slot
      * A tab-separated table of per-sample metadata, which the graph view's
-     * walk rows group by ("Group by…"). Its header row names the columns
+     * walk rows group by ("Group by..."). Its header row names the columns
      * (`population`, `superpopulation`, ...), and its first column is the
      * walk's sample (`HG00097`) or haplotype (`HG00097#1`). Empty means no
      * grouping.

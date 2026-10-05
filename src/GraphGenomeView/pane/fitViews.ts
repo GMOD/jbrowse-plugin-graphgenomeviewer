@@ -630,7 +630,7 @@ export const withFitViews = withHostViews
       return !self.layoutResult
         ? 'Nothing is drawn yet'
         : self.walkRowGroups
-          ? 'The SVG export cannot group walk rows yet: set Group by… to None first'
+          ? 'The SVG export cannot group walk rows yet: set Group by... to None first'
           : self.drawsNodes || self.walkRowBars
             ? undefined
             : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`

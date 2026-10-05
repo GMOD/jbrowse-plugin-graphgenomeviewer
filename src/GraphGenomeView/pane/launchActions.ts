@@ -1,19 +1,20 @@
 import { COLOR_SCHEMES } from '@jbrowse/bandage-core/colorSchemes'
 import { FACET_FIELDS } from '@jbrowse/bandage-core/facetGrid'
-import { LAYOUT_MODES } from '@jbrowse/bandage-core/layoutModes'
-import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
+import {
+  LAYOUT_MODES,
+  layoutModeByValue,
+} from '@jbrowse/bandage-core/layoutModes'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import HubIcon from '@mui/icons-material/Hub'
 import PaletteIcon from '@mui/icons-material/Palette'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
-import RouteIcon from '@mui/icons-material/Route'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import ZoomInIcon from '@mui/icons-material/ZoomIn'
 
 import {
   ChooseSamplesDialog,
   ChooseWalksDialog,
+  HighlightColorDialog,
   TUBE_MAP_FOLDS,
   TUBE_MAP_MODES,
   WALK_MENU_ITEMS,
@@ -30,6 +31,7 @@ import { launchableSyntenyTracks } from '../../launchFromGraph/syntenyTracks'
 import { downloadText } from '../download'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
+import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { MenuItem } from '@jbrowse/core/ui'
 
 export const withLaunchActions = withRenderingActions
@@ -164,7 +166,7 @@ export const withLaunchActions = withRenderingActions
       ]
     },
     layoutOptionMenuItems(): MenuItem[] {
-      const items: MenuItem[] = [
+      return [
         ...(TUBE_MAP_MODES.has(self.chosenLayoutMode)
           ? [
               {
@@ -214,10 +216,9 @@ export const withLaunchActions = withRenderingActions
         ...(self.chosenLayoutMode === 'walkrows' &&
         self.walkRowBars &&
         self.walkRowGroupFields.length > 0
-          ? [{ label: 'Group by…', subMenu: this.walkRowGroupMenuItems() }]
+          ? [{ label: 'Group by...', subMenu: this.walkRowGroupMenuItems() }]
           : []),
       ]
-      return items.length > 0 ? [{ type: 'divider' }, ...items] : []
     },
     showMenuItems(): MenuItem[] {
       return [
@@ -253,20 +254,6 @@ export const withLaunchActions = withRenderingActions
             self.setShowGenes(!self.showGenes)
           },
         },
-        ...(!self.host &&
-        self.modeDrawsNodes &&
-        (self.graph?.paths?.length ?? 0) > 1
-          ? [
-              {
-                type: 'checkbox' as const,
-                label: 'Show walk rows',
-                checked: self.walkStrip,
-                onClick: () => {
-                  self.setWalkStrip(!self.walkStrip)
-                },
-              },
-            ]
-          : []),
         ...(self.referenceStripApplies
           ? [
               {
@@ -279,28 +266,6 @@ export const withLaunchActions = withRenderingActions
               },
             ]
           : []),
-      ]
-    },
-    zoomMenuItems(): MenuItem[] {
-      return [
-        {
-          label: 'Zoom in',
-          onClick: () => {
-            self.zoom(1.5, self.viewBox.width / 2, self.viewBox.height / 2)
-          },
-        },
-        {
-          label: 'Zoom out',
-          onClick: () => {
-            self.zoom(1 / 1.5, self.viewBox.width / 2, self.viewBox.height / 2)
-          },
-        },
-        {
-          label: 'Zoom to fit',
-          onClick: () => {
-            self.zoomToFit()
-          },
-        },
       ]
     },
     exportMenuItems(): MenuItem[] {
@@ -341,11 +306,85 @@ export const withLaunchActions = withRenderingActions
         },
       ]
     },
-    graphMenuItems(): MenuItem[] {
+    highlightMenuItems(): MenuItem[] {
       const walks = self.walkChoices
+      if (walks.length === 0 || !self.liftsWalks) {
+        return []
+      }
+      const lifted = (name: string) =>
+        self.walkLayers.some(l => l.walk === name)
+      const many = walks.length > WALK_MENU_ITEMS
+      return [
+        { type: 'subHeader', label: 'Highlight' },
+        ...(many
+          ? [
+              {
+                label: 'Choose haplotypes...',
+                onClick: () => {
+                  getSession(self).queueDialog(onClose => [
+                    ChooseWalksDialog,
+                    { model: self, onClose },
+                  ])
+                },
+              },
+            ]
+          : []),
+        ...(many ? walks.filter(walk => lifted(walk.name)) : walks).map(
+          walk => ({
+            type: 'checkbox' as const,
+            label: walk.label,
+            checked: lifted(walk.name),
+            onClick: () => {
+              self.toggleWalk(walk.name)
+            },
+          }),
+        ),
+        {
+          label: 'Clear highlights',
+          disabled: self.walkLayers.length === 0,
+          onClick: () => {
+            self.setWalkLayers([])
+          },
+        },
+        ...(self.drawnWalks.length > 0
+          ? [
+              {
+                label: 'Color highlighted...',
+                onClick: () => {
+                  getSession(self).queueDialog(onClose => [
+                    HighlightColorDialog,
+                    { model: self, onClose },
+                  ])
+                },
+              },
+            ]
+          : []),
+        ...(self.walkLayers.length > 1 && self.modeDrawsNodes
+          ? [
+              { type: 'subHeader' as const, label: 'Arrange' },
+              ...FACET_FIELDS.map(({ value, label }) => ({
+                type: 'radio' as const,
+                label: value === 'walk' ? 'A panel per haplotype' : label,
+                checked: self.facet.field === value,
+                onClick: () => {
+                  self.setFacet(value)
+                },
+              })),
+            ]
+          : []),
+      ]
+    },
+    colorSchemeLabel(value: ColorScheme): string {
+      const label = COLOR_SCHEMES.find(s => s.value === value)?.label ?? value
+      return value === 'auto'
+        ? `${label} (${this.colorSchemeLabel(self.effectiveColorScheme)})`
+        : label
+    },
+    graphMenuItems(): MenuItem[] {
+      const options = this.layoutOptionMenuItems()
       return [
         {
-          label: 'Layout',
+          label: `Layout: ${layoutModeByValue(self.chosenLayoutMode).label.replace(/ layout$/, '')}`,
           icon: HubIcon,
           subMenu: [
             ...LAYOUT_MODES.map(mode => ({
@@ -357,145 +396,39 @@ export const withLaunchActions = withRenderingActions
                 void self.switchLayout(mode.value)
               },
             })),
-            ...this.layoutOptionMenuItems(),
+            ...(options.length > 0
+              ? [{ type: 'divider' as const }, ...options]
+              : []),
+            ...(self.hostPlacesX
+              ? []
+              : [
+                  { type: 'divider' as const },
+                  {
+                    label: 'Zoom to fit',
+                    onClick: () => {
+                      self.zoomToFit()
+                    },
+                  },
+                ]),
           ],
         },
         {
-          label: 'Color',
+          label: `Color: ${this.colorSchemeLabel(self.chosenColorScheme)}`,
           icon: PaletteIcon,
           subMenu: COLOR_SCHEMES.map(scheme => ({
             type: 'radio' as const,
-            label: scheme.label,
+            label: this.colorSchemeLabel(scheme.value),
             checked: self.chosenColorScheme === scheme.value,
             onClick: () => {
               self.setColorScheme(scheme.value)
             },
           })),
         },
-        ...(walks.length > 0 && self.liftsWalks
-          ? [
-              {
-                label: 'Walk',
-                icon: RouteIcon,
-                subMenu: [
-                  {
-                    label: 'None',
-                    onClick: () => {
-                      self.setWalkLayers([])
-                    },
-                  },
-                  ...(self.walkLayers.length > 1 && self.modeDrawsNodes
-                    ? [
-                        {
-                          label: 'Side by side',
-                          subMenu: FACET_FIELDS.map(({ value, label }) => ({
-                            type: 'radio' as const,
-                            label,
-                            checked: self.facet.field === value,
-                            onClick: () => {
-                              self.setFacet(value)
-                            },
-                          })),
-                        },
-                      ]
-                    : []),
-                  ...(self.facetPanels &&
-                  self.facet.field === 'walk' &&
-                  !self.hostPlacesX
-                    ? [
-                        {
-                          label: 'Columns',
-                          subMenu: [
-                            undefined,
-                            ...self.facetPanels.map((_, i) => i + 1),
-                          ].map(columns => ({
-                            type: 'radio' as const,
-                            label:
-                              columns === undefined ? 'Auto' : `${columns}`,
-                            checked: self.facet.columns === columns,
-                            onClick: () => {
-                              self.setFacetColumns(columns)
-                            },
-                          })),
-                        },
-                      ]
-                    : []),
-                  ...(walks.length > WALK_MENU_ITEMS
-                    ? [
-                        {
-                          label: 'Choose walks...',
-                          onClick: () => {
-                            getSession(self).queueDialog(onClose => [
-                              ChooseWalksDialog,
-                              { model: self, onClose },
-                            ])
-                          },
-                        },
-                      ]
-                    : []),
-                  ...(walks.length > WALK_MENU_ITEMS
-                    ? walks.filter(walk =>
-                        self.walkLayers.some(l => l.walk === walk.name),
-                      )
-                    : walks
-                  ).map(walk => ({
-                    type: 'checkbox' as const,
-                    label: walk.label,
-                    checked: self.walkLayers.some(l => l.walk === walk.name),
-                    onClick: () => {
-                      self.toggleWalk(walk.name)
-                    },
-                  })),
-                  ...self.drawnWalks.map(lifted => ({
-                    label: `Colour ${self.walkLabel(lifted.name)}`,
-                    subMenu: [
-                      { type: 'subHeader' as const, label: 'Colour by' },
-                      ...WALK_FIELDS.map(field => ({
-                        type: 'radio' as const,
-                        label: field.label,
-                        checked: lifted.encoding.field === field.value,
-                        onClick: () => {
-                          self.setWalkColor(lifted.name, {
-                            field: field.value,
-                          })
-                        },
-                      })),
-                      { type: 'subHeader' as const, label: 'Palette' },
-                      // the rainbow is the reference-position ramp
-                      ...WALK_SCHEMES.filter(
-                        scheme =>
-                          scheme.value !== 'rainbow' ||
-                          lifted.encoding.field === 'reference',
-                      ).map(scheme => ({
-                        type: 'radio' as const,
-                        label: scheme.label,
-                        checked: lifted.encoding.scheme === scheme.value,
-                        onClick: () => {
-                          self.setWalkColor(lifted.name, {
-                            scheme: scheme.value,
-                          })
-                        },
-                      })),
-                    ],
-                  })),
-                ],
-              },
-            ]
-          : []),
         {
           label: 'Show...',
           icon: VisibilityIcon,
           subMenu: this.showMenuItems(),
         },
-        ...(self.hostPlacesX
-          ? []
-          : [
-              {
-                label: 'Zoom',
-                icon: ZoomInIcon,
-                subMenu: this.zoomMenuItems(),
-              },
-            ]),
         {
           label: 'Export',
           icon: PhotoCameraIcon,

@@ -95,8 +95,8 @@ Needs JBrowse 5.0.0-beta.11 or later.
 }
 ```
 
-- The track menu picks layout, colour and walk, and switches to the segments
-  lane or, for gbz-base, the haplotype lanes
+- The track menu picks layout, colour and highlighted haplotypes, and switches
+  to the segments lane or, for gbz-base, the haplotype lanes
 - Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`, the
   `coarse` tier (`build_bubble_tier.sh` in jbrowse-components)
 - Past the cut (5 Mb, or a gbz-base adapter's `nodeLimit`) the track asks you to

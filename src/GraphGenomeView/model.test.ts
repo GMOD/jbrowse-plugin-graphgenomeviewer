@@ -2696,10 +2696,8 @@ interface MenuItem {
   subMenu?: MenuItem[]
 }
 
-function walkMenu(model: { graphMenuItems: () => unknown }) {
-  return (model.graphMenuItems() as MenuItem[]).find(
-    item => item.label === 'Walk',
-  )!
+function highlightMenu(model: { highlightMenuItems: () => unknown }) {
+  return model.highlightMenuItems() as MenuItem[]
 }
 
 describe('walk rows', () => {
@@ -2948,13 +2946,9 @@ describe('walk rows', () => {
     // lifted together, each walk is one flat colour
     const ref = model.walkLift!.walks[0]!
     expect(new Set(ref.colors.values()).size).toBe(1)
-    const menu = walkMenu(model)
-    const colour = menu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
-      colour.subMenu!.filter(item => item.checked).map(item => item.label),
-    ).toEqual(['One colour for the walk', 'Lime to forest'])
-    // the rainbow is offered for reference position only
-    expect(colour.subMenu!.some(item => item.label === 'Rainbow')).toBe(false)
+      model.drawnWalks.find(w => w.name === 'B#1#ctg')!.encoding,
+    ).toMatchObject({ field: 'walk', scheme: 'green' })
     model.liftWalks(['B#1#ctg'])
     expect(model.walkLayers).toEqual([
       { walk: 'B#1#ctg', color: { field: 'walk', scheme: 'green' } },
@@ -2992,8 +2986,7 @@ describe('walk rows', () => {
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     model.liftWalks(['B#1#ctg', 'A#1#ctg'])
-    const menu = walkMenu(model)
-    expect(menu.subMenu!.some(item => item.label === 'Side by side')).toBe(
+    expect(highlightMenu(model).some(item => item.label === 'Arrange')).toBe(
       false,
     )
     model.setFacet('walk')
@@ -3062,13 +3055,9 @@ describe('walk rows', () => {
     expect(model.canvasHeight).toBe(Math.max(160, grid.total))
     expect(model.scale).toBeCloseTo(grid.scale, 10)
     expect(model.scale).not.toBeCloseTo(whole, 10)
-    const menu = walkMenu(model)
-    const colour = menu.subMenu!.find(item => item.label === 'Colour B#1')!
     expect(
-      colour.subMenu!.filter(item => item.checked).map(item => item.label),
-    ).toEqual(['Progress along the walk', 'Yellow to red'])
-    const columns = menu.subMenu!.find(item => item.label === 'Columns')!
-    expect(columns.subMenu!.map(item => item.label)).toEqual(['Auto', '1', '2'])
+      model.drawnWalks.find(w => w.name === 'B#1#ctg')!.encoding,
+    ).toMatchObject({ field: 'progress', scheme: 'red' })
   })
 
   test('by sample, a sample takes a row and its haplotypes the columns', async () => {
@@ -3140,11 +3129,7 @@ describe('walk rows', () => {
     await model.loadGFA(WALKS_GFA, 'walks')
     expect(model.walkLift).toBeUndefined()
     expect(model.facetPanels).toBeUndefined()
-    expect(
-      (model.graphMenuItems() as { label?: string }[]).some(
-        item => item.label === 'Walk',
-      ),
-    ).toBe(false)
+    expect(model.highlightMenuItems()).toEqual([])
   })
 
   test('a lane reads the reference ramp only when it is coloured by it', async () => {
@@ -3855,12 +3840,12 @@ describe('walk rows grouped by a sample column', () => {
     expect(stale.walkRowPlacement!.headers).toEqual([])
   })
 
-  test('Group by… lists None and each column, and the SVG export waits for None', async () => {
+  test('Group by... lists None and each column, and the SVG export waits for None', async () => {
     const model = await groupedModel()
     const groupBy = () =>
       (
         (model.layoutOptionMenuItems() as MenuItem[]).find(
-          item => item.label === 'Group by…',
+          item => item.label === 'Group by...',
         ) as { subMenu: (MenuItem & { onClick: () => void })[] }
       ).subMenu
     expect(groupBy().map(item => [item.label, item.checked])).toEqual([
@@ -3871,18 +3856,18 @@ describe('walk rows grouped by a sample column', () => {
     groupBy()[2]!.onClick()
     expect(model.walkRowGroupBy).toEqual({ field: 'superpopulation' })
     expect(groupBy()[2]!.checked).toBe(true)
-    expect(model.figureUnavailable).toContain('Group by…')
+    expect(model.figureUnavailable).toContain('Group by...')
     groupBy()[0]!.onClick()
     expect(model.walkRowGroupBy).toBeUndefined()
     expect(model.figureUnavailable).toBeUndefined()
   })
 
-  test('no samples table, no Group by…', async () => {
+  test('no samples table, no Group by...', async () => {
     mockSession.tracks = []
     const model = await groupedModel()
     expect(
       (model.layoutOptionMenuItems() as MenuItem[]).some(
-        item => item.label === 'Group by…',
+        item => item.label === 'Group by...',
       ),
     ).toBe(false)
   })

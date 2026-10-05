@@ -19,7 +19,7 @@ type WalkPicker = Pick<
   'walkChoices' | 'walkLayers' | 'walkLabel' | 'liftWalks'
 >
 
-// Which walks to lift, searched by name, for a graph with more walks than a
+// Which haplotypes to highlight, searched by name, for a graph with more walks than a
 // menu can list
 const ChooseWalksDialog = observer(function ChooseWalksDialog({
   model,
@@ -34,7 +34,7 @@ const ChooseWalksDialog = observer(function ChooseWalksDialog({
     model.walkLayers.map(l => l.walk).filter(name => names.has(name)),
   )
   return (
-    <Dialog open onClose={onClose} title="Choose walks">
+    <Dialog open onClose={onClose} title="Choose haplotypes">
       <DialogContent>
         <Autocomplete
           multiple
@@ -56,15 +56,14 @@ const ChooseWalksDialog = observer(function ChooseWalksDialog({
             <TextField
               {...params}
               autoFocus
-              label="Walks"
+              label="Haplotypes"
               placeholder="type to search"
             />
           )}
         />
         <Typography variant="caption" color="text.secondary">
-          {walkChoices.length.toLocaleString()} walks in this cut. The ones
-          picked are lifted out of the drawing in this order, and the rest
-          fades.
+          {walkChoices.length.toLocaleString()} haplotypes in this cut. The ones
+          picked are highlighted in this order, and the rest fades.
         </Typography>
       </DialogContent>
       <DialogActions>
@@ -76,7 +75,7 @@ const ChooseWalksDialog = observer(function ChooseWalksDialog({
             onClose()
           }}
         >
-          Lift these walks
+          Highlight these
         </Button>
       </DialogActions>
     </Dialog>

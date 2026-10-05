@@ -53,8 +53,11 @@ export const ChooseSamplesDialog = lazy(
 export const ChooseWalksDialog = lazy(
   () => import('../components/ChooseWalksDialog'),
 )
+export const HighlightColorDialog = lazy(
+  () => import('../components/HighlightColorDialog'),
+)
 
-// Past this many walks the Walk menu lists only the lifted ones and offers a
+// Past this many walks the Haplotypes menu lists only the lifted ones and offers a
 // searchable picker
 export const WALK_MENU_ITEMS = 12
 

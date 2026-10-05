@@ -17,6 +17,7 @@ import {
   computeDisplayStatusPhase,
 } from '@jbrowse/render-core/displayPhase'
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
+import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
@@ -470,7 +471,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       .views(self => ({
         // Which haplotypes a GBZ cut is for: every one in the graph, the
         // assemblies the track names, or a list typed in Settings
-        haplotypeMenuItems(): MenuItem[] {
+        cutMenuItems(): MenuItem[] {
           if (self.adapterConfig.type !== 'GbzBaseSyntenyAdapter') {
             return []
           }
@@ -481,38 +482,34 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             void self.cut()
           }
           return [
+            { type: 'subHeader', label: 'Load' },
             {
-              label: 'Haplotypes',
-              subMenu: [
-                {
-                  type: 'radio',
-                  label: 'Every haplotype in the graph',
-                  checked: chosen ? chosen.length === 0 : !lanes,
-                  onClick: () => {
-                    recut([])
+              type: 'radio',
+              label: 'Every haplotype in the graph',
+              checked: chosen ? chosen.length === 0 : !lanes,
+              onClick: () => {
+                recut([])
+              },
+            },
+            ...(lanes
+              ? [
+                  {
+                    type: 'radio' as const,
+                    label: `The track's ${lanes.length} assemblies`,
+                    checked: chosen === undefined,
+                    onClick: () => {
+                      recut(undefined)
+                    },
                   },
-                },
-                ...(lanes
-                  ? [
-                      {
-                        type: 'radio' as const,
-                        label: `The track's ${lanes.length} assemblies`,
-                        checked: chosen === undefined,
-                        onClick: () => {
-                          recut(undefined)
-                        },
-                      },
-                    ]
-                  : []),
-                {
-                  type: 'radio',
-                  label: 'Chosen in Settings...',
-                  checked: (chosen?.length ?? 0) > 0,
-                  onClick: () => {
-                    this.openSettings()
-                  },
-                },
-              ],
+                ]
+              : []),
+            {
+              type: 'radio',
+              label: 'Chosen in Settings...',
+              checked: (chosen?.length ?? 0) > 0,
+              onClick: () => {
+                this.openSettings()
+              },
             },
           ]
         },
@@ -533,8 +530,14 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               self.openGraphView()
             },
           })
+          const haplotypes = [
+            ...this.cutMenuItems(),
+            ...self.highlightMenuItems(),
+          ]
           return [
-            ...this.haplotypeMenuItems(),
+            ...(haplotypes.length > 0
+              ? [{ label: 'Haplotypes', icon: RouteIcon, subMenu: haplotypes }]
+              : []),
             ...self.graphMenuItems(),
             {
               label: 'Settings',
@@ -556,5 +559,5 @@ export type LinearGraphDisplayModel = Instance<LinearGraphDisplayStateModel>
 // name without naming themselves
 export type LinearGraphCutModel = Omit<
   LinearGraphDisplayModel,
-  'trackMenuItems' | 'haplotypeMenuItems' | 'openSettings'
+  'trackMenuItems' | 'cutMenuItems' | 'openSettings'
 >

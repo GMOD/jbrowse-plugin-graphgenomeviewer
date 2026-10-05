@@ -207,16 +207,17 @@ with its haplotypes and length.
 
 The Walks picker lifts haplotypes out of the drawing, and the rest of the graph
 fades to grey. A tube map has no picker, since its tubes already are the walks.
-Past a dozen walks the track menu lists only the lifted ones, and **Choose
-walks...** searches the rest by name. A walk lifted alone shades light to dark
-along itself, so it can be followed round a loop; its key is a short bar of that
-gradient, with the stretch it runs over on the walk's own contig written under
-it as `contig:start-end (length)`. At GSTM1, HG00133 runs cyan to navy past the
-loop its 18 kb deletion skips. The synteny view under it reads the same track as
-HG00133 aligned to GRCh38, and the deletion is the wedge pinched to a point on
-HG00133's contig. HPRC's own wfmash alignment puts it in the same place, inside
-the repeat that flanks GSTM1. Above the graph, six of the cut's eight haplotypes
-break across GSTM1 in the multiple alignment, HG00133 among them:
+Past a dozen walks the track menu's **Haplotypes** lists only the lifted ones,
+and **Choose haplotypes...** searches the rest by name. A walk lifted alone
+shades light to dark along itself, so it can be followed round a loop; its key
+is a short bar of that gradient, with the stretch it runs over on the walk's own
+contig written under it as `contig:start-end (length)`. At GSTM1, HG00133 runs
+cyan to navy past the loop its 18 kb deletion skips. The synteny view under it
+reads the same track as HG00133 aligned to GRCh38, and the deletion is the wedge
+pinched to a point on HG00133's contig. HPRC's own wfmash alignment puts it in
+the same place, inside the repeat that flanks GSTM1. Above the graph, six of the
+cut's eight haplotypes break across GSTM1 in the multiple alignment, HG00133
+among them:
 
 ![HG00133's walk lifted at GSTM1 under the eight haplotypes' alignment rows, shading along itself past the loop it skips, over a synteny view of HG00133 against GRCh38 whose wedge is the deletion](../img/force_gstm1_walk.png)
 
@@ -238,24 +239,25 @@ Only the graph view tells the two apart.
 
 ![HG01960, HG00133 and HG03041 lifted at GSTM1 under their alignment rows, two of which break across GSTM1: through GRCh38's GSTM1, past it, and round an unmerged copy of it](../img/force_gstm1_three_ways.png)
 
-The Walk menu's **Side by side** facets the pane, the way a grammar of graphics
-facets a plot. **A panel per walk** draws the same layout once per lifted walk,
-each panel with its walk alone on one shared scale, yellow where the walk starts
-and red where it ends. Walks then compare by where they go rather than by which
-lane is which colour. A panel's title is its key, and clicking it lifts that
-walk alone. While a node is hovered, each walk's key gives where that node sits
-on the walk's own contig, or says the walk does not visit it. Through the KIV-2
-array, which the curated annotation above puts at GRCh38's 35 kb, each haplotype
-takes its own loops: HG00097 adds one to GRCh38's (+22.2 kb), HG01960 skips most
-of GRCh38's for the big teardrop (+49.9 kb), and HG00133 takes both (+116.4 kb):
+With two or more lifted, **Haplotypes › Arrange** facets the pane, the way a
+grammar of graphics facets a plot. **A panel per walk** draws the same layout
+once per lifted walk, each panel with its walk alone on one shared scale, yellow
+where the walk starts and red where it ends. Walks then compare by where they go
+rather than by which lane is which colour. A panel's title is its key, and
+clicking it lifts that walk alone. While a node is hovered, each walk's key
+gives where that node sits on the walk's own contig, or says the walk does not
+visit it. Through the KIV-2 array, which the curated annotation above puts at
+GRCh38's 35 kb, each haplotype takes its own loops: HG00097 adds one to GRCh38's
+(+22.2 kb), HG01960 skips most of GRCh38's for the big teardrop (+49.9 kb), and
+HG00133 takes both (+116.4 kb):
 
 ![The KIV-2 array side by side under the curated KIV-2 annotation: GRCh38, HG00097, HG01960 and HG00133 each take their own loops](../img/force_kiv2_facet.png)
 
 The panels share one view, so a pan, zoom, drag or hover in one moves or marks
 them all. As many go across as draws each panel largest, the way `facet_wrap`
 picks its grid: four square drawings go two by two in a tall pane and four
-across in a wide one. **Columns** in the Walk menu fixes the count. **A row per
-sample, a column per haplotype** lays the same panels out as
+across in a wide one. A session's `columns` fixes the count. **A row per sample,
+a column per haplotype** lays the same panels out as
 `facet_grid(sample ~ haplotype)` would, so a sample's two haplotypes read across
 one row. A track whose x the linear view places stacks its panels full width, so
 each keeps the ruler's bp. A track too short for its panels grows to fit them.
@@ -276,8 +278,8 @@ panels come first, and `columns`, how many go across by walk:
 
 A lifted walk colours its lane by an encoding: a field, the quantity the walk
 has at each node it visits, drawn through a scheme, the scale from that quantity
-to a colour. The **Walk** menu sets both per walk, overriding the defaults
-above.
+to a colour. **Haplotypes › Color highlighted...** sets both per walk,
+overriding the defaults above.
 
 | Field                   | What the colour says                                                            |
 | ----------------------- | ------------------------------------------------------------------------------- |

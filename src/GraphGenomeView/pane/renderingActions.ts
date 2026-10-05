@@ -71,7 +71,7 @@ export const withRenderingActions = withLoadActions
             },
           ),
         )
-        // Walk rows read the source track's samples TSV, for Group by…
+        // Walk rows read the source track's samples TSV, for Group by...
         addDisposer(
           self,
           reaction(
