@@ -1,4 +1,4 @@
-import { GBZBase } from '@gmod/gbz-base'
+import { GBZBase, SubgraphLimitError } from '@gmod/gbz-base'
 import {
   NodeLimitError,
   cutWindowGFA,
@@ -34,6 +34,7 @@ import type {
   PairAlignment,
   PathName,
   PathQuery,
+  Subgraph,
 } from '@gmod/gbz-base'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
@@ -231,6 +232,39 @@ export function pairFeature({
       assemblyName: mateLane,
     },
   })
+}
+
+// The longest detour a pair cut widens its context to take in
+const BRIDGE_MAX_BP = 120_000
+
+/**
+ * The widest gap, up to `BRIDGE_MAX_BP`, between two pieces of one kept walk:
+ * a haplotype that left the cut's nodes for sequence the reference lacks and
+ * came back. Two kept haplotypes that share that sequence only align across it
+ * once its nodes are in the cut.
+ */
+export function widestWalkGap(subgraphs: Subgraph[], kept: Set<string>) {
+  const byPath = new Map<string, [number, number][]>()
+  for (const subgraph of subgraphs) {
+    for (const { name, start, end } of subgraph.walkSpans()) {
+      const prefix = haplotypePrefix(name)
+      if (kept.has(prefix)) {
+        const key = `${prefix}#${name.contig}`
+        byPath.set(key, [...(byPath.get(key) ?? []), [start, end]])
+      }
+    }
+  }
+  let widest = 0
+  for (const spans of byPath.values()) {
+    spans.sort((a, b) => a[0] - b[0])
+    for (let i = 1; i < spans.length; i++) {
+      const gap = spans[i]![0] - spans[i - 1]![1]
+      if (gap > 0 && gap <= BRIDGE_MAX_BP) {
+        widest = Math.max(widest, gap)
+      }
+    }
+  }
+  return widest
 }
 
 // A window past the node limit fails as a zoom-in notice naming a span that
@@ -548,7 +582,36 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
+    const baseContext: number = this.getConf('context')
     const [first] = pairs
+    const cut = (path: PathQuery, context: number) =>
+      db.getSubgraphs({
+        path,
+        start,
+        end,
+        context,
+        snarls: this.getConf('subgraphSnarls'),
+        haplotypes: 'all',
+        limit: nodeLimit,
+        signal: opts.signal,
+        keep: name => kept.has(haplotypePrefix(name)),
+      })
+    // a cut past the node limit for the wider context keeps the first one
+    const bridged = async (path: PathQuery) => {
+      const subgraphs = await cut(path, baseContext).catch((error: unknown) => {
+        throw nodeLimitError(error, nodeLimit, end - start) ?? error
+      })
+      const gap = widestWalkGap(subgraphs, kept)
+      const context = Math.ceil(gap / 2) + 2000
+      return gap > 0 && context > baseContext
+        ? cut(path, context).catch((error: unknown) => {
+            if (error instanceof SubgraphLimitError) {
+              return subgraphs
+            }
+            throw error
+          })
+        : subgraphs
+    }
     const subgraphs =
       query && first && answerable.length > 0
         ? await updateStatus(
@@ -556,22 +619,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
               ? `Reading ${first.queryAssemblyName} against ${first.targetAssemblyName}`
               : `Reading ${pairs.length} lane pairs`,
             opts.statusCallback,
-            () =>
-              db
-                .getSubgraphs({
-                  path: query,
-                  start,
-                  end,
-                  context: this.getConf('context'),
-                  snarls: this.getConf('subgraphSnarls'),
-                  haplotypes: 'all',
-                  limit: nodeLimit,
-                  signal: opts.signal,
-                  keep: name => kept.has(haplotypePrefix(name)),
-                })
-                .catch((error: unknown) => {
-                  throw nodeLimitError(error, nodeLimit, end - start) ?? error
-                }),
+            () => bridged(query),
           )
         : []
     return subgraphs.flatMap(subgraph =>

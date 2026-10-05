@@ -15,6 +15,7 @@ import Adapter, {
   PairTargetError,
   laneAssemblyName,
   resolveReferenceSample,
+  widestWalkGap,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import GbzBaseSyntenyAdapterF from './index.ts'
@@ -725,6 +726,47 @@ test('a batch of lane pairs answers each pair what it answers alone, from one cu
         .map(f => f.toJSON()),
     ).toEqual(alone[i])
   })
+})
+
+test('a kept walk in two pieces is the gap a pair cut widens its context for', () => {
+  const name = (sample: string, haplotype: number, contig = 'c') => ({
+    sample,
+    haplotype,
+    contig,
+    fragment: 0,
+  })
+  const subgraph = (
+    spans: { name: ReturnType<typeof name>; start: number; end: number }[],
+  ) => ({ walkSpans: () => spans }) as unknown as Subgraph
+  const kept = new Set(['A#1', 'B#1'])
+  expect(
+    widestWalkGap(
+      [
+        subgraph([
+          { name: name('A', 1), start: 0, end: 100 },
+          { name: name('A', 1), start: 54_100, end: 60_000 },
+          { name: name('B', 1), start: 0, end: 500 },
+          { name: name('B', 1), start: 2500, end: 3000 },
+          { name: name('C', 1), start: 0, end: 10 },
+          { name: name('C', 1), start: 90_000, end: 90_010 },
+        ]),
+      ],
+      kept,
+    ),
+  ).toBe(54_000)
+  expect(
+    widestWalkGap(
+      [
+        subgraph([
+          { name: name('A', 1), start: 0, end: 100 },
+          { name: name('A', 1), start: 500_000, end: 500_100 },
+          { name: name('B', 1, 'c1'), start: 0, end: 100 },
+          { name: name('B', 1, 'c2'), start: 5000, end: 5100 },
+        ]),
+      ],
+      kept,
+    ),
+  ).toBe(0)
 })
 
 test('lane pair ids are the same across two fetches of one window', async () => {
