@@ -1,3 +1,11 @@
+## [6.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.4...v6.2.0) (2026-10-05)
+
+### Other Changes
+
+- A window's lane pairs come from one cut: lanePairs and the lanePairBatches capability ([1bfbd62](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1bfbd62b55adf867d68099f922aaad2b55e9bb21))
+- Depend on @gmod/gbz-base 7.1.0 ([e65bad1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e65bad1d1f9eef4b6957fcac54a6b501179dca0d))
+- A pair cut widens its context to take in a detour its lanes share ([0b3b215](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0b3b215f7fc3d7603b9aa8e47f7fa0ef2404d1bd))
+
 ## [6.1.4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.3...v6.1.4) (2026-10-05)
 
 ### Other Changes
