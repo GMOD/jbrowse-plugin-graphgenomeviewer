@@ -1,3 +1,11 @@
+## [6.4.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.3.1...v6.4.0) (2026-10-05)
+
+### Other Changes
+
+- Trust a restored view's first layout; forget the view when the graph is cleared ([96a00b3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/96a00b35f4b2f52844a4f7863d02ede057e951b9))
+- Keep a view only across layouts that share the reference axis; clamp only a measured pane ([22d1b43](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/22d1b4399b9f32bcc17152fbf817077b43a9dd02))
+- Draw the graph track in the linear view's Export SVG ([f7dbbf7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f7dbbf7c1bdaee66928fe6c80546099a4d9c20a7))
+
 ## [6.3.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.3.0...v6.3.1) (2026-10-05)
 
 ### Other Changes
