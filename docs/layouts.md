@@ -60,8 +60,8 @@ same bp across the curated KIV-2 array:
 
 ## Tube maps
 
-- Laid out by `@gmod/tubemap-core`, sequenceTubeMap's layout, from the P and W
-  lines, reference first
+- Laid out by `@jbrowse/tubemap-core`, sequenceTubeMap's layout, from the P and
+  W lines, reference first
 - A reverse-strand walk runs through its boxes right to left
 - On the reference axis each column boundary takes up to 24 px for its curves;
   inserted sequence covers no reference

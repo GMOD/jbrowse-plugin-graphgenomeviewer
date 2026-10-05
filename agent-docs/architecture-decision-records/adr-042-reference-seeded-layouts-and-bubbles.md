@@ -135,4 +135,4 @@ depth from walks when a GFA has no depth tag, so on a GBZ cut width is carriage.
   with one thick detour. A repeat array's readout belongs in a per-haplotype
   panel, not a node drawing.
 - **Porting sequenceTubeMap's lane packing into the node renderer.** The tube
-  map layouts on `@gmod/tubemap-core` superseded it.
+  map layouts on `@jbrowse/tubemap-core` superseded it.
