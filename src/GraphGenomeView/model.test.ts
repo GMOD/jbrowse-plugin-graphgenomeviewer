@@ -22,6 +22,7 @@ import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
+import { SECTION_HEADER_PX } from './walkRowGroups'
 
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
@@ -3594,4 +3595,244 @@ test('a walk-rows key notes genes as left out once rows are too thin to box them
   expect(walkRowGeneKey(roomy, true, gaps)).toEqual(gaps)
   expect(walkRowGeneKey(packed, true, gaps)).toEqual({ ...gaps, crowded: true })
   expect(walkRowGeneKey(packed, false, gaps)).toBeUndefined()
+})
+
+describe('walk rows grouped by a sample column', () => {
+  const GFA = [
+    'H\tVN:Z:1.1',
+    'S\t1\tACGT',
+    'S\t2\tGGCCGGCC',
+    'S\t3\tTTTT',
+    'S\t4\tAAAAAAAAAAAAAAAA',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t2\t+\t3\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'L\t1\t+\t4\t+\t0M',
+    'L\t4\t+\t3\t+\t0M',
+    'W\tGRCh38\t0\tchr1\t0\t8\t>1>3',
+    'W\tB\t1\tctg\t0\t24\t>1>4>3',
+    'W\tA\t1\tctg\t0\t16\t>1>2>3',
+    'W\tC\t1\tctg\t0\t16\t>1>2>3',
+    'W\tA\t2\tctg\t0\t8\t>1>3',
+    'W\tD\t1\tctg\t0\t8\t>1>3',
+    'W\tE\t1\tctg\t0\t8\t>1>3',
+    '',
+  ].join('\n')
+  const TSV = [
+    'name\tpopulation\tsuperpopulation',
+    'GRCh38\t\t',
+    'A\tYRI\tAFR',
+    'B\tGBR\tEUR',
+    'C\tESN\tAFR',
+    'D#1\tCEU\tEUR',
+    '',
+  ].join('\n')
+  const SAMPLES_TRACK = {
+    trackId: 'gbz-track',
+    adapter: {
+      type: 'GbzBaseSyntenyAdapter',
+      samplesTsvLocation: {
+        uri: 'https://example.com/samples.tsv',
+        locationType: 'UriLocation',
+      },
+    },
+  }
+
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockReadFile.mockReset()
+    mockSession.notify.mockReset()
+    mockSession.tracks = [SAMPLES_TRACK]
+  })
+
+  async function groupedModel(snapshot: Record<string, unknown> = {}) {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(TSV)
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      loadedTrackId: 'gbz-track',
+      ...snapshot,
+    })
+    await model.loadGFA(GFA, 'walks')
+    await model.loadWalkRowSampleTable()
+    model.setWidth(800)
+    return model
+  }
+
+  const labels = (model: { walkRowBars?: { rows: { label: string }[] } }) =>
+    model.walkRowBars!.rows.map(r => r.label)
+
+  test("reads the source track's samples TSV once per location", async () => {
+    const model = await groupedModel()
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+    expect(model.walkRowGroupFields).toEqual(['population', 'superpopulation'])
+    await model.loadWalkRowSampleTable()
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+  })
+
+  test('a failed read leaves the rows ungrouped and says so', async () => {
+    rpcRespond()
+    mockReadFile.mockRejectedValue(new Error('404'))
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      loadedTrackId: 'gbz-track',
+      walkRowGroupBy: 'superpopulation',
+    })
+    await model.loadGFA(GFA, 'walks')
+    await model.loadWalkRowSampleTable()
+    expect(model.walkRowSampleTable).toBeUndefined()
+    expect(model.walkRowGroups).toBeUndefined()
+    expect(mockSession.notify).toHaveBeenCalledWith(
+      expect.stringContaining('404'),
+      'warning',
+    )
+  })
+
+  test('a track with no samples TSV reads nothing', async () => {
+    mockSession.tracks = [
+      { trackId: 'gbz-track', adapter: { type: 'GbzBaseSyntenyAdapter' } },
+    ]
+    const model = await groupedModel()
+    expect(mockReadFile).not.toHaveBeenCalled()
+    expect(model.walkRowGroupFields).toEqual([])
+  })
+
+  test('sections stack by key, the empty group last, each keeping the row order', async () => {
+    const model = await groupedModel()
+    const ungrouped = labels(model)
+    model.setWalkRowGroupBy({ field: 'superpopulation' })
+    const { sections } = model.walkRowGroups!
+    expect(sections.map(s => s.title)).toEqual([
+      'AFR · 3 haplotypes',
+      'EUR · 2 haplotypes',
+      'superpopulation: none · 1 haplotype',
+    ])
+    const inSection = (members: string[]) =>
+      ungrouped.filter(label => members.includes(label))
+    expect(labels(model)).toEqual([
+      ...inSection(['A#1', 'A#2', 'C#1']),
+      ...inSection(['B#1', 'D#1']),
+      'E#1',
+    ])
+    // the reference row stays on top, outside the sections
+    expect(model.walkRowBars!.reference.label).toBe('GRCh38#0')
+    expect(model.drawnRowLabels[0]).toMatchObject({ label: 'GRCh38#0', y: 0 })
+    expect(sections[0]!.first).toBe(1)
+  })
+
+  test('every section shares one row pitch, and the headers take their room', async () => {
+    const model = await groupedModel()
+    const flat = model.layoutBounds!.h
+    model.setWalkRowGroupBy({ field: 'superpopulation' })
+    const pitch = model.walkRowPitch!
+    const place = model.walkRowPlacement!
+    const ys = model.drawnRowLabels.map(r => r.y)
+    const steps = ys.slice(1).map((y, i) => y - ys[i]!)
+    const firsts = new Set(model.walkRowGroups!.sections.map(s => s.first))
+    steps.forEach((step, i) => {
+      expect(step).toBe(
+        pitch.rowPx + (firsts.has(i + 1) ? SECTION_HEADER_PX : 0),
+      )
+    })
+    expect(place.headersPx).toBe(3 * SECTION_HEADER_PX)
+    expect(model.layoutBounds!.h).toBe(flat + place.headersPx)
+    // a point on a bar in the last section finds its row
+    const last = model.walkRowBars!.rows.length
+    const x = (model.walkRowBars!.origin + 4) * model.scaleX + model.translateX
+    const y = place.rowY(last) * model.scaleY + model.translateY
+    expect(model.walkRowAt(x, y)).toBe(last)
+  })
+
+  test('a packed cohort fits its rows and headers into the pane', async () => {
+    rpcRespond()
+    const cohort = [
+      ...GFA.trimEnd().split('\n'),
+      ...Array.from(
+        { length: 300 },
+        (_, i) => `W\tS${i}\t1\tctg\t0\t16\t>1>2>3`,
+      ),
+      '',
+    ].join('\n')
+    mockReadFile.mockResolvedValue(
+      [
+        TSV.trimEnd(),
+        ...Array.from(
+          { length: 300 },
+          (_, i) => `S${i}\tX\t${['AFR', 'EUR', 'SAS'][i % 3]}`,
+        ),
+      ].join('\n'),
+    )
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      loadedTrackId: 'gbz-track',
+      walkRowGroupBy: 'superpopulation',
+    })
+    await model.loadGFA(cohort, 'cohort')
+    await model.loadWalkRowSampleTable()
+    model.setWidth(800)
+    const pitch = model.walkRowPitch!
+    expect(pitch.labelled).toBe(false)
+    const rows = model.walkRowBars!.rows.length
+    expect(
+      rows * pitch.rowPx + model.walkRowPlacement!.headersPx,
+    ).toBeLessThanOrEqual(model.paneCeiling)
+    expect(model.canvasHeight).toBeLessThanOrEqual(model.paneCeiling)
+  })
+
+  test('the setting persists as written and reads leniently', async () => {
+    const bare = await groupedModel({ walkRowGroupBy: 'superpopulation' })
+    expect(bare.walkRowGroupBy).toEqual({ field: 'superpopulation' })
+    expect(getSnapshot(bare).walkRowGroupBy).toEqual({
+      field: 'superpopulation',
+    })
+    const ordered = await groupedModel({
+      walkRowGroupBy: { field: 'superpopulation', domain: ['EUR', 7] },
+    })
+    expect(ordered.walkRowGroups!.sections.map(s => s.key)).toEqual([
+      'EUR',
+      'AFR',
+      '',
+    ])
+    const junk = await groupedModel({ walkRowGroupBy: 42 })
+    expect(junk.walkRowGroupBy).toBeUndefined()
+    // a column the table lacks leaves the rows ungrouped
+    const stale = await groupedModel({ walkRowGroupBy: 'tissue' })
+    expect(stale.walkRowGroups).toBeUndefined()
+    expect(stale.walkRowPlacement!.headers).toEqual([])
+  })
+
+  test('Group by… lists None and each column, and the SVG export waits for None', async () => {
+    const model = await groupedModel()
+    const groupBy = () =>
+      (
+        (model.graphMenuItems() as MenuItem[]).find(
+          item => item.label === 'Group by…',
+        ) as { subMenu: (MenuItem & { onClick: () => void })[] }
+      ).subMenu
+    expect(groupBy().map(item => [item.label, item.checked])).toEqual([
+      ['None', true],
+      ['population', false],
+      ['superpopulation', false],
+    ])
+    groupBy()[2]!.onClick()
+    expect(model.walkRowGroupBy).toEqual({ field: 'superpopulation' })
+    expect(groupBy()[2]!.checked).toBe(true)
+    expect(model.figureUnavailable).toContain('Group by…')
+    groupBy()[0]!.onClick()
+    expect(model.walkRowGroupBy).toBeUndefined()
+    expect(model.figureUnavailable).toBeUndefined()
+  })
+
+  test('no samples table, no Group by…', async () => {
+    mockSession.tracks = []
+    const model = await groupedModel()
+    expect(
+      (model.graphMenuItems() as MenuItem[]).some(
+        item => item.label === 'Group by…',
+      ),
+    ).toBe(false)
+  })
 })

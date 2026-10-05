@@ -114,6 +114,21 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
     }),
     /**
      * #slot
+     * A tab-separated table of per-sample metadata, which the graph view's
+     * walk rows group by ("Group by…"). Its header row names the columns
+     * (`population`, `superpopulation`, ...), and its first column is the
+     * walk's sample (`HG00097`) or haplotype (`HG00097#1`). Empty means no
+     * grouping.
+     */
+    samplesTsvLocation: {
+      type: 'fileLocation',
+      defaultValue: {
+        uri: '',
+        locationType: 'UriLocation',
+      },
+    },
+    /**
+     * #slot
      * How the graph view's subgraph is extended past the nodes the reference
      * window touches. `contained` adds every top-level snarl with both
      * boundary nodes in the window, which is what brings back the bubbles a

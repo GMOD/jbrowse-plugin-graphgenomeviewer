@@ -135,6 +135,28 @@ export const withLaunchActions = withRenderingActions
         },
       ]
     },
+    // Which sample table column walk rows stack into sections by
+    walkRowGroupMenuItems(): MenuItem[] {
+      const field = self.walkRowGroups ? self.walkRowGroupBy?.field : undefined
+      return [
+        {
+          type: 'radio',
+          label: 'None',
+          checked: field === undefined,
+          onClick: () => {
+            self.setWalkRowGroupBy(undefined)
+          },
+        },
+        ...self.walkRowGroupFields.map(column => ({
+          type: 'radio' as const,
+          label: column,
+          checked: field === column,
+          onClick: () => {
+            self.setWalkRowGroupBy({ field: column })
+          },
+        })),
+      ]
+    },
     graphMenuItems(): MenuItem[] {
       const walks = self.walkChoices
       return [
@@ -315,6 +337,11 @@ export const withLaunchActions = withRenderingActions
           : []),
         ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
           ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
+          : []),
+        ...(self.chosenLayoutMode === 'walkrows' &&
+        self.walkRowBars &&
+        self.walkRowGroupFields.length > 0
+          ? [{ label: 'Group by…', subMenu: this.walkRowGroupMenuItems() }]
           : []),
         ...(self.hostPlacesX
           ? []

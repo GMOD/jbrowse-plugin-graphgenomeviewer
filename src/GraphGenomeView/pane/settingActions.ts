@@ -16,6 +16,7 @@ import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 
+import type { SampleRow, WalkRowGroupBy } from '../walkRowGroups'
 import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
@@ -162,6 +163,12 @@ export const withSettingActions = withFitViews
     },
     setWalkRowSamples(samples: string[] | undefined) {
       self.walkRowSamples = samples
+    },
+    setWalkRowGroupBy(groupBy: WalkRowGroupBy | undefined) {
+      self.walkRowGroupBy = groupBy
+    },
+    setWalkRowSampleTable(table: SampleRow[] | undefined) {
+      self.walkRowSampleTable = table
     },
     // Pair with a linear view for the hover sync, without ever repointing an
     // existing pairing: a graph launched *from* an LGV is already paired with

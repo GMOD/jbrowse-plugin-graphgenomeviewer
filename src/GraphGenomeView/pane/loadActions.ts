@@ -28,6 +28,7 @@ import { namesReads } from '../../GetGraphReads'
 import { locLabel } from '../../launchFromGraph/contributors'
 import { geneModelsFrom } from '../genes/geneFeatures'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
+import { parseSamplesTsv } from '../walkRowGroups'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../../GetSubgraph'
 import type { GafReads } from '../../gaf/gafFile'
@@ -40,6 +41,8 @@ import type { FileLocation } from '@jbrowse/core/util/types'
 
 export const withLoadActions = withSettingActions.actions(self => {
   let loadController: AbortController | undefined
+  // the samples TSV location the table was read from, or is being read from
+  let sampleTableKey: string | undefined
 
   function callEngine(request: EngineRequest) {
     const { rpcManager } = getSession(self)
@@ -538,6 +541,33 @@ export const withLoadActions = withSettingActions.actions(self => {
             self.graphRegion === region &&
             self.repeatTrack?.trackId === trackId,
         )
+      }
+    }),
+    // The source track's samples TSV, read once per location, for walk
+    // rows to group by. A failed read leaves the rows ungrouped and says so.
+    loadWalkRowSampleTable: flow(function* () {
+      const location = self.walkRowSamplesTsv
+      const key = location ? JSON.stringify(location) : undefined
+      if (key === sampleTableKey) {
+        return
+      }
+      sampleTableKey = key
+      self.walkRowSampleTable = undefined
+      if (!location) {
+        return
+      }
+      try {
+        const text = (yield openLocation(location).readFile('utf8')) as string
+        if (isAlive(self) && key === sampleTableKey) {
+          self.walkRowSampleTable = parseSamplesTsv(text)
+        }
+      } catch (e) {
+        if (isAlive(self) && key === sampleTableKey) {
+          getSession(self).notify(
+            `Walk rows cannot be grouped: the samples table did not load (${String(e)})`,
+            'warning',
+          )
+        }
       }
     }),
     // The walk rows' genes, each row's from its haplotype's assembly. A

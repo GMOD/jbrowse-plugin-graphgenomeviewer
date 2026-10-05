@@ -16,9 +16,14 @@ import { observer } from 'mobx-react'
 import ElTree from './ElTree'
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import { CALL_TOLERANCE } from '../repeats/walkCalls'
+import { SECTION_HEADER_PX } from '../walkRowGroups'
 
 import type { GraphPaneModel } from '../model'
-import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import type { El } from '@jbrowse/bandage-core/el'
+import type {
+  KeySwatch,
+  WalkRowsFrame,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference
 // row, each on its own bp axis from the window's left edge, drawn from core's
@@ -135,6 +140,53 @@ export const WalkRowsLegend = observer(function WalkRowsLegend({
   )
 })
 
+// The rows' trees, a section at a time while grouped. walkRowsTree puts row i
+// at i * rowPx below the reference row and draws that row too, so each
+// section is drawn shifted down to its place with its reference row dropped.
+function sectionTrees(
+  model: GraphPaneModel,
+  frame: WalkRowsFrame,
+  idPrefix: string,
+): El[] {
+  const bars = model.walkRowBars!
+  const place = model.walkRowPlacement!
+  const sections = model.walkRowGroups?.sections ?? []
+  const o = {
+    ramp: model.referenceRampDomain,
+    rowGenes: model.walkRowGenes,
+  }
+  if (sections.length === 0) {
+    return [walkRowsTree(bars, frame, { ...o, idPrefix })]
+  }
+  const rowPx = frame.rowPx!
+  return [
+    walkRowsTree({ ...bars, rows: [] }, frame, { ...o, idPrefix }),
+    ...sections.flatMap((section, k) => {
+      const tree = walkRowsTree(
+        {
+          ...bars,
+          rows: bars.rows.slice(
+            section.first - 1,
+            section.first - 1 + section.count,
+          ),
+        },
+        {
+          ...frame,
+          translateY:
+            frame.translateY +
+            (place.rowY(section.first) - section.first * rowPx) * frame.scaleY,
+        },
+        { ...o, idPrefix: `${idPrefix}-s${k}` },
+      )
+      return tree.children.filter(
+        (c): c is El =>
+          typeof c !== 'string' &&
+          c.attrs['data-testid'] !== 'graph-walk-reference',
+      )
+    }),
+  ]
+}
+
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model,
 }: {
@@ -142,10 +194,13 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
 }) {
   const idPrefix = useId().replace(/[^\w-]/g, '')
   const bars = model.walkRowBars
-  if (!bars) {
+  const place = model.walkRowPlacement
+  const pitch = model.walkRowPitch
+  if (!bars || !place || !pitch) {
     return null
   }
-  const { paneWidth: width, canvasHeight, walkRowPitch: pitch } = model
+  const { paneWidth: width, canvasHeight } = model
+  const Y = (y: number) => y * model.scaleY + model.translateY
   const hovered = model.hoveredWalkRowText
     ? [bars.reference, ...bars.rows].findIndex(
         r => r.name === model.hoveredWalkRow,
@@ -153,6 +208,15 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
     : -1
   const row =
     hovered >= 0 ? [bars.reference, ...bars.rows][hovered]! : undefined
+  const frame = {
+    scaleX: model.scaleX,
+    scaleY: model.scaleY,
+    translateX: model.translateX,
+    translateY: model.translateY,
+    width,
+    height: canvasHeight,
+    ...pitch,
+  }
   return (
     <svg
       style={svgStyle}
@@ -160,35 +224,28 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
       height={canvasHeight}
       data-testid="graph-walk-rows"
     >
-      <ElTree
-        el={walkRowsTree(
-          bars,
-          {
-            scaleX: model.scaleX,
-            scaleY: model.scaleY,
-            translateX: model.translateX,
-            translateY: model.translateY,
-            width,
-            height: canvasHeight,
-            ...model.walkRowPitch,
-          },
-          {
-            ramp: model.referenceRampDomain,
-            rowGenes: model.walkRowGenes,
-            idPrefix,
-          },
-        )}
-      />
-      {row && pitch ? (
+      {sectionTrees(model, frame, idPrefix).map((tree, i) => (
+        <ElTree key={i} el={tree} />
+      ))}
+      {place.headers.map(header => (
+        <text
+          key={header.key}
+          x={10}
+          y={Y(header.top) + SECTION_HEADER_PX - 4}
+          fontFamily="sans-serif"
+          fontSize={11}
+          fontWeight="bold"
+          fill="#333"
+          data-testid="graph-walk-section"
+        >
+          {header.title}
+        </text>
+      ))}
+      {row ? (
         <rect
           data-testid="graph-walk-row-hovered"
           x={bars.origin * model.scaleX + model.translateX - 2}
-          y={
-            hovered * pitch.rowPx * model.scaleY +
-            model.translateY -
-            pitch.rowPx / 2 -
-            1
-          }
+          y={Y(place.rowY(hovered)) - pitch.rowPx / 2 - 1}
           width={row.bp * model.scaleX + 4}
           height={pitch.rowPx + 2}
           fill="none"

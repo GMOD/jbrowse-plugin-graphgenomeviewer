@@ -55,6 +55,7 @@ import { getSession } from '@jbrowse/core/util'
 import { untracked } from 'mobx'
 
 import { hostFrame } from '../host'
+import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
 import {
   HOVER_BRIGHTEN,
@@ -110,10 +111,19 @@ export const withFitViews = withHostViews
         return undefined
       }
       const room = self.host ? this.canvasHeight : this.paneCeiling
+      const headersPx =
+        (self.walkRowGroups?.sections.length ?? 0) * SECTION_HEADER_PX
       return rowPitch(
         bars.rows.length + 1,
-        room - this.fitPadTopBase - FIT_PADDING,
+        room - this.fitPadTopBase - FIT_PADDING - headersPx,
       )
+    },
+    // Where each walk row and section header sits at the rows' pitch
+    get walkRowPlacement() {
+      const pitch = this.walkRowPitch
+      return pitch
+        ? sectionPlacement(self.walkRowGroups?.sections ?? [], pitch.rowPx)
+        : undefined
     },
     // What the walk-rows key says of genes: where they went unread, or one
     // note that rows this thin box none, as the walk strip's key says
@@ -127,11 +137,15 @@ export const withFitViews = withHostViews
     // Walk rows label from the bars themselves, which follow the selected
     // repeat and sample filter that the layout, run once per cut, cannot
     get drawnRowLabels() {
-      return walkRowLabels(
+      const place = this.walkRowPlacement
+      const labels = walkRowLabels(
         self.walkRowBars,
         self.layoutResult,
         this.walkRowPitch,
       )
+      return self.walkRowBars && place
+        ? labels.map((l, i) => ({ ...l, y: place.rowY(i) }))
+        : labels
     },
     // The row labels are pinned to the pane's left edge, so the fit starts
     // the drawing past the widest one.
@@ -151,13 +165,17 @@ export const withFitViews = withHostViews
     get layoutBounds() {
       const layout = self.layoutResult
       const bars = self.walkRowBars
+      const rowsExtent =
+        bars && layout?.extent
+          ? walkRowsExtent(bars, this.walkRowPitch)
+          : undefined
       return layout
         ? drawingBounds(layout, {
             region: self.popStack.length === 0 ? self.graphRegion : undefined,
-            extent:
-              bars && layout.extent
-                ? walkRowsExtent(bars, this.walkRowPitch)
-                : undefined,
+            extent: rowsExtent && {
+              ...rowsExtent,
+              maxY: rowsExtent.maxY + (this.walkRowPlacement?.headersPx ?? 0),
+            },
           })
         : undefined
     },
@@ -190,13 +208,16 @@ export const withFitViews = withHostViews
     walkRowAt(screenX: number, screenY: number) {
       const bars = self.walkRowBars
       const pitch = this.walkRowPitch
-      if (!bars || !pitch) {
+      const place = this.walkRowPlacement
+      if (!bars || !pitch || !place) {
         return undefined
       }
-      const rowPx = pitch.rowPx * self.scaleY
-      const i = Math.round((screenY - self.translateY) / rowPx)
+      const i = place.rowAt(
+        (screenY - self.translateY) / self.scaleY,
+        bars.rows.length + 1,
+      )
       const row = [bars.reference, ...bars.rows][i]
-      const y = i * rowPx + self.translateY
+      const y = place.rowY(i) * self.scaleY + self.translateY
       const bp = (screenX - self.translateX) / self.scaleX - bars.origin
       return row &&
         Math.abs(screenY - y) <= pitch.barPx / 2 + 2 &&
@@ -605,9 +626,11 @@ export const withFitViews = withHostViews
     get figureUnavailable() {
       return !self.layoutResult
         ? 'Nothing is drawn yet'
-        : self.drawsNodes || self.walkRowBars
-          ? undefined
-          : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
+        : self.walkRowGroups
+          ? 'The SVG export cannot group walk rows yet: set Group by… to None first'
+          : self.drawsNodes || self.walkRowBars
+            ? undefined
+            : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
     },
     // Why bandage-figure can't make this drawing again: it draws only
     // layouts with nodes, from a graph it can read for itself

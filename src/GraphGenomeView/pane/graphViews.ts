@@ -57,6 +57,7 @@ import {
   pickRepeatTrack,
 } from '../repeats/repeatFeatures'
 import { withCalls } from '../repeats/walkCalls'
+import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type {
   ColorScheme,
@@ -610,11 +611,46 @@ export const withGraphViews = paneBase
         ],
       }
     },
-    // The bars the overlay draws: the cohort's, narrowed by the sample filter
+    // The source track's samples TSV, where its adapter names one
+    get walkRowSamplesTsv(): FileLocation | undefined {
+      const location = self.sourceAdapter?.samplesTsvLocation as
+        FileLocation | undefined
+      return location && (!('uri' in location) || location.uri)
+        ? location
+        : undefined
+    },
+    // The sample table's columns walk rows can group by
+    get walkRowGroupFields() {
+      return metadataColumns(self.walkRowSampleTable)
+    },
+    // The filtered rows in a section per value of the grouped column, or
+    // undefined while ungrouped or the table lacks that column
+    get walkRowGroups() {
+      const bars = this.cohortWalkRows
+      const table = self.walkRowSampleTable
+      const groupBy = self.walkRowGroupBy
+      return bars &&
+        table &&
+        groupBy &&
+        this.walkRowGroupFields.includes(groupBy.field)
+        ? groupWalkRows(
+            filterSamples(bars.rows, self.walkRowSamples),
+            table,
+            groupBy,
+          )
+        : undefined
+    },
+    // The bars the overlay draws: the cohort's, narrowed by the sample
+    // filter, and stacked section by section while grouped
     get walkRowBars() {
       const bars = this.cohortWalkRows
       return bars
-        ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
+        ? {
+            ...bars,
+            rows:
+              this.walkRowGroups?.rows ??
+              filterSamples(bars.rows, self.walkRowSamples),
+          }
         : undefined
     },
     // Whether the canvas draws the graph's nodes. A tube map and walk rows

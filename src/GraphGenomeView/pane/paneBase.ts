@@ -11,9 +11,11 @@ import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
 import { lenientMaybeEnum, lenientOptionalEnum } from '../lenientEnum'
+import { groupByOf } from '../walkRowGroups'
 
 import type { SubgraphRegion } from '../../GetSubgraph'
 import type { RepeatArray } from '../repeats/repeatFeatures'
+import type { SampleRow, WalkRowGroupBy } from '../walkRowGroups'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { FacetInput } from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
@@ -278,6 +280,14 @@ export const paneBase = types
       // Samples whose walks the walk rows show, by the name before the
       // haplotype number; undefined shows every walk the cut holds.
       walkRowSamples: types.maybe(types.frozen<string[]>()),
+      // The sample table column walk rows stack into sections by, read from
+      // the source track's samplesTsvLocation; a bare field name or
+      // `{ field, domain }`, anything else reading as ungrouped
+      walkRowGroupBy: types.maybe(
+        types.snapshotProcessor(types.frozen<WalkRowGroupBy | undefined>(), {
+          preProcessor: (snap: unknown) => groupByOf(snap),
+        }),
+      ),
       // Walk rows in a strip under a layout that draws nodes, linked to the
       // drawing: a node's passes tick each bar, a bar's point lights its node
       walkStrip: types.optional(types.boolean, false),
@@ -359,6 +369,8 @@ export const paneBase = types
     // each walk row's genes, read from its haplotype's own assembly, by walk
     // name
     walkGeneFeatures: undefined as Map<string, GeneModel[]> | undefined,
+    // the source track's samples TSV, which walk rows group by
+    walkRowSampleTable: undefined as SampleRow[] | undefined,
     // the tandem repeat arrays over the cut window, from the repeat track
     repeatArrays: undefined as RepeatArray[] | undefined,
     // The graphs the open bubble was popped out of, outermost first, each

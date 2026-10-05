@@ -71,6 +71,22 @@ export const withRenderingActions = withLoadActions
             },
           ),
         )
+        // Walk rows read the source track's samples TSV, for Group by…
+        addDisposer(
+          self,
+          reaction(
+            () =>
+              self.chosenLayoutMode === 'walkrows'
+                ? JSON.stringify(self.walkRowSamplesTsv ?? null)
+                : undefined,
+            key => {
+              if (key !== undefined) {
+                void self.loadWalkRowSampleTable()
+              }
+            },
+            { fireImmediately: true },
+          ),
+        )
         // A host fits the rows once, when it takes the pane over, which is
         // before the legend measures the room it needs above them
         addDisposer(
