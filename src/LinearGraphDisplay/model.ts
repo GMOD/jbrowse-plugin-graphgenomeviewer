@@ -126,6 +126,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get defaultColorScheme(): ColorScheme {
           return getConf(self, 'colorScheme')
         },
+        get defaultHighlightOnHover(): boolean {
+          return getConf(self, 'highlightOnHover')
+        },
         // The linear view leaves its highlight bands off this track while false
         get drawsGenomicCoordinates() {
           return self.layoutResult === undefined || self.hostPlacesX

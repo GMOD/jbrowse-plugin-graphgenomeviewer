@@ -79,6 +79,9 @@ export const withGraphViews = paneBase
     get defaultColorScheme(): ColorScheme {
       return 'auto'
     },
+    get defaultHighlightOnHover(): boolean {
+      return true
+    },
     // a source declared but not yet loaded
     get hasPendingSource() {
       return false
@@ -101,6 +104,13 @@ export const withGraphViews = paneBase
     },
     get chosenColorScheme() {
       return self.colorScheme ?? self.defaultColorScheme
+    },
+    get chosenHighlightOnHover() {
+      return self.highlightOnHover ?? self.defaultHighlightOnHover
+    },
+    // the hovered node, where hovering is to light it
+    get litNode() {
+      return this.chosenHighlightOnHover ? self.hoveredNode : null
     },
   }))
   .views(self => ({
@@ -877,7 +887,7 @@ export const withGraphViews = paneBase
     get hoverHighlight() {
       const region = self.graphRegion
       const span = self.hoveredSpan
-      return region && span
+      return region && span && self.chosenHighlightOnHover
         ? {
             refName: region.refName,
             assemblyName: region.assemblyName,

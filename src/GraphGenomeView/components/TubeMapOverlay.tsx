@@ -61,7 +61,7 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
           const tubeFrame = {
             ...frame,
             width,
-            highlightNode: model.hoveredNode ?? model.selectedNode,
+            highlightNode: model.litNode ?? model.selectedNode,
             darkMode: model.darkMode,
             tubeColors: model.tubeMapTubeColors,
             nodeColors: model.tubeMapNodeColors,

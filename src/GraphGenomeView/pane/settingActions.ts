@@ -71,6 +71,9 @@ export const withSettingActions = withFitViews
     setLayoutMode(mode: LayoutModeValue) {
       self.layoutMode = mode
     },
+    setHighlightOnHover(highlight: boolean) {
+      self.highlightOnHover = highlight
+    },
     // Re-anchor in place rather than re-parsing: the coordinate walk is
     // already recorded on the graph, and only which path counts as rank 0
     // changes. The caller recomputes the layout, the same way it does after

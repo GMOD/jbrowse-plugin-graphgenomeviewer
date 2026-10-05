@@ -1522,6 +1522,20 @@ describe('hoverHighlight', () => {
     expect(model.hoverHighlight).toMatchObject({ start: 0, end: 4 })
   })
 
+  test('turning hover highlighting off lights nothing', async () => {
+    const model = await loadedFromTrack()
+    model.setHighlightOnHover(false)
+    model.setHoveredNode('2+')
+    expect(model.hoverHighlight).toBeUndefined()
+    expect(model.litNode).toBeNull()
+    const lit: ReadonlyMap<string, number>[] = []
+    model.applyHighlights({
+      ...fakeRenderer(),
+      setNodeHighlights: (m: ReadonlyMap<string, number>) => lit.push(m),
+    })
+    expect(lit).toEqual([new Map()])
+  })
+
   // A whole-file import has no region, so its stable names need not name anything
   // in a loaded assembly and there is nothing to project onto.
   test('a whole-file import publishes no highlight', async () => {

@@ -34,6 +34,14 @@ export function configSchemaFactory() {
         model: types.enumeration('ColorScheme', COLOR_SCHEME_VALUES),
         defaultValue: 'auto',
       },
+      /**
+       * #slot
+       * whether hovering a node lightens it and bands its span on the view
+       */
+      highlightOnHover: {
+        type: 'boolean',
+        defaultValue: true,
+      },
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,
         height: 'the height of the track the graph is drawn in',

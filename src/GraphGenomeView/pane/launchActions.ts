@@ -239,6 +239,14 @@ export const withLaunchActions = withRenderingActions
         },
         {
           type: 'checkbox',
+          label: 'Show hover highlight',
+          checked: self.chosenHighlightOnHover,
+          onClick: () => {
+            self.setHighlightOnHover(!self.chosenHighlightOnHover)
+          },
+        },
+        {
+          type: 'checkbox',
           label: 'Show genes on the backbone',
           checked: self.showGenes,
           onClick: () => {

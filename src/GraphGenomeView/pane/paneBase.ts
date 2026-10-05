@@ -98,7 +98,7 @@ export function bubblePrefix(adapterConfig: Record<string, unknown>) {
     ? uri.slice(0, -SEGMENTS_SUFFIX.length)
     : undefined
 }
-export const HOVER_BRIGHTEN = 1.4
+export const HOVER_BRIGHTEN = 1.15
 export const SELECT_BRIGHTEN = 1.6
 export const VIEWPORT_DEBOUNCE_MS = 150
 export const VIEWPORT_PANES_BUILT = 1
@@ -246,6 +246,9 @@ export const paneBase = types
       // display config's in a track
       layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
       colorScheme: lenientMaybeEnum(COLOR_SCHEME_VALUES),
+      // whether hovering a node lightens it and bands its span on a linear
+      // view; unset takes the host's default
+      highlightOnHover: types.maybe(types.boolean),
       // How far the force layout opens a bubble, which on a variation graph is
       // the difference between a legible drawing and a rope. See
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which

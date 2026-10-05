@@ -438,16 +438,19 @@ export const withFitViews = withHostViews
     // there is nothing to restore and nothing to go stale when a rebuild
     // renumbers the batch
     applyHighlights(b: Renderer) {
-      const { hoveredNode, hoveredEdge, selectedNode } = self
+      const { litNode, hoveredEdge, selectedNode } = self
       const nodes = new Map<string, number>()
       if (selectedNode !== null) {
         nodes.set(selectedNode, SELECT_BRIGHTEN)
       }
-      if (hoveredNode !== null && hoveredNode !== selectedNode) {
-        nodes.set(hoveredNode, HOVER_BRIGHTEN)
+      if (litNode !== null && litNode !== selectedNode) {
+        nodes.set(litNode, HOVER_BRIGHTEN)
       }
       b.setNodeHighlights(nodes)
-      b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
+      b.setEdgeHighlight(
+        self.chosenHighlightOnHover ? hoveredEdge : null,
+        HOVER_BRIGHTEN,
+      )
     },
     // Draws the uploaded batch through the pane's transform
     paint(b: Renderer) {
