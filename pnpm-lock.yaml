@@ -49,8 +49,8 @@ importers:
         specifier: ^2.1.2
         version: 2.1.2
       '@jbrowse/bandage-core':
-        specifier: ^7.4.0
-        version: 7.4.0
+        specifier: ^7.5.0
+        version: 7.5.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -654,8 +654,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@7.4.0':
-    resolution: {integrity: sha512-bGKkJgVgFcWXsEOHY5p2+cUQequREc5yjT9XZC2XnysQtEmhrVikCsCs/+JJXl19lLhLxnxTP6d2DFUlXZoQPA==}
+  '@jbrowse/bandage-core@7.5.0':
+    resolution: {integrity: sha512-GVxzzKrpcPJ8RFrAY7faIqXfV6l1bOAWh1MawkBTNJFKhYlSqoHvPKteLZaQsqIXOGQxy/jFO0tW4PpHTRcUqQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4118,7 +4118,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@7.4.0':
+  '@jbrowse/bandage-core@7.5.0':
     dependencies:
       '@gmod/gbz-base': 7.0.0
       '@gmod/tabix': 3.9.1
