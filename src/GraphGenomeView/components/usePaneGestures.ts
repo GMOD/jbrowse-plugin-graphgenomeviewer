@@ -115,6 +115,7 @@ export function usePaneGestures(model: GraphPaneModel) {
 
   function onMouseDown(e: React.MouseEvent) {
     if (e.button === 0) {
+      e.preventDefault()
       hasMovedRef.current = false
       if (model.hostPlacesX) {
         return

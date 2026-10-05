@@ -114,6 +114,8 @@ const FacetPanel = observer(function FacetPanel({
           height,
           display: 'block',
           cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+          touchAction: 'none',
+          overscrollBehavior: 'contain',
         }}
         {...handlers}
       />

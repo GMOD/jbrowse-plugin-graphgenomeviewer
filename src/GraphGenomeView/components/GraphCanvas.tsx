@@ -615,6 +615,8 @@ const GraphCanvas = observer(function GraphCanvas({
             width: model.paneWidth,
             height: model.canvasHeight,
             cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+            touchAction: 'none',
+            overscrollBehavior: 'contain',
             display: 'block',
             position: 'relative',
             zIndex: 1,
