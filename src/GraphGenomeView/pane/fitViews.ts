@@ -75,7 +75,6 @@ import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
-
 export function walkRowGeneKey(
   pitch: RowPitch | undefined,
   hasGenes: boolean,
