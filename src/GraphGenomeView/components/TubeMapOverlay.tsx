@@ -30,6 +30,49 @@ const canvasStyle = {
   zIndex: 1,
 }
 
+// The tubes, their connectors, genes and ruler, onto a canvas sized to the
+// pane or onto the linear view's SVG export
+export function paintTubeMap(
+  ctx: CanvasRenderingContext2D,
+  model: GraphPaneModel,
+  { highlightNode }: { highlightNode: string | null },
+) {
+  const picture = model.tubeMapPicture
+  const frame = model.tubeMapFrame
+  if (!picture || !frame) {
+    return
+  }
+  const width = model.paneWidth
+  const tubeFrame = {
+    ...frame,
+    width,
+    highlightNode,
+    darkMode: model.darkMode,
+    tubeColors: model.tubeMapTubeColors,
+    nodeColors: model.tubeMapNodeColors,
+  }
+  drawTubeMap(ctx, picture, tubeFrame)
+  drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
+  drawTubeMapConnectors(
+    ctx,
+    model.tubeMapConnectors,
+    model.connectorZoneBottom,
+    tubeFrame,
+  )
+  const { bounds } = picture
+  drawTubeMapGenes(ctx, model.tubeMapGenes, tubeFrame, frame.y(bounds.minY) - 2)
+  const boxes = model.tubeMapRulerBoxes
+  if (boxes) {
+    drawTubeMapRuler(
+      ctx,
+      boxes,
+      tubeFrame,
+      frame.y(bounds.maxY) + 4,
+      model.layoutResult?.referenceAxis,
+    )
+  }
+}
+
 // The tube map's ink, over the canvas, which draws nothing under a tube map
 // layout. Above the tubes go the session's genes in a view of its own, or in
 // a linear view the bands tying each reference box to its bp there; under
@@ -47,10 +90,8 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
     () =>
       autorun(() => {
         const canvas = ref.current
-        const picture = model.tubeMapPicture
-        const frame = model.tubeMapFrame
         const ctx = canvas?.getContext('2d')
-        if (canvas && ctx && picture && frame) {
+        if (canvas && ctx && model.tubeMapPicture && model.tubeMapFrame) {
           const dpr = getDpr()
           const width = model.paneWidth
           const height = model.canvasHeight
@@ -58,39 +99,9 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
           canvas.height = Math.round(height * dpr)
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
           ctx.clearRect(0, 0, width, height)
-          const tubeFrame = {
-            ...frame,
-            width,
+          paintTubeMap(ctx, model, {
             highlightNode: model.litNode ?? model.selectedNode,
-            darkMode: model.darkMode,
-            tubeColors: model.tubeMapTubeColors,
-            nodeColors: model.tubeMapNodeColors,
-          }
-          drawTubeMap(ctx, picture, tubeFrame)
-          drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
-          drawTubeMapConnectors(
-            ctx,
-            model.tubeMapConnectors,
-            model.connectorZoneBottom,
-            tubeFrame,
-          )
-          const { bounds } = picture
-          drawTubeMapGenes(
-            ctx,
-            model.tubeMapGenes,
-            tubeFrame,
-            frame.y(bounds.minY) - 2,
-          )
-          const boxes = model.tubeMapRulerBoxes
-          if (boxes) {
-            drawTubeMapRuler(
-              ctx,
-              boxes,
-              tubeFrame,
-              frame.y(bounds.maxY) + 4,
-              model.layoutResult?.referenceAxis,
-            )
-          }
+          })
         }
       }),
     [model],

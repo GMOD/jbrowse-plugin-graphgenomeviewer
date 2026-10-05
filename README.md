@@ -53,8 +53,8 @@ node in the view bands its bp in the linear view:
   thickness, walks lifted out as metro-map lanes or side by side, a panel per
   walk or a row per sample, each shading from its start to its end
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
-- Figures as SVG, from the graph genome view's Export SVG or from a JSON spec
-  with no browser
+- Figures as SVG: the graph track in the linear view's Export SVG, the graph
+  genome view's own Export SVG, or a JSON spec with no browser
   ([docs/figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md))
 
 ## Usage

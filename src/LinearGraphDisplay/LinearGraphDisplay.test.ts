@@ -17,6 +17,7 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
 import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 import LinearGraphDisplayF from './index'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
@@ -1154,4 +1155,20 @@ test("the gene chips name what the gene lane draws, and never the molecule's sou
   expect(names()).toEqual(['insB5'])
   view.hideTrack('K12_genes')
   expect(names()).toEqual(['IS1', 'insB5'])
+})
+
+test("the linear view's SVG export draws the graph through the screen's transform", async () => {
+  const { pane } = await shownGraph()
+  pane.setShowGenes(false)
+  const markup = renderToStaticMarkup(
+    (await pane.renderSvg()) as React.ReactElement,
+  )
+  expect(markup).toContain('data-testid="graph-pane-svg"')
+  expect(markup).toMatch(/<path d="M/)
+  pane.setShowReferenceStrip(false)
+  await pane.switchLayout('tubemapref')
+  await wait(SETTLE_MS)
+  expect(
+    renderToStaticMarkup((await pane.renderSvg()) as React.ReactElement),
+  ).toContain('data-testid="graph-pane-svg"')
 })

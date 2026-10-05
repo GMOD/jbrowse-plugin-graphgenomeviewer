@@ -1,8 +1,10 @@
 import { lazy } from 'react'
+import type { ReactNode } from 'react'
 
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { ConfigurationReference, getConf } from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
+import { computeSvgReady } from '@jbrowse/core/svg/svgReady'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
@@ -43,6 +45,7 @@ import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { MenuItem } from '@jbrowse/core/ui'
+import type { ExportSvgDisplayOptions } from '@jbrowse/display-kit/types'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 import type { DisplayStatusPhase } from '@jbrowse/render-core/displayPhase'
 
@@ -194,6 +197,19 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
         get fetchCanceled() {
           return self.loadCanceled
+        },
+      }))
+      .views(self => ({
+        get svgReady() {
+          return computeSvgReady(
+            {
+              error: self.error,
+              regionTooLarge: self.regionTooLarge,
+              extraTerminal: false,
+              fetchCanceled: self.loadCanceled,
+            },
+            () => !self.isLoading && self.hasGraph && !!self.layoutResult,
+          )
         },
       }))
       .views(self => ({
@@ -519,6 +535,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             { model: self, open: true, onClose },
           ])
         },
+        async renderSvg(opts?: ExportSvgDisplayOptions): Promise<ReactNode> {
+          const { renderGraphTrackSvg } = await import('./renderSvg')
+          return renderGraphTrackSvg(
+            self as unknown as LinearGraphDisplayModel,
+            opts,
+          )
+        },
         trackMenuItems(): MenuItem[] {
           const launches = self.launchMenuItems()
           pushLaunchViewMenuItem(launches, {
@@ -559,5 +582,5 @@ export type LinearGraphDisplayModel = Instance<LinearGraphDisplayStateModel>
 // name without naming themselves
 export type LinearGraphCutModel = Omit<
   LinearGraphDisplayModel,
-  'trackMenuItems' | 'cutMenuItems' | 'openSettings'
+  'trackMenuItems' | 'cutMenuItems' | 'openSettings' | 'renderSvg'
 >

@@ -19,6 +19,27 @@ const canvasStyle = {
   zIndex: 5,
 }
 
+// Each reference segment at its bp in the linear view, onto the pane's
+// canvas or the linear view's SVG export
+export function paintReferenceStrip(
+  ctx: CanvasRenderingContext2D,
+  model: GraphPaneModel,
+  {
+    lit,
+    dpr,
+  }: { lit: GraphPaneModel['referenceStripLit'] | undefined; dpr: number },
+) {
+  const frame = model.referenceStripFrame
+  if (frame) {
+    drawReferenceStrip(ctx, model.referenceStripBlocks, frame, {
+      width: model.paneWidth,
+      lit,
+      darkMode: model.darkMode,
+      dpr,
+    })
+  }
+}
+
 // Each reference segment at its bp in the linear view, over a drawing that
 // has no bp axis of its own. Repainted by an autorun, so a pan in the linear
 // view moves the strip in the same frame as its other tracks.
@@ -33,9 +54,8 @@ const ReferenceStripOverlay = observer(function ReferenceStripOverlay({
     () =>
       autorun(() => {
         const canvas = ref.current
-        const frame = model.referenceStripFrame
         const ctx = canvas?.getContext('2d')
-        if (canvas && ctx && frame && model.referenceStripShown) {
+        if (canvas && ctx && model.referenceStripShown) {
           const dpr = getDpr()
           const width = model.paneWidth
           const height = model.canvasHeight
@@ -43,10 +63,8 @@ const ReferenceStripOverlay = observer(function ReferenceStripOverlay({
           canvas.height = Math.round(height * dpr)
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
           ctx.clearRect(0, 0, width, height)
-          drawReferenceStrip(ctx, model.referenceStripBlocks, frame, {
-            width,
+          paintReferenceStrip(ctx, model, {
             lit: model.referenceStripLit,
-            darkMode: model.darkMode,
             dpr,
           })
         }

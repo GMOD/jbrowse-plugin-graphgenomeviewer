@@ -303,8 +303,10 @@ shows an inversion: at MAPT, HG002's first haplotype has the H2 inversion and
 runs red to yellow where GRCh38 runs yellow to red.
 
 **Export SVG** in the graph genome view's menu saves the drawing, its walks'
-keys and panels as a vector figure. The same renderer makes figures from a JSON
-spec with no browser; see
+keys and panels as a vector figure. In a linear view, the view's own **Export
+SVG** draws the graph track as the screen shows it, at its bp under the ruler,
+with the other tracks. The same renderer makes figures from a JSON spec with no
+browser; see
 [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).
 
 While walks are lifted, node lengths are not labelled, since they would sit on
