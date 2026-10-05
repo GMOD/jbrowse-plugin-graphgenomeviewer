@@ -1,3 +1,15 @@
+## [6.3.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.2.0...v6.3.0) (2026-10-05)
+
+### Other Changes
+
+- Triage agent-docs into reference, ideas, ADRs and TODO ([f8ae6e7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f8ae6e780caae2ce4140f47cc3dbb24abd9fab7e))
+- Split TODO.md into one file per item under todo/ ([e092bdb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e092bdb981f43fe762c68bad33cc1c0d0e704e36))
+- Point the test README at ~/src/sequenceTubeMapModern ([13031bc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/13031bccbd278c1d6bfb581ee810c91aee6e6ac1))
+- Drop the direct @gmod/tubemap-core dependency ([279ca6a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/279ca6a40b6476aca09c452294d2dba74ccb5707))
+- Name @jbrowse/tubemap-core in the docs, and note it lifts the worker blocker ([8faf3cb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8faf3cb1e4a91388d09bc073a026af731b209129))
+- Take @jbrowse/bandage-core 8.0.0 ([7668fa5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7668fa5593edb12ded68fd27c1ba0b02ec5e059a))
+- Format agent-docs with prettier ([c8f7137](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c8f71378d98b688cfc7e3e1c8cf17f7994c8cdf7))
+
 ## [6.2.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.1.4...v6.2.0) (2026-10-05)
 
 ### Other Changes
