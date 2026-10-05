@@ -15,7 +15,7 @@ import { lenientMaybeEnum, lenientOptionalEnum } from '../lenientEnum'
 import type { SubgraphRegion } from '../../GetSubgraph'
 import type { RepeatArray } from '../repeats/repeatFeatures'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
+import type { FacetInput } from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
@@ -55,12 +55,6 @@ export const ChooseWalksDialog = lazy(
 // Past this many walks the Walk menu lists only the lifted ones and offers a
 // searchable picker
 export const WALK_MENU_ITEMS = 12
-
-export const FACETS: { value: FacetSetting['field']; label: string }[] = [
-  { value: '', label: 'Off' },
-  { value: 'walk', label: 'A panel per walk' },
-  { value: 'sample', label: 'A row per sample, a column per haplotype' },
-]
 
 // The facet as a session writes it, in the shape every JBrowse display's
 // `facet` takes: a bare field, or the field with the panels' order and how

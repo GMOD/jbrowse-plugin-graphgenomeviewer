@@ -1,4 +1,5 @@
 import { COLOR_SCHEMES } from '@jbrowse/bandage-core/colorSchemes'
+import { FACET_FIELDS } from '@jbrowse/bandage-core/facetGrid'
 import { LAYOUT_MODES } from '@jbrowse/bandage-core/layoutModes'
 import { WALK_FIELDS, WALK_SCHEMES } from '@jbrowse/bandage-core/walkEncoding'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
@@ -7,7 +8,6 @@ import { getSession } from '@jbrowse/core/util'
 import {
   ChooseSamplesDialog,
   ChooseWalksDialog,
-  FACETS,
   TUBE_MAP_FOLDS,
   TUBE_MAP_MODES,
   WALK_MENU_ITEMS,
@@ -176,7 +176,7 @@ export const withLaunchActions = withRenderingActions
                     ? [
                         {
                           label: 'Side by side',
-                          subMenu: FACETS.map(({ value, label }) => ({
+                          subMenu: FACET_FIELDS.map(({ value, label }) => ({
                             type: 'radio' as const,
                             label,
                             checked: self.facet.field === value,
