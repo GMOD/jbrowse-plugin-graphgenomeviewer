@@ -417,6 +417,10 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.statusMessage = ''
     self.clearInteractionState()
     self.clearPerfMetrics()
+    // the next graph has nothing to do with where the user left this one
+    if (self.viewportOwner === 'user') {
+      self.viewportOwner = 'fit'
+    }
   }
 
   return {

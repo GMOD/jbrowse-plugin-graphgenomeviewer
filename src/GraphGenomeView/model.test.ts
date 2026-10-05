@@ -325,6 +325,17 @@ describe('restoring a stated cut', () => {
     expect(model.translateX).toBe(120)
     expect(model.translateY).toBe(80)
   })
+
+  // saved in a wider window than the pane's width before it is measured
+  test('keeps a restored view placed past the unmeasured width', async () => {
+    rpcRespond()
+    const model = restoredView()
+    // a root model never attaches, so the restored view is placed by hand
+    model.setTransform(2, 1200, 80)
+    await model.load()
+    expect(model.viewportOwner).toBe('user')
+    expect(model.translateX).toBe(1200)
+  })
 })
 
 describe('performance instrumentation', () => {
@@ -3937,6 +3948,16 @@ describe('keeping the drawing on screen', () => {
     expect(model.viewportOwner).toBe('fit')
     expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
     expect(model.translateX).toBeCloseTo(model.fittedTransform!.translateX, 10)
+  })
+
+  test('a graph loaded after clearing one is fitted, not left where the old one was moved', async () => {
+    const model = await forceModel()
+    model.setTransform(model.scale * 4, -2000, -2000)
+    model.clearGraph()
+    await model.loadGFA(SIMPLE_GFA, 'again')
+
+    expect(model.viewportOwner).toBe('fit')
+    expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
   })
 
   test('a layout handed back unchanged keeps the user’s zoom', async () => {

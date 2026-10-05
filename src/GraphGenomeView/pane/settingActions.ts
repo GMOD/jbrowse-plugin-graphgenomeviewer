@@ -36,10 +36,16 @@ export const withSettingActions = withFitViews
     // nothing says which way it went. A host's x is its own.
     keepDrawingInView() {
       const bounds = self.layoutBounds
-      if (!bounds || self.viewportOwner === 'fit') {
+      const view = self.viewBox
+      if (
+        !bounds ||
+        self.viewportOwner === 'fit' ||
+        view.width <= 0 ||
+        view.height <= 0
+      ) {
         return
       }
-      const t = keepInView(bounds, self, self.viewBox)
+      const t = keepInView(bounds, self, view)
       if (self.viewportOwner !== 'host') {
         self.translateX = t.translateX
       }
@@ -412,18 +418,18 @@ export const withSettingActions = withFitViews
         self.zoomToFit()
       }
     },
-    // A new layout under a view the user placed. A force run or a fresh cut
-    // draws in coordinates of its own, where the old transform shows
-    // nothing in particular, so it is fitted; one on the reference's bp, or
-    // the first after a restored session, keeps the view while any of it
-    // is on screen.
+    // A new layout in place of one the user had moved. A force run or a
+    // fresh cut draws in coordinates of its own, where the old transform
+    // shows nothing in particular, so it is fitted; one on the reference's
+    // bp keeps the view while any of it is on screen. The first layout
+    // after a restored session is the view the session saved.
     followNewLayout(replaced: boolean) {
       const bounds = self.layoutBounds
       if (
+        replaced &&
         self.viewportOwner === 'user' &&
         bounds &&
-        ((replaced && !self.xIsReferenceBp) ||
-          !onScreen(bounds, self, self.viewBox))
+        (!self.xIsReferenceBp || !onScreen(bounds, self, self.viewBox))
       ) {
         self.viewportOwner = 'fit'
         self.zoomToFit()
