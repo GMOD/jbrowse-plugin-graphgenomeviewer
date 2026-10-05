@@ -16,6 +16,7 @@ import {
   pathColorsLegible,
   pathGreyCssColor,
   pathLegend,
+  walkLabelsOf,
 } from '@jbrowse/bandage-core/pathColors'
 import {
   backboneAssembly,
@@ -279,8 +280,13 @@ export const withGraphViews = paneBase
       const domain = this.walkLift?.referenceDomain
       return domain && { ...domain, name: self.graphRegion?.refName }
     },
+    // A label per walk, which the pickers, the keys and a bubble's label all
+    // read, so a walk name repeated across records reads the same everywhere
+    get walkLabels() {
+      return walkLabelsOf(this.walkChoices)
+    },
     walkLabel(name: string) {
-      return this.walkChoices.find(c => c.name === name)?.label ?? name
+      return this.walkLabels.get(name) ?? name
     },
     // Whether a lifted lane paints a node charcoal, the colour a lane coloured
     // by reference position gives what is off the reference
@@ -640,12 +646,11 @@ export const withGraphViews = paneBase
       if (!self.showBubbles || !this.drawsNodes || !self.graph || !positions) {
         return []
       }
-      const labels = new Map(self.walkChoices.map(c => [c.name, c.label]))
       return bubbleHalos(
         self.graph,
         self.bubbles,
         positions,
-        name => labels.get(name) ?? name,
+        name => self.walkLabel(name),
         self.repeatArrays,
       )
     },

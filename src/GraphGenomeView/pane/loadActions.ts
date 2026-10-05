@@ -12,6 +12,7 @@ import {
 } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   engineKey,
+  engineSettingsOf,
   forceLayout,
   loadGraph,
 } from '@jbrowse/bandage-core/pipeline'
@@ -65,12 +66,12 @@ export const withLoadActions = withSettingActions.actions(self => {
   }
 
   function engineSettings() {
-    return {
+    return engineSettingsOf({
       quality: self.layoutQuality,
       linearLayout: self.linearLayout,
       bubbleSpread: self.bubbleSpread,
       showDeletionEdges: self.showDeletionEdges,
-    }
+    })
   }
 
   // The engine's inputs, and only those: the graph, plus what `callLayout`

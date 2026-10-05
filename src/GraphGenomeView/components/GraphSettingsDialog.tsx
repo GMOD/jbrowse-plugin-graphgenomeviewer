@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { BUBBLE_SPREADS } from '@jbrowse/bandage-core/bubbleSpreads'
 import { COLOR_SCHEMES } from '@jbrowse/bandage-core/colorSchemes'
+import { LAYOUT_QUALITIES } from '@jbrowse/bandage-core/layoutQualities'
 import { NODE_WIDTHS } from '@jbrowse/bandage-core/nodeWidths'
 import { MAX_PATH_COLORS } from '@jbrowse/bandage-core/pathColors'
 import { Dialog } from '@jbrowse/core/ui'
@@ -35,8 +36,6 @@ const useStyles = makeStyles()({
     minWidth: 200,
   },
 })
-
-const qualityLabels = ['Lowest', 'Low', 'Medium', 'High', 'Highest'] as const
 
 function Caption({
   warn = false,
@@ -171,12 +170,12 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 void model.recomputeLayout()
               }}
             >
-              {qualityLabels.map((label, i) => (
+              {LAYOUT_QUALITIES.map(q => (
                 <FormControlLabel
-                  key={label}
-                  value={i}
+                  key={q.value}
+                  value={q.value}
                   control={<Radio />}
-                  label={label}
+                  label={q.label}
                 />
               ))}
             </RadioGroup>

@@ -4,6 +4,7 @@ import {
   facetGrid,
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
+import { figureSpecSettings } from '@jbrowse/bandage-core/figureSettings'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
   LEGEND_INSET_PX,
@@ -554,8 +555,17 @@ export const withFitViews = withHostViews
           genes: genes?.file && genes.index ? genes : undefined,
           referencePath: self.referencePath || undefined,
           layout: self.chosenLayoutMode,
-          quality: self.layoutQuality,
-          bubbleSpread: self.bubbleSpread,
+          ...figureSpecSettings({
+            quality: self.layoutQuality,
+            linearLayout: self.linearLayout,
+            bubbleSpread: self.bubbleSpread,
+            showDeletionEdges: self.showDeletionEdges,
+            colorScheme: self.chosenColorScheme,
+            nodeWidth: self.nodeWidth,
+            contigThickness: self.contigThickness,
+            connectorThickness: self.connectorThickness,
+            colorDomain: self.colorDomain,
+          }),
           walks: self.walkLayers.length
             ? self.walkLayers.map(l => (l.color ? l : l.walk))
             : undefined,
@@ -564,9 +574,6 @@ export const withFitViews = withHostViews
           walkRowSamples: self.walkStripShown ? self.walkRowSamples : undefined,
           width: self.paneWidth,
           height: self.paneCeiling,
-          colorScheme: self.chosenColorScheme,
-          nodeWidth: self.nodeWidth,
-          showDeletionEdges: self.showDeletionEdges ? undefined : false,
         }),
       ) as Record<string, unknown>
     },
@@ -601,6 +608,7 @@ export const withFitViews = withHostViews
             colorScheme: self.effectiveColorScheme,
             nodeWidth: self.nodeWidth,
             showDeletionEdges: self.showDeletionEdges,
+            linearLayout: self.linearLayout,
             contigThickness: self.contigThickness,
             connectorThickness: self.connectorThickness,
             region: self.graphRegion,
