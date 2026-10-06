@@ -766,6 +766,32 @@ test('a launch in the force layout cuts the window alone', async () => {
   expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
 })
 
+test('a track launched on the stress engine asks the layout engine for it, and switching back asks for FMMM', async () => {
+  const { view, rpcCall } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      pane: { layoutMode: 'force', layoutEngine: 'stress' },
+    },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  const engines = () =>
+    rpcCall.mock.calls
+      .filter(c => c[1] === 'GraphComputeLayout')
+      .map(c => (c[2] as { options: { engine: string } }).options.engine)
+  expect(engines()).toEqual(['stress'])
+
+  display.setLayoutEngine('fmmm')
+  await display.recomputeLayout()
+  expect(engines()).toEqual(['stress', 'fmmm'])
+})
+
 test('the drawing is the track height, and resizing the track resizes it', async () => {
   const { display } = await shownGraph()
   expect(display.height).toBe(300)
