@@ -690,12 +690,14 @@ describe('layoutMode', () => {
       layoutMode: 'variants',
       colorScheme: 'dropped',
       bubbleSpread: 'dropped',
+      layoutEngine: 'dropped',
       nodeWidth: 'dropped',
     } as never)
     expect(model.layoutMode).toBeUndefined()
     expect(model.chosenLayoutMode).toBe('force')
     expect(model.colorScheme).toBeUndefined()
     expect(model.bubbleSpread).toBe('auto')
+    expect(model.layoutEngine).toBe('fmmm')
     expect(model.nodeWidth).toBe('depth')
   })
 
@@ -729,6 +731,19 @@ describe('layoutMode', () => {
     // MOCK_LAYOUT already reads left to right, so the orientation pass is a
     // no-op on it
     expect(model.layoutResult).toEqual({ ...MOCK_LAYOUT, stranded: true })
+  })
+
+  test('the engine setting reaches the layout request, and a change re-asks', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'plain')
+    expect(layoutArgs(0).options.engine).toBe('fmmm')
+
+    model.setLayoutEngine('stress')
+    await model.recomputeLayout()
+
+    expect(layoutCalls()).toHaveLength(2)
+    expect(layoutArgs(1).options.engine).toBe('stress')
   })
 
   test('recomputeLayout follows a switch back to auto', async () => {

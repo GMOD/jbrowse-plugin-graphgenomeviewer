@@ -28,6 +28,7 @@ const DOCS_SPEC_KEYS = [
   'gfaLocation',
   'layoutMode',
   'layoutQuality',
+  'layoutEngine',
   'colorScheme',
   'colorDomain',
   'referencePath',

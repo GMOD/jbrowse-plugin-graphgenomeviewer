@@ -603,6 +603,7 @@ export const withFitViews = withHostViews
           referencePath: self.referencePath || undefined,
           layout: self.chosenLayoutMode,
           ...figureSpecSettings({
+            engine: self.layoutEngine,
             quality: self.layoutQuality,
             linearLayout: self.linearLayout,
             bubbleSpread: self.bubbleSpread,

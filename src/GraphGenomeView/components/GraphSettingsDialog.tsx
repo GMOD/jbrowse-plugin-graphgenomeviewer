@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { BUBBLE_SPREADS } from '@jbrowse/bandage-core/bubbleSpreads'
 import { COLOR_SCHEMES } from '@jbrowse/bandage-core/colorSchemes'
+import { LAYOUT_ENGINES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_QUALITIES } from '@jbrowse/bandage-core/layoutQualities'
 import { NODE_WIDTHS } from '@jbrowse/bandage-core/nodeWidths'
 import { MAX_PATH_COLORS } from '@jbrowse/bandage-core/pathColors'
@@ -161,6 +162,25 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
     <Dialog open={open} onClose={onClose} title="Graph settings">
       <DialogContent>
         <div className={classes.section}>
+          <SettingSelect
+            label="Engine"
+            value={model.layoutEngine}
+            options={LAYOUT_ENGINES}
+            testId="graph-layout-engine-select"
+            onChange={engine => {
+              model.setLayoutEngine(engine)
+              void model.recomputeLayout()
+            }}
+          />
+          <Caption>
+            Which engine draws the force-directed layout. Stress reads distances
+            along the graph as distances on the page, so the reference draws
+            straight; it is experimental, and slower than FMMM on large cuts.
+          </Caption>
+          <EngineOnly model={model} />
+        </div>
+
+        <div className={classes.section}>
           <FormControl fullWidth>
             <FormLabel component="legend">Layout quality</FormLabel>
             <RadioGroup
@@ -180,9 +200,9 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               ))}
             </RadioGroup>
             <Caption>
-              FMMM&apos;s iteration budget, the same scale Bandage exposes.
-              Higher is slower: on a thousand-node cut the top setting is
-              seconds rather than tenths.
+              The engine&apos;s iteration budget; for FMMM the same scale
+              Bandage exposes. Higher is slower: on a thousand-node cut the top
+              setting is seconds rather than tenths.
             </Caption>
             <EngineOnly model={model} />
           </FormControl>

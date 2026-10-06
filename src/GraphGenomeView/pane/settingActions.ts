@@ -22,6 +22,7 @@ import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { FacetSetting } from '@jbrowse/bandage-core/facetGrid'
+import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
@@ -88,6 +89,9 @@ export const withSettingActions = withFitViews
     },
     setLayoutQuality(quality: number) {
       self.layoutQuality = quality
+    },
+    setLayoutEngine(engine: LayoutEngineKind) {
+      self.layoutEngine = engine
     },
     setLinearLayout(linear: boolean) {
       self.linearLayout = linear

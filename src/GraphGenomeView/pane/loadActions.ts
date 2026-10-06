@@ -60,6 +60,7 @@ export const withLoadActions = withSettingActions.actions(self => {
 
   function engineSettings() {
     return engineSettingsOf({
+      engine: self.layoutEngine,
       quality: self.layoutQuality,
       linearLayout: self.linearLayout,
       bubbleSpread: self.bubbleSpread,

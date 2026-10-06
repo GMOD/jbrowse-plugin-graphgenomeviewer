@@ -1,4 +1,4 @@
-import loadBandage from '@jbrowse/bandage-core/loadBandage'
+import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { RpcMethodType } from '@jbrowse/core/pluggableElementTypes'
 
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
@@ -26,14 +26,7 @@ export default class GraphComputeLayout extends RpcMethodType<'GraphComputeLayou
   async execute(args: RpcExecuteArgs<'GraphComputeLayout'>) {
     const { graph, options, statusCallback } = args
 
-    statusCallback?.('Loading layout engine')
-    const module = await loadBandage()
-
     statusCallback?.('Computing layout')
-    const startTime = performance.now()
-    const result = module.computeLayout(graph, options)
-    const duration = performance.now() - startTime
-
-    return { result, duration }
+    return layoutEngine({ graph, options })
   }
 }

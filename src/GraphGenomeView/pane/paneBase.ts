@@ -4,6 +4,7 @@ import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
 import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { createForceLayoutCache } from '@jbrowse/bandage-core/layout/forceCache'
+import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES } from '@jbrowse/bandage-core/nodeWidths'
 import { viewportOf } from '@jbrowse/bandage-core/viewport'
@@ -244,6 +245,9 @@ export const paneBase = types
       // draws is milliseconds, and the header states the layout time so the
       // difference is visible rather than asserted.
       layoutQuality: types.optional(types.number, 2),
+      // Which engine draws the force layout: Bandage's FMMM, or the stress
+      // layout, which reads the reference straight. See LAYOUT_ENGINES.
+      layoutEngine: lenientOptionalEnum(LAYOUT_ENGINE_VALUES, 'fmmm'),
       linearLayout: types.optional(types.boolean, false),
       // unset takes the host's default: force in a view of its own, the
       // display config's in a track
