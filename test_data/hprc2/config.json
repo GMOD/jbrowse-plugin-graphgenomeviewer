@@ -45,7 +45,7 @@
         {
           "type": "LinearMultiRowFeatureDisplay",
           "displayId": "hprc2_pclai_painting-LinearMultiRowFeatureDisplay",
-          "partitionField": "sample",
+          "rows": "sample",
           "forceLoad": true
         }
       ]
