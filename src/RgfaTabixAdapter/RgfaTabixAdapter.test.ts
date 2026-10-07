@@ -473,8 +473,9 @@ test('an anchored cut holds every link between two of its segments', async () =>
 })
 
 // The cut worked out from the whole graph with no index: the backbone under
-// the window, every bubble whose backbone attachments span it, the segments
-// one link out, and the links among all of those.
+// the window, every bubble whose backbone attachments span it, the backbone
+// links that jump the window, the segments one link out, and the links among
+// all of those.
 function expectedCut(start: number, end: number) {
   const rows = (kind: string) =>
     gunzipSync(readFileSync(`${prefix}.${kind}.bed.gz`))
@@ -537,7 +538,22 @@ function expectedCut(start: number, end: number) {
         : segment.refName === 'K12#1#chr' && overlaps(segment)
     }),
   )
-  const touching = links.filter(l => under.has(l.source) || under.has(l.target))
+  const side = (id: string) => {
+    const segment = segments.get(id)!
+    return allele(id) || segment.refName !== 'K12#1#chr'
+      ? 0
+      : segment.end <= start
+        ? -1
+        : segment.start >= end
+          ? 1
+          : 0
+  }
+  const touching = links.filter(
+    l =>
+      under.has(l.source) ||
+      under.has(l.target) ||
+      side(l.source) * side(l.target) === -1,
+  )
   const held = new Set([
     ...under,
     ...touching.flatMap(l => [l.source, l.target]),
@@ -570,4 +586,25 @@ test('an anchored cut equals the cut worked out from the whole graph', async () 
       }).toEqual(expectedCut(start, end))
     }
   }
+})
+
+// s325 links straight to s327, a deletion of s326. A window inside s326
+// touches neither end, and the link is drawn all the same.
+test('an anchored cut keeps a backbone link that jumps the window', async () => {
+  const gfa = await makeAnchoredAdapter().getSubgraph({
+    ...k12,
+    start: 1007700,
+    end: 1007710,
+  })
+  expect(gfa).toContain('L\ts325\t+\ts327\t+\t0M')
+  const drawn = gfa
+    .split('\n')
+    .filter(l => l.startsWith('L'))
+    .map(l => {
+      const [, source, sourceStrand, target, targetStrand] = l.split('\t')
+      return `${source}${sourceStrand}${target}${targetStrand}`
+    })
+  expect({ segments: segmentIds(gfa).sort(), links: drawn.sort() }).toEqual(
+    expectedCut(1007700, 1007710),
+  )
 })

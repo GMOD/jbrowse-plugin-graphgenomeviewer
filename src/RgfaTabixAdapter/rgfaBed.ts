@@ -121,18 +121,33 @@ export function linkKey(link: RgfaLink) {
 }
 
 // The cut an anchored index gives: `under` is what the segment file returned
-// for the region, every segment of every bubble under it, and `found` is what
+// for the window, every segment of every bubble under it, and `found` is what
 // the link file returned. gfa-to-tabix files a link widely enough that `found`
 // holds every link touching a segment in `under` and every link between the
 // segments those lead to, plus links of neither kind, which are dropped here.
+// A backbone link that jumps the whole window, as a deletion or inversion
+// spanning it does, touches nothing in `under` and is kept by its own rule.
 export function anchoredCut(
   under: Map<string, RgfaSegment>,
   found: RgfaLink[],
+  window: StableSpan,
 ) {
+  const side = (segment: RgfaSegment) =>
+    segment.rank !== 0 || segment.refName !== window.refName
+      ? 0
+      : segment.end <= window.start
+        ? -1
+        : segment.start >= window.end
+          ? 1
+          : 0
   const segments = new Map(under)
   const links = new Map<string, RgfaLink>()
   for (const link of found) {
-    if (under.has(link.source) || under.has(link.target)) {
+    if (
+      under.has(link.source) ||
+      under.has(link.target) ||
+      side(link.sourceSegment) * side(link.targetSegment) === -1
+    ) {
       links.set(linkKey(link), link)
       for (const segment of [link.sourceSegment, link.targetSegment]) {
         if (!segments.has(segment.id)) {

@@ -227,7 +227,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
           found.push(parseLinkLine(line))
         },
       })
-      const cut = anchoredCut(segments, found)
+      const cut = anchoredCut(segments, found, {
+        refName: tabixRefName,
+        start: region.start,
+        end: region.end,
+      })
       return formatSubgraph(cut.segments, cut.links)
     }
     let frontier = offReference(
