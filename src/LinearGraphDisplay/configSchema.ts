@@ -47,7 +47,7 @@ export function configSchemaFactory() {
         height: 'the height of the track the graph is drawn in',
       }),
     },
-    { explicitlyTyped: true, explicitIdentifier: 'displayId' },
+    { explicitlyTyped: true, explicitIdentifier: 'displayId', closed: true },
   )
 }
 
