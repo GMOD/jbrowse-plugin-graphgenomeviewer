@@ -1,3 +1,12 @@
+## [6.6.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.5.0...v6.6.0) (2026-10-07)
+
+### Other Changes
+
+- The HPRC2 ancestry painting names its row field rows ([1694e56](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1694e569337c5de0d080e0fa0b646a4859ce9421))
+- The PCLAI build script's comments name the rows field ([095bce4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/095bce4a6e2556e322a319c828d1c01a4ca82c1c))
+- Read gfa-to-tabix's anchored layout in one query per file ([adaf1ce](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/adaf1ce238698ef4bbd6eeff19fb9416321e7786))
+- Anchored cut keeps a backbone link that jumps the window ([f5827ec](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f5827ec0cf4345af04925f4f5a3026499686710b))
+
 ## [6.5.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.4.0...v6.5.0) (2026-10-07)
 
 ### Other Changes
