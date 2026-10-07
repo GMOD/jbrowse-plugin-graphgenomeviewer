@@ -1,3 +1,14 @@
+## [6.5.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.4.0...v6.5.0) (2026-10-07)
+
+### Other Changes
+
+- Bump deps ([841bb1f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/841bb1fcd07238c779c98f276e09c61406154a48))
+- Stop a canvas drag from panning the browser sideways ([fb90aab](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/fb90aab75dee361410ebd83b0e2ed173da6cc55b))
+- Offer the stress engine beside FMMM under Graph settings ([1482b14](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1482b146c7b1a2abf59dd3bd2ce751fd073ae0b8))
+- Test that a track's engine choice reaches the layout request ([77fdc2e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/77fdc2eb530bd3185b32d650912fd41df19e33eb))
+- LinearGraphDisplay's config schema is closed, as jbrowse-components ADR-214 now requires of every display ([b43dd8a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b43dd8a6712d47baa0903b60a076a8472b74736e))
+- Revert the closed-schema one-liner: sessions from 4.0 and 5.0 carry overviewRowsChoice, overviewRowOrder and pane on LinearGraphDisplay, which a closed schema rejects as unknown keys (2 tests). Closing the schema needs those legacy keys handled first. ([4d07795](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4d077957bc4d51132068a3c63b01e12456919d5e))
+
 ## [6.4.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.3.1...v6.4.0) (2026-10-05)
 
 ### Other Changes
