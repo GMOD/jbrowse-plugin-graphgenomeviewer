@@ -80,7 +80,7 @@ echo "== using $(wc -l < use.txt) samples on $CHROM"
 # ── Project and concatenate ─────────────────────────────────────────────────
 # Input BED columns: chrom start end name score strand thickStart thickEnd itemRgb pca
 # Output: chrom start end name score strand thickStart thickEnd itemRgb sample
-# The trailing `sample` column is the display's partitionField. Keeping itemRgb
+# The trailing `sample` column is the display's `rows` field. Keeping itemRgb
 # in column 9 matters: the BED parser only applies named BED fields at exactly 12
 # columns, so at this width the color lands in `field8` and the automatic BED
 # color path claims it with no columnNames and no jexl.
@@ -99,7 +99,7 @@ done < use.txt
 
 echo "== sorting and indexing"
 # The `#`-prefixed header names the extra column so the adapter exposes it as
-# `sample` (the partitionField) rather than a positional field name.
+# `sample` (the `rows` field) rather than a positional field name.
 {
   printf '#chrom\tstart\tend\tname\tscore\tstrand\tthickStart\tthickEnd\titemRgb\tsample\n'
   sort -k1,1 -k2,2n combined.bed
