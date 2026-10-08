@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 //
-// Boots the built plugin on hosted JBrowse releases and cuts a subgraph on
-// each, failing if a host error-pages, never registers the view, or cannot
-// cut. The tutorials name the plugin by its jbrowse.org url, so a publish is a
+// Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each
+// and shows the graph track in a linear view, failing if a host error-pages,
+// never registers the view, cannot cut, or cannot draw the track. The tutorials name the plugin by its jbrowse.org url, so a publish is a
 // live change to every reader's session, and the failures this catches pass
 // tsc, eslint and the unit tests: an RPC argument a released core cannot post
 // to its worker, a re-export the host no longer serves. They show only when
@@ -18,7 +18,7 @@ import puppeteer from 'puppeteer'
 
 import { candidateServer } from './serveCandidate.mjs'
 
-const DEFAULT_VERSIONS = ['v5.0.0-beta.11', 'main']
+const DEFAULT_VERSIONS = ['v5.0.0-beta.11', 'v5.0.0-beta.13', 'main']
 // A real shipped config that names this plugin, and the window part 1 of the
 // HPRC tutorial cuts from its segments track.
 const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
@@ -29,6 +29,7 @@ const REGION = {
   start: 31_980_000,
   end: 32_050_000,
 }
+const LOCUS = 'chr6:31,980,001-32,050,000'
 
 const { values } = parseArgs({
   options: {
@@ -140,6 +141,43 @@ async function probeOne(browser, version) {
         }, viewId)
       }
     }
+    // The same track as a linear view draws it. Its display renders host
+    // components the graph view does not: jbrowse-web main dropped
+    // DisplayStatusChrome on 2026-10-08, and the track failed there with
+    // React error #130 while the cut above passed.
+    if (result.layout?.error === undefined && result.layout?.placed) {
+      await page.evaluate(
+        async ({ trackId, locus }) => {
+          const view = window.JBrowseSession.addView('LinearGenomeView', {})
+          await view.navToLocString(locus, 'hg38')
+          view.showTrack(trackId)
+        },
+        { trackId: TRACK_ID, locus: LOCUS },
+      )
+      await page.waitForFunction(
+        () =>
+          !!document.querySelector(
+            '[data-testid="linear-graph-display"][data-display-drawn="true"]',
+          ) ||
+          /Minified React error|Element type is invalid/.test(
+            document.body.innerText,
+          ),
+        { timeout },
+      )
+      result.linear = await page.evaluate(() => {
+        const drawn = document.querySelector(
+          '[data-testid="linear-graph-display"][data-display-drawn="true"]',
+        )
+        const crash =
+          /(Minified React error[^\n]*|Element type is invalid[^\n]*)/.exec(
+            document.body.innerText,
+          )
+        return {
+          nodes: drawn ? Number(drawn.getAttribute('data-node-count')) : 0,
+          error: crash?.[1]?.slice(0, 300),
+        }
+      })
+    }
   } catch (e) {
     result.threw = String(e).slice(0, 300)
   }
@@ -169,6 +207,12 @@ function failure(r) {
   if (!r.layout?.placed) {
     return 'the force layout placed nothing, so the Bandage chunk did not load'
   }
+  if (r.linear?.error !== undefined) {
+    return `the linear view's graph track failed: ${r.linear.error}`
+  }
+  if (!r.linear?.nodes) {
+    return "the linear view's graph track drew nothing"
+  }
   return undefined
 }
 
@@ -189,7 +233,8 @@ for (const version of versions) {
   const bad = failure(r)
   console.log(
     `${version.padEnd(14)} ${
-      bad ?? `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}`
+      bad ??
+      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}`
     }`,
   )
   if (bad) {
@@ -206,5 +251,5 @@ if (broken.length > 0) {
   process.exit(1)
 }
 console.log(
-  '\nEvery probed host loaded the bundle, cut a graph and drew it with Bandage.',
+  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage and drew the track in a linear view.',
 )
