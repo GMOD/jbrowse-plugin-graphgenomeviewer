@@ -136,3 +136,50 @@ population view across a wide window belongs to a VariantTrack over the graph's
 VCF (`vg deconstruct` makes one from a GBZ). The index's overview tables and
 gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 `overviewRowsChoice` and `overviewRowOrder` load and are dropped.
+
+## Walk-indexed cuts
+
+A walk-indexed `RgfaTabixAdapter` names a third file, `walksLocation`: one row
+per haplotype path per reference chunk, beside node and link rows filed under
+the same chunks (row formats at the top of `src/RgfaTabixAdapter/walkRows.ts`).
+A cut reads all three together, from the start of the chunk before the window to
+the window's end, so a row filed under its chunk's first base is found as well
+as one spanning the chunk. The chunk size comes from a `chunk:i:` header line,
+else `walkChunk`. `getFeatures` widens its read to the chunk start for the same
+reason; `anchoredCut`, the coarse tier and the bubble halos read no anchor
+interval of a walk-indexed file.
+
+The cut decodes only the walks `haplotypes` names, and the reference's; the rest
+are dropped on their name column before their steps are split. Each fragment
+runs from its first to its last step on the reference inside the window plus 1
+kb, then on outward while the next node is already in the cut, so an allele
+straddling the edge draws every walk that crosses it. Rows whose steps sum past
+`walkStepBudget` (4 M) fail as a `NodeLimitError` naming the span that fits, or
+asking for fewer haplotypes where the two chunks any window there reads are over
+on their own; the walk read stops the node and link reads.
+
+Measured 2026-10-08 on HPRC v2.1 chr22, local files, minimum of three runs on a
+loaded machine, window chr22:20.0–20.26 Mb:
+
+| route                  | fetch  | cut    | GFA load | total  |
+| ---------------------- | ------ | ------ | -------- | ------ |
+| spike, every haplotype | 0.07 s | 2.7 s  | 6.5 s    | 9.2 s  |
+| now, every haplotype   | 0.06 s | 1.0 s  | 4.3 s    | 5.3 s  |
+| now, 8 haplotypes      | 0.08 s | 0.18 s | 0.12 s   | 0.29 s |
+
+"Cut" includes the adapter's own reads. "Now" loads with bandage-core's
+`walks-handoff` branch, which builds no string per walk step; on 8.0.1 the
+every-haplotype load takes about 40% longer and the 8-haplotype one 0.02 s
+longer. Every haplotype there is past the budget, refused in 0.12 s; the row
+above raised it. In the browser at chr22:20.0–20.1 Mb, from showing the track to
+the graph drawn, 8 haplotypes take 1.4 s force-directed (0.8 s of it FMMM), 0.5
+s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s, 25 s (20 s
+of tube map layout) and 6.4 s.
+
+The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
+header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8
+haplotypes over chr22:20.0–20.26 Mb.
+
+The budget counts only the haplotypes asked for, and node and link rows are
+filed for all of them. At chr22:11.80–11.864 Mb, 8 haplotypes stay under budget
+and read 1.94 M node and link rows: 1.7–3.9 s to fetch, 3.2–7.8 s in all.
