@@ -298,7 +298,7 @@ test.skipIf(!rustPresent)(
   },
 )
 
-// tabix-js's getLines spins forever on a NaN start, so these mock it: a
+// tabix-js's getLines spins forever on a NaN end, so these mock it: a
 // regression fails here instead of hanging the suite
 test('a cut or a feature read over a range that is not finite queries nothing', async () => {
   const getLines = vi

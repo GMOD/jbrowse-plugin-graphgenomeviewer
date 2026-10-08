@@ -78,8 +78,9 @@ function offReference(segments: RgfaSegment[]) {
   return segments.filter(segment => segment.rank > 0)
 }
 
-// tabix-js loops forever on a NaN coordinate, so every query the adapter makes
-// refuses a range that is not finite first
+// tabix-js loops forever on a NaN end and reads nothing for a NaN start
+// (GMOD/tabix-js#157), so every query the adapter makes refuses a range that
+// is not finite first
 function checkRange(refName: string, start: number, end: number) {
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
     throw new Error(
