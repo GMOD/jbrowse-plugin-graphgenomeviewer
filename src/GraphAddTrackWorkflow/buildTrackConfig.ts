@@ -4,17 +4,30 @@ import { locationName, readsSiblings, renamed } from '../locationName'
 
 import type { FileLocation } from '@jbrowse/core/util'
 
-export type GraphFileChoice = 'RgfaTabixAdapter' | 'MinigraphBubbleAdapter'
+export type GraphFileChoice =
+  'RgfaTabixAdapter' | 'GbzBaseSyntenyAdapter' | 'MinigraphBubbleAdapter'
 
 export const GRAPH_FILE_LABELS: Record<GraphFileChoice, string> = {
   RgfaTabixAdapter: 'rGFA segments (tabix BED pair)',
+  GbzBaseSyntenyAdapter: 'GBZ database (.gbz.db)',
   MinigraphBubbleAdapter: 'Minigraph bubbles (tabix BED)',
 }
 
 export const GRAPH_FILE_FIELDS: Record<GraphFileChoice, string> = {
   RgfaTabixAdapter:
     'Path to segments BED (.segs.bed.gz from gfa-to-tabix; the .links.bed.gz and its index are assumed beside it)',
+  GbzBaseSyntenyAdapter: 'Path to the .gbz.db written by gbz-base construct',
   MinigraphBubbleAdapter: 'Path to bubbles BED (.bed.gz from gfatools bubble)',
+}
+
+const TABIX_INDEX_FIELD =
+  'Path to tabix index (optional; the sibling .tbi is assumed, a .csi is recognised by name)'
+
+export const GRAPH_INDEX_FIELDS: Record<GraphFileChoice, string> = {
+  RgfaTabixAdapter: TABIX_INDEX_FIELD,
+  GbzBaseSyntenyAdapter:
+    'Path to the haplotype index (optional; graph.haplotype-index.db beside the database is assumed)',
+  MinigraphBubbleAdapter: TABIX_INDEX_FIELD,
 }
 
 const SEGMENTS_SUFFIX = '.segs.bed.gz'
@@ -64,19 +77,44 @@ function panSN(assembly: string, sample: string) {
   return name ? { assemblyNameToPanSN: { [assembly]: name } } : {}
 }
 
+// a bgzipped GAF is read by its tabix index, a plain one whole
+function readsConfig(readsLoc: FileLocation | undefined) {
+  return readsLoc
+    ? {
+        readsLocation: readsLoc,
+        ...(locationName(readsLoc).endsWith('.gz') && readsSiblings(readsLoc)
+          ? { readsIndex: { location: sibling(readsLoc, '.tbi') } }
+          : {}),
+      }
+    : {}
+}
+
 export function buildAdapterConfig({
   choice,
   loc,
   indexLoc,
+  readsLoc,
   assembly,
   sample,
 }: {
   choice: GraphFileChoice
   loc: FileLocation
   indexLoc: FileLocation | undefined
+  // a GBZ track's GAF reads, which no other choice takes
+  readsLoc?: FileLocation
   assembly: string
   sample: string
 }) {
+  if (choice === 'GbzBaseSyntenyAdapter') {
+    return {
+      type: 'GbzBaseSyntenyAdapter',
+      gbzDbLocation: loc,
+      ...(indexLoc ? { haplotypeIndexLocation: indexLoc } : {}),
+      assemblyNames: [assembly],
+      ...readsConfig(readsLoc),
+      ...panSN(assembly, sample),
+    }
+  }
   if (choice === 'MinigraphBubbleAdapter') {
     return {
       type: 'MinigraphBubbleAdapter',
@@ -100,6 +138,7 @@ export function buildTrackConfig(args: {
   choice: GraphFileChoice
   loc: FileLocation
   indexLoc: FileLocation | undefined
+  readsLoc?: FileLocation
   assembly: string
   sample: string
   trackId: string
@@ -107,7 +146,7 @@ export function buildTrackConfig(args: {
 }) {
   const { choice, assembly, trackId, name } = args
   return {
-    type: choice === 'RgfaTabixAdapter' ? 'GraphTrack' : 'FeatureTrack',
+    type: choice === 'MinigraphBubbleAdapter' ? 'FeatureTrack' : 'GraphTrack',
     trackId,
     name,
     assemblyNames: [assembly],
