@@ -191,13 +191,15 @@ takes typed names.
 
 The set a cut is for lives in the display's session state, `subgraphHaplotypes`.
 Unset, it is the config's `defaultHaplotypes`, else the lanes the track's
-`assemblyNames` lists after its reference, else every haplotype; a graph view
-opened from the track takes the set with it. The cut decodes only those walks
-and the reference's; the rest are dropped on their name column before their
-steps are split. Each fragment runs from its first to its last step on the
-reference inside the window plus 1 kb, then on outward while the next node is
-already in the cut, so an allele straddling the edge draws every walk that
-crosses it.
+`assemblyNames` lists after its reference, else every haplotype. An empty list,
+`subgraphHaplotypes: []`, is every haplotype whatever the config says: the
+Haplotypes menu's "Every haplotype in the graph" sets it, and a harness tracing
+a cut for every haplotype sets the same. A graph view opened from the track
+takes the set with it. The cut decodes only those walks and the reference's; the
+rest are dropped on their name column before their steps are split. Each
+fragment runs from its first to its last step on the reference inside the window
+plus 1 kb, then on outward while the next node is already in the cut, so an
+allele straddling the edge draws every walk that crosses it.
 
 Two budgets refuse a window with the zoom-in notice. Before any row is read, the
 three Tabix indexes estimate the compressed bytes the reads would fetch
