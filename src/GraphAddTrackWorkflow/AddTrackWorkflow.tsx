@@ -19,7 +19,6 @@ import { observer } from 'mobx-react'
 import {
   GRAPH_FILE_FIELDS,
   GRAPH_FILE_LABELS,
-  GRAPH_INDEX_FIELDS,
   buildTrackConfig,
 } from './buildTrackConfig'
 
@@ -47,7 +46,6 @@ const useStyles = makeStyles()(theme => ({
 
 const CHOICES: GraphFileChoice[] = [
   'RgfaTabixAdapter',
-  'GbzBaseSyntenyAdapter',
   'MinigraphBubbleAdapter',
 ]
 
@@ -62,8 +60,6 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
   const [choice, setChoice] = useState<GraphFileChoice>('RgfaTabixAdapter')
   const [loc, setLoc] = useState<FileLocation>()
   const [indexLoc, setIndexLoc] = useState<FileLocation>()
-  const [readsLoc, setReadsLoc] = useState<FileLocation>()
-  const gbz = choice === 'GbzBaseSyntenyAdapter'
   const [sample, setSample] = useState('')
   const [trackName, setTrackName] = useState('Pangenome graph')
   const [error, setError] = useState<unknown>()
@@ -82,7 +78,6 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
           choice,
           loc,
           indexLoc,
-          readsLoc: gbz ? readsLoc : undefined,
           assembly: model.assembly,
           sample,
           trackId: makeTrackId({ name }),
@@ -124,18 +119,10 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
       />
       <FileSelector
         location={indexLoc}
-        name={GRAPH_INDEX_FIELDS[choice]}
+        name="Path to tabix index (optional; the sibling .tbi is assumed, a .csi is recognised by name)"
         rootModel={rootModel}
         setLocation={setIndexLoc}
       />
-      {gbz ? (
-        <FileSelector
-          location={readsLoc}
-          name="Path to reads aligned to the graph as GAF (optional; a .gz is read by the .tbi beside it)"
-          rootModel={rootModel}
-          setLocation={setReadsLoc}
-        />
-      ) : null}
       <TextField
         className={classes.field}
         value={sample}
@@ -144,11 +131,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
         }}
         label="Sample name in the graph"
         slotProps={{ htmlInput: { 'data-testid': 'graph-sample-input' } }}
-        helperText={
-          gbz
-            ? "Optional. The graph's sample for this assembly, e.g. GRCh38 where the assembly is hg38; leave blank when they share a name or the graph has one reference sample"
-            : "Optional. The PanSN prefix the graph gives this assembly, e.g. GRCh38 for HPRC's GRCh38#0#chr1; leave blank when the graph's stable names are bare"
-        }
+        helperText="Optional. The PanSN prefix the graph gives this assembly, e.g. GRCh38 for HPRC's GRCh38#0#chr1; leave blank when the graph's stable names are bare"
         placeholder="GRCh38"
         fullWidth
       />
