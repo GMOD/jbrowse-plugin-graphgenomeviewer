@@ -166,6 +166,28 @@ const RgfaTabixAdapter = ConfigurationSchema(
     ),
     /**
      * #slot
+     * one row per haplotype path per reference chunk, its steps through that
+     * chunk, written beside node and link files filed under the same chunks.
+     * Unset means the graph has no walks.
+     */
+    walksLocation: {
+      type: 'fileLocation',
+      defaultValue: { uri: '', locationType: 'UriLocation' },
+    },
+    /**
+     * #slot
+     */
+    walksIndex: indexSchema('RgfaWalksIndex', ''),
+    /**
+     * #slot
+     * the reference chunk the walk file's rows are filed under, in bp
+     */
+    walkChunk: {
+      type: 'integer',
+      defaultValue: 65536,
+    },
+    /**
+     * #slot
      * Maps a JBrowse assembly name to its PanSN sample prefix in the graph, for
      * when they differ. Defaults to identity: the assembly name is assumed to be
      * the PanSN sample name, and a graph whose stable names are bare (minigraph

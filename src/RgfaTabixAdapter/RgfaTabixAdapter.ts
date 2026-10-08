@@ -13,8 +13,10 @@ import {
   parseSegmentRow,
   segmentSamples,
 } from './rgfaBed.ts'
+import { formatWalk, parseWalkRow, walkFragments } from './walkRows.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
+import type { WalkRow } from './walkRows.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
@@ -22,7 +24,7 @@ import type PluginManager from '@jbrowse/core/PluginManager'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import type { Feature } from '@jbrowse/core/util'
-import type { Region } from '@jbrowse/core/util/types'
+import type { FileLocation, Region } from '@jbrowse/core/util/types'
 
 // What a hop follows: alleles, never the backbone. A rank-0 segment reached
 // through a link is flanking backbone, usually outside the window, so querying
@@ -63,8 +65,12 @@ function offReference(segments: RgfaSegment[]) {
 interface GraphIndex {
   segments: TabixIndexedFile
   links: TabixIndexedFile
+  walks?: TabixIndexedFile
   refNames: PanSNRefNames
 }
+
+// How much graph a walk cut keeps around the window, on the reference
+const WALK_CONTEXT = 1000
 
 export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
@@ -90,6 +96,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       [...under, 'segmentsLocation'],
       [...under, 'segmentsIndex'],
     )
+    const walksLocation: FileLocation = this.getConf('walksLocation')
+    const hasWalks =
+      under.length === 0 &&
+      (!('uri' in walksLocation) || walksLocation.uri !== '')
     return {
       segments,
       links: openTabixSlot(
@@ -97,6 +107,9 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         [...under, 'linksLocation'],
         [...under, 'linksIndex'],
       ),
+      walks: hasWalks
+        ? openTabixSlot(this, ['walksLocation'], ['walksIndex'])
+        : undefined,
       refNames: new PanSNRefNames(segments, this),
     }
   }
@@ -207,6 +220,27 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         `${region.assemblyName} ${region.refName} is not in this graph's index; a graph with PanSN names (GRCh38#0#chr1) needs ${region.assemblyName} mapped to its prefix in assemblyNameToPanSN`,
       )
     }
+    // A walk-indexed graph files its rows under fixed chunks; the chunk before
+    // the window holds the detour a haplotype takes into the window's first
+    // reference node, so the three queries start one chunk early.
+    const walkRows: WalkRow[] = []
+    const chunk: number = index.walks ? this.getConf('walkChunk') : 0
+    const walksRead = index.walks
+      ? index.walks.getLines(
+          tabixRefName,
+          Math.max(0, region.start - chunk),
+          region.end,
+          {
+            signal,
+            lineCallback: line => {
+              walkRows.push(parseWalkRow(line))
+            },
+          },
+        )
+      : Promise.resolve()
+    if (chunk > 0) {
+      region = { ...region, start: Math.max(0, region.start - chunk) }
+    }
     const layout = { anchored: false }
     await index.segments.getLines(tabixRefName, region.start, region.end, {
       signal,
@@ -232,7 +266,44 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         start: region.start,
         end: region.end,
       })
-      return formatSubgraph(cut.segments, cut.links)
+      if (chunk === 0) {
+        return formatSubgraph(cut.segments, cut.links)
+      }
+      await walksRead
+      // walk-indexed: keep the reference inside the window plus context and
+      // every node a haplotype visits between its first and last step there
+      const window = {
+        refName: tabixRefName,
+        start: region.start + chunk,
+        end: region.end,
+      }
+      const fragments = walkFragments(walkRows, cut.segments, window, WALK_CONTEXT)
+      const kept = new Map<string, RgfaSegment>()
+      for (const segment of cut.segments.values()) {
+        if (
+          segment.rank === 0 &&
+          segment.refName === tabixRefName &&
+          segment.end > window.start - WALK_CONTEXT &&
+          segment.start < window.end + WALK_CONTEXT
+        ) {
+          kept.set(segment.id, segment)
+        }
+      }
+      for (const fragment of fragments) {
+        for (const step of fragment.steps) {
+          const segment = cut.segments.get(step.id)
+          if (segment) {
+            kept.set(step.id, segment)
+          }
+        }
+      }
+      const keptLinks = new Map<string, RgfaLink>()
+      for (const [key, link] of cut.links) {
+        if (kept.has(link.source) && kept.has(link.target)) {
+          keptLinks.set(key, link)
+        }
+      }
+      return [formatSubgraph(kept, keptLinks), ...fragments.map(formatWalk)].join('\n')
     }
     let frontier = offReference(
       await addLinksOver(tabixRefName, region.start, region.end),
