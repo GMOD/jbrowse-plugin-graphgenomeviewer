@@ -1,3 +1,12 @@
+## [6.9.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.0...v6.9.1) (2026-10-08)
+
+### Other Changes
+
+- The graph track draws its own status chrome, since jbrowse-web main removed DisplayStatusChrome ([b8172c6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b8172c60dcecb36d29bac06f81054e78acaa2b2e))
+- Host-compat draws the graph track in a linear view, on beta.11, beta.13 and main ([7c21a4f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7c21a4ffbf609ce477ab47042a484df3fb8c5fa9))
+- A cut for every haplotype past the step budget is offered fewer haplotypes beside the zoom ([5a00ecb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5a00ecb2c2653a9d3ac0615b192f6ed14863dab7))
+- GRAPH_TRACK.md and developing.md: the plugin's own status chrome, and host-compat drawing the track ([95c86b5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/95c86b5fb90e690a8c5ffa931014d2129bd56204))
+
 ## [6.9.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.8.0...v6.9.0) (2026-10-08)
 
 ### Other Changes
