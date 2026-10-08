@@ -19,12 +19,26 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `build_bubble_tier.sh` in jbrowse-components, plus the zoom past which a
  * graph view following a linear view cuts it.
  *
+ * `walksUri` takes the prefix `gfa-to-tabix --walks -o <prefix>` was given, in
+ * place of `uri`, and resolves `<prefix>.walks.bed.gz`, `<prefix>.nodes.bed.gz`,
+ * `<prefix>.links.bed.gz` and their `.tbi` indexes. Such a graph's cut carries
+ * the haplotypes' walks.
+ *
  * #example
  * ```js
  * {
  *   type: 'RgfaTabixAdapter',
  *   uri: 'https://example.com/hprc.rgfa',
  *   coarse: { uri: 'https://example.com/hprc.tier10000', aboveBpPerPx: 1000 },
+ * }
+ * ```
+ *
+ * #example
+ * ```js
+ * {
+ *   type: 'RgfaTabixAdapter',
+ *   walksUri: 'https://example.com/hprc-v2.1.chr22',
+ *   assemblyNameToPanSN: { hg38: 'GRCh38', hs1: 'CHM13' },
  * }
  * ```
  */
@@ -49,12 +63,31 @@ function prefixLocations(snap: Record<string, unknown>) {
     : snap
 }
 
+function walksLocations(snap: Record<string, unknown>) {
+  const { walksUri, baseUri, csi } = snap
+  if (typeof walksUri !== 'string') {
+    return snap
+  }
+  const file = (kind: string) => `${walksUri}.${kind}.bed.gz`
+  return {
+    ...snap,
+    walksLocation: { uri: file('walks'), baseUri },
+    walksIndex: tbi(file('walks'), baseUri, csi),
+    segmentsLocation: { uri: file('nodes'), baseUri },
+    segmentsIndex: tbi(file('nodes'), baseUri, csi),
+    linksLocation: { uri: file('links'), baseUri },
+    linksIndex: tbi(file('links'), baseUri, csi),
+  }
+}
+
 export function normalizeSnapshot(snap: Record<string, unknown>) {
   const { coarse, baseUri, csi } = snap
-  return prefixLocations(
-    typeof coarse === 'object' && coarse !== null
-      ? { ...snap, coarse: prefixLocations({ baseUri, csi, ...coarse }) }
-      : snap,
+  return walksLocations(
+    prefixLocations(
+      typeof coarse === 'object' && coarse !== null
+        ? { ...snap, coarse: prefixLocations({ baseUri, csi, ...coarse }) }
+        : snap,
+    ),
   )
 }
 
@@ -232,6 +265,10 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * preprocessor to allow the minimal config
      * ```json
      * { "type": "RgfaTabixAdapter", "uri": "graph.rgfa" }
+     * ```
+     * or, for a graph built by `gfa-to-tabix --walks -o chr22`,
+     * ```json
+     * { "type": "RgfaTabixAdapter", "walksUri": "chr22" }
      * ```
      */
     preProcessSnapshot: normalizeSnapshot,

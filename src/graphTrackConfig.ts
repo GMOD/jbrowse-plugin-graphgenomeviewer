@@ -14,15 +14,24 @@ export function trackLanes(track: AnyConfigurationModel) {
   return lanes.length > 0 ? lanes : undefined
 }
 
-// Whether a track's cut reads `haplotypes`: a GBZ cut does, and so does an
-// rGFA one with a walk file
-export function cutsByHaplotype(adapterConfig: Record<string, unknown>) {
+// Whether an rGFA track names a walk file, by the `walksUri` shorthand as
+// written or the location it expands to
+export function walkIndexed(adapterConfig: Record<string, unknown>) {
   const walks = adapterConfig.walksLocation as
     { uri?: string; localPath?: string } | undefined
   return (
-    adapterConfig.type === 'GbzBaseSyntenyAdapter' ||
-    (adapterConfig.type === 'RgfaTabixAdapter' &&
+    adapterConfig.type === 'RgfaTabixAdapter' &&
+    ((typeof adapterConfig.walksUri === 'string' &&
+      adapterConfig.walksUri !== '') ||
       (walks?.uri ?? walks?.localPath ?? '') !== '')
+  )
+}
+
+// Whether a track's cut reads `haplotypes`: a GBZ cut does, and so does an
+// rGFA one with a walk file
+export function cutsByHaplotype(adapterConfig: Record<string, unknown>) {
+  return (
+    adapterConfig.type === 'GbzBaseSyntenyAdapter' || walkIndexed(adapterConfig)
   )
 }
 

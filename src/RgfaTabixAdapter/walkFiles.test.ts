@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 
+import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -131,3 +132,23 @@ test.skipIf(!rustPresent)(
     expect(features.map(f => f.get('name'))).toContain('2495598')
   },
 )
+
+test('walksUri names the three files a walk-indexed build writes', () => {
+  const config = configSchema.create({
+    walksUri: 'hprc.chr22',
+    baseUri: 'https://example.com/',
+  })
+  expect(readConfObject(config, 'walksLocation')).toMatchObject({
+    uri: 'hprc.chr22.walks.bed.gz',
+    baseUri: 'https://example.com/',
+  })
+  expect(readConfObject(config, ['walksIndex', 'location'])).toMatchObject({
+    uri: 'hprc.chr22.walks.bed.gz.tbi',
+  })
+  expect(readConfObject(config, 'segmentsLocation')).toMatchObject({
+    uri: 'hprc.chr22.nodes.bed.gz',
+  })
+  expect(readConfObject(config, ['linksIndex', 'location'])).toMatchObject({
+    uri: 'hprc.chr22.links.bed.gz.tbi',
+  })
+})
