@@ -1,3 +1,13 @@
+## [6.9.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.1...v6.9.2) (2026-10-08)
+
+### Other Changes
+
+- RgfaTabixAdapter refuses a query range that is not finite ([00cc369](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/00cc369550bb8b40d3b51b12e78e1d38b41fc88b))
+- A walk-indexed cut looks back as far as the header's maxnode reaches ([a758122](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a758122cbc2cd8e3060772dacd682c42c7274766))
+- WalksUri docs name the per-reference prefix gfa-to-tabix 0.5.0 writes ([8566f3c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8566f3c097c96b1cc96cfd61ceede79d8e369e83))
+- SubgraphHaplotypes [] is every haplotype ([0ad018a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0ad018aac1ce71a24eb82dc6cb0f223d785e30de))
+- Say which NaN tabix-js spins on: an end, while a start reads nothing ([4865284](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4865284378b5598e89e9b7fc95e993867e8e9cca))
+
 ## [6.9.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.0...v6.9.1) (2026-10-08)
 
 ### Other Changes
