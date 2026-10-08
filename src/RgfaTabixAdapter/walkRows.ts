@@ -71,7 +71,7 @@ export interface WalkHeader {
 
 /**
  * What a walk file's header states: its chunk size in a
- * `#walks\tchunk:i:65536` line, and from gfa-to-tabix after 0.3.0 a
+ * `#walks\tchunk:i:65536` line, and from gfa-to-tabix 0.4.0 a
  * `#reference\tGRCh38` line per reference sample and a
  * `#haplotype\tHG002#1` line per other haplotype with rows
  */

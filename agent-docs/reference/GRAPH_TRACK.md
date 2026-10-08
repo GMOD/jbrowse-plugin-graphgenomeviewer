@@ -142,22 +142,63 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 A walk-indexed `RgfaTabixAdapter` names a third file, `walksLocation`: one row
 per haplotype path per reference chunk, beside node and link rows filed under
 the same chunks (row formats at the top of `src/RgfaTabixAdapter/walkRows.ts`).
+`walksUri: <prefix>` names all three from the prefix `gfa-to-tabix --walks -o`
+was given, in place of `uri`:
+
+```js
+{
+  type: 'GraphTrack',
+  trackId: 'hprc_chr22_walks',
+  name: 'HPRC v2.1 chr22 graph',
+  assemblyNames: ['hg38'],
+  adapter: {
+    type: 'RgfaTabixAdapter',
+    walksUri: 'https://example.com/hprc-v2.1.chr22',
+    assemblyNameToPanSN: { hg38: 'GRCh38', hs1: 'CHM13' },
+    defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
+  },
+}
+```
+
 A cut reads all three together, from the start of the chunk before the window to
 the window's end, so a row filed under its chunk's first base is found as well
-as one spanning the chunk. The chunk size comes from a `chunk:i:` header line,
-else `walkChunk`. `getFeatures` reads from the chunk before the window too,
-since a node crossing a chunk boundary is filed under the chunk holding its
+as one spanning the chunk. `getFeatures` reads from the chunk before the window
+too, since a node crossing a chunk boundary is filed under the chunk holding its
 start; `anchoredCut`, the coarse tier and the bubble halos read no anchor
 interval of a walk-indexed file.
 
-The cut decodes only the walks `haplotypes` names, and the reference's; the rest
-are dropped on their name column before their steps are split. Each fragment
-runs from its first to its last step on the reference inside the window plus 1
-kb, then on outward while the next node is already in the cut, so an allele
-straddling the edge draws every walk that crosses it. Rows whose steps sum past
-`walkStepBudget` (4 M) fail as a `NodeLimitError` naming the span that fits, or
-asking for fewer haplotypes where the two chunks any window there reads are over
-on their own; the walk read stops the node and link reads.
+The walk file's header holds a `chunk:i:` line, which sets the chunk size
+(`walkChunk` when absent), and from gfa-to-tabix 0.4.0 a `#reference` line per
+reference sample and a `#haplotype` line per other haplotype with rows: 462 on
+chr22, 9.75 kB. The adapter reads them with the chunk line in one header read,
+and `GetGraphHaplotypes` hands the haplotype names to the track: the Settings
+field becomes a searchable pick list that still takes a typed prefix, and the
+Haplotypes menu counts them. Without the lines the field takes typed names.
+
+The set a cut is for lives in the display's session state, `subgraphHaplotypes`.
+Unset, it is the config's `defaultHaplotypes`, else the lanes the track's
+`assemblyNames` lists after its reference, else every haplotype; a graph view
+opened from the track takes the set with it. The cut decodes only those walks
+and the reference's; the rest are dropped on their name column before their
+steps are split. Each fragment runs from its first to its last step on the
+reference inside the window plus 1 kb, then on outward while the next node is
+already in the cut, so an allele straddling the edge draws every walk that
+crosses it.
+
+Two budgets refuse a window with the zoom-in notice. Before any row is read, the
+three Tabix indexes estimate the compressed bytes the reads would fetch
+(`bytesForRegions`), and past `walkByteBudget` (8 MB) the notice names the span
+that fits, or says none does where the window's first two chunks are over on
+their own. The bytes are the same for any haplotype set, since node and link
+rows are filed for every haplotype. On chr22 from gfa-to-tabix 0.4.0 at
+`--settle 0`, the two-chunk read a window always makes is 0.53 MB at the median,
+2.6 MB at the 99th percentile and 36 MB at most; 8 MB refuses every window over
+11.80–12.06 Mb on GRCh38 and 0.20–0.46 Mb on CHM13 (20 MB for 10 kb at 11.80 Mb)
+and nothing else. A 1 Mb window elsewhere fetches 2.8–4.7 MB, a 3 Mb one at 40
+Mb 9.5 MB. The 0.3.0 build at the default settle refuses the same windows. Then
+rows whose steps sum past `walkStepBudget` (4 M) fail the same way, asking for
+fewer haplotypes where no zoom fits, and the walk read stops the node and link
+reads. The step budget counts only the haplotypes asked for.
 
 Measured 2026-10-08 on HPRC v2.1 chr22, local files, minimum of three runs on a
 loaded machine, window chr22:20.0–20.26 Mb:
@@ -169,9 +210,9 @@ loaded machine, window chr22:20.0–20.26 Mb:
 | now, 8 haplotypes      | 0.08 s | 0.18 s | 0.12 s   | 0.29 s |
 
 "Cut" includes the adapter's own reads. "Now" loads with bandage-core at 0ffbfda
-(on its main after 8.0.1, unreleased), which builds no string per walk step; on
-8.0.1 the every-haplotype load takes about 40% longer and the 8-haplotype one
-0.02 s longer. Every haplotype there is past the budget, refused in 0.12 s; the
+(released as 8.0.2), which builds no string per walk step; on 8.0.1 the
+every-haplotype load takes about 40% longer and the 8-haplotype one 0.02 s
+longer. Every haplotype there is past the step budget, refused in 0.12 s; the
 row above raised it. In the browser at chr22:20.0–20.1 Mb, from showing the
 track to the graph drawn, 8 haplotypes take 1.4 s force-directed (0.8 s of it
 FMMM), 0.5 s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s,
@@ -179,8 +220,7 @@ FMMM), 0.5 s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s,
 
 The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
 header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8
-haplotypes over chr22:20.0–20.26 Mb.
-
-The budget counts only the haplotypes asked for, and node and link rows are
-filed for all of them. At chr22:11.80–11.864 Mb, 8 haplotypes stay under budget
-and read 1.94 M node and link rows: 1.7–3.9 s to fetch, 3.2–7.8 s in all.
+haplotypes over chr22:20.0–20.26 Mb, and 0.09 s over chr22:20.0–20.1 Mb. At
+chr22:11.80–11.864 Mb, 8 haplotypes used to stay under the step budget and read
+1.94 M node and link rows in 3.1 s; the byte budget now refuses that window in
+10 ms, from the indexes and the header.

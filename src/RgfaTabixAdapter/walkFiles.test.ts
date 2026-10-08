@@ -24,7 +24,7 @@ const headerPrefix = '/home/cdiesh/work/scratch/walks-20261008/settle/s0/chr22'
 const headerPresent = existsSync(`${headerPrefix}.walks.bed.gz`)
 
 // Four walks over a 3.6 kb reference in 1 kb chunks, built by gfa-to-tabix
-// --walks --refs GRCh38 --chunk 1000 after 0.3.0, whose walk file names its
+// --walks --refs GRCh38 --chunk 1000 (0.4.0), whose walk file names its
 // reference and haplotypes in the header:
 //   W GRCh38  0 chr1 >1>2>3>4>5>6
 //   W HG002   1 chr1 >1>2>7>4>5>6   7 replaces 3

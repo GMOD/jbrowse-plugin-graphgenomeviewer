@@ -237,7 +237,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * the most compressed bytes a cut of a walk-indexed graph fetches from its
      * three files, as their Tabix indexes estimate it before any row is read;
      * a window over it shows a zoom-in notice instead. On HPRC v2.1 chr22 a 1
-     * Mb window fetches 2.9 to 4.8 MB, and the dense 64 kb chunks at 11.80 to
+     * Mb window fetches about 3 to 5 MB, and the dense 64 kb chunks at 11.80 to
      * 12.06 Mb on GRCh38 fetch 15 MB or more for a 10 kb window. The budget
      * covers every haplotype, since node and link rows are filed for all of
      * them.
