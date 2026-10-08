@@ -10,8 +10,9 @@ import type { Region } from '@jbrowse/core/util'
 // them, because `RpcExecuteArgs` intersects `RpcCallContext` in.
 // `hops` is how far past the window a cut follows links, which only the rGFA
 // cut reads; the GBZ cut has its own bp `context` slot. `haplotypes` is the
-// set the cut is for, lane assembly names or PanSN prefixes, which only the GBZ
-// cut reads: it keeps those walks and the nodes they visit. Undefined or empty
+// set the cut is for, lane assembly names or PanSN prefixes, which the GBZ cut
+// and a walk-indexed rGFA cut read: they keep those walks, the reference's,
+// and the nodes they visit. Undefined or empty
 // is every haplotype. `tier` picks which of an rGFA track's two index pairs the
 // cut reads, the adapter's own or its `coarse` one; fine when absent.
 export type SubgraphTier = 'fine' | 'coarse'

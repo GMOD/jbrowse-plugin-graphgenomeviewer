@@ -30,6 +30,7 @@ import {
   formatSpanBp,
 } from '../GraphGenomeView/model'
 import {
+  cutsByHaplotype,
   graphReferenceAssembly,
   offReferenceProblem,
   trackLanes,
@@ -91,7 +92,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           // insertions. A hop follows alleles only, so it never walks the
           // backbone out of the window.
           subgraphContext: types.optional(types.number, 1),
-          // the haplotypes a GBZ cut is for; unset is the lanes the track names
+          // the haplotypes a GBZ or walk-indexed cut is for; unset is the
+          // lanes the track names
           subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
         }),
       )
@@ -485,10 +487,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .views(self => ({
-        // Which haplotypes a GBZ cut is for: every one in the graph, the
-        // assemblies the track names, or a list typed in Settings
+        // Which haplotypes a GBZ or walk-indexed cut is for: every one in the
+        // graph, the assemblies the track names, or a list typed in Settings
         cutMenuItems(): MenuItem[] {
-          if (self.adapterConfig.type !== 'GbzBaseSyntenyAdapter') {
+          if (!cutsByHaplotype(self.adapterConfig)) {
             return []
           }
           const lanes = trackLanes(self.parentTrack.configuration)

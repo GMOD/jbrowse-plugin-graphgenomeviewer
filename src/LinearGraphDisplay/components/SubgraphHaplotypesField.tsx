@@ -4,6 +4,8 @@ import { TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
+import { cutsByHaplotype } from '../../graphTrackConfig'
+
 import type { LinearGraphCutModel } from '../model'
 
 const useStyles = makeStyles()({
@@ -57,7 +59,7 @@ const HaplotypeListField = observer(function HaplotypeListField({
   )
 })
 
-// Only a GBZ cut reads the set. The inner field is keyed on it so an outside
+// Only a GBZ cut and a walk-indexed rGFA cut read the set. The inner field is keyed on it so an outside
 // change (a restored session, a launch) resets the draft rather than fighting
 // it.
 const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
@@ -66,7 +68,7 @@ const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
   model: LinearGraphCutModel
 }) {
   const { classes } = useStyles()
-  return model.adapterConfig.type === 'GbzBaseSyntenyAdapter' ? (
+  return cutsByHaplotype(model.adapterConfig) ? (
     <div className={classes.section}>
       <HaplotypeListField
         key={model.chosenHaplotypes?.join(',') ?? ''}

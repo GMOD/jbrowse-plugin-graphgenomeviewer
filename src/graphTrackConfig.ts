@@ -14,6 +14,18 @@ export function trackLanes(track: AnyConfigurationModel) {
   return lanes.length > 0 ? lanes : undefined
 }
 
+// Whether a track's cut reads `haplotypes`: a GBZ cut does, and so does an
+// rGFA one with a walk file
+export function cutsByHaplotype(adapterConfig: Record<string, unknown>) {
+  const walks = adapterConfig.walksLocation as
+    { uri?: string; localPath?: string } | undefined
+  return (
+    adapterConfig.type === 'GbzBaseSyntenyAdapter' ||
+    (adapterConfig.type === 'RgfaTabixAdapter' &&
+      (walks?.uri ?? walks?.localPath ?? '') !== '')
+  )
+}
+
 // A graph is cut on the first assembly its track names, the rule
 // GbzBaseSyntenyAdapter states for its anchor. Every other assembly the track
 // names holds its sequence as rank>0 alleles off that reference's backbone, so
