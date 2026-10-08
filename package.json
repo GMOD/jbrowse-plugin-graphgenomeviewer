@@ -52,6 +52,7 @@
     "@jbrowse/cigar-utils": "5.0.0-beta.11",
     "@jbrowse/core": "5.0.0-beta.11",
     "@jbrowse/display-kit": "5.0.0-beta.11",
+    "@jbrowse/display-ui": "5.0.0-beta.11",
     "@jbrowse/render-core": "5.0.0-beta.11",
     "@jbrowse/synteny-core": "5.0.0-beta.11"
   },
