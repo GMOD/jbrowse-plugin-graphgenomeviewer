@@ -190,7 +190,7 @@ export const withLaunchActions = withRenderingActions
                   {
                     type: 'radio' as const,
                     label: 'Whole window',
-                    checked: self.repeatKey === '',
+                    checked: !self.selectedRepeat,
                     onClick: () => {
                       self.setRepeatKey('')
                     },
@@ -391,6 +391,7 @@ export const withLaunchActions = withRenderingActions
               label: mode.label,
               checked: self.chosenLayoutMode === mode.value,
               disabled: self.graph ? !mode.available(self.graph) : false,
+              disabledHelpText: mode.description,
               onClick: () => {
                 void self.switchLayout(mode.value)
               },
@@ -405,7 +406,7 @@ export const withLaunchActions = withRenderingActions
                   {
                     label: 'Zoom to fit',
                     onClick: () => {
-                      self.zoomToFit()
+                      self.refitView()
                     },
                   },
                 ]),

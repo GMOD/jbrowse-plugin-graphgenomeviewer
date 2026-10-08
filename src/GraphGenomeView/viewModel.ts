@@ -4,7 +4,12 @@ import { getSession } from '@jbrowse/core/util'
 import { addDisposer, types } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
 
-import { GraphPaneMixin, MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
+import {
+  GraphPaneMixin,
+  MAX_GRAPH_REGION_BP,
+  fileName,
+  formatSpanBp,
+} from './model'
 import {
   graphReferenceAssembly,
   offReferenceProblem,
@@ -16,19 +21,6 @@ import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
 import type { Instance } from '@jbrowse/mobx-state-tree'
-
-// the last segment of a file's path, its query dropped, or a blob's own name
-function fileName(location: FileLocation) {
-  const path =
-    'uri' in location
-      ? location.uri.split(/[?#]/)[0]!
-      : 'localPath' in location
-        ? location.localPath
-        : 'name' in location
-          ? location.name
-          : ''
-  return path.split(/[\\/]/).at(-1) ?? ''
-}
 
 export default function stateModelFactory() {
   return types

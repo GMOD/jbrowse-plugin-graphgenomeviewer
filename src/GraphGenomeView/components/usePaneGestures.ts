@@ -42,6 +42,8 @@ export function useWheelZoom(
   }, [canvas, model])
 }
 
+const CLICK_SLOP_PX = 3
+
 // The pointer on a canvas drawing the pane's transform: the pane's own, or any
 // facet panel, since the panels share it. Coordinates are read against the
 // canvas the event is on.
@@ -51,6 +53,7 @@ export function usePaneGestures(model: GraphPaneModel) {
   // Whether a drag is in progress is model state (`isPanning`/`draggingNode`),
   // because the cursor renders from it.
   const lastMouseRef = useRef({ x: 0, y: 0 })
+  const downRef = useRef({ x: 0, y: 0 })
   const hasMovedRef = useRef(false)
   // A pan and a hover are applied once per frame, not once per mousemove:
   // mousemove fires in bursts well above the frame rate, and each pan step
@@ -117,6 +120,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     if (e.button === 0) {
       e.preventDefault()
       hasMovedRef.current = false
+      downRef.current = { x: e.clientX, y: e.clientY }
       if (model.hostPlacesX) {
         return
       }
@@ -205,7 +209,12 @@ export function usePaneGestures(model: GraphPaneModel) {
     const dy = e.clientY - lastMouseRef.current.y
     lastMouseRef.current = { x: e.clientX, y: e.clientY }
 
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+    // from where the button went down, not per event: a slow drag moves a
+    // pixel at a time
+    if (
+      Math.hypot(e.clientX - downRef.current.x, e.clientY - downRef.current.y) >
+      CLICK_SLOP_PX
+    ) {
       hasMovedRef.current = true
     }
 

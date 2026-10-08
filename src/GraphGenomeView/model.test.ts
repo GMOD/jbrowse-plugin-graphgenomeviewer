@@ -1097,6 +1097,19 @@ describe('node budget', () => {
     consoleSpy.mockRestore()
   })
 
+  test('a layout that lands clears the error the last one raised', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const model = withLimit(1)
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    expect(String(model.error)).toMatch(/too large to draw/i)
+
+    await model.switchLayout('walkrows')
+
+    expect(model.error).toBeUndefined()
+    consoleSpy.mockRestore()
+  })
+
   test('walk rows draw a graph over the budget, since they draw no nodes', async () => {
     rpcRespond()
     const model = withLimit(1)
@@ -2650,6 +2663,18 @@ describe('popping a bubble', () => {
     expect(model.graph).toBe(window)
     expect(model.layoutMode).toBe('force')
     expect(model.poppedFrom).toBeUndefined()
+  })
+
+  test('a pane following its default layout still follows it after a pop', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    expect(model.layoutMode).toBeUndefined()
+
+    await model.popBubble(bubble)
+    await model.unpopBubble()
+
+    expect(model.layoutMode).toBeUndefined()
   })
 
   // A spec names the whole graph, so bandage-figure would draw the window

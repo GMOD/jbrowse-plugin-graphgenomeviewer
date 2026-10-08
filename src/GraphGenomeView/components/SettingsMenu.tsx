@@ -1,9 +1,11 @@
 import { useState } from 'react'
 
 import { CascadingMenuButton } from '@jbrowse/core/ui'
-import DeleteIcon from '@mui/icons-material/Delete'
+import CloseIcon from '@mui/icons-material/Close'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
+import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import { observer } from 'mobx-react'
 
 import GraphSettingsDialog from './GraphSettingsDialog'
@@ -16,12 +18,45 @@ const SettingsMenu = observer(function SettingsMenu({
   model: GraphPaneModel
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const haplotypes = model.highlightMenuItems()
 
   return (
     <>
       <CascadingMenuButton
         size="small"
+        tooltip="Graph options"
         menuItems={[
+          ...(haplotypes.length > 0
+            ? [{ label: 'Haplotypes', icon: RouteIcon, subMenu: haplotypes }]
+            : []),
+          ...model.layoutOptionMenuItems(),
+          {
+            label: 'Show...',
+            icon: VisibilityIcon,
+            subMenu: [
+              ...model.showMenuItems(),
+              ...(model.modeDrawsNodes && model.walkChoices.length > 1
+                ? [
+                    {
+                      type: 'checkbox' as const,
+                      label: 'Show walk rows under the graph',
+                      checked: model.walkStrip,
+                      onClick: () => {
+                        model.setWalkStrip(!model.walkStrip)
+                      },
+                    },
+                  ]
+                : []),
+              {
+                type: 'checkbox' as const,
+                label: 'Show timings',
+                checked: model.showPerf,
+                onClick: () => {
+                  model.setShowPerf(!model.showPerf)
+                },
+              },
+            ],
+          },
           {
             type: 'checkbox' as const,
             label: 'Linear layout',
@@ -29,34 +64,6 @@ const SettingsMenu = observer(function SettingsMenu({
             onClick: () => {
               model.setLinearLayout(!model.linearLayout)
               void model.recomputeLayout()
-            },
-          },
-          {
-            type: 'checkbox' as const,
-            label: 'Show deletion edges',
-            checked: model.showDeletionEdges,
-            onClick: () => {
-              void model.toggleDeletionEdges()
-            },
-          },
-          ...(model.modeDrawsNodes && model.walkChoices.length > 1
-            ? [
-                {
-                  type: 'checkbox' as const,
-                  label: 'Walk rows under the graph',
-                  checked: model.walkStrip,
-                  onClick: () => {
-                    model.setWalkStrip(!model.walkStrip)
-                  },
-                },
-              ]
-            : []),
-          {
-            type: 'checkbox' as const,
-            label: 'Show timings',
-            checked: model.showPerf,
-            onClick: () => {
-              model.setShowPerf(!model.showPerf)
             },
           },
           { type: 'divider' as const },
@@ -69,8 +76,8 @@ const SettingsMenu = observer(function SettingsMenu({
           },
           { type: 'divider' as const },
           {
-            label: 'Return to import form',
-            icon: DeleteIcon,
+            label: 'Close graph',
+            icon: CloseIcon,
             onClick: () => {
               model.clearGraph()
             },

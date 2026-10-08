@@ -72,7 +72,7 @@ const GraphToolbar = observer(function GraphToolbar({
         <IconButton
           size="small"
           onClick={() => {
-            model.zoomToFit()
+            model.refitView()
           }}
         >
           <CropFreeIcon />

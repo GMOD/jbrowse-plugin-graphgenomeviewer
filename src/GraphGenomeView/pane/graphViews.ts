@@ -173,7 +173,7 @@ export const withGraphViews = paneBase
         self.error === undefined &&
         (self.isLoading ||
           self.hasPendingSource ||
-          (self.graph !== undefined && !geometryPainted(self)))
+          (self.graph !== undefined && !this.geometryPainted))
       )
     },
     // Only before anything is drawn: past that point a reload is superseded
@@ -355,7 +355,7 @@ export const withGraphViews = paneBase
       return this.walkLift
         ? {
             value: 'By walk',
-            why: 'Each lifted walk colours its own lane: set it under the menu, Walk, Colour',
+            why: 'Each highlighted haplotype colours its own lane: set it under Haplotypes, Color highlighted...',
           }
         : this.tubeMapReads
           ? {

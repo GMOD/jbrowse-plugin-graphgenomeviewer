@@ -233,16 +233,7 @@ export const withRenderingActions = withLoadActions
         // rebuild — only the debounced viewportDirty flag does.
         upload: (b: Renderer) => {
           b.resize(self.paneWidth, self.canvasHeight)
-          if (self.layoutResult?.tubeMap) {
-            dependOn(self.viewportDirty)
-            b.uploadGeometry(EMPTY_BATCH)
-            self.setGeometryMetrics(0, 0, {
-              scale: untracked(() => self.scale),
-              bounds: untracked(() => paneViewportOf(self)),
-            })
-            return true
-          }
-          if (self.facetPanels) {
+          if (self.layoutResult?.tubeMap || self.facetPanels) {
             dependOn(self.viewportDirty)
             b.uploadGeometry(EMPTY_BATCH)
             self.setGeometryMetrics(0, 0, {

@@ -67,13 +67,12 @@ const ChooseSamplesDialog = observer(function ChooseSamplesDialog({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={picked.length === 0}
           onClick={() => {
-            model.setWalkRowSamples(picked)
+            model.setWalkRowSamples(picked.length > 0 ? picked : undefined)
             onClose()
           }}
         >
-          Show these samples
+          {picked.length > 0 ? 'Show these samples' : 'Show every sample'}
         </Button>
       </DialogActions>
     </Dialog>

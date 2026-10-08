@@ -29,7 +29,7 @@ import { WalkRowContextMenu } from './WalkRowContextMenu'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
-import { legendBoxStyle, legendRowStyle } from './legendStyles'
+import { UNPLACED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -264,9 +264,6 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
     </div>
   ) : null
 })
-
-// getNodeColor's grey for a node the ramp cannot place
-const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
 
 // The charcoal both the ramp and a lane coloured by reference position give
 // sequence the reference does not carry

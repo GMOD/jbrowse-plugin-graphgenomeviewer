@@ -22,7 +22,12 @@ import {
 import { openLocation } from '@jbrowse/core/util/io'
 import { flow, isAlive } from '@jbrowse/mobx-state-tree'
 
-import { TUBE_MAP_MODES, bubblePrefix, forceLayouts } from './paneBase'
+import {
+  TUBE_MAP_MODES,
+  bubblePrefix,
+  fileName,
+  forceLayouts,
+} from './paneBase'
 import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
 import { locLabel } from '../../launchFromGraph/contributors'
@@ -119,7 +124,9 @@ export const withLoadActions = withSettingActions.actions(self => {
   // one over the top of the chosen one seconds later, with the dropdown
   // still naming the choice that was discarded.
   let liveRequest = 0
-  // a haplotype's genes by track and contig span, kept across cuts
+  // the error the last failed layout raised, which the next one to land clears
+  let layoutError: unknown
+  // a haplotype's genes by track and contig span
   const walkGeneCache = new Map<string, GeneModel[]>()
 
   // Applied under a guard because a layout is async and the user can load a
@@ -147,10 +154,15 @@ export const withLoadActions = withSettingActions.actions(self => {
       if (!isLive() || signal?.aborted) {
         return false
       }
+      layoutError = e
       throw e
     }
     const live = isLive()
     if (live) {
+      if (layoutError !== undefined && self.error === layoutError) {
+        self.error = undefined
+      }
+      layoutError = undefined
       const previous = self.layoutResult
       self.layoutResult = computed.result
       self.setLayoutMs(computed.duration)
@@ -261,6 +273,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     adapterConfig: Record<string, unknown>,
     region: SubgraphRegion,
     isLive: () => boolean,
+    signal?: AbortSignal,
   ) {
     // The track config arrives as written, so the prefix is either the
     // `uri` shorthand or the segments location it expands to.
@@ -280,6 +293,7 @@ export const withLoadActions = withSettingActions.actions(self => {
             assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
           },
           regions: [region],
+          signal,
         },
       )) as Feature[]
       if (isLive()) {
@@ -309,6 +323,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     trackId: string | undefined,
     region: SubgraphRegion,
     what: string,
+    signal?: AbortSignal,
   ) {
     const session = getSession(self)
     const config = trackId
@@ -324,6 +339,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         {
           adapterConfig: readConfObject(config, 'adapter'),
           regions: [region],
+          signal,
         },
       )) as Feature[]
     } catch (e) {
@@ -334,11 +350,16 @@ export const withLoadActions = withSettingActions.actions(self => {
 
   // The gene track's features over the cut, which `geneFeatures` makes genes
   // of for the backbone to carry.
-  function* loadGenes(region: SubgraphRegion, isLive: () => boolean) {
+  function* loadGenes(
+    region: SubgraphRegion,
+    isLive: () => boolean,
+    signal?: AbortSignal,
+  ) {
     const features = yield* trackFeatures(
       self.geneTrack?.trackId,
       region,
       'genes',
+      signal,
     )
     if (features && isLive()) {
       self.geneTrackFeatures = features
@@ -347,11 +368,16 @@ export const withLoadActions = withSettingActions.actions(self => {
 
   // The tandem repeat arrays over the cut, from the session's repeat
   // track, for the walk rows to measure between and tile by.
-  function* loadRepeats(region: SubgraphRegion, isLive: () => boolean) {
+  function* loadRepeats(
+    region: SubgraphRegion,
+    isLive: () => boolean,
+    signal?: AbortSignal,
+  ) {
     const features = yield* trackFeatures(
       self.repeatTrack?.trackId,
       region,
       'repeats',
+      signal,
     )
     if (features && isLive()) {
       self.repeatArrays = repeatArraysFrom(features)
@@ -455,12 +481,16 @@ export const withLoadActions = withSettingActions.actions(self => {
     ) {
       self.setStatusMessage('Fetching GFA')
       const live = yield* loadWholeGFA(
-        'uri' in location ? (location.uri.split('/').pop() ?? 'GFA') : 'GFA',
+        fileName(location) || 'GFA',
         signal => openLocation(location).readFile({ encoding: 'utf8', signal }),
         region,
       )
       if (region && live && self.graph) {
-        yield* loadRepeats(region, () => self.graphRegion === region)
+        const isLive = () => self.graphRegion === region
+        yield Promise.all([
+          flow(loadGenes)(region, isLive),
+          flow(loadRepeats)(region, isLive),
+        ])
       }
     }),
     // One cut of a region, laid out with the annotations over it. Whether
@@ -519,9 +549,9 @@ export const withLoadActions = withSettingActions.actions(self => {
         yield Promise.all([
           opts.tier === 'coarse'
             ? undefined
-            : flow(loadBubbles)(adapterConfig, region, isLive),
-          flow(loadGenes)(region, isLive),
-          flow(loadRepeats)(region, isLive),
+            : flow(loadBubbles)(adapterConfig, region, isLive, signal),
+          flow(loadGenes)(region, isLive, signal),
+          flow(loadRepeats)(region, isLive, signal),
         ])
       } catch (e) {
         if (isLive()) {
@@ -542,6 +572,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       const region = self.graphRegion
       const trackId = self.repeatTrack?.trackId
       if (region) {
+        self.repeatArrays = undefined
         yield* loadRepeats(
           region,
           () =>
@@ -622,6 +653,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       const region = self.graphRegion
       const trackId = self.geneTrack?.trackId
       if (region) {
+        self.geneTrackFeatures = undefined
         yield* loadGenes(
           region,
           () =>
@@ -651,7 +683,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         ...self.popStack,
         {
           graph,
-          layoutMode: self.chosenLayoutMode,
+          layoutMode: self.layoutMode,
           label: graph.name,
           indexBubbles: self.indexBubbles,
         },

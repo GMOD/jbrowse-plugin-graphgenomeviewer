@@ -36,13 +36,16 @@ const ImportForm = observer(function ImportForm({
   const [url, setUrl] = useState('')
 
   function handleUrlLoad() {
-    if (url.trim()) {
-      void model.loadGFAFromLocation({ uri: url, locationType: 'UriLocation' })
+    const uri = url.trim()
+    if (uri) {
+      void model.loadGFAFromLocation({ uri, locationType: 'UriLocation' })
     }
   }
 
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    // or picking the same file again fires no change
+    event.target.value = ''
     if (file) {
       file
         .text()

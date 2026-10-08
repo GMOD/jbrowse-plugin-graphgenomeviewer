@@ -172,6 +172,19 @@ export function formatSpanBp(bp: number) {
 export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
 // A url bandage-figure can read again, or undefined for a local file
+// the last segment of a file's path, its query dropped, or a blob's own name
+export function fileName(location: FileLocation) {
+  const path =
+    'uri' in location
+      ? location.uri.split(/[?#]/)[0]!
+      : 'localPath' in location
+        ? location.localPath
+        : 'name' in location
+          ? location.name
+          : ''
+  return path.split(/[\\/]/).at(-1) ?? ''
+}
+
 export function uriOf(location: FileLocation | undefined) {
   return location && 'uri' in location && location.uri
     ? new URL(location.uri, location.baseUri ?? window.location.href).href
@@ -388,7 +401,7 @@ export const paneBase = types
     // popped superbubble can be mapped and popped again.
     popStack: [] as {
       graph: Graph
-      layoutMode: LayoutModeValue
+      layoutMode: LayoutModeValue | undefined
       label: string
       indexBubbles: MinigraphBubble[] | undefined
     }[],

@@ -5,6 +5,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
 export {
   DEFAULT_MAX_GRAPH_NODES,
   MAX_GRAPH_REGION_BP,
+  fileName,
   formatSpanBp,
 } from './pane/paneBase'
 

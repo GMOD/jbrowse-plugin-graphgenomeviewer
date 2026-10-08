@@ -31,7 +31,8 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
   const rows = bars ?? model.walkRowBars
   const target = model.walkRowLaunchTarget(row, rows)
   const assembly = target?.assembly
-  const sample = row > 0 ? rows?.rows[row - 1]?.sample : undefined
+  const walk = row > 0 ? rows?.rows[row - 1] : undefined
+  const sample = walk?.sample
   // the strip's rows are not walk rows', and take no sample filter
   const filters = !bars && model.walkRowBars
   const shown = model.walkRowSamples
@@ -64,6 +65,18 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
                 : 'This walk states no contig coordinates',
               onClick: () => {},
             },
+        ...(walk && model.liftsWalks
+          ? [
+              {
+                type: 'checkbox' as const,
+                label: `Highlight ${walk.label}`,
+                checked: model.walkLayers.some(l => l.walk === walk.name),
+                onClick: () => {
+                  model.toggleWalk(walk.name)
+                },
+              },
+            ]
+          : []),
         ...(filters && sample && !(shown?.length === 1 && shown[0] === sample)
           ? [
               {

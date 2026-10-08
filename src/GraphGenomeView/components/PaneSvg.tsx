@@ -32,6 +32,7 @@ import LabelLayer from './LabelLayer'
 import { paintReferenceStrip } from './ReferenceStripOverlay'
 import { paintTubeMap } from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
+import { UNPLACED_SWATCH } from './legendStyles'
 
 import type { GraphPaneModel } from '../model'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
@@ -544,6 +545,9 @@ function Keys({
     )
     if (model.referenceRampOffKeys.offReference) {
       rows.push(flatRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference'))
+    }
+    if (model.referenceRampOffKeys.unplaced) {
+      rows.push(flatRow('unplaced', UNPLACED_SWATCH, 'no reference position'))
     }
   }
   rows.push(...stripKeyRows(model, idPrefix), ...haloRows(model))
