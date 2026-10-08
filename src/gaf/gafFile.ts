@@ -7,7 +7,7 @@ import type { GafRecord } from '@jbrowse/bandage-core/gaf/parseGaf'
 
 interface WholeFile {
   stat(): Promise<{ size: number }>
-  readFile(): Promise<Uint8Array>
+  readFile(opts?: { signal?: AbortSignal }): Promise<Uint8Array>
 }
 
 export interface GafReads {
@@ -48,15 +48,15 @@ const touches = (record: GafRecord, names: ReadonlySet<string>) =>
 // which keys each line by its lowest and highest node id and so needs numeric
 // segment names, or plain or gzipped and read whole.
 export class GafFile {
-  // Shared by every window, so cachedSetup withholds each caller's signal: a
-  // superseded fetch would otherwise fail the fetches waiting beside it
+  // Shared by every window, so the signal is cachedSetup's own, which aborts
+  // once no caller is left waiting
   private whole = cachedSetup({
-    setup: async () => {
+    setup: async ({ signal }) => {
       const { size } = await this.file.stat()
       if (size > MAX_UNINDEXED_BYTES) {
         throw new UnindexedGafTooLargeError(size)
       }
-      const bytes = await this.file.readFile()
+      const bytes = await this.file.readFile({ signal })
       const text = new TextDecoder().decode(
         bytes[0] === 0x1f && bytes[1] === 0x8b ? await unzip(bytes) : bytes,
       )

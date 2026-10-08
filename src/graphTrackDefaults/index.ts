@@ -1,8 +1,8 @@
 import {
   buildAdapterConfig,
   isSegmentsLocation,
-  locationName,
 } from '../GraphAddTrackWorkflow/buildTrackConfig'
+import { locationName } from '../locationName'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { FileLocation } from '@jbrowse/core/util'

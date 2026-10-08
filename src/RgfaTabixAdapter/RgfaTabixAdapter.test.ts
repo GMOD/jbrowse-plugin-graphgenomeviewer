@@ -399,6 +399,20 @@ test('the coarse uri shorthand resolves a pair against the adapter baseUri', () 
   ).toMatchObject({ uri: 'hprc.tier10000.links.bed.gz.tbi' })
 })
 
+test('the coarse pair takes the csi indexes its adapter states', () => {
+  const config = configSchema.create({
+    uri: 'hprc',
+    csi: true,
+    coarse: { uri: 'hprc.tier10000', aboveBpPerPx: 1000 },
+  })
+  expect(
+    readConfObject(config, ['coarse', 'linksIndex', 'location']),
+  ).toMatchObject({ uri: 'hprc.tier10000.links.bed.gz.csi' })
+  expect(readConfObject(config, ['coarse', 'linksIndex', 'indexType'])).toBe(
+    'CSI',
+  )
+})
+
 test('a track with no coarse pair states no threshold', () => {
   const config = configSchema.create({ uri: 'hprc' })
   expect(readConfObject(config, ['coarse', 'aboveBpPerPx'])).toBeUndefined()

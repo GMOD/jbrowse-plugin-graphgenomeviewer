@@ -43,9 +43,6 @@ import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
 export {
   NoReferenceSampleError,
-  NodeLimitError,
-  haplotypePrefix,
-  nodeLimitError,
   resolveReferenceSample,
 } from '@jbrowse/bandage-core/gbzWindow'
 
@@ -442,12 +439,20 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * reference sample's paths alone.
    */
   async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
-    const { db, anchor, unreadableIndex } = await this.graph()
+    const { signal } = opts
+    const { db, anchor, referenceSample, unreadableIndex } = await this.graph({
+      signal,
+    })
     const { assemblyName, refName, start, end } = region
     if (assemblyName !== anchor) {
       throw new HaplotypeWindowError(assemblyName, anchor)
     }
-    const query = await this.referenceQuery(refName, {})
+    const query = await this.referenceQuery(refName, { signal })
+    if (!query) {
+      throw new Error(
+        `${referenceSample} has no indexed path ${refName} in this graph`,
+      )
+    }
     const keep = this.keepPredicate(opts.haplotypes)
     if (keep !== undefined && !db.hasHaplotypeIndex) {
       throw new NoHaplotypeIndexError(unreadableIndex)
@@ -599,7 +604,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     // a cut past the node limit for the wider context keeps the first one
     const bridged = async (path: PathQuery) => {
       const subgraphs = await cut(path, baseContext).catch((error: unknown) => {
-        throw nodeLimitError(error, nodeLimit, end - start) ?? error
+        throw zoomInNotice(
+          nodeLimitError(error, nodeLimit, end - start) ?? error,
+          'lanes',
+        )
       })
       const gap = widestWalkGap(subgraphs, kept)
       const context = Math.ceil(gap / 2) + 2000

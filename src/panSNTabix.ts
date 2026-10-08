@@ -128,7 +128,7 @@ export class PanSNRefNames {
     const contigs = names
       .filter(n => panSNMatchesPrefix(n, prefix))
       .map(n => panSNContig(n))
-    return contigs.length > 0 ? contigs : names
+    return contigs.length > 0 ? [...new Set(contigs)] : names
   }
 
   /**

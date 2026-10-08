@@ -2,6 +2,8 @@ import { GBZ_CUT_DEFAULTS } from '@jbrowse/bandage-core/gbzWindow'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { types } from '@jbrowse/mobx-state-tree'
 
+import { splitUri } from '../locationName'
+
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 /**
@@ -223,15 +225,21 @@ const GbzBaseSyntenyAdapter = ConfigurationSchema(
         ...(typeof reads === 'string'
           ? {
               readsLocation: { uri: reads, baseUri },
-              ...(reads.endsWith('.gz')
-                ? { readsIndex: { location: { uri: `${reads}.tbi`, baseUri } } }
-                : {}),
+              ...readsIndexBeside(reads, baseUri),
             }
           : {}),
       }
     },
   },
 )
+
+// a bgzipped GAF's index, before any query string its url carries
+function readsIndexBeside(reads: string, baseUri: unknown) {
+  const { name, query } = splitUri(reads)
+  return name.endsWith('.gz')
+    ? { readsIndex: { location: { uri: `${name}.tbi${query}`, baseUri } } }
+    : {}
+}
 
 export type GbzBaseSyntenyAdapterConfig = Instance<typeof GbzBaseSyntenyAdapter>
 

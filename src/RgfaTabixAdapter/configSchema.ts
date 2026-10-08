@@ -50,10 +50,10 @@ function prefixLocations(snap: Record<string, unknown>) {
 }
 
 export function normalizeSnapshot(snap: Record<string, unknown>) {
-  const { coarse, baseUri } = snap
+  const { coarse, baseUri, csi } = snap
   return prefixLocations(
     typeof coarse === 'object' && coarse !== null
-      ? { ...snap, coarse: prefixLocations({ baseUri, ...coarse }) }
+      ? { ...snap, coarse: prefixLocations({ baseUri, csi, ...coarse }) }
       : snap,
   )
 }

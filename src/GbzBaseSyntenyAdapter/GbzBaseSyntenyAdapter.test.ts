@@ -1035,6 +1035,13 @@ test('a bgzipped reads shorthand takes the .tbi beside it', () => {
   expect(readConfObject(config, ['readsIndex', 'location']).uri).toBe(
     'reads.gaf.gz.tbi',
   )
+  const signed = configSchema.create({
+    reads: 'reads.gaf.gz?sig=abc',
+    assemblyNames: [],
+  })
+  expect(readConfObject(signed, ['readsIndex', 'location']).uri).toBe(
+    'reads.gaf.gz.tbi?sig=abc',
+  )
   const plain = configSchema.create({ reads: 'reads.gaf', assemblyNames: [] })
   expect(readConfObject(plain, ['readsIndex', 'location']).uri).toBe('')
 })

@@ -1,11 +1,7 @@
 import { haplotypeIndexBeside } from '@jbrowse/bandage-core/gbzCut'
 import { openLocation } from '@jbrowse/core/util/io'
 
-import {
-  locationName,
-  readsSiblings,
-  renamed,
-} from '../GraphAddTrackWorkflow/buildTrackConfig.ts'
+import { locationName, readsSiblings, renamed } from '../locationName'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { FileLocation } from '@jbrowse/core/util/types'
