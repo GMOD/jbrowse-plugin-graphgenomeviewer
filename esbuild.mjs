@@ -1,29 +1,30 @@
 import fs from 'node:fs'
 import http from 'node:http'
 import * as esbuild from 'esbuild'
-import { globalExternals } from '@fal-works/esbuild-plugin-global-externals'
+import { parseArgs } from 'node:util'
 import JBrowseReExports from '@jbrowse/core/ReExports/list'
 import prettyBytes from 'pretty-bytes'
 
-const isWatch = process.argv.includes('--watch')
+import { hostShim } from './scripts/hostShim.mjs'
+
 const PORT = process.env.PORT ? +process.env.PORT : 9000
 
-// Plugins must reuse the React/MUI/mobx instances JBrowse already loaded via
-// window.JBrowseExports — bundling a second copy causes duplicate-React errors.
-function createGlobalMap(jbrowseGlobals) {
-  return {
-    ...Object.fromEntries(
-      jbrowseGlobals.map(g => [
-        g,
-        { varName: `JBrowseExports["${g}"]`, type: 'cjs' },
-      ]),
-    ),
-    // v4+ package name, but JBrowse exports it as 'mobx-state-tree' for back-compat.
-    '@jbrowse/mobx-state-tree': {
-      varName: `JBrowseExports["mobx-state-tree"]`,
-      type: 'cjs',
-    },
-  }
+// The names the bundle's host imports bind to. The default is the installed
+// @jbrowse/core's own host, the support floor; `pnpm host-names` passes each
+// newer host's file with --check to find an import that host dropped.
+const { values } = parseArgs({
+  options: {
+    watch: { type: 'boolean', default: false },
+    check: { type: 'boolean', default: false },
+    'host-names': { type: 'string' },
+  },
+})
+const floor = `v${JSON.parse(fs.readFileSync('node_modules/@jbrowse/core/package.json', 'utf8')).version}`
+const hostNamesFile = values['host-names'] ?? `scripts/host-names/${floor}.json`
+if (!fs.existsSync(hostNamesFile)) {
+  throw new Error(
+    `${hostNamesFile} is missing: run \`node scripts/fetch-host-names.mjs ${floor}\``,
+  )
 }
 
 const rebuildLogPlugin = {
@@ -46,7 +47,6 @@ const rebuildLogPlugin = {
   },
 }
 
-const globals = JBrowseReExports
 const config = {
   entryPoints: ['src/index.ts'],
   bundle: true,
@@ -63,8 +63,16 @@ const config = {
   // Automatic JSX runtime; react/jsx-runtime is a JBrowse global (ReExports).
   jsx: 'automatic',
   metafile: true,
-  plugins: [globalExternals(createGlobalMap(globals)), rebuildLogPlugin],
-  ...(isWatch
+  plugins: [
+    hostShim({
+      keys: JBrowseReExports,
+      names: JSON.parse(fs.readFileSync(hostNamesFile, 'utf8')),
+      pluginName: 'GraphGenomeView',
+      host: hostNamesFile,
+    }),
+    ...(values.check ? [] : [rebuildLogPlugin]),
+  ],
+  ...(values.watch
     ? { entryNames: 'out' }
     : {
         entryNames: 'jbrowse-plugin-graphgenomeviewer.esm',
@@ -73,7 +81,7 @@ const config = {
       }),
 }
 
-if (isWatch) {
+if (values.watch) {
   const ctx = await esbuild.context(config)
   // Proxy esbuild's server so we can inject CORS headers — esbuild dropped
   // CORS support in v0.25.0 and JBrowse Web needs it to fetch the bundle.
@@ -106,6 +114,10 @@ if (isWatch) {
   console.log(`Serving at http://${hosts[0]}:${PORT}`)
   await ctx.watch()
   console.log('Watching files...')
+} else if (values.check) {
+  await esbuild
+    .build({ ...config, write: false, logLevel: 'error' })
+    .catch(() => process.exit(1))
 } else {
   const result = await esbuild.build(config)
   // Analyze bundle sizes/imports at https://esbuild.github.io/analyze/

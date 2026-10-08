@@ -60,6 +60,7 @@ the WASM engine.
 pnpm test         # vitest unit tests
 pnpm test:e2e     # puppeteer, needs RUN_E2E=1 and a jbrowse-web build
 pnpm host-compat  # boots dist/ on hosted JBrowse releases, cuts a graph, draws the track
+pnpm host-names   # builds against each supported host's export names
 pnpm lint
 ```
 
@@ -71,6 +72,15 @@ tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
 a re-export the host no longer serves. It draws the graph in its own view and as
 a track in a linear view, whose display renders host components the view does
 not.
+
+`esbuild.mjs` resolves each host import through `scripts/hostShim.mjs`, which
+binds it to a name the host serves. The names come from
+`scripts/host-names/<tag>.json`, one file per supported release, and the bundle
+is built against the installed `@jbrowse/core`'s tag. `pnpm host-names` builds
+against every file there and against jbrowse-components `main`, so an import a
+host dropped fails with its file and line. On a host that lacks a name at
+runtime, the bundle holds a stub that throws naming the export. Add a release
+with `node scripts/fetch-host-names.mjs <tag>`.
 
 `pnpm version` refuses unless the Push workflow, the browser suites among it,
 passed on the commit being released (`scripts/ci-green.mjs`), so push the commit

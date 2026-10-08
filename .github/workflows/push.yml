@@ -52,6 +52,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm host-names
       - run: npx puppeteer browsers install chrome
       - run: pnpm host-compat
 
