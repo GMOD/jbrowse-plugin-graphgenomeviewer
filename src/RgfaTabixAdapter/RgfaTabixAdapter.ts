@@ -22,6 +22,7 @@ import {
   byteBudgetError,
   chunkQueryStart,
   joinPieces,
+  lookbackChunks,
   parseWalkRow,
   stepBudgetError,
   walkCut,
@@ -151,18 +152,25 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   }
 
   // A walk-indexed graph's header: the chunk its rows are filed under, else
-  // the walkChunk slot, and the haplotypes it names
+  // the walkChunk slot, how many chunks before a window a cut reads, and the
+  // haplotypes it names
   private walkHeader = cachedSetup({
     setup: async opts => {
       const walks = this.fine.walks
       const header = walkHeader(walks ? await walks.getHeaderLines(opts) : [])
       const slot: number = this.getConf('walkChunk')
-      return { ...header, chunk: header.chunk ?? slot }
+      const chunk = header.chunk ?? slot
+      return {
+        ...header,
+        chunk,
+        lookback: lookbackChunks(header.maxNode, chunk),
+      }
     },
   })
 
-  private async walkChunk(opts: BaseOptions) {
-    return (await this.walkHeader(opts)).chunk
+  private async walkQueryStart(start: number, opts: BaseOptions) {
+    const { chunk, lookback } = await this.walkHeader(opts)
+    return chunkQueryStart(start, chunk, lookback)
   }
 
   /**
@@ -199,10 +207,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       const tabixRefName = await this.fine.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
         // a walk-indexed node row names only its chunk's first base, and a
-        // node crossing in from the chunk before is filed there
-        const chunk = this.fine.walks ? await this.walkChunk(opts) : 0
-        const start =
-          chunk > 0 ? chunkQueryStart(query.start, chunk) : query.start
+        // node crossing in from a chunk before is filed there
+        const start = this.fine.walks
+          ? await this.walkQueryStart(query.start, opts)
+          : query.start
         await updateStatus('Downloading segments', statusCallback, () =>
           getLines(this.fine.segments, tabixRefName, start, query.end, {
             signal,
@@ -365,11 +373,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   }
 
   // A walk-indexed graph's cut: one read of each file over whole chunks, from
-  // the chunk before the window to its end. The indexes first estimate the
-  // bytes those reads fetch, and a window past walkByteBudget reads no row.
-  // Only the walks `haplotypes` asks for, and the reference's, are decoded,
-  // and none is past walkStepBudget: the three reads go out together and a
-  // walk read over budget stops the other two.
+  // the lookback chunks before the window to its end. The indexes first
+  // estimate the bytes those reads fetch, and a window past walkByteBudget
+  // reads no row. Only the walks `haplotypes` asks for, and the reference's,
+  // are decoded, and none is past walkStepBudget: the three reads go out
+  // together and a walk read over budget stops the other two.
   private async walkSubgraph(
     index: GraphIndex,
     walks: TabixIndexedFile,
@@ -378,13 +386,13 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     opts: SubgraphAdapterOptions,
   ) {
     const { signal, haplotypes } = opts
-    const chunk = await this.walkChunk({ signal })
+    const { chunk, lookback } = await this.walkHeader({ signal })
     const budget: number = this.getConf('walkStepBudget')
     const keep = walkNameFilter(
       haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
       panSNHaplotype(refName),
     )
-    const from = chunkQueryStart(region.start, chunk)
+    const from = chunkQueryStart(region.start, chunk, lookback)
     const files = [walks, index.segments, index.links]
     const tooLarge = await byteBudgetError(
       async end => {

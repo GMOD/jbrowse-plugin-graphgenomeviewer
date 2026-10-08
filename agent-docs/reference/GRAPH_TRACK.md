@@ -163,20 +163,27 @@ was given, in place of `uri`:
 }
 ```
 
-A cut reads all three together, from the start of the chunk before the window to
-the window's end, so a row filed under its chunk's first base is found as well
-as one spanning the chunk. `getFeatures` reads from the chunk before the window
-too, since a node crossing a chunk boundary is filed under the chunk holding its
-start; `anchoredCut`, the coarse tier and the bubble halos read no anchor
-interval of a walk-indexed file.
+A cut reads all three together over whole chunks, from a chunk before the window
+to the window's end, so a row filed under its chunk's first base is found as
+well as one spanning the chunk. A node is filed under the chunk holding its
+start, so a node reaching into the window can be filed several chunks back. From
+gfa-to-tabix 0.5.0 each file's first header line gives the longest node as
+`maxnode:i:`, and the cut starts ceil(maxnode / chunk) chunks before the
+window's own, at least one. Without it the cut starts one chunk back, which
+holds for vg's graphs, chopped to nodes of at most 1,024 bp; an unchopped graph
+from an older build loses any node starting further back. `getFeatures` reads
+from the same start. `anchoredCut`, the coarse tier and the bubble halos read no
+anchor interval of a walk-indexed file.
 
 The walk file's header holds a `chunk:i:` line, which sets the chunk size
 (`walkChunk` when absent), and from gfa-to-tabix 0.4.0 a `#reference` line per
 reference sample and a `#haplotype` line per other haplotype with rows: 462 on
-chr22, 9.75 kB. The adapter reads them with the chunk line in one header read,
-and `GetGraphHaplotypes` hands the haplotype names to the track: the Settings
-field becomes a searchable pick list that still takes a typed prefix, and the
-Haplotypes menu counts them. Without the lines the field takes typed names.
+chr22, 9.75 kB. From 0.5.0 the first line also carries `maxnode:i:` and `cap:i:`
+(the most steps in one row, which nothing reads). The adapter takes these lines
+in one header read, and `GetGraphHaplotypes` hands the haplotype names to the
+track: the Settings field becomes a searchable pick list that still takes a
+typed prefix, and the Haplotypes menu counts them. Without the lines the field
+takes typed names.
 
 The set a cut is for lives in the display's session state, `subgraphHaplotypes`.
 Unset, it is the config's `defaultHaplotypes`, else the lanes the track's
