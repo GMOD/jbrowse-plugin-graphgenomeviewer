@@ -449,6 +449,72 @@ describe('performance instrumentation', () => {
     expect(model.hasGraph).toBe(false)
     expect(model.isLoading).toBe(false)
   })
+
+  // each GetSubgraph call waits to be answered by hand
+  function heldCuts() {
+    const answers: ((gfa: string) => void)[] = []
+    let holdLayout: (() => void) | undefined
+    const layouts: (() => void)[] = []
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? new Promise<string>(resolve => {
+            answers.push(resolve)
+          })
+        : method === 'GraphComputeLayout' && holdLayout
+          ? new Promise(resolve => {
+              layouts.push(() => {
+                resolve({ result: MOCK_LAYOUT, duration: 5 })
+              })
+            })
+          : Promise.resolve({ result: MOCK_LAYOUT, duration: 5 }),
+    )
+    return {
+      answers,
+      layouts,
+      holdLayouts() {
+        holdLayout = () => {}
+      },
+    }
+  }
+
+  test('a layout of the graph on screen leaves a fetch its spinner', async () => {
+    const { answers } = heldCuts()
+    const model = createModel()
+    const first = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[0]!(SIMPLE_GFA)
+    await first
+    expect(model.isLoading).toBe(false)
+
+    const second = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    await model.recomputeLayout()
+    expect(model.isLoading).toBe(true)
+
+    answers[1]!(SIMPLE_GFA)
+    await second
+    expect(model.isLoading).toBe(false)
+  })
+
+  test('a stop before a new graph is laid out draws nothing of the last one', async () => {
+    const { answers, layouts, holdLayouts } = heldCuts()
+    const model = createModel()
+    const first = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[0]!(SIMPLE_GFA)
+    await first
+    expect(model.layoutResult).toBeDefined()
+
+    holdLayouts()
+    const second = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[1]!(SIMPLE_GFA)
+    await vi.waitFor(() => {
+      expect(layouts).toHaveLength(1)
+    })
+    model.stopLoad()
+    expect(model.layoutResult).toBeUndefined()
+    expect(model.loadCanceled).toBe(true)
+    layouts[0]!()
+    await second
+    expect(model.layoutResult).toBeUndefined()
+  })
 })
 
 describe('formatSpanBp', () => {
@@ -2663,6 +2729,30 @@ describe('popping a bubble', () => {
     expect(model.graph).toBe(window)
     expect(model.layoutMode).toBe('force')
     expect(model.poppedFrom).toBeUndefined()
+  })
+
+  test('a pop leaves the cut in flight to land', async () => {
+    let respond = (_gfa: string) => {}
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? new Promise<string>(resolve => {
+            respond = resolve
+          })
+        : Promise.resolve({ result: MOCK_LAYOUT, duration: 5 }),
+    )
+    const model = createAnchoredModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    const cut = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+
+    await model.popBubble(bubble)
+    expect(model.poppedFrom).toBeDefined()
+    expect(model.isLoading).toBe(true)
+
+    respond(SIMPLE_GFA)
+    await cut
+    expect(model.poppedFrom).toBeUndefined()
+    expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2'])
+    expect(model.isLoading).toBe(false)
   })
 
   test('a pane following its default layout still follows it after a pop', async () => {

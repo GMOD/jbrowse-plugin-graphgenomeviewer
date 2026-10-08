@@ -126,6 +126,8 @@ export const withLoadActions = withSettingActions.actions(self => {
   let liveRequest = 0
   // the error the last failed layout raised, which the next one to land clears
   let layoutError: unknown
+  // the graph the layout on screen was computed for
+  let laidOutGraph: Graph | undefined
   // a haplotype's genes by track and contig span
   const walkGeneCache = new Map<string, GeneModel[]>()
 
@@ -164,6 +166,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
       layoutError = undefined
       const previous = self.layoutResult
+      laidOutGraph = graph
       self.layoutResult = computed.result
       self.setLayoutMs(computed.duration)
       self.followNewLayout(previous)
@@ -240,7 +243,9 @@ export const withLoadActions = withSettingActions.actions(self => {
     // them over points the tooltip and the highlight at whatever now happens
     // to sit at that index.
     self.clearInteractionState()
-    if (selected !== null && self.nodeById?.has(selected)) {
+    // against the new graph's own nodes: nodeById reads through the layout,
+    // which is still the last graph's
+    if (selected !== null && graph.nodes.some(n => n.id === selected)) {
       self.selectedNode = selected
     }
     self.setStatusMessage('Computing layout')
@@ -251,15 +256,30 @@ export const withLoadActions = withSettingActions.actions(self => {
   // every change in the settings dialog re-cuts, a remote cut takes seconds,
   // and the last one to finish is not the last one asked for.
   let liveLoad = 0
+  // the load still fetching, parsing or reading annotations, whose spinner a
+  // layout of the graph already on screen must not clear
+  let loadInFlight: number | undefined
 
   function beginLoad() {
     const load = ++liveLoad
     loadController?.abort()
     loadController = new AbortController()
+    loadInFlight = load
     self.loadCanceled = false
     return {
       isLive: () => load === liveLoad,
       signal: loadController.signal,
+    }
+  }
+
+  function endLoad() {
+    loadInFlight = undefined
+    self.finishLoading()
+  }
+
+  function layoutSettled() {
+    if (loadInFlight === undefined) {
+      self.finishLoading()
     }
   }
 
@@ -297,7 +317,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         },
       )) as Feature[]
       if (isLive()) {
-        self.indexBubbles = features.map(f => ({
+        const bubbles = features.map(f => ({
           refName: region.refName,
           start: f.get('start'),
           end: f.get('end'),
@@ -310,6 +330,13 @@ export const withLoadActions = withSettingActions.actions(self => {
           shortestAllele: undefined,
           longestAllele: undefined,
         }))
+        // an open bubble derives its own; the index is the window's
+        const [outermost, ...popped] = self.popStack
+        if (outermost) {
+          self.popStack = [{ ...outermost, indexBubbles: bubbles }, ...popped]
+        } else {
+          self.indexBubbles = bubbles
+        }
       }
     } catch (e) {
       console.warn('[GraphGenomeView] no bubble index for this graph', e)
@@ -409,7 +436,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
     } finally {
       if (isLive()) {
-        self.finishLoading()
+        endLoad()
       }
     }
     return isLive()
@@ -418,6 +445,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   function abortLoad() {
     loadController?.abort()
     loadController = undefined
+    loadInFlight = undefined
     liveLoad++
     liveRequest++
   }
@@ -465,6 +493,10 @@ export const withLoadActions = withSettingActions.actions(self => {
     // The user's stop, leaving whatever is drawn under it
     stopLoad() {
       abortLoad()
+      // a graph that landed ahead of its layout has nothing of its own drawn
+      if (self.graph !== laidOutGraph) {
+        self.layoutResult = undefined
+      }
       self.isLoading = false
       self.statusMessage = ''
       self.loadCanceled = true
@@ -560,7 +592,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         }
       } finally {
         if (isLive()) {
-          self.finishLoading()
+          endLoad()
         }
       }
     }),
@@ -678,7 +710,6 @@ export const withLoadActions = withSettingActions.actions(self => {
         )
         return
       }
-      const { isLive } = beginLoad()
       self.popStack = [
         ...self.popStack,
         {
@@ -696,13 +727,11 @@ export const withLoadActions = withSettingActions.actions(self => {
       self.isLoading = true
       try {
         if (yield* layoutInto(self.graph)) {
-          self.finishLoading()
+          layoutSettled()
         }
       } catch (e) {
-        if (isLive()) {
-          self.error = e
-          self.finishLoading()
-        }
+        self.error = e
+        layoutSettled()
       }
     }),
     unpopBubble: flow(function* () {
@@ -719,11 +748,11 @@ export const withLoadActions = withSettingActions.actions(self => {
       self.isLoading = true
       try {
         if (yield* layoutInto(from.graph)) {
-          self.finishLoading()
+          layoutSettled()
         }
       } catch (e) {
         self.error = e
-        self.finishLoading()
+        layoutSettled()
       }
     }),
     recomputeLayout: flow(function* () {
@@ -740,12 +769,12 @@ export const withLoadActions = withSettingActions.actions(self => {
         // user actually asked for is still being computed, which is the
         // common case when a cheap choice follows an expensive one.
         if (yield* layoutInto(graph)) {
-          self.finishLoading()
+          layoutSettled()
         }
       } catch (e) {
         console.error('[GraphGenomeView.recomputeLayout]', e)
         self.error = e
-        self.finishLoading()
+        layoutSettled()
       }
     }),
   }
