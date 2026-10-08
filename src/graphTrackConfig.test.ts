@@ -1,4 +1,5 @@
 import {
+  configHaplotypes,
   cutsByHaplotype,
   graphReferenceAssembly,
   trackLanes,
@@ -38,4 +39,18 @@ test('a GBZ cut and a walk-indexed rGFA cut read the haplotype set', () => {
   expect(cutsByHaplotype({ type: 'RgfaTabixAdapter', walksUri: 'chr22' })).toBe(
     true,
   )
+})
+
+test('only a walk-indexed track names a default haplotype set', () => {
+  const walks = { type: 'RgfaTabixAdapter', walksUri: 'chr22' }
+  expect(
+    configHaplotypes({ ...walks, defaultHaplotypes: ['HG002', 'NA19240#1'] }),
+  ).toEqual(['HG002', 'NA19240#1'])
+  expect(configHaplotypes({ ...walks, defaultHaplotypes: [] })).toBeUndefined()
+  expect(
+    configHaplotypes({
+      type: 'RgfaTabixAdapter',
+      defaultHaplotypes: ['HG002'],
+    }),
+  ).toBeUndefined()
 })

@@ -265,6 +265,7 @@ function createEnvironment({
       adapter: {
         type: 'RgfaTabixAdapter',
         walksUri: 'chr22',
+        defaultHaplotypes: ['HG1', 'HG2#1'],
       },
       displays: [
         {
@@ -1024,19 +1025,35 @@ function walkIndexedDisplay(names?: string[] | null) {
   return { ...env, display, menu }
 }
 
-test('a walk-indexed track counts the haplotypes its header names', async () => {
+test("a walk-indexed track cuts for its config's default haplotypes", async () => {
   const { display, menu } = walkIndexedDisplay()
-  expect(display.chosenHaplotypes).toBeUndefined()
+  expect(display.chosenHaplotypes).toEqual(['HG1', 'HG2#1'])
   await wait(0)
   expect(display.haplotypeNames).toEqual(['HG1#1', 'HG1#2', 'HG2#1'])
   expect(menu().map(item => item.label)).toEqual([
     'Load',
     'Every haplotype in the graph (3)',
+    "The track's default haplotypes",
     'Chosen in Settings...',
   ])
   expect(menu().find(item => item.checked)?.label).toBe(
-    'Every haplotype in the graph (3)',
+    "The track's default haplotypes",
   )
+  menu()[1]!.onClick()
+  expect(display.chosenHaplotypes).toEqual([])
+  menu()[2]!.onClick()
+  expect(display.chosenHaplotypes).toEqual(['HG1', 'HG2#1'])
+})
+
+test("a walk-indexed track's cut and the graph view it opens carry the default set", async () => {
+  const { display, rpcCall } = walkIndexedDisplay()
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  const cut = rpcCall.mock.calls.find(([, method]) => method === 'GetSubgraph')
+  expect(
+    (cut?.[2] as { opts?: { haplotypes?: string[] } }).opts?.haplotypes,
+  ).toEqual(['HG1', 'HG2#1'])
+  expect(display.graphViewSpec?.subgraphHaplotypes).toEqual(['HG1', 'HG2#1'])
 })
 
 test('a walk-indexed graph whose header names no haplotype counts none', async () => {

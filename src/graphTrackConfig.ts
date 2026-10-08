@@ -35,6 +35,17 @@ export function cutsByHaplotype(adapterConfig: Record<string, unknown>) {
   )
 }
 
+// The haplotypes a walk-indexed track's config names to cut for until the
+// user picks others
+export function configHaplotypes(adapterConfig: Record<string, unknown>) {
+  const { defaultHaplotypes } = adapterConfig
+  return walkIndexed(adapterConfig) &&
+    isStringArray(defaultHaplotypes) &&
+    defaultHaplotypes.length > 0
+    ? defaultHaplotypes
+    : undefined
+}
+
 // A graph is cut on the first assembly its track names, the rule
 // GbzBaseSyntenyAdapter states for its anchor. Every other assembly the track
 // names holds its sequence as rank>0 alleles off that reference's backbone, so

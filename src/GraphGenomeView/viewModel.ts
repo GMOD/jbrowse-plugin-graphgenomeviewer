@@ -11,6 +11,7 @@ import {
   formatSpanBp,
 } from './model'
 import {
+  configHaplotypes,
   graphReferenceAssembly,
   offReferenceProblem,
 } from '../graphTrackConfig'
@@ -68,8 +69,15 @@ export default function stateModelFactory() {
       get paneMeasured() {
         return self.widthMeasured
       },
+      // the set stated, else the source track's defaultHaplotypes
       get cutHaplotypes() {
-        return self.subgraphHaplotypes
+        const track = this.sourceTrack
+        return (
+          self.subgraphHaplotypes ??
+          (track
+            ? configHaplotypes(trackAdapterConfig(self, track))
+            : undefined)
+        )
       },
       get sourceGfaLocation() {
         return self.gfaLocation
@@ -142,7 +150,7 @@ export default function stateModelFactory() {
           } else {
             return self.cutSubgraph(trackAdapterConfig(self, track), region, {
               hops: self.subgraphContext,
-              haplotypes: self.subgraphHaplotypes,
+              haplotypes: self.cutHaplotypes,
               ...(self.cutsWholeWalks
                 ? { snarls: 'overlapping' as const }
                 : {}),

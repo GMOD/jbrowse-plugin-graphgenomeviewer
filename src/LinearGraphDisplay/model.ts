@@ -30,6 +30,7 @@ import {
   formatSpanBp,
 } from '../GraphGenomeView/model'
 import {
+  configHaplotypes,
   cutsByHaplotype,
   graphReferenceAssembly,
   offReferenceProblem,
@@ -94,7 +95,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           // backbone out of the window.
           subgraphContext: types.optional(types.number, 1),
           // the haplotypes a GBZ or walk-indexed cut is for; unset is the
-          // lanes the track names
+          // config's defaultHaplotypes, else the lanes the track names
           subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
         }),
       )
@@ -154,6 +155,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get chosenHaplotypes() {
           return (
             self.subgraphHaplotypes ??
+            configHaplotypes(this.adapterConfig) ??
             trackLanes(self.parentTrack.configuration)
           )
         },
@@ -527,11 +529,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       }))
       .views(self => ({
         // Which haplotypes a GBZ or walk-indexed cut is for: every one in the
-        // graph, the assemblies the track names, or a list chosen in Settings
+        // graph, the config's default set or the assemblies the track names,
+        // or a list chosen in Settings
         cutMenuItems(): MenuItem[] {
           if (!cutsByHaplotype(self.adapterConfig)) {
             return []
           }
+          const defaults = configHaplotypes(self.adapterConfig)
           const lanes = trackLanes(self.parentTrack.configuration)
           const names = self.haplotypeNames
           const chosen = self.subgraphHaplotypes
@@ -546,16 +550,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               label: names
                 ? `Every haplotype in the graph (${names.length.toLocaleString()})`
                 : 'Every haplotype in the graph',
-              checked: chosen ? chosen.length === 0 : !lanes,
+              checked: chosen ? chosen.length === 0 : !defaults && !lanes,
               onClick: () => {
                 recut([])
               },
             },
-            ...(lanes
+            ...(defaults || lanes
               ? [
                   {
                     type: 'radio' as const,
-                    label: `The track's ${lanes.length} assemblies`,
+                    label: defaults
+                      ? "The track's default haplotypes"
+                      : `The track's ${lanes?.length} assemblies`,
                     checked: chosen === undefined,
                     onClick: () => {
                       recut(undefined)

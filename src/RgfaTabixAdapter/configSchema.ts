@@ -22,7 +22,8 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `walksUri` takes the prefix `gfa-to-tabix --walks -o <prefix>` was given, in
  * place of `uri`, and resolves `<prefix>.walks.bed.gz`, `<prefix>.nodes.bed.gz`,
  * `<prefix>.links.bed.gz` and their `.tbi` indexes. Such a graph's cut carries
- * the haplotypes' walks.
+ * the haplotypes' walks, and `defaultHaplotypes` names the ones it is cut for
+ * until the user picks others.
  *
  * #example
  * ```js
@@ -39,6 +40,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  *   type: 'RgfaTabixAdapter',
  *   walksUri: 'https://example.com/hprc-v2.1.chr22',
  *   assemblyNameToPanSN: { hg38: 'GRCh38', hs1: 'CHM13' },
+ *   defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
  * }
  * ```
  */
@@ -243,6 +245,18 @@ const RgfaTabixAdapter = ConfigurationSchema(
     walkByteBudget: {
       type: 'integer',
       defaultValue: 8_000_000,
+    },
+    /**
+     * #slot
+     * the haplotypes a walk-indexed graph is cut for until the user picks
+     * others in the track's Haplotypes menu or Settings, as PanSN prefixes
+     * (`HG002#1`, or `HG002` for both of its haplotypes). Empty means every
+     * haplotype, or the lanes the track's `assemblyNames` lists after its
+     * reference.
+     */
+    defaultHaplotypes: {
+      type: 'stringArray',
+      defaultValue: [],
     },
     /**
      * #slot
