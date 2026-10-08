@@ -219,23 +219,34 @@ budget counts only the haplotypes asked for, so the notice asks for fewer
 haplotypes where no zoom fits, and a cut for every haplotype is offered fewer
 beside the zoom.
 
-Measured 2026-10-08 on HPRC v2.1 chr22, local files, minimum of three runs on a
-loaded machine, window chr22:20.0–20.26 Mb:
+The cut crosses to the main thread as bandage-core's `GraphTables`, not GFA
+text: node, link and step arrays, every link end and step an index into the node
+table. `GetSubgraph` hands their buffers to postMessage to transfer, and
+`loadGraph` builds from them the graph their GFA converts to, deep equal. The
+rGFA and GBZ cuts stay text.
 
-| route                  | fetch  | cut    | GFA load | total  |
-| ---------------------- | ------ | ------ | -------- | ------ |
-| spike, every haplotype | 0.07 s | 2.7 s  | 6.5 s    | 9.2 s  |
-| now, every haplotype   | 0.06 s | 1.0 s  | 4.3 s    | 5.3 s  |
-| now, 8 haplotypes      | 0.08 s | 0.18 s | 0.12 s   | 0.29 s |
+Measured 2026-10-08 on HPRC v2.1 chr22 from gfa-to-tabix 0.4.0's files, local,
+minimum of three runs on a loaded machine, every haplotype from chr22:20.0 Mb:
 
-"Cut" includes the adapter's own reads. "Now" loads with bandage-core at 0ffbfda
-(released as 8.0.2), which builds no string per walk step; on 8.0.1 the
-every-haplotype load takes about 40% longer and the 8-haplotype one 0.02 s
-longer. Every haplotype there is past the step budget, refused in 0.12 s; the
-row above raised it. In the browser at chr22:20.0–20.1 Mb, from showing the
-track to the graph drawn, 8 haplotypes take 1.4 s force-directed (0.8 s of it
-FMMM), 0.5 s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s,
-25 s (20 s of tube map layout) and 6.4 s.
+| window | handoff | worker | crosses          | main-thread load |
+| ------ | ------- | ------ | ---------------- | ---------------- |
+| 100 kb | GFA     | 0.24 s | 11.4 MB of text  | 0.84 s           |
+| 100 kb | tables  | 0.26 s | 7.0 MB of array  | 0.25 s           |
+| 260 kb | GFA     | 0.70 s | 36.4 MB of text  | 3.8 s            |
+| 260 kb | tables  | 0.75 s | 22.2 MB of array | 0.99 s           |
+
+The 100 kb cut reads 2.8 M steps and keeps 1.4 M; the 260 kb one reads 6.3 M,
+past the step budget, which the rows above raised, and keeps 4.3 M. Copying the
+text across took only 10–30 ms; parsing and converting it was the cost. Eight
+haplotypes load in 5 ms and 20 ms where the text took 30 ms and 90 ms.
+
+The drawing bounds every haplotype now. In the browser at chr22:20.0–20.1 Mb,
+from showing the track to the graph drawn, every haplotype takes 3.3 s
+force-directed (3.7 s through GFA text), 12 s as a tube map, 9 s of it tube map
+layout, and 18–19 s as walk rows, most of it React committing the rows' SVG
+elements. Eight haplotypes take 1.5 s force-directed either way. At
+chr22:20.0–20.26 Mb FMMM alone takes 10–12 s for every haplotype, so the step
+budget stays at 4 M.
 
 The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
 header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8
