@@ -256,6 +256,25 @@ function createEnvironment({
     },
     { pluginManager },
   )
+  const walkIndexedTrackConfig = trackSchema.create(
+    {
+      type: 'GraphTrack',
+      trackId: 'walk-indexed',
+      name: 'walk-indexed',
+      assemblyNames: [ASM],
+      adapter: {
+        type: 'RgfaTabixAdapter',
+        walksUri: 'chr22',
+      },
+      displays: [
+        {
+          type: 'LinearGraphDisplay',
+          displayId: 'walk-indexed-LinearGraphDisplay',
+        },
+      ],
+    },
+    { pluginManager },
+  )
   const featureTrackConfig = trackSchema.create(
     {
       type: 'FeatureTrack',
@@ -272,7 +291,12 @@ function createEnvironment({
     },
     { pluginManager },
   )
-  const trackConfigs = [trackConfig, gbzTrackConfig, featureTrackConfig]
+  const trackConfigs = [
+    trackConfig,
+    gbzTrackConfig,
+    walkIndexedTrackConfig,
+    featureTrackConfig,
+  ]
   if (geneLaneFilter) {
     trackConfigs.push(
       trackSchema.create(
@@ -317,6 +341,8 @@ function createEnvironment({
   const signals: AbortSignal[] = []
   // a GBZ cut of more than this many bp fails over its node limit
   let denseAbove = Infinity
+  // what a walk-indexed graph's header names
+  let haplotypeNames: string[] | undefined = ['HG1#1', 'HG1#2', 'HG2#1']
   const rpcCall = vi.fn(
     (
       _sid: unknown,
@@ -346,6 +372,9 @@ function createEnvironment({
               })
             })
           : Promise.reject(error)
+      }
+      if (method === 'GetGraphHaplotypes') {
+        return Promise.resolve(haplotypeNames)
       }
       if (method === 'GraphComputeLayout') {
         return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
@@ -454,6 +483,9 @@ function createEnvironment({
     rpcCall,
     setDenseAbove(bp: number) {
       denseAbove = bp
+    },
+    setHaplotypeNames(names: string[] | undefined) {
+      haplotypeNames = names
     },
   }
 }
@@ -969,6 +1001,49 @@ test("a GBZ track's Haplotypes menu cuts for every haplotype, the track's lanes,
   expect(checked()).toBe('Chosen in Settings...')
   menu()[2]!.onClick()
   expect(display.chosenHaplotypes).toEqual(['HG1.1', 'HG2.1'])
+})
+
+function walkIndexedDisplay(names?: string[] | null) {
+  const env = createEnvironment()
+  if (names !== undefined) {
+    env.setHaplotypeNames(names ?? undefined)
+  }
+  const { view } = env
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('walk-indexed')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  const menu = () =>
+    (
+      display
+        .trackMenuItems()
+        .find(item => 'label' in item && item.label === 'Haplotypes') as {
+        subMenu: { label: string; checked?: boolean; onClick: () => void }[]
+      }
+    ).subMenu
+  return { ...env, display, menu }
+}
+
+test('a walk-indexed track counts the haplotypes its header names', async () => {
+  const { display, menu } = walkIndexedDisplay()
+  expect(display.chosenHaplotypes).toBeUndefined()
+  await wait(0)
+  expect(display.haplotypeNames).toEqual(['HG1#1', 'HG1#2', 'HG2#1'])
+  expect(menu().map(item => item.label)).toEqual([
+    'Load',
+    'Every haplotype in the graph (3)',
+    'Chosen in Settings...',
+  ])
+  expect(menu().find(item => item.checked)?.label).toBe(
+    'Every haplotype in the graph (3)',
+  )
+})
+
+test('a walk-indexed graph whose header names no haplotype counts none', async () => {
+  const { display, menu } = walkIndexedDisplay(null)
+  await wait(0)
+  expect(display.haplotypeNames).toBeUndefined()
+  expect(menu()[1]!.label).toBe('Every haplotype in the graph')
 })
 
 async function shownWalks(windowBp: number, setup?: (env: Env) => void) {

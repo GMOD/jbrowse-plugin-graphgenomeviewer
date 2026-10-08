@@ -6,7 +6,7 @@ import { ConfigurationReference, getConf } from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { computeSvgReady } from '@jbrowse/core/svg/svgReady'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
-import { getSession } from '@jbrowse/core/util'
+import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
 import {
   addDisposer,
@@ -34,6 +34,7 @@ import {
   graphReferenceAssembly,
   offReferenceProblem,
   trackLanes,
+  walkIndexed,
 } from '../graphTrackConfig'
 import { denseCovers, isNodeLimitError } from './denseWindow'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
@@ -121,6 +122,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // the host window the settle clock last woke on
         settledWindow: undefined as HostWindow | undefined,
         dense: undefined as DenseWindow | undefined,
+        // the haplotypes a walk-indexed graph's header names, once read
+        haplotypeNames: undefined as string[] | undefined,
       }))
       .views(self => ({
         get adapterConfig() {
@@ -257,6 +260,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         setDense(window: DenseWindow | undefined) {
           self.dense = window
         },
+        setHaplotypeNames(names: string[] | undefined) {
+          self.haplotypeNames = names
+        },
         setMaxRegionBp(bp: number) {
           self.maxRegionBp = bp
         },
@@ -362,6 +368,23 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .actions(self => ({
+        // A failed read leaves the picker taking typed names
+        async fetchHaplotypeNames(adapterConfig: Record<string, unknown>) {
+          try {
+            const names = await getSession(self).rpcManager.call(
+              getRpcSessionId(self),
+              'GetGraphHaplotypes',
+              { adapterConfig },
+            )
+            if (isAlive(self)) {
+              self.setHaplotypeNames(names)
+            }
+          } catch (e) {
+            console.warn('[LinearGraphDisplay] no haplotype names', e)
+          }
+        },
+      }))
+      .actions(self => ({
         forceLoad() {
           const seen = self.settledWindow
           if (seen) {
@@ -376,6 +399,22 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           if (self.cutRegion && !self.graph) {
             void self.cut()
           }
+          addDisposer(
+            self,
+            reaction(
+              () =>
+                walkIndexed(self.adapterConfig)
+                  ? self.adapterConfig
+                  : undefined,
+              adapterConfig => {
+                self.setHaplotypeNames(undefined)
+                if (adapterConfig) {
+                  void self.fetchHaplotypeNames(adapterConfig)
+                }
+              },
+              { fireImmediately: true, name: 'GraphHaplotypeNames' },
+            ),
+          )
           addDisposer(
             self,
             reaction(
@@ -488,12 +527,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       }))
       .views(self => ({
         // Which haplotypes a GBZ or walk-indexed cut is for: every one in the
-        // graph, the assemblies the track names, or a list typed in Settings
+        // graph, the assemblies the track names, or a list chosen in Settings
         cutMenuItems(): MenuItem[] {
           if (!cutsByHaplotype(self.adapterConfig)) {
             return []
           }
           const lanes = trackLanes(self.parentTrack.configuration)
+          const names = self.haplotypeNames
           const chosen = self.subgraphHaplotypes
           const recut = (haplotypes: string[] | undefined) => {
             self.setSubgraphHaplotypes(haplotypes)
@@ -503,7 +543,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             { type: 'subHeader', label: 'Load' },
             {
               type: 'radio',
-              label: 'Every haplotype in the graph',
+              label: names
+                ? `Every haplotype in the graph (${names.length.toLocaleString()})`
+                : 'Every haplotype in the graph',
               checked: chosen ? chosen.length === 0 : !lanes,
               onClick: () => {
                 recut([])

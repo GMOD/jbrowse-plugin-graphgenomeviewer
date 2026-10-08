@@ -21,11 +21,11 @@ import {
   WalkGraph,
   byteBudgetError,
   chunkQueryStart,
-  headerChunk,
   joinPieces,
   parseWalkRow,
   stepBudgetError,
   walkCut,
+  walkHeader,
   walkNameFilter,
   walkRowName,
 } from './walkRows.ts'
@@ -129,18 +129,32 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
   }
 
-  // The chunk a walk-indexed graph files its rows under, as the walk file's
-  // header states it, else the walkChunk slot
-  private walkChunk = cachedSetup({
+  // A walk-indexed graph's header: the chunk its rows are filed under, else
+  // the walkChunk slot, and the haplotypes it names
+  private walkHeader = cachedSetup({
     setup: async opts => {
       const walks = this.fine.walks
-      const stated = walks
-        ? headerChunk(await walks.getHeaderLines(opts))
-        : undefined
+      const header = walkHeader(walks ? await walks.getHeaderLines(opts) : [])
       const slot: number = this.getConf('walkChunk')
-      return stated ?? slot
+      return { ...header, chunk: header.chunk ?? slot }
     },
   })
+
+  private async walkChunk(opts: BaseOptions) {
+    return (await this.walkHeader(opts)).chunk
+  }
+
+  /**
+   * The haplotypes a walk-indexed graph's header names, `sample#haplotype`
+   * in byte order, or undefined when it names none
+   */
+  async getHaplotypeNames(opts: BaseOptions = {}) {
+    if (!this.fine.walks) {
+      return undefined
+    }
+    const { haplotypes } = await this.walkHeader(opts)
+    return haplotypes.length > 0 ? haplotypes : undefined
+  }
 
   private index(tier: SubgraphTier = 'fine') {
     if (tier === 'fine') {

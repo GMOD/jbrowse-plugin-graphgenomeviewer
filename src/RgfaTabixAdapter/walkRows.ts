@@ -63,15 +63,34 @@ export function parseWalkRow(line: string): WalkRow {
   }
 }
 
-// The chunk size a file states in a `#walks\tchunk:i:65536` header line
-export function headerChunk(lines: string[]) {
+export interface WalkHeader {
+  chunk?: number
+  references: string[]
+  haplotypes: string[]
+}
+
+/**
+ * What a walk file's header states: its chunk size in a
+ * `#walks\tchunk:i:65536` line, and from gfa-to-tabix after 0.3.0 a
+ * `#reference\tGRCh38` line per reference sample and a
+ * `#haplotype\tHG002#1` line per other haplotype with rows
+ */
+export function walkHeader(lines: string[]): WalkHeader {
+  const header: WalkHeader = { references: [], haplotypes: [] }
   for (const line of lines) {
-    const match = /(?:^|\t)chunk:i:(\d+)/.exec(line)
-    if (match) {
-      return +match[1]!
+    const [key, value = ''] = line.split('\t')
+    if (key === '#reference') {
+      header.references.push(value)
+    } else if (key === '#haplotype') {
+      header.haplotypes.push(value)
+    } else {
+      const match = /(?:^|\t)chunk:i:(\d+)/.exec(line)
+      if (match && header.chunk === undefined) {
+        header.chunk = +match[1]!
+      }
     }
   }
-  return undefined
+  return header
 }
 
 // The first base a cut queries: the start of the chunk holding the base one

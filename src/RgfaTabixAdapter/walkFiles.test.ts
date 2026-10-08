@@ -167,6 +167,31 @@ test('walksUri names the three files a walk-indexed build writes', () => {
   })
 })
 
+test("the haplotypes a walk file's header names", async () => {
+  const adapter = makeAdapter(fixturePrefix, {
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+  })
+  expect(await adapter.getHaplotypeNames()).toEqual([
+    'HG00097#1',
+    'HG002#1',
+    'HG002#2',
+  ])
+  const gfa = await adapter.getSubgraph(
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 2600 },
+    { haplotypes: ['HG002#1'] },
+  )
+  expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
+  expect(gfa).toMatch(/^S\t7\t/m)
+  expect(gfa).not.toMatch(/^S\t8\t/m)
+})
+
+test.skipIf(!rustPresent)(
+  'a walk file without haplotype lines names none',
+  async () => {
+    expect(await makeAdapter(rustPrefix).getHaplotypeNames()).toBeUndefined()
+  },
+)
+
 test('a cut over walkByteBudget reads no row', async () => {
   const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
   const cut = makeAdapter(fixturePrefix, {

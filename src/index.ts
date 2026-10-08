@@ -3,6 +3,7 @@ import { isAbstractMenuManager } from '@jbrowse/core/util'
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 
 import GbzBaseSyntenyAdapterF from './GbzBaseSyntenyAdapter/index'
+import GetGraphHaplotypes from './GetGraphHaplotypes'
 import GetGraphReads from './GetGraphReads'
 import GetSubgraph from './GetSubgraph'
 import GraphAddTrackWorkflowF from './GraphAddTrackWorkflow/index'
@@ -41,6 +42,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
     pluginManager.addRpcMethod(() => new GetSubgraph(pluginManager))
     pluginManager.addRpcMethod(() => new GetGraphReads(pluginManager))
+    pluginManager.addRpcMethod(() => new GetGraphHaplotypes(pluginManager))
   }
 
   // A throw from configure() takes the whole session to its error page, and a

@@ -2,11 +2,11 @@ import {
   WalkGraph,
   byteBudgetError,
   chunkQueryStart,
-  headerChunk,
   joinPieces,
   parseWalkRow,
   stepBudgetError,
   walkCut,
+  walkHeader,
   walkNameFilter,
   walkRowName,
 } from './walkRows.ts'
@@ -160,8 +160,28 @@ test('a cut queries from the start of the chunk before the window', () => {
   expect(chunkQueryStart(20_000_000, 65_536)).toBe(19_922_944)
   expect(chunkQueryStart(65_536, 65_536)).toBe(0)
   expect(chunkQueryStart(10, 65_536)).toBe(0)
-  expect(headerChunk(['#walks\tchunk:i:65536'])).toBe(65_536)
-  expect(headerChunk(['#walks'])).toBeUndefined()
+})
+
+test("a walk file's header states its chunk, references and haplotypes", () => {
+  expect(walkHeader(['#walks\tchunk:i:65536'])).toEqual({
+    chunk: 65_536,
+    references: [],
+    haplotypes: [],
+  })
+  expect(walkHeader(['#walks']).chunk).toBeUndefined()
+  expect(
+    walkHeader([
+      '#walks\tchunk:i:1000',
+      '#reference\tGRCh38',
+      '#reference\tCHM13',
+      '#haplotype\tHG00097#1',
+      '#haplotype\tHG002#1',
+    ]),
+  ).toEqual({
+    chunk: 1000,
+    references: ['GRCh38', 'CHM13'],
+    haplotypes: ['HG00097#1', 'HG002#1'],
+  })
 })
 
 describe('the byte budget', () => {
