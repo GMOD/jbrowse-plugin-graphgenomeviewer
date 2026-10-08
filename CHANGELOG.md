@@ -1,3 +1,20 @@
+## [6.8.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.7.0...v6.8.0) (2026-10-08)
+
+### Other Changes
+
+- Quiet test console logging ([26c3f20](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/26c3f2041e1b4ab735b6f953ae767654185be47c))
+- Read walk pieces beside the anchored node and link files, emitting W fragments trimmed to the window ([26dd881](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/26dd8817c734fe01f4a43f8a1e830692785dbb4f))
+- Walk cut decodes only the haplotypes asked for, under a step budget, from chunk-start queries ([709e2f7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/709e2f77d4f63cf05f65ad85da5317f06da83325))
+- Walk cut parses node and link rows as they arrive and writes its own S and L lines ([aa20da2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/aa20da2f6e128df2efe9b779a0f01d0d2de5ab88))
+- Walk cut sorts its nodes without a map lookup per comparison ([0203cd3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0203cd3626e42c6fe4046f65005a1f15924605a8))
+- Tests for the walk cut: haplotype filter, continuation rows, run-on, step budget ([99286e2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/99286e2ed96c7c4a56c3f109905ed682d226809d))
+- The haplotype menu and Settings field open on a walk-indexed rGFA track ([a7758c3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a7758c3330c2c1b949757d7631573b5cd0b3d2fd))
+- Walk cut writes the reference's walk first, the rest by name ([c5f717b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c5f717bdecf2dd7dd72cd4f2429d5b62c86fe701))
+- Test the Rust builder's first-base rows against the spike's whole-chunk rows ([a950b80](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a950b8012a00b99692cf9812d9c5d08f90aeed35))
+- Walk-indexed cuts, what they read and what they cost ([da050a4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/da050a48d92f0c079138405a11cde942edd05ed2))
+- Walk-indexed getFeatures reads from the chunk before the window ([624dbcc](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/624dbcce0917c1043b5cea36c0c7af802bc1bd0f))
+- Take @jbrowse/bandage-core 8.0.2 ([6b81900](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6b81900cedece7582742954bf76b0b62b8b337bc))
+
 ## [6.7.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.6.0...v6.7.0) (2026-10-08)
 
 ### Other Changes
