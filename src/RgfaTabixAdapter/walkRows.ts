@@ -316,20 +316,22 @@ export class WalkGraph {
    * fragment, the same bytes for the same rows
    */
   format(kept: Set<number>, fragments: WalkFragment[]) {
-    const { nodes } = this
-    const ids = [...kept].filter(id => nodes.has(id))
-    ids.sort((a, b) => {
-      const x = nodes.get(a)!
-      const y = nodes.get(b)!
-      return x.refName < y.refName
+    const held: (WalkNode & { id: number })[] = []
+    for (const id of kept) {
+      const node = this.nodes.get(id)
+      if (node) {
+        held.push({ ...node, id })
+      }
+    }
+    held.sort((x, y) =>
+      x.refName < y.refName
         ? -1
         : x.refName > y.refName
           ? 1
-          : x.start - y.start || a - b
-    })
+          : x.start - y.start || x.id - y.id,
+    )
     const lines = ['H\tVN:Z:1.1']
-    for (const id of ids) {
-      const { refName, start, end, rank } = nodes.get(id)!
+    for (const { id, refName, start, end, rank } of held) {
       lines.push(
         `S\t${id}\t*\tLN:i:${end - start}\tSN:Z:${refName}\tSO:i:${start}\tSR:i:${rank}`,
       )
