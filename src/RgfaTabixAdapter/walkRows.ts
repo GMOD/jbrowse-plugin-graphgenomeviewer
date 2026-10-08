@@ -148,7 +148,10 @@ export function joinPieces(rows: WalkRow[]) {
     pieces.sort((a, b) => a.piece - b.piece)
     let from = 0
     for (let i = 1; i <= pieces.length; i++) {
-      if (i === pieces.length || pieces[i]!.piece !== pieces[i - 1]!.piece + 1) {
+      if (
+        i === pieces.length ||
+        pieces[i]!.piece !== pieces[i - 1]!.piece + 1
+      ) {
         runs.push(decodeRun(pieces.slice(from, i)))
         from = i
       }
@@ -357,7 +360,9 @@ export class WalkGraph {
 }
 
 function endpoint(line: string, from: number, to: number) {
-  return +line.slice(from, to - 1) * 2 + (line.charCodeAt(to - 1) === 45 ? 1 : 0)
+  return (
+    +line.slice(from, to - 1) * 2 + (line.charCodeAt(to - 1) === 45 ? 1 : 0)
+  )
 }
 
 /**

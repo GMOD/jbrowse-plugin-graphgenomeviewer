@@ -136,7 +136,8 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       const stated = walks
         ? headerChunk(await walks.getHeaderLines(opts))
         : undefined
-      return stated ?? (this.getConf('walkChunk') as number)
+      const slot: number = this.getConf('walkChunk')
+      return stated ?? slot
     },
   })
 
@@ -358,7 +359,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       end: region.end,
       context: WALK_CONTEXT,
     })
-    const read = (file: TabixIndexedFile, lineCallback: (line: string) => void) =>
+    const read = (
+      file: TabixIndexedFile,
+      lineCallback: (line: string) => void,
+    ) =>
       file.getLines(refName, from, region.end, {
         signal: reads.signal,
         lineCallback,
