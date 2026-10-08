@@ -1,4 +1,6 @@
+import { getSession } from '@jbrowse/core/util'
 import {
+  Button,
   Checkbox,
   FormControl,
   InputLabel,
@@ -8,6 +10,8 @@ import {
 } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
+
+import { ChooseWalksDialog, WALK_MENU_ITEMS } from '../pane/paneBase'
 
 import type { GraphPaneModel } from '../model'
 
@@ -36,13 +40,33 @@ const WalkSelect = observer(function WalkSelect({
   const picked = model.walkLayers
     .map(layer => layer.walk)
     .filter(name => names.has(name))
+  if (walkChoices.length > WALK_MENU_ITEMS) {
+    return (
+      <Button
+        size="small"
+        variant="outlined"
+        color="inherit"
+        data-testid="graph-walk-choose"
+        onClick={() => {
+          getSession(model).queueDialog(onClose => [
+            ChooseWalksDialog,
+            { model, onClose },
+          ])
+        }}
+      >
+        {picked.length > 0
+          ? `${picked.length} of ${walkChoices.length} haplotypes`
+          : 'Highlight haplotypes...'}
+      </Button>
+    )
+  }
   return (
     <FormControl size="small" className={classes.formControl}>
-      <InputLabel>Walks</InputLabel>
+      <InputLabel>Highlight</InputLabel>
       <Select
         multiple
         value={picked}
-        label="Walks"
+        label="Highlight"
         data-testid="graph-walk-select"
         renderValue={selected => selected.map(n => labels.get(n)).join(', ')}
         onChange={e => {

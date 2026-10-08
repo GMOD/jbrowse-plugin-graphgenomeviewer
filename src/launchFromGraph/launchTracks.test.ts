@@ -89,4 +89,7 @@ test('a track naming the assembly by an alias is carried', () => {
   expect(launchTracks({ session: aliased, assemblyName: 'hg38' })).toEqual([
     'ncbi_genes',
   ])
+  expect(launchTracks({ session: aliased, assemblyName: 'GRCh38' })).toEqual([
+    'ncbi_genes',
+  ])
 })

@@ -65,7 +65,7 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
                 : 'This walk states no contig coordinates',
               onClick: () => {},
             },
-        ...(walk && model.liftsWalks
+        ...(walk && model.liftsWalks && model.modeDrawsNodes
           ? [
               {
                 type: 'checkbox' as const,

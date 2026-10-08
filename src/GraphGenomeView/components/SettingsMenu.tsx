@@ -18,7 +18,8 @@ const SettingsMenu = observer(function SettingsMenu({
   model: GraphPaneModel
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const haplotypes = model.highlightMenuItems()
+  // the toolbar beside this menu picks the walks and the repeat
+  const haplotypes = model.highlightMenuItems({ picks: false })
 
   return (
     <>
@@ -29,13 +30,15 @@ const SettingsMenu = observer(function SettingsMenu({
           ...(haplotypes.length > 0
             ? [{ label: 'Haplotypes', icon: RouteIcon, subMenu: haplotypes }]
             : []),
-          ...model.layoutOptionMenuItems(),
+          ...model.layoutOptionMenuItems({ repeat: false }),
           {
             label: 'Show...',
             icon: VisibilityIcon,
             subMenu: [
               ...model.showMenuItems(),
-              ...(model.modeDrawsNodes && model.walkChoices.length > 1
+              ...(model.modeDrawsNodes &&
+              model.walkChoices.length > 1 &&
+              model.popStack.length === 0
                 ? [
                     {
                       type: 'checkbox' as const,

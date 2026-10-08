@@ -612,7 +612,8 @@ const GraphCanvas = observer(function GraphCanvas({
             width: model.paneWidth,
             height: model.canvasHeight,
             cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
-            touchAction: 'none',
+            // a pane the linear view drags leaves a finger its scroll
+            touchAction: model.hostPlacesX ? 'auto' : 'none',
             overscrollBehavior: 'contain',
             display: 'block',
             position: 'relative',

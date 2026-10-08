@@ -803,6 +803,17 @@ export default function PaneSvg({
           rasterize={rasterize}
         />
       )}
+      {/* in the screen's stacking order, bottom first */}
+      {model.facetPanels ? null : (
+        <>
+          <BubbleHalos model={model} />
+          <GenePins model={model} />
+          <SizeLabels model={model} />
+          <LabelLayer model={model} />
+          <WalkRowsOverlay model={model} />
+          <RowLabels model={model} />
+        </>
+      )}
       {model.referenceStripShown ? (
         <PaintLayer
           width={width}
@@ -816,17 +827,7 @@ export default function PaneSvg({
           }}
         />
       ) : null}
-      {model.facetPanels ? null : (
-        <>
-          <WalkRowsOverlay model={model} />
-          <RowLabels model={model} />
-          <SizeLabels model={model} />
-          <BubbleHalos model={model} />
-          <GenePins model={model} />
-          <LabelLayer model={model} />
-          <Keys model={model} idPrefix={idPrefix} />
-        </>
-      )}
+      {model.facetPanels ? null : <Keys model={model} idPrefix={idPrefix} />}
     </g>
   )
 }

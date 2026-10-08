@@ -32,6 +32,7 @@ export function launchTracks({
   assemblyName: string
   first?: string
 }) {
+  const wanted = canonicalAssemblyName(session, assemblyName)
   const found: string[] = []
   for (const track of session.tracks) {
     const type: unknown = readConfObject(track, 'type')
@@ -43,7 +44,7 @@ export function launchTracks({
       assemblyNames.some(
         name =>
           typeof name === 'string' &&
-          canonicalAssemblyName(session, name) === assemblyName,
+          canonicalAssemblyName(session, name) === wanted,
       ) &&
       typeof trackId === 'string' &&
       trackId !== first

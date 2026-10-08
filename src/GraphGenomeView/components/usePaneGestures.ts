@@ -116,17 +116,27 @@ export function usePaneGestures(model: GraphPaneModel) {
       : null
   }
 
+  // The linear view drags by mouse events, so a hosted pane that pans itself
+  // keeps the mousedown from it; the gesture itself is the pointer's
   function onMouseDown(e: React.MouseEvent) {
     if (e.button === 0) {
       e.preventDefault()
+      if (model.host && !model.hostPlacesX) {
+        e.stopPropagation()
+      }
+    }
+  }
+
+  // Captured, so a drag keeps going over a bubble chip or the gap between
+  // facet panels, and a finger drags as a mouse does
+  function onPointerDown(e: React.PointerEvent) {
+    if (e.button === 0) {
       hasMovedRef.current = false
       downRef.current = { x: e.clientX, y: e.clientY }
       if (model.hostPlacesX) {
         return
       }
-      if (model.host) {
-        e.stopPropagation()
-      }
+      e.currentTarget.setPointerCapture(e.pointerId)
       const { x, y } = getMouseCoord(e)
       // a tube map's boxes are the layout's, and the strip's are bp, not
       // positions to drag
@@ -204,7 +214,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     pending.hover = null
   }
 
-  function onMouseMove(e: React.MouseEvent) {
+  function onPointerMove(e: React.PointerEvent) {
     const dx = e.clientX - lastMouseRef.current.x
     const dy = e.clientY - lastMouseRef.current.y
     lastMouseRef.current = { x: e.clientX, y: e.clientY }
@@ -236,13 +246,16 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
   }
 
-  function onMouseUp() {
-    model.stopDragging()
+  // also the end of a capture the browser took back
+  function onPointerUp() {
+    if (isAlive(model)) {
+      model.stopDragging()
+    }
   }
 
   // also fired by the canvas unmounting under a resting pointer, after the
   // view closing it has destroyed the model
-  function onMouseLeave() {
+  function onPointerLeave() {
     dropPending()
     if (!isAlive(model)) {
       return
@@ -290,9 +303,12 @@ export function usePaneGestures(model: GraphPaneModel) {
   return {
     handlers: {
       onMouseDown,
-      onMouseMove,
-      onMouseUp,
-      onMouseLeave,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel: onPointerUp,
+      onLostPointerCapture: onPointerUp,
+      onPointerLeave,
       onClick,
       onContextMenu,
     },

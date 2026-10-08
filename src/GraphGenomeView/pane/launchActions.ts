@@ -162,7 +162,8 @@ export const withLaunchActions = withRenderingActions
         })),
       ]
     },
-    layoutOptionMenuItems(): MenuItem[] {
+    // `repeat` false where a toolbar already picks the repeat
+    layoutOptionMenuItems({ repeat = true } = {}): MenuItem[] {
       return [
         ...(TUBE_MAP_MODES.has(self.chosenLayoutMode)
           ? [
@@ -181,7 +182,8 @@ export const withLaunchActions = withRenderingActions
               },
             ]
           : []),
-        ...(self.chosenLayoutMode === 'walkrows' &&
+        ...(repeat &&
+        self.chosenLayoutMode === 'walkrows' &&
         self.repeatChoices.length > 0
           ? [
               {
@@ -305,9 +307,15 @@ export const withLaunchActions = withRenderingActions
         },
       ]
     },
-    highlightMenuItems(): MenuItem[] {
-      const walks = self.walkChoices
-      if (walks.length === 0 || !self.liftsWalks) {
+    // `picks` false where a toolbar already picks the walks, leaving what is
+    // done with those picked
+    highlightMenuItems({ picks = true } = {}): MenuItem[] {
+      const walks = picks ? self.walkChoices : []
+      if (
+        self.walkChoices.length === 0 ||
+        !self.liftsWalks ||
+        (!picks && self.walkLayers.length === 0)
+      ) {
         return []
       }
       const lifted = (name: string) =>
