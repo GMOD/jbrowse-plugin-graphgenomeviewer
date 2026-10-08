@@ -11,6 +11,11 @@
 // Usage:
 //   node scripts/host-compat-probe.mjs
 //   node scripts/host-compat-probe.mjs --versions v5.0.0-beta.11,main --dist dist
+//   node scripts/host-compat-probe.mjs --published
+//
+// `--published` leaves the config's own plugin url alone, so the bundle under
+// test is the one readers load. A host that moves with no commit here breaks
+// that bundle, and host-watch.yml runs this daily to see it.
 //
 import { parseArgs } from 'node:util'
 
@@ -34,6 +39,7 @@ const LOCUS = 'chr6:31,980,001-32,050,000'
 const { values } = parseArgs({
   options: {
     dist: { type: 'string', default: 'dist' },
+    published: { type: 'boolean', default: false },
     versions: { type: 'string' },
     timeout: { type: 'string', default: '120000' },
   },
@@ -44,7 +50,9 @@ const serveCandidate = candidateServer(values.dist)
 
 async function probeOne(browser, version) {
   const page = await browser.newPage()
-  await serveCandidate(page)
+  if (!values.published) {
+    await serveCandidate(page)
+  }
   const consoleErrors = []
   page.on('console', m => {
     if (m.type() === 'error') {
@@ -223,7 +231,7 @@ const browser = await puppeteer.launch({
 })
 
 console.log(
-  `serving ${values.dist} to ${CONFIG}\nhosts: ${versions.join(', ')}\n`,
+  `${values.published ? 'the published bundle on' : `serving ${values.dist} to`} ${CONFIG}\nhosts: ${versions.join(', ')}\n`,
 )
 
 const results = []
