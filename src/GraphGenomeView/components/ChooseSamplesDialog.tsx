@@ -1,16 +1,6 @@
-import { useState } from 'react'
-
-import { Dialog } from '@jbrowse/core/ui'
-import {
-  Autocomplete,
-  Button,
-  Checkbox,
-  DialogActions,
-  DialogContent,
-  TextField,
-  Typography,
-} from '@mui/material'
 import { observer } from 'mobx-react'
+
+import PickNamesDialog from './PickNamesDialog'
 
 import type { GraphPaneModel } from '../model'
 
@@ -19,7 +9,7 @@ type SamplePicker = Pick<
   'walkRowSampleChoices' | 'walkRowSamples' | 'setWalkRowSamples'
 >
 
-// Which samples' walks walk rows show, searched by name, in the order picked
+// Which samples' walks walk rows show
 const ChooseSamplesDialog = observer(function ChooseSamplesDialog({
   model,
   onClose,
@@ -28,54 +18,22 @@ const ChooseSamplesDialog = observer(function ChooseSamplesDialog({
   onClose: () => void
 }) {
   const { samples } = model.walkRowSampleChoices
-  const [picked, setPicked] = useState(() =>
-    (model.walkRowSamples ?? []).filter(s => samples.includes(s)),
-  )
   return (
-    <Dialog open onClose={onClose} title="Choose samples">
-      <DialogContent>
-        <Autocomplete
-          multiple
-          disableCloseOnSelect
-          data-testid="graph-choose-samples"
-          options={samples}
-          value={picked}
-          onChange={(_, value) => {
-            setPicked(value)
-          }}
-          renderOption={({ key, ...props }, sample, { selected }) => (
-            <li key={key} {...props}>
-              <Checkbox size="small" checked={selected} />
-              {sample}
-            </li>
-          )}
-          renderInput={params => (
-            <TextField
-              {...params}
-              autoFocus
-              label="Samples"
-              placeholder="type to search"
-            />
-          )}
-        />
-        <Typography variant="caption" color="text.secondary">
-          {samples.length.toLocaleString()} samples in this cut. Their walks
-          show in pairs, in the order picked.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={() => {
-            model.setWalkRowSamples(picked.length > 0 ? picked : undefined)
-            onClose()
-          }}
-        >
-          {picked.length > 0 ? 'Show these samples' : 'Show every sample'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <PickNamesDialog
+      title="Choose samples"
+      label="Samples"
+      testId="graph-choose-samples"
+      caption={`${samples.length.toLocaleString()} samples in this cut. Their walks show in pairs, in the order picked.`}
+      options={samples}
+      initial={model.walkRowSamples ?? []}
+      confirmLabel={picked =>
+        picked.length > 0 ? 'Show these samples' : 'Show every sample'
+      }
+      onPick={picked => {
+        model.setWalkRowSamples(picked.length > 0 ? picked : undefined)
+      }}
+      onClose={onClose}
+    />
   )
 })
 

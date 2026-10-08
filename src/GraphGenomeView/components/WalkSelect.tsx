@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 import { getSession } from '@jbrowse/core/util'
 import {
   Button,
@@ -31,6 +33,7 @@ const WalkSelect = observer(function WalkSelect({
   model: GraphPaneModel
 }) {
   const { classes } = useStyles()
+  const labelId = useId()
   const { walkChoices } = model
   if (walkChoices.length === 0 || !model.liftsWalks) {
     return null
@@ -62,8 +65,9 @@ const WalkSelect = observer(function WalkSelect({
   }
   return (
     <FormControl size="small" className={classes.formControl}>
-      <InputLabel>Highlight</InputLabel>
+      <InputLabel id={labelId}>Highlight</InputLabel>
       <Select
+        labelId={labelId}
         multiple
         value={picked}
         label="Highlight"

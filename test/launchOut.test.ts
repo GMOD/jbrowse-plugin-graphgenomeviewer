@@ -49,12 +49,14 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
     page = await createJBrowsePage(browser)
     await waitForReactMount(page)
     // The declaratively-opened graph fetches its subgraph on attach, so waiting
-    // for nodes proves that whole path, not just that the pane mounted.
+    // for nodes proves that whole path, not just that the pane mounted. The
+    // graph lands ahead of its layout, which the node tests read.
     await page.waitForSelector(GRAPH_CANVAS, { timeout: 120_000 })
     await page.waitForFunction(
-      (viewId: string) =>
-        (window.JBrowseSession.views.find(v => v.id === viewId)?.nodeCount ??
-          0) > 0,
+      (viewId: string) => {
+        const view = window.JBrowseSession.views.find(v => v.id === viewId)
+        return (view?.nodeCount ?? 0) > 0 && !!view.nodePositions
+      },
       { timeout: 120_000 },
       GRAPH_ID,
     )

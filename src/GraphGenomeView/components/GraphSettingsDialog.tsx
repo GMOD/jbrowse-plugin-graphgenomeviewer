@@ -14,27 +14,21 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
-  InputLabel,
-  MenuItem,
   Radio,
   RadioGroup,
-  Select,
   Switch,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
+import LabelledSelect from './LabelledSelect'
+
 import type { GraphPaneModel } from '../model'
-import type { SxProps } from '@mui/material'
 
 const useStyles = makeStyles()({
   section: {
     marginBottom: 24,
-  },
-  formControl: {
-    minWidth: 200,
   },
 })
 
@@ -101,48 +95,23 @@ function SettingSwitch({
   )
 }
 
-// One dropdown setting; an option's description is its tooltip
-function SettingSelect<T extends string>({
-  label,
-  value,
-  options,
-  testId,
-  sx,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: readonly { value: T; label: string; description?: string }[]
-  testId?: string
-  sx?: SxProps
-  onChange: (value: T) => void
-}) {
-  const { classes } = useStyles()
-  return (
-    <FormControl className={classes.formControl} sx={sx}>
-      <InputLabel>{label}</InputLabel>
-      <Select
-        value={value}
-        label={label}
-        data-testid={testId}
-        onChange={e => {
-          onChange(e.target.value as T)
-        }}
-      >
-        {options.map(({ value, label, description }) => (
-          <MenuItem key={value} value={value}>
-            {description ? (
-              <Tooltip title={description} placement="right">
-                <span>{label}</span>
-              </Tooltip>
-            ) : (
-              label
-            )}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  )
+// one dropdown setting, at the dialog's width
+function SettingSelect<T extends string>(
+  props: Omit<Parameters<typeof LabelledSelect<T>>[0], 'size' | 'sx'> & {
+    mt?: number
+  },
+) {
+  const { mt, ...rest } = props
+  return <LabelledSelect sx={{ minWidth: 200, mt }} {...rest} />
+}
+
+const NODE_LIMITS = [5000, 20_000, 50_000, 100_000]
+
+// the presets, with a limit a session states among them
+function nodeLimitOptions(current: number) {
+  return [...new Set([...NODE_LIMITS, current])]
+    .sort((a, b) => a - b)
+    .map(limit => ({ value: String(limit), label: limit.toLocaleString() }))
 }
 
 const trackOptions = (tracks: { trackId: string; name: string }[]) =>
@@ -208,6 +177,40 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
           </FormControl>
         </div>
 
+        <div className={classes.section}>
+          <SettingSelect
+            label="Bubble spread"
+            value={model.bubbleSpread}
+            options={BUBBLE_SPREADS}
+            testId="graph-bubble-spread-select"
+            onChange={spread => {
+              model.setBubbleSpread(spread)
+              void model.recomputeLayout()
+            }}
+          />
+          <Caption>
+            How far the force layout opens a bubble. A pangenome allele is a few
+            bp, so at Bandage&apos;s own scale both arms land inside one node
+            thickness and the graph draws as a rope.
+          </Caption>
+          <EngineOnly model={model} />
+        </div>
+
+        <SettingSwitch
+          label="Linear layout"
+          checked={model.linearLayout}
+          onChange={linear => {
+            model.setLinearLayout(linear)
+            void model.recomputeLayout()
+          }}
+        >
+          <Caption>
+            Bandage&apos;s linear option: the engine keeps a chain of nodes on
+            one line where it can
+          </Caption>
+          <EngineOnly model={model} />
+        </SettingSwitch>
+
         <SettingSwitch
           label="Draw paths"
           checked={model.drawPaths}
@@ -230,7 +233,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
         </SettingSwitch>
 
         <SettingSwitch
-          label="Mark bubbles"
+          label="Bubble halos"
           checked={model.showBubbles}
           onChange={show => {
             model.setShowBubbles(show)
@@ -259,27 +262,32 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               value={model.geneTrack?.trackId ?? ''}
               options={trackOptions(model.geneTrackChoices)}
               testId="graph-gene-track-select"
-              sx={{ mt: 1 }}
+              mt={1}
               onChange={trackId => {
                 model.setGeneTrackId(trackId)
                 void model.reloadGenes()
               }}
             />
           ) : null}
-          {model.repeatTrackChoices.length > 1 ? (
+        </SettingSwitch>
+
+        {model.repeatTrackChoices.length > 1 ? (
+          <div className={classes.section}>
             <SettingSelect
               label="Repeat track"
               value={model.repeatTrack?.trackId ?? ''}
               options={trackOptions(model.repeatTrackChoices)}
               testId="graph-repeat-track-select"
-              sx={{ mt: 1 }}
               onChange={trackId => {
                 model.setRepeatTrackId(trackId)
                 void model.reloadRepeats()
               }}
             />
-          ) : null}
-        </SettingSwitch>
+            <Caption>
+              The tandem repeat annotation walk rows measure and tile by
+            </Caption>
+          </div>
+        ) : null}
 
         {model.anchorPaths.length > 1 ? (
           <div className={classes.section}>
@@ -306,21 +314,20 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
 
         <div className={classes.section}>
           <SettingSelect
-            label="Bubble spread"
-            value={model.bubbleSpread}
-            options={BUBBLE_SPREADS}
-            testId="graph-bubble-spread-select"
-            onChange={spread => {
-              model.setBubbleSpread(spread)
+            label="Node limit"
+            value={String(model.maxGraphNodes)}
+            options={nodeLimitOptions(model.maxGraphNodes)}
+            testId="graph-node-limit-select"
+            onChange={limit => {
+              model.setMaxGraphNodes(Number(limit))
               void model.recomputeLayout()
             }}
           />
           <Caption>
-            How far the force layout opens a bubble. A pangenome allele is a few
-            bp, so at Bandage&apos;s own scale both arms land inside one node
-            thickness and the graph draws as a rope.
+            The most nodes a layout draws. Past it the graph is declined, since
+            a dense cut can clear the bp cap and still swamp the renderer; walk
+            rows draw a bar per walk and take no limit.
           </Caption>
-          <EngineOnly model={model} />
         </div>
 
         <div className={classes.section}>

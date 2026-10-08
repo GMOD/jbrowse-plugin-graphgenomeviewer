@@ -60,15 +60,6 @@ const SettingsMenu = observer(function SettingsMenu({
               },
             ],
           },
-          {
-            type: 'checkbox' as const,
-            label: 'Linear layout',
-            checked: model.linearLayout,
-            onClick: () => {
-              model.setLinearLayout(!model.linearLayout)
-              void model.recomputeLayout()
-            },
-          },
           { type: 'divider' as const },
           {
             label: 'Settings',

@@ -1,53 +1,33 @@
 import { LAYOUT_MODES } from '@jbrowse/bandage-core/layoutModes'
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Tooltip,
-} from '@mui/material'
 import { observer } from 'mobx-react'
-import { makeStyles } from 'tss-react/mui'
+
+import LabelledSelect from './LabelledSelect'
 
 import type { GraphPaneModel } from '../model'
-
-const useStyles = makeStyles()({
-  formControl: {
-    minWidth: 150,
-  },
-})
 
 const LayoutSelect = observer(function LayoutSelect({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const { classes } = useStyles()
   const { graph } = model
   return (
-    <FormControl size="small" className={classes.formControl}>
-      <InputLabel>Layout</InputLabel>
-      <Select
-        value={model.chosenLayoutMode}
-        label="Layout"
-        data-testid="graph-layout-select"
-        onChange={e => {
-          void model.switchLayout(e.target.value)
-        }}
-      >
-        {LAYOUT_MODES.map(({ value, label, description, available }) => (
-          <MenuItem
-            key={value}
-            value={value}
-            disabled={graph ? !available(graph) : false}
-          >
-            <Tooltip title={description} placement="right">
-              <span>{label}</span>
-            </Tooltip>
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+    <LabelledSelect
+      label="Layout"
+      size="small"
+      sx={{ minWidth: 140 }}
+      testId="graph-layout-select"
+      value={model.chosenLayoutMode}
+      options={LAYOUT_MODES.map(({ value, label, description, available }) => ({
+        value,
+        label,
+        description,
+        disabled: graph ? !available(graph) : false,
+      }))}
+      onChange={mode => {
+        void model.switchLayout(mode)
+      }}
+    />
   )
 })
 

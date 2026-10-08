@@ -84,6 +84,9 @@ function Row({
         select
         size="small"
         value={field}
+        slotProps={{
+          select: { SelectDisplayProps: { 'aria-label': `Color ${label} by` } },
+        }}
         onChange={e => {
           onField(e.target.value as Field)
         }}
@@ -98,6 +101,11 @@ function Row({
         select
         size="small"
         value={scheme}
+        slotProps={{
+          select: {
+            SelectDisplayProps: { 'aria-label': `Palette for ${label}` },
+          },
+        }}
         onChange={e => {
           onScheme(e.target.value as Scheme)
         }}

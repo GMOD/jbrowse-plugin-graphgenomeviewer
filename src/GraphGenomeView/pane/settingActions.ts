@@ -127,6 +127,9 @@ export const withSettingActions = withFitViews
     setBubbleSpread(spread: BubbleSpread) {
       self.bubbleSpread = spread
     },
+    setMaxGraphNodes(limit: number) {
+      self.maxGraphNodes = limit
+    },
     setNodeWidth(width: NodeWidth) {
       self.nodeWidth = width
     },
