@@ -207,4 +207,30 @@ describe('buildTrackConfig', () => {
       },
     })
   })
+
+  it('builds a GBZ graph track anchored on the assembly, with its reads', () => {
+    const uri = (name: string) => ({
+      uri: `https://example.com/${name}`,
+      locationType: 'UriLocation' as const,
+    })
+    const conf = buildTrackConfig({
+      choice: 'GbzBaseSyntenyAdapter',
+      loc: uri('hprc.gbz.db'),
+      indexLoc: undefined,
+      readsLoc: uri('reads.gaf.gz?sig=1'),
+      assembly: 'hg38',
+      sample: 'GRCh38',
+      trackId: 'hprc',
+      name: 'HPRC graph',
+    })
+    expect(conf.type).toBe('GraphTrack')
+    expect(conf.adapter).toEqual({
+      type: 'GbzBaseSyntenyAdapter',
+      gbzDbLocation: uri('hprc.gbz.db'),
+      assemblyNames: ['hg38'],
+      readsLocation: uri('reads.gaf.gz?sig=1'),
+      readsIndex: { location: uri('reads.gaf.gz.tbi?sig=1') },
+      assemblyNameToPanSN: { hg38: 'GRCh38' },
+    })
+  })
 })

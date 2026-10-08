@@ -1,7 +1,3 @@
-import {
-  BUBBLE_KIND_COLORS,
-  BUBBLE_KIND_NAMES,
-} from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { FACET_GAP_PX, FACET_TITLE_PX } from '@jbrowse/bandage-core/facetGrid'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
@@ -25,7 +21,7 @@ import { encodingStops } from '@jbrowse/bandage-core/walkEncoding'
 import { walkKey } from '@jbrowse/bandage-core/walkKey'
 import { PaintLayer } from '@jbrowse/core/util/paintLayer'
 
-import BubbleHalos from './BubbleHalos'
+import BubbleHalos, { haloKeyEntries } from './BubbleHalos'
 import ElTree from './ElTree'
 import GenePins, { EXON_COLOR } from './GenePins'
 import LabelLayer from './LabelLayer'
@@ -308,16 +304,7 @@ function stripKeyRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
 }
 
 function haloRows(model: GraphPaneModel): KeyRow[] {
-  const kindsByColor = new Map<string, Set<string>>()
-  for (const h of model.bubbleHalos) {
-    if (!h.whole) {
-      const color = BUBBLE_KIND_COLORS[h.kind]
-      const kinds = kindsByColor.get(color) ?? new Set<string>()
-      kinds.add(BUBBLE_KIND_NAMES[h.kind])
-      kindsByColor.set(color, kinds)
-    }
-  }
-  return [...kindsByColor].map(([color, kinds]) =>
+  return haloKeyEntries(model).map(({ color, label }) =>
     swatchRow(
       `halo-${color}`,
       x => (
@@ -334,7 +321,7 @@ function haloRows(model: GraphPaneModel): KeyRow[] {
       ),
       SWATCH_PX,
       '',
-      `bubble: ${[...kinds].join(', ')}`,
+      label,
     ),
   )
 }

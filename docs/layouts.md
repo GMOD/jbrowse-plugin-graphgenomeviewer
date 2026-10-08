@@ -46,7 +46,7 @@ feature track stacks features. A base-level cut, whose backbone splits at every
 SNP, draws as one band. Hovering either one boxes the node's reference span on
 the strip and draws a leader to the node; an allele's span runs between its
 flanks. Hovering a bubble's name does the same for the bubble's span. While the
-Walks picker lifts haplotypes, the strip gives each lifted walk a row in its
+Highlight picker lifts haplotypes, the strip gives each lifted walk a row in its
 lane's colours, pale where that walk skips a reference segment, so a deletion is
 a pale gap in one haplotype's row. A triangle at either end of the strip says
 the graph draws reference past that edge of the window. The track menu's
@@ -155,7 +155,7 @@ mismatches at that bp:
 
 Hovering a genotype cell of a callset lane in the same view lifts that
 haplotype's walk: a tube map keeps its tube in colour and greys the rest, and
-the layouts that draw nodes lift it as the Walks picker does. The row's name
+the layouts that draw nodes lift it as the Highlight picker does. The row's name
 picks the walk, a phased callset's `HG00133 HP0` or a MAF's `HG00133.1` naming
 the graph's `HG00133#1`; a MAF row does it on JBrowse releases after
 5.0.0-beta.10, whose MAF display publishes the row it is hovered on:
@@ -205,7 +205,7 @@ A gbz-base cut includes the haplotypes' walks. A node draws thicker the more
 walks visit it, as Bandage draws depth. Each route through a bubble has a label
 with its haplotypes and length.
 
-The Walks picker lifts haplotypes out of the drawing, and the rest of the graph
+The Highlight picker lifts haplotypes out of the drawing, and the rest of the graph
 fades to grey. A tube map has no picker, since its tubes already are the walks.
 Past a dozen walks the track menu's **Haplotypes** lists only the lifted ones,
 and **Choose haplotypes...** searches the rest by name. A walk lifted alone

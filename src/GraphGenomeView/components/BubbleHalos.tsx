@@ -102,12 +102,9 @@ function HaloSwatch({ color }: { color: string }) {
   )
 }
 
-// One row per halo colour on screen, naming the kinds it stands for
-export const HaloLegend = observer(function HaloLegend({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
+// One key entry per halo colour drawn, naming the kinds it stands for; the
+// screen's legend and the exported figure's both read it
+export function haloKeyEntries(model: GraphPaneModel) {
   const kindsByColor = new Map<string, Set<string>>()
   for (const h of model.bubbleHalos) {
     if (!h.whole) {
@@ -117,12 +114,24 @@ export const HaloLegend = observer(function HaloLegend({
       kindsByColor.set(color, kinds)
     }
   }
-  return kindsByColor.size > 0 ? (
+  return [...kindsByColor].map(([color, kinds]) => ({
+    color,
+    label: `bubble: ${[...kinds].join(', ')}`,
+  }))
+}
+
+export const HaloLegend = observer(function HaloLegend({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  const entries = haloKeyEntries(model)
+  return entries.length > 0 ? (
     <div style={legendBoxStyle} data-testid="graph-halo-legend">
-      {[...kindsByColor].map(([color, kinds]) => (
+      {entries.map(({ color, label }) => (
         <div key={color} style={legendRowStyle}>
           <HaloSwatch color={color} />
-          <span>bubble: {[...kinds].join(', ')}</span>
+          <span>{label}</span>
         </div>
       ))}
     </div>
