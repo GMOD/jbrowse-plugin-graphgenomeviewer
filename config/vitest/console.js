@@ -10,6 +10,8 @@ console.error = (...args) => {
     r.includes('Cannot update a component') ||
     r.includes('was not wrapped in act') ||
     r.includes('Only HTTP(S) protocols are supported') ||
+    // load failures reach model.error, which the tests assert; the log repeats it
+    /^\[GraphGenomeView\.\w+\]/.test(r) ||
     r.includes(
       'You are trying to `require` a file outside of the scope of the test code',
     )
@@ -34,7 +36,8 @@ console.warn = (...args) => {
     r.includes('assembly name(s) not found in config') ||
     // applyTrackOpts.test.ts: 'an unknown heightMode is ignored' passes
     // heightMode:bogus on purpose to verify it's ignored
-    r.includes('unknown heightMode')
+    r.includes('unknown heightMode') ||
+    r.includes('Unexpected RPC')
   ) {
     return undefined
   }

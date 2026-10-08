@@ -135,6 +135,7 @@ test('a view that cannot go where it is sent says so', async () => {
   view.navToLocString.mockRejectedValue(new Error('No results found'))
   const { session } = testSession([view])
   const notifyError = vi.fn()
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
 
   showInLinearView({
     session: { ...session, notifyError },
@@ -147,6 +148,7 @@ test('a view that cannot go where it is sent says so', async () => {
       expect.objectContaining({ message: 'No results found' }),
     )
   })
+  logged.mockRestore()
 })
 
 test('a linear view on another assembly is not navigated', () => {
