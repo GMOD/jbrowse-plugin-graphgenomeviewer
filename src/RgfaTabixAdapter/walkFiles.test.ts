@@ -6,10 +6,14 @@ import configSchema from './configSchema.ts'
 // chr22 of HPRC v2.1 at base level, walk-indexed under 64 kb chunks of both
 // GRCh38 and CHM13, built 2026-10-08 under ~/work/scratch/walks-20261008/spike.
 // Skipped where the files are absent.
-const prefix = '/home/cdiesh/work/scratch/walks-20261008/spike/chr22'
-const present = existsSync(`${prefix}.walks.bed.gz`)
+const spikePrefix = '/home/cdiesh/work/scratch/walks-20261008/spike/chr22'
+const present = existsSync(`${spikePrefix}.walks.bed.gz`)
+// the same graph from the Rust builder: rows under their chunk's first base, a
+// chunk:i: header line, and an LN:i: column after each node row
+const rustPrefix = '/home/cdiesh/work/scratch/walks-20261008/rust/final/chr22'
+const rustPresent = existsSync(`${rustPrefix}.walks.bed.gz`)
 
-function makeAdapter() {
+function makeAdapter(prefix = spikePrefix, slots = {}) {
   const local = (path: string) => ({
     localPath: path,
     locationType: 'LocalPathLocation',
@@ -23,6 +27,7 @@ function makeAdapter() {
       walksLocation: local(`${prefix}.walks.bed.gz`),
       walksIndex: { location: local(`${prefix}.walks.bed.gz.tbi`) },
       assemblyNameToPanSN: { hg38: 'GRCh38', hs1: 'CHM13' },
+      ...slots,
     }),
   )
 }
@@ -91,5 +96,21 @@ test.skipIf(!present)(
       regionTooLarge: true,
       message: expect.stringMatching(/choose fewer haplotypes/),
     })
+  },
+)
+
+test.skipIf(!present || !rustPresent)(
+  'first-base rows cut as whole-chunk rows do, sized by their header',
+  async () => {
+    const haplotypes = ['HG002', 'HG00097#2']
+    const walks = (gfa: string) =>
+      gfa.split('\n').filter(l => l.startsWith('W\t'))
+    const spike = await makeAdapter().getSubgraph(window, { haplotypes })
+    const rust = await makeAdapter(rustPrefix, { walkChunk: 1000 }).getSubgraph(
+      window,
+      { haplotypes },
+    )
+    expect(walks(rust)).toEqual(walks(spike))
+    expect(rust).not.toMatch(/LN:i:\d+\tSN:Z:[^\n]*LN:i:/)
   },
 )
