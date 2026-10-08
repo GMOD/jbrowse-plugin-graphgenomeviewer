@@ -240,13 +240,18 @@ past the step budget, which the rows above raised, and keeps 4.3 M. Copying the
 text across took only 10–30 ms; parsing and converting it was the cost. Eight
 haplotypes load in 5 ms and 20 ms where the text took 30 ms and 90 ms.
 
-The drawing bounds every haplotype now. In the browser at chr22:20.0–20.1 Mb,
-from showing the track to the graph drawn, every haplotype takes 3.3 s
-force-directed (3.7 s through GFA text), 12 s as a tube map, 9 s of it tube map
-layout, and 18–19 s as walk rows, most of it React committing the rows' SVG
-elements. Eight haplotypes take 1.5 s force-directed either way. At
-chr22:20.0–20.26 Mb FMMM alone takes 10–12 s for every haplotype, so the step
-budget stays at 4 M.
+In the browser at chr22:20.0–20.1 Mb, from showing the track to the graph drawn,
+every haplotype takes 3.3 s force-directed where GFA text took 3.7 s, and 12 s
+as a tube map and 18–19 s as walk rows through either handoff. Eight haplotypes
+take 1.5 s force-directed through either.
+
+Drawing is what bounds every-haplotype views, measured 2026-10-08 on the beta.13
+host from the hosted files. FMMM takes 10–12 s in the worker at chr22:20.0–20.26
+Mb. The tube map's layout takes about 9 s on the main thread at 20.0–20.1 Mb.
+Walk rows there spent about 27 s of a 35 s CPU profile in React inserting and
+updating the rows' SVG elements (`insertBefore`, `setAttribute`). So the step
+budget stays at 4 M: a cut at 20.0–20.26 Mb now reaches the view in 2–3 s, but
+draws in 13–23 s force-directed and in 47 s or more as walk rows or a tube map.
 
 The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
 header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8
