@@ -145,8 +145,12 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 A walk-indexed `RgfaTabixAdapter` names a third file, `walksLocation`: one row
 per haplotype path per reference chunk, beside node and link rows filed under
 the same chunks (row formats at the top of `src/RgfaTabixAdapter/walkRows.ts`).
-`walksUri: <prefix>` names all three from the prefix `gfa-to-tabix --walks -o`
-was given, in place of `uri`:
+`walksUri` names all three by their shared prefix, in place of `uri`. From
+gfa-to-tabix 0.5.0, `--walks -o <prefix>` writes one set per reference sample,
+`<prefix>.<sample>.{walks,nodes,links}.bed.gz`, so a track names the set for its
+assembly's reference, `<prefix>.<sample>`, whose `#reference` header line names
+that one sample. A 0.4.0 build holds every reference in one set, which a track
+names by `<prefix>` alone:
 
 ```js
 {
@@ -156,8 +160,8 @@ was given, in place of `uri`:
   assemblyNames: ['hg38'],
   adapter: {
     type: 'RgfaTabixAdapter',
-    walksUri: 'https://example.com/hprc-v2.1.chr22',
-    assemblyNameToPanSN: { hg38: 'GRCh38', hs1: 'CHM13' },
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
     defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
   },
 }
