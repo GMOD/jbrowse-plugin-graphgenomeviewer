@@ -18,13 +18,10 @@ import {
   segmentSamples,
 } from './rgfaBed.ts'
 import {
+  WalkGraph,
   chunkQueryStart,
-  formatWalk,
   headerChunk,
   joinPieces,
-  keptGraph,
-  parseLinkEnds,
-  parseNodeRow,
   parseWalkRow,
   stepBudgetError,
   walkCut,
@@ -33,7 +30,7 @@ import {
 } from './walkRows.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
-import type { WalkNode, WalkRow } from './walkRows.ts'
+import type { WalkRow } from './walkRows.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
@@ -355,8 +352,12 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
     signal?.addEventListener('abort', stop, { once: true })
     const rows: WalkRow[] = []
-    const nodes = new Map<number, WalkNode>()
-    const links: ReturnType<typeof parseLinkEnds>[] = []
+    const graph = new WalkGraph({
+      refName,
+      start: region.start,
+      end: region.end,
+      context: WALK_CONTEXT,
+    })
     const read = (file: TabixIndexedFile, lineCallback: (line: string) => void) =>
       file.getLines(refName, from, region.end, {
         signal: reads.signal,
@@ -381,11 +382,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
           }
         }),
         read(index.segments, line => {
-          const [id, node] = parseNodeRow(line)
-          nodes.set(id, node)
+          graph.addNode(line)
         }),
         read(index.links, line => {
-          links.push(parseLinkEnds(line))
+          graph.addLink(line)
         }),
       ])
     } catch (error) {
@@ -394,16 +394,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     } finally {
       signal?.removeEventListener('abort', stop)
     }
-    const { kept, fragments } = walkCut(
-      joinPieces(rows),
-      nodes,
-      { refName, start: region.start, end: region.end },
-      WALK_CONTEXT,
-    )
-    const graph = keptGraph(kept, nodes, links)
-    return [
-      formatSubgraph(graph.segments, graph.links),
-      ...fragments.map(formatWalk),
-    ].join('\n')
+    const { kept, fragments } = walkCut(joinPieces(rows), graph.nodes)
+    return graph.format(kept, fragments)
   }
 }

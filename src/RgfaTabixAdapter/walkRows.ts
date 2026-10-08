@@ -2,8 +2,6 @@ import { NodeLimitError } from '@jbrowse/bandage-core/gbzWindow'
 import { panSNMatchesPrefix } from '@jbrowse/bandage-core/pansn'
 import { getBpDisplayStr } from '@jbrowse/core/util'
 
-import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
-
 // A walk-indexed graph is three tabix files filed under fixed chunks of each
 // reference: walk rows, node rows and link rows. A row's first three columns
 // name its chunk, either as the whole chunk or as its first base.
@@ -31,12 +29,15 @@ export interface WalkNode {
   start: number
   end: number
   rank: number
+  // on the reference inside the window plus the cut's context
+  onWindow: boolean
 }
 
 export interface WalkWindow {
   refName: string
   start: number
   end: number
+  context: number
 }
 
 // The name column, read without splitting the steps, so a row the cut does
@@ -59,27 +60,6 @@ export function parseWalkRow(line: string): WalkRow {
     piece: +c[6]!,
     n: +c[7]!,
     enc: c[8]!,
-  }
-}
-
-// Columns past the eighth (LN:i:, SQ:Z:, and whatever follows) are not read
-export function parseNodeRow(line: string): [number, WalkNode] {
-  const c = line.split('\t', 8)
-  return [
-    +c[3]!,
-    { rank: +c[4]!, refName: c[5]!, start: +c[6]!, end: +c[7]! },
-  ]
-}
-
-export function parseLinkEnds(line: string) {
-  const c = line.split('\t', 5)
-  const source = c[3]!
-  const target = c[4]!
-  return {
-    source: +source.slice(0, -1),
-    sourceStrand: source.slice(-1),
-    target: +target.slice(0, -1),
-    targetStrand: target.slice(-1),
   }
 }
 
@@ -199,29 +179,17 @@ export interface WalkFragment {
 
 /**
  * The cut a window draws from its walks: the reference inside the window plus
- * `context`, and each run from its first to its last step on that stretch,
+ * its context, and each run from its first to its last step on that stretch,
  * run on outward while the next step's node is already in the cut. Without
  * the run-on a haplotype whose alternate allele straddles the edge stopped
  * short of a node other walks had brought into the cut, and that node drew
  * without it. The run-on adds no node, so one pass is enough.
  */
-export function walkCut(
-  runs: WalkRun[],
-  nodes: Map<number, WalkNode>,
-  window: WalkWindow,
-  context: number,
-) {
-  const lo = window.start - context
-  const hi = window.end + context
-  const onWindow = (node: WalkNode | undefined) =>
-    node !== undefined &&
-    node.rank === 0 &&
-    node.refName === window.refName &&
-    node.end > lo &&
-    node.start < hi
+export function walkCut(runs: WalkRun[], nodes: Map<number, WalkNode>) {
+  const onWindow = (node: WalkNode | undefined) => node?.onWindow === true
   const kept = new Set<number>()
   for (const [id, node] of nodes) {
-    if (onWindow(node)) {
+    if (node.onWindow) {
       kept.add(id)
     }
   }
@@ -288,38 +256,106 @@ export function formatWalk({ name, hapStart, hapEnd, ids, rev }: WalkFragment) {
   return `W\t${sample}\t${haplotype}\t${contig.join('#')}\t${hapStart}\t${hapEnd}\t${steps.join('')}`
 }
 
-// The cut's nodes and the links between them, in the shapes formatSubgraph
-// writes
-export function keptGraph(
-  kept: Set<number>,
-  nodes: Map<number, WalkNode>,
-  links: ReturnType<typeof parseLinkEnds>[],
-) {
-  const segment = (id: number): RgfaSegment => ({
-    id: String(id),
-    ...nodes.get(id)!,
-    tags: '',
-  })
-  const segments = new Map<string, RgfaSegment>()
-  for (const id of kept) {
-    if (nodes.has(id)) {
-      segments.set(String(id), segment(id))
-    }
+// The positions of a line's first `n` tabs, -1 past the last
+function tabs(line: string, n: number, out: number[]) {
+  let at = -1
+  for (let k = 0; k < n; k++) {
+    at = at === -1 && k > 0 ? -1 : line.indexOf('\t', at + 1)
+    out[k] = at
   }
-  const keptLinks = new Map<string, RgfaLink>()
-  for (const { source, sourceStrand, target, targetStrand } of links) {
-    if (segments.has(String(source)) && segments.has(String(target))) {
-      keptLinks.set(`${source}${sourceStrand}${target}${targetStrand}`, {
-        source: String(source),
-        sourceStrand,
-        target: String(target),
-        targetStrand,
-        sourceSegment: segments.get(String(source))!,
-        targetSegment: segments.get(String(target))!,
+  return out
+}
+
+/**
+ * The node and link rows a walk cut reads, parsed as they arrive, and the GFA
+ * text of the cut they make with its walks. A node filed under two chunks
+ * arrives twice and is read once; columns past a node row's eighth (LN:i:,
+ * SQ:Z: and whatever follows) are not read at all.
+ */
+export class WalkGraph {
+  readonly nodes = new Map<number, WalkNode>()
+  private links: number[] = []
+  private readonly t: number[] = []
+
+  constructor(private window: WalkWindow) {}
+
+  addNode(line: string) {
+    const t = tabs(line, 8, this.t)
+    const id = +line.slice(t[2]! + 1, t[3])
+    if (!this.nodes.has(id)) {
+      const rank = +line.slice(t[3]! + 1, t[4])
+      const refName = line.slice(t[4]! + 1, t[5])
+      const start = +line.slice(t[5]! + 1, t[6])
+      const end = +line.slice(t[6]! + 1, t[7] === -1 ? undefined : t[7])
+      const { window } = this
+      this.nodes.set(id, {
+        rank,
+        refName,
+        start,
+        end,
+        onWindow:
+          rank === 0 &&
+          refName === window.refName &&
+          end > window.start - window.context &&
+          start < window.end + window.context,
       })
     }
   }
-  return { segments, links: keptLinks }
+
+  // An endpoint is held as id * 2 + 1 when reversed
+  addLink(line: string) {
+    const t = tabs(line, 5, this.t)
+    this.links.push(
+      endpoint(line, t[2]! + 1, t[3]!),
+      endpoint(line, t[3]! + 1, t[4] === -1 ? line.length : t[4]!),
+    )
+  }
+
+  /**
+   * GFA text: S lines by reference position, then L lines, then a W line per
+   * fragment, the same bytes for the same rows
+   */
+  format(kept: Set<number>, fragments: WalkFragment[]) {
+    const { nodes } = this
+    const ids = [...kept].filter(id => nodes.has(id))
+    ids.sort((a, b) => {
+      const x = nodes.get(a)!
+      const y = nodes.get(b)!
+      return x.refName < y.refName
+        ? -1
+        : x.refName > y.refName
+          ? 1
+          : x.start - y.start || a - b
+    })
+    const lines = ['H\tVN:Z:1.1']
+    for (const id of ids) {
+      const { refName, start, end, rank } = nodes.get(id)!
+      lines.push(
+        `S\t${id}\t*\tLN:i:${end - start}\tSN:Z:${refName}\tSO:i:${start}\tSR:i:${rank}`,
+      )
+    }
+    const seen = new Set<string>()
+    const links: string[] = []
+    for (let i = 0; i < this.links.length; i += 2) {
+      const a = this.links[i]!
+      const b = this.links[i + 1]!
+      const source = Math.floor(a / 2)
+      const target = Math.floor(b / 2)
+      if (kept.has(source) && kept.has(target)) {
+        const line = `L\t${source}\t${a % 2 ? '-' : '+'}\t${target}\t${b % 2 ? '-' : '+'}\t0M`
+        if (!seen.has(line)) {
+          seen.add(line)
+          links.push(line)
+        }
+      }
+    }
+    links.sort()
+    return [...lines, ...links, ...fragments.map(formatWalk)].join('\n')
+  }
+}
+
+function endpoint(line: string, from: number, to: number) {
+  return +line.slice(from, to - 1) * 2 + (line.charCodeAt(to - 1) === 45 ? 1 : 0)
 }
 
 /**
