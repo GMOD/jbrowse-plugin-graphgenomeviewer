@@ -139,6 +139,29 @@ describe('the step budget', () => {
     expect(error.message).toBe('Zoom in to about 150bp to see the graph')
   })
 
+  test('offers a cut for every haplotype fewer as well as a zoom', () => {
+    // four walks, the reference's among them, with these steps each per chunk
+    const each: [number, number][] = [
+      [100, 1],
+      [200, 1],
+      [300, 2],
+      [400, 1],
+    ]
+    const four = [
+      'GRCh38#0#chr1',
+      'HG002#1#chr1',
+      'HG002#2#chr1',
+      'NA19240#1#chr1',
+    ].flatMap(name => rows(each).map(row => ({ ...row, name })))
+    const window = { start: 250, end: 480 }
+    expect(stepBudgetError(four, 10, window, chunk, false)!.message).toBe(
+      'Zoom in to about 50bp, or choose fewer haplotypes, to see the graph',
+    )
+    expect(stepBudgetError(four, 10, window, chunk, true)!.message).toBe(
+      'Zoom in to about 50bp to see the graph',
+    )
+  })
+
   test('asks for fewer haplotypes where no zoom fits', () => {
     const error = stepBudgetError(
       rows([

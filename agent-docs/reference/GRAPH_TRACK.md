@@ -189,16 +189,19 @@ Two budgets refuse a window with the zoom-in notice. Before any row is read, the
 three Tabix indexes estimate the compressed bytes the reads would fetch
 (`bytesForRegions`), and past `walkByteBudget` (8 MB) the notice names the span
 that fits, or says none does where the window's first two chunks are over on
-their own. The bytes are the same for any haplotype set, since node and link
-rows are filed for every haplotype. On chr22 from gfa-to-tabix 0.4.0 at
-`--settle 0`, the two-chunk read a window always makes is 0.53 MB at the median,
-2.6 MB at the 99th percentile and 36 MB at most; 8 MB refuses every window over
-11.80–12.06 Mb on GRCh38 and 0.20–0.46 Mb on CHM13 (20 MB for 10 kb at 11.80 Mb)
-and nothing else. A 1 Mb window elsewhere fetches 2.8–4.7 MB, a 3 Mb one at 40
-Mb 9.5 MB. The 0.3.0 build at the default settle refuses the same windows. Then
-rows whose steps sum past `walkStepBudget` (4 M) fail the same way, asking for
-fewer haplotypes where no zoom fits, and the walk read stops the node and link
-reads. The step budget counts only the haplotypes asked for.
+their own. The bytes are the same for any haplotype set: every haplotype's walk
+rows are downloaded and dropped by name afterwards, and node and link rows are
+filed for all of them, so this budget is what bounds the download. On chr22 from
+gfa-to-tabix 0.4.0 at `--settle 0`, the two-chunk read a window always makes is
+0.53 MB at the median, 2.6 MB at the 99th percentile and 36 MB at most; 8 MB
+refuses every window over 11.80–12.06 Mb on GRCh38 and 0.20–0.46 Mb on CHM13 (20
+MB for 10 kb at 11.80 Mb) and nothing else. A 1 Mb window elsewhere fetches
+2.8–4.7 MB, a 3 Mb one at 40 Mb 9.5 MB. The 0.3.0 build at the default settle
+refuses the same windows. Then rows whose steps sum past `walkStepBudget` (4 M)
+fail the same way, and the walk read stops the node and link reads. The step
+budget counts only the haplotypes asked for, so the notice asks for fewer
+haplotypes where no zoom fits, and a cut for every haplotype is offered fewer
+beside the zoom.
 
 Measured 2026-10-08 on HPRC v2.1 chr22, local files, minimum of three runs on a
 loaded machine, window chr22:20.0–20.26 Mb:

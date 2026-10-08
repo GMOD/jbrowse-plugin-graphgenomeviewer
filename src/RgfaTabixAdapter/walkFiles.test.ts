@@ -273,3 +273,19 @@ test.skipIf(!rustPresent)(
     })
   },
 )
+
+test.skipIf(!rustPresent)(
+  'a cut for every haplotype past the step budget offers fewer haplotypes',
+  async () => {
+    const cut = makeAdapter(rustPrefix).getSubgraph({
+      ...window,
+      end: 20_260_000,
+    })
+    await expect(cut).rejects.toMatchObject({
+      name: 'NodeLimitError',
+      message: expect.stringMatching(
+        /^Zoom in to about \d+Kbp, or choose fewer haplotypes, to see the graph$/,
+      ),
+    })
+  },
+)
