@@ -289,3 +289,33 @@ test.skipIf(!rustPresent)(
     })
   },
 )
+
+// tabix-js's getLines spins forever on a NaN start, so these mock it: a
+// regression fails here instead of hanging the suite
+test('a cut or a feature read over a range that is not finite queries nothing', async () => {
+  const getLines = vi
+    .spyOn(TabixIndexedFile.prototype, 'getLines')
+    .mockResolvedValue()
+  const bytes = vi
+    .spyOn(TabixIndexedFile.prototype, 'bytesForRegions')
+    .mockResolvedValue(0)
+  const adapter = makeAdapter(fixturePrefix, {
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+  })
+  const region = {
+    refName: 'chr1',
+    assemblyName: 'hg38',
+    start: Number.NaN,
+    end: 2600,
+  }
+  await expect(adapter.getSubgraph(region)).rejects.toThrow(
+    "GRCh38#0#chr1:NaN-2600 is not a finite range to query the graph's index for",
+  )
+  await expect(
+    firstValueFrom(adapter.getFeatures(region).pipe(toArray())),
+  ).rejects.toThrow(/not a finite range/)
+  expect(getLines).not.toHaveBeenCalled()
+  expect(bytes).not.toHaveBeenCalled()
+  getLines.mockRestore()
+  bytes.mockRestore()
+})

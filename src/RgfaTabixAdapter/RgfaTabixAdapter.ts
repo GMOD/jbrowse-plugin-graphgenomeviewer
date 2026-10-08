@@ -77,6 +77,27 @@ function offReference(segments: RgfaSegment[]) {
   return segments.filter(segment => segment.rank > 0)
 }
 
+// tabix-js loops forever on a NaN coordinate, so every query the adapter makes
+// refuses a range that is not finite first
+function checkRange(refName: string, start: number, end: number) {
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    throw new Error(
+      `${refName}:${start}-${end} is not a finite range to query the graph's index for`,
+    )
+  }
+}
+
+async function getLines(
+  file: TabixIndexedFile,
+  refName: string,
+  start: number,
+  end: number,
+  opts: { signal?: AbortSignal; lineCallback: (line: string) => void },
+) {
+  checkRange(refName, start, end)
+  return file.getLines(refName, start, end, opts)
+}
+
 interface GraphIndex {
   segments: TabixIndexedFile
   links: TabixIndexedFile
@@ -183,7 +204,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         const start =
           chunk > 0 ? chunkQueryStart(query.start, chunk) : query.start
         await updateStatus('Downloading segments', statusCallback, () =>
-          this.fine.segments.getLines(tabixRefName, start, query.end, {
+          getLines(this.fine.segments, tabixRefName, start, query.end, {
             signal,
             lineCallback: line => {
               const { segment, anchored } = parseSegmentRow(line)
@@ -246,7 +267,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       end: number,
     ) => {
       const reached: RgfaSegment[] = []
-      await index.links.getLines(refName, start, end, {
+      await getLines(index.links, refName, start, end, {
         signal,
         lineCallback: line => {
           const link = parseLinkLine(line)
@@ -271,7 +292,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       return this.walkSubgraph(index, index.walks, tabixRefName, region, opts)
     }
     const layout = { anchored: false }
-    await index.segments.getLines(tabixRefName, region.start, region.end, {
+    await getLines(index.segments, tabixRefName, region.start, region.end, {
       signal,
       lineCallback: line => {
         const row = parseSegmentRow(line)
@@ -284,7 +305,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     // graph under the region and there is nothing to hop to or close.
     if (layout.anchored) {
       const found: RgfaLink[] = []
-      await index.links.getLines(tabixRefName, region.start, region.end, {
+      await getLines(index.links, tabixRefName, region.start, region.end, {
         signal,
         lineCallback: line => {
           found.push(parseLinkLine(line))
@@ -322,7 +343,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       const found: RgfaLink[] = []
       await Promise.all(
         spans.map(span =>
-          index.links.getLines(span.refName, span.start, span.end, {
+          getLines(index.links, span.refName, span.start, span.end, {
             signal,
             lineCallback: line => {
               found.push(parseLinkLine(line))
@@ -367,6 +388,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     const files = [walks, index.segments, index.links]
     const tooLarge = await byteBudgetError(
       async end => {
+        checkRange(refName, from, end)
         const sizes = await Promise.all(
           files.map(file =>
             file.bytesForRegions([{ refName, start: from, end }], { signal }),
@@ -397,7 +419,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       file: TabixIndexedFile,
       lineCallback: (line: string) => void,
     ) =>
-      file.getLines(refName, from, region.end, {
+      getLines(file, refName, from, region.end, {
         signal: reads.signal,
         lineCallback,
       })
