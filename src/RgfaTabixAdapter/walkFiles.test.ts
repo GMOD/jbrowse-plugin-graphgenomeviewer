@@ -18,6 +18,11 @@ const present = existsSync(`${spikePrefix}.walks.bed.gz`)
 const rustPrefix = '/home/cdiesh/work/scratch/walks-20261008/rust/final/chr22'
 const rustPresent = existsSync(`${rustPrefix}.walks.bed.gz`)
 
+// the same graph from gfa-to-tabix 0.4.0 with --settle 0, whose walk file
+// header also names the two references and 462 haplotypes
+const headerPrefix = '/home/cdiesh/work/scratch/walks-20261008/settle/s0/chr22'
+const headerPresent = existsSync(`${headerPrefix}.walks.bed.gz`)
+
 // Four walks over a 3.6 kb reference in 1 kb chunks, built by gfa-to-tabix
 // --walks --refs GRCh38 --chunk 1000 after 0.3.0, whose walk file names its
 // reference and haplotypes in the header:
@@ -184,6 +189,24 @@ test("the haplotypes a walk file's header names", async () => {
   expect(gfa).toMatch(/^S\t7\t/m)
   expect(gfa).not.toMatch(/^S\t8\t/m)
 })
+
+test.skipIf(!headerPresent)(
+  "chr22's haplotypes come from its walk file's header",
+  async () => {
+    const adapter = makeAdapter(headerPrefix)
+    const names = (await adapter.getHaplotypeNames())!
+    expect(names).toHaveLength(462)
+    expect(names[0]).toBe('HG00097#1')
+    expect(names).toContain('HG002#2')
+    expect(names.some(name => /^(GRCh38|CHM13)#/.test(name))).toBe(false)
+    const gfa = await adapter.getSubgraph(window, {
+      haplotypes: names.slice(0, 8),
+    })
+    expect(new Set(walkNames(gfa).map(n => n.split('#')[0]))).toEqual(
+      new Set(['GRCh38', 'HG00097', 'HG00099', 'HG00126', 'HG00128']),
+    )
+  },
+)
 
 test.skipIf(!rustPresent)(
   'a walk file without haplotype lines names none',
