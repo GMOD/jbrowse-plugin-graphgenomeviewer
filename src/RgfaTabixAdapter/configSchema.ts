@@ -180,11 +180,22 @@ const RgfaTabixAdapter = ConfigurationSchema(
     walksIndex: indexSchema('RgfaWalksIndex', ''),
     /**
      * #slot
-     * the reference chunk the walk file's rows are filed under, in bp
+     * the reference chunk the walk file's rows are filed under, in bp, when
+     * its header has no `chunk:i:` line to say so
      */
     walkChunk: {
       type: 'integer',
       defaultValue: 65536,
+    },
+    /**
+     * #slot
+     * the most haplotype steps a cut decodes; a window whose walk rows hold
+     * more shows a zoom-in notice instead. Counts only the haplotypes the cut
+     * is for, so fewer haplotypes draw a wider window.
+     */
+    walkStepBudget: {
+      type: 'integer',
+      defaultValue: 4_000_000,
     },
     /**
      * #slot

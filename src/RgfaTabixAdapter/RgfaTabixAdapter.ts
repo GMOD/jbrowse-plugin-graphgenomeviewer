@@ -1,4 +1,8 @@
-import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
+import { panSNHaplotype, resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
+import {
+  BaseFeatureDataAdapter,
+  cachedSetup,
+} from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
@@ -13,10 +17,23 @@ import {
   parseSegmentRow,
   segmentSamples,
 } from './rgfaBed.ts'
-import { formatWalk, parseWalkRow, walkFragments } from './walkRows.ts'
+import {
+  chunkQueryStart,
+  formatWalk,
+  headerChunk,
+  joinPieces,
+  keptGraph,
+  parseLinkEnds,
+  parseNodeRow,
+  parseWalkRow,
+  stepBudgetError,
+  walkCut,
+  walkNameFilter,
+  walkRowName,
+} from './walkRows.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
-import type { WalkRow } from './walkRows.ts'
+import type { WalkNode, WalkRow } from './walkRows.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
@@ -114,6 +131,18 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
   }
 
+  // The chunk a walk-indexed graph files its rows under, as the walk file's
+  // header states it, else the walkChunk slot
+  private walkChunk = cachedSetup({
+    setup: async opts => {
+      const walks = this.fine.walks
+      const stated = walks
+        ? headerChunk(await walks.getHeaderLines(opts))
+        : undefined
+      return stated ?? (this.getConf('walkChunk') as number)
+    },
+  })
+
   private index(tier: SubgraphTier = 'fine') {
     if (tier === 'fine') {
       return this.fine
@@ -135,8 +164,12 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     return ObservableCreate<Feature>(async observer => {
       const tabixRefName = await this.fine.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
+        // a walk-indexed node row may name only its chunk's first base
+        const chunk = this.fine.walks ? await this.walkChunk(opts) : 0
+        const start =
+          chunk > 0 ? Math.floor(query.start / chunk) * chunk : query.start
         await updateStatus('Downloading segments', statusCallback, () =>
-          this.fine.segments.getLines(tabixRefName, query.start, query.end, {
+          this.fine.segments.getLines(tabixRefName, start, query.end, {
             signal,
             lineCallback: line => {
               const { segment, anchored } = parseSegmentRow(line)
@@ -220,26 +253,8 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         `${region.assemblyName} ${region.refName} is not in this graph's index; a graph with PanSN names (GRCh38#0#chr1) needs ${region.assemblyName} mapped to its prefix in assemblyNameToPanSN`,
       )
     }
-    // A walk-indexed graph files its rows under fixed chunks; the chunk before
-    // the window holds the detour a haplotype takes into the window's first
-    // reference node, so the three queries start one chunk early.
-    const walkRows: WalkRow[] = []
-    const chunk: number = index.walks ? this.getConf('walkChunk') : 0
-    const walksRead = index.walks
-      ? index.walks.getLines(
-          tabixRefName,
-          Math.max(0, region.start - chunk),
-          region.end,
-          {
-            signal,
-            lineCallback: line => {
-              walkRows.push(parseWalkRow(line))
-            },
-          },
-        )
-      : Promise.resolve()
-    if (chunk > 0) {
-      region = { ...region, start: Math.max(0, region.start - chunk) }
+    if (index.walks) {
+      return this.walkSubgraph(index, index.walks, tabixRefName, region, opts)
     }
     const layout = { anchored: false }
     await index.segments.getLines(tabixRefName, region.start, region.end, {
@@ -266,44 +281,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         start: region.start,
         end: region.end,
       })
-      if (chunk === 0) {
-        return formatSubgraph(cut.segments, cut.links)
-      }
-      await walksRead
-      // walk-indexed: keep the reference inside the window plus context and
-      // every node a haplotype visits between its first and last step there
-      const window = {
-        refName: tabixRefName,
-        start: region.start + chunk,
-        end: region.end,
-      }
-      const fragments = walkFragments(walkRows, cut.segments, window, WALK_CONTEXT)
-      const kept = new Map<string, RgfaSegment>()
-      for (const segment of cut.segments.values()) {
-        if (
-          segment.rank === 0 &&
-          segment.refName === tabixRefName &&
-          segment.end > window.start - WALK_CONTEXT &&
-          segment.start < window.end + WALK_CONTEXT
-        ) {
-          kept.set(segment.id, segment)
-        }
-      }
-      for (const fragment of fragments) {
-        for (const step of fragment.steps) {
-          const segment = cut.segments.get(step.id)
-          if (segment) {
-            kept.set(step.id, segment)
-          }
-        }
-      }
-      const keptLinks = new Map<string, RgfaLink>()
-      for (const [key, link] of cut.links) {
-        if (kept.has(link.source) && kept.has(link.target)) {
-          keptLinks.set(key, link)
-        }
-      }
-      return [formatSubgraph(kept, keptLinks), ...fragments.map(formatWalk)].join('\n')
+      return formatSubgraph(cut.segments, cut.links)
     }
     let frontier = offReference(
       await addLinksOver(tabixRefName, region.start, region.end),
@@ -349,5 +327,83 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
 
     return formatSubgraph(segments, links)
+  }
+
+  // A walk-indexed graph's cut: one read of each file over whole chunks, from
+  // the chunk before the window to its end. Only the walks `haplotypes` asks
+  // for, and the reference's, are decoded, and none is past walkStepBudget:
+  // the three reads go out together and a walk read over budget stops the
+  // other two.
+  private async walkSubgraph(
+    index: GraphIndex,
+    walks: TabixIndexedFile,
+    refName: string,
+    region: Region,
+    opts: SubgraphAdapterOptions,
+  ) {
+    const { signal, haplotypes } = opts
+    const chunk = await this.walkChunk({ signal })
+    const budget: number = this.getConf('walkStepBudget')
+    const keep = walkNameFilter(
+      haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
+      panSNHaplotype(refName),
+    )
+    const from = chunkQueryStart(region.start, chunk)
+    const reads = new AbortController()
+    const stop = () => {
+      reads.abort(signal?.reason)
+    }
+    signal?.addEventListener('abort', stop, { once: true })
+    const rows: WalkRow[] = []
+    const nodes = new Map<number, WalkNode>()
+    const links: ReturnType<typeof parseLinkEnds>[] = []
+    const read = (file: TabixIndexedFile, lineCallback: (line: string) => void) =>
+      file.getLines(refName, from, region.end, {
+        signal: reads.signal,
+        lineCallback,
+      })
+    try {
+      await Promise.all([
+        read(walks, line => {
+          if (keep === undefined || keep(walkRowName(line))) {
+            rows.push(parseWalkRow(line))
+          }
+        }).then(() => {
+          const error = stepBudgetError(
+            rows,
+            budget,
+            region,
+            chunk,
+            keep !== undefined,
+          )
+          if (error) {
+            throw error
+          }
+        }),
+        read(index.segments, line => {
+          const [id, node] = parseNodeRow(line)
+          nodes.set(id, node)
+        }),
+        read(index.links, line => {
+          links.push(parseLinkEnds(line))
+        }),
+      ])
+    } catch (error) {
+      reads.abort()
+      throw error
+    } finally {
+      signal?.removeEventListener('abort', stop)
+    }
+    const { kept, fragments } = walkCut(
+      joinPieces(rows),
+      nodes,
+      { refName, start: region.start, end: region.end },
+      WALK_CONTEXT,
+    )
+    const graph = keptGraph(kept, nodes, links)
+    return [
+      formatSubgraph(graph.segments, graph.links),
+      ...fragments.map(formatWalk),
+    ].join('\n')
   }
 }

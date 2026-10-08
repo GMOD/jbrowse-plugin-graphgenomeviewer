@@ -27,7 +27,6 @@ function makeAdapter() {
 }
 
 test.skipIf(!present)('a walk-indexed cut carries W lines', async () => {
-  const t0 = performance.now()
   const gfa = await makeAdapter().getSubgraph({
     refName: 'chr22',
     assemblyName: 'hg38',
@@ -36,9 +35,6 @@ test.skipIf(!present)('a walk-indexed cut carries W lines', async () => {
   })
   const lines = gfa.split('\n')
   const count = (p: string) => lines.filter(l => l.startsWith(p)).length
-  console.log(
-    `chr22:20.0-20.1 Mb: ${count('S\t')} S, ${count('L\t')} L, ${count('W\t')} W in ${Math.round(performance.now() - t0)} ms`,
-  )
   expect(count('W\t')).toBeGreaterThan(400)
   expect(count('S\t')).toBeGreaterThan(1000)
   const w = lines.find(l => l.startsWith('W\tGRCh38\t'))!
