@@ -59,7 +59,7 @@ the WASM engine.
 ```console
 pnpm test         # vitest unit tests
 pnpm test:e2e     # puppeteer, needs RUN_E2E=1 and a jbrowse-web build
-pnpm host-compat  # boots dist/ on hosted JBrowse releases and cuts a graph
+pnpm host-compat  # boots dist/ on hosted JBrowse releases, cuts a graph, draws the track
 pnpm lint
 ```
 
@@ -68,7 +68,9 @@ pnpm lint
 `pnpm version` runs `host-compat`, and a publish has to pass it. The probe
 serves `dist/` to a shipped config on each hosted release, which catches what
 tsc, eslint and unit tests miss: an RPC argument a released core can't post, or
-a re-export the host no longer serves.
+a re-export the host no longer serves. It draws the graph in its own view and as
+a track in a linear view, whose display renders host components the view does
+not.
 
 `pnpm version` refuses unless the Push workflow, the browser suites among it,
 passed on the commit being released (`scripts/ci-green.mjs`), so push the commit

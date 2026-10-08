@@ -66,9 +66,12 @@ test is its only hover source.
 ## Status
 
 The display reports `displayPhase` through core's `computeDisplayStatusPhase`
-and renders through `DisplayStatusChrome`, so an error, the loading scrim and
-the too-large banner sit inside the track's box rather than below its clip, and
-the app's readiness waits for the first graph. It is `loading` until a graph is
+and renders through `GraphStatusChrome`, so an error, the loading scrim and the
+too-large banner sit inside the track's box rather than below its clip, and the
+app's readiness waits for the first graph. The chrome is the plugin's own copy
+of core's `DisplayStatusChrome`, built from overlays every host from beta.11
+serves, since jbrowse-web main removed that component on 2026-10-08 and the
+track failed there with React error #130. It is `loading` until a graph is
 drawn, suppressed for a minimized track, an empty viewport or an unmounted view
 body as core's displays are. A backend failure is folded into the error phase,
 and GraphCanvas shows it with the render hook's retry.
