@@ -145,8 +145,9 @@ the same chunks (row formats at the top of `src/RgfaTabixAdapter/walkRows.ts`).
 A cut reads all three together, from the start of the chunk before the window to
 the window's end, so a row filed under its chunk's first base is found as well
 as one spanning the chunk. The chunk size comes from a `chunk:i:` header line,
-else `walkChunk`. `getFeatures` widens its read to the chunk start for the same
-reason; `anchoredCut`, the coarse tier and the bubble halos read no anchor
+else `walkChunk`. `getFeatures` reads from the chunk before the window too,
+since a node crossing a chunk boundary is filed under the chunk holding its
+start; `anchoredCut`, the coarse tier and the bubble halos read no anchor
 interval of a walk-indexed file.
 
 The cut decodes only the walks `haplotypes` names, and the reference's; the rest
@@ -167,14 +168,14 @@ loaded machine, window chr22:20.0–20.26 Mb:
 | now, every haplotype   | 0.06 s | 1.0 s  | 4.3 s    | 5.3 s  |
 | now, 8 haplotypes      | 0.08 s | 0.18 s | 0.12 s   | 0.29 s |
 
-"Cut" includes the adapter's own reads. "Now" loads with bandage-core's
-`walks-handoff` branch, which builds no string per walk step; on 8.0.1 the
-every-haplotype load takes about 40% longer and the 8-haplotype one 0.02 s
-longer. Every haplotype there is past the budget, refused in 0.12 s; the row
-above raised it. In the browser at chr22:20.0–20.1 Mb, from showing the track to
-the graph drawn, 8 haplotypes take 1.4 s force-directed (0.8 s of it FMMM), 0.5
-s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s, 25 s (20 s
-of tube map layout) and 6.4 s.
+"Cut" includes the adapter's own reads. "Now" loads with bandage-core at 0ffbfda
+(on its main after 8.0.1, unreleased), which builds no string per walk step; on
+8.0.1 the every-haplotype load takes about 40% longer and the 8-haplotype one
+0.02 s longer. Every haplotype there is past the budget, refused in 0.12 s; the
+row above raised it. In the browser at chr22:20.0–20.1 Mb, from showing the
+track to the graph drawn, 8 haplotypes take 1.4 s force-directed (0.8 s of it
+FMMM), 0.5 s as a tube map and 0.55 s as walk rows; every haplotype takes 4.7 s,
+25 s (20 s of tube map layout) and 6.4 s.
 
 The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
 header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8

@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs'
 
+import { firstValueFrom } from 'rxjs'
+import { toArray } from 'rxjs/operators'
+
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
 
@@ -112,5 +115,19 @@ test.skipIf(!present || !rustPresent)(
     )
     expect(walks(rust)).toEqual(walks(spike))
     expect(rust).not.toMatch(/LN:i:\d+\tSN:Z:[^\n]*LN:i:/)
+  },
+)
+
+// Node 2495598 spans chr22:19,988,476-19,988,793 and is filed under the chunk
+// before the one starting at 19,988,480
+test.skipIf(!rustPresent)(
+  'getFeatures reads the chunk before the window for a node crossing into it',
+  async () => {
+    const features = await firstValueFrom(
+      makeAdapter(rustPrefix)
+        .getFeatures({ ...window, start: 19_988_480, end: 19_988_600 })
+        .pipe(toArray()),
+    )
+    expect(features.map(f => f.get('name'))).toContain('2495598')
   },
 )

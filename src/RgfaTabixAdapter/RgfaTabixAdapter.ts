@@ -162,10 +162,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     return ObservableCreate<Feature>(async observer => {
       const tabixRefName = await this.fine.refNames.resolve(query, opts)
       if (tabixRefName !== undefined) {
-        // a walk-indexed node row may name only its chunk's first base
+        // a walk-indexed node row names only its chunk's first base, and a
+        // node crossing in from the chunk before is filed there
         const chunk = this.fine.walks ? await this.walkChunk(opts) : 0
         const start =
-          chunk > 0 ? Math.floor(query.start / chunk) * chunk : query.start
+          chunk > 0 ? chunkQueryStart(query.start, chunk) : query.start
         await updateStatus('Downloading segments', statusCallback, () =>
           this.fine.segments.getLines(tabixRefName, start, query.end, {
             signal,
