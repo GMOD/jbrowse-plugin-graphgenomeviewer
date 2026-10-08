@@ -19,6 +19,7 @@ const useStyles = makeStyles()({
   },
 })
 
+// Only an rGFA cut reads hops; a GBZ cut widens by its adapter's bp `context`.
 // Hops past the region's own segments, each costing a tabix query per
 // off-reference segment already reached. One is the default: at none a single
 // detour draws as two unrelated stubs, which is a wrong picture of the graph
@@ -38,7 +39,7 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
   model: LinearGraphCutModel
 }) {
   const { classes } = useStyles()
-  return (
+  return model.adapterConfig.type === 'RgfaTabixAdapter' ? (
     <div className={classes.section}>
       <FormControl className={classes.formControl}>
         <InputLabel>Graph context</InputLabel>
@@ -66,7 +67,7 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
         off-reference segment already reached.
       </Typography>
     </div>
-  )
+  ) : null
 })
 
 export default SubgraphContextSelect

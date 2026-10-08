@@ -70,3 +70,23 @@ test('only annotation tracks are carried', () => {
 test('an assembly the session has no annotation for gets none', () => {
   expect(launchTracks({ session, assemblyName: 'IAI39' })).toEqual([])
 })
+
+test('a track naming the assembly by an alias is carried', () => {
+  const aliased = {
+    tracks: [
+      track({
+        type: 'FeatureTrack',
+        trackId: 'ncbi_genes',
+        assemblyNames: ['GRCh38'],
+      }),
+    ],
+    assemblies: [],
+    assemblyManager: {
+      has: (name: string) => name === 'GRCh38' || name === 'hg38',
+      get: () => ({ name: 'hg38' }),
+    },
+  }
+  expect(launchTracks({ session: aliased, assemblyName: 'hg38' })).toEqual([
+    'ncbi_genes',
+  ])
+})

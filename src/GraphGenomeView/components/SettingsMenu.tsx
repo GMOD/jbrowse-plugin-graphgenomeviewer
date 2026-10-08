@@ -39,6 +39,18 @@ const SettingsMenu = observer(function SettingsMenu({
               void model.toggleDeletionEdges()
             },
           },
+          ...(model.modeDrawsNodes && model.walkChoices.length > 1
+            ? [
+                {
+                  type: 'checkbox' as const,
+                  label: 'Walk rows under the graph',
+                  checked: model.walkStrip,
+                  onClick: () => {
+                    model.setWalkStrip(!model.walkStrip)
+                  },
+                },
+              ]
+            : []),
           {
             type: 'checkbox' as const,
             label: 'Show timings',

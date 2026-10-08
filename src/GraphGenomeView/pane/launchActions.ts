@@ -100,10 +100,6 @@ export const withLaunchActions = withRenderingActions
     },
   }))
   .views(self => ({
-    // The graph's way out, in the same shared "Launch view" submenu every
-    // other view contributes to. Until this existed the triangle had two edges:
-    // a linear view could open a graph or a synteny view of a locus, and the
-    // graph could open nothing at all.
     // Which samples' walks walk rows show: every one, those whose walk and
     // the picked repeat's call disagree, or a set picked by name
     walkRowSampleMenuItems(): MenuItem[] {
@@ -434,6 +430,7 @@ export const withLaunchActions = withRenderingActions
         },
       ]
     },
+    // the graph's way out, in the "Launch view" submenu every view shares
     launchMenuItems(): MenuItem[] {
       const items: MenuItem[] = []
       for (const item of graphLaunchMenuItems({

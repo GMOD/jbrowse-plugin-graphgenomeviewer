@@ -1,5 +1,7 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 
+import { canonicalAssemblyName } from './launchFromGraph'
+
 import type { TrackScanSession } from './launchFromGraph'
 
 const ANNOTATION_TRACK_TYPE = 'FeatureTrack'
@@ -38,7 +40,11 @@ export function launchTracks({
     if (
       type === ANNOTATION_TRACK_TYPE &&
       Array.isArray(assemblyNames) &&
-      assemblyNames.includes(assemblyName) &&
+      assemblyNames.some(
+        name =>
+          typeof name === 'string' &&
+          canonicalAssemblyName(session, name) === assemblyName,
+      ) &&
       typeof trackId === 'string' &&
       trackId !== first
     ) {
