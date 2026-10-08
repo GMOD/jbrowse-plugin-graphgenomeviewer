@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 
+import { TabixIndexedFile } from '@gmod/tabix'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
@@ -16,6 +17,17 @@ const present = existsSync(`${spikePrefix}.walks.bed.gz`)
 // chunk:i: header line, and an LN:i: column after each node row
 const rustPrefix = '/home/cdiesh/work/scratch/walks-20261008/rust/final/chr22'
 const rustPresent = existsSync(`${rustPrefix}.walks.bed.gz`)
+
+// Four walks over a 3.6 kb reference in 1 kb chunks, built by gfa-to-tabix
+// --walks --refs GRCh38 --chunk 1000 after 0.3.0, whose walk file names its
+// reference and haplotypes in the header:
+//   W GRCh38  0 chr1 >1>2>3>4>5>6
+//   W HG002   1 chr1 >1>2>7>4>5>6   7 replaces 3
+//   W HG002   2 chr1 >1>2>3>4>8>6   8 replaces 5
+//   W HG00097 1 chr1 >1>2>3>4>5>6
+const fixturePrefix = require
+  .resolve('./test_data/walks_header.walks.bed.gz')
+  .replace(/\.walks\.bed\.gz$/, '')
 
 function makeAdapter(prefix = spikePrefix, slots = {}) {
   const local = (path: string) => ({
@@ -90,7 +102,9 @@ test.skipIf(!present)('a CHM13 window cuts from the same files', async () => {
 test.skipIf(!present)(
   'the densest chunk is past the step budget for every haplotype',
   async () => {
-    const cut = makeAdapter().getSubgraph({
+    const cut = makeAdapter(spikePrefix, {
+      walkByteBudget: 100_000_000,
+    }).getSubgraph({
       ...window,
       start: 11_800_000,
       end: 11_864_000,
@@ -152,3 +166,62 @@ test('walksUri names the three files a walk-indexed build writes', () => {
     uri: 'hprc.chr22.links.bed.gz.tbi',
   })
 })
+
+test('a cut over walkByteBudget reads no row', async () => {
+  const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
+  const cut = makeAdapter(fixturePrefix, {
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+    walkByteBudget: 100,
+  }).getSubgraph({
+    refName: 'chr1',
+    assemblyName: 'hg38',
+    start: 1000,
+    end: 2600,
+  })
+  await expect(cut).rejects.toMatchObject({
+    name: 'NodeLimitError',
+    message: expect.stringMatching(/walkByteBudget/),
+  })
+  expect(getLines).not.toHaveBeenCalled()
+  getLines.mockRestore()
+})
+
+test.skipIf(!rustPresent)(
+  'the densest chunk is past the byte budget before any row is read',
+  async () => {
+    const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
+    const cut = makeAdapter(rustPrefix).getSubgraph(
+      { ...window, start: 11_800_000, end: 11_864_000 },
+      { haplotypes: ['HG002'] },
+    )
+    await expect(cut).rejects.toMatchObject({
+      name: 'NodeLimitError',
+      regionTooLarge: true,
+      message: expect.stringMatching(
+        /^Too much graph here to fetch \(1\d\.\d MB against walkByteBudget 8\.0 MB\)$/,
+      ),
+    })
+    expect(getLines).not.toHaveBeenCalled()
+    getLines.mockRestore()
+  },
+)
+
+test.skipIf(!rustPresent)(
+  'chr22:20.0-20.1 Mb fits the byte budget, and a smaller budget names a zoom',
+  async () => {
+    const haplotypes = ['HG002', 'HG00097#2']
+    const gfa = await makeAdapter(rustPrefix).getSubgraph(window, {
+      haplotypes,
+    })
+    expect(walkNames(gfa)).toContain('HG002#1#chr22')
+    const cut = makeAdapter(rustPrefix, {
+      walkByteBudget: 700_000,
+    }).getSubgraph(window, { haplotypes })
+    await expect(cut).rejects.toMatchObject({
+      name: 'NodeLimitError',
+      message: expect.stringMatching(
+        /^Zoom in to about \d+Kbp to see the graph$/,
+      ),
+    })
+  },
+)

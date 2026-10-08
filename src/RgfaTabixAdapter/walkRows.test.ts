@@ -1,5 +1,6 @@
 import {
   WalkGraph,
+  byteBudgetError,
   chunkQueryStart,
   headerChunk,
   joinPieces,
@@ -161,6 +162,50 @@ test('a cut queries from the start of the chunk before the window', () => {
   expect(chunkQueryStart(10, 65_536)).toBe(0)
   expect(headerChunk(['#walks\tchunk:i:65536'])).toBe(65_536)
   expect(headerChunk(['#walks'])).toBeUndefined()
+})
+
+describe('the byte budget', () => {
+  const chunk = 100
+  // bytes a read from the query start to `end` fetches, 10 per chunk row
+  // filed under the chunk's first base, and 80 under the chunk at 300
+  const bytesTo = (end: number) => {
+    let bytes = 0
+    for (let cs = 0; cs < end; cs += chunk) {
+      bytes += cs === 300 ? 80 : 10
+    }
+    return Promise.resolve(bytes)
+  }
+
+  test('passes a window under it', async () => {
+    expect(
+      await byteBudgetError(bytesTo, 40, { start: 150, end: 250 }, chunk),
+    ).toBeUndefined()
+  })
+
+  test('names the span from the window start that fits', async () => {
+    const error = (await byteBudgetError(
+      bytesTo,
+      50,
+      { start: 150, end: 450 },
+      chunk,
+    ))!
+    expect(error.name).toBe('NodeLimitError')
+    expect(error.regionTooLarge).toBe(true)
+    expect(error.fitsBp).toBe(150)
+    expect(error.message).toBe('Zoom in to about 150bp to see the graph')
+  })
+
+  test('says so where no zoom fits', async () => {
+    const error = (await byteBudgetError(
+      async end => (await bytesTo(end)) * 100_000,
+      5_000_000,
+      { start: 310, end: 320 },
+      chunk,
+    ))!
+    expect(error.message).toBe(
+      'Too much graph here to fetch (11.0 MB against walkByteBudget 5.0 MB)',
+    )
+  })
 })
 
 // Reference 1-2-3-4, 100 bp each from 0; the window is 150-250, so only 2 and

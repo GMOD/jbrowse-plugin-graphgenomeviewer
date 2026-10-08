@@ -422,3 +422,46 @@ export function stepBudgetError(
       : `Too many haplotype steps here to draw ${filtered ? 'these haplotypes' : 'every haplotype'} (${read.toLocaleString()} against walkStepBudget ${budget.toLocaleString()}); choose fewer haplotypes`
   return error
 }
+
+/**
+ * The zoom-in notice for a cut whose three files would fetch more than
+ * `budget` compressed bytes, or undefined when they fit. `bytesTo(end)` is the
+ * indexes' estimate for a read from the window's first query base to `end`;
+ * the span that fits grows a chunk at a time from the chunk holding the
+ * window's start, and when that chunk and the one before are over on their
+ * own, no zoom fits.
+ */
+export async function byteBudgetError(
+  bytesTo: (end: number) => Promise<number>,
+  budget: number,
+  window: { start: number; end: number },
+  chunk: number,
+) {
+  const bytes = await bytesTo(window.end)
+  if (bytes <= budget) {
+    return undefined
+  }
+  let fitsBp = 0
+  let least: number | undefined
+  for (
+    let cs = Math.floor(window.start / chunk) * chunk;
+    cs < window.end;
+    cs += chunk
+  ) {
+    const read = await bytesTo(cs + 1)
+    least ??= read
+    if (read > budget) {
+      break
+    }
+    fitsBp = cs + chunk - window.start
+  }
+  const windowBp = window.end - window.start
+  const error = new NodeLimitError(budget, windowBp, Math.max(fitsBp, 1))
+  error.message =
+    fitsBp > 0
+      ? `Zoom in to about ${getBpDisplayStr(fitsBp)} to see the graph`
+      : `Too much graph here to fetch (${megabytes(least ?? bytes)} against walkByteBudget ${megabytes(budget)})`
+  return error
+}
+
+const megabytes = (bytes: number) => `${(bytes / 1e6).toFixed(1)} MB`

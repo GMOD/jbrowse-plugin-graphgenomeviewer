@@ -19,6 +19,7 @@ import {
 } from './rgfaBed.ts'
 import {
   WalkGraph,
+  byteBudgetError,
   chunkQueryStart,
   headerChunk,
   joinPieces,
@@ -329,10 +330,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   }
 
   // A walk-indexed graph's cut: one read of each file over whole chunks, from
-  // the chunk before the window to its end. Only the walks `haplotypes` asks
-  // for, and the reference's, are decoded, and none is past walkStepBudget:
-  // the three reads go out together and a walk read over budget stops the
-  // other two.
+  // the chunk before the window to its end. The indexes first estimate the
+  // bytes those reads fetch, and a window past walkByteBudget reads no row.
+  // Only the walks `haplotypes` asks for, and the reference's, are decoded,
+  // and none is past walkStepBudget: the three reads go out together and a
+  // walk read over budget stops the other two.
   private async walkSubgraph(
     index: GraphIndex,
     walks: TabixIndexedFile,
@@ -348,6 +350,23 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       panSNHaplotype(refName),
     )
     const from = chunkQueryStart(region.start, chunk)
+    const files = [walks, index.segments, index.links]
+    const tooLarge = await byteBudgetError(
+      async end => {
+        const sizes = await Promise.all(
+          files.map(file =>
+            file.bytesForRegions([{ refName, start: from, end }], { signal }),
+          ),
+        )
+        return sizes.reduce((sum, bytes) => sum + bytes, 0)
+      },
+      this.getConf('walkByteBudget'),
+      region,
+      chunk,
+    )
+    if (tooLarge) {
+      throw tooLarge
+    }
     const reads = new AbortController()
     const stop = () => {
       reads.abort(signal?.reason)
