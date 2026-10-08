@@ -36,6 +36,7 @@ import type { WalkRow } from './walkRows.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
@@ -249,7 +250,8 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }, signal)
   }
 
-  // Extract the graph around a region as GFA text, for GraphGenomeView. The
+  // Extract the graph around a region for GraphGenomeView: GFA text, or a
+  // walk-indexed graph's tables (walkSubgraph). The
   // region's own segments come from segs.bed.gz; links.bed.gz supplies the edges
   // incident to them *and* the coordinates of the segments on the other end,
   // which typically sit on a different stable sequence (a rank>0 bubble) and so
@@ -263,7 +265,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   // hopless cut stays as cheap as it was. `signal` goes to every one of those
   // queries, so a cut the view has replaced stops.
   // `tier: 'coarse'` reads the `coarse` pair instead, the same way.
-  async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
+  async getSubgraph(
+    region: Region,
+    opts: SubgraphAdapterOptions = {},
+  ): Promise<string | GraphTables> {
     const { hops = 0, signal, tier } = opts
     const index = this.index(tier)
     const segments = new Map<string, RgfaSegment>()
@@ -464,6 +469,6 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       signal?.removeEventListener('abort', stop)
     }
     const { kept, fragments } = walkCut(joinPieces(rows), graph.nodes)
-    return graph.format(kept, fragments)
+    return graph.tables(kept, fragments)
   }
 }

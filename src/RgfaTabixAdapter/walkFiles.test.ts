@@ -1,12 +1,15 @@
 import { existsSync } from 'node:fs'
 
 import { TabixIndexedFile } from '@gmod/tabix'
+import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 
 // chr22 of HPRC v2.1 at base level, walk-indexed under 64 kb chunks of both
 // GRCh38 and CHM13, built 2026-10-08 under ~/work/scratch/walks-20261008/spike.
@@ -61,6 +64,12 @@ function makeAdapter(prefix = spikePrefix, slots = {}) {
   )
 }
 
+// a walk-indexed cut's tables as the GFA they stand for
+const gfaOf = async (cut: Promise<string | GraphTables>) => {
+  const tables = await cut
+  return typeof tables === 'string' ? tables : graphTablesGFA(tables)
+}
+
 const walkNames = (gfa: string) =>
   gfa
     .split('\n')
@@ -77,7 +86,7 @@ const window = {
 test.skipIf(!present)(
   'a walk-indexed cut carries a W line per haplotype',
   async () => {
-    const gfa = await makeAdapter().getSubgraph(window)
+    const gfa = await gfaOf(makeAdapter().getSubgraph(window))
     const lines = gfa.split('\n')
     expect(walkNames(gfa).length).toBeGreaterThan(400)
     expect(lines.filter(l => l.startsWith('S\t')).length).toBeGreaterThan(1000)
@@ -88,9 +97,11 @@ test.skipIf(!present)(
 test.skipIf(!present)(
   'a cut for some haplotypes decodes those and the reference',
   async () => {
-    const gfa = await makeAdapter().getSubgraph(window, {
-      haplotypes: ['HG002', 'HG00097#2'],
-    })
+    const gfa = await gfaOf(
+      makeAdapter().getSubgraph(window, {
+        haplotypes: ['HG002', 'HG00097#2'],
+      }),
+    )
     const samples = new Set(
       walkNames(gfa).map(n => n.split('#').slice(0, 2).join('#')),
     )
@@ -104,10 +115,12 @@ test.skipIf(!present)(
 )
 
 test.skipIf(!present)('a CHM13 window cuts from the same files', async () => {
-  const gfa = await makeAdapter().getSubgraph({
-    ...window,
-    assemblyName: 'hs1',
-  })
+  const gfa = await gfaOf(
+    makeAdapter().getSubgraph({
+      ...window,
+      assemblyName: 'hs1',
+    }),
+  )
   expect(walkNames(gfa)).toContain('CHM13#0#chr22')
   expect(walkNames(gfa).length).toBeGreaterThan(400)
 })
@@ -136,10 +149,11 @@ test.skipIf(!present || !rustPresent)(
     const haplotypes = ['HG002', 'HG00097#2']
     const walks = (gfa: string) =>
       gfa.split('\n').filter(l => l.startsWith('W\t'))
-    const spike = await makeAdapter().getSubgraph(window, { haplotypes })
-    const rust = await makeAdapter(rustPrefix, { walkChunk: 1000 }).getSubgraph(
-      window,
-      { haplotypes },
+    const spike = await gfaOf(makeAdapter().getSubgraph(window, { haplotypes }))
+    const rust = await gfaOf(
+      makeAdapter(rustPrefix, { walkChunk: 1000 }).getSubgraph(window, {
+        haplotypes,
+      }),
     )
     expect(walks(rust)).toEqual(walks(spike))
     expect(rust).not.toMatch(/LN:i:\d+\tSN:Z:[^\n]*LN:i:/)
@@ -189,9 +203,11 @@ test("the haplotypes a walk file's header names", async () => {
     'HG002#1',
     'HG002#2',
   ])
-  const gfa = await adapter.getSubgraph(
-    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 2600 },
-    { haplotypes: ['HG002#1'] },
+  const gfa = await gfaOf(
+    adapter.getSubgraph(
+      { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 2600 },
+      { haplotypes: ['HG002#1'] },
+    ),
   )
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
   expect(gfa).toMatch(/^S\t7\t/m)
@@ -207,9 +223,11 @@ test.skipIf(!headerPresent)(
     expect(names[0]).toBe('HG00097#1')
     expect(names).toContain('HG002#2')
     expect(names.some(name => /^(GRCh38|CHM13)#/.test(name))).toBe(false)
-    const gfa = await adapter.getSubgraph(window, {
-      haplotypes: names.slice(0, 8),
-    })
+    const gfa = await gfaOf(
+      adapter.getSubgraph(window, {
+        haplotypes: names.slice(0, 8),
+      }),
+    )
     expect(new Set(walkNames(gfa).map(n => n.split('#')[0]))).toEqual(
       new Set(['GRCh38', 'HG00097', 'HG00099', 'HG00126', 'HG00128']),
     )
@@ -266,9 +284,11 @@ test.skipIf(!rustPresent)(
   'chr22:20.0-20.1 Mb fits the byte budget, and a smaller budget names a zoom',
   async () => {
     const haplotypes = ['HG002', 'HG00097#2']
-    const gfa = await makeAdapter(rustPrefix).getSubgraph(window, {
-      haplotypes,
-    })
+    const gfa = await gfaOf(
+      makeAdapter(rustPrefix).getSubgraph(window, {
+        haplotypes,
+      }),
+    )
     expect(walkNames(gfa)).toContain('HG002#1#chr22')
     const cut = makeAdapter(rustPrefix, {
       walkByteBudget: 700_000,
@@ -342,7 +362,7 @@ test("a node longer than a chunk is read back as far as the header's maxnode rea
     adapter.getFeatures(region).pipe(toArray()),
   )
   expect(features.map(f => f.get('name'))).toContain('1')
-  const gfa = await adapter.getSubgraph(region)
+  const gfa = await gfaOf(adapter.getSubgraph(region))
   expect(gfa).toMatch(/^S\t1\t/m)
   expect(gfa).toMatch(/^W\tGRCh38\t0\tchr1\t0\t3200\t>1>2$/m)
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])

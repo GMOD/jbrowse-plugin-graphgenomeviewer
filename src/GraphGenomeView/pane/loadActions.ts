@@ -39,6 +39,7 @@ import type { SubgraphCutOptions, SubgraphRegion } from '../../GetSubgraph'
 import type { GafReads } from '../../gaf/gafFile'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
@@ -191,7 +192,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   // `readsOf` fetches the reads over the parsed graph before its one
   // layout, since the tube map lays them out with the paths.
   function* parseAndLayout(
-    text: string,
+    source: string | GraphTables,
     name: string,
     region: SubgraphRegion | undefined,
     keepSelection = false,
@@ -199,7 +200,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   ) {
     const signal = loadController?.signal
     self.setStatusMessage('Parsing GFA')
-    const parsed = loadGraph(text, name, {
+    const parsed = loadGraph(source, name, {
       referencePath: self.referencePath || region?.assemblyName,
     })
     const loaded = region ? loadedReference(parsed, region) : undefined
@@ -539,22 +540,22 @@ export const withLoadActions = withSettingActions.actions(self => {
       self.setStatusMessage('Fetching subgraph')
       try {
         const fetchStart = performance.now()
-        const gfaText = (yield getSession(self).rpcManager.call(
+        const cut = (yield getSession(self).rpcManager.call(
           getRpcSessionId(self),
           'GetSubgraph',
           { adapterConfig, region, opts, signal },
-        )) as string
+        )) as string | GraphTables
         if (!isLive()) {
           return
         }
         self.setFetchMs(performance.now() - fetchStart)
-        if (!gfaText) {
+        if (!cut) {
           throw new Error(
             'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
           )
         }
         yield* parseAndLayout(
-          gfaText,
+          cut,
           locLabel(region),
           region,
           true,

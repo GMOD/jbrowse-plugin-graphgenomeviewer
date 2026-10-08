@@ -1,3 +1,5 @@
+import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
+
 import {
   WalkGraph,
   byteBudgetError,
@@ -348,7 +350,7 @@ test('a fragment runs on past the window edge through nodes already in the cut',
     ['HG002#1#chr1', 0, 300, [2, 5, 3]],
     ['HG002#2#chr1', 1200, 1400, [5, 3]],
   ])
-  expect(g.format(kept, fragments).split('\n')).toEqual([
+  expect(graphTablesGFA(g.tables(kept, fragments)).split('\n')).toEqual([
     'H\tVN:Z:1.1',
     'S\t2\t*\tLN:i:100\tSN:Z:GRCh38#0#chr1\tSO:i:100\tSR:i:0',
     'S\t3\t*\tLN:i:100\tSN:Z:GRCh38#0#chr1\tSO:i:200\tSR:i:0',
@@ -372,11 +374,9 @@ test('the reference walk is written first, whatever order the rows came in', () 
     ].map(parseWalkRow),
   )
   const { kept, fragments } = walkCut(runs, g.nodes)
-  expect(
-    g
-      .format(kept, fragments)
-      .split('\n')
-      .filter(l => l.startsWith('W'))
-      .map(l => l.split('\t').slice(1, 3).join('#')),
-  ).toEqual(['GRCh38#0', 'HG002#1', 'HG002#2'])
+  expect(g.tables(kept, fragments).walks.names).toEqual([
+    'GRCh38#0#chr1',
+    'HG002#1#chr1',
+    'HG002#2#chr1',
+  ])
 })

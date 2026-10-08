@@ -6,10 +6,12 @@ import {
 import { anchoredLayout } from '@jbrowse/bandage-core/layout/anchoredLayout'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
+import { isRpcResult } from '@jbrowse/core/util/librpc'
 
 import GetSubgraph from './GetSubgraph'
 import GraphPlugin from './index'
 
+import type { RpcResult } from '@jbrowse/core/rpc/RpcServer'
 import type { AbstractRootModel } from '@jbrowse/core/util'
 
 vi.mock('@jbrowse/core/data_adapters/dataAdapterCache')
@@ -60,6 +62,27 @@ test('forwards the region and context to the adapter', async () => {
   )
   expect(getSubgraph).toHaveBeenCalledWith(region, { hops: 2 })
   expect(result).toBe('H\tVN:Z:1.0')
+})
+
+// A walk-indexed cut's tables go to postMessage with their buffers listed, so
+// the steps move to the main thread instead of being copied
+test('hands a cut of tables back with its buffers to transfer', async () => {
+  const steps = new Int32Array([0, 1])
+  const lengths = new Int32Array([10, 20])
+  const getSubgraph = vi.fn().mockResolvedValue({
+    nodes: { names: ['1', '2'], lengths },
+    walks: { names: ['GRCh38#0#chr1'], steps },
+  })
+  mockGetAdapter.mockResolvedValue({
+    dataAdapter: { getSubgraph },
+  })
+
+  const result = await makeMethod().execute(makeArgs(), 'MainThreadRpcDriver')
+  expect(isRpcResult(result)).toBe(true)
+  expect((result as RpcResult).transferables).toEqual([
+    lengths.buffer,
+    steps.buffer,
+  ])
 })
 
 // The signal is the call's, not the payload's, so it reaches `execute` beside

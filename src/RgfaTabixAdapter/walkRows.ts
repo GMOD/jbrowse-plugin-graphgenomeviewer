@@ -2,6 +2,8 @@ import { NodeLimitError } from '@jbrowse/bandage-core/gbzWindow'
 import { panSNMatchesPrefix } from '@jbrowse/bandage-core/pansn'
 import { getBpDisplayStr } from '@jbrowse/core/util'
 
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
+
 // A walk-indexed graph is three tabix files filed under fixed chunks of each
 // reference: walk rows, node rows and link rows. A row's first three columns
 // name its chunk, either as the whole chunk or as its first base.
@@ -285,15 +287,6 @@ export function walkCut(runs: WalkRun[], nodes: Map<number, WalkNode>) {
   return { kept, fragments }
 }
 
-export function formatWalk({ name, hapStart, hapEnd, ids, rev }: WalkFragment) {
-  const [sample, haplotype, ...contig] = name.split('#')
-  const steps = new Array<string>(ids.length)
-  for (let i = 0; i < ids.length; i++) {
-    steps[i] = (rev[i] ? '<' : '>') + ids[i]
-  }
-  return `W\t${sample}\t${haplotype}\t${contig.join('#')}\t${hapStart}\t${hapEnd}\t${steps.join('')}`
-}
-
 // The positions of a line's first `n` tabs, -1 past the last
 function tabs(line: string, n: number, out: number[]) {
   let at = -1
@@ -305,8 +298,8 @@ function tabs(line: string, n: number, out: number[]) {
 }
 
 /**
- * The node and link rows a walk cut reads, parsed as they arrive, and the GFA
- * text of the cut they make with its walks. A node filed under two chunks
+ * The node and link rows a walk cut reads, parsed as they arrive, and the
+ * tables of the cut they make with its walks. A node filed under two chunks
  * arrives twice and is read once; columns past a node row's eighth (LN:i:,
  * SQ:Z: and whatever follows) are not read at all.
  */
@@ -350,11 +343,13 @@ export class WalkGraph {
   }
 
   /**
-   * GFA text: S lines by reference position, then L lines, then a W line per
-   * fragment, the reference's first and the rest by name, the same bytes for
-   * the same rows
+   * The cut as typed arrays, which the worker transfers rather than copies:
+   * nodes by reference position, each link once in the order its L line
+   * sorts, then a walk per fragment, the reference's first and the rest by
+   * name. graphTablesGFA writes them as the GFA they stand for, the same bytes
+   * for the same rows.
    */
-  format(kept: Set<number>, fragments: WalkFragment[]) {
+  tables(kept: Set<number>, fragments: WalkFragment[]): GraphTables {
     const held: (WalkNode & { id: number })[] = []
     for (const id of kept) {
       const node = this.nodes.get(id)
@@ -369,33 +364,91 @@ export class WalkGraph {
           ? 1
           : x.start - y.start || x.id - y.id,
     )
-    const lines = ['H\tVN:Z:1.1']
-    for (const { id, refName, start, end, rank } of held) {
-      lines.push(
-        `S\t${id}\t*\tLN:i:${end - start}\tSN:Z:${refName}\tSO:i:${start}\tSR:i:${rank}`,
-      )
+    const index = new Map<number, number>()
+    const names: string[] = []
+    const refNames: string[] = []
+    const refIndex = new Map<string, number>()
+    const lengths = new Int32Array(held.length)
+    const refs = new Int32Array(held.length)
+    const starts = new Float64Array(held.length)
+    const ranks = new Int32Array(held.length)
+    held.forEach(({ id, refName, start, end, rank }, i) => {
+      index.set(id, i)
+      names.push(String(id))
+      let ref = refIndex.get(refName)
+      if (ref === undefined) {
+        ref = refNames.length
+        refIndex.set(refName, ref)
+        refNames.push(refName)
+      }
+      lengths[i] = end - start
+      refs[i] = ref
+      starts[i] = start
+      ranks[i] = rank
+    })
+    // a kept node with no row of its own is named, and not drawn
+    const nodeIndex = (id: number) => {
+      let i = index.get(id)
+      if (i === undefined) {
+        i = names.length
+        index.set(id, i)
+        names.push(String(id))
+      }
+      return i
     }
-    const seen = new Set<string>()
-    const links: string[] = []
+
+    const byLine = new Map<string, number>()
     for (let i = 0; i < this.links.length; i += 2) {
       const a = this.links[i]!
       const b = this.links[i + 1]!
       const source = Math.floor(a / 2)
       const target = Math.floor(b / 2)
       if (kept.has(source) && kept.has(target)) {
-        const line = `L\t${source}\t${a % 2 ? '-' : '+'}\t${target}\t${b % 2 ? '-' : '+'}\t0M`
-        if (!seen.has(line)) {
-          seen.add(line)
-          links.push(line)
-        }
+        byLine.set(
+          `${source}\t${a % 2 ? '-' : '+'}\t${target}\t${b % 2 ? '-' : '+'}`,
+          i,
+        )
       }
     }
-    links.sort()
-    return [
-      ...lines,
-      ...links,
-      ...this.referenceFirst(fragments).map(formatWalk),
-    ].join('\n')
+    const lines = [...byLine.keys()].sort()
+    const from = new Int32Array(lines.length)
+    const to = new Int32Array(lines.length)
+    const strands = new Uint8Array(lines.length)
+    lines.forEach((line, k) => {
+      const i = byLine.get(line)!
+      const a = this.links[i]!
+      const b = this.links[i + 1]!
+      from[k] = nodeIndex(Math.floor(a / 2))
+      to[k] = nodeIndex(Math.floor(b / 2))
+      strands[k] = (a % 2) | ((b % 2) << 1)
+    })
+
+    const walks = this.referenceFirst(fragments)
+    const offsets = new Int32Array(walks.length + 1)
+    walks.forEach(({ ids }, p) => {
+      offsets[p + 1] = offsets[p]! + ids.length
+    })
+    const steps = new Int32Array(offsets[walks.length]!)
+    const reversed = new Uint8Array(steps.length)
+    walks.forEach(({ ids, rev }, p) => {
+      const at = offsets[p]!
+      for (let j = 0; j < ids.length; j++) {
+        steps[at + j] = nodeIndex(ids[j]!)
+      }
+      reversed.set(rev, at)
+    })
+    return {
+      nodes: { names, lengths, refs, starts, ranks, refNames },
+      links: { from, to, strands },
+      walks: {
+        names: walks.map(f => f.name),
+        starts: Float64Array.from(walks, f => f.hapStart),
+        ends: Float64Array.from(walks, f => f.hapEnd),
+        offsets,
+        steps,
+        reversed,
+      },
+    }
   }
 
   // The view anchors on the first walk when no walk names the assembly, as

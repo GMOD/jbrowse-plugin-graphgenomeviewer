@@ -1,6 +1,8 @@
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTypes'
+import { rpcResultWithArrayBuffers } from '@jbrowse/core/util/librpc'
 
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 import type { Region } from '@jbrowse/core/util'
 
@@ -45,11 +47,14 @@ export interface GetSubgraphArgs {
   opts?: SubgraphCutOptions
 }
 
+// A cut is GFA text, or a walk-indexed graph's tables, whose typed arrays
+// cross to the main thread without a copy
 declare module '@jbrowse/core/rpc/RpcRegistry' {
   interface RpcRegistry {
     GetSubgraph: {
       args: GetSubgraphArgs
-      return: string
+      return: string | GraphTables
+      transferables: GraphTables
     }
   }
 }
@@ -57,7 +62,10 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
 // Adapters that can cut a local subgraph out of a graph file implement this:
 // RgfaTabixAdapter and GbzBaseSyntenyAdapter today.
 interface SubgraphAdapter {
-  getSubgraph(region: Region, opts?: SubgraphAdapterOptions): Promise<string>
+  getSubgraph(
+    region: Region,
+    opts?: SubgraphAdapterOptions,
+  ): Promise<string | GraphTables>
 }
 
 function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {
@@ -96,7 +104,8 @@ export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgr
       adapterConfig,
     )
     if (isSubgraphAdapter(dataAdapter)) {
-      return dataAdapter.getSubgraph(region, { ...opts, signal })
+      const cut = await dataAdapter.getSubgraph(region, { ...opts, signal })
+      return typeof cut === 'string' ? cut : rpcResultWithArrayBuffers(cut)
     }
     // An empty result is how the view and the launch menu detect "this track
     // can't do subgraphs" — see the pane's cutSubgraph.
