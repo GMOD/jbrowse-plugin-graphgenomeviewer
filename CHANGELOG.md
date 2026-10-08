@@ -1,3 +1,18 @@
+## [6.7.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.6.0...v6.7.0) (2026-10-08)
+
+### Other Changes
+
+- Walk strip toggle returns to the view's menu; Graph context hides on a GBZ track ([4c87d7a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4c87d7a88600558e126a0dcf4da0d0285015c134))
+- The view's menu reaches what the track's does; a slow drag is no click ([845df4f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/845df4f2f3bcd61ddd59da29597664a1e1dad889))
+- GBZ and rGFA config edge cases, and cuts that say why they failed ([18a80cb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/18a80cb3c39dfffc89842eb2adf534b85c88df87))
+- A pop no longer aborts the cut in flight; a stop mid-layout draws nothing stale ([26c082f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/26c082f0ab0dc345f2e7137a3c4346b3680fd6d5))
+- Gestures take captured pointer events; the SVG stacks as the screen does ([c897b37](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c897b379f372669ab075e30c679a6803223e6521))
+- One labelled select and one pick dialog; the node limit gets a setting ([95e8133](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/95e813331e276607a40efddecf8277bdafec3173))
+- Add pangenome graph track takes a .gbz.db, with its index and reads ([d282dee](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d282dee453799055ba1543914b68712324644480))
+- Reflow layouts.md after the picker rename ([1c78b4b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1c78b4b659a43f77c8f55284584866483a932489))
+- The add-track workflow drops its GBZ option and names gfa-to-tabix ([92a50d1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/92a50d17064a5eda43124d57e5d5d15a061910d9))
+- Restore the add-track workflow's GBZ option, keeping the gfa-to-tabix naming ([61112f8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/61112f81e98b4787c7671c823929f9b33dce67a9))
+
 ## [6.6.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.5.0...v6.6.0) (2026-10-07)
 
 ### Other Changes
