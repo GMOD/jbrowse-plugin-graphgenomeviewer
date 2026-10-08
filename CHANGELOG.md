@@ -1,3 +1,14 @@
+## [6.9.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.8.0...v6.9.0) (2026-10-08)
+
+### Other Changes
+
+- WalksUri names a walk-indexed build's three files from one prefix ([583a763](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/583a763172547cdb6cd53668709e7fdecc5406d6))
+- A walk cut over walkByteBudget is refused from the Tabix indexes, before any row is read ([11da8d2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/11da8d2478f312b36e155f03992820e622770fca))
+- The haplotype picker lists the haplotypes a walk file's header names ([1a59ea6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1a59ea65ed56677a0a69a923b65ef6e110549afb))
+- DefaultHaplotypes names the set a walk-indexed track is cut for until the user picks others ([ed1e5a9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ed1e5a9a514efd9aee883ac903a3d503497f10cb))
+- Test the haplotype header on chr22 as gfa-to-tabix 0.4.0 writes it ([4db5940](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4db594002f0c96c03dd5347dfe310e93fae7aa5a))
+- WalksUri, the header's haplotypes, the default set and the byte budget ([aace097](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/aace09758a011b0184ef1f4b1557e3418e4d6422))
+
 ## [6.8.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.7.0...v6.8.0) (2026-10-08)
 
 ### Other Changes
