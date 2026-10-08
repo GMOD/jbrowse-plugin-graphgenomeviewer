@@ -243,3 +243,22 @@ test('a fragment runs on past the window edge through nodes already in the cut',
     'W\tHG002\t2\tchr1\t1200\t1400\t>5>3',
   ])
 })
+
+test('the reference walk is written first, whatever order the rows came in', () => {
+  const g = graph()
+  const runs = joinPieces(
+    [
+      walkLine('HG002#2#chr1', 0, 0, forward(2, 3)),
+      walkLine('GRCh38#0#chr1', 0, 0, forward(1, 2, 3, 4)),
+      walkLine('HG002#1#chr1', 0, 0, forward(2, 5, 3)),
+    ].map(parseWalkRow),
+  )
+  const { kept, fragments } = walkCut(runs, g.nodes)
+  expect(
+    g
+      .format(kept, fragments)
+      .split('\n')
+      .filter(l => l.startsWith('W'))
+      .map(l => l.split('\t').slice(1, 3).join('#')),
+  ).toEqual(['GRCh38#0', 'HG002#1', 'HG002#2'])
+})

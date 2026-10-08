@@ -316,7 +316,8 @@ export class WalkGraph {
 
   /**
    * GFA text: S lines by reference position, then L lines, then a W line per
-   * fragment, the same bytes for the same rows
+   * fragment, the reference's first and the rest by name, the same bytes for
+   * the same rows
    */
   format(kept: Set<number>, fragments: WalkFragment[]) {
     const held: (WalkNode & { id: number })[] = []
@@ -355,7 +356,23 @@ export class WalkGraph {
       }
     }
     links.sort()
-    return [...lines, ...links, ...fragments.map(formatWalk)].join('\n')
+    return [
+      ...lines,
+      ...links,
+      ...this.referenceFirst(fragments).map(formatWalk),
+    ].join('\n')
+  }
+
+  // The view anchors on the first walk when no walk names the assembly, as
+  // gbz-base's cut has it; in file order that was whichever haplotype the
+  // chunk listed first, CHM13 on a GRCh38 window
+  private referenceFirst(fragments: WalkFragment[]) {
+    const { refName } = this.window
+    return [...fragments].sort(
+      (a, b) =>
+        Number(b.name === refName) - Number(a.name === refName) ||
+        (a.name < b.name ? -1 : a.name > b.name ? 1 : a.hapStart - b.hapStart),
+    )
   }
 }
 
