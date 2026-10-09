@@ -1,3 +1,16 @@
+## [6.11.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.10.0...v6.11.0) (2026-10-09)
+
+### Other Changes
+
+- Move the walk-indexed cut's reads into WalkReader, which can leave the link file unread ([14354ed](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/14354edd2b875704f6f4f5f5819c5090135d9f53))
+- Haplotype lanes and lane pairs from a walk-indexed graph's files ([cc120a3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/cc120a352b41200443349ce1f0750b38a2c693d1))
+- Test walk lanes against gbz-base on chr22, and tidy lint ([7fb559f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7fb559f10d4600c49373dc5417405357e6abd466))
+- Walk lanes come back in the order the fetch names them ([d73bc42](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d73bc42f5d5a3dfe55883e2696bfbbed83d17764))
+- Document WalkTabixSyntenyAdapter: config, how lanes are aligned, parity with gbz-base and the browser trace ([2f9a819](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2f9a819a07cdef8f88bcfdde6f36886e3e8cdc31))
+- A target lane outside the lanes asked for reads nothing ([f0c13c6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f0c13c60ac20c1c33b3231ebbd5f5b2782617199))
+- Where the lane trace's clock starts, and its results file ([3452d39](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3452d398feeb99aeb84814cde7ac4224d7983096))
+- Depend on @gmod/gbz-base 7.2.0, which exports pairAlignments ([553ec11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/553ec115c64cf4e36c84e97176e0fd0c52dc22c5))
+
 ## [6.10.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.2...v6.10.0) (2026-10-09)
 
 ### Other Changes
