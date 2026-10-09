@@ -63,8 +63,9 @@ the pane is the host's too. There the host reads its x as bp, which a force or
 ordered drawing's x is not, so while `pointerInPane` holds the pane's own hit
 test is its only hover source. By default the host's hover only lifts the walks
 a hovered row names; the node at its bp lights only with
-`hoverEdgesAndLinearView`, since every track's pointer crosses some node's bp.
-That setting also gates edge hover, as ribbons fill the space between nodes.
+`hoverEdgesAndLinearView` (Hover highlight → Everything), since every track's
+pointer crosses some node's bp. That setting also gates edge hover, as ribbons
+fill the space between nodes.
 
 ## Status
 

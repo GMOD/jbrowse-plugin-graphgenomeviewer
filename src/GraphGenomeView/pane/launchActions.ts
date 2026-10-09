@@ -238,20 +238,25 @@ export const withLaunchActions = withRenderingActions
           },
         },
         {
-          type: 'checkbox',
-          label: 'Show hover highlight',
-          checked: self.chosenHighlightOnHover,
-          onClick: () => {
-            self.setHighlightOnHover(!self.chosenHighlightOnHover)
-          },
-        },
-        {
-          type: 'checkbox',
-          label: 'Show edge and linear-view hovers',
-          checked: self.hoverEdgesAndLinearView,
-          onClick: () => {
-            self.setHoverEdgesAndLinearView(!self.hoverEdgesAndLinearView)
-          },
+          label: 'Hover highlight',
+          subMenu: (
+            [
+              ['Off', false, false],
+              ['Nodes', true, false],
+              ['Everything', true, true],
+            ] as const
+          ).map(([label, highlight, everything]) => ({
+            type: 'radio' as const,
+            label,
+            checked: highlight
+              ? self.chosenHighlightOnHover &&
+                self.hoverEdgesAndLinearView === everything
+              : !self.chosenHighlightOnHover,
+            onClick: () => {
+              self.setHighlightOnHover(highlight)
+              self.setHoverEdgesAndLinearView(everything)
+            },
+          })),
         },
         {
           type: 'checkbox',
