@@ -23,11 +23,13 @@ import { findCompanion } from './companion.ts'
 import { GafFile } from '../gaf/gafFile.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
+import { requestedPairs } from '../synteny/lanePairs.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
 import type { GafReads } from '../gaf/gafFile.ts'
+import type { LaneFeatureOptions, LanePair } from '../synteny/lanePairs.ts'
 import type {
   HaplotypeAlignment,
   HaplotypeRef,
@@ -39,7 +41,6 @@ import type {
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
-import type { ComparativeOptions } from '@jbrowse/synteny-core'
 
 export {
   NoReferenceSampleError,
@@ -78,48 +79,9 @@ export interface GbzHeaderLane {
   group: string
 }
 
-/**
- * `haplotypes` narrows a fetch to the lanes listed: PanSN prefixes at sample
- * (`HG002`) or haplotype (`HG002#1`) depth, or assembly names the config maps
- * to one; undefined is every haplotype.
- *
- * `queryAssemblyName` with `targetAssemblyName`, on a window of the anchor,
- * asks for that pair of lanes aligned to each other inside the window.
- */
-export interface GbzFeatureOptions extends ComparativeOptions {
-  haplotypes?: string[]
-  queryAssemblyName?: string
-  lanePairs?: LanePair[]
-}
-
-/**
- * Two lanes aligned to each other inside an anchor window: records on the
- * query lane's contigs, with the target lane's walk as the mate
- */
-export interface LanePair {
-  queryAssemblyName: string
-  targetAssemblyName: string
-}
-
-export class PairTargetError extends Error {
-  override name = 'PairTargetError'
-
-  constructor(queryAssemblyName: string) {
-    super(
-      `a pair query names both lanes: queryAssemblyName ${queryAssemblyName} came without a targetAssemblyName`,
-    )
-  }
-}
-
-function onePair(
-  queryAssemblyName: string,
-  targetAssemblyName: string | undefined,
-): LanePair {
-  if (targetAssemblyName === undefined) {
-    throw new PairTargetError(queryAssemblyName)
-  }
-  return { queryAssemblyName, targetAssemblyName }
-}
+export { PairTargetError } from '../synteny/lanePairs.ts'
+export type { LanePair } from '../synteny/lanePairs.ts'
+export type GbzFeatureOptions = LaneFeatureOptions
 
 export class HaplotypeWindowError extends Error {
   override name = 'HaplotypeWindowError'
@@ -658,15 +620,11 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
       // the graph is indexed on its reference alone, so a window on a
       // haplotype lane has no answer: a lane pair is read inside the anchor's
       if (region.assemblyName === anchor) {
-        const features = opts.lanePairs?.length
-          ? await this.pairFeatures(region, opts.lanePairs, opts)
-          : opts.queryAssemblyName === undefined
-            ? await this.anchorFeatures(region, opts)
-            : await this.pairFeatures(
-                region,
-                [onePair(opts.queryAssemblyName, opts.targetAssemblyName)],
-                opts,
-              )
+        const pairs = requestedPairs(opts)
+        const features =
+          pairs.length > 0
+            ? await this.pairFeatures(region, pairs, opts)
+            : await this.anchorFeatures(region, opts)
         for (const feature of features) {
           observer.next(feature)
         }

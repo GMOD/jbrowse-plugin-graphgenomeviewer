@@ -14,16 +14,18 @@ export function trackLanes(track: AnyConfigurationModel) {
   return lanes.length > 0 ? lanes : undefined
 }
 
-// Whether an rGFA track names a walk file, by the `walksUri` shorthand as
-// written or the location it expands to
+// Whether a track names a walk file, by the `walksUri` shorthand as written
+// or the location it expands to: an rGFA track may, and a
+// WalkTabixSyntenyAdapter one does
 export function walkIndexed(adapterConfig: Record<string, unknown>) {
   const walks = adapterConfig.walksLocation as
     { uri?: string; localPath?: string } | undefined
   return (
-    adapterConfig.type === 'RgfaTabixAdapter' &&
-    ((typeof adapterConfig.walksUri === 'string' &&
-      adapterConfig.walksUri !== '') ||
-      (walks?.uri ?? walks?.localPath ?? '') !== '')
+    adapterConfig.type === 'WalkTabixSyntenyAdapter' ||
+    (adapterConfig.type === 'RgfaTabixAdapter' &&
+      ((typeof adapterConfig.walksUri === 'string' &&
+        adapterConfig.walksUri !== '') ||
+        (walks?.uri ?? walks?.localPath ?? '') !== ''))
   )
 }
 
