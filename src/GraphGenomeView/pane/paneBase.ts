@@ -11,6 +11,7 @@ import { viewportOf } from '@jbrowse/bandage-core/viewport'
 import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
+import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 import { lenientMaybeEnum, lenientOptionalEnum } from '../lenientEnum'
 import { groupByOf } from '../walkRowGroups'
 
@@ -267,12 +268,10 @@ export const paneBase = types
       // display config's in a track
       layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
       colorScheme: lenientMaybeEnum(COLOR_SCHEME_VALUES),
-      // whether hovering a node lightens it and bands its span on a linear
-      // view; unset takes the host's default
-      highlightOnHover: types.maybe(types.boolean),
-      // whether an edge under the pointer, or a linear view's pointer at a
-      // node's bp, hovers too; both are crossed on the way to something else
-      hoverEdgesAndLinearView: types.optional(types.boolean, false),
+      // what the pointer lights; unset takes the host's default. Beyond
+      // `nodes`, an edge under it and a linear view's pointer at a node's bp
+      // light too, though the pointer crosses both on the way elsewhere
+      hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
       // How far the force layout opens a bubble, which on a variation graph is
       // the difference between a legible drawing and a rope. See
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which

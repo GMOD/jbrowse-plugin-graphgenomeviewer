@@ -4,6 +4,8 @@ import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'
 
+import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
+
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 /**
@@ -36,11 +38,14 @@ export function configSchemaFactory() {
       },
       /**
        * #slot
-       * whether hovering a node lightens it and bands its span on the view
+       * what the pointer lights: `nodes` lightens a hovered node and bands its
+       * span on the view; `everything` also lights edges, and the node at the
+       * view's pointer bp
        */
-      highlightOnHover: {
-        type: 'boolean',
-        defaultValue: true,
+      hover: {
+        type: 'stringEnum',
+        model: types.enumeration('HoverHighlight', HOVER_HIGHLIGHT_VALUES),
+        defaultValue: 'nodes',
       },
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,

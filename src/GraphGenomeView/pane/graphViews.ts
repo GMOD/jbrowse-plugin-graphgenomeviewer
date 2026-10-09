@@ -61,6 +61,7 @@ import { withCalls } from '../repeats/walkCalls'
 import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
+import type { HoverHighlight } from '../hoverHighlight'
 import type {
   ColorScheme,
   ResolvedColorScheme,
@@ -91,8 +92,8 @@ export const withGraphViews = paneBase
     get defaultColorScheme(): ColorScheme {
       return 'auto'
     },
-    get defaultHighlightOnHover(): boolean {
-      return true
+    get defaultHover(): HoverHighlight {
+      return 'nodes'
     },
     // a source declared but not yet loaded
     get hasPendingSource() {
@@ -117,12 +118,15 @@ export const withGraphViews = paneBase
     get chosenColorScheme() {
       return self.colorScheme ?? self.defaultColorScheme
     },
-    get chosenHighlightOnHover() {
-      return self.highlightOnHover ?? self.defaultHighlightOnHover
+    get chosenHover() {
+      return self.hover ?? self.defaultHover
+    },
+    get hoverLightsEverything() {
+      return this.chosenHover === 'everything'
     },
     // the hovered node, where hovering is to light it
     get litNode() {
-      return this.chosenHighlightOnHover ? self.hoveredNode : null
+      return this.chosenHover === 'off' ? null : self.hoveredNode
     },
   }))
   .views(self => ({
@@ -914,7 +918,7 @@ export const withGraphViews = paneBase
     get hoverHighlight() {
       const region = self.graphRegion
       const span = self.hoveredSpan
-      return region && span && self.chosenHighlightOnHover
+      return region && span && self.chosenHover !== 'off'
         ? {
             refName: region.refName,
             assemblyName: region.assemblyName,

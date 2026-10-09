@@ -17,6 +17,7 @@ import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 
+import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
 import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
@@ -99,12 +100,9 @@ export const withSettingActions = withFitViews
     setLayoutMode(mode: LayoutModeValue) {
       self.layoutMode = mode
     },
-    setHighlightOnHover(highlight: boolean) {
-      self.highlightOnHover = highlight
-    },
-    setHoverEdgesAndLinearView(hover: boolean) {
-      self.hoverEdgesAndLinearView = hover
-      if (!hover) {
+    setHover(hover: HoverHighlight) {
+      self.hover = hover
+      if (!self.hoverLightsEverything) {
         self.hoveredEdge = null
       }
     },
@@ -267,7 +265,7 @@ export const withSettingActions = withFitViews
       self.legendSize = size
     },
     setHoveredEdge(edgeIdx: number | null) {
-      self.hoveredEdge = self.hoverEdgesAndLinearView ? edgeIdx : null
+      self.hoveredEdge = self.hoverLightsEverything ? edgeIdx : null
     },
     setSelectedNode(nodeId: string | null) {
       self.selectedNode = nodeId

@@ -44,6 +44,7 @@ import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { HostWindow } from '../GraphGenomeView/host'
+import type { HoverHighlight } from '../GraphGenomeView/hoverHighlight'
 import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -136,8 +137,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get defaultColorScheme(): ColorScheme {
           return getConf(self, 'colorScheme')
         },
-        get defaultHighlightOnHover(): boolean {
-          return getConf(self, 'highlightOnHover')
+        get defaultHover(): HoverHighlight {
+          return getConf(self, 'hover')
         },
         // The linear view leaves its highlight bands off this track while false
         get drawsGenomicCoordinates() {

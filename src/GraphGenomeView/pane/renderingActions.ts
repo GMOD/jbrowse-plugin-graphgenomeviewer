@@ -118,7 +118,7 @@ export const withRenderingActions = withLoadActions
         // A pointer over the pane itself is the host's too, at a bp its x
         // only means on a reference-axis layout, so there the pane's own hit
         // test is the hover. A row naming a walk always lifts it; the node at
-        // a bp lights only with `hoverEdgesAndLinearView`, since every track's
+        // a bp lights only on `hover: 'everything'`, since every track's
         // pointer passes over some node's bp.
         //
         // Only `hovered` and the setting are tracked — the graph reads are
@@ -129,7 +129,7 @@ export const withRenderingActions = withLoadActions
           self,
           autorun(() => {
             const hover = readLgvHover(getSession(self).hovered)
-            const lightsNode = self.hoverEdgesAndLinearView
+            const lightsNode = self.hoverLightsEverything
             untracked(() => {
               const region = self.graphRegion
               const graph = self.graph

@@ -178,7 +178,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       const node = nodeAt(x, y)
       model.setHoveredNode(node)
       model.setHoveredEdge(
-        node || model.layoutResult?.tubeMap || !model.hoverEdgesAndLinearView
+        node || model.layoutResult?.tubeMap || !model.hoverLightsEverything
           ? null
           : findHoveredEdge(
               model.nodePositions,

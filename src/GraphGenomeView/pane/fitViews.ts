@@ -447,10 +447,7 @@ export const withFitViews = withHostViews
         nodes.set(litNode, HOVER_BRIGHTEN)
       }
       b.setNodeHighlights(nodes)
-      b.setEdgeHighlight(
-        self.chosenHighlightOnHover ? hoveredEdge : null,
-        HOVER_BRIGHTEN,
-      )
+      b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
     },
     // Draws the uploaded batch through the pane's transform
     paint(b: Renderer) {

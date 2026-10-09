@@ -1596,10 +1596,10 @@ test('an edge hovers only when asked to', async () => {
   await model.loadGFA(RGFA, 'first')
   model.setHoveredEdge(0)
   expect(model.hoveredEdge).toBeNull()
-  model.setHoverEdgesAndLinearView(true)
+  model.setHover('everything')
   model.setHoveredEdge(0)
   expect(model.hoveredEdge).toBe(0)
-  model.setHoverEdgesAndLinearView(false)
+  model.setHover('nodes')
   expect(model.hoveredEdge).toBeNull()
 })
 
@@ -1608,7 +1608,7 @@ describe('interaction state across a graph swap', () => {
     rpcRespond()
     const model = createModel()
     await model.loadGFA(RGFA, 'first')
-    model.setHoverEdgesAndLinearView(true)
+    model.setHover('everything')
     model.setHoveredEdge(0)
     expect(model.hoveredEdge).toBe(0)
     model.setHoveredNode('1+')
@@ -1667,7 +1667,7 @@ describe('hoverHighlight', () => {
 
   test('turning hover highlighting off lights nothing', async () => {
     const model = await loadedFromTrack()
-    model.setHighlightOnHover(false)
+    model.setHover('off')
     model.setHoveredNode('2+')
     expect(model.hoverHighlight).toBeUndefined()
     expect(model.litNode).toBeNull()

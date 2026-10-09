@@ -30,6 +30,7 @@ import {
 import { launchTracks } from '../../launchFromGraph/launchTracks'
 import { launchableSyntenyTracks } from '../../launchFromGraph/syntenyTracks'
 import { downloadText } from '../download'
+import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
@@ -239,22 +240,12 @@ export const withLaunchActions = withRenderingActions
         },
         {
           label: 'Hover highlight',
-          subMenu: (
-            [
-              ['Off', false, false],
-              ['Nodes', true, false],
-              ['Everything', true, true],
-            ] as const
-          ).map(([label, highlight, everything]) => ({
+          subMenu: HOVER_HIGHLIGHT_VALUES.map(value => ({
             type: 'radio' as const,
-            label,
-            checked: highlight
-              ? self.chosenHighlightOnHover &&
-                self.hoverEdgesAndLinearView === everything
-              : !self.chosenHighlightOnHover,
+            label: value[0]!.toUpperCase() + value.slice(1),
+            checked: self.chosenHover === value,
             onClick: () => {
-              self.setHighlightOnHover(highlight)
-              self.setHoverEdgesAndLinearView(everything)
+              self.setHover(value)
             },
           })),
         },

@@ -254,7 +254,7 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
             (t: { configuration: { trackId: string } }) =>
               t.configuration.trackId === trackId,
           )
-          .displays[0].setHoverEdgesAndLinearView(true)
+          .displays[0].setHover('everything')
       },
       [LGV_ID, RGFA_TRACK_ID],
     )
