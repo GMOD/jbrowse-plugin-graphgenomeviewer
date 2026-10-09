@@ -160,7 +160,7 @@ export class WalkReader {
     } finally {
       signal?.removeEventListener('abort', stop)
     }
-    const cut = walkCut(joinPieces(rows), graph.nodes)
+    const cut = walkCut(joinPieces(rows), graph.nodes, refName)
     const tooMany = keptStepsError(
       cut.fragments,
       opts.stepBudget,

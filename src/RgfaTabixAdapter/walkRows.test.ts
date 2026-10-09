@@ -337,18 +337,19 @@ test('a fragment runs on past the window edge through nodes already in the cut',
       walkLine('GRCh38#0#chr1', 0, 0, forward(1, 2, 3, 4)),
       // brings allele 5 into the cut between two steps on the window
       walkLine('HG002#1#chr1', 0, 0, forward(2, 5, 3)),
-      // first on the window at 3, from allele 5, which the walk above holds
-      walkLine('HG002#2#chr1', 0, 1000, forward(6, 1, 5, 3, 4)),
+      // last on the window at 3, then on into allele 5, which the walk above
+      // holds, where its contig ends
+      walkLine('HG002#2#chr1', 0, 1000, forward(3, 5)),
     ].map(parseWalkRow),
   )
-  const { kept, fragments } = walkCut(runs, g.nodes)
+  const { kept, fragments } = walkCut(runs, g.nodes, 'GRCh38#0#chr1')
   expect([...kept].sort()).toEqual([2, 3, 5])
   expect(
     fragments.map(f => [f.name, f.hapStart, f.hapEnd, [...f.ids]]),
   ).toEqual([
     ['GRCh38#0#chr1', 100, 300, [2, 3]],
     ['HG002#1#chr1', 0, 300, [2, 5, 3]],
-    ['HG002#2#chr1', 1200, 1400, [5, 3]],
+    ['HG002#2#chr1', 1000, 1200, [3, 5]],
   ])
   expect(graphTablesGFA(g.tables(kept, fragments)).split('\n')).toEqual([
     'H\tVN:Z:1.1',
@@ -360,8 +361,49 @@ test('a fragment runs on past the window edge through nodes already in the cut',
     'L\t5\t+\t3\t+\t0M',
     'W\tGRCh38\t0\tchr1\t100\t300\t>2>3',
     'W\tHG002\t1\tchr1\t0\t300\t>2>5>3',
-    'W\tHG002\t2\tchr1\t1200\t1400\t>5>3',
+    'W\tHG002\t2\tchr1\t1000\t1200\t>3>5',
   ])
+})
+
+test('a walk leaving the window is followed to where it rejoins the reference', () => {
+  const g = graph()
+  const runs = joinPieces(
+    [
+      walkLine('GRCh38#0#chr1', 0, 0, forward(1, 2, 3, 4)),
+      // leaves at 2 through allele 5 and rejoins at 4
+      walkLine('HG002#1#chr1', 0, 0, forward(1, 2, 5, 4)),
+      // deletes 3, from 2 straight to 4
+      walkLine('HG002#2#chr1', 0, 0, forward(1, 2, 4)),
+      // enters at 3 from 1 through allele 6, and runs on back into allele 5,
+      // which HG002#1 brings into the cut
+      walkLine('HG002#3#chr1', 0, 0, forward(5, 1, 6, 3)),
+      // leaves at 2 through allele 5 and ends there
+      walkLine('HG002#4#chr1', 0, 0, forward(2, 5)),
+    ].map(parseWalkRow),
+  )
+  const { kept, fragments } = walkCut(runs, g.nodes, 'GRCh38#0#chr1')
+  expect([...kept].sort()).toEqual([1, 2, 3, 4, 5, 6])
+  expect(
+    fragments.map(f => [f.name, f.hapStart, f.hapEnd, [...f.ids]]),
+  ).toEqual([
+    ['GRCh38#0#chr1', 0, 400, [1, 2, 3, 4]],
+    ['HG002#1#chr1', 0, 400, [1, 2, 5, 4]],
+    ['HG002#2#chr1', 0, 300, [1, 2, 4]],
+    ['HG002#3#chr1', 0, 400, [5, 1, 6, 3]],
+    ['HG002#4#chr1', 0, 200, [2, 5]],
+  ])
+})
+
+test('a walk is not followed to another reference sequence', () => {
+  const g = graph()
+  g.addNode(
+    'GRCh38#0#chr1\t0\t1\t7\t0\tGRCh38#0#chr2\t0\t100\tLN:i:100',
+  )
+  const runs = joinPieces(
+    [walkLine('HG002#1#chr1', 0, 0, forward(2, 3, 5, 7))].map(parseWalkRow),
+  )
+  const { fragments } = walkCut(runs, g.nodes, 'GRCh38#0#chr1')
+  expect(fragments.map(f => [...f.ids])).toEqual([[2, 3]])
 })
 
 test('the reference walk is written first, whatever order the rows came in', () => {
@@ -373,7 +415,7 @@ test('the reference walk is written first, whatever order the rows came in', () 
       walkLine('HG002#1#chr1', 0, 0, forward(2, 5, 3)),
     ].map(parseWalkRow),
   )
-  const { kept, fragments } = walkCut(runs, g.nodes)
+  const { kept, fragments } = walkCut(runs, g.nodes, 'GRCh38#0#chr1')
   expect(g.tables(kept, fragments).walks.names).toEqual([
     'GRCh38#0#chr1',
     'HG002#1#chr1',

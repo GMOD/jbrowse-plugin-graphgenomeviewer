@@ -219,27 +219,52 @@ export interface WalkFragment {
 
 /**
  * The cut a window draws from its walks: the reference inside the window plus
- * its context, and each run from its first to its last step on that stretch,
- * run on outward while the next step's node is already in the cut. Without
- * the run-on a haplotype whose alternate allele straddles the edge stopped
- * short of a node other walks had brought into the cut, and that node drew
- * without it. The run-on adds no node, so one pass is enough.
+ * its context, and each run from its first to its last step on that stretch.
+ * A run that leaves the reference there, through steps off it or across a
+ * deletion, is followed to the reference step where it rejoins, when the read
+ * holds it: at the ABCA7 VNTR four haplotypes leave inside the repeat and
+ * rejoin 1.8 kb past the window, and cut at the context they measured as
+ * partial walks. The reference is cut out as far as those rejoins reach, and
+ * a run then runs on outward while the next step's node is already in the
+ * cut. Without the run-on a haplotype whose alternate allele straddles the
+ * edge stopped short of a node other walks had brought into the cut, and that
+ * node drew without it. The run-on adds no node, so one pass is enough.
  */
-export function walkCut(runs: WalkRun[], nodes: Map<number, WalkNode>) {
-  const onWindow = (node: WalkNode | undefined) => node?.onWindow === true
-  const kept = new Set<number>()
-  for (const [id, node] of nodes) {
-    if (node.onWindow) {
-      kept.add(id)
-    }
+export function walkCut(
+  runs: WalkRun[],
+  nodes: Map<number, WalkNode>,
+  refName: string,
+) {
+  const onWindow = (id: number) => nodes.get(id)?.onWindow === true
+  const reference = (id: number) => {
+    const node = nodes.get(id)
+    return node?.rank === 0 ? node : undefined
   }
+  // the reference step a run reaches from step `at`, going by `dir`, past
+  // any steps off the reference, or `at` when it stays on the reference or
+  // reaches another reference sequence or the run's end first
+  const rejoin = (ids: Int32Array, at: number, dir: number) => {
+    let i = at + dir
+    while (i >= 0 && i < ids.length && reference(ids[i]!) === undefined) {
+      i += dir
+    }
+    const from = reference(ids[at]!)!
+    const to = i >= 0 && i < ids.length ? reference(ids[i]!) : undefined
+    const adjacent =
+      i === at + dir &&
+      to !== undefined &&
+      (to.start === from.end || to.end === from.start)
+    return to?.refName === refName && !adjacent ? i : at
+  }
+  let reachStart = Infinity
+  let reachEnd = -Infinity
   const spans: { run: WalkRun; first: number; last: number }[] = []
   for (const run of runs) {
     const { ids } = run
     let first = -1
     let last = -1
     for (let i = 0; i < ids.length; i++) {
-      if (onWindow(nodes.get(ids[i]!))) {
+      if (onWindow(ids[i]!)) {
         if (first < 0) {
           first = i
         }
@@ -247,10 +272,45 @@ export function walkCut(runs: WalkRun[], nodes: Map<number, WalkNode>) {
       }
     }
     if (first >= 0) {
-      for (let i = first; i <= last; i++) {
-        kept.add(ids[i]!)
+      if (run.name !== refName) {
+        first = rejoin(ids, first, -1)
+        last = rejoin(ids, last, 1)
+        for (const i of [first, last]) {
+          const node = reference(ids[i]!)!
+          reachStart = Math.min(reachStart, node.start)
+          reachEnd = Math.max(reachEnd, node.end)
+        }
       }
       spans.push({ run, first, last })
+    }
+  }
+  const inReach = (id: number) => {
+    const node = reference(id)
+    return (
+      onWindow(id) ||
+      (node?.refName === refName &&
+        node.end > reachStart &&
+        node.start < reachEnd)
+    )
+  }
+  const kept = new Set<number>()
+  for (const [id, node] of nodes) {
+    if (node.onWindow) {
+      kept.add(id)
+    }
+  }
+  for (const span of spans) {
+    const { ids } = span.run
+    if (span.run.name === refName) {
+      while (span.first > 0 && inReach(ids[span.first - 1]!)) {
+        span.first--
+      }
+      while (span.last < ids.length - 1 && inReach(ids[span.last + 1]!)) {
+        span.last++
+      }
+    }
+    for (let i = span.first; i <= span.last; i++) {
+      kept.add(ids[i]!)
     }
   }
   const length = (id: number) => {
