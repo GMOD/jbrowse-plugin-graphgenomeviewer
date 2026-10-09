@@ -106,6 +106,14 @@ test('a target assembly keeps only that lane', async () => {
   expect(found.map(f => mateOf(f).assemblyName)).toEqual(['HG002#1'])
 })
 
+test('a target assembly outside the lanes asked for answers nothing', async () => {
+  const found = await feats(makeAdapter(), {
+    haplotypes: ['HG00097'],
+    targetAssemblyName: 'HG002#1',
+  })
+  expect(found).toEqual([])
+})
+
 test('a lane pair is read inside the anchor window, on the query lane with the target lane as its mate', async () => {
   const found = await feats(makeAdapter(), {
     queryAssemblyName: 'HG002#1',

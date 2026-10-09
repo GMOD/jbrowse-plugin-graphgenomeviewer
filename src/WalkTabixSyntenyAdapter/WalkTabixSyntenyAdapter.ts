@@ -1,6 +1,7 @@
 import { NodeLimitError } from '@jbrowse/bandage-core/gbzWindow'
 import {
   assemblyByPanSNPrefix,
+  panSNContig,
   panSNHaplotype,
   panSNMatchesPrefix,
   panSNSample,
@@ -202,6 +203,9 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
             )
           ? [target]
           : []
+    if (prefixes?.length === 0) {
+      return []
+    }
     const { start, end } = region
     const { graph, fragments } = await this.laneWalks(
       refName,
@@ -279,7 +283,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
               target,
               query,
               assemblyName: pair.queryAssemblyName,
-              refName: target.name.split('#').slice(2).join('#'),
+              refName: panSNContig(target.name),
               mateAssemblyName: pair.targetAssemblyName,
             }),
           ),
