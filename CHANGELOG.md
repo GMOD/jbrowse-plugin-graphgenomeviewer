@@ -1,3 +1,15 @@
+## [6.14.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.13.0...v6.14.0) (2026-10-09)
+
+### Other Changes
+
+- A walk leaving the window is followed to where it rejoins the reference ([45f8de7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/45f8de7e2afbbe5b9cc58d6938f8fa1bc4002da1))
+- Walk-file rows say why a partial walk stops, as bandage-core 8.2.0's do ([a0dc4ee](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a0dc4ee699ff79ee799e4781f50655928d78c12d))
+- A walk that does not rejoin is kept through the steps off the reference the read holds ([0a3d854](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0a3d854074113be37b8dddc3127c89827d4d46f2))
+- A walk rejoining past the context measures whole from walk files ([0c14a01](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0c14a01b6c94a07888acead5813fcb8817cb8ded))
+- A walk the read cuts off is read on to the chunk its row says it goes on in ([04cd036](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/04cd0368e04ea0e47f3135bbaaa9904d5eec42a8))
+- Walks followed to where they rejoin, and the neighbour-tag follow, measured ([e8b5766](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e8b5766d1de86a9ef76128942a0eaf123fac13c2))
+- Bump deps ([af89a7e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/af89a7e3fe9c4755d0f185f74bf2ccafa85c28e8))
+
 ## [6.13.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.12.0...v6.13.0) (2026-10-09)
 
 ### Other Changes
