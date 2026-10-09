@@ -119,8 +119,8 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
 
   private budgets() {
     return {
-      stepBudget: this.getConf('walkStepBudget') as number,
-      byteBudget: this.getConf('walkByteBudget') as number,
+      stepBudget: this.getConf('walkStepBudget'),
+      byteBudget: this.getConf('walkByteBudget'),
       context: WALK_CONTEXT,
     }
   }

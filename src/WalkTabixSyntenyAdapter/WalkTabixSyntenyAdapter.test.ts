@@ -160,7 +160,7 @@ test('clipToRegion cuts a record to the window on both axes', async () => {
       .getFeaturesInMultipleRegions([{ ...window, start: 700, end: 1100 }], {
         clipToRegion: true,
         haplotypes: ['HG00097#1'],
-      } as never)
+      })
       .pipe(toArray()),
   )
   expect(found).toHaveLength(1)
@@ -229,8 +229,7 @@ test('the adapter type declares lanes, lane pairs and the graph cut', () => {
   WalkTabixSyntenyAdapterF(pluginManager)
   pluginManager.createPluggableElements()
   expect(
-    pluginManager.getAdapterType('WalkTabixSyntenyAdapter')
-      ?.adapterCapabilities,
+    pluginManager.getAdapterType('WalkTabixSyntenyAdapter').adapterCapabilities,
   ).toEqual([
     'getSubgraph',
     'headerLanes',

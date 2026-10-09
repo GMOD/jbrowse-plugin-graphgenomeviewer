@@ -19,12 +19,11 @@ export function bubblesAsMismatches(edits: PairEdit[]) {
   const out: PairEdit[] = []
   for (let i = 0; i < edits.length; i++) {
     const [op, len] = edits[i]!
-    const next = edits[i + 1]
+    const [nextOp, nextLen] = edits[i + 1] ?? []
     if (
-      next !== undefined &&
-      len === next[1] &&
+      len === nextLen &&
       len <= BALANCED_BUBBLE_MAX_BP &&
-      ((op === 'I' && next[0] === 'D') || (op === 'D' && next[0] === 'I'))
+      ((op === 'I' && nextOp === 'D') || (op === 'D' && nextOp === 'I'))
     ) {
       out.push(['X', len])
       i++
