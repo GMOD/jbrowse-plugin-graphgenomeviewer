@@ -518,6 +518,28 @@ export function stepBudgetError(
 }
 
 /**
+ * The zoom-in notice for a cut that keeps more steps than `budget`, or
+ * undefined when it fits. The span that fits is the window scaled by how far
+ * over the cut is.
+ */
+export function keptStepsError(
+  fragments: WalkFragment[],
+  budget: number,
+  window: { start: number; end: number },
+  filtered: boolean,
+) {
+  const total = fragments.reduce((sum, f) => sum + f.ids.length, 0)
+  if (total <= budget) {
+    return undefined
+  }
+  const windowBp = window.end - window.start
+  const fitsBp = Math.max(1, Math.floor((windowBp * budget) / total))
+  const error = new NodeLimitError(budget, windowBp, fitsBp)
+  error.message = `Zoom in to about ${getBpDisplayStr(fitsBp)}${filtered ? '' : ', or choose fewer haplotypes,'} to see the graph`
+  return error
+}
+
+/**
  * The zoom-in notice for a cut whose three files would fetch more than
  * `budget` compressed bytes, or undefined when they fit. `bytesTo(end)` is the
  * indexes' estimate for a read from the window's first query base to `end`;

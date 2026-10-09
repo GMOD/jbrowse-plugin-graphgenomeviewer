@@ -6,6 +6,7 @@ import {
   byteBudgetError,
   chunkQueryStart,
   joinPieces,
+  keptStepsError,
   lookbackChunks,
   parseWalkRow,
   stepBudgetError,
@@ -17,6 +18,13 @@ import {
 import type { WalkRow } from './walkRows.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
+
+// A window reads whole chunks and keeps the steps on it, so a narrow window
+// reads several times what it keeps: 464 haplotypes across the 1.5 kb ABCA7
+// repeat read 5.0 M steps and keep 1.16 M, and the cut takes 0.4 s from warm
+// files. The step budget bounds what the cut keeps, and rows are read to this
+// multiple of it.
+const READ_STEPS_PER_KEPT = 8
 
 export interface WalkFileSet {
   walks: TabixIndexedFile
@@ -41,8 +49,8 @@ export interface WalkCutOptions {
  * each over whole chunks, from the lookback chunks before the window to its
  * end. The indexes first estimate the bytes those reads fetch, and a window
  * past the byte budget reads no row. Only the walks `keep` accepts are
- * decoded, and none is past the step budget: the reads go out together and a
- * walk read over budget stops the others.
+ * decoded. The step budget bounds the steps the cut keeps, and rows holding
+ * READ_STEPS_PER_KEPT times as many stop the reads, which go out together.
  */
 export class WalkReader {
   constructor(
@@ -126,7 +134,7 @@ export class WalkReader {
         }).then(() => {
           const error = stepBudgetError(
             rows,
-            opts.stepBudget,
+            opts.stepBudget * READ_STEPS_PER_KEPT,
             region,
             chunk,
             keep !== undefined,
@@ -152,6 +160,16 @@ export class WalkReader {
     } finally {
       signal?.removeEventListener('abort', stop)
     }
-    return { graph, ...walkCut(joinPieces(rows), graph.nodes) }
+    const cut = walkCut(joinPieces(rows), graph.nodes)
+    const tooMany = keptStepsError(
+      cut.fragments,
+      opts.stepBudget,
+      region,
+      keep !== undefined,
+    )
+    if (tooMany) {
+      throw tooMany
+    }
+    return { graph, ...cut }
   }
 }

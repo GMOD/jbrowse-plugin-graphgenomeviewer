@@ -137,8 +137,9 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * the most haplotype steps one window decodes; a window whose walk rows
-     * hold more shows a zoom-in notice instead. Counts only the haplotypes
+     * the most haplotype steps one window keeps; a window whose walks hold
+     * more shows a zoom-in notice instead, as does one whose rows hold eight
+     * times as many. Counts only the haplotypes
      * asked for.
      */
     walkStepBudget: {
