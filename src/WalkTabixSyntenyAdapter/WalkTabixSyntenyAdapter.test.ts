@@ -7,7 +7,7 @@ import { toArray } from 'rxjs/operators'
 import Adapter from './WalkTabixSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import WalkTabixSyntenyAdapterF from './index.ts'
-import { bubblesAsMismatches } from './walkLanes.ts'
+import { bubblesAsMismatches, referenceAligner } from './walkLanes.ts'
 import { PairTargetError } from '../synteny/lanePairs.ts'
 
 import type { SyntenyMate } from '@jbrowse/synteny-core'
@@ -274,4 +274,82 @@ test('a short balanced bubble is mismatches, in either order, and any other stay
     ['I', 51],
     ['D', 51],
   ])
+})
+
+// Reference >1>2>3, a haplotype that passes node 2 three times, and one that
+// runs the other way
+const repeatNodes = new Map(
+  [1, 2, 3, 4].map(id => [
+    id,
+    {
+      refName: 'ref',
+      start: id * 1000,
+      end: id * 1000 + (id === 4 ? 30 : 500),
+      rank: 0,
+      onWindow: true,
+    },
+  ]),
+)
+const fragment = (name: string, steps: [number, number][]) => ({
+  name,
+  hapStart: 0,
+  hapEnd: 0,
+  ids: Int32Array.from(steps, ([id]) => id),
+  rev: Uint8Array.from(steps, ([, rev]) => rev),
+})
+const cigar = (edits: [string, number][]) =>
+  edits.map(([op, len]) => `${len}${op}`).join('')
+const reference = fragment('ref', [
+  [1, 0],
+  [2, 0],
+  [3, 0],
+])
+
+test('a haplotype with further copies of a collapsed node aligns one pass, the others an insertion', () => {
+  const align = referenceAligner(repeatNodes)
+  const [chain, ...rest] = align(
+    fragment('hap', [
+      [1, 0],
+      [2, 0],
+      [4, 0],
+      [2, 0],
+      [4, 0],
+      [2, 0],
+      [3, 0],
+    ]),
+    reference,
+  )
+  expect(rest).toEqual([])
+  expect(chain).toMatchObject({
+    queryStart: 0,
+    queryEnd: 2560,
+    targetStart: 0,
+    targetEnd: 1500,
+    strand: '+',
+    sharedBases: 1500,
+  })
+  expect(
+    chain!.edits.reduce((sum, [op, n]) => sum + (op === 'I' ? n : 0), 0),
+  ).toBe(1060)
+})
+
+test('a haplotype running against the reference is a reverse-strand record', () => {
+  const align = referenceAligner(repeatNodes)
+  const [chain] = align(
+    fragment('hap', [
+      [3, 1],
+      [4, 0],
+      [2, 1],
+      [1, 1],
+    ]),
+    reference,
+  )
+  expect(chain).toMatchObject({
+    queryStart: 0,
+    queryEnd: 1530,
+    targetStart: 0,
+    targetEnd: 1500,
+    strand: '-',
+  })
+  expect(cigar(chain!.edits)).toBe('1000=30I500=')
 })

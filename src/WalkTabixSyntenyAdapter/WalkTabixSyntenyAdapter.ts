@@ -10,7 +10,7 @@ import {
 import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
-import { chainFeature, walkAligner } from './walkLanes.ts'
+import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
 import { WalkReader } from '../RgfaTabixAdapter/walkReader.ts'
 import { walkNameFilter } from '../RgfaTabixAdapter/walkRows.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
@@ -214,7 +214,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       opts,
       `Reading walks ${region.refName}:${start.toLocaleString()}-${end.toLocaleString()}`,
     )
-    const align = walkAligner(graph.nodes)
+    const align = referenceAligner(graph.nodes)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const references = fragments.filter(f => f.name === refName)
     // lanes come back in the order the fetch names them, which is the order
