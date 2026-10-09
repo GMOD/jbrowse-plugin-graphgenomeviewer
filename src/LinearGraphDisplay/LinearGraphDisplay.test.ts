@@ -324,6 +324,8 @@ function createEnvironment({
     { refName: REF, start: 0, end: CONTIG, assemblyName: ASM },
   ]
   const assembly = {
+    name: ASM,
+    aliases: ['GRCh38'],
     initialized: true,
     regions: assemblyRegions,
     getCanonicalRefName: (refName: string) => refName,

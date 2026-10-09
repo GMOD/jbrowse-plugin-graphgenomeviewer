@@ -193,6 +193,34 @@ export const withLoadActions = withSettingActions.actions(self => {
       : undefined
   }
 
+  // A cut parsed, its reference walk named: a tag-anchored walk-file cut
+  // anchors on its nodes' tags, and names its walk on the region's assembly
+  // so walk keys measure against it
+  function parseCut(
+    source: string | WalkCut,
+    name: string,
+    region: SubgraphRegion | undefined,
+    whole = false,
+  ) {
+    const referencePath = self.referencePath || region?.assemblyName
+    const parsed =
+      typeof source !== 'string' && source.walkRowRuns && !whole
+        ? walkRowsGraph(source, name, referencePath)
+        : loadGraph(source, name, { referencePath })
+    if (
+      parsed.anchoredBy === 'tags' &&
+      !parsed.referencePath &&
+      parsed.paths?.length &&
+      region
+    ) {
+      parsed.referencePath = assemblyWalk(
+        parsed,
+        self.assemblySpellings(region.assemblyName),
+      )?.name
+    }
+    return parsed
+  }
+
   // `keepSelection` for a re-cut of the same source: node ids survive one
   // where edge indexes do not, so the selection is found again by id.
   // `readsOf` fetches the reads over the parsed graph before its one
@@ -206,12 +234,9 @@ export const withLoadActions = withSettingActions.actions(self => {
   ) {
     const signal = loadController?.signal
     self.setStatusMessage('Parsing GFA')
-    const referencePath = self.referencePath || region?.assemblyName
     const walkCut =
       typeof source !== 'string' && source.walkRowRuns ? source : undefined
-    const parsed = walkCut
-      ? walkRowsGraph(walkCut, name, referencePath)
-      : loadGraph(source, name, { referencePath })
+    const parsed = parseCut(source, name, region)
     const loaded = region ? loadedReference(parsed, region) : undefined
     const graph =
       !self.referencePath &&
@@ -471,10 +496,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     if (!cut || !graph || self.chosenLayoutMode === 'walkrows') {
       return graph
     }
-    const { walkRowRuns: _, ...tables } = cut
-    const whole = loadGraph(tables, graph.name, {
-      referencePath: self.referencePath || self.graphRegion?.assemblyName,
-    })
+    const whole = parseCut(cut, graph.name, self.graphRegion, true)
     self.graph = whole
     self.walkCut = undefined
     return whole

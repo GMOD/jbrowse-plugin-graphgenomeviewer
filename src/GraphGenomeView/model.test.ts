@@ -17,6 +17,7 @@ import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
+import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
@@ -28,6 +29,7 @@ import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 
+import type { SubgraphCutOptions } from '../GetSubgraph'
 import type { El } from '@jbrowse/bandage-core/el'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -4162,15 +4164,45 @@ const WALK_TABLES: GraphTables = {
   },
 }
 
-describe('a walk-rows cut', () => {
+describe('a walk-file cut', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
-    mockSession.tracks = [TEST_TRACK]
-    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
-      method === 'GetSubgraph'
-        ? Promise.resolve(walkCutFor(WALK_TABLES, TEST_REGION, true))
-        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    mockSession.tracks = [
+      {
+        ...TEST_TRACK,
+        adapter: {
+          type: 'WalkTabixSyntenyAdapter',
+          assemblyNameToPanSN: { hg38: 'GRCh38' },
+        },
+      },
+    ]
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, method: string, args: { opts: SubgraphCutOptions }) =>
+        method === 'GetSubgraph'
+          ? Promise.resolve(
+              walkCutFor(WALK_TABLES, TEST_REGION, args.opts.walkRows),
+            )
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
+  })
+
+  test.each(['walkrows', 'auto'])(
+    'names its walk on the cut assembly as the reference, under %s',
+    async layoutMode => {
+      const model = restoredView({ layoutMode })
+      await model.load()
+      expect(model.graph!.anchoredBy).toBe('tags')
+      expect(model.graph!.referencePath).toBe('GRCh38#0#chr1')
+    },
+  )
+
+  test("measures a lifted walk against the reference's", async () => {
+    const model = restoredView({ layoutMode: 'auto' })
+    await model.load()
+    expect(walkHighlight(model.graph!, 'HG002#1#chr1')).toMatchObject({
+      bp: 3400,
+      referenceBp: 4000,
+    })
   })
 
   test('is asked for in walk rows, and draws the rows walkRows makes', async () => {
