@@ -201,6 +201,51 @@ fragment runs from its first to its last step on the reference inside the window
 plus 1 kb, then on outward while the next node is already in the cut, so an
 allele straddling the edge draws every walk that crosses it.
 
+### Walks that leave the window
+
+A walk that leaves the reference inside the window, through steps off it or
+across a deletion, is followed to the reference step where it rejoins
+(`walkCut`), and the reference walk is cut out as far as those rejoins reach.
+gfa-to-tabix files a step off the reference with the reference step before it,
+so an excursion leaving inside the window is in the read; its rejoin is too
+unless it lies in a chunk past the read. A walk that never rejoins keeps the
+steps off the reference the read holds.
+
+From gfa-to-tabix 0.6.0 each walk row ends with `pv:i:`/`nx:i:`, the chunk its
+path's previous and next piece is filed under. A walk the read cuts off with no
+reference step to rejoin at reads on to that chunk, the reference between
+included, up to four chunks out, three rounds and the byte budget
+(`WalkReader.cut`). A contig that ends has no tag and is not followed; 0.5.0
+files have no tags and are not followed either. The tags add 0.8% to the chr22
+walk file, and the node and link files are byte-identical.
+
+Measured 2026-10-09, every haplotype, rows over the window against gbz-base's
+`walkRows` (bp and complete), both on bandage-core 8.2.0:
+
+| where                                    | before    | rejoin in the read | and follow (0.6.0 files)                 |
+| ---------------------------------------- | --------- | ------------------ | ---------------------------------------- |
+| ABCA7 VNTR chr19:1,049,000-1,050,500     | 457 / 462 | 462 / 462          | not built for chr19                      |
+| C4A chr6:31,982,000-32,003,000           | 308 / 463 | 463 / 463          | not built for chr6                       |
+| chr22, 150 windows of 0.6-100 kb, local  |           | 67,797 / 68,256    | 68,256 / 68,256                          |
+| amylase cluster chr1:103.52-103.83 Mb    |           | 470 / 470          | not built for chr1                       |
+| amylase chr1:103.56-103.66 Mb, inside it |           | 85 / 467           | 456 / 468 read one chunk wider each side |
+
+ABCA7 is the four walks above: HG00320#2 leaves GRCh38 at 1,049,885, runs 16.2
+kb off it and rejoins at 1,052,290, inside the chunk the window reads, and now
+measures 16.3 kb whole over the TRGT record as gbz-base does; its 9 partial rows
+are 7 contigs that end on the reference and 2 that start off it. At C4A, 155
+haplotypes with one RCCX copy fewer cross a deletion past the context and read
+as contigs ending there. Over the 135 random chr22 windows, 327 of 61,758 walk
+crossings were partial before and 13 after, at least 10 of them contigs that
+end; following was needed only where the window's context runs into the chunk
+after the read, 17 of the 150 windows (the 15 placed there on purpose), one more
+round of three reads and 0.1-0.6 MB. Without it one such window,
+25,557,894-25,558,540, matched gbz-base on none of its 459 rows. The rejoin adds
+4% to a cut's nodes and steps at the median, 28% at most (chr22:44.1-44.2 Mb,
+where it fixed 304 rows), and nothing to its reads. A window ending inside a
+collapsed cluster, amylase's, is the other case following fixes: the copies a
+walk passes are filed where the reference places them, beyond the read.
+
 Two budgets refuse a window with the zoom-in notice. Before any row is read, the
 three Tabix indexes estimate the compressed bytes the reads would fetch
 (`bytesForRegions`), and past `walkByteBudget` (8 MB) the notice names the span
@@ -396,13 +441,8 @@ haplotypes hold one walk in both, each shorter from the walk files by a flank of
 1.9 kb or more, 2.6 kb in most, so the rows differ from each other as they did.
 
 At the ABCA7 VNTR's TRGT record (chr19:1,049,406-1,050,096), measured 2026-10-09
-with every haplotype, 445 of 459 walk rows match between the routes to the bp.
-Four walks leave GRCh38 inside the VNTR and rejoin it past the walk cut's 1 kb
-context: gbz-base follows the snarl and measures them whole (HG00320#2 16.3 kb,
-HG00140#1 7.7 kb, HG01074#2 7.2 kb, HG00146#1 6.3 kb), where the walk files cut
-them off as partial walks. The longest bar sets the rows' scale, so the walk
-route's bars draw about twice as long. Ten more are contigs that end at or
-before the VNTR (HG04199#2 ends at 1,048,826, before it): a walk with one flank
-measures from that flank (`walkRowRuns`), so these read 0 to 0.8 kb as partial
-walks on the walk route, where walkRows counts the flank each cut holds (0.9 kb
-from the walk files, 3.7 kb from gbz-base for HG04199#2).
+with every haplotype, all 462 walk rows match gbz-base's to the bp since walks
+are followed to where they rejoin (above). gbz-base's cut at its default context
+and snarls there breaks GRCh38's path at 1,051,927-1,051,934 and reads those
+four walks as partial; the comparison used the cut that holds the whole
+reference path.
