@@ -8,7 +8,9 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import { walkRowsOf } from './walkRowRuns.ts'
 
+import type { WalkCut } from './walkRowRuns.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 
 // chr22 of HPRC v2.1 at base level, walk-indexed under 64 kb chunks of both
@@ -43,6 +45,16 @@ const fixturePrefix = require
 //   W HG002  1 chr1 >1>3>4   3 replaces 2
 const maxNodePrefix = require
   .resolve('./test_data/walks_maxnode.walks.bed.gz')
+  .replace(/\.walks\.bed\.gz$/, '')
+
+// Twelve 500 bp reference nodes over chr1:0-6000 in one 10 kb chunk, built by
+// gfa-to-tabix --walks --refs GRCh38 --chunk 10000 (0.5.0):
+//   W GRCh38  0 chr1 >1>2>3>4>5>6>7>8>9>10>11>12
+//   W HG002   1 chr1 >1>2>3>20>21>9>10>11>12   20 and 21, 2 kb each, replace 4-8
+//   W HG002   2 chr1 >1>2>3>4>5>6>7>8>9>10>11>12
+//   W HG003   1 chr1 >1>2>3>22                 the contig ends on 22, 300 bp
+const rejoinPrefix = require
+  .resolve('./test_data/walks_rejoin.walks.bed.gz')
   .replace(/\.walks\.bed\.gz$/, '')
 
 function makeAdapter(prefix = spikePrefix, slots = {}) {
@@ -382,4 +394,29 @@ test('a header without maxnode reads from the chunk before the window', async ()
     new Set([1000]),
   )
   getLines.mockRestore()
+})
+
+test('a walk leaving the window is measured to where it rejoins the reference', async () => {
+  const region = {
+    refName: 'chr1',
+    assemblyName: 'hg38',
+    start: 1000,
+    end: 1500,
+  }
+  const cut = (await makeAdapter(rejoinPrefix, {
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+  }).getSubgraph(region, { walkRows: true })) as WalkCut
+  const rows = walkRowsOf(cut.walkRowRuns!).rows.map(
+    ({ label, bp, complete, stop }) => ({ label, bp, complete, stop }),
+  )
+  expect(rows).toEqual([
+    { label: 'HG002#1', bp: 4500, complete: true, stop: undefined },
+    { label: 'HG002#2', bp: 500, complete: true, stop: undefined },
+    {
+      label: 'HG003#1',
+      bp: 800,
+      complete: false,
+      stop: { contigEnds: false, shortBp: 0 },
+    },
+  ])
 })
