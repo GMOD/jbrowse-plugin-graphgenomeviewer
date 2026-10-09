@@ -17,6 +17,7 @@ import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 import { colorOfScheme } from '../nodeColor'
+import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
 import type { HoverHighlight } from '../hoverHighlight'
@@ -145,7 +146,9 @@ export const withSettingActions = withFitViews
       self.maxGraphNodes = limit
     },
     setNodeWidth(width: NodeWidth) {
-      self.nodeWidth = width
+      self.writeGrammar({
+        size: sizeOfNodeWidth(width, self.contigThickness),
+      })
     },
     setShowBubbles(show: boolean) {
       self.showBubbles = show

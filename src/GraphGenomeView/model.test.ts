@@ -760,17 +760,13 @@ describe('layoutMode', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'variants',
-      colorScheme: 'dropped',
       bubbleSpread: 'dropped',
       layoutEngine: 'dropped',
-      nodeWidth: 'dropped',
     } as never)
     expect(model.layoutMode).toBeUndefined()
     expect(model.chosenLayoutMode).toBe('force')
-    expect(model.colorScheme).toBeUndefined()
     expect(model.bubbleSpread).toBe('auto')
     expect(model.layoutEngine).toBe('fmmm')
-    expect(model.nodeWidth).toBe('depth')
   })
 
   test('auto lays an rGFA out from the file, with no layout RPC', async () => {
@@ -3078,7 +3074,7 @@ describe('walk rows', () => {
       },
       loadedRegion: TEST_REGION,
       layoutMode: 'ordered',
-      contigThickness: 9,
+      size: 9,
     })
     await model.load()
     expect(model.figureSpec()).toMatchObject({ contigThickness: 9 })

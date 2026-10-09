@@ -4,7 +4,6 @@ import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { createForceLayoutCache } from '@jbrowse/bandage-core/layout/forceCache'
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
-import { NODE_WIDTH_VALUES } from '@jbrowse/bandage-core/nodeWidths'
 import { viewportOf } from '@jbrowse/bandage-core/viewport'
 import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
@@ -266,8 +265,6 @@ export const paneBase = types
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
       // place a node from its coordinates rather than from a force sim.
       bubbleSpread: lenientOptionalEnum(BUBBLE_SPREAD_VALUES, 'auto'),
-      // Node thickness by depth, Bandage's own device; see NODE_WIDTHS.
-      nodeWidth: lenientOptionalEnum(NODE_WIDTH_VALUES, 'depth'),
       // Whether the node layouts draw each bubble as a halo along its nodes
       // with a label that opens it. Off by default: on a base-level cut
       // every SNP's halo is a blob.
@@ -330,7 +327,6 @@ export const paneBase = types
       // attributes, which is what browser tests assert against, so hiding the
       // text costs no coverage.
       showPerf: types.optional(types.boolean, false),
-      contigThickness: types.optional(types.number, 6),
       connectorThickness: types.optional(types.number, 2),
       scale: types.optional(types.number, 1),
       translateX: types.optional(types.number, 0),

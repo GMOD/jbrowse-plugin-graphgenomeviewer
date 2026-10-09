@@ -43,6 +43,16 @@ export function configSchemaFactory() {
       },
       /**
        * #slot
+       * the node thickness: a px number draws every node that thick;
+       * `{ field: 'depth', value }` thickens a node the more paths carry it,
+       * around `value` px
+       */
+      size: {
+        type: 'frozen',
+        defaultValue: { field: 'depth', value: 6 },
+      },
+      /**
+       * #slot
        * what the pointer lights: `nodes` lightens a hovered node and bands its
        * span on the view; `everything` also lights edges, and the node at the
        * view's pointer bp

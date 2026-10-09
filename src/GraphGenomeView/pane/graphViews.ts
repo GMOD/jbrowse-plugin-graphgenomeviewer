@@ -54,6 +54,7 @@ import {
   pickGeneTrack,
 } from '../genes/geneFeatures'
 import { domainOfColor, schemeOfColor } from '../nodeColor'
+import { nodeSizeOf } from '../nodeSize'
 import {
   REPEAT_ADAPTER_TYPES,
   pickRepeatTrack,
@@ -64,11 +65,13 @@ import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'
+import type { NodeSize } from '../nodeSize'
 import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
+import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
 import type { GraphNode } from '@jbrowse/bandage-core/types'
 import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
@@ -91,6 +94,7 @@ function walkRowsFromCut(
 export interface GraphGrammar {
   layoutMode?: LayoutModeValue
   color?: NodeColor
+  size?: NodeSize
   hover?: HoverHighlight
 }
 
@@ -137,6 +141,13 @@ export const withGraphViews = paneBase
     },
     get chosenHover(): HoverHighlight {
       return self.grammar.hover ?? 'nodes'
+    },
+    // Node thickness by depth, Bandage's own device; see NODE_WIDTHS
+    get nodeWidth(): NodeWidth {
+      return nodeSizeOf(self.grammar.size).width
+    },
+    get contigThickness() {
+      return nodeSizeOf(self.grammar.size).px
     },
     get hoverLightsEverything() {
       return this.chosenHover === 'everything'

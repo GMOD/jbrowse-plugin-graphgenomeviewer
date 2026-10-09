@@ -23,6 +23,7 @@ import { lenientMaybeEnum } from './lenientEnum'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { NodeColor } from './nodeColor'
+import type { NodeSize } from './nodeSize'
 import type { SubgraphRegion } from '../GetSubgraph'
 import type { GraphGrammar } from './pane/graphViews'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -53,6 +54,7 @@ export default function stateModelFactory() {
         // unset is force
         layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
         color: types.maybe(types.frozen<NodeColor>()),
+        size: types.maybe(types.frozen<NodeSize>()),
         // unset is nodes
         hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
       }),
@@ -62,6 +64,7 @@ export default function stateModelFactory() {
         return {
           layoutMode: self.layoutMode,
           color: self.color,
+          size: self.size,
           hover: self.hover,
         }
       },

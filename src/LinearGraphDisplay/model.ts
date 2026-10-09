@@ -110,6 +110,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return {
           layoutMode: getConf(self, 'layoutMode'),
           color: getConf(self, 'color'),
+          size: getConf(self, 'size'),
           hover: getConf(self, 'hover'),
         }
       },
