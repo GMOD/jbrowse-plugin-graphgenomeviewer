@@ -1,18 +1,15 @@
 import { lazy } from 'react'
 
 import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
-import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { createForceLayoutCache } from '@jbrowse/bandage-core/layout/forceCache'
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
-import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { NODE_WIDTH_VALUES } from '@jbrowse/bandage-core/nodeWidths'
 import { viewportOf } from '@jbrowse/bandage-core/viewport'
 import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
-import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
-import { lenientMaybeEnum, lenientOptionalEnum } from '../lenientEnum'
+import { lenientOptionalEnum } from '../lenientEnum'
 import { groupByOf } from '../walkRowGroups'
 
 import type { SubgraphRegion } from '../../GetSubgraph'
@@ -264,14 +261,6 @@ export const paneBase = types
       // layout, which reads the reference straight. See LAYOUT_ENGINES.
       layoutEngine: lenientOptionalEnum(LAYOUT_ENGINE_VALUES, 'fmmm'),
       linearLayout: types.optional(types.boolean, false),
-      // unset takes the host's default: force in a view of its own, the
-      // display config's in a track
-      layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
-      colorScheme: lenientMaybeEnum(COLOR_SCHEME_VALUES),
-      // what the pointer lights; unset takes the host's default. Beyond
-      // `nodes`, an edge under it and a linear view's pointer at a node's bp
-      // light too, though the pointer crosses both on the way elsewhere
-      hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
       // How far the force layout opens a bubble, which on a variation graph is
       // the difference between a legible drawing and a rope. See
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
@@ -365,9 +354,6 @@ export const paneBase = types
       // Raise to draw a bigger graph than the default budget allows; see
       // DEFAULT_MAX_GRAPH_NODES for what the numbers cost.
       maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
-      // The reference span the reference-position ramp runs over, for a graph
-      // with no region of its own to span it
-      colorDomain: types.maybe(types.frozen<{ start: number; end: number }>()),
       // the linear view a graph of its own is paired with for the hover sync
       connectedViewId: types.maybe(types.string),
     }),
@@ -406,7 +392,7 @@ export const paneBase = types
     // popped superbubble can be mapped and popped again.
     popStack: [] as {
       graph: Graph
-      layoutMode: LayoutModeValue | undefined
+      layoutMode: LayoutModeValue
       label: string
       indexBubbles: MinigraphBubble[] | undefined
     }[],

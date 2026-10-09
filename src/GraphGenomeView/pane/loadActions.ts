@@ -765,7 +765,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         ...self.popStack,
         {
           graph,
-          layoutMode: self.layoutMode,
+          layoutMode: self.chosenLayoutMode,
           label: graph.name,
           indexBubbles: self.indexBubbles,
         },
@@ -792,7 +792,9 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
       self.popStack = self.popStack.slice(0, -1)
       self.graph = from.graph
-      self.layoutMode = from.layoutMode
+      if (from.layoutMode !== self.chosenLayoutMode) {
+        self.setLayoutMode(from.layoutMode)
+      }
       self.indexBubbles = from.indexBubbles
       self.clearInteractionState()
       self.viewportOwner = 'fit'

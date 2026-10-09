@@ -43,7 +43,7 @@ function config() {
           layoutMode: 'auto',
           // no session assembly to infer from, so the axis is named outright
           referencePath: 'K12',
-          colorScheme: 'depth',
+          color: { field: 'depth' },
           gfaLocation,
         },
         {
@@ -51,7 +51,7 @@ function config() {
           type: 'GraphGenomeView',
           layoutMode: 'samplerows',
           referencePath: 'K12',
-          colorScheme: 'depth',
+          color: { field: 'depth' },
           gfaLocation,
         },
         // The one configuration no e2e loaded, and the one where the ribbon
@@ -63,7 +63,7 @@ function config() {
           type: 'GraphGenomeView',
           layoutMode: 'auto',
           referencePath: 'K12',
-          colorScheme: 'grey',
+          color: 'grey',
           drawPaths: true,
           gfaLocation,
         },

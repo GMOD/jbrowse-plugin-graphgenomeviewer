@@ -2,10 +2,11 @@ import { lazy } from 'react'
 
 import DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
 
-import { configSchemaFactory } from './configSchema'
+import { configSchemaFactory, liftGrammar } from './configSchema'
 import { stateModelFactory } from './model'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
+import type { RetiredDisplayState } from '@jbrowse/core/pluggableElementTypes/DisplayType'
 
 export default function LinearGraphDisplayF(pluginManager: PluginManager) {
   pluginManager.addDisplayType(() => {
@@ -22,7 +23,15 @@ export default function LinearGraphDisplayF(pluginManager: PluginManager) {
         viewType: 'LinearGenomeView',
         ReactComponent: lazy(() => import('./components/LinearGraphDisplay')),
       }),
-      { adapterCapabilities: ['getSubgraph'] },
+      {
+        adapterCapabilities: ['getSubgraph'],
+        // 6.x kept these on the display instance; a session that did writes
+        // them into the track's config
+        retiredState: {
+          keys: ['layoutMode', 'colorScheme', 'colorDomain', 'hover'],
+          lift: liftGrammar,
+        } satisfies RetiredDisplayState,
+      },
     )
   })
 }

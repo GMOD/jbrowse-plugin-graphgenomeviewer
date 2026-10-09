@@ -1,4 +1,7 @@
-import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+import {
+  LAYOUT_MODE_VALUES,
+  layoutModeByValue,
+} from '@jbrowse/bandage-core/layoutModes'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
 import { getSession } from '@jbrowse/core/util'
 import { addDisposer, types } from '@jbrowse/mobx-state-tree'
@@ -15,9 +18,14 @@ import {
   graphReferenceAssembly,
   offReferenceProblem,
 } from '../graphTrackConfig'
+import { HOVER_HIGHLIGHT_VALUES } from './hoverHighlight'
+import { lenientMaybeEnum } from './lenientEnum'
+import { liftColor } from './nodeColor'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
+import type { NodeColor } from './nodeColor'
 import type { SubgraphRegion } from '../GetSubgraph'
+import type { GraphGrammar } from './pane/graphViews'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -43,8 +51,45 @@ export default function stateModelFactory() {
         subgraphContext: types.optional(types.number, 1),
         subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
         maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
+        // unset is force
+        layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
+        color: types.maybe(types.frozen<NodeColor>()),
+        // unset is nodes
+        hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
+        // 6.x spellings of `color`, which preProcessSnapshot lifts and so
+        // never holds. Declared so a spec stating one is not reported as an
+        // unknown key; the docs' figure specs do.
+        colorScheme: types.maybe(types.frozen()),
+        colorDomain: types.maybe(types.frozen()),
       }),
     )
+    .preProcessSnapshot(snapshot => {
+      const { colorScheme, colorDomain, ...rest } = snapshot as {
+        colorScheme?: unknown
+        colorDomain?: unknown
+        color?: NodeColor
+      }
+      return (
+        rest.color !== undefined ||
+        (colorScheme === undefined && colorDomain === undefined)
+          ? rest
+          : { ...rest, color: liftColor(colorScheme, colorDomain) }
+      ) as typeof snapshot
+    })
+    .views(self => ({
+      get grammar(): GraphGrammar {
+        return {
+          layoutMode: self.layoutMode,
+          color: self.color,
+          hover: self.hover,
+        }
+      },
+    }))
+    .actions(self => ({
+      writeGrammar(settings: GraphGrammar) {
+        Object.assign(self, settings)
+      },
+    }))
     .volatile(() => ({
       widthMeasured: false,
     }))

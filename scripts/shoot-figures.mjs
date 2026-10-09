@@ -115,7 +115,7 @@ function graphView(props) {
     type: 'GraphGenomeView',
     displayName: 'hg38',
     subgraphContext: 0,
-    colorScheme: 'reference-position',
+    color: { field: 'position' },
     geneTrackId: GENES,
     ...props,
   }
@@ -148,14 +148,14 @@ function trackView(loc, graphDisplay, above = [], below = []) {
 const kiv2Force = {
   trackId: RGFA,
   layoutMode: 'force',
-  colorScheme: 'reference-position',
+  color: { field: 'position' },
   maxRegionBp: 143000,
   height: 400,
 }
 const kiv2Gbz = {
   trackId: GBZ,
   layoutMode: 'force',
-  colorScheme: 'reference-position',
+  color: { field: 'position' },
   subgraphHaplotypes: HAPLOTYPES,
 }
 const forceKiv2Track = trackView(KIV2_LOC, kiv2Force, [VNTR_TRACK])
@@ -241,7 +241,7 @@ const FIGURES = {
     {
       trackId: GBZ,
       layoutMode: 'force',
-      colorScheme: 'reference-position',
+      color: { field: 'position' },
       subgraphHaplotypes: HAPLOTYPES,
       walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
       height: 460,
@@ -314,7 +314,7 @@ const FIGURES = {
       {
         ...kiv2Gbz,
         layoutMode: 'walkrows',
-        colorScheme: 'uniform',
+        color: 'uniform',
         repeatTrackId: 'hprc_curated_vntrs',
         height: 300,
       },
@@ -384,7 +384,6 @@ const FIGURES = {
           loadedRegion: MICB_EXONS,
           subgraphHaplotypes: HAPLOTYPES,
           layoutMode: 'tubemap',
-          colorScheme: 'auto',
           paneHeight: 360,
         }),
       ],
@@ -396,7 +395,7 @@ const FIGURES = {
     session: trackView(MHC_LOC, {
       trackId: RGFA,
       layoutMode: 'force',
-      colorScheme: 'reference-position',
+      color: { field: 'position' },
       height: 420,
     }),
     act: hoverLongestAllele,

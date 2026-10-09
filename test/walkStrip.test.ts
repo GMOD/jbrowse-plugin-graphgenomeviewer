@@ -58,7 +58,7 @@ function config() {
           layoutMode: 'force',
           walkStrip: true,
           referencePath: 'GRCh38',
-          colorScheme: 'reference-position',
+          color: { field: 'position' },
           gfaLocation: served(KIV2),
           loadedRegion: {
             assemblyName: 'hg38',

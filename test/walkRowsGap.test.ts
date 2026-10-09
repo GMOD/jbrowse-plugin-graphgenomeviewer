@@ -62,7 +62,7 @@ function config() {
           type: 'GraphGenomeView',
           layoutMode: 'walkrows',
           referencePath: 'GRCh38',
-          colorScheme: 'grey',
+          color: 'grey',
           gfaLocation: {
             uri: `${BASE_URL}/gap.gfa`,
             locationType: 'UriLocation',

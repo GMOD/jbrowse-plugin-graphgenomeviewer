@@ -16,7 +16,9 @@ import { keepInView, onScreen } from './keepInView'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
+import { colorOfScheme } from '../nodeColor'
 
+import type { GraphGrammar } from './graphViews'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
 import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
@@ -34,6 +36,12 @@ import type {
 } from '@jbrowse/bandage-core/walkEncoding'
 
 export const withSettingActions = withFitViews
+  .actions(() => ({
+    // each host overrides: a view assigns its props, a track display writes
+    // its config. Its own block, so the setters below reach the override
+    // through `self`
+    writeGrammar(_settings: GraphGrammar) {},
+  }))
   .actions(self => ({
     // A pan or zoom never leaves the drawing wholly off screen, where
     // nothing says which way it went. A host's x is its own.
@@ -98,10 +106,10 @@ export const withSettingActions = withFitViews
       self.linearLayout = linear
     },
     setLayoutMode(mode: LayoutModeValue) {
-      self.layoutMode = mode
+      self.writeGrammar({ layoutMode: mode })
     },
     setHover(hover: HoverHighlight) {
-      self.hover = hover
+      self.writeGrammar({ hover })
       if (!self.hoverLightsEverything) {
         self.hoveredEdge = null
       }
@@ -126,7 +134,9 @@ export const withSettingActions = withFitViews
       self.showPerf = show
     },
     setColorScheme(scheme: ColorScheme) {
-      self.colorScheme = scheme
+      self.writeGrammar({
+        color: colorOfScheme(scheme, self.statedColorDomain),
+      })
     },
     setBubbleSpread(spread: BubbleSpread) {
       self.bubbleSpread = spread

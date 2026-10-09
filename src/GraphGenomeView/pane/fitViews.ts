@@ -609,7 +609,7 @@ export const withFitViews = withHostViews
             nodeWidth: self.nodeWidth,
             contigThickness: self.contigThickness,
             connectorThickness: self.connectorThickness,
-            colorDomain: self.colorDomain,
+            colorDomain: self.statedColorDomain,
           }),
           walks: self.walkLayers.length
             ? self.walkLayers.map(l => (l.color ? l : l.walk))
@@ -661,7 +661,7 @@ export const withFitViews = withHostViews
             contigThickness: self.contigThickness,
             connectorThickness: self.connectorThickness,
             region: self.graphRegion,
-            colorDomain: self.colorDomain,
+            colorDomain: self.statedColorDomain,
             fitToDrawing: self.popStack.length > 0,
             genes: self.showGenes ? self.backboneGenes : undefined,
             walkRows: self.walkRowBars,

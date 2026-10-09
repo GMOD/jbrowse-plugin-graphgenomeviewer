@@ -19,6 +19,7 @@ import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+import { liftGrammar } from './configSchema'
 import LinearGraphDisplayF from './index'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
@@ -863,8 +864,8 @@ test("a launch names the pane's props without its type, and opens in that layout
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
-  expect(display.layoutMode).toBe('force')
-  expect(display.colorScheme).toBe('uniform')
+  expect(display.chosenLayoutMode).toBe('force')
+  expect(display.chosenColorScheme).toBe('uniform')
   expect(display.hostPlacesX).toBe(false)
 })
 
@@ -938,6 +939,48 @@ test("a 4.0 session's pane state still loads, and is not reported as an unknown 
   expect(display.chosenLayoutMode).toBe('force')
   expect(errors).toEqual([])
   expect(getSnapshot(display).pane).toBeUndefined()
+})
+
+// Config, not the display instance, so a share link, Edit plot and Reset
+// track settings all see the choice
+test('a color picked from the menu is written to the track config', async () => {
+  const { display } = await shownGraph()
+  display.setColorScheme('depth')
+  expect(readConfObject(display.configuration, 'color')).toEqual({
+    field: 'depth',
+  })
+  expect(display.chosenColorScheme).toBe('depth')
+  display.setLayoutMode('ordered')
+  expect(readConfObject(display.configuration, 'layoutMode')).toBe('ordered')
+})
+
+test("a spec's 6.x colorScheme reads as the color it names", () => {
+  const { view, errors } = createEnvironment()
+  view.showTrack(
+    'graph',
+    {},
+    { type: 'LinearGraphDisplay', colorScheme: 'stable-rank' },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  expect(display.chosenColorScheme).toBe('stable-rank')
+  expect(errors).toEqual([])
+})
+
+test("a 6.x session's layout, color and hover lift into the track config", () => {
+  expect(
+    liftGrammar({
+      layoutMode: 'force',
+      colorScheme: 'reference-position',
+      colorDomain: { start: 1, end: 9 },
+      hover: 'off',
+      walkLayers: [],
+    }),
+  ).toEqual({
+    layoutMode: 'force',
+    color: { field: 'position', domainMin: 1, domainMax: 9 },
+    hover: 'off',
+  })
+  expect(liftGrammar({ walkLayers: [] })).toEqual({})
 })
 
 test('closing a drawn track reads nothing of the dead display', async () => {

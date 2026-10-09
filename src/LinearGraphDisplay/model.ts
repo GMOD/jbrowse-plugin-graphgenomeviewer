@@ -2,12 +2,17 @@ import { lazy } from 'react'
 import type { ReactNode } from 'react'
 
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { ConfigurationReference, getConf } from '@jbrowse/core/configuration'
+import {
+  ConfigurationReference,
+  getConf,
+  setConf,
+} from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { computeSvgReady } from '@jbrowse/core/svg/svgReady'
 import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
+import { editPlotMenuItems } from '@jbrowse/display-kit/plotMenu'
 import {
   addDisposer,
   getSnapshot,
@@ -44,9 +49,8 @@ import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { HostWindow } from '../GraphGenomeView/host'
-import type { HoverHighlight } from '../GraphGenomeView/hoverHighlight'
+import type { GraphGrammar } from '../GraphGenomeView/pane/graphViews'
 import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
-import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { ExportSvgDisplayOptions } from '@jbrowse/display-kit/types'
@@ -131,14 +135,12 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         get adapterConfig() {
           return trackAdapterConfig(self, self.parentTrack.configuration)
         },
-        get defaultLayoutMode(): LayoutModeValue {
-          return getConf(self, 'layoutMode')
-        },
-        get defaultColorScheme(): ColorScheme {
-          return getConf(self, 'colorScheme')
-        },
-        get defaultHover(): HoverHighlight {
-          return getConf(self, 'hover')
+        get grammar(): GraphGrammar {
+          return {
+            layoutMode: getConf(self, 'layoutMode'),
+            color: getConf(self, 'color'),
+            hover: getConf(self, 'hover'),
+          }
         },
         // The linear view leaves its highlight bands off this track while false
         get drawsGenomicCoordinates() {
@@ -252,6 +254,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         },
       }))
       .actions(self => ({
+        // Into the config, so a share link, Edit plot and Reset track
+        // settings all see it
+        writeGrammar(settings: GraphGrammar) {
+          for (const [slot, value] of Object.entries(settings)) {
+            setConf(self, slot as keyof GraphGrammar, value)
+          }
+        },
         // The setters describe the next cut; the caller re-cuts.
         setSubgraphContext(hops: number) {
           self.subgraphContext = hops
@@ -511,7 +520,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             subgraphHaplotypes: self.chosenHaplotypes,
             maxRegionBp: Math.max(self.maxRegionBp, end - start),
             layoutMode: self.chosenLayoutMode,
-            colorScheme: self.chosenColorScheme,
+            color: self.grammar.color,
             referencePath: self.referencePath,
             geneTrackId: self.geneTrackId,
             showGenes: self.showGenes,
@@ -623,6 +632,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               },
             },
             ...launches,
+            ...editPlotMenuItems(self),
           ]
         },
       }))

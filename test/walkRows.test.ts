@@ -100,7 +100,7 @@ function config() {
           type: 'GraphGenomeView',
           layoutMode: 'walkrows',
           referencePath: 'GRCh38',
-          colorScheme: 'grey',
+          color: 'grey',
           gfaLocation: served(KIV2),
           repeatTrackId: 'simple_repeats',
           loadedRegion: {

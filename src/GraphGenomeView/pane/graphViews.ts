@@ -53,6 +53,7 @@ import {
   laneFilters,
   pickGeneTrack,
 } from '../genes/geneFeatures'
+import { domainOfColor, schemeOfColor } from '../nodeColor'
 import {
   REPEAT_ADAPTER_TYPES,
   pickRepeatTrack,
@@ -62,6 +63,7 @@ import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { HoverHighlight } from '../hoverHighlight'
+import type { NodeColor } from '../nodeColor'
 import type {
   ColorScheme,
   ResolvedColorScheme,
@@ -84,16 +86,18 @@ function walkRowsFromCut(
   return runs ? walkRowsOf(runs, unit) : undefined
 }
 
+// The layout, node color and hover as a host stores them: a view of its own
+// as props, a track display in its config
+export interface GraphGrammar {
+  layoutMode?: LayoutModeValue
+  color?: NodeColor
+  hover?: HoverHighlight
+}
+
 export const withGraphViews = paneBase
   .views(self => ({
-    get defaultLayoutMode(): LayoutModeValue {
-      return 'force'
-    },
-    get defaultColorScheme(): ColorScheme {
-      return 'auto'
-    },
-    get defaultHover(): HoverHighlight {
-      return 'nodes'
+    get grammar(): GraphGrammar {
+      return {}
     },
     // the paper follows the host theme
     get darkMode() {
@@ -120,14 +124,19 @@ export const withGraphViews = paneBase
     },
   }))
   .views(self => ({
-    get chosenLayoutMode() {
-      return self.layoutMode ?? self.defaultLayoutMode
+    get chosenLayoutMode(): LayoutModeValue {
+      return self.grammar.layoutMode ?? 'force'
     },
-    get chosenColorScheme() {
-      return self.colorScheme ?? self.defaultColorScheme
+    get chosenColorScheme(): ColorScheme {
+      return schemeOfColor(self.grammar.color)
     },
-    get chosenHover() {
-      return self.hover ?? self.defaultHover
+    // the reference span the reference-position ramp runs over, for a graph
+    // with no region of its own to span it
+    get statedColorDomain() {
+      return domainOfColor(self.grammar.color)
+    },
+    get chosenHover(): HoverHighlight {
+      return self.grammar.hover ?? 'nodes'
     },
     get hoverLightsEverything() {
       return this.chosenHover === 'everything'
@@ -256,7 +265,7 @@ export const withGraphViews = paneBase
     // Undefined for a graph with neither, where the ramp spans the drawn
     // extent (computeReferenceRamp)
     get rampDomain() {
-      return self.colorDomain ?? self.graphRegion
+      return self.statedColorDomain ?? self.graphRegion
     },
     // The ramp a lane coloured by reference position reads, computed only
     // when a layer asks for one: it is a neighbour walk per node
