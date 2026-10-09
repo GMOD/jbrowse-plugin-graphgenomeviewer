@@ -57,6 +57,13 @@ const rejoinPrefix = require
   .resolve('./test_data/walks_rejoin.walks.bed.gz')
   .replace(/\.walks\.bed\.gz$/, '')
 
+// The same graph in 1 kb chunks, built by gfa-to-tabix 0.6.0, whose rows name
+// the chunks their path goes on in: HG002#1 leaves chunk 1000 for 20 and 21
+// and rejoins at 9, in chunk 4000
+const followPrefix = require
+  .resolve('./test_data/walks_follow.walks.bed.gz')
+  .replace(/\.walks\.bed\.gz$/, '')
+
 function makeAdapter(prefix = spikePrefix, slots = {}) {
   const local = (path: string) => ({
     localPath: path,
@@ -419,4 +426,29 @@ test('a walk leaving the window is measured to where it rejoins the reference', 
       stop: { contigEnds: false, shortBp: 0 },
     },
   ])
+})
+
+test('a walk the read cuts off is read on to the chunk its row names', async () => {
+  const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
+  const region = {
+    refName: 'chr1',
+    assemblyName: 'hg38',
+    start: 1000,
+    end: 1500,
+  }
+  const cut = (await makeAdapter(followPrefix, {
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+  }).getSubgraph(region, { walkRows: true })) as WalkCut
+  const reads = getLines.mock.calls.map(call => [call[1], call[2]])
+  getLines.mockRestore()
+  const rows = walkRowsOf(cut.walkRowRuns!).rows.map(
+    ({ label, bp, complete }) => ({ label, bp, complete }),
+  )
+  expect(rows).toEqual([
+    { label: 'HG002#1', bp: 4500, complete: true },
+    { label: 'HG002#2', bp: 500, complete: true },
+    { label: 'HG003#1', bp: 800, complete: false },
+  ])
+  // the window's chunks, then on to chunk 4000; HG003#1's contig ends
+  expect(new Set(reads.map(String))).toEqual(new Set(['0,1500', '2000,4001']))
 })

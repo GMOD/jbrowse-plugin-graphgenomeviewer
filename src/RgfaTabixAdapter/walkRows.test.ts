@@ -66,6 +66,25 @@ test('a walk row is named and parsed without reading past its steps', () => {
   expect([...run!.rev]).toEqual([0, 1, 0])
 })
 
+test('a row names the chunks its path goes on in, and a run takes its ends', () => {
+  const rows = [
+    `${walkLine('HG002#1#chr1', 0, 0, forward(10, 11))}\tnx:i:1000`,
+    `${walkLine('HG002#1#chr1', 1, 300, forward(12))}\tpv:i:0\tXX:Z:later\tnx:Z:GRCh38#0#chr2:5000`,
+  ].map(parseWalkRow)
+  expect(rows.map(r => [r.prev, r.next])).toEqual([
+    [undefined, { refName: 'GRCh38#0#chr1', start: 1000 }],
+    [
+      { refName: 'GRCh38#0#chr1', start: 0 },
+      { refName: 'GRCh38#0#chr2', start: 5000 },
+    ],
+  ])
+  const [run] = joinPieces(rows)
+  expect([run!.prev, run!.next]).toEqual([
+    undefined,
+    { refName: 'GRCh38#0#chr2', start: 5000 },
+  ])
+})
+
 test('continuation rows join by piece index, and a missing piece splits the walk', () => {
   const rows = [
     walkLine('HG002#1#chr1', 3, 900, forward(30)),

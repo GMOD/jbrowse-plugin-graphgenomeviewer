@@ -26,6 +26,11 @@ import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 // multiple of it.
 const READ_STEPS_PER_KEPT = 8
 
+// A walk the read cuts off goes on in the chunk its row names, out to which a
+// cut reads on, in at most this many rounds and this many chunks from the read
+const FOLLOW_ROUNDS = 3
+const FOLLOW_CHUNKS = 4
+
 export interface WalkFileSet {
   walks: TabixIndexedFile
   nodes: TabixIndexedFile
@@ -88,15 +93,21 @@ export class WalkReader {
       this.files.nodes,
       ...(links ? [this.files.links] : []),
     ]
+    const bytesFor = async (spans: { start: number; end: number }[]) => {
+      const sizes = await Promise.all(
+        files.map(file =>
+          file.bytesForRegions(
+            spans.map(span => ({ refName, ...span })),
+            { signal },
+          ),
+        ),
+      )
+      return sizes.reduce((sum, bytes) => sum + bytes, 0)
+    }
     const tooLarge = await byteBudgetError(
       async end => {
         checkRange(refName, from, end)
-        const sizes = await Promise.all(
-          files.map(file =>
-            file.bytesForRegions([{ refName, start: from, end }], { signal }),
-          ),
-        )
-        return sizes.reduce((sum, bytes) => sum + bytes, 0)
+        return bytesFor([{ start: from, end }])
       },
       opts.byteBudget,
       region,
@@ -111,6 +122,7 @@ export class WalkReader {
     }
     signal?.addEventListener('abort', stop, { once: true })
     const rows: WalkRow[] = []
+    let cut: ReturnType<typeof walkCut>
     const graph = new WalkGraph({
       refName,
       start: region.start,
@@ -120,18 +132,27 @@ export class WalkReader {
     const read = (
       file: TabixIndexedFile,
       lineCallback: (line: string) => void,
+      start = from,
+      end = region.end,
     ) =>
-      getLines(file, refName, from, region.end, {
+      getLines(file, refName, start, end, {
         signal: reads.signal,
         lineCallback,
       })
+    const addRow = (line: string) => {
+      if (keep === undefined || keep(walkRowName(line))) {
+        rows.push(parseWalkRow(line))
+      }
+    }
+    const addNode = (line: string) => {
+      graph.addNode(line)
+    }
+    const addLink = (line: string) => {
+      graph.addLink(line)
+    }
     try {
       await Promise.all([
-        read(this.files.walks, line => {
-          if (keep === undefined || keep(walkRowName(line))) {
-            rows.push(parseWalkRow(line))
-          }
-        }).then(() => {
+        read(this.files.walks, addRow).then(() => {
           const error = stepBudgetError(
             rows,
             opts.stepBudget * READ_STEPS_PER_KEPT,
@@ -143,24 +164,50 @@ export class WalkReader {
             throw error
           }
         }),
-        read(this.files.nodes, line => {
-          graph.addNode(line)
-        }),
-        ...(links
-          ? [
-              read(this.files.links, line => {
-                graph.addLink(line)
-              }),
-            ]
-          : []),
+        read(this.files.nodes, addNode),
+        ...(links ? [read(this.files.links, addLink)] : []),
       ])
+      // the chunks read, first to last, which a follow widens to the
+      // farthest chunk a cut-off walk goes on in, so the reference between
+      // is read too
+      let first = from
+      let last = Math.floor((region.end - 1) / chunk) * chunk
+      const reach = FOLLOW_CHUNKS * chunk
+      const [lo, hi] = [first - reach, last + reach]
+      cut = walkCut(joinPieces(rows), graph.nodes, refName)
+      let spent = await bytesFor([{ start: from, end: region.end }])
+      for (let round = 0; round < FOLLOW_ROUNDS; round++) {
+        const starts = cut.open
+          .filter(c => c.refName === refName && c.start >= lo && c.start <= hi)
+          .map(c => c.start)
+        const spans = [
+          { start: Math.min(first, ...starts), end: first },
+          { start: last + chunk, end: Math.max(last, ...starts) + 1 },
+        ].filter(span => span.end > span.start)
+        if (spans.length === 0) {
+          break
+        }
+        spent += await bytesFor(spans)
+        if (spent > opts.byteBudget) {
+          break
+        }
+        first = Math.min(first, ...starts)
+        last = Math.max(last, ...starts)
+        await Promise.all(
+          spans.flatMap(({ start, end }) => [
+            read(this.files.walks, addRow, start, end),
+            read(this.files.nodes, addNode, start, end),
+            ...(links ? [read(this.files.links, addLink, start, end)] : []),
+          ]),
+        )
+        cut = walkCut(joinPieces(rows), graph.nodes, refName)
+      }
     } catch (error) {
       reads.abort()
       throw error
     } finally {
       signal?.removeEventListener('abort', stop)
     }
-    const cut = walkCut(joinPieces(rows), graph.nodes, refName)
     const tooMany = keptStepsError(
       cut.fragments,
       opts.stepBudget,
