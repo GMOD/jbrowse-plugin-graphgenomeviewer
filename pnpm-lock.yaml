@@ -12,8 +12,8 @@ importers:
         specifier: ^6.7.0
         version: 6.7.0
       '@gmod/gbz-base':
-        specifier: ^7.2.0
-        version: 7.2.0
+        specifier: ^7.3.0
+        version: 7.3.0
       '@gmod/tabix':
         specifier: ^3.9.1
         version: 3.9.1
@@ -594,8 +594,8 @@ packages:
   '@gmod/bgzf-filehandle@6.7.0':
     resolution: {integrity: sha512-ThtHVneb+tASyGFACVL/rMu6d5AY0vWK6poeOJwIIAaJpXYpptrmwvhdk2xk5eoNzL+iN40B3bXytMvQ+e+80Q==}
 
-  '@gmod/gbz-base@7.2.0':
-    resolution: {integrity: sha512-XQZgRD148zGX6tesVQdI52hsJ8ZAf6HGNc2zkf8+EAa3Ak8CpgTBnpsZEXEcFxgvT0QSE+OBzaOEpsQVdrpdbA==}
+  '@gmod/gbz-base@7.3.0':
+    resolution: {integrity: sha512-h+arwZBfPzDlMwAeE5kem8RPs/mOEuxo5iATfwJk6vG8JmjdSF66F+tSPwJTRy3bK+G89nYCxwuSiSO4vecMVQ==}
     hasBin: true
 
   '@gmod/hclust@6.0.0':
@@ -4046,7 +4046,7 @@ snapshots:
       generic-filehandle2: 2.5.0
       pako-esm2: 2.0.2
 
-  '@gmod/gbz-base@7.2.0':
+  '@gmod/gbz-base@7.3.0':
     dependencies:
       generic-filehandle2: 2.5.0
 
@@ -4106,7 +4106,7 @@ snapshots:
 
   '@jbrowse/bandage-core@8.1.0':
     dependencies:
-      '@gmod/gbz-base': 7.2.0
+      '@gmod/gbz-base': 7.3.0
       '@gmod/tabix': 3.9.1
       '@jbrowse/tubemap-core': 0.2.1
 

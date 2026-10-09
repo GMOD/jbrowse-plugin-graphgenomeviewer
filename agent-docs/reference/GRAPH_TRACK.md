@@ -369,5 +369,6 @@ The lanes draw the same pictures: the same contigs and frames (amylase's 1.5×
 and 3×), offset by a few bp to 1 kb. The KIV-2 cuts hold the same 15,808 nodes
 and the same row lengths. The amylase and ABCA7 cuts hold fewer nodes (9,658
 against 11,122, and 11,566 against 14,454) because gbz-base's cut runs on to the
-end of each snarl; every ABCA7 row is 1.9 to 2.7 kb shorter by that flank, so
-the rows differ from each other as they did.
+end of each snarl. Cut in Node over the window and a window each side, 452 ABCA7
+haplotypes hold one walk in both, each shorter from the walk files by a flank of
+1.9 kb or more, 2.6 kb in most, so the rows differ from each other as they did.
