@@ -90,14 +90,14 @@ test('the anchor window answers one record per haplotype, on the reference with 
   ])
 })
 
-test('a fetch for some haplotypes answers those lanes, named by the assembly mapped to them', async () => {
+test('a fetch for some haplotypes answers those lanes in the order asked, named by the assembly mapped to them', async () => {
   const adapter = makeAdapter({
     assemblyNameToPanSN: { hg38: 'GRCh38', 'HG002.2': 'HG002#2' },
   })
   const found = await feats(adapter, { haplotypes: ['HG002.2', 'HG00097'] })
-  expect(found.map(f => mateOf(f).assemblyName).sort()).toEqual([
-    'HG00097#1',
+  expect(found.map(f => mateOf(f).assemblyName)).toEqual([
     'HG002.2',
+    'HG00097#1',
   ])
 })
 

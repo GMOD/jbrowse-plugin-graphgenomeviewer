@@ -213,11 +213,18 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     const align = walkAligner(graph.nodes)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const references = fragments.filter(f => f.name === refName)
-    const shown = (fragment: WalkFragment) =>
-      fragment.name !== refName &&
-      (prefixes === undefined ||
-        prefixes.some(prefix => panSNMatchesPrefix(fragment.name, prefix)))
-    return fragments.filter(shown).flatMap(query =>
+    // lanes come back in the order the fetch names them, which is the order
+    // the display stacks lanes of equal weight in
+    const rank = (fragment: WalkFragment) =>
+      prefixes === undefined
+        ? 0
+        : prefixes.findIndex(prefix =>
+            panSNMatchesPrefix(fragment.name, prefix),
+          )
+    const shown = fragments
+      .filter(fragment => fragment.name !== refName && rank(fragment) >= 0)
+      .sort((a, b) => rank(a) - rank(b))
+    return shown.flatMap(query =>
       references.flatMap(reference =>
         align(query, reference).map(chain =>
           chainFeature({
