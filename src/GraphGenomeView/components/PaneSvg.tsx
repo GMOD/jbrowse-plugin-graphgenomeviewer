@@ -797,7 +797,7 @@ export default function PaneSvg({
           <GenePins model={model} />
           <SizeLabels model={model} />
           <LabelLayer model={model} />
-          <WalkRowsOverlay model={model} />
+          <WalkRowsOverlay model={model} vector />
           <RowLabels model={model} />
         </>
       )}
