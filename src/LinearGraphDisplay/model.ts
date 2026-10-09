@@ -290,6 +290,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             hops: coarse ? 0 : self.subgraphContext,
             haplotypes: self.chosenHaplotypes,
             tier: coarse ? 'coarse' : undefined,
+            ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
             ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
               ? { snarls: 'overlapping' as const }
               : {}),
@@ -353,7 +354,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             seen &&
             !self.regionTooLarge &&
             (to.cutMargins !== from.cutMargins ||
-              to.wholeWalks !== from.wholeWalks)
+              to.wholeWalks !== from.wholeWalks ||
+              (from.value === 'walkrows') !== (to.value === 'walkrows'))
           ) {
             return self.recutAt(seen)
           }

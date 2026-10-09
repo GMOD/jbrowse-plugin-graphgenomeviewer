@@ -15,6 +15,7 @@ import { lenientMaybeEnum, lenientOptionalEnum } from '../lenientEnum'
 import { groupByOf } from '../walkRowGroups'
 
 import type { SubgraphRegion } from '../../GetSubgraph'
+import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { RepeatArray } from '../repeats/repeatFeatures'
 import type { SampleRow, WalkRowGroupBy } from '../walkRowGroups'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
@@ -372,6 +373,9 @@ export const paneBase = types
   )
   .volatile(() => ({
     graph: undefined as Graph | undefined,
+    // a walk-rows cut's tables and runs, which draw the rows in place of the
+    // graph's walks
+    walkCut: undefined as WalkCut | undefined,
     // the reference window the graph on screen was cut for, set with it
     graphRegion: undefined as SubgraphRegion | undefined,
     // The walk the track's graph lies on for the region's assembly, which

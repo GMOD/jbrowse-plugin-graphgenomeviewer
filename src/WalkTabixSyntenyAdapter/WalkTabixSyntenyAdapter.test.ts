@@ -1,4 +1,6 @@
 import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
+import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
+import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
@@ -8,6 +10,7 @@ import Adapter from './WalkTabixSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import WalkTabixSyntenyAdapterF from './index.ts'
 import { bubblesAsMismatches, referenceAligner } from './walkLanes.ts'
+import { walkRowsOf } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import { PairTargetError } from '../synteny/lanePairs.ts'
 
 import type { SyntenyMate } from '@jbrowse/synteny-core'
@@ -353,3 +356,18 @@ test('a haplotype running against the reference is a reverse-strand record', () 
   })
   expect(cigar(chain!.edits)).toBe('1000=30I500=')
 })
+
+test.each([
+  ['the whole reference', window],
+  ['a window inside it', { ...window, start: 1300, end: 2300 }],
+])(
+  "a walk-rows cut's runs are walkRows over the parsed cut, over %s",
+  async (_, region) => {
+    const cut = await makeAdapter({ walkStepBudget: 1 }).getSubgraph(region, {
+      walkRows: true,
+    })
+    expect(walkRowsOf(cut.walkRowRuns!)).toEqual(
+      walkRows(loadGraph(cut, 'cut'), region),
+    )
+  },
+)

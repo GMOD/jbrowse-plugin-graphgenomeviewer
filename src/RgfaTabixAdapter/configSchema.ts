@@ -228,8 +228,9 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * #slot
      * the most haplotype steps a cut keeps; a window whose walks hold more
      * shows a zoom-in notice instead, as does one whose rows hold eight times
-     * as many. Counts only the haplotypes the cut
-     * is for, so fewer haplotypes draw a wider window.
+     * as many. Counts only the haplotypes the cut is for, so fewer haplotypes
+     * draw a wider window. Walk rows draw runs rather than steps and are
+     * bounded by `walkByteBudget` alone.
      */
     walkStepBudget: {
       type: 'integer',

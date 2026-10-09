@@ -2,7 +2,7 @@ import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTypes'
 import { rpcResultWithArrayBuffers } from '@jbrowse/core/util/librpc'
 
-import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
+import type { WalkCut } from './RgfaTabixAdapter/walkRowRuns.ts'
 import type { RpcExecuteArgs } from '@jbrowse/core/rpc/RpcRegistry'
 import type { Region } from '@jbrowse/core/util'
 
@@ -26,6 +26,9 @@ export interface SubgraphCutOptions {
   // which snarls a GBZ cut follows past the window, over the track's
   // `subgraphSnarls`; 'overlapping' when the layout measures whole walks
   snarls?: 'none' | 'contained' | 'overlapping'
+  // a walk-file cut for walk rows: its runs come with the tables, and the
+  // step budget, which guards a Graph of every step, does not apply
+  walkRows?: boolean
 }
 
 // What an adapter's cut is handed: the payload, plus the call's own signal so
@@ -53,8 +56,8 @@ declare module '@jbrowse/core/rpc/RpcRegistry' {
   interface RpcRegistry {
     GetSubgraph: {
       args: GetSubgraphArgs
-      return: string | GraphTables
-      transferables: GraphTables
+      return: string | WalkCut
+      transferables: WalkCut
     }
   }
 }
@@ -65,7 +68,7 @@ interface SubgraphAdapter {
   getSubgraph(
     region: Region,
     opts?: SubgraphAdapterOptions,
-  ): Promise<string | GraphTables>
+  ): Promise<string | WalkCut>
 }
 
 function isSubgraphAdapter(adapter: object): adapter is SubgraphAdapter {

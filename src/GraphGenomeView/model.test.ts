@@ -12,6 +12,8 @@ import {
   layoutScaling,
 } from '@jbrowse/bandage-core/layout/drawnScale'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
+import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
+import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
@@ -24,8 +26,10 @@ import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
+import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 
 import type { El } from '@jbrowse/bandage-core/el'
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph } from '@jbrowse/bandage-core/types'
@@ -4129,5 +4133,72 @@ describe('keeping the drawing on screen', () => {
     expect(model.viewportOwner).toBe('user')
     expect(model.scale).toBe(scale)
     expect(model.translateX).toBe(translateX)
+  })
+})
+
+// GRCh38 runs 1>2>4 over chr1:1000-5000; HG002#1 takes 3 for 2, HG003#1
+// follows GRCh38
+const WALK_TABLES: GraphTables = {
+  nodes: {
+    names: ['1', '2', '3', '4'],
+    lengths: Int32Array.of(1000, 1000, 400, 2000),
+    refs: Int32Array.of(0, 0, 1, 0),
+    starts: Float64Array.of(1000, 2000, 0, 3000),
+    ranks: Int32Array.of(0, 0, 1, 0),
+    refNames: ['chr1', 'HG002#1#chr1'],
+  },
+  links: {
+    from: Int32Array.of(0, 0, 1, 2),
+    to: Int32Array.of(1, 2, 3, 3),
+    strands: new Uint8Array(4),
+  },
+  walks: {
+    names: ['GRCh38#0#chr1', 'HG002#1#chr1', 'HG003#1#chr1'],
+    starts: Float64Array.of(1000, 0, 0),
+    ends: Float64Array.of(5000, 3400, 4000),
+    offsets: Int32Array.of(0, 3, 6, 9),
+    steps: Int32Array.of(0, 1, 3, 0, 2, 3, 0, 1, 3),
+    reversed: new Uint8Array(9),
+  },
+}
+
+describe('a walk-rows cut', () => {
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = [TEST_TRACK]
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(walkCutFor(WALK_TABLES, TEST_REGION, true))
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+  })
+
+  test('is asked for in walk rows, and draws the rows walkRows makes', async () => {
+    const model = restoredView({ layoutMode: 'walkrows' })
+    await model.load()
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({
+        opts: expect.objectContaining({ walkRows: true }),
+      }),
+    )
+    const whole = loadGraph(WALK_TABLES, 'whole')
+    const bars = walkRows(whole, TEST_REGION)!
+    expect(model.walkRowBars?.reference).toEqual(bars.reference)
+    expect(model.walkRowBars?.rows).toEqual(bars.rows)
+    expect(model.graph!.paths!.slice(1).map(p => p.nodeIds)).toEqual([[], []])
+    expect(model.graph!.nodes.map(n => n.depth)).toEqual(
+      whole.nodes.map(n => n.depth),
+    )
+  })
+
+  test('parses its walks whole for a layout that draws nodes', async () => {
+    const model = restoredView({ layoutMode: 'walkrows' })
+    await model.load()
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    expect(model.walkCut).toBeUndefined()
+    expect(model.graph!.paths).toEqual(loadGraph(WALK_TABLES, 'whole').paths)
   })
 })

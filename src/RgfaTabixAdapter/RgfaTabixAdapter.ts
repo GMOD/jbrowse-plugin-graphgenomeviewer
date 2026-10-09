@@ -16,13 +16,14 @@ import {
 } from './rgfaBed.ts'
 import { getLines } from './tabixRange.ts'
 import { WalkReader } from './walkReader.ts'
+import { walkCutFor } from './walkRowRuns.ts'
 import { walkNameFilter } from './walkRows.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
 import type { RgfaLink, RgfaSegment } from './rgfaBed.ts'
+import type { WalkCut } from './walkRowRuns.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
-import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
@@ -215,7 +216,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
   async getSubgraph(
     region: Region,
     opts: SubgraphAdapterOptions = {},
-  ): Promise<string | GraphTables> {
+  ): Promise<string | WalkCut> {
     const { hops = 0, signal, tier } = opts
     const index = this.index(tier)
     const segments = new Map<string, RgfaSegment>()
@@ -338,10 +339,10 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
         opts.haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
         panSNHaplotype(refName),
       ),
-      stepBudget: this.getConf('walkStepBudget'),
+      stepBudget: opts.walkRows ? Infinity : this.getConf('walkStepBudget'),
       byteBudget: this.getConf('walkByteBudget'),
       context: WALK_CONTEXT,
     })
-    return graph.tables(kept, fragments)
+    return walkCutFor(graph.tables(kept, fragments), region, opts.walkRows)
   }
 }

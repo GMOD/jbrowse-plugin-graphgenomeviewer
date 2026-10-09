@@ -30,16 +30,18 @@ import {
 } from './paneBase'
 import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
+import { walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import { locLabel } from '../../launchFromGraph/contributors'
 import { geneModelsFrom } from '../genes/geneFeatures'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
 import { parseSamplesTsv } from '../walkRowGroups'
+import { walkRowLayoutOf, walkRowsGraph } from '../walkRowsCut.ts'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../../GetSubgraph'
+import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GafReads } from '../../gaf/gafFile'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
-import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
@@ -89,11 +91,15 @@ export const withLoadActions = withSettingActions.actions(self => {
       tubeMap && self.tubeMapFold > 0 && !drawn.reads
         ? coarsenTubeMap(drawn, self.tubeMapFold)
         : undefined
-    const local = layoutModeByValue(self.chosenLayoutMode).run(
-      coarse?.graph ?? drawn,
-      self.graphRegion,
-      self.host ? self.layoutResult?.sampleRows : undefined,
-    )
+    const runs = self.walkCut?.walkRowRuns
+    const local =
+      self.chosenLayoutMode === 'walkrows' && runs
+        ? walkRowLayoutOf(graph, walkRowsOf(runs), self.graphRegion)
+        : layoutModeByValue(self.chosenLayoutMode).run(
+            coarse?.graph ?? drawn,
+            self.graphRegion,
+            self.host ? self.layoutResult?.sampleRows : undefined,
+          )
     if (local) {
       const result =
         coarse && local.tubeMap
@@ -192,7 +198,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   // `readsOf` fetches the reads over the parsed graph before its one
   // layout, since the tube map lays them out with the paths.
   function* parseAndLayout(
-    source: string | GraphTables,
+    source: string | WalkCut,
     name: string,
     region: SubgraphRegion | undefined,
     keepSelection = false,
@@ -200,9 +206,12 @@ export const withLoadActions = withSettingActions.actions(self => {
   ) {
     const signal = loadController?.signal
     self.setStatusMessage('Parsing GFA')
-    const parsed = loadGraph(source, name, {
-      referencePath: self.referencePath || region?.assemblyName,
-    })
+    const referencePath = self.referencePath || region?.assemblyName
+    const walkCut =
+      typeof source !== 'string' && source.walkRowRuns ? source : undefined
+    const parsed = walkCut
+      ? walkRowsGraph(walkCut, name, referencePath)
+      : loadGraph(source, name, { referencePath })
     const loaded = region ? loadedReference(parsed, region) : undefined
     const graph =
       !self.referencePath &&
@@ -231,6 +240,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
     const selected = keepSelection ? self.selectedNode : null
     self.graph = graph
+    self.walkCut = walkCut
     self.graphRegion = region
     self.loadedReferencePath = loaded
     self.indexBubbles = undefined
@@ -453,9 +463,27 @@ export const withLoadActions = withSettingActions.actions(self => {
 
   // The graph and everything derived from it, dropped; any load in
   // flight ends too, or it would land its graph afterwards
+  // The graph a layout of the current mode draws: a walk-rows cut's
+  // stepless walks parsed whole once a layout that draws nodes needs them
+  function wholeGraph() {
+    const cut = self.walkCut
+    const graph = self.graph
+    if (!cut || !graph || self.chosenLayoutMode === 'walkrows') {
+      return graph
+    }
+    const { walkRowRuns: _, ...tables } = cut
+    const whole = loadGraph(tables, graph.name, {
+      referencePath: self.referencePath || self.graphRegion?.assemblyName,
+    })
+    self.graph = whole
+    self.walkCut = undefined
+    return whole
+  }
+
   function dropGraph() {
     abortLoad()
     self.graph = undefined
+    self.walkCut = undefined
     self.graphRegion = undefined
     self.loadedReferencePath = undefined
     self.layoutResult = undefined
@@ -544,7 +572,7 @@ export const withLoadActions = withSettingActions.actions(self => {
           getRpcSessionId(self),
           'GetSubgraph',
           { adapterConfig, region, opts, signal },
-        )) as string | GraphTables
+        )) as string | WalkCut
         if (!isLive()) {
           return
         }
@@ -757,7 +785,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
     }),
     recomputeLayout: flow(function* () {
-      const graph = self.graph
+      const graph = wholeGraph()
       if (!graph) {
         return
       }

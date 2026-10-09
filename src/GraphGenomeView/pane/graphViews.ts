@@ -45,6 +45,7 @@ import {
 } from '@jbrowse/core/util'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
+import { walkRowRuns, walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
 import {
   GENE_ADAPTER_TYPES,
@@ -59,6 +60,7 @@ import {
 import { withCalls } from '../repeats/walkCalls'
 import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 
+import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type {
   ColorScheme,
   ResolvedColorScheme,
@@ -70,6 +72,16 @@ import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
+
+// A repeat pick slices the cut's walks again, by the repeat's own array
+function walkRowsFromCut(
+  cut: WalkCut,
+  region: { start: number; end: number },
+  unit?: number,
+) {
+  const runs = walkRowRuns(cut, region)
+  return runs ? walkRowsOf(runs, unit) : undefined
+}
 
 export const withGraphViews = paneBase
   .views(self => ({
@@ -259,7 +271,10 @@ export const withGraphViews = paneBase
     get walkLift() {
       const { graph } = self
       const layers = this.liftedWalkLayers
-      return graph && layers.length > 0 && !self.layoutResult?.tubeMap
+      return graph &&
+        !self.walkCut &&
+        layers.length > 0 &&
+        !self.layoutResult?.tubeMap
         ? walkLift(graph, layers, this.walkRamp)
         : undefined
     },
@@ -491,7 +506,12 @@ export const withGraphViews = paneBase
     // Each walk sliced to the window, for walk rows and the strip; a repeat
     // pick slices again by its own array
     get cutWalkRows() {
-      return self.graph ? walkRows(self.graph, self.graphRegion) : undefined
+      const runs = self.walkCut?.walkRowRuns
+      return runs
+        ? walkRowsOf(runs)
+        : self.graph
+          ? walkRows(self.graph, self.graphRegion)
+          : undefined
     },
     // An assembly by each name a backbone may spell it with: the session's
     // name and aliases, and the PanSN prefix the source track maps each of
@@ -600,8 +620,11 @@ export const withGraphViews = paneBase
         return undefined
       }
       const repeat = self.selectedRepeat
+      const cut = self.walkCut
       const bars = repeat
-        ? walkRows(self.graph, repeat, repeat.unit)
+        ? cut
+          ? walkRowsFromCut(cut, repeat, repeat.unit)
+          : walkRows(self.graph, repeat, repeat.unit)
         : self.cutWalkRows
       if (!bars) {
         return undefined

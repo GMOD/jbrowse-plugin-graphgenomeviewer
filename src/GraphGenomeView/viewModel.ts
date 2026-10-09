@@ -151,6 +151,9 @@ export default function stateModelFactory() {
             return self.cutSubgraph(trackAdapterConfig(self, track), region, {
               hops: self.subgraphContext,
               haplotypes: self.cutHaplotypes,
+              ...(self.chosenLayoutMode === 'walkrows'
+                ? { walkRows: true }
+                : {}),
               ...(self.cutsWholeWalks
                 ? { snarls: 'overlapping' as const }
                 : {}),
@@ -170,8 +173,11 @@ export default function stateModelFactory() {
       // the same (afterAttach)
       switchLayout(mode: LayoutModeValue) {
         const before = self.cutsWholeWalks
+        const wasWalkRows = self.chosenLayoutMode === 'walkrows'
         self.setLayoutMode(mode)
-        return self.loadedTrackId && self.cutsWholeWalks !== before
+        return self.loadedTrackId &&
+          (self.cutsWholeWalks !== before ||
+            wasWalkRows !== (mode === 'walkrows'))
           ? self.load()
           : self.recomputeLayout()
       },

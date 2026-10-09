@@ -12,6 +12,7 @@ import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
 import { WalkReader } from '../RgfaTabixAdapter/walkReader.ts'
+import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import { walkNameFilter } from '../RgfaTabixAdapter/walkRows.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
@@ -118,9 +119,9 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       : []
   }
 
-  private budgets() {
+  private budgets(walkRows?: boolean) {
     return {
-      stepBudget: this.getConf('walkStepBudget'),
+      stepBudget: walkRows ? Infinity : this.getConf('walkStepBudget'),
       byteBudget: this.getConf('walkByteBudget'),
       context: WALK_CONTEXT,
     }
@@ -132,7 +133,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
    * asks for, and the nodes and links they visit
    */
   async getSubgraph(region: Region, opts: SubgraphAdapterOptions = {}) {
-    const { signal, haplotypes } = opts
+    const { signal, haplotypes, walkRows } = opts
     const refName = await this.refNames.resolve(region, { signal })
     if (refName === undefined) {
       throw new Error(
@@ -140,14 +141,14 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       )
     }
     const { graph, kept, fragments } = await this.reader.cut(refName, region, {
-      ...this.budgets(),
+      ...this.budgets(walkRows),
       signal,
       keep: walkNameFilter(
         haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
         panSNHaplotype(refName),
       ),
     })
-    return graph.tables(kept, fragments)
+    return walkCutFor(graph.tables(kept, fragments), region, walkRows)
   }
 
   // The window's walks for the haplotypes named and the reference, with no
