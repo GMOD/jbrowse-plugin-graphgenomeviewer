@@ -240,12 +240,12 @@ describe('rampDomain', () => {
     expect(model.rampDomain).toBeUndefined()
   })
 
-  test('a stated colorDomain survives loading a GFA file, and wins', async () => {
+  test('a stated color domain survives loading a GFA file, and wins', async () => {
     rpcRespond()
     const model = createModel()
     applySnapshot(model, {
       ...getSnapshot(model),
-      colorDomain: { start: 1445000, end: 1474500 },
+      color: { domainMin: 1445000, domainMax: 1474500 },
       loadedRegion: TEST_REGION,
     })
     await model.loadGFA(SIMPLE_GFA)
@@ -2645,7 +2645,7 @@ describe('the auto color scheme', () => {
     const model = createModel()
     applySnapshot(model, {
       ...getSnapshot(model),
-      colorDomain: { start: 1000, end: 5000 },
+      color: { domainMin: 1000, domainMax: 5000 },
     })
     await model.loadGFA(RGFA, 'rgfa')
 

@@ -15,11 +15,10 @@ import {
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
-import { getSnapshot, types } from '@jbrowse/mobx-state-tree'
+import { types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-import { liftGrammar } from './configSchema'
 import LinearGraphDisplayF from './index'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
@@ -792,7 +791,7 @@ test('a launch in the force layout cuts the window alone', async () => {
     {},
     {
       type: 'LinearGraphDisplay',
-      pane: { layoutMode: 'force' },
+      layoutMode: 'force',
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
@@ -811,7 +810,8 @@ test('a track launched on the stress engine asks the layout engine for it, and s
     {},
     {
       type: 'LinearGraphDisplay',
-      pane: { layoutMode: 'force', layoutEngine: 'stress' },
+      layoutMode: 'force',
+      layoutEngine: 'stress',
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
@@ -857,7 +857,8 @@ test("a launch names the pane's props without its type, and opens in that layout
     {},
     {
       type: 'LinearGraphDisplay',
-      pane: { layoutMode: 'force', colorScheme: 'uniform' },
+      layoutMode: 'force',
+      color: 'uniform',
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
@@ -878,11 +879,7 @@ test.each([
     const { view } = createEnvironment()
     view.zoomTo(60_000 / WIDTH_PX)
     view.scrollTo(1_000_000 / view.bpPerPx)
-    view.showTrack(
-      'graph',
-      {},
-      { type: 'LinearGraphDisplay', pane: { layoutMode } },
-    )
+    view.showTrack('graph', {}, { type: 'LinearGraphDisplay', layoutMode })
     const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
     display.startRenderingBackend(fakeRenderer())
     await wait(SETTLE_MS)
@@ -894,11 +891,7 @@ test('a launch that states one choice takes the rest from the config', async () 
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
-  view.showTrack(
-    'graph',
-    {},
-    { type: 'LinearGraphDisplay', colorScheme: 'uniform' },
-  )
+  view.showTrack('graph', {}, { type: 'LinearGraphDisplay', color: 'uniform' })
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
@@ -906,39 +899,6 @@ test('a launch that states one choice takes the rest from the config', async () 
   expect(display.chosenColorScheme).toBe('uniform')
   expect(display.chosenLayoutMode).toBe('auto')
   expect(display.hostPlacesX).toBe(true)
-})
-
-test("a 5.0 session's overview row choice still loads, and is not reported as an unknown key", () => {
-  const { view, errors } = createEnvironment()
-  view.showTrack(
-    'walks',
-    {},
-    {
-      type: 'LinearGraphDisplay',
-      overviewRowsChoice: false,
-      overviewRowOrder: ['HG2.1', 'HG1.1'],
-    },
-  )
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(errors).toEqual([])
-  expect(getSnapshot(display).overviewRowsChoice).toBeUndefined()
-  expect(getSnapshot(display).overviewRowOrder).toBeUndefined()
-})
-
-test("a 4.0 session's pane state still loads, and is not reported as an unknown key", () => {
-  const { view, errors } = createEnvironment()
-  view.showTrack(
-    'graph',
-    {},
-    {
-      type: 'LinearGraphDisplay',
-      pane: { type: 'GraphGenomeView', layoutMode: 'force' },
-    },
-  )
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(display.chosenLayoutMode).toBe('force')
-  expect(errors).toEqual([])
-  expect(getSnapshot(display).pane).toBeUndefined()
 })
 
 // Config, not the display instance, so a share link, Edit plot and Reset
@@ -952,35 +912,6 @@ test('a color picked from the menu is written to the track config', async () => 
   expect(display.chosenColorScheme).toBe('depth')
   display.setLayoutMode('ordered')
   expect(readConfObject(display.configuration, 'layoutMode')).toBe('ordered')
-})
-
-test("a spec's 6.x colorScheme reads as the color it names", () => {
-  const { view, errors } = createEnvironment()
-  view.showTrack(
-    'graph',
-    {},
-    { type: 'LinearGraphDisplay', colorScheme: 'stable-rank' },
-  )
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(display.chosenColorScheme).toBe('stable-rank')
-  expect(errors).toEqual([])
-})
-
-test("a 6.x session's layout, color and hover lift into the track config", () => {
-  expect(
-    liftGrammar({
-      layoutMode: 'force',
-      colorScheme: 'reference-position',
-      colorDomain: { start: 1, end: 9 },
-      hover: 'off',
-      walkLayers: [],
-    }),
-  ).toEqual({
-    layoutMode: 'force',
-    color: { field: 'position', domainMin: 1, domainMax: 9 },
-    hover: 'off',
-  })
-  expect(liftGrammar({ walkLayers: [] })).toEqual({})
 })
 
 test('closing a drawn track reads nothing of the dead display', async () => {

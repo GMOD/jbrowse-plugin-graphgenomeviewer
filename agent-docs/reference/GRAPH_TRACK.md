@@ -119,10 +119,8 @@ carry, is cut once on attach; following the linear view is the track's job.
 ## Snapshots
 
 The layout, node color and hover are the display config's `layoutMode`, `color`
-and `hover`, so a share link, Edit plot and Reset track settings see them. A 6.x
-session kept them on the display instance and a 4.0 entry nested them under
-`pane: {...}`; `liftGrammar` writes both into the config, and the display folds
-the rest of a `pane` flat. `paneHeight` is inert in a track; use `height`.
+and `hover`, so a share link, Edit plot and Reset track settings see them.
+`paneHeight` is inert in a track; use `height`.
 
 ## Past the cut: a zoom-in notice
 

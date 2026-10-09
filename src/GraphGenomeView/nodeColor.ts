@@ -1,5 +1,3 @@
-import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
-
 import { isRecord } from '../isRecord'
 
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
@@ -72,19 +70,4 @@ export function colorOfScheme(scheme: ColorScheme, domain?: Span): NodeColor {
       : FIELD_OF_SCHEME[scheme]
         ? { field: FIELD_OF_SCHEME[scheme], ...ends }
         : ends
-}
-
-// 6.x spelled the color as `colorScheme` and, for a graph with no region of
-// its own, `colorDomain`
-export function liftColor(colorScheme: unknown, colorDomain?: unknown) {
-  const scheme = COLOR_SCHEME_VALUES.includes(colorScheme as ColorScheme)
-    ? (colorScheme as ColorScheme)
-    : 'auto'
-  const domain =
-    isRecord(colorDomain) &&
-    typeof colorDomain.start === 'number' &&
-    typeof colorDomain.end === 'number'
-      ? { start: colorDomain.start, end: colorDomain.end }
-      : undefined
-  return colorOfScheme(scheme, domain)
 }

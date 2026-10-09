@@ -668,7 +668,7 @@ None still draws stubs.
 
 A file-loaded graph has no `loadedRegion`, so the reference-position ramp had
 nothing to span and fell back to the file's own first/last backbone midpoints.
-`color.domainMin`/`domainMax` (6.x: `colorDomain`) is how such a snapshot states
-the span instead, resolved with `loadedRegion` by the `rampDomain` getter — that
-is what lets a linear track above a file-loaded graph be painted the same ramp
-from the same two numbers.
+`color.domainMin`/`domainMax` is how such a snapshot states the span instead,
+resolved with `loadedRegion` by the `rampDomain` getter — that is what lets a
+linear track above a file-loaded graph be painted the same ramp from the same
+two numbers.

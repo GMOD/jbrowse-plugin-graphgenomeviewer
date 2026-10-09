@@ -20,7 +20,6 @@ import {
 } from '../graphTrackConfig'
 import { HOVER_HIGHLIGHT_VALUES } from './hoverHighlight'
 import { lenientMaybeEnum } from './lenientEnum'
-import { liftColor } from './nodeColor'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { NodeColor } from './nodeColor'
@@ -56,26 +55,8 @@ export default function stateModelFactory() {
         color: types.maybe(types.frozen<NodeColor>()),
         // unset is nodes
         hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
-        // 6.x spellings of `color`, which preProcessSnapshot lifts and so
-        // never holds. Declared so a spec stating one is not reported as an
-        // unknown key; the docs' figure specs do.
-        colorScheme: types.maybe(types.frozen()),
-        colorDomain: types.maybe(types.frozen()),
       }),
     )
-    .preProcessSnapshot(snapshot => {
-      const { colorScheme, colorDomain, ...rest } = snapshot as {
-        colorScheme?: unknown
-        colorDomain?: unknown
-        color?: NodeColor
-      }
-      return (
-        rest.color !== undefined ||
-        (colorScheme === undefined && colorDomain === undefined)
-          ? rest
-          : { ...rest, color: liftColor(colorScheme, colorDomain) }
-      ) as typeof snapshot
-    })
     .views(self => ({
       get grammar(): GraphGrammar {
         return {

@@ -4,27 +4,8 @@ import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightC
 import { types } from '@jbrowse/mobx-state-tree'
 
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
-import { liftColor } from '../GraphGenomeView/nodeColor'
-import { isRecord } from '../isRecord'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
-
-// 6.x kept the layout, color and hover on the display instance, and 4.0
-// nested that under `pane`; these are the config slots they become
-export function liftGrammar({
-  layoutMode,
-  colorScheme,
-  colorDomain,
-  hover,
-}: Record<string, unknown>) {
-  return {
-    ...(layoutMode === undefined ? {} : { layoutMode }),
-    ...(colorScheme === undefined && colorDomain === undefined
-      ? {}
-      : { color: liftColor(colorScheme, colorDomain) }),
-    ...(hover === undefined ? {} : { hover }),
-  }
-}
 
 /**
  * #config LinearGraphDisplay
@@ -76,14 +57,7 @@ export function configSchemaFactory() {
         height: 'the height of the track the graph is drawn in',
       }),
     },
-    {
-      explicitlyTyped: true,
-      explicitIdentifier: 'displayId',
-      retired: {
-        colorScheme: value => ({ color: liftColor(value) }),
-        pane: value => (isRecord(value) ? liftGrammar(value) : {}),
-      },
-    },
+    { explicitlyTyped: true, explicitIdentifier: 'displayId' },
   )
 }
 

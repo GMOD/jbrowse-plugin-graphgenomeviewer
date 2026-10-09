@@ -1,11 +1,6 @@
 import { COLOR_SCHEME_VALUES } from '@jbrowse/bandage-core/colorSchemes'
 
-import {
-  colorOfScheme,
-  domainOfColor,
-  liftColor,
-  schemeOfColor,
-} from './nodeColor'
+import { colorOfScheme, domainOfColor, schemeOfColor } from './nodeColor'
 
 test.each(COLOR_SCHEME_VALUES)('%s survives the trip through a color', s => {
   expect(schemeOfColor(colorOfScheme(s))).toBe(s)
@@ -21,5 +16,4 @@ test('a color it cannot read is auto', () => {
   expect(schemeOfColor({ field: 'gc' })).toBe('auto')
   expect(schemeOfColor('red')).toBe('auto')
   expect(schemeOfColor(undefined)).toBe('auto')
-  expect(liftColor('no-such-scheme')).toEqual({})
 })
