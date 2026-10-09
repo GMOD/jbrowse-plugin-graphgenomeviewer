@@ -406,6 +406,25 @@ Two things follow, and both are now implemented or recorded:
   involved. Do not "fix" this by guessing — it reproduces in a capture, so
   instrument that.
 
+## Walk rows: runs, not steps (2026-10-09)
+
+A walk row's cost was its steps: `graphFromTables` built a visit object per step
+on the main thread, and bandage-core's `walkRowLayout` and the pane each ran
+`walkRows()` over them. Measured in Node over the hosted GRCh38 walk files,
+every haplotype, best of 3–5:
+
+| stage                                 | KIV-2, 4.41 M steps | chr22:20.0–20.1 Mb, 1.37 M steps |
+| ------------------------------------- | ------------------- | -------------------------------- |
+| `graphFromTables`                     | 713–849 ms          | 132–186 ms                       |
+| `walkRows()`, run twice per cut       | 793–806 ms          | 198–218 ms                       |
+| `walkRowRuns` over the tables, worker | 77–95 ms            | 32–43 ms                         |
+| run objects from its arrays           | 1.8 ms              | 1.4 ms                           |
+| `coalesceRuns` into span channels     | 2.6 ms              | 3.2 ms                           |
+
+Walk rows now take the worker's runs, and the bars cost their spans: 26,863 at
+KIV-2 paint in 18–21 ms on Canvas2D. The step budget no longer applies to them;
+GRAPH_TRACK.md has the browser timings.
+
 ## Why the region cap is the wrong knob
 
 `MAX_GRAPH_REGION_BP` bounds the _fetch_, and it is the only cap applicable

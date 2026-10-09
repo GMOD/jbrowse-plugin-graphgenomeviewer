@@ -222,6 +222,14 @@ The budget counts only the haplotypes asked for, so the notice asks for fewer
 haplotypes where no zoom fits, and a cut for every haplotype is offered fewer
 beside the zoom.
 
+Walk rows skip the step budget. Their cut (`walkRows` in the cut options)
+computes each row's on- and off-reference runs from the tables in the worker
+(`walkRowRuns`) and ships them beside the tables. The pane parses only the
+reference walk into its Graph, with every other walk named and stepless, takes
+the rows from the runs, and paints the bars through render-core's `spanMark`
+(`walkRowSpans.ts`). A layout that draws nodes parses the cut whole
+(`wholeGraph`). ADR-043 records the decision.
+
 The cut crosses to the main thread as bandage-core's `GraphTables`, not GFA
 text: node, link and step arrays, every link end and step an index into the node
 table. `GetSubgraph` hands their buffers to postMessage to transfer, and
@@ -250,11 +258,25 @@ take 1.5 s force-directed through either.
 
 Drawing is what bounds every-haplotype views, measured 2026-10-08 on the beta.13
 host from the hosted files. FMMM takes 10–12 s in the worker at chr22:20.0–20.26
-Mb. The tube map's layout takes about 9 s on the main thread at 20.0–20.1 Mb.
-Walk rows there spent about 27 s of a 35 s CPU profile in React inserting and
-updating the rows' SVG elements (`insertBefore`, `setAttribute`). So the step
-budget stays at 4 M: a cut at 20.0–20.26 Mb now reaches the view in 2–3 s, but
-draws in 13–23 s force-directed and in 47 s or more as walk rows or a tube map.
+Mb. The tube map's layout takes about 9 s on the main thread at 20.0–20.1 Mb. So
+the step budget stays at 4 M for both: a cut at 20.0–20.26 Mb reaches the view
+in 2–3 s, but draws in 13–23 s force-directed and in 47 s or more as a tube map.
+
+Walk rows, measured 2026-10-09 on the beta.11 host in headless Chrome from the
+hosted GRCh38 walk files, every haplotype, from navigation to drawn:
+
+| window             | steps  | runs → spans     | SVG bars                                     | spans                                     |
+| ------------------ | ------ | ---------------- | -------------------------------------------- | ----------------------------------------- |
+| KIV-2, 30.7 kb     | 4.41 M | 122,871 → 26,863 | refused by the step budget                   | 2.8 s cold, 2.2 s warm                    |
+| chr22:20.0–20.1 Mb | 1.37 M | 98,857 → 84,016  | 4.8 s view, 3.6 s track; 84,481 SVG elements | 2.1 s view, 2.2 s track; 465 SVG elements |
+
+The spans paint in 18–21 ms at KIV-2 and 58 ms at chr22, where the runs barely
+coalesce. The SVG bars and the spans give pixel-identical screenshots at KIV-2
+with 8 haplotypes and at chr22 with every haplotype; under the reference ramp
+they differ at 3.6% of pixels, by at most 55 of 255 in a channel, where a
+gradient's interpolation rounds differently. An earlier CPU profile put 27 s of
+React SVG work behind walk rows at chr22:20.0–20.1 Mb; the first draw there
+takes the 4.8 s above, and the SVG count is 84,481 at a 1,388 px pane, not 78k.
 
 The Rust builder's files (rows under their chunk's first base, a `chunk:i:`
 header, an `LN:i:` column after each node row) cut the same walks: 0.28 s for 8
