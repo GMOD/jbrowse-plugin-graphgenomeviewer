@@ -13,12 +13,7 @@ import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
 import { editPlotMenuItems } from '@jbrowse/display-kit/plotMenu'
-import {
-  addDisposer,
-  getSnapshot,
-  isAlive,
-  types,
-} from '@jbrowse/mobx-state-tree'
+import { addDisposer, isAlive, types } from '@jbrowse/mobx-state-tree'
 import {
   computeActivityPhase,
   computeDisplayStatusPhase,
@@ -113,6 +108,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           color: getConf(self, 'color'),
           size: getConf(self, 'size'),
           layers: getConf(self, 'layers') as GraphLayer[],
+          facet: getConf(self, 'facet'),
+          rows: getConf(self, 'rows'),
           hover: getConf(self, 'hover'),
         }
       },
@@ -436,7 +433,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         addDisposer(
           self,
           reaction(
-            () => `${self.facet.field} ${self.facetPlacement?.count}`,
+            () => `${self.facetSetting.field} ${self.facetPlacement?.count}`,
             () => {
               const needs = self.facetGridIn(self.paneCeiling)?.total ?? 0
               if ((self.facetGrid?.total ?? 0) > self.height) {
@@ -495,10 +492,11 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           color: self.grammar.color,
           size: self.grammar.size,
           layers: self.grammar.layers,
+          facet: self.grammar.facet,
+          rows: self.grammar.rows,
           referencePath: self.referencePath,
           geneTrackId: self.geneTrackId,
           walkLayers: self.walkLayers,
-          facet: getSnapshot(self.facet),
         } satisfies GraphViewSpec
       },
     }))

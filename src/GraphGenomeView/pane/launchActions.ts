@@ -376,7 +376,7 @@ export const withLaunchActions = withRenderingActions
               ...FACET_FIELDS.map(({ value, label }) => ({
                 type: 'radio' as const,
                 label: value === 'walk' ? 'A panel per haplotype' : label,
-                checked: self.facet.field === value,
+                checked: self.facetSetting.field === value,
                 onClick: () => {
                   self.setFacet(value)
                 },

@@ -191,13 +191,17 @@ export const withSettingActions = withFitViews
     // The field the panels split on; a change of field drops the order
     // written for the old one and keeps the column count
     setFacet(field: FacetSetting['field']) {
-      if (field !== self.facet.field) {
-        self.facet.domain = []
-      }
-      self.facet.field = field
+      const facet = self.facetSetting
+      self.writeGrammar({
+        facet: {
+          ...facet,
+          field,
+          domain: field === facet.field ? facet.domain : [],
+        },
+      })
     },
     setFacetColumns(columns: number | undefined) {
-      self.facet.columns = columns
+      self.writeGrammar({ facet: { ...self.facetSetting, columns } })
     },
     toggleWalk(walk: string) {
       const layers = self.walkLayers
@@ -218,10 +222,10 @@ export const withSettingActions = withFitViews
       self.paneHeight = px
     },
     setWalkRowSamples(samples: string[] | undefined) {
-      self.walkRowSamples = samples
+      self.writeGrammar({ rows: samples ? { kept: samples } : {} })
     },
     setWalkRowGroupBy(groupBy: WalkRowGroupBy | undefined) {
-      self.walkRowGroupBy = groupBy
+      self.writeGrammar({ facet: groupBy ?? {} })
     },
     // Pair with a linear view for the hover sync, without ever repointing an
     // existing pairing: a graph launched *from* an LGV is already paired with

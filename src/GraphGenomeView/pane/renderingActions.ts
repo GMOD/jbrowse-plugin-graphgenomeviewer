@@ -55,7 +55,7 @@ export const withRenderingActions = withLoadActions
             () => {
               const grid = self.facetGrid
               return grid
-                ? `${self.facet.field} ${self.facetPanels?.length} ${grid.columns}`
+                ? `${self.facetSetting.field} ${self.facetPanels?.length} ${grid.columns}`
                 : ''
             },
             () => {

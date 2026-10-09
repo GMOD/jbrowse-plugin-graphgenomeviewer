@@ -63,6 +63,24 @@ export function configSchemaFactory() {
       },
       /**
        * #slot
+       * one section per value of a field: a node layout draws a panel per
+       * `walk` or `sample`, and walk rows stack into a section per value of
+       * a sample table column. A bare field, or `{ field, domain, columns }`
+       */
+      facet: {
+        type: 'frozen',
+        defaultValue: {},
+      },
+      /**
+       * #slot
+       * the rows walk rows draw: `{ kept: [...] }` names the samples shown
+       */
+      rows: {
+        type: 'frozen',
+        defaultValue: {},
+      },
+      /**
+       * #slot
        * what the pointer lights: `nodes` lightens a hovered node and bands its
        * span on the view; `everything` also lights edges, and the node at the
        * view's pointer bp

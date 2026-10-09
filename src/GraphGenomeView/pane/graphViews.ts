@@ -5,6 +5,7 @@ import {
   deletionDrawing,
   deletionEdges,
 } from '@jbrowse/bandage-core/deletionEdges'
+import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { filterSamples, walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
@@ -61,17 +62,19 @@ import {
   pickRepeatTrack,
 } from '../repeats/repeatFeatures'
 import { withCalls } from '../repeats/walkCalls'
-import { groupWalkRows, metadataColumns } from '../walkRowGroups'
+import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
+import type { WalkRowGroupBy } from '../walkRowGroups'
 import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
+import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
@@ -98,7 +101,15 @@ export interface GraphGrammar {
   color?: NodeColor
   size?: NodeSize
   layers?: GraphLayer[]
+  facet?: FacetInput
+  rows?: GraphRows
   hover?: HoverHighlight
+}
+
+// The rows walk rows draw: `kept` names the samples whose walks show, by the
+// name before the haplotype number; unset shows every walk the cut holds
+export interface GraphRows {
+  kept?: string[]
 }
 
 export const withGraphViews = paneBase
@@ -172,6 +183,26 @@ export const withGraphViews = paneBase
     },
     get walkStrip() {
       return this.layerSet.has('walkStrip')
+    },
+    // One section per value of a field, as a grammar of graphics splits a
+    // plot. A node layout draws a panel per `walk` (each lifted walk alone,
+    // on the same layout) or per `sample` (a sample's haplotypes in a row);
+    // `domain` orders the panels and `columns` fixes how many go across.
+    // See facetPanels and facetCells.
+    get facetSetting(): FacetSetting {
+      return facetSettingOf(self.grammar.facet)
+    },
+    // Walk rows stack into a section per value of a sample table column,
+    // read from the source track's samplesTsvLocation
+    get walkRowGroupBy(): WalkRowGroupBy | undefined {
+      const groupBy = groupByOf(self.grammar.facet)
+      return groupBy && groupBy.field !== 'walk' && groupBy.field !== 'sample'
+        ? groupBy
+        : undefined
+    },
+    get walkRowSamples() {
+      const kept = self.grammar.rows?.kept
+      return Array.isArray(kept) ? kept : undefined
     },
     get hoverLightsEverything() {
       return this.chosenHover === 'everything'
@@ -340,7 +371,7 @@ export const withGraphViews = paneBase
     get facetPanels() {
       const { graph } = self
       const lift = this.walkLift
-      return self.facet.field !== '' &&
+      return self.facetSetting.field !== '' &&
         this.modeDrawsNodes &&
         graph &&
         lift &&

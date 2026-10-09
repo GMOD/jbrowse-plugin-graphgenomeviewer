@@ -1,7 +1,6 @@
 import { lazy } from 'react'
 
 import { BUBBLE_SPREAD_VALUES } from '@jbrowse/bandage-core/bubbleSpreads'
-import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { createForceLayoutCache } from '@jbrowse/bandage-core/layout/forceCache'
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { viewportOf } from '@jbrowse/bandage-core/viewport'
@@ -9,14 +8,12 @@ import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
 import { lenientOptionalEnum } from '../lenientEnum'
-import { groupByOf } from '../walkRowGroups'
 
 import type { SubgraphRegion } from '../../GetSubgraph'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { RepeatArray } from '../repeats/repeatFeatures'
-import type { SampleRow, WalkRowGroupBy } from '../walkRowGroups'
+import type { SampleRow } from '../walkRowGroups'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import type { FacetInput } from '@jbrowse/bandage-core/facetGrid'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
@@ -59,20 +56,6 @@ export const HighlightColorDialog = lazy(
 // Past this many walks the Haplotypes menu lists only the lifted ones and offers a
 // searchable picker
 export const WALK_MENU_ITEMS = 12
-
-// The facet as a session writes it, in the shape every JBrowse display's
-// `facet` takes: a bare field, or the field with the panels' order and how
-// many go across. A field this pane cannot split on reads as none.
-const facetModel = types.snapshotProcessor(
-  types.model('GraphFacet', {
-    field: types.optional(types.enumeration(['', 'walk', 'sample']), ''),
-    domain: types.optional(types.frozen<string[]>(), []),
-    columns: types.maybe(types.number),
-  }),
-  {
-    preProcessor: (snap: FacetInput | undefined) => facetSettingOf(snap),
-  },
-)
 
 // The sizes a tube map folds variants under. MICB's 22 kb cut draws 475
 // columns whole, 34 under 3 bp and one under 50, where only its structural
@@ -278,27 +261,10 @@ export const paneBase = types
       // The array the walk rows measure between and tile by, as
       // RepeatArray.key; empty measures the whole window untiled.
       repeatKey: types.optional(types.string, ''),
-      // Samples whose walks the walk rows show, by the name before the
-      // haplotype number; undefined shows every walk the cut holds.
-      walkRowSamples: types.maybe(types.frozen<string[]>()),
-      // The sample table column walk rows stack into sections by, read from
-      // the source track's samplesTsvLocation; a bare field name or
-      // `{ field, domain }`, anything else reading as ungrouped
-      walkRowGroupBy: types.maybe(
-        types.snapshotProcessor(types.frozen<WalkRowGroupBy | undefined>(), {
-          preProcessor: (snap: unknown) => groupByOf(snap),
-        }),
-      ),
       // Walks lifted out of the drawing, each a layer with a lane of its own
       // and the rest fading, coloured by the encoding it states or by the
       // default one. See walkEncoding.ts. Empty lifts none.
       walkLayers: types.optional(types.frozen<WalkLayer[]>(), []),
-      // Facets, as a grammar of graphics splits a plot: `walk` draws the
-      // pane once per lifted walk, side by side on the same layout, each
-      // panel with that walk alone; `sample` puts a sample's haplotypes in
-      // a row; `domain` orders the panels and `columns` fixes how many go
-      // across. See facetPanels and facetCells.
-      facet: types.optional(facetModel, {}),
       // Which of a general GFA's paths the anchored layouts put on x. A path
       // GFA's names are arbitrary and none of them is marked as the
       // reference, so this is a choice; empty means "infer", which is the

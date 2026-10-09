@@ -3004,7 +3004,7 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'walkrows',
-      walkRowSamples: ['A', 'B'],
+      rows: { kept: ['A', 'B'] },
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     const labels = model.walkRowBars!.rows.map(r => r.label)
@@ -3032,7 +3032,7 @@ describe('walk rows', () => {
       loadedRegion: TEST_REGION,
       layoutMode: 'ordered',
       layers: [...DEFAULT_LAYERS, 'walkStrip'],
-      walkRowSamples: ['B'],
+      rows: { kept: ['B'] },
     })
     await model.load()
     expect(model.walkStripRows!.rows.map(r => r.label)).toEqual(['B#1'])
@@ -3278,7 +3278,7 @@ describe('walk rows', () => {
       stateModelFactory().create({
         type: 'GraphGenomeView',
         facet: 'none',
-      }).facet.field,
+      }).facetSetting.field,
     ).toBe('')
   })
 
@@ -3856,7 +3856,7 @@ describe('walk rows grouped by a sample column', () => {
       type: 'GraphGenomeView',
       layoutMode: 'walkrows',
       loadedTrackId: 'gbz-track',
-      walkRowGroupBy: 'superpopulation',
+      facet: 'superpopulation',
     })
     await model.loadGFA(GFA, 'walks')
     await model.loadWalkRowSampleTable()
@@ -3981,7 +3981,7 @@ describe('walk rows grouped by a sample column', () => {
       type: 'GraphGenomeView',
       layoutMode: 'walkrows',
       loadedTrackId: 'gbz-track',
-      walkRowGroupBy: 'superpopulation',
+      facet: 'superpopulation',
     })
     await model.loadGFA(cohort, 'cohort')
     await model.loadWalkRowSampleTable()
@@ -3996,23 +3996,21 @@ describe('walk rows grouped by a sample column', () => {
   })
 
   test('the setting persists as written and reads leniently', async () => {
-    const bare = await groupedModel({ walkRowGroupBy: 'superpopulation' })
+    const bare = await groupedModel({ facet: 'superpopulation' })
     expect(bare.walkRowGroupBy).toEqual({ field: 'superpopulation' })
-    expect(getSnapshot(bare).walkRowGroupBy).toEqual({
-      field: 'superpopulation',
-    })
+    expect(getSnapshot(bare).facet).toBe('superpopulation')
     const ordered = await groupedModel({
-      walkRowGroupBy: { field: 'superpopulation', domain: ['EUR', 7] },
+      facet: { field: 'superpopulation', domain: ['EUR', 7] },
     })
     expect(ordered.walkRowGroups!.sections.map(s => s.key)).toEqual([
       'EUR',
       'AFR',
       '',
     ])
-    const junk = await groupedModel({ walkRowGroupBy: 42 })
+    const junk = await groupedModel({ facet: 42 })
     expect(junk.walkRowGroupBy).toBeUndefined()
     // a column the table lacks leaves the rows ungrouped
-    const stale = await groupedModel({ walkRowGroupBy: 'tissue' })
+    const stale = await groupedModel({ facet: 'tissue' })
     expect(stale.walkRowGroups).toBeUndefined()
     expect(stale.walkRowPlacement!.headers).toEqual([])
   })

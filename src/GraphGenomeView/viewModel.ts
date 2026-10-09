@@ -26,7 +26,8 @@ import type { GraphLayer } from './graphLayers'
 import type { NodeColor } from './nodeColor'
 import type { NodeSize } from './nodeSize'
 import type { SubgraphRegion } from '../GetSubgraph'
-import type { GraphGrammar } from './pane/graphViews'
+import type { GraphGrammar, GraphRows } from './pane/graphViews'
+import type { FacetInput } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -57,6 +58,8 @@ export default function stateModelFactory() {
         color: types.maybe(types.frozen<NodeColor>()),
         size: types.maybe(types.frozen<NodeSize>()),
         layers: types.maybe(types.frozen<GraphLayer[]>()),
+        facet: types.maybe(types.frozen<FacetInput>()),
+        rows: types.maybe(types.frozen<GraphRows>()),
         // unset is nodes
         hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
       }),
@@ -68,6 +71,8 @@ export default function stateModelFactory() {
           color: self.color,
           size: self.size,
           layers: self.layers,
+          facet: self.facet,
+          rows: self.rows,
           hover: self.hover,
         }
       },
