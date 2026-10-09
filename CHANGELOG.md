@@ -1,3 +1,20 @@
+## [6.15.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.14.0...v6.15.0) (2026-10-09)
+
+### Other Changes
+
+- Only a hovered node highlights by default ([ef61501](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ef61501877fb5b83826e794793a6ec92817e44b2))
+- Hover setting reads as a Show... item; GRAPH_TRACK notes it ([6367f38](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6367f38effec1ea1176bda1080ad89d316590a3b))
+- Hover highlight is one submenu: Off, Nodes, Everything ([d5ab5e3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d5ab5e3b97fc62c99778d64c7a677aa340149063))
+- Hover is one enum slot: off, nodes, everything ([5297c60](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5297c605ec6c4575c963dbe89d4924561dfc42ce))
+- The graph's paper follows the host theme ([f1a0c79](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f1a0c79f1d3543355d7578e38d33db8029395c48))
+- A track's layout, color and hover are config slots; color is an object ([58d6cd4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/58d6cd42ee51d38def32306ede451b65e75630e0))
+- Drop the old-spelling lifts and the 4.0/5.x display shims ([ec2225f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ec2225f672666c8b026d6660412402f80a8a7a9b))
+- Node thickness is one size slot ([cf8838b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/cf8838bc188047aa49b7ae75f50ff57809ee2d00))
+- The drawing's extras are one layers list ([19244c1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/19244c177e465f0746c7587c3bd73e28af55f0bf))
+- One facet splits panels or walk-row sections; rows names the kept samples ([7d2b621](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7d2b62183260edb074452da3ea601aecf1d6f491))
+- Layers state only what differs from the defaults ([281053e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/281053e75b9af50f3589eeecf70403d8bbb4fe2f))
+- Fixes from review: layout from any writer redraws; facet clears its own half ([5d85e6f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5d85e6f3505bb1e57da2b24b172cb9afabc946d1))
+
 ## [6.14.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.13.0...v6.14.0) (2026-10-09)
 
 ### Other Changes
