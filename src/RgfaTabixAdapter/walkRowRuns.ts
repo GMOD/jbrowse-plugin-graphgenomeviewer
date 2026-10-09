@@ -4,6 +4,7 @@ import type {
   WalkRow,
   WalkRows,
   WalkRun,
+  WalkStop,
 } from '@jbrowse/bandage-core/layout/walkRows'
 
 const RUN_ON_REFERENCE = 1
@@ -204,7 +205,21 @@ export function walkRowRuns(
       const forward =
         near > flank === spanStart[steps[near]!]! > spanStart[steps[flank]!]!
       const after = forward === (flank === i0)
+      const end = after ? length - 1 : 0
+      const endId = steps[end]!
+      const contigEnds = endId >= 0 && !Number.isNaN(spanStart[endId]!)
+      const stop: WalkStop = {
+        contigEnds,
+        shortBp: contigEnds
+          ? Math.max(
+              0,
+              cut!.start - spanEnd[endId]!,
+              spanStart[endId]! - cut!.end,
+            )
+          : 0,
+      }
       return {
+        stop,
         lo: after ? flank + 1 : 0,
         hi: after ? length : flank,
         backward: !forward,
@@ -229,6 +244,7 @@ export function walkRowRuns(
     let from = -1
     let to = -1
     let axisStart: number | undefined
+    let stop: WalkStop | undefined
     if (cut && flanked) {
       let i0 = -1
       let i1 = -1
@@ -251,7 +267,7 @@ export function walkRowRuns(
         complete = false
         const inside = i0 >= 0 || i1 >= 0 ? partialSide(i0, i1) : undefined
         if (inside) {
-          ;({ lo, hi, backward, axisStart } = inside)
+          ;({ lo, hi, backward, axisStart, stop } = inside)
         }
       } else {
         lo = Math.min(i0, i1) + 1
@@ -337,6 +353,7 @@ export function walkRowRuns(
       offReferenceBp,
       gapBp,
       complete,
+      ...(stop ? { stop } : {}),
       axis,
     }
   }
