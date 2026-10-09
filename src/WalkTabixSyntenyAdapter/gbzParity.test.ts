@@ -41,10 +41,12 @@ const span = (f: Feature) => {
 // edge to the reference node before it, so every lane starts 135 bp before
 // gbz-base's: records are compared by their names, and coordinates to 200 bp
 const shape = (f: Feature) => span(f).replaceAll(/\d{3,}/g, '#')
-const coordinates = (f: Feature) => span(f).match(/\d{3,}/g)!.map(Number)
+const coordinates = (f: Feature) =>
+  span(f)
+    .match(/\d{3,}/g)!
+    .map(Number)
 function expectNear(walks: Feature[], gbz: Feature[]) {
-  const byShape = (a: Feature, b: Feature) =>
-    shape(a).localeCompare(shape(b))
+  const byShape = (a: Feature, b: Feature) => shape(a).localeCompare(shape(b))
   const [w, g] = [[...walks].sort(byShape), [...gbz].sort(byShape)]
   expect(w.map(shape)).toEqual(g.map(shape))
   w.forEach((f, i) => {

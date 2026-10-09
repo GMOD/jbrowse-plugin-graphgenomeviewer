@@ -222,9 +222,9 @@ export interface WalkFragment {
  * its context, and each run from its first to its last step on that stretch.
  * A run that leaves the reference there, through steps off it or across a
  * deletion, is followed to the reference step where it rejoins, when the read
- * holds it: at the ABCA7 VNTR four haplotypes leave inside the repeat and
- * rejoin 1.8 kb past the window, and cut at the context they measured as
- * partial walks. The reference is cut out as far as those rejoins reach, and
+ * holds it, and otherwise through the steps off the reference it holds: at
+ * the ABCA7 VNTR four haplotypes leave inside the repeat and rejoin 1.8 kb
+ * past the window, and cut at the context they measured as partial walks. The reference is cut out as far as those rejoins reach, and
  * a run then runs on outward while the next step's node is already in the
  * cut. Without the run-on a haplotype whose alternate allele straddles the
  * edge stopped short of a node other walks had brought into the cut, and that
@@ -240,9 +240,10 @@ export function walkCut(
     const node = nodes.get(id)
     return node?.rank === 0 ? node : undefined
   }
-  // the reference step a run reaches from step `at`, going by `dir`, past
-  // any steps off the reference, or `at` when it stays on the reference or
-  // reaches another reference sequence or the run's end first
+  // Where a walk stops being followed from step `at`, going by `dir`: the
+  // reference step it rejoins at past any steps off the reference, or across
+  // a deletion; else its last step off the reference before the run ends or
+  // reaches another reference sequence
   const rejoin = (ids: Int32Array, at: number, dir: number) => {
     let i = at + dir
     while (i >= 0 && i < ids.length && reference(ids[i]!) === undefined) {
@@ -250,11 +251,12 @@ export function walkCut(
     }
     const from = reference(ids[at]!)!
     const to = i >= 0 && i < ids.length ? reference(ids[i]!) : undefined
+    if (to?.refName !== refName) {
+      return i - dir
+    }
     const adjacent =
-      i === at + dir &&
-      to !== undefined &&
-      (to.start === from.end || to.end === from.start)
-    return to?.refName === refName && !adjacent ? i : at
+      i === at + dir && (to.start === from.end || to.end === from.start)
+    return adjacent ? at : i
   }
   let reachStart = Infinity
   let reachEnd = -Infinity
@@ -276,9 +278,11 @@ export function walkCut(
         first = rejoin(ids, first, -1)
         last = rejoin(ids, last, 1)
         for (const i of [first, last]) {
-          const node = reference(ids[i]!)!
-          reachStart = Math.min(reachStart, node.start)
-          reachEnd = Math.max(reachEnd, node.end)
+          const node = reference(ids[i]!)
+          if (node) {
+            reachStart = Math.min(reachStart, node.start)
+            reachEnd = Math.max(reachEnd, node.end)
+          }
         }
       }
       spans.push({ run, first, last })
