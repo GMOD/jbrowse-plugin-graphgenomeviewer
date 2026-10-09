@@ -1,3 +1,12 @@
+## [6.12.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.11.0...v6.12.0) (2026-10-09)
+
+### Other Changes
+
+- Walk lanes align to the reference by heaviest common subsequence, as gbz-base does ([b171772](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b17177226520a8bd8cf81318aa74f75c4604e6f4))
+- The walk step budget bounds the steps a cut keeps, and rows are read to eight times it ([9dbfd9a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9dbfd9aa10f6f8d74cb922c97bf0743fdbab1b48))
+- How lanes align to the reference, the kept-step budget, and both routes at the tutorial figures' loci ([47db26f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/47db26f1c27c81b3c711eed42fec331275781b40))
+- Depend on @gmod/gbz-base 7.3.0, which exports weightedLcs ([9ce4a11](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9ce4a11f2f7b00cc9abff404a5a97001e43eccdf))
+
 ## [6.11.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.10.0...v6.11.0) (2026-10-09)
 
 ### Other Changes
