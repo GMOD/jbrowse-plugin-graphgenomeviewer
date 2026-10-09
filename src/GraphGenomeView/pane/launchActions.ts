@@ -247,6 +247,14 @@ export const withLaunchActions = withRenderingActions
         },
         {
           type: 'checkbox',
+          label: 'Hover edges and linear view too',
+          checked: self.hoverEdgesAndLinearView,
+          onClick: () => {
+            self.setHoverEdgesAndLinearView(!self.hoverEdgesAndLinearView)
+          },
+        },
+        {
+          type: 'checkbox',
           label: 'Show genes on the backbone',
           checked: self.showGenes,
           onClick: () => {

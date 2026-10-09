@@ -117,16 +117,19 @@ export const withRenderingActions = withLoadActions
         // is that the position lies in the region this graph was cut from.
         // A pointer over the pane itself is the host's too, at a bp its x
         // only means on a reference-axis layout, so there the pane's own hit
-        // test is the hover.
+        // test is the hover. A row naming a walk always lifts it; the node at
+        // a bp lights only with `hoverEdgesAndLinearView`, since every track's
+        // pointer passes over some node's bp.
         //
-        // Only `hovered` is tracked — the graph reads are untracked, so a
-        // geometry rebuild can't re-fire this and clobber a hover the canvas
-        // itself set. Assigning an unchanged id doesn't notify, so a hover
+        // Only `hovered` and the setting are tracked — the graph reads are
+        // untracked, so a geometry rebuild can't re-fire this and clobber a
+        // hover the canvas itself set. Assigning an unchanged id doesn't notify, so a hover
         // that travels within one segment costs nothing downstream.
         addDisposer(
           self,
           autorun(() => {
             const hover = readLgvHover(getSession(self).hovered)
+            const lightsNode = self.hoverEdgesAndLinearView
             untracked(() => {
               const region = self.graphRegion
               const graph = self.graph
@@ -142,7 +145,7 @@ export const withRenderingActions = withLoadActions
                   : []
               if (region && graph && !self.pointerInPane) {
                 self.setHoveredNode(
-                  inRegion && rowWalks.length === 0
+                  inRegion && lightsNode && rowWalks.length === 0
                     ? nodeForLgvHover({ hover: inRegion, nodes: graph.nodes })
                     : null,
                 )

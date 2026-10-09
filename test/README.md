@@ -25,14 +25,14 @@ It serves the real `test_data/rgfa_ecoli` tabix fixture behind a
 (`LinearGraphDisplay`), plus a **plain BED track derived from that same index**.
 Every screenshot it writes to `test-screenshots/` is a real browser frame:
 
-| screenshot                                   | shows                                                         |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| `demo-00-graph-track-in-linear-view`         | the graph cut for the window and drawn under the view's x     |
-| `demo-01-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span |
-| `demo-02-linear-hover-selects-graph-node`    | hovering the plain track selects the covering graph node      |
-| `demo-03-graph-track-recut`                  | navigating past the cut re-cuts the new window                |
-| `demo-04-reference-strip-hover`              | an ordered track's strip block lights the node it draws       |
-| `demo-05-bubble-label-hover`                 | a bubble's name lights its span on the strip and the view     |
+| screenshot                                   | shows                                                          |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `demo-00-graph-track-in-linear-view`         | the graph cut for the window and drawn under the view's x      |
+| `demo-01-graph-hover-highlights-linear-view` | hovering a node paints a band over exactly its reference span  |
+| `demo-02-linear-hover-selects-graph-node`    | with the setting on, hovering the plain track selects its node |
+| `demo-03-graph-track-recut`                  | navigating past the cut re-cuts the new window                 |
+| `demo-04-reference-strip-hover`              | an ordered track's strip block lights the node it draws        |
+| `demo-05-bubble-label-hover`                 | a bubble's name lights its span on the strip and the view      |
 
 One thing learned building it, worth not rediscovering:
 

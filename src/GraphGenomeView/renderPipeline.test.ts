@@ -139,8 +139,10 @@ async function drawnModel() {
 // and `hoverHighlight` goes on publishing its span to the paired linear view.
 test('a zoom drops a hover the pointer can no longer be over', async () => {
   const model = await drawnModel()
+  model.setHoverEdgesAndLinearView(true)
   model.setHoveredNode('1+')
   model.setHoveredEdge(0)
+  expect(model.hoveredEdge).toBe(0)
   model.setSelectedNode('1+')
 
   model.zoom(1.5, 100, 100)

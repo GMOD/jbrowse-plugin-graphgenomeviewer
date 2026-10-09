@@ -1588,12 +1588,29 @@ describe('zoomToFit on a tube map', () => {
 // hoveredEdge is an index into graph.edges, so it addresses the graph it was set
 // against; carrying it across a load pointed the tooltip and the highlight at
 // whatever ended up at that index in the new graph.
+// Ribbons fill the space between nodes, so an edge under a pointer on its way
+// to a node is a hover nobody meant
+test('an edge hovers only when asked to', async () => {
+  rpcRespond()
+  const model = createModel()
+  await model.loadGFA(RGFA, 'first')
+  model.setHoveredEdge(0)
+  expect(model.hoveredEdge).toBeNull()
+  model.setHoverEdgesAndLinearView(true)
+  model.setHoveredEdge(0)
+  expect(model.hoveredEdge).toBe(0)
+  model.setHoverEdgesAndLinearView(false)
+  expect(model.hoveredEdge).toBeNull()
+})
+
 describe('interaction state across a graph swap', () => {
   test('loading a graph clears hover and selection', async () => {
     rpcRespond()
     const model = createModel()
     await model.loadGFA(RGFA, 'first')
+    model.setHoverEdgesAndLinearView(true)
     model.setHoveredEdge(0)
+    expect(model.hoveredEdge).toBe(0)
     model.setHoveredNode('1+')
     model.setSelectedNode('1+')
 

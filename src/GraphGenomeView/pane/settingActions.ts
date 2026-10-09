@@ -102,6 +102,12 @@ export const withSettingActions = withFitViews
     setHighlightOnHover(highlight: boolean) {
       self.highlightOnHover = highlight
     },
+    setHoverEdgesAndLinearView(hover: boolean) {
+      self.hoverEdgesAndLinearView = hover
+      if (!hover) {
+        self.hoveredEdge = null
+      }
+    },
     // Re-anchor in place rather than re-parsing: the coordinate walk is
     // already recorded on the graph, and only which path counts as rank 0
     // changes. The caller recomputes the layout, the same way it does after
@@ -261,7 +267,7 @@ export const withSettingActions = withFitViews
       self.legendSize = size
     },
     setHoveredEdge(edgeIdx: number | null) {
-      self.hoveredEdge = edgeIdx
+      self.hoveredEdge = self.hoverEdgesAndLinearView ? edgeIdx : null
     },
     setSelectedNode(nodeId: string | null) {
       self.selectedNode = nodeId

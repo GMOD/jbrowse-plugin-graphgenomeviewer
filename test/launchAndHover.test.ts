@@ -230,18 +230,35 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
   }, 240_000)
 
   // Linear -> graph: the linear view publishes its hover to session.hovered
-  // and the graph picks the node out of it. The plain track proves the
-  // coordinate fallback, not just a segment-name match.
+  // and the graph picks the node out of it, once asked to. The plain track
+  // proves the coordinate fallback, not just a segment-name match.
   it('hovering the linear view selects the matching graph node', async () => {
     const box = await trackBox(PLAIN_TRACK_ID)
-    let hoveredNode: string | null = null
-    for (let i = 0; i < 20 && hoveredNode === null; i++) {
-      await page.mouse.move(
-        box.x + box.width * (0.2 + i * 0.03),
-        box.y + Math.min(box.height / 2, 12),
-      )
-      hoveredNode = (await display()).hoveredNode
+    async function sweep() {
+      let hoveredNode: string | null = null
+      for (let i = 0; i < 20 && hoveredNode === null; i++) {
+        await page.mouse.move(
+          box.x + box.width * (0.2 + i * 0.03),
+          box.y + Math.min(box.height / 2, 12),
+        )
+        hoveredNode = (await display()).hoveredNode
+      }
+      return hoveredNode
     }
+    expect(await sweep()).toBeNull()
+    await page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          )
+          .displays[0].setHoverEdgesAndLinearView(true)
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    const hoveredNode = await sweep()
     expect(hoveredNode).not.toBeNull()
     await screenshot(page, 'demo-02-linear-hover-selects-graph-node')
   }, 240_000)

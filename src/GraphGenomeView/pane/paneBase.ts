@@ -270,6 +270,9 @@ export const paneBase = types
       // whether hovering a node lightens it and bands its span on a linear
       // view; unset takes the host's default
       highlightOnHover: types.maybe(types.boolean),
+      // whether an edge under the pointer, or a linear view's pointer at a
+      // node's bp, hovers too; both are crossed on the way to something else
+      hoverEdgesAndLinearView: types.optional(types.boolean, false),
       // How far the force layout opens a bubble, which on a variation graph is
       // the difference between a legible drawing and a rope. See
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
