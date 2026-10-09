@@ -3,7 +3,6 @@ import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'
 
-import { DEFAULT_LAYERS } from '../GraphGenomeView/graphLayers'
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
@@ -54,12 +53,16 @@ export function configSchemaFactory() {
       },
       /**
        * #slot
-       * what the drawing adds over its nodes and edges: `paths`, `bubbles`,
-       * `deletions`, `genes`, `referenceStrip`, `walkStrip`
+       * what the drawing adds over its nodes and edges, stated as changes to
+       * the defaults: `paths`, `bubbles` and `walkStrip` are off, `deletions`,
+       * `genes` and `referenceStrip` on
+       * ```js
+       * { layers: { bubbles: true, genes: false } }
+       * ```
        */
       layers: {
-        type: 'stringArray',
-        defaultValue: DEFAULT_LAYERS,
+        type: 'frozen',
+        defaultValue: {},
       },
       /**
        * #slot

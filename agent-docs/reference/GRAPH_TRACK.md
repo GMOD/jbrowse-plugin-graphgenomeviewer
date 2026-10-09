@@ -118,9 +118,12 @@ carry, is cut once on attach; following the linear view is the track's job.
 
 ## Snapshots
 
-The layout, node color and hover are the display config's `layoutMode`, `color`
-and `hover`, so a share link, Edit plot and Reset track settings see them.
-`paneHeight` is inert in a track; use `height`.
+What the drawing shows is the display config, in core's plot vocabulary where it
+has a word: `layoutMode`, `color`, `size`, `layers`, `facet`, `rows` and
+`hover`. A share link, Edit plot and Reset track settings see them; a standalone
+view keeps the same keys as props. The pane reads them through `grammar` and
+writes through `writeGrammar`, which each host overrides. `paneHeight` is inert
+in a track; use `height`.
 
 ## Past the cut: a zoom-in notice
 

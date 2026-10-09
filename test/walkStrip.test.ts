@@ -56,7 +56,7 @@ function config() {
           id: 'graph_walk_strip',
           type: 'GraphGenomeView',
           layoutMode: 'force',
-          layers: ['deletions', 'genes', 'referenceStrip', 'walkStrip'],
+          layers: { walkStrip: true },
           referencePath: 'GRCh38',
           color: { field: 'position' },
           gfaLocation: served(KIV2),

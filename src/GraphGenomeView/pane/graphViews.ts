@@ -65,7 +65,7 @@ import { withCalls } from '../repeats/walkCalls'
 import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
-import type { GraphLayer } from '../graphLayers'
+import type { GraphLayers } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
@@ -100,7 +100,7 @@ export interface GraphGrammar {
   layoutMode?: LayoutModeValue
   color?: NodeColor
   size?: NodeSize
-  layers?: GraphLayer[]
+  layers?: GraphLayers
   facet?: FacetInput
   rows?: GraphRows
   hover?: HoverHighlight

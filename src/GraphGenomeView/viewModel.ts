@@ -22,7 +22,7 @@ import { HOVER_HIGHLIGHT_VALUES } from './hoverHighlight'
 import { lenientMaybeEnum } from './lenientEnum'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
-import type { GraphLayer } from './graphLayers'
+import type { GraphLayers } from './graphLayers'
 import type { NodeColor } from './nodeColor'
 import type { NodeSize } from './nodeSize'
 import type { SubgraphRegion } from '../GetSubgraph'
@@ -57,7 +57,7 @@ export default function stateModelFactory() {
         layoutMode: lenientMaybeEnum(LAYOUT_MODE_VALUES),
         color: types.maybe(types.frozen<NodeColor>()),
         size: types.maybe(types.frozen<NodeSize>()),
-        layers: types.maybe(types.frozen<GraphLayer[]>()),
+        layers: types.maybe(types.frozen<GraphLayers>()),
         facet: types.maybe(types.frozen<FacetInput>()),
         rows: types.maybe(types.frozen<GraphRows>()),
         // unset is nodes

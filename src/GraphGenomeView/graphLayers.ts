@@ -1,5 +1,4 @@
-// What a drawing adds over its nodes and edges, as a config or session lists
-// them:
+// What a drawing adds over its nodes and edges:
 // - `paths`: a ribbon per walk
 // - `bubbles`: a halo along each bubble's nodes, with a label that opens it.
 //   Off by default, since on a base-level cut every SNP's halo is a blob
@@ -11,22 +10,34 @@
 export type GraphLayer =
   'paths' | 'bubbles' | 'deletions' | 'genes' | 'referenceStrip' | 'walkStrip'
 
-export const DEFAULT_LAYERS: GraphLayer[] = [
-  'deletions',
-  'genes',
-  'referenceStrip',
-]
+const DEFAULTS: Record<GraphLayer, boolean> = {
+  paths: false,
+  bubbles: false,
+  deletions: true,
+  genes: true,
+  referenceStrip: true,
+  walkStrip: false,
+}
+
+// A config or session states only what differs from the defaults, as
+// `{ bubbles: true, genes: false }`, so a default a later release adds still
+// reaches it
+export type GraphLayers = Partial<Record<GraphLayer, boolean>>
 
 export function layersOf(layers: unknown) {
-  return new Set(Array.isArray(layers) ? layers : DEFAULT_LAYERS)
+  const stated = (
+    typeof layers === 'object' && layers !== null ? layers : {}
+  ) as GraphLayers
+  return new Set(
+    (Object.keys(DEFAULTS) as GraphLayer[]).filter(
+      layer => stated[layer] ?? DEFAULTS[layer],
+    ),
+  )
 }
 
 export function withLayer(layers: unknown, layer: GraphLayer, on: boolean) {
-  const next = layersOf(layers)
-  if (on) {
-    next.add(layer)
-  } else {
-    next.delete(layer)
-  }
-  return [...next] as GraphLayer[]
+  const { [layer]: _was, ...rest } = (
+    typeof layers === 'object' && layers !== null ? layers : {}
+  ) as GraphLayers
+  return on === DEFAULTS[layer] ? rest : { ...rest, [layer]: on }
 }

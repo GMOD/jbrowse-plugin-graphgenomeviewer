@@ -1,14 +1,20 @@
-import { DEFAULT_LAYERS, layersOf, withLayer } from './graphLayers'
+import { layersOf, withLayer } from './graphLayers'
 
-test('unset draws the default layers', () => {
-  expect([...layersOf(undefined)]).toEqual(DEFAULT_LAYERS)
-  expect([...layersOf([])]).toEqual([])
+test('unset draws the default layers, and a stated one overrides its own', () => {
+  expect([...layersOf(undefined)]).toEqual([
+    'deletions',
+    'genes',
+    'referenceStrip',
+  ])
+  expect([...layersOf({ bubbles: true, genes: false })]).toEqual([
+    'bubbles',
+    'deletions',
+    'referenceStrip',
+  ])
 })
 
-test('a toggle adds or drops one layer and keeps the rest', () => {
-  expect(withLayer(undefined, 'bubbles', true)).toEqual([
-    ...DEFAULT_LAYERS,
-    'bubbles',
-  ])
-  expect(withLayer(['genes', 'paths'], 'genes', false)).toEqual(['paths'])
+test('a toggle states only what differs from the defaults', () => {
+  expect(withLayer(undefined, 'bubbles', true)).toEqual({ bubbles: true })
+  expect(withLayer({ bubbles: true }, 'bubbles', false)).toEqual({})
+  expect(withLayer({}, 'genes', false)).toEqual({ genes: false })
 })

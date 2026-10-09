@@ -902,16 +902,43 @@ test('a launch that states one choice takes the rest from the config', async () 
 })
 
 // Config, not the display instance, so a share link, Edit plot and Reset
-// track settings all see the choice
-test('a color picked from the menu is written to the track config', async () => {
+// track settings all see the choice. Every setter, so a setting wired into
+// the view's props alone fails here.
+test('each grammar setter writes the track config, and the pane reads it back', async () => {
   const { display } = await shownGraph()
-  display.setColorScheme('depth')
-  expect(readConfObject(display.configuration, 'color')).toEqual({
-    field: 'depth',
-  })
-  expect(display.chosenColorScheme).toBe('depth')
   display.setLayoutMode('ordered')
-  expect(readConfObject(display.configuration, 'layoutMode')).toBe('ordered')
+  display.setColorScheme('depth')
+  display.setNodeWidth('uniform')
+  display.setShowBubbles(true)
+  display.setFacet('walk')
+  display.setWalkRowSamples(['HG1'])
+  display.setHover('off')
+  const slots = ['layoutMode', 'color', 'size', 'layers', 'facet', 'rows']
+  expect(
+    Object.fromEntries(
+      [...slots, 'hover'].map(s => [
+        s,
+        readConfObject(display.configuration, s),
+      ]),
+    ),
+  ).toEqual({
+    layoutMode: 'ordered',
+    color: { field: 'depth' },
+    size: 6,
+    layers: { bubbles: true },
+    facet: { field: 'walk', domain: [] },
+    rows: { kept: ['HG1'] },
+    hover: 'off',
+  })
+  expect([
+    display.chosenLayoutMode,
+    display.chosenColorScheme,
+    display.nodeWidth,
+    display.showBubbles,
+    display.facetSetting.field,
+    display.walkRowSamples,
+    display.chosenHover,
+  ]).toEqual(['ordered', 'depth', 'uniform', true, 'walk', ['HG1'], 'off'])
 })
 
 test('closing a drawn track reads nothing of the dead display', async () => {

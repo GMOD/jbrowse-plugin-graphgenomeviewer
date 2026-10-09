@@ -23,14 +23,13 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
-import { DEFAULT_LAYERS } from './graphLayers'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 
-import type { GraphLayer } from './graphLayers'
+import type { GraphLayers } from './graphLayers'
 import type { SubgraphCutOptions } from '../GetSubgraph'
 import type { El } from '@jbrowse/bandage-core/el'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
@@ -180,7 +179,7 @@ function createModel() {
 
 // The view defaults to the force layout, so a test about a reference-anchored
 // drawing has to select one — the same way the anchored figures do.
-function createAnchoredModel(props: { layers?: GraphLayer[] } = {}) {
+function createAnchoredModel(props: { layers?: GraphLayers } = {}) {
   return stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'auto',
@@ -2479,7 +2478,7 @@ describe('what the row axis draws, in pixels', () => {
     return points
   }
 
-  async function fitted(props: { layers?: GraphLayer[] } = {}) {
+  async function fitted(props: { layers?: GraphLayers } = {}) {
     const model = createAnchoredModel(props)
     await model.loadGFA(FOUR_ROWS, 'four rows')
     model.zoomToFit()
@@ -2527,7 +2526,7 @@ describe('what the row axis draws, in pixels', () => {
   })
 
   test('a deletion edge draws only in a view that shows it', async () => {
-    const hidden = await fitted({ layers: ['genes', 'referenceStrip'] })
+    const hidden = await fitted({ layers: { deletions: false } })
     expect([...hidden.hiddenEdgeIndexes!]).toEqual(
       hidden.allDeletions.map(d => d.edgeIndex),
     )
@@ -2898,7 +2897,7 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'ordered',
-      layers: [...DEFAULT_LAYERS, 'walkStrip'],
+      layers: { walkStrip: true },
       referencePath: 'GRCh38',
     })
     await model.loadGFA(WALKS_GFA, 'walks')
@@ -2927,7 +2926,7 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'walkrows',
-      layers: [...DEFAULT_LAYERS, 'walkStrip'],
+      layers: { walkStrip: true },
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     expect(model.walkStripShown).toBe(false)
@@ -3031,7 +3030,7 @@ describe('walk rows', () => {
       },
       loadedRegion: TEST_REGION,
       layoutMode: 'ordered',
-      layers: [...DEFAULT_LAYERS, 'walkStrip'],
+      layers: { walkStrip: true },
       rows: { kept: ['B'] },
     })
     await model.load()

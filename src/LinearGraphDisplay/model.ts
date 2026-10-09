@@ -43,7 +43,7 @@ import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
-import type { GraphLayer } from '../GraphGenomeView/graphLayers'
+import type { GraphLayers } from '../GraphGenomeView/graphLayers'
 import type { HostWindow } from '../GraphGenomeView/host'
 import type { GraphGrammar } from '../GraphGenomeView/pane/graphViews'
 import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
@@ -107,7 +107,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           layoutMode: getConf(self, 'layoutMode'),
           color: getConf(self, 'color'),
           size: getConf(self, 'size'),
-          layers: getConf(self, 'layers') as GraphLayer[],
+          layers: getConf(self, 'layers') as GraphLayers,
           facet: getConf(self, 'facet'),
           rows: getConf(self, 'rows'),
           hover: getConf(self, 'hover'),

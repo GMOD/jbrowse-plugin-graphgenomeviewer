@@ -233,7 +233,7 @@ const FIGURES = {
     KIV2_LOC,
     {
       ...kiv2Force,
-      layers: ['deletions', 'genes', 'referenceStrip', 'bubbles'],
+      layers: { bubbles: true },
     },
     [VNTR_TRACK, BUBBLE_TRACK],
   ),
@@ -285,7 +285,7 @@ const FIGURES = {
       KIV2_LOC,
       {
         ...kiv2Force,
-        layers: ['deletions', 'genes', 'referenceStrip', 'bubbles'],
+        layers: { bubbles: true },
       },
       [VNTR_TRACK],
     ),
