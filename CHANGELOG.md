@@ -1,3 +1,14 @@
+## [6.13.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.12.0...v6.13.0) (2026-10-09)
+
+### Other Changes
+
+- Walk rows as spans, runs from the worker ([8355cae](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8355cae8131f75a73d60613e1d9b9727920dd0dd))
+- Walk rows take their runs from the worker and skip the step budget ([d7fc010](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d7fc0103bbfee86c3648de07310b963926e4056d))
+- Walk rows paint their runs as spans through render-core's spanMark ([ab4f7ac](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ab4f7ac257e6924310f23003565c9d3aede4ef47))
+- Walk rows as spans, with the measurements ([84798b3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/84798b38b566b87e1ad3a68834405524176aca0e))
+- Name a walk-file cut's reference walk, so walk keys measure against it ([00cb6b5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/00cb6b583656a0636c05a5e4daef73bf893d7a07))
+- A walk reaching one flank measures from it, not from the cut's start ([628f27c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/628f27c56ed8fe2dbfc30b687b73a37316abc9e0))
+
 ## [6.12.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.11.0...v6.12.0) (2026-10-09)
 
 ### Other Changes
