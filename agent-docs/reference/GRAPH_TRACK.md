@@ -213,9 +213,12 @@ gfa-to-tabix 0.4.0 at `--settle 0`, the two-chunk read a window always makes is
 refuses every window over 11.80–12.06 Mb on GRCh38 and 0.20–0.46 Mb on CHM13 (20
 MB for 10 kb at 11.80 Mb) and nothing else. A 1 Mb window elsewhere fetches
 2.8–4.7 MB, a 3 Mb one at 40 Mb 9.5 MB. The 0.3.0 build at the default settle
-refuses the same windows. Then rows whose steps sum past `walkStepBudget` (4 M)
-fail the same way, and the walk read stops the node and link reads. The step
-budget counts only the haplotypes asked for, so the notice asks for fewer
+refuses the same windows. Then `walkStepBudget` (4 M) bounds the steps the cut
+keeps, and rows holding eight times as many stop the reads; either fails the
+same way. A window reads whole chunks, so a narrow one reads several times what
+it keeps: every haplotype across the 1.5 kb ABCA7 repeat reads 5.0 M steps and
+keeps 1.16 M, in 0.4 s from warm files, and a budget on steps read refused it.
+The budget counts only the haplotypes asked for, so the notice asks for fewer
 haplotypes where no zoom fits, and a cut for every haplotype is offered fewer
 beside the zoom.
 
@@ -291,15 +294,26 @@ track carries both displays with no gbz-base database:
 ```
 
 A lane fetch reads the walk and node files over the window and leaves the link
-file and its index unread. Each haplotype fragment is aligned to the reference's
-fragment, and each lane pair's two fragments to each other, by gbz-base's
-`pairAlignments` with `bases: false`: runs of nodes both walks visit, chained.
-The walk files hold no bases (`--sequences` adds them, and nothing reads them),
-so the chainer is handed a stand-in sequence of each node's length. Between two
-shared runs the CIGAR is an insertion and a deletion, and `bubblesAsMismatches`
-rewrites one of equal length up to 50 bp as `X`, which draws a SNP as a mismatch
-where gbz-base's pair lanes draw a 1 bp insertion beside a 1 bp deletion.
-gbz-base's reference lanes compare bases and write `M`.
+file and its index unread. The walk files hold no bases (`--sequences` adds
+them, and nothing reads them), so both alignments work on shared nodes and node
+lengths alone:
+
+- **A haplotype against the reference** (`referenceAligner`) is the heaviest
+  common subsequence of the two walks' steps, each node weighing its length, in
+  whichever direction shares more: gbz-base's `weightedLcs`, the step under its
+  own reference alignment. It matches one pass over a node the haplotype passes
+  several times, so at a collapsed copy-number array a lane aligns one copy and
+  the others are insertions, as gbz-base's lanes have it.
+- **A lane pair** (`walkAligner`) is gbz-base's `pairAlignments` with
+  `bases: false`: runs of nodes both walks visit, chained, leaving out every
+  node either walk passes twice. Lanes were first aligned to the reference this
+  way too, and at amylase a 3-copy haplotype matched its flanks alone (39 kb of
+  340 kb, against 86 kb by subsequence).
+
+Between two shared runs the CIGAR is an insertion and a deletion, and
+`bubblesAsMismatches` rewrites one of equal length up to 50 bp as `X`, which
+draws a SNP as a mismatch where gbz-base's pair lanes draw a 1 bp insertion
+beside a 1 bp deletion. gbz-base's reference lanes compare bases and write `M`.
 
 The header's `#haplotype` lines are the lanes `getHeader` declares. A lane's
 contigs are named only in its walk rows, so `getRefNames` lists the anchor's
@@ -335,3 +349,25 @@ fetch reads nothing more, from tabix-js's chunk cache. In Node on local files a
 300 kb window's eight lanes take 0.4–0.6 s and its seven pairs 0.4–0.5 s, most
 of it the chaining; gbz-base takes 0.3–0.9 s and 0.7–1.0 s there, and 9 s for
 the pairs at the immunoglobulin lambda locus.
+
+Compared 2026-10-08 in Chrome against the gbz-base track on the genomes portal's
+config, at the loci the tutorial figures draw, one cold run each, time from
+navigation to drawn:
+
+| locus                                 | display      | walks        | gbz-base       |
+| ------------------------------------- | ------------ | ------------ | -------------- |
+| CFH, 4 lanes, 110 kb                  | lanes        | 2.8 s, 5 req | 7.5 s, 25 req  |
+| amylase, 5 lanes, 150 kb              | lanes        | 2.7 s, 5 req | 11.1 s, 43 req |
+| GSTT1, 10 lanes, 110 kb               | lanes        | 3.2 s, 5 req | 9.1 s, 23 req  |
+| FLNA / EMD inversion, 4 lanes, 90 kb  | lanes        | 2.7 s, 5 req | 11.8 s, 57 req |
+| KIV-2, 8 haplotypes, 31 kb            | force layout | 7.9 s, 7 req | 10.0 s, 25 req |
+| KIV-2, 8 haplotypes                   | walk rows    | 2.6 s, 7 req | 6.4 s, 17 req  |
+| amylase, 5 haplotypes                 | walk rows    | 2.4 s, 7 req | 8.0 s, 34 req  |
+| ABCA7 repeat, every haplotype, 1.5 kb | walk rows    | 3.8 s, 7 req | 13.3 s, 18 req |
+
+The lanes draw the same pictures: the same contigs and frames (amylase's 1.5×
+and 3×), offset by a few bp to 1 kb. The KIV-2 cuts hold the same 15,808 nodes
+and the same row lengths. The amylase and ABCA7 cuts hold fewer nodes (9,658
+against 11,122, and 11,566 against 14,454) because gbz-base's cut runs on to the
+end of each snarl; every ABCA7 row is 1.9 to 2.7 kb shorter by that flank, so
+the rows differ from each other as they did.
