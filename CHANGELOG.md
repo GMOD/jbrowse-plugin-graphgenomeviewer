@@ -1,3 +1,14 @@
+## [6.10.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.2...v6.10.0) (2026-10-09)
+
+### Other Changes
+
+- Probe the published bundle on hosted JBrowse daily ([a27d2ba](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a27d2ba507db0fac2382bf66901c27e9af6984e5))
+- Host imports bind to served names, and a name a host lacks throws naming it ([45745a9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/45745a9eb32e1ef9a7caba0bd2ddedc0d1e25326))
+- A walk-indexed cut crosses to the main thread as typed arrays ([8ecc0a2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8ecc0a2080a4b54a6cd5a239a6272d1e6039ed1f))
+- The walk cut's tables handoff, measured against GFA text ([04e35e5](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/04e35e5db109fc444cb6cff6c6b5201960324a25))
+- What bounds every-haplotype views, measured ([765213e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/765213e1a870eb22f2d3eea6744ec0684ba28fad))
+- Depend on @jbrowse/bandage-core 8.1.0, which builds a graph from typed arrays ([c7fbd4d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c7fbd4de2732e4286faee7f7684ded84a66fb4a9))
+
 ## [6.9.2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.9.1...v6.9.2) (2026-10-08)
 
 ### Other Changes
