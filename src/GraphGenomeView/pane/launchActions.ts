@@ -247,7 +247,7 @@ export const withLaunchActions = withRenderingActions
         },
         {
           type: 'checkbox',
-          label: 'Hover edges and linear view too',
+          label: 'Show edge and linear-view hovers',
           checked: self.hoverEdgesAndLinearView,
           onClick: () => {
             self.setHoverEdgesAndLinearView(!self.hoverEdgesAndLinearView)

@@ -4,7 +4,7 @@ import type PluginManager from '@jbrowse/core/PluginManager'
 
 // The graph-to-linear half of the hover sync. The reverse half needs no mount
 // point: an LGV already publishes its hover to `session.hovered`, and the graph
-// view's own autorun reads it (see GraphGenomeView/model.ts).
+// view's own autorun reads it (see GraphGenomeView/pane/renderingActions.ts).
 //
 // Mounted through the extension point rather than imported by the LGV, so this
 // plugin never imports @jbrowse/plugin-linear-genome-view at runtime: it is not
