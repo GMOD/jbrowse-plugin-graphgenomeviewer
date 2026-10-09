@@ -53,6 +53,7 @@ import {
   laneFilters,
   pickGeneTrack,
 } from '../genes/geneFeatures'
+import { layersOf } from '../graphLayers'
 import { domainOfColor, schemeOfColor } from '../nodeColor'
 import { nodeSizeOf } from '../nodeSize'
 import {
@@ -63,6 +64,7 @@ import { withCalls } from '../repeats/walkCalls'
 import { groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
+import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
@@ -95,6 +97,7 @@ export interface GraphGrammar {
   layoutMode?: LayoutModeValue
   color?: NodeColor
   size?: NodeSize
+  layers?: GraphLayer[]
   hover?: HoverHighlight
 }
 
@@ -148,6 +151,27 @@ export const withGraphViews = paneBase
     },
     get contigThickness() {
       return nodeSizeOf(self.grammar.size).px
+    },
+    get layerSet() {
+      return layersOf(self.grammar.layers)
+    },
+    get drawPaths() {
+      return this.layerSet.has('paths')
+    },
+    get showBubbles() {
+      return this.layerSet.has('bubbles')
+    },
+    get showDeletionEdges() {
+      return this.layerSet.has('deletions')
+    },
+    get showGenes() {
+      return this.layerSet.has('genes')
+    },
+    get showReferenceStrip() {
+      return this.layerSet.has('referenceStrip')
+    },
+    get walkStrip() {
+      return this.layerSet.has('walkStrip')
     },
     get hoverLightsEverything() {
       return this.chosenHover === 'everything'

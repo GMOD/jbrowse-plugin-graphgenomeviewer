@@ -23,12 +23,14 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
+import { DEFAULT_LAYERS } from './graphLayers'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 
+import type { GraphLayer } from './graphLayers'
 import type { SubgraphCutOptions } from '../GetSubgraph'
 import type { El } from '@jbrowse/bandage-core/el'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
@@ -178,7 +180,7 @@ function createModel() {
 
 // The view defaults to the force layout, so a test about a reference-anchored
 // drawing has to select one — the same way the anchored figures do.
-function createAnchoredModel(props: { showDeletionEdges?: boolean } = {}) {
+function createAnchoredModel(props: { layers?: GraphLayer[] } = {}) {
   return stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'auto',
@@ -2477,7 +2479,7 @@ describe('what the row axis draws, in pixels', () => {
     return points
   }
 
-  async function fitted(props: { showDeletionEdges?: boolean } = {}) {
+  async function fitted(props: { layers?: GraphLayer[] } = {}) {
     const model = createAnchoredModel(props)
     await model.loadGFA(FOUR_ROWS, 'four rows')
     model.zoomToFit()
@@ -2510,7 +2512,7 @@ describe('what the row axis draws, in pixels', () => {
   // and takes its label with it. Everything else in this drawing is horizontal
   // and would not notice.
   test('the deletion arc bows a legible distance, not a hundred rows', async () => {
-    const model = await fitted({ showDeletionEdges: true })
+    const model = await fitted()
     expect(model.deletions).toHaveLength(1)
     const points = render(model)
 
@@ -2525,13 +2527,13 @@ describe('what the row axis draws, in pixels', () => {
   })
 
   test('a deletion edge draws only in a view that shows it', async () => {
-    const hidden = await fitted({ showDeletionEdges: false })
+    const hidden = await fitted({ layers: ['genes', 'referenceStrip'] })
     expect([...hidden.hiddenEdgeIndexes!]).toEqual(
       hidden.allDeletions.map(d => d.edgeIndex),
     )
     expect(hidden.deletions).toEqual([])
     const shown = await fitted()
-    expect(getSnapshot(shown).showDeletionEdges).toBe(true)
+    expect(shown.showDeletionEdges).toBe(true)
     expect(shown.hiddenEdgeIndexes!.size).toBe(0)
 
     expect(render(hidden).length).toBeLessThan(render(shown).length)
@@ -2896,7 +2898,7 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'ordered',
-      walkStrip: true,
+      layers: [...DEFAULT_LAYERS, 'walkStrip'],
       referencePath: 'GRCh38',
     })
     await model.loadGFA(WALKS_GFA, 'walks')
@@ -2925,7 +2927,7 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'walkrows',
-      walkStrip: true,
+      layers: [...DEFAULT_LAYERS, 'walkStrip'],
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     expect(model.walkStripShown).toBe(false)
@@ -3029,7 +3031,7 @@ describe('walk rows', () => {
       },
       loadedRegion: TEST_REGION,
       layoutMode: 'ordered',
-      walkStrip: true,
+      layers: [...DEFAULT_LAYERS, 'walkStrip'],
       walkRowSamples: ['B'],
     })
     await model.load()

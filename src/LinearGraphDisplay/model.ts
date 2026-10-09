@@ -48,6 +48,7 @@ import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
+import type { GraphLayer } from '../GraphGenomeView/graphLayers'
 import type { HostWindow } from '../GraphGenomeView/host'
 import type { GraphGrammar } from '../GraphGenomeView/pane/graphViews'
 import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
@@ -111,6 +112,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           layoutMode: getConf(self, 'layoutMode'),
           color: getConf(self, 'color'),
           size: getConf(self, 'size'),
+          layers: getConf(self, 'layers') as GraphLayer[],
           hover: getConf(self, 'hover'),
         }
       },
@@ -491,11 +493,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           maxRegionBp: Math.max(self.maxRegionBp, end - start),
           layoutMode: self.chosenLayoutMode,
           color: self.grammar.color,
+          size: self.grammar.size,
+          layers: self.grammar.layers,
           referencePath: self.referencePath,
           geneTrackId: self.geneTrackId,
-          showGenes: self.showGenes,
-          showBubbles: self.showBubbles,
-          showDeletionEdges: self.showDeletionEdges,
           walkLayers: self.walkLayers,
           facet: getSnapshot(self.facet),
         } satisfies GraphViewSpec

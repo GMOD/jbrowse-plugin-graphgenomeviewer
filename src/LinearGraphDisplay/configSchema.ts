@@ -3,6 +3,7 @@ import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'
 
+import { DEFAULT_LAYERS } from '../GraphGenomeView/graphLayers'
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
@@ -50,6 +51,15 @@ export function configSchemaFactory() {
       size: {
         type: 'frozen',
         defaultValue: { field: 'depth', value: 6 },
+      },
+      /**
+       * #slot
+       * what the drawing adds over its nodes and edges: `paths`, `bubbles`,
+       * `deletions`, `genes`, `referenceStrip`, `walkStrip`
+       */
+      layers: {
+        type: 'stringArray',
+        defaultValue: DEFAULT_LAYERS,
       },
       /**
        * #slot

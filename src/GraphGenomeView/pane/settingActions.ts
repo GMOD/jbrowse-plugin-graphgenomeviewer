@@ -16,10 +16,12 @@ import { keepInView, onScreen } from './keepInView'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
+import { withLayer } from '../graphLayers'
 import { colorOfScheme } from '../nodeColor'
 import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
+import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
 import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
@@ -128,8 +130,11 @@ export const withSettingActions = withFitViews
         self.graph = reanchored
       }
     },
+    setLayer(layer: GraphLayer, on: boolean) {
+      self.writeGrammar({ layers: withLayer(self.grammar.layers, layer, on) })
+    },
     setDrawPaths(draw: boolean) {
-      self.drawPaths = draw
+      this.setLayer('paths', draw)
     },
     setShowPerf(show: boolean) {
       self.showPerf = show
@@ -151,16 +156,16 @@ export const withSettingActions = withFitViews
       })
     },
     setShowBubbles(show: boolean) {
-      self.showBubbles = show
+      this.setLayer('bubbles', show)
     },
     setShowDeletionEdges(show: boolean) {
-      self.showDeletionEdges = show
+      this.setLayer('deletions', show)
     },
     setShowGenes(show: boolean) {
-      self.showGenes = show
+      this.setLayer('genes', show)
     },
     setShowReferenceStrip(show: boolean) {
-      self.showReferenceStrip = show
+      this.setLayer('referenceStrip', show)
     },
     setTubeMapFold(bp: number) {
       self.tubeMapFold = bp
@@ -255,7 +260,7 @@ export const withSettingActions = withFitViews
       self.pointerInPane = inside
     },
     setWalkStrip(show: boolean) {
-      self.walkStrip = show
+      this.setLayer('walkStrip', show)
       self.stripHover = null
     },
     // The pointer over the strip: the node under it becomes the hovered

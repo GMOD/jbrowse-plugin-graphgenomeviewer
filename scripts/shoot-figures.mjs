@@ -229,10 +229,14 @@ async function hoverExonVariant(page) {
 const FIGURES = {
   force_kiv2: forceKiv2Track,
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
-  force_kiv2_bubbles: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
-    VNTR_TRACK,
-    BUBBLE_TRACK,
-  ]),
+  force_kiv2_bubbles: trackView(
+    KIV2_LOC,
+    {
+      ...kiv2Force,
+      layers: ['deletions', 'genes', 'referenceStrip', 'bubbles'],
+    },
+    [VNTR_TRACK, BUBBLE_TRACK],
+  ),
   // six of the eight lack GSTM1; the strip pales HG00133's missing stretch, and
   // the synteny view under it reads HG00133 against GRCh38 from the same graph,
   // its deletion a wedge pinched to a point on HG00133's contig
@@ -277,9 +281,14 @@ const FIGURES = {
     [mafLane(['HG01960.1', 'HG00133.1', 'HG03041.2'])],
   ),
   force_kiv2_popped: {
-    session: trackView(KIV2_LOC, { ...kiv2Force, showBubbles: true }, [
-      VNTR_TRACK,
-    ]),
+    session: trackView(
+      KIV2_LOC,
+      {
+        ...kiv2Force,
+        layers: ['deletions', 'genes', 'referenceStrip', 'bubbles'],
+      },
+      [VNTR_TRACK],
+    ),
     // opens the largest bubble in the window, the KIV-2 array
     act: page =>
       page.evaluate(() => {

@@ -64,7 +64,7 @@ function config() {
           layoutMode: 'auto',
           referencePath: 'K12',
           color: 'grey',
-          drawPaths: true,
+          layers: ['deletions', 'genes', 'referenceStrip', 'paths'],
           gfaLocation,
         },
       ],

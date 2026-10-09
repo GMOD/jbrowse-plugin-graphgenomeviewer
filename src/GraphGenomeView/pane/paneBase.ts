@@ -265,17 +265,6 @@ export const paneBase = types
       // BUBBLE_SPREADS; no effect on the reference-anchored layouts, which
       // place a node from its coordinates rather than from a force sim.
       bubbleSpread: lenientOptionalEnum(BUBBLE_SPREAD_VALUES, 'auto'),
-      // Whether the node layouts draw each bubble as a halo along its nodes
-      // with a label that opens it. Off by default: on a base-level cut
-      // every SNP's halo is a blob.
-      showBubbles: types.optional(types.boolean, false),
-      showDeletionEdges: types.optional(types.boolean, true),
-      // The session's genes drawn onto the backbone: exons along the nodes
-      // that carry them, names pinned at their midpoints. See genes/.
-      showGenes: types.optional(types.boolean, true),
-      // Whether a drawing in its own coordinates inside a linear view gets
-      // the strip of reference segments at their bp. See referenceStrip.ts.
-      showReferenceStrip: types.optional(types.boolean, true),
       // Variants under this many bp fold into the reference before a tube map
       // is laid out, each kept as a tick on its walk's tube (coarsen.ts); 0
       // draws every one
@@ -300,9 +289,6 @@ export const paneBase = types
           preProcessor: (snap: unknown) => groupByOf(snap),
         }),
       ),
-      // Walk rows in a strip under a layout that draws nodes, linked to the
-      // drawing: a node's passes tick each bar, a bar's point lights its node
-      walkStrip: types.optional(types.boolean, false),
       // Walks lifted out of the drawing, each a layer with a lane of its own
       // and the rest fading, coloured by the encoding it states or by the
       // default one. See walkEncoding.ts. Empty lifts none.
@@ -331,7 +317,6 @@ export const paneBase = types
       scale: types.optional(types.number, 1),
       translateX: types.optional(types.number, 0),
       translateY: types.optional(types.number, 0),
-      drawPaths: types.optional(types.boolean, false),
       // Ceiling on the drawing pane, in css px, for a session or a figure that
       // wants a shorter one than the drawing asks for. Unset means the built-in
       // MAX_CANVAS_HEIGHT, which is what every existing session gets.
