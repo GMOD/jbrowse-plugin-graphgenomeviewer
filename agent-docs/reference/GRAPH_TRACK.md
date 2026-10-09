@@ -321,7 +321,8 @@ nodes. `gbzParity.test.ts` keeps the chr22:20.0–20.1 Mb case.
 
 Measured in Chrome on jbrowse-web `main` from the hosted whole-genome files,
 cold cache, eight haplotypes at chr1:196.64–196.90 Mb (CFH to CFHR4), from the
-page opening to the lanes and their seven pairs drawn, median of three:
+session starting to load to the lanes and their seven pairs drawn, median of
+three (jb2bench `results/graph-track/lanes-figure5-window.jsonl`):
 
 | route    | requests | MB   | drawn |
 | -------- | -------- | ---- | ----- |
