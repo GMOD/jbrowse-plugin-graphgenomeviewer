@@ -231,13 +231,16 @@ walk file, and the node and link files are byte-identical.
 Measured 2026-10-09, every haplotype, rows over the window against gbz-base's
 `walkRows` (bp and complete), both on bandage-core 8.2.0:
 
-| where                                    | before    | rejoin in the read | and follow (0.6.0 files)                 |
-| ---------------------------------------- | --------- | ------------------ | ---------------------------------------- |
-| ABCA7 VNTR chr19:1,049,000-1,050,500     | 457 / 462 | 462 / 462          | not built for chr19                      |
-| C4A chr6:31,982,000-32,003,000           | 308 / 463 | 463 / 463          | not built for chr6                       |
-| chr22, 150 windows of 0.6-100 kb, local  |           | 67,797 / 68,256    | 68,256 / 68,256                          |
-| amylase cluster chr1:103.52-103.83 Mb    |           | 470 / 470          | not built for chr1                       |
-| amylase chr1:103.56-103.66 Mb, inside it |           | 85 / 467           | 456 / 468 read one chunk wider each side |
+| where                                    | before    | rejoin in the read | and follow (0.6.0 files) |
+| ---------------------------------------- | --------- | ------------------ | ------------------------ |
+| ABCA7 VNTR chr19:1,049,000-1,050,500     | 457 / 462 | 462 / 462          | 462 / 462                |
+| C4A chr6:31,982,000-32,003,000           | 308 / 463 | 463 / 463          | 463 / 463                |
+| chr22, 150 windows of 0.6-100 kb, local  |           | 67,797 / 68,256    | 68,256 / 68,256          |
+| amylase cluster chr1:103.52-103.83 Mb    |           | 470 / 470          | 470 / 470                |
+| amylase chr1:103.56-103.66 Mb, inside it |           | 85 / 467           | 371 / 467                |
+
+The 0.6.0 column at the four named loci reads the hosted
+`hprc-v2.1-mc-grch38-w6.GRCh38` files, plugin 6.15.0.
 
 ABCA7 is the four walks above: HG00320#2 leaves GRCh38 at 1,049,885, runs 16.2
 kb off it and rejoins at 1,052,290, inside the chunk the window reads, and now
@@ -252,8 +255,12 @@ round of three reads and 0.1-0.6 MB. Without it one such window,
 25,557,894-25,558,540, matched gbz-base on none of its 459 rows. The rejoin adds
 4% to a cut's nodes and steps at the median, 28% at most (chr22:44.1-44.2 Mb,
 where it fixed 304 rows), and nothing to its reads. A window ending inside a
-collapsed cluster, amylase's, is the other case following fixes: the copies a
-walk passes are filed where the reference places them, beyond the read.
+collapsed cluster, amylase's, is the other case following helps: the copies a
+walk passes are filed where the reference places them, beyond the read. Of the
+96 amylase rows following leaves short, 82 rejoin inside the read, so nothing
+follows them, and measure 9-232 kb under gbz-base; 11 stop 81 kb in with no
+rejoin; 3 are contigs that end, partial in gbz-base too. Reading one chunk wider
+each side, simulated on 0.5.0 files, matched 456 of 468.
 
 Two budgets refuse a window with the zoom-in notice. Before any row is read, the
 three Tabix indexes estimate the compressed bytes the reads would fetch
