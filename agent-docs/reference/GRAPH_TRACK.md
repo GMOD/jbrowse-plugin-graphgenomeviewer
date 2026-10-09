@@ -259,3 +259,78 @@ haplotypes over chr22:20.0–20.26 Mb, and 0.09 s over chr22:20.0–20.1 Mb. At
 chr22:11.80–11.864 Mb, 8 haplotypes used to stay under the step budget and read
 1.94 M node and link rows in 3.1 s; the byte budget now refuses that window in
 10 ms, from the indexes and the header.
+
+## Lanes from walks
+
+`WalkTabixSyntenyAdapter` reads the same file set as haplotype lanes for
+`MultiWaySyntenyDisplay`, and cuts the graph display's subgraph as a
+walk-indexed `RgfaTabixAdapter` does (both go through `WalkReader`), so one
+track carries both displays with no gbz-base database:
+
+```js
+{
+  type: 'GraphTrack',
+  trackId: 'hprc_walk_lanes',
+  name: 'HPRC v2.1 haplotypes vs GRCh38',
+  assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
+  adapter: {
+    type: 'WalkTabixSyntenyAdapter',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    assemblyNames: ['hg38'],
+    assemblyNameToPanSN: {
+      hg38: 'GRCh38#0',
+      'HG00097.1': 'HG00097#1',
+      'HG00099.1': 'HG00099#1',
+    },
+  },
+  displays: [
+    { type: 'MultiWaySyntenyDisplay', displayId: 'hprc_walk_lanes-multiway' },
+    { type: 'LinearGraphDisplay', displayId: 'hprc_walk_lanes-graph' },
+  ],
+}
+```
+
+A lane fetch reads the walk and node files over the window and leaves the link
+file and its index unread. Each haplotype fragment is aligned to the reference's
+fragment, and each lane pair's two fragments to each other, by gbz-base's
+`pairAlignments` with `bases: false`: runs of nodes both walks visit, chained.
+The walk files hold no bases (`--sequences` adds them, and nothing reads them),
+so the chainer is handed a stand-in sequence of each node's length. Between two
+shared runs the CIGAR is an insertion and a deletion, and `bubblesAsMismatches`
+rewrites one of equal length up to 50 bp as `X`, which draws a SNP as a mismatch
+where gbz-base's pair lanes draw a 1 bp insertion beside a 1 bp deletion.
+gbz-base's reference lanes compare bases and write `M`.
+
+The header's `#haplotype` lines are the lanes `getHeader` declares. A lane's
+contigs are named only in its walk rows, so `getRefNames` lists the anchor's
+contigs alone, and a window on a lane answers nothing: lane pairs are read
+inside the anchor's window (`lanePairsOnAnchor`, `lanePairBatches`). Records
+come back in the order the fetch names its lanes.
+
+Checked 2026-10-08 against `GbzBaseSyntenyAdapter` on chr22 of HPRC v2.1 (local
+gbz-base database, gfa-to-tabix 0.5.0 GRCh38 files, eight haplotypes, 60 windows
+of 1 bp to 300 kb). In 56 windows both routes answer the same lanes and pairs,
+and a coordinate mapped through either CIGAR lands within 50 bp on the
+haplotype; the records' ends differ where gbz-base's cut runs on to a snarl's
+end and the walk cut stops 1 kb past the window. At 22.2–22.7 Mb (two windows,
+the immunoglobulin lambda locus) the walk route answers the eight full-length
+records gbz-base answers and none of its 41 to 72 records of 1 to 2 bp, checked
+by eye on one haplotype. At 18.50 and 18.76 Mb in the 22q11 repeats the routes
+differ, as the graph cuts do: a walk is filed where the reference places its
+nodes. `gbzParity.test.ts` keeps the chr22:20.0–20.1 Mb case.
+
+Measured in Chrome on jbrowse-web `main` from the hosted whole-genome files,
+cold cache, eight haplotypes at chr1:196.64–196.90 Mb (CFH to CFHR4), from the
+page opening to the lanes and their seven pairs drawn, median of three:
+
+| route    | requests | MB   | drawn |
+| -------- | -------- | ---- | ----- |
+| walks    | 5        | 3.48 | 2.9 s |
+| gbz-base | 27       | 9.97 | 7.5 s |
+| PIF      | 3        | 1.89 | 2.1 s |
+
+The five are two indexes, the walk header, and one range of each file; the pair
+fetch reads nothing more, from tabix-js's chunk cache. In Node on local files a
+300 kb window's eight lanes take 0.4–0.6 s and its seven pairs 0.4–0.5 s, most
+of it the chaining; gbz-base takes 0.3–0.9 s and 0.7–1.0 s there, and 9 s for
+the pairs at the immunoglobulin lambda locus.

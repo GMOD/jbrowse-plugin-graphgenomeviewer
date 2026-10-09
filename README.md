@@ -97,7 +97,8 @@ Needs JBrowse 5.0.0-beta.11 or later.
 ```
 
 - The track menu picks layout, colour and highlighted haplotypes, and switches
-  to the segments lane or, for gbz-base, the haplotype lanes
+  to the segments lane or, for gbz-base and walk-indexed graphs, the haplotype
+  lanes
 - Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`, the
   `coarse` tier (`build_bubble_tier.sh` in jbrowse-components)
 - Past the cut (5 Mb, or a gbz-base adapter's `nodeLimit`) the track asks you to
@@ -107,9 +108,12 @@ Needs JBrowse 5.0.0-beta.11 or later.
   `hg38` or `hs1` track finds the graph's GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names. A haplotype's lane draws on the
   assembly aliased by its PanSN name (`HG002#1`) with no map entry
-- `"reads": "….gaf.gz"` on that adapter draws GAF reads in the tube map layouts,
-  fetched through its tabix index; [docs/layouts.md](docs/layouts.md#reads) has
-  the config and how to make one
+- A walk-indexed graph (`gfa-to-tabix --walks`) swaps in
+  `{ "type": "WalkTabixSyntenyAdapter", "walksUri": "….GRCh38", "assemblyNames": ["hg38"] }`
+  and draws the same haplotype lanes from the walk files, with no database
+- `"reads": "….gaf.gz"` on the gbz-base adapter draws GAF reads in the tube map
+  layouts, fetched through its tabix index;
+  [docs/layouts.md](docs/layouts.md#reads) has the config and how to make one
 
 ## Docs
 
