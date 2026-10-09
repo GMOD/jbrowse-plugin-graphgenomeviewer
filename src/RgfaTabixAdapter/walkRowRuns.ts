@@ -82,10 +82,13 @@ class RunWriter {
 }
 
 /**
- * Mirrors `walkRows(graphFromTables(tables), region)` for a graph anchored by
- * its node tags, which is every walk-file cut: the first walk is the
- * reference, and a step is a node index. A gap between two pieces of one
- * haplotype is a step of `-bp`.
+ * `walkRows(graphFromTables(tables), region)` for a graph anchored by its
+ * node tags, which is every walk-file cut: the first walk is the reference,
+ * and a step is a node index. A gap between two pieces of one haplotype is a
+ * step of `-bp`. One difference: a walk reaching only one of the region's
+ * flanks measures from that flank, where walkRows takes the whole walk the
+ * cut holds, so its length is a lower bound that no longer grows with the
+ * cut's context.
  */
 export function walkRowRuns(
   { nodes: n, walks: w }: GraphTables,
@@ -180,6 +183,40 @@ export function walkRowRuns(
       }
       end = pos
     }
+    // A walk with one flank, whose contig ends inside the window: the steps
+    // past that flank, read in the reference's direction. Which side is
+    // inside follows the walk's direction along the reference at the
+    // flank, from the nearest other step on it.
+    const partialSide = (i0: number, i1: number) => {
+      const flank = i0 >= 0 ? i0 : i1
+      let near = -1
+      for (let d = 1; near < 0 && d < length; d++) {
+        for (const j of [flank - d, flank + d]) {
+          const id = j >= 0 && j < length ? steps[j]! : -1
+          if (near < 0 && id >= 0 && !Number.isNaN(spanStart[id]!)) {
+            near = j
+          }
+        }
+      }
+      if (near < 0) {
+        return undefined
+      }
+      const forward =
+        near > flank === spanStart[steps[near]!]! > spanStart[steps[flank]!]!
+      const after = forward === (flank === i0)
+      return {
+        lo: after ? flank + 1 : 0,
+        hi: after ? length : flank,
+        backward: !forward,
+        axisStart: forward
+          ? after
+            ? stepEnd(flank)
+            : stepStart[0]!
+          : after
+            ? stepEnd(length - 1)
+            : stepStart[flank]!,
+      }
+    }
     const stepEnd = (i: number) => {
       const id = steps[i]!
       return stepStart[i]! + (id < 0 ? -id : lengthOf(id))
@@ -191,6 +228,7 @@ export function walkRowRuns(
     let complete = true
     let from = -1
     let to = -1
+    let axisStart: number | undefined
     if (cut && flanked) {
       let i0 = -1
       let i1 = -1
@@ -211,6 +249,10 @@ export function walkRowRuns(
       }
       if (i0 < 0 || i1 < 0) {
         complete = false
+        const inside = i0 >= 0 || i1 >= 0 ? partialSide(i0, i1) : undefined
+        if (inside) {
+          ;({ lo, hi, backward, axisStart } = inside)
+        }
       } else {
         lo = Math.min(i0, i1) + 1
         hi = Math.max(i0, i1)
@@ -222,11 +264,13 @@ export function walkRowRuns(
     const axis: WalkAxis | undefined =
       overlaps || length === 0
         ? undefined
-        : from < 0
-          ? { contig: path.contig, start: stepStart[0]!, reversed: false }
-          : from < to
-            ? { contig: path.contig, start: stepEnd(from), reversed: false }
-            : { contig: path.contig, start: stepStart[from]!, reversed: true }
+        : axisStart !== undefined
+          ? { contig: path.contig, start: axisStart, reversed: backward }
+          : from < 0
+            ? { contig: path.contig, start: stepStart[0]!, reversed: false }
+            : from < to
+              ? { contig: path.contig, start: stepEnd(from), reversed: false }
+              : { contig: path.contig, start: stepStart[from]!, reversed: true }
 
     let bp = 0
     let offReferenceBp = 0

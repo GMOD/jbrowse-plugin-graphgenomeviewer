@@ -394,3 +394,15 @@ against 11,122, and 11,566 against 14,454) because gbz-base's cut runs on to the
 end of each snarl. Cut in Node over the window and a window each side, 452 ABCA7
 haplotypes hold one walk in both, each shorter from the walk files by a flank of
 1.9 kb or more, 2.6 kb in most, so the rows differ from each other as they did.
+
+At the ABCA7 VNTR's TRGT record (chr19:1,049,406-1,050,096), measured 2026-10-09
+with every haplotype, 445 of 459 walk rows match between the routes to the bp.
+Four walks leave GRCh38 inside the VNTR and rejoin it past the walk cut's 1 kb
+context: gbz-base follows the snarl and measures them whole (HG00320#2 16.3 kb,
+HG00140#1 7.7 kb, HG01074#2 7.2 kb, HG00146#1 6.3 kb), where the walk files cut
+them off as partial walks. The longest bar sets the rows' scale, so the walk
+route's bars draw about twice as long. Ten more are contigs that end at or
+before the VNTR (HG04199#2 ends at 1,048,826, before it): a walk with one flank
+measures from that flank (`walkRowRuns`), so these read 0 to 0.8 kb as partial
+walks on the walk route, where walkRows counts the flank each cut holds (0.9 kb
+from the walk files, 3.7 kb from gbz-base for HG04199#2).

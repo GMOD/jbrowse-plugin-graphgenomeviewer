@@ -361,13 +361,16 @@ test.each([
   ['the whole reference', window],
   ['a window inside it', { ...window, start: 1300, end: 2300 }],
 ])(
-  "a walk-rows cut's runs are walkRows over the parsed cut, over %s",
+  "a walk-rows cut's whole walks are walkRows over the parsed cut, over %s",
   async (_, region) => {
     const cut = await makeAdapter({ walkStepBudget: 1 }).getSubgraph(region, {
       walkRows: true,
     })
-    expect(walkRowsOf(cut.walkRowRuns!)).toEqual(
-      walkRows(loadGraph(cut, 'cut'), region),
+    const runs = walkRowsOf(cut.walkRowRuns!)
+    const bars = walkRows(loadGraph(cut, 'cut'), region)!
+    expect(runs.reference).toEqual(bars.reference)
+    expect(runs.rows.filter(r => r.complete)).toEqual(
+      bars.rows.filter(r => r.complete),
     )
   },
 )
