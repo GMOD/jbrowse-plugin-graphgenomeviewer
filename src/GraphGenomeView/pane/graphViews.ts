@@ -95,6 +95,14 @@ export const withGraphViews = paneBase
     get defaultHover(): HoverHighlight {
       return 'nodes'
     },
+    // the paper follows the host theme
+    get darkMode() {
+      try {
+        return getSession(self).theme.palette.mode === 'dark'
+      } catch {
+        return false
+      }
+    },
     // a source declared but not yet loaded
     get hasPendingSource() {
       return false

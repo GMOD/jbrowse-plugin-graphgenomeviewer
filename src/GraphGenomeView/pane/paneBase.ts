@@ -343,7 +343,6 @@ export const paneBase = types
       showPerf: types.optional(types.boolean, false),
       contigThickness: types.optional(types.number, 6),
       connectorThickness: types.optional(types.number, 2),
-      darkMode: types.optional(types.boolean, false),
       scale: types.optional(types.number, 1),
       translateX: types.optional(types.number, 0),
       translateY: types.optional(types.number, 0),

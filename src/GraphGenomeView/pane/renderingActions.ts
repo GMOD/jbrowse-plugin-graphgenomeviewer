@@ -268,7 +268,7 @@ export const withRenderingActions = withLoadActions
           // `render` below returns false for.
           return false
         },
-        // Autorun: re-render on pan/zoom/darkMode without rebuilding geometry
+        // Autorun: re-render on pan/zoom/theme without rebuilding geometry
         render: (b: Renderer) => {
           if (!self.nodePositions) {
             return false
