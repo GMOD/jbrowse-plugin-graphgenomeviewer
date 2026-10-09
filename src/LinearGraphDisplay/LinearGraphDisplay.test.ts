@@ -941,6 +941,26 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   ]).toEqual(['ordered', 'depth', 'uniform', true, 'walk', ['HG1'], 'off'])
 })
 
+// Reset track settings, undo and the config editor write the slot without
+// the menu, and the drawing still follows; the menu itself recuts once
+test('a layout written to the config is drawn, and the menu recuts once', async () => {
+  const { display, cuts } = await shownGraph()
+  const before = cuts.length
+  await display.switchLayout('walkrows')
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(before + 1)
+  display.configuration.setSlot('layoutMode', 'auto')
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(before + 2)
+  expect(display.hostPlacesX).toBe(true)
+})
+
+test('the graph view a track opens takes its hover too', async () => {
+  const { display } = await shownGraph()
+  display.setHover('everything')
+  expect(display.graphViewSpec?.hover).toBe('everything')
+})
+
 test('closing a drawn track reads nothing of the dead display', async () => {
   const { view } = await shownGraph()
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

@@ -794,6 +794,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       self.graph = from.graph
       if (from.layoutMode !== self.chosenLayoutMode) {
         self.setLayoutMode(from.layoutMode)
+        self.handledLayoutMode = from.layoutMode
       }
       self.indexBubbles = from.indexBubbles
       self.clearInteractionState()

@@ -120,10 +120,13 @@ carry, is cut once on attach; following the linear view is the track's job.
 
 What the drawing shows is the display config, in core's plot vocabulary where it
 has a word: `layoutMode`, `color`, `size`, `layers`, `facet`, `rows` and
-`hover`. A share link, Edit plot and Reset track settings see them; a standalone
-view keeps the same keys as props. The pane reads them through `grammar` and
-writes through `writeGrammar`, which each host overrides. `paneHeight` is inert
-in a track; use `height`.
+`hover`. A share link and Reset track settings see them all; Edit plot shows the
+ones core's `PLOT_VOCABULARY` names (`color`, `facet`, `rows`, and `size` past
+v5.0.0-beta.11). A standalone view keeps the same keys as props. The pane reads
+them through `grammar` and writes through `writeGrammar`, which each host
+overrides. A layout change from anywhere but the menu (reset, undo, the config
+editor) reaches `relayoutFrom` through a reaction on `chosenLayoutMode`.
+`paneHeight` is inert in a track; use `height`.
 
 ## Past the cut: a zoom-in notice
 

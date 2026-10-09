@@ -337,6 +337,9 @@ export const paneBase = types
     // The graphs the open bubble was popped out of, outermost first, each
     // with what closing back to it restores without a refetch. A stack so a
     // popped superbubble can be mapped and popped again.
+    // the layout mode the drawing was last laid out for, so a change from the
+    // menu is not laid out a second time by the reaction that catches the rest
+    handledLayoutMode: undefined as LayoutModeValue | undefined,
     popStack: [] as {
       graph: Graph
       layoutMode: LayoutModeValue

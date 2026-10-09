@@ -1,3 +1,4 @@
+import { cutsWholeWalks as wholeWalksRule } from '@jbrowse/bandage-core/layout/walkStrip'
 import {
   LAYOUT_MODE_VALUES,
   layoutModeByValue,
@@ -208,13 +209,14 @@ export default function stateModelFactory() {
       // walks, which a GBZ cut only follows when asked, so a change in whether
       // the drawing needs them cuts the track again; the strip's toggle does
       // the same (afterAttach)
-      switchLayout(mode: LayoutModeValue) {
-        const before = self.cutsWholeWalks
-        const wasWalkRows = self.chosenLayoutMode === 'walkrows'
-        self.setLayoutMode(mode)
+      relayoutFrom(from: LayoutModeValue) {
+        const before = wholeWalksRule(layoutModeByValue(from), {
+          walkStrip: self.walkStrip,
+          host: !!self.host,
+        })
         return self.loadedTrackId &&
           (self.cutsWholeWalks !== before ||
-            wasWalkRows !== (mode === 'walkrows'))
+            (from === 'walkrows') !== (self.chosenLayoutMode === 'walkrows'))
           ? self.load()
           : self.recomputeLayout()
       },

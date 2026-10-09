@@ -44,6 +44,7 @@ import {
   getEnv,
   getSession,
 } from '@jbrowse/core/util'
+import { computed } from 'mobx'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
 import { walkRowRuns, walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
@@ -117,13 +118,10 @@ export const withGraphViews = paneBase
     get grammar(): GraphGrammar {
       return {}
     },
-    // the paper follows the host theme
+    // Light paper even under a dark theme: Bandage's deletion edges, the
+    // deletion labels and the gene ink are near-black, and vanish on dark
     get darkMode() {
-      try {
-        return getSession(self).theme.palette.mode === 'dark'
-      } catch {
-        return false
-      }
+      return false
     },
     // a source declared but not yet loaded
     get hasPendingSource() {
@@ -141,77 +139,89 @@ export const withGraphViews = paneBase
       }
     },
   }))
-  .views(self => ({
-    get chosenLayoutMode(): LayoutModeValue {
-      return self.grammar.layoutMode ?? 'force'
-    },
-    get chosenColorScheme(): ColorScheme {
-      return schemeOfColor(self.grammar.color)
-    },
-    // the reference span the reference-position ramp runs over, for a graph
-    // with no region of its own to span it
-    get statedColorDomain() {
-      return domainOfColor(self.grammar.color)
-    },
-    get chosenHover(): HoverHighlight {
-      return self.grammar.hover ?? 'nodes'
-    },
-    // Node thickness by depth, Bandage's own device; see NODE_WIDTHS
-    get nodeWidth(): NodeWidth {
-      return nodeSizeOf(self.grammar.size).width
-    },
-    get contigThickness() {
-      return nodeSizeOf(self.grammar.size).px
-    },
-    get layerSet() {
-      return layersOf(self.grammar.layers)
-    },
-    get drawPaths() {
-      return this.layerSet.has('paths')
-    },
-    get showBubbles() {
-      return this.layerSet.has('bubbles')
-    },
-    get showDeletionEdges() {
-      return this.layerSet.has('deletions')
-    },
-    get showGenes() {
-      return this.layerSet.has('genes')
-    },
-    get showReferenceStrip() {
-      return this.layerSet.has('referenceStrip')
-    },
-    get walkStrip() {
-      return this.layerSet.has('walkStrip')
-    },
-    // One section per value of a field, as a grammar of graphics splits a
-    // plot. A node layout draws a panel per `walk` (each lifted walk alone,
-    // on the same layout) or per `sample` (a sample's haplotypes in a row);
-    // `domain` orders the panels and `columns` fixes how many go across.
-    // See facetPanels and facetCells.
-    get facetSetting(): FacetSetting {
-      return facetSettingOf(self.grammar.facet)
-    },
-    // Walk rows stack into a section per value of a sample table column,
-    // read from the source track's samplesTsvLocation
-    get walkRowGroupBy(): WalkRowGroupBy | undefined {
-      const groupBy = groupByOf(self.grammar.facet)
-      return groupBy && groupBy.field !== 'walk' && groupBy.field !== 'sample'
-        ? groupBy
-        : undefined
-    },
-    get walkRowSamples() {
-      const kept = self.grammar.rows?.kept
-      return Array.isArray(kept) ? kept : undefined
-    },
-    get hoverLightsEverything() {
-      return this.chosenHover === 'everything'
-    },
-    // the hovered node, where hovering is to light it
-    get litNode() {
-      return this.chosenHover === 'off' ? null : self.hoveredNode
-    },
-  }))
+  .views(self => {
+    // `grammar` is a new object whenever any setting changes, so what is
+    // derived as an object compares by value, or a hover toggle would
+    // recompute the reference ramp and regroup the walk rows
+    const byValue = <T>(derive: () => T) =>
+      computed(derive, {
+        equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+      })
+    const colorDomain = byValue(() => domainOfColor(self.grammar.color))
+    const facet = byValue(() => facetSettingOf(self.grammar.facet))
+    const groupBy = byValue(() => {
+      const g = groupByOf(self.grammar.facet)
+      return g && g.field !== 'walk' && g.field !== 'sample' ? g : undefined
+    })
+    return {
+      get chosenLayoutMode(): LayoutModeValue {
+        return self.grammar.layoutMode ?? 'force'
+      },
+      get chosenColorScheme(): ColorScheme {
+        return schemeOfColor(self.grammar.color)
+      },
+      // the reference span the reference-position ramp runs over, for a graph
+      // with no region of its own to span it
+      get statedColorDomain() {
+        return colorDomain.get()
+      },
+      get chosenHover(): HoverHighlight {
+        return self.grammar.hover ?? 'nodes'
+      },
+      // Node thickness by depth, Bandage's own device; see NODE_WIDTHS
+      get nodeWidth(): NodeWidth {
+        return nodeSizeOf(self.grammar.size).width
+      },
+      get contigThickness() {
+        return nodeSizeOf(self.grammar.size).px
+      },
+      get layerSet() {
+        return layersOf(self.grammar.layers)
+      },
+      get drawPaths() {
+        return this.layerSet.has('paths')
+      },
+      get showBubbles() {
+        return this.layerSet.has('bubbles')
+      },
+      get showDeletionEdges() {
+        return this.layerSet.has('deletions')
+      },
+      get showGenes() {
+        return this.layerSet.has('genes')
+      },
+      get showReferenceStrip() {
+        return this.layerSet.has('referenceStrip')
+      },
+      get walkStrip() {
+        return this.layerSet.has('walkStrip')
+      },
+      // One section per value of a field, as a grammar of graphics splits a
+      // plot. A node layout draws a panel per `walk` (each lifted walk alone,
+      // on the same layout) or per `sample` (a sample's haplotypes in a row);
+      // `domain` orders the panels and `columns` fixes how many go across.
+      // See facetPanels and facetCells.
+      get facetSetting(): FacetSetting {
+        return facet.get()
+      },
+      // Walk rows stack into a section per value of a sample table column,
+      // read from the source track's samplesTsvLocation
+      get walkRowGroupBy(): WalkRowGroupBy | undefined {
+        return groupBy.get()
+      },
+      get walkRowSamples() {
+        const kept = self.grammar.rows?.kept
+        return Array.isArray(kept) ? kept : undefined
+      },
+      get hoverLightsEverything() {
+        return this.chosenHover === 'everything'
+      },
+      // the hovered node, where hovering is to light it
+      get litNode() {
+        return this.chosenHover === 'off' ? null : self.hoveredNode
+      },
+    }
+  })
   .views(self => ({
     get paneWidth() {
       return getContainingView(self).width

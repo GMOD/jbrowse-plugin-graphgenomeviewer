@@ -326,10 +326,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         self.cutRegion = undefined
         this.settleOn(self.settledWindow ?? seen)
       },
-      switchLayout(mode: LayoutModeValue) {
-        const from = layoutModeByValue(self.chosenLayoutMode)
-        self.setLayoutMode(mode)
-        const to = layoutModeByValue(mode)
+      relayoutFrom(fromMode: LayoutModeValue) {
+        const from = layoutModeByValue(fromMode)
+        const to = layoutModeByValue(self.chosenLayoutMode)
         const seen = self.host ? hostWindow(self.host) : undefined
         if (
           seen &&
@@ -488,12 +487,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           subgraphContext: self.subgraphContext,
           subgraphHaplotypes: self.chosenHaplotypes,
           maxRegionBp: Math.max(self.maxRegionBp, end - start),
+          ...self.grammar,
           layoutMode: self.chosenLayoutMode,
-          color: self.grammar.color,
-          size: self.grammar.size,
-          layers: self.grammar.layers,
-          facet: self.grammar.facet,
-          rows: self.grammar.rows,
           referencePath: self.referencePath,
           geneTrackId: self.geneTrackId,
           walkLayers: self.walkLayers,

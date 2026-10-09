@@ -4014,6 +4014,18 @@ describe('walk rows grouped by a sample column', () => {
     expect(stale.walkRowPlacement!.headers).toEqual([])
   })
 
+  // One facet holds either, so clearing one leaves the other
+  test('panels off keeps a grouping, and grouping off keeps panels', async () => {
+    const grouped = await groupedModel({ facet: 'superpopulation' })
+    grouped.setFacet('')
+    expect(grouped.walkRowGroupBy).toEqual({ field: 'superpopulation' })
+    const panelled = await groupedModel({ facet: 'walk' })
+    panelled.setWalkRowGroupBy(undefined)
+    expect(panelled.facetSetting.field).toBe('walk')
+    panelled.setFacet('')
+    expect(panelled.facet).toEqual({})
+  })
+
   test('Group by... lists None and each column, and the SVG export waits for None', async () => {
     const model = await groupedModel()
     const groupBy = () =>

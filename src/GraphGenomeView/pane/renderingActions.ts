@@ -284,10 +284,24 @@ export const withRenderingActions = withLoadActions
     },
   }))
   .actions(self => ({
+    // The drawing made again for a layout mode that changed from `from`; a
+    // host overrides it with what its source needs, such as a recut
+    relayoutFrom(_from: LayoutModeValue): Promise<unknown> {
+      return self.recomputeLayout()
+    },
+  }))
+  .actions(self => ({
+    relayout(from: LayoutModeValue) {
+      self.handledLayoutMode = self.chosenLayoutMode
+      return self.relayoutFrom(from)
+    },
+  }))
+  .actions(self => ({
     // A layout picked from a menu: the mode, then the drawing it makes.
     switchLayout(mode: LayoutModeValue) {
+      const from = self.chosenLayoutMode
       self.setLayoutMode(mode)
-      return self.recomputeLayout()
+      return self.relayout(from)
     },
     // Deletion edges shape a force layout, so it is laid out again without them
     toggleDeletionEdges() {
@@ -302,5 +316,18 @@ export const withRenderingActions = withLoadActions
       if (!self.isDefaultViewport) {
         self.viewportOwner = 'user'
       }
+      // The layout set by anything but the menu: the config editor, Reset
+      // track settings, undo, a session delta
+      addDisposer(
+        self,
+        reaction(
+          () => self.chosenLayoutMode,
+          (to, from) => {
+            if (to !== self.handledLayoutMode) {
+              void self.relayout(from)
+            }
+          },
+        ),
+      )
     },
   }))

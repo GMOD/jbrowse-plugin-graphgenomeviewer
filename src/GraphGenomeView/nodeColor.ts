@@ -62,12 +62,17 @@ export function colorOfScheme(scheme: ColorScheme, domain?: Span): NodeColor {
   if (scheme === 'grey' || scheme === 'uniform') {
     return scheme
   }
-  const ends = domain ? { domainMin: domain.start, domainMax: domain.end } : {}
   return scheme === 'random'
-    ? { field: 'id', scale: 'categorical', ...ends }
+    ? { field: 'id', scale: 'categorical' }
     : scheme === 'rainbow'
-      ? { field: 'id', scheme: 'rainbow', ...ends }
-      : FIELD_OF_SCHEME[scheme]
-        ? { field: FIELD_OF_SCHEME[scheme], ...ends }
-        : ends
+      ? { field: 'id', scheme: 'rainbow' }
+      : scheme === 'reference-position' && domain
+        ? {
+            field: 'position',
+            domainMin: domain.start,
+            domainMax: domain.end,
+          }
+        : FIELD_OF_SCHEME[scheme]
+          ? { field: FIELD_OF_SCHEME[scheme] }
+          : {}
 }

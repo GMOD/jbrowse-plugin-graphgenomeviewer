@@ -361,7 +361,7 @@ describe('reads', () => {
     )
     const model = createView({
       layoutMode: 'tubemap',
-      colorScheme: 'reference-position',
+      color: { field: 'position' },
       loadedTrackId: TRACK.trackId,
       loadedRegion: ON_HG38,
     })
