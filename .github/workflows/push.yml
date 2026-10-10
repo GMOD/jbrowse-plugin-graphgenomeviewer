@@ -77,5 +77,5 @@ jobs:
       - name: Create JBrowse test instance
         run:
           npx @jbrowse/cli create .test-jbrowse --url
-          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.11/jbrowse-web-v5.0.0-beta.11.zip
+          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.13/jbrowse-web-v5.0.0-beta.13.zip
       - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e

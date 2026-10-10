@@ -58,8 +58,8 @@ subgraph".
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in only because it needs a jbrowse-web static build to serve. **All 37 tests
-pass on 5.0.0-beta.11 as of 2026-10-02.**
+Opt-in only because it needs a jbrowse-web static build to serve. **All 40 tests
+pass on 5.0.0-beta.13, the latest release, as of 2026-10-10.**
 
 Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 
@@ -69,9 +69,9 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 
 `JBROWSE_PORT` (9876) moves the server, so two sessions can run at once.
 
-A git worktree has no `.test-jbrowse-beta11` of its own: the served JBrowse and
+A git worktree has no `.test-jbrowse-beta13` of its own: the served JBrowse and
 its fixtures live in the primary checkout. Run e2e from a worktree with
-`JBROWSE_TEST_DIR=<primary checkout>/.test-jbrowse-beta11`, or the fixture
+`JBROWSE_TEST_DIR=<primary checkout>/.test-jbrowse-beta13`, or the fixture
 suites (`walkRows`, `walkStrip`) skip without a word.
 
 `tubeMapReads.test.ts` serves `test_data/cactus/`, sequenceTubeMap's cactus
