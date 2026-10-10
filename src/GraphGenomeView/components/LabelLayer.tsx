@@ -148,11 +148,16 @@ const LabelLayer = observer(function LabelLayer({
           text={text}
           color={BUBBLE_KIND_COLORS[h.kind]}
           dimmed={dimmedBubble(h)}
-          title={`${h.label}\n${h.bubble.segmentCount} segments · click to open`}
+          title={`${h.label}\n${h.bubble.segmentCount} segments${h.bubble.covering ? '' : ' · click to open'}`}
           testId="graph-bubble-halo-label"
-          onClick={() => {
-            void model.popBubble(h.bubble)
-          }}
+          // the bubble the drawing is would open into this same drawing
+          onClick={
+            h.bubble.covering
+              ? undefined
+              : () => {
+                  void model.popBubble(h.bubble)
+                }
+          }
           // a leave also fires as the view closing it unmounts the chip
           onHover={hovered => {
             if (isAlive(model)) {

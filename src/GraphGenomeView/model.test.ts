@@ -2878,9 +2878,13 @@ describe('popping a bubble', () => {
     await model.popBubble(model.bubbles[0]!)
     const inner = model.graph!
     expect(model.popStack.map(p => p.graph)).toEqual([window])
-    const [snp, ...rest] = model.bubbles
+    const [snp, ...rest] = model.bubbles.filter(b => !b.covering)
     expect(rest).toEqual([])
     expect(snp).toMatchObject({ key: 'a>d', offReference: true, start: 8 })
+    // the popped bubble keeps its name over the drawing it now is
+    expect(model.bubbles.filter(b => b.covering).map(b => b.segments)).toEqual([
+      '1,a,b,c,d,2',
+    ])
 
     expect(model.usesLayoutEngine).toBe(false)
 
@@ -2889,7 +2893,7 @@ describe('popping a bubble', () => {
     await model.popBubble(snp!)
     expect(model.popStack.map(p => p.graph)).toEqual([window, inner])
     expect(model.graph!.name).toBe(`SNP in ${inner.name}`)
-    expect(model.bubbles).toEqual([])
+    expect(model.bubbles.map(b => [b.key, b.covering])).toEqual([['a>d', true]])
     expect(model.usesLayoutEngine).toBe(true)
 
     await model.unpopBubble()
