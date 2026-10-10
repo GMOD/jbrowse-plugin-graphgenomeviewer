@@ -26,13 +26,6 @@ above it.
 
 ![KIV-2 walk rows under LPA and the curated KIV-2 annotation](img/walk_rows_kiv2.png)
 
-- **Variants at their bp.** A tube map on the reference axis puts each of MICB's
-  variant columns under its exon. HPRC's multiple alignment, cut to the same
-  eight haplotypes, marks a mismatch in a row wherever its tube leaves GRCh38's
-  route.
-
-![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes and the eight haplotypes' alignment rows](img/tube_map_micb_ref.png)
-
 - **Allele frequency as a tube map.** A tube per route, as wide as the
   haplotypes taking it, coloured by superpopulation. Over C4's RCCX module, 35
   of 60 haplotypes skip the 6.4 kb HERV-K in C4B, so their C4B is short; thin
@@ -130,6 +123,21 @@ Needs JBrowse 5.0.0-beta.11 or later.
 
 - [docs/layouts.md](docs/layouts.md) — layouts, bubbles, walks, genes, loci
 - [docs/developing.md](docs/developing.md) — building, testing, `host-compat`
+
+## See also
+
+We made r package ports of this functionality here
+
+- https://github.com/gmod/ggtubemap
+- https://github.com/gmod/ggbandage
+
+Standalone page
+
+- https://github.com/cmdcolin/BandageJS
+
+JBrowse tutorials on pangenomes
+
+- https://jbrowse.org/jb2/docs/tutorials/
 
 ## License
 
