@@ -869,28 +869,34 @@ try {
     // re-lays out into a blank frame
     const file = path.join(values.out, `${name}.png`)
     const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
-    await page.screenshot({ path: file, clip, captureBeyondViewport: false })
+    const after = Buffer.from(
+      await page.screenshot({ clip, captureBeyondViewport: false }),
+    )
     await context.close()
-    if (values.compare === undefined) {
-      console.log(`wrote ${file}`)
-    } else if (before === undefined) {
-      console.log(`wrote ${file}, new`)
+    if (values.compare === undefined || before === undefined) {
+      fs.writeFileSync(file, after)
+      console.log(`wrote ${file}${before ? '' : ', new'}`)
     } else {
       const { changed, size, strip } = await compareShots(
         browser,
         before,
-        fs.readFileSync(file),
+        after,
       )
-      if (strip) {
+      // an unchanged figure keeps its file, so anti-aliasing noise leaves
+      // no diff to commit
+      if (changed === 0) {
+        console.log(`kept ${file}, unchanged`)
+      } else {
+        fs.writeFileSync(file, after)
         fs.mkdirSync(values.compare, { recursive: true })
         fs.writeFileSync(
           path.join(values.compare, `${name}.png`),
           Buffer.from(strip, 'base64'),
         )
+        console.log(
+          `wrote ${file}, ${changed} px changed${size ? `, ${size}` : ''}`,
+        )
       }
-      console.log(
-        `wrote ${file}, ${changed === 0 ? 'unchanged' : `${changed} px changed${size ? `, ${size}` : ''}`}`,
-      )
     }
   }
 } finally {
