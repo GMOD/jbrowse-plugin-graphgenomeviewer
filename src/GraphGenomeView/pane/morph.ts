@@ -1,14 +1,15 @@
+import { strandSides } from '@jbrowse/bandage-core/util/geometry'
+
 import type { Graph, NodeSegment } from '@jbrowse/bandage-core/types'
+import type { EdgeSides } from '@jbrowse/bandage-core/util/geometry'
 
 type Positions = Record<string, NodeSegment[]>
-type Strand = '+' | '-' | undefined
 
 // a link as one of its nodes sees it: the node at its other end, and which
 // end of that node it attaches to
 interface Attachment {
   id: string
-  strand: Strand
-  leaving: boolean
+  side: EdgeSides['from']
 }
 
 export interface PaneTransform {
@@ -60,15 +61,14 @@ function resample(line: NodeSegment[], count: number): NodeSegment[] {
   return out
 }
 
-// Sweeps of the relaxation that places nodes new to a cut; a chain of n new
-// nodes bridging two shared ones converges in about n² of them
+// The relaxation that places nodes new to a cut stops once no node moves a
+// tenth of a pixel, or at the sweep cap. Over-relaxed, a 3,000-node chain
+// shared every 30th node settles in 44 sweeps (~20 ms), where plain
+// Gauss-Seidel had not settled at 400; with only its two ends shared it runs
+// to the cap in ~50 ms.
 const RELAX_SWEEPS = 400
-
-// the point of `line` a link attaches to: it leaves the end of `from` and
-// arrives at the start of `to`, each as its strand reads the node
-function attachPoint(line: NodeSegment[], strand: Strand, leaving: boolean) {
-  return leaving === (strand !== '-') ? line.at(-1)! : line[0]!
-}
+const RELAX_OMEGA = 1.8
+const RELAX_TOLERANCE_PX = 0.1
 
 // Where each node of `next` starts a morph from the drawing `prev` left on
 // screen. A node both share starts where it was drawn, carried through the
@@ -116,16 +116,19 @@ export function morphStarts(
       neighbours.set(id, [other])
     }
   }
-  for (const { from, to, fromStrand, toStrand } of edges) {
+  for (const edge of edges) {
+    const { from, to } = edge
     if (from !== to && next[from]?.length && next[to]?.length) {
-      link(from, { id: to, strand: toStrand, leaving: false })
-      link(to, { id: from, strand: fromStrand, leaving: true })
+      const sides = strandSides(edge)
+      link(from, { id: to, side: sides.to })
+      link(to, { id: from, side: sides.from })
     }
   }
 
   const point = new Map<string, NodeSegment>()
   const attachedAt = (n: Attachment) =>
-    point.get(n.id) ?? attachPoint(starts[n.id]!, n.strand, n.leaving)
+    point.get(n.id) ??
+    (n.side === 'start' ? starts[n.id]![0]! : starts[n.id]!.at(-1)!)
   const queue = Object.keys(starts)
   const placed: string[] = []
   for (const id of queue) {
@@ -139,32 +142,52 @@ export function morphStarts(
       placed.push(n.id)
     }
   }
+  // the sweep reads arrays: what the shared neighbours pull with is summed
+  // once, and each placed node keeps the placed ones it links to by index
+  const index = new Map(placed.map((id, i) => [id, i]))
+  const px = new Float64Array(placed.map(id => point.get(id)!.x))
+  const py = new Float64Array(placed.map(id => point.get(id)!.y))
+  const pullX = new Float64Array(placed.length)
+  const pullY = new Float64Array(placed.length)
+  const links = placed.map((id, i) =>
+    neighbours.get(id)!.flatMap(n => {
+      const j = index.get(n.id)
+      if (j === undefined) {
+        const p = attachedAt(n)
+        pullX[i]! += p.x
+        pullY[i]! += p.y
+        return []
+      }
+      return [j]
+    }),
+  )
+  const degree = placed.map(id => neighbours.get(id)!.length)
   for (let sweep = 0; sweep < RELAX_SWEEPS; sweep++) {
     let moved = 0
-    for (const id of placed) {
-      const list = neighbours.get(id)!
-      let x = 0
-      let y = 0
-      for (const n of list) {
-        const p = attachedAt(n)
-        x += p.x
-        y += p.y
+    for (let i = 0; i < placed.length; i++) {
+      let x = pullX[i]!
+      let y = pullY[i]!
+      for (const j of links[i]!) {
+        x += px[j]!
+        y += py[j]!
       }
-      const p = point.get(id)!
-      x /= list.length
-      y /= list.length
-      moved = Math.max(moved, Math.abs(x - p.x) + Math.abs(y - p.y))
-      p.x = x
-      p.y = y
+      const dx = RELAX_OMEGA * (x / degree[i]! - px[i]!)
+      const dy = RELAX_OMEGA * (y / degree[i]! - py[i]!)
+      moved = Math.max(
+        moved,
+        Math.abs(dx * nextTransform.scaleX) +
+          Math.abs(dy * nextTransform.scaleY),
+      )
+      px[i]! += dx
+      py[i]! += dy
     }
-    if (moved < 1e-9) {
+    if (moved < RELAX_TOLERANCE_PX) {
       break
     }
   }
-  for (const id of placed) {
-    const p = point.get(id)!
-    starts[id] = next[id]!.map(() => ({ ...p }))
-  }
+  placed.forEach((id, i) => {
+    starts[id] = next[id]!.map(() => ({ x: px[i]!, y: py[i]! }))
+  })
   for (const [id, line] of Object.entries(next)) {
     starts[id] ??= line.map(p => ({ ...p }))
   }
@@ -186,9 +209,10 @@ function nearest(line: NodeSegment[], p: NodeSegment) {
 
 // Where each deletion route starts: its end shape moved as its two nodes
 // move, each point by the blend of the displacements at the node points its
-// ends attach to. Routes are keyed `from>to`.
+// ends attach to. Routes are keyed by their link's index into `edges`.
 export function routeStarts(
-  routes: Positions,
+  routes: Record<number, NodeSegment[]>,
+  edges: Graph['edges'],
   nodeStarts: Positions,
   nodeEnds: Positions,
 ): Positions {
@@ -203,9 +227,9 @@ export function routeStarts(
   }
   return Object.fromEntries(
     Object.entries(routes).map(([key, line]) => {
-      const [from = '', to = ''] = key.split('>')
-      const d0 = shift(from, line[0]!)
-      const d1 = shift(to, line.at(-1)!)
+      const edge = edges[Number(key)]
+      const d0 = shift(edge?.from ?? '', line[0]!)
+      const d1 = shift(edge?.to ?? '', line.at(-1)!)
       return [
         key,
         line.map((p, k) => {

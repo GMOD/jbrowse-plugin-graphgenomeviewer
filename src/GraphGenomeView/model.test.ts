@@ -4338,3 +4338,111 @@ describe('a walk-file cut', () => {
     expect(model.graph!.paths).toEqual(loadGraph(WALK_TABLES, 'whole').paths)
   })
 })
+
+describe('a morph cut short', () => {
+  // a bubble, so no run merges and the layout sees every node
+  const BUBBLE =
+    'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGG\nS\t3\tCC\nS\t4\tTTTT\nL\t1\t+\t2\t+\t0M\nL\t1\t+\t3\t+\t0M\nL\t2\t+\t4\t+\t0M\nL\t3\t+\t4\t+\t0M\n'
+  let frames: [number, () => void][] = []
+  let nextFrame = 1
+  let now = 0
+  const runFrames = (ms: number) => {
+    for (let t = 0; t < ms; t += 16) {
+      now += 16
+      const due = frames
+      frames = []
+      due.forEach(([, cb]) => {
+        cb()
+      })
+    }
+  }
+
+  beforeEach(() => {
+    frames = []
+    now = 0
+    vi.stubGlobal('requestAnimationFrame', (cb: () => void) => {
+      frames.push([nextFrame, cb])
+      return nextFrame++
+    })
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      frames = frames.filter(([i]) => i !== id)
+    })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    // the first layout in a row, the second in a column, so a morph between
+    // them moves every node
+    let calls = 0
+    mockRpcCall.mockReset()
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, method: string, args: { graph: Graph }) => {
+        if (method !== 'GraphComputeLayout') {
+          return Promise.reject(new Error(`Unexpected RPC: ${method}`))
+        }
+        const column = calls++ > 0
+        const nodePositions = Object.fromEntries(
+          args.graph.nodes.map(({ id }, i) => [
+            id,
+            column
+              ? [
+                  { x: 1000, y: i * 40 },
+                  { x: 1000, y: i * 40 + 20 },
+                ]
+              : [
+                  { x: i * 10, y: 0 },
+                  { x: i * 10 + 5, y: 0 },
+                ],
+          ]),
+        )
+        return Promise.resolve({ result: { nodePositions }, duration: 5 })
+      },
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  test('leaves the cached layout it was blending at its ends', async () => {
+    const model = createModel()
+    await model.loadGFA(BUBBLE, 'g')
+    const a = model.layoutResult!
+    const aEnds = structuredClone(a.nodePositions)
+    await model.toggleDeletionEdges()
+    const b = model.layoutResult!
+    runFrames(1000)
+    const bEnds = structuredClone(b.nodePositions)
+    await model.toggleDeletionEdges()
+    runFrames(1000)
+    await model.toggleDeletionEdges()
+    expect(model.layoutResult).toBe(b)
+    runFrames(100)
+    await model.toggleDeletionEdges()
+    expect(model.layoutResult).toBe(a)
+    runFrames(1000)
+    expect(a.nodePositions).toEqual(aEnds)
+    await model.toggleDeletionEdges()
+    expect(model.layoutResult).toBe(b)
+    runFrames(1000)
+    expect(b.nodePositions).toEqual(bEnds)
+  })
+
+  test('runs on when the cache hands back the layout on screen', async () => {
+    const model = createModel()
+    await model.loadGFA(BUBBLE, 'g')
+    await model.toggleDeletionEdges()
+    const b = model.layoutResult!
+    runFrames(1000)
+    const bEnds = structuredClone(b.nodePositions)
+    await model.toggleDeletionEdges()
+    runFrames(1000)
+    await model.toggleDeletionEdges()
+    runFrames(100)
+    // what the node-limit select does
+    model.setMaxGraphNodes(model.maxGraphNodes)
+    await model.recomputeLayout()
+    expect(model.layoutResult).toBe(b)
+    runFrames(1000)
+    expect(b.nodePositions).toEqual(bEnds)
+  })
+})

@@ -586,16 +586,26 @@ export const withSettingActions = withFitViews
       // moving rather than a jump. Positions move in place as a drag moves
       // them, a frame at a time; anything new grows out of its neighbours.
       morphFrom(previous: LayoutResult | undefined, before: PaneTransform) {
-        // a morph under way left `previous` where it is on screen, which is
-        // where this one starts
-        stopMorph()
         const next = self.layoutResult
+        // the layout cache handing back the drawing on screen leaves its
+        // morph running
+        if (previous === next) {
+          return
+        }
+        // The cache keeps the layouts a morph blends in place, so one cut
+        // short is still finished, and this one starts from a copy of where
+        // it had got to on screen
+        const shown =
+          morph && previous
+            ? structuredClone(previous.nodePositions)
+            : previous?.nodePositions
+        finishMorph()
         const graph = self.graph
         if (
           !previous ||
+          !shown ||
           !next ||
           !graph ||
-          previous === next ||
           previous.referenceAxis ||
           next.referenceAxis ||
           previous.pixelRows ||
@@ -619,15 +629,10 @@ export const withSettingActions = withFitViews
           translateX: self.translateX,
           translateY: self.translateY,
         }
-        const routes = Object.fromEntries(
-          Object.entries(next.deletionRoutes ?? {}).flatMap(([i, line]) => {
-            const edge = graph.edges[Number(i)]
-            return edge ? [[`${edge.from}>${edge.to}`, line]] : []
-          }),
-        )
+        const routes = next.deletionRoutes ?? {}
         const ends = structuredClone({ nodes: next.nodePositions, routes })
         const nodeStarts = morphStarts(
-          previous.nodePositions,
+          shown,
           before,
           next.nodePositions,
           after,
@@ -635,7 +640,7 @@ export const withSettingActions = withFitViews
         )
         const starts = {
           nodes: nodeStarts,
-          routes: routeStarts(routes, nodeStarts, ends.nodes),
+          routes: routeStarts(routes, graph.edges, nodeStarts, ends.nodes),
         }
         const blend = (t: number) => {
           blendInto(next.nodePositions, starts.nodes, ends.nodes, t)

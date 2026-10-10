@@ -125,9 +125,32 @@ test('a new node bridging two shared ones starts between where its links attach'
     ],
   )
   // the chain spreads evenly along a's end at 10 to d's at 90
-  expect(starts.b![0]!.x).toBeCloseTo(110 / 3)
-  expect(starts.c![0]!.x).toBeCloseTo(190 / 3)
+  expect(starts.b![0]!.x).toBeCloseTo(110 / 3, 0)
+  expect(starts.c![0]!.x).toBeCloseTo(190 / 3, 0)
   expect(starts.b![1]).toEqual(starts.b![0])
+})
+
+test('a link attaches to the end of a node as the node id reads it', () => {
+  const starts = morphStarts(
+    {
+      '5-': [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+    },
+    identity,
+    {
+      '5-': [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      '6+': [{ x: 120, y: 0 }],
+    },
+    identity,
+    // leaves 5- read on its own strand, so from the end drawn at x 100
+    [{ from: '5-', to: '6+', fromStrand: '-', toStrand: '+' }],
+  )
+  expect(starts['6+']).toEqual([{ x: 100, y: 0 }])
 })
 
 test('the last frame writes the end positions exactly', () => {
@@ -140,16 +163,17 @@ test('the last frame writes the end positions exactly', () => {
 test('a deletion route moves with the nodes its ends attach to', () => {
   const starts = routeStarts(
     {
-      'a>b': [
+      0: [
         { x: 0, y: 0 },
         { x: 5, y: -5 },
         { x: 10, y: 0 },
       ],
     },
+    [{ from: 'a', to: 'b' }],
     { a: [{ x: -10, y: 0 }], b: [{ x: 30, y: 0 }] },
     { a: [{ x: 0, y: 0 }], b: [{ x: 10, y: 0 }] },
   )
-  expect(starts['a>b']).toEqual([
+  expect(starts[0]).toEqual([
     { x: -10, y: 0 },
     { x: 10, y: -5 },
     { x: 30, y: 0 },
