@@ -19,6 +19,7 @@ import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
+import { MIN_TITLE_GAP_PX, PANEL_TITLE_FONT } from '../tubeMapPanels'
 
 import type { GraphPaneModel } from '../model'
 
@@ -78,9 +79,6 @@ export function paintTubeMap(
   }
 }
 
-const TITLE_FONT = '12px sans-serif'
-const MIN_TITLE_GAP_PX = 16
-
 // Each panel of a split tube map under a rule and its title, which the canvas
 // draws so a figure's SVG carries them
 function paintPanels(
@@ -111,9 +109,8 @@ function paintPanels(
     ctx.moveTo(0, Math.round(p.titleTop) + 0.5)
     ctx.lineTo(width, Math.round(p.titleTop) + 0.5)
     ctx.stroke()
-    // a stack squeezed into a short track keeps its rules, not its titles
     if (p.top - p.titleTop >= MIN_TITLE_GAP_PX) {
-      ctx.font = TITLE_FONT
+      ctx.font = PANEL_TITLE_FONT
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
       ctx.fillStyle = `rgba(${ink},0.85)`

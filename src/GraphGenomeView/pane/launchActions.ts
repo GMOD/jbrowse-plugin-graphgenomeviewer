@@ -34,6 +34,7 @@ import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 import { TUBE_MAP_PANELS, tubeMapPanelGroups } from '../tubeMapPanels'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
+import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { MenuItem } from '@jbrowse/core/ui'
 
@@ -164,6 +165,39 @@ export const withLaunchActions = withRenderingActions
         })),
       ]
     },
+    // A tube map's panels: none, a sample's or a walk's each, or a group of
+    // samples' each by a column of the source track's sample table
+    tubeMapPanelMenuItems(): MenuItem[] {
+      const { graph, walkRowSampleTable: table } = self
+      const { field } = self.facetSetting
+      const column = field === '' ? self.walkRowGroupBy?.field : undefined
+      const splits = (split: TubeMapPanelSplit) =>
+        !!graph && tubeMapPanelGroups(graph, split).length > 1
+      return [
+        ...TUBE_MAP_PANELS.map(item => ({
+          type: 'radio' as const,
+          label: item.label,
+          checked: item.field === field && (field !== '' || !column),
+          disabled: item.field !== '' && !splits({ by: item.field }),
+          onClick: () => {
+            self.setFacet(item.field)
+            if (item.field === '') {
+              self.setWalkRowGroupBy(undefined)
+            }
+          },
+        })),
+        ...self.walkRowGroupFields.map(c => ({
+          type: 'radio' as const,
+          label: `By ${c}`,
+          checked: column === c,
+          disabled: !table || !splits({ by: 'column', field: c, table }),
+          onClick: () => {
+            self.setFacet('')
+            self.setWalkRowGroupBy({ field: c })
+          },
+        })),
+      ]
+    },
     // `repeat` false where a toolbar already picks the repeat
     layoutOptionMenuItems({ repeat = true } = {}): MenuItem[] {
       return [
@@ -185,18 +219,7 @@ export const withLaunchActions = withRenderingActions
               },
               {
                 label: 'Panels',
-                subMenu: TUBE_MAP_PANELS.map(({ field, label }) => ({
-                  type: 'radio' as const,
-                  label,
-                  checked: self.facetSetting.field === field,
-                  disabled:
-                    field !== '' &&
-                    (!self.graph ||
-                      tubeMapPanelGroups(self.graph, field).length < 2),
-                  onClick: () => {
-                    self.setFacet(field)
-                  },
-                })),
+                subMenu: this.tubeMapPanelMenuItems(),
               },
             ]
           : []),

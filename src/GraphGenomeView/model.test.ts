@@ -3411,6 +3411,12 @@ describe('walk rows', () => {
     expect(model.hoveredTubeText?.label).toBe(
       model.walkLabel(a!.panel.result.tubeMap.graph.paths![2]!.name),
     )
+    // B's one haplotype carries segment 2, and one of A's two
+    model.setHoveredNode('2+')
+    expect(model.tubeMapPanelHover?.map(h => h && [h.here, h.of])).toEqual([
+      [1, 1],
+      [1, 2],
+    ])
 
     model.setFacet('')
     await model.recomputeLayout()

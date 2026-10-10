@@ -236,6 +236,24 @@ const gstm1Samples = trackView(GSTM1_LOC, {
   height: 900,
 })
 
+// the first six samples of each superpopulation in the demo's sample table
+const POPULATION_SAMPLES = [
+  ...['HG02257', 'HG02486', 'HG02615', 'HG03139', 'HG03209', 'NA18879'],
+  ...['HG01074', 'HG01081', 'HG01175', 'HG01243', 'HG01361', 'HG01433'],
+  ...['HG00408', 'HG00423', 'HG02165', 'NA18943', 'NA18945', 'NA19087'],
+  ...['HG00097', 'HG00320', 'HG00323', 'HG01530', 'NA20503', 'NA20752'],
+  ...['HG02602', 'HG02698', 'HG03704', 'HG03834', 'HG03942', 'HG04160'],
+]
+
+const gstm1Populations = trackView(GSTM1_LOC, {
+  trackId: GBZ,
+  layoutMode: 'tubemapref',
+  subgraphHaplotypes: POPULATION_SAMPLES,
+  tubeMapFold: 1000,
+  facet: 'superpopulation',
+  height: 1250,
+})
+
 // Points at the box `sample`'s panel draws over `bp` of the linear view, as a
 // reader would at a gene above it
 function hoverPanelBox(sample, bp) {
@@ -246,7 +264,9 @@ function hoverPanelBox(sample, bp) {
         const display = view.tracks
           .map(t => t.displays[0])
           .find(d => d.type === 'LinearGraphDisplay')
-        const panel = display.tubeMapPanelViews.find(p => p.label === name)
+        const panel = display.tubeMapPanelViews.find(p =>
+          p.label.startsWith(name),
+        )
         const r = document
           .querySelector(
             '[data-testid="linear-graph-display"] [data-testid="graph-genome-canvas"]',
@@ -401,6 +421,14 @@ const FIGURES = {
   tube_map_gstm1_samples_hover: {
     session: gstm1Samples,
     act: hoverPanelBox('HG01960', 109_690_800),
+  },
+  // a panel per superpopulation, six samples each, by the track's sample table
+  tube_map_gstm1_populations: gstm1Populations,
+  // GSTM1's box hovered in AFR's panel: each title counts its haplotypes
+  // through it
+  tube_map_gstm1_populations_hover: {
+    session: gstm1Populations,
+    act: hoverPanelBox('AFR', 109_690_800),
   },
   tube_map_micb_track: trackView(
     MICB_LOC,

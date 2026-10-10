@@ -86,12 +86,14 @@ export const withRenderingActions = withLoadActions
             },
           ),
         )
-        // Walk rows read the source track's samples TSV, for Group by...
+        // Walk rows and tube map panels read the source track's samples
+        // TSV, to group by its columns
         addDisposer(
           self,
           reaction(
             () =>
-              self.chosenLayoutMode === 'walkrows'
+              self.chosenLayoutMode === 'walkrows' ||
+              TUBE_MAP_MODES.has(self.chosenLayoutMode)
                 ? JSON.stringify(self.walkRowSamplesTsv ?? null)
                 : undefined,
             key => {
@@ -339,7 +341,11 @@ export const withRenderingActions = withLoadActions
         reaction(
           () =>
             TUBE_MAP_MODES.has(self.chosenLayoutMode)
-              ? JSON.stringify(self.facetSetting)
+              ? JSON.stringify({
+                  facet: self.facetSetting,
+                  groupBy: self.walkRowGroupBy,
+                  table: self.walkRowGroupBy && self.walkRowSampleTable?.length,
+                })
               : undefined,
           (facet, was) => {
             if (facet !== undefined && was !== undefined && self.graph) {

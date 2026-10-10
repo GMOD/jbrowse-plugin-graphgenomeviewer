@@ -5,8 +5,10 @@ import { anchorGraph } from '@jbrowse/bandage-core/pathAnchoring'
 
 import {
   PANEL_GAP,
+  boxOf,
   graphOfPaths,
   tubeMapPanelGroups,
+  walksThrough,
   withTubeMapPanels,
 } from './tubeMapPanels'
 
@@ -33,18 +35,32 @@ function graph() {
 
 test('a panel per sample holds its haplotypes, per walk each walk alone', () => {
   const g = graph()
-  expect(tubeMapPanelGroups(g, 'sample')).toEqual([
+  expect(tubeMapPanelGroups(g, { by: 'sample' })).toEqual([
     { key: 'A', paths: ['A#1#c', 'A#2#c'] },
     { key: 'B', paths: ['B#1#c'] },
   ])
-  expect(tubeMapPanelGroups(g, 'walk').map(p => p.key)).toEqual([
+  expect(tubeMapPanelGroups(g, { by: 'walk' }).map(p => p.key)).toEqual([
     'A#1#c',
     'A#2#c',
     'B#1#c',
   ])
-  expect(tubeMapPanelGroups(g, 'sample', ['B']).map(p => p.key)).toEqual([
-    'B',
-    'A',
+  expect(
+    tubeMapPanelGroups(g, { by: 'sample', domain: ['B'] }).map(p => p.key),
+  ).toEqual(['B', 'A'])
+})
+
+// a haplotype's own row wins over its sample's; a sample in no row goes last
+test('a column groups samples by their value, named with how many', () => {
+  const table = [
+    { name: 'A', pop: 'EUR' },
+    { name: 'A#2', pop: 'AFR' },
+  ]
+  expect(
+    tubeMapPanelGroups(graph(), { by: 'column', field: 'pop', table }),
+  ).toEqual([
+    { key: 'AFR', paths: ['A#2#c'], label: 'AFR · 1 sample' },
+    { key: 'EUR', paths: ['A#1#c'], label: 'EUR · 1 sample' },
+    { key: '', paths: ['B#1#c'], label: 'pop: none · 1 sample' },
   ])
 })
 
@@ -61,7 +77,7 @@ test("a panel's graph is the reference and its walks, and what they visit", () =
 test('panels stack down the pane, a title gap above each', () => {
   const g = graph()
   const whole = tubeMapReferenceLayout(g)!
-  const laidOut = tubeMapPanelGroups(g, 'sample').map(group => ({
+  const laidOut = tubeMapPanelGroups(g, { by: 'sample' }).map(group => ({
     ...group,
     result: tubeMapReferenceLayout(graphOfPaths(g, group.paths)),
   }))
@@ -88,4 +104,18 @@ test('one group draws the whole map, unsplit', () => {
     },
   ])
   expect(split).toBe(whole)
+})
+
+// A's first haplotype carries the insertion its second does not; B never
+// visits it
+test("a hovered node's box in each panel, and how many walks pass it", () => {
+  const g = graph()
+  const a = tubeMapReferenceLayout(graphOfPaths(g, ['A#1#c', 'A#2#c']))!
+  expect(boxOf(a.tubeMap!, '2+')).toBe('2+')
+  expect(walksThrough(a.tubeMap!.graph, '2+')).toEqual({ here: 1, of: 2 })
+  const b = tubeMapReferenceLayout(graphOfPaths(g, ['B#1#c']))!
+  expect(boxOf(b.tubeMap!, '2+')).toBeUndefined()
+  const box = boxOf(b.tubeMap!, '3+')!
+  expect(box).toBeDefined()
+  expect(walksThrough(b.tubeMap!.graph, box)).toEqual({ here: 0, of: 1 })
 })

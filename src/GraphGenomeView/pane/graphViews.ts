@@ -71,6 +71,7 @@ import type { GraphLayers } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
+import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { WalkRowGroupBy } from '../walkRowGroups'
 import type {
   ColorScheme,
@@ -766,6 +767,18 @@ export const withGraphViews = paneBase
     // The sample table's columns walk rows can group by
     get walkRowGroupFields() {
       return metadataColumns(self.walkRowSampleTable)
+    },
+    // How a tube map splits into panels: by sample or walk, or by a sample
+    // table column once the table is read
+    get tubeMapPanelSplit(): TubeMapPanelSplit | undefined {
+      const { field, domain } = self.facetSetting
+      const groupBy = self.walkRowGroupBy
+      const table = self.walkRowSampleTable
+      return field !== ''
+        ? { by: field, domain }
+        : groupBy && table && this.walkRowGroupFields.includes(groupBy.field)
+          ? { by: 'column', ...groupBy, table }
+          : undefined
     },
     // The filtered rows in a section per value of the grouped column, or
     // undefined while ungrouped or the table lacks that column

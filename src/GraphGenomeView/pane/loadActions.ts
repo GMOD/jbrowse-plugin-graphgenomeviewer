@@ -114,18 +114,18 @@ export const withLoadActions = withSettingActions.actions(self => {
       const withCoarse = (r: LayoutResult) =>
         coarse && r.tubeMap ? { ...r, tubeMap: { ...r.tubeMap, coarse } } : r
       const whole = withCoarse(local)
-      const { field, domain } = self.facetSetting
+      const split = self.tubeMapPanelSplit
       const laid = coarse?.graph ?? drawn
       const result: PaneLayout =
-        tubeMap && field !== ''
+        tubeMap && split
           ? withTubeMapPanels(
               whole,
-              tubeMapPanelGroups(laid, field, domain).map(({ key, paths }) => {
+              tubeMapPanelGroups(laid, split).map(group => {
                 const panel = layoutModeByValue(self.chosenLayoutMode).run(
-                  graphOfPaths(laid, paths),
+                  graphOfPaths(laid, group.paths),
                   self.graphRegion,
                 )
-                return { key, paths, result: panel && withCoarse(panel) }
+                return { ...group, result: panel && withCoarse(panel) }
               }),
             )
           : whole

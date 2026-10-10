@@ -62,7 +62,12 @@ import { getSession } from '@jbrowse/core/util'
 import { computed, untracked } from 'mobx'
 
 import { hostFrame } from '../host'
-import { PANEL_GAP } from '../tubeMapPanels'
+import {
+  PANEL_GAP,
+  boxOf,
+  paintPanelHover,
+  walksThrough,
+} from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
 import {
@@ -808,7 +813,9 @@ export const withFitViews = withHostViews
         const { graph, coarse } = drawing
         return {
           panel,
-          label: field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key,
+          label:
+            panel.label ??
+            (field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key),
           picture: tubeMapPicture(drawing),
           tubeColors: (graph.paths ?? []).map(p => colorOf.get(p.name) ?? ''),
           nodeColors: self.tubeMapNodeColors
@@ -824,6 +831,21 @@ export const withFitViews = withHostViews
     },
   }))
   .views(self => ({
+    // For the hovered box, the box each panel draws it in and how many of
+    // that panel's haplotypes pass through it: a frequency per group
+    get tubeMapPanelHover() {
+      const id = self.hoveredNode
+      const pictures = self.tubeMapPanelPictures
+      if (id === null || !pictures) {
+        return undefined
+      }
+      const node = self.hoverDrawing?.members.get(id)?.[0] ?? id
+      return pictures.map(({ panel }) => {
+        const drawing = panel.result.tubeMap
+        const box = boxOf(drawing, node)
+        return box ? { box, ...walksThrough(drawing.graph, box) } : undefined
+      })
+    },
     // Each panel through the pane's transform at its place down the stack.
     // On the reference axis the stack squeezes into the pane as one map does.
     get tubeMapPanelViews() {
@@ -883,10 +905,15 @@ export const withFitViews = withHostViews
         ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        // a box in every panel that draws it, so a variant reads across them
-        for (const v of self.tubeMapPanelViews ?? [{ picture, frame }]) {
-          drawTubeMapHighlight(ctx, v.picture, {
-            ...v.frame,
+        const panels = self.tubeMapPanelViews
+        if (panels) {
+          paintPanelHover(ctx, panels, self.tubeMapPanelHover, {
+            width: self.paneWidth,
+            lit: node !== null,
+          })
+        } else {
+          drawTubeMapHighlight(ctx, picture, {
+            ...frame,
             width: self.paneWidth,
             highlightNode: node,
           })
