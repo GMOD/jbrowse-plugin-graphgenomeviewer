@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 //
-// Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each
-// and shows the graph track in a linear view, failing if a host error-pages,
-// never registers the view, cannot cut, or cannot draw the track. The tutorials name the plugin by its jbrowse.org url, so a publish is a
+// Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each,
+// shows the graph track in a linear view and reads a gbz-base track into a
+// synteny view, failing if a host error-pages, never registers the view,
+// cannot cut, or cannot draw either. The tutorials name the plugin by its jbrowse.org url, so a publish is a
 // live change to every reader's session, and the failures this catches pass
 // tsc, eslint and the unit tests: an RPC argument a released core cannot post
 // to its worker, a re-export the host no longer serves. They show only when
@@ -35,6 +36,13 @@ const REGION = {
   end: 32_050_000,
 }
 const LOCUS = 'chr6:31,980,001-32,050,000'
+// HG00133's GSTM1 deletion against GRCh38, read from the graph, as the
+// force_gstm1_walk figure draws it
+const SYNTENY_TRACK_ID = 'hprc_v2_1_gbz_lanes'
+const SYNTENY_VIEWS = [
+  { assembly: 'hg38', loc: 'chr1:109,670,000-109,705,000' },
+  { assembly: 'HG00133.1', loc: 'CM090045.1:109,741,100-109,757,750' },
+]
 
 const { values } = parseArgs({
   options: {
@@ -186,6 +194,53 @@ async function probeOne(browser, version) {
         }
       })
     }
+    // A synteny view on the gbz-base track asks for its window at fractional
+    // bp, which gbz-base rejects unrounded: every such view errored from
+    // 6.16.0 to 6.21.0 while the steps above passed. The zoom by 1.37 keeps
+    // the window off whole bp whatever the viewport.
+    if (result.linear?.nodes && result.linear.error === undefined) {
+      const syntenyId = await page.evaluate(
+        async ({ trackId, views }) => {
+          await window.JBrowseRootModel.pluginManager
+            .getViewType('LinearSyntenyView')
+            .loadStateModel?.()
+          return window.JBrowseSession.addView('LinearSyntenyView', {
+            init: { views, tracks: [trackId] },
+          }).id
+        },
+        { trackId: SYNTENY_TRACK_ID, views: SYNTENY_VIEWS },
+      )
+      result.synteny = await page.evaluate(
+        async (id, ms) => {
+          const view = window.JBrowseSession.views.find(v => v.id === id)
+          const deadline = Date.now() + ms
+          const display = () => view.levels[0]?.tracks[0]?.displays[0]
+          const settled = d =>
+            !!d && (!!d.error || (!!d.featureData && !d.statusMessage))
+          const until = async done => {
+            while (!done() && Date.now() < deadline) {
+              await new Promise(r => setTimeout(r, 250))
+            }
+          }
+          await until(() => settled(display()))
+          const before = display()?.featureData
+          if (!display()?.error) {
+            view.views[0].zoomTo(view.views[0].bpPerPx * 1.37)
+            await until(() => {
+              const d = display()
+              return !!d?.error || (settled(d) && d.featureData !== before)
+            })
+          }
+          const d = display()
+          return {
+            features: d?.featureData?.featureIds.length ?? 0,
+            error: d?.error ? String(d.error).slice(0, 300) : undefined,
+          }
+        },
+        syntenyId,
+        timeout,
+      )
+    }
   } catch (e) {
     result.threw = String(e).slice(0, 300)
   }
@@ -221,6 +276,12 @@ function failure(r) {
   if (!r.linear?.nodes) {
     return "the linear view's graph track drew nothing"
   }
+  if (r.synteny?.error !== undefined) {
+    return `the synteny view on the gbz-base track failed: ${r.synteny.error}`
+  }
+  if (!r.synteny?.features) {
+    return 'the synteny view on the gbz-base track read no features'
+  }
   return undefined
 }
 
@@ -242,7 +303,7 @@ for (const version of versions) {
   console.log(
     `${version.padEnd(14)} ${
       bad ??
-      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}`
+      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}, synteny read ${r.synteny.features}`
     }`,
   )
   if (bad) {
@@ -259,5 +320,5 @@ if (broken.length > 0) {
   process.exit(1)
 }
 console.log(
-  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage and drew the track in a linear view.',
+  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage, drew the track in a linear view and read gbz-base synteny.',
 )
