@@ -418,7 +418,7 @@ async function recolorAnnotations(page) {
     for (const view of window.JBrowseSession.views) {
       for (const track of view.tracks ?? []) {
         if (track.configuration.trackId === 'hprc_curated_vntrs') {
-          track.displays[0].setFeatureColor('rgb(110,110,110)')
+          track.displays[0].setColorValue('rgb(110,110,110)')
         }
       }
     }

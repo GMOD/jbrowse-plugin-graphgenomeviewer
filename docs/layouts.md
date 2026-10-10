@@ -194,10 +194,11 @@ to 129 paths, is the halo named "3.0–175 kb repeat array (KIV-2), 129 routes":
 
 A bubble's label opens its nodes on their own, with a button back to the window.
 The popped graph derives its own bubbles, so a superbubble opens level by level.
-Opened in the track, the KIV-2 array keeps its strip, and its reference segments
-sit at their bp under the curated KIV-2 annotation:
+Opened in the track, the KIV-2 array keeps its strip, its reference segments sit
+at their bp under the curated KIV-2 annotation, and each copy-sized loop inside
+it is a bubble to open next:
 
-![The KIV-2 array popped open in the track, its strip under the KIV-2 annotation](../img/force_kiv2_popped.png)
+![The KIV-2 array popped open in the track, its copies marked as bubbles of their own](../img/force_kiv2_popped.png)
 
 ## Haplotype walks
 
