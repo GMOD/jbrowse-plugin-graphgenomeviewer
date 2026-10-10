@@ -1,3 +1,15 @@
+## [6.16.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.15.0...v6.16.0) (2026-10-10)
+
+### Other Changes
+
+- Rejoin parity on the hosted 0.6.0 walk files, amylase's leftovers counted ([da0291d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/da0291dbe808a0003e22a6a8a52cc216cbda49c2))
+- A window edge inside the amylase array has no parity yardstick ([8a42c4f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8a42c4f267577792b1c1b45a489cb809c568096b))
+- Tube map reads the graph its boxes address ([31eb53b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/31eb53b86633ac192f551feb194af6ec17676cfa))
+- Hovering a tube names its haplotype, or its read's MAPQ and strand ([d648a5d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d648a5d3d208fcffed376fa1a7ee22e7a7902f0f))
+- Pass the tube map drawing to referenceBoxes and deviationMarks ([206f413](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/206f413b300d1dd5f726e9915edbfbd8cbc319df))
+- Bump @jbrowse/bandage-core to 9.0.0 ([9555433](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/95554330864580276b01449de6159c7820a56fcd))
+- Walk lanes import gbz-base's alignment subpaths, leaving its database reader out ([b7be33d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b7be33d168a28c8b2e3b724c533e30204512c7f4))
+
 ## [6.15.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.14.0...v6.15.0) (2026-10-09)
 
 ### Other Changes
