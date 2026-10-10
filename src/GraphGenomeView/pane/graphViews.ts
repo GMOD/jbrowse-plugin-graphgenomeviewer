@@ -989,7 +989,7 @@ export const withGraphViews = paneBase
           : colors &&
               paths &&
               drawing.layout.reads.length === 0 &&
-              !pathColorsLegible(paths.length)
+              (!pathColorsLegible(paths.length) || paths.some(p => p.members))
             ? roleTubeColors(paths, self.drawnGraph.referencePath)
             : colors
       const hovered = new Set(self.hoveredRowWalks)
@@ -1055,7 +1055,8 @@ export const withGraphViews = paneBase
       return colouring &&
         paths &&
         pathColorsLegible(paths.length) &&
-        !self.layoutResult?.tubeMapPanels
+        !self.layoutResult?.tubeMapPanels &&
+        !paths.some(p => p.members)
         ? pathLegend(paths, self.tubeMapTubeColors)
         : []
     },

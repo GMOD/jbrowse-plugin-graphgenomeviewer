@@ -31,7 +31,7 @@ import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
 import type { PaneTransform } from './morph'
-import type { HoveredTube } from './paneBase'
+import type { HoveredTube, TubeMapRoutes } from './paneBase'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
@@ -181,6 +181,9 @@ export const withSettingActions = withFitViews
     },
     setTubeMapFold(bp: number) {
       self.tubeMapFold = bp
+    },
+    setTubeMapRoutes(routes: TubeMapRoutes) {
+      self.tubeMapRoutes = routes
     },
     setGeneTrackId(trackId: string) {
       self.geneTrackId = trackId

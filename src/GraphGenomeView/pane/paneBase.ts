@@ -99,6 +99,13 @@ export const VIEWPORT_PANES_BUILT = 1
 export const WALK_GENE_ROWS = 40
 
 // What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
+export type TubeMapRoutes = 'each' | 'bundled'
+
+export const TUBE_MAP_ROUTES: { value: TubeMapRoutes; label: string }[] = [
+  { value: 'each', label: 'A tube per haplotype' },
+  { value: 'bundled', label: 'A tube per route' },
+]
+
 export const EMPTY_BATCH: RenderBatch = {
   nodeStrokes: [],
   nodeStrokeRuns: new Map(),
@@ -260,6 +267,12 @@ export const paneBase = types
       // is laid out, each kept as a tick on its walk's tube (coarsen.ts); 0
       // draws every one
       tubeMapFold: types.optional(types.number, 0),
+      // A tube per haplotype, or a tube per route the haplotypes take, as
+      // wide as how many take it (bundleRoutes)
+      tubeMapRoutes: lenientOptionalEnum<TubeMapRoutes>(
+        ['each', 'bundled'],
+        'each',
+      ),
       // Which track the genes come from; empty picks the assembly's
       // annotation track (pickGeneTrack).
       geneTrackId: types.optional(types.string, ''),

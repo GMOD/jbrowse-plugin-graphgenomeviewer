@@ -18,6 +18,7 @@ import {
   HighlightColorDialog,
   TUBE_MAP_FOLDS,
   TUBE_MAP_MODES,
+  TUBE_MAP_ROUTES,
   WALK_MENU_ITEMS,
 } from './paneBase'
 import { withRenderingActions } from './renderingActions'
@@ -220,6 +221,18 @@ export const withLaunchActions = withRenderingActions
               {
                 label: 'Panels',
                 subMenu: this.tubeMapPanelMenuItems(),
+              },
+              {
+                label: 'Routes',
+                subMenu: TUBE_MAP_ROUTES.map(({ value, label }) => ({
+                  type: 'radio' as const,
+                  label,
+                  checked: self.tubeMapRoutes === value,
+                  onClick: () => {
+                    self.setTubeMapRoutes(value)
+                    void self.recomputeLayout()
+                  },
+                })),
               },
             ]
           : []),

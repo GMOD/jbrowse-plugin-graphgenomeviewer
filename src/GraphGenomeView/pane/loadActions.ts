@@ -16,6 +16,7 @@ import {
 } from '@jbrowse/bandage-core/pathAnchoring'
 import { engineSettingsOf, loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { assemblyWalk } from '@jbrowse/bandage-core/reference'
+import { bundleRoutes } from '@jbrowse/bandage-core/tubeMap/bundle'
 import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import { readConfObject } from '@jbrowse/core/configuration'
 import {
@@ -101,12 +102,15 @@ export const withLoadActions = withSettingActions.actions(self => {
       tubeMap && self.tubeMapFold > 0 && !drawn.reads
         ? coarsenTubeMap(drawn, self.tubeMapFold)
         : undefined
+    const laid = coarse?.graph ?? drawn
+    const bundled = (g: Graph) =>
+      tubeMap && self.tubeMapRoutes === 'bundled' ? bundleRoutes(g) : g
     const runs = self.walkCut?.walkRowRuns
     const local =
       self.chosenLayoutMode === 'walkrows' && runs
         ? walkRowLayoutOf(graph, walkRowsOf(runs), self.graphRegion)
         : layoutModeByValue(self.chosenLayoutMode).run(
-            coarse?.graph ?? drawn,
+            bundled(laid),
             self.graphRegion,
             self.host ? self.layoutResult?.sampleRows : undefined,
           )
@@ -115,14 +119,13 @@ export const withLoadActions = withSettingActions.actions(self => {
         coarse && r.tubeMap ? { ...r, tubeMap: { ...r.tubeMap, coarse } } : r
       const whole = withCoarse(local)
       const split = self.tubeMapPanelSplit
-      const laid = coarse?.graph ?? drawn
       const result: PaneLayout =
         tubeMap && split
           ? withTubeMapPanels(
               whole,
               tubeMapPanelGroups(laid, split).map(group => {
                 const panel = layoutModeByValue(self.chosenLayoutMode).run(
-                  graphOfPaths(laid, group.paths),
+                  bundled(graphOfPaths(laid, group.paths)),
                   self.graphRegion,
                 )
                 return { ...group, result: panel && withCoarse(panel) }

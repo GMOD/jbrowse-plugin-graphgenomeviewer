@@ -20,10 +20,10 @@ import { observer } from 'mobx-react'
 
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import {
-  MIN_TITLE_GAP_PX,
   PANEL_REFERENCE_TUBE,
   PANEL_TITLE_FONT,
   PANEL_TUBE,
+  drawBundleCounts,
 } from '../tubeMapPanels'
 
 // variants folded into a box mark texture under a panel's routes
@@ -66,6 +66,10 @@ export function paintTubeMap(
     nodeColors: model.tubeMapNodeColors,
   }
   drawTubeMap(ctx, picture, tubeFrame)
+  const drawn = model.layoutResult?.tubeMap
+  if (drawn) {
+    drawBundleCounts(ctx, picture, drawn.graph, tubeFrame)
+  }
   drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
   drawTubeMapConnectors(
     ctx,
@@ -110,6 +114,7 @@ function paintPanels(
       nodeColors: p.nodeColors,
     }
     drawTubeMap(ctx, p.picture, tubeFrame)
+    drawBundleCounts(ctx, p.picture, p.panel.result.tubeMap.graph, tubeFrame)
     ctx.globalAlpha = PANEL_TICK_ALPHA
     drawDeviationMarks(ctx, p.deviations, tubeFrame)
     ctx.globalAlpha = 1
@@ -119,13 +124,11 @@ function paintPanels(
     ctx.moveTo(0, Math.round(p.titleTop) + 0.5)
     ctx.lineTo(width, Math.round(p.titleTop) + 0.5)
     ctx.stroke()
-    if (p.top - p.titleTop >= MIN_TITLE_GAP_PX) {
-      ctx.font = PANEL_TITLE_FONT
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'top'
-      ctx.fillStyle = `rgba(${ink},0.85)`
-      ctx.fillText(p.label, 6, p.titleTop + 4)
-    }
+    ctx.font = PANEL_TITLE_FONT
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = `rgba(${ink},0.85)`
+    ctx.fillText(p.label, 6, p.titleTop + 4)
   }
   const last = panels.at(-1)
   const boxes = model.tubeMapPanelRulerBoxes
@@ -276,6 +279,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
 }) {
   const {
     roles,
+    bundled,
     logWidths,
     foldBp,
     forwardReads,
@@ -306,7 +310,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
           <div style={{ ...barSwatchStyle, backgroundColor: PANEL_TUBE }} />
         }
       >
-        haplotype
+        {bundled ? 'a route, as wide as the haplotypes taking it' : 'haplotype'}
       </LegendRow>
     ),
     forwardReads && (

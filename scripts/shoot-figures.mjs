@@ -430,6 +430,25 @@ const FIGURES = {
     session: gstm1Populations,
     act: hoverPanelBox('AFR', 109_690_800),
   },
+  // the 60 haplotypes as a tube per route, each as wide as its count
+  tube_map_gstm1_bundled: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'bundled',
+    height: 600,
+  }),
+  // and a panel per superpopulation, each its own routes
+  tube_map_gstm1_populations_bundled: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'bundled',
+    facet: 'superpopulation',
+    height: 900,
+  }),
   tube_map_micb_track: trackView(
     MICB_LOC,
     {

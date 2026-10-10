@@ -112,6 +112,15 @@ const MAX_SHOWN_BASES = 20
 // a squeezed stack of panels thins no further, as one tube map does
 const MIN_PANEL_Y_SCALE = 0.05
 
+const MAX_LISTED = 6
+
+function listed(names: string[]) {
+  const more = names.length - MAX_LISTED
+  return more > 0
+    ? `${names.slice(0, MAX_LISTED).join(', ')} and ${more} more`
+    : names.join(', ')
+}
+
 function mismatchText(m: TubeMapMismatch) {
   if (m.kind === 'deletion') {
     return `deletion of ${formatBp(m.length)}`
@@ -870,29 +879,34 @@ export const withFitViews = withHostViews
       if (!pictures || !layout) {
         return undefined
       }
-      const stack = layout.extent?.maxY ?? 0
-      const usable = self.canvasHeight - self.fitPadTop - FIT_PADDING
+      // the titles keep their px and the drawings squeeze into the rest
+      const titles = pictures.length * PANEL_GAP
+      const drawings = pictures.reduce((h, p) => h + p.panel.height, 0)
+      const usable = self.canvasHeight - self.fitPadTop - FIT_PADDING - titles
       const yScale =
         self.scaleY *
-        (layout.referenceAxis && stack > 0
-          ? Math.max(MIN_PANEL_Y_SCALE, Math.min(1, usable / stack))
+        (layout.referenceAxis && drawings > 0
+          ? Math.max(MIN_PANEL_Y_SCALE, Math.min(1, usable / drawings))
           : 1)
+      let y = self.translateY
       return pictures.map(p => {
         const { panel } = p
         const minY = panel.result.extent?.minY ?? 0
-        const top = panel.top * yScale + self.translateY
+        const titleTop = y
+        const top = titleTop + PANEL_GAP
+        y = top + panel.height * yScale
         return {
           ...p,
           frame: tubeMapFrame(panel.result.tubeMap, {
             scaleX: self.scaleX,
             translateX: self.translateX,
             scaleY: yScale,
-            translateY: self.translateY + (panel.top - minY) * yScale,
+            translateY: top - minY * yScale,
             usableHeight: Infinity,
           }),
-          titleTop: top - PANEL_GAP * yScale,
+          titleTop,
           top,
-          bottom: top + panel.height * yScale,
+          bottom: y,
         }
       })
     },
@@ -963,12 +977,13 @@ export const withFitViews = withHostViews
         const paths = self.drawnGraph?.paths ?? []
         return {
           // tubes coloured reference and haplotype rather than per walk
+          bundled: paths.some(p => p.members),
           roles:
             split ||
             (layout?.tubeMap !== undefined &&
               reads.length === 0 &&
               !self.tubeMapNodeColors &&
-              !pathColorsLegible(paths.length)),
+              (!pathColorsLegible(paths.length) || paths.some(p => p.members))),
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
@@ -1047,8 +1062,14 @@ export const withFitViews = withHostViews
         }
       }
       const path = tube ? self.hoverGraph?.paths?.[tube.track] : undefined
-      return path
-        ? { label: self.walkLabel(path.name), readout: 'haplotype' }
-        : undefined
+      const members = path?.members
+      return members
+        ? {
+            label: `${members.length} haplotypes`,
+            readout: `one route: ${listed(members.map(m => self.walkLabel(m)))}`,
+          }
+        : path
+          ? { label: self.walkLabel(path.name), readout: 'haplotype' }
+          : undefined
     },
   }))

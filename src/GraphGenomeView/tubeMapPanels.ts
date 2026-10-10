@@ -15,14 +15,12 @@ import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 // On the reference axis every panel's columns sit at their bp, so a box lines
 // up across the panels and with the linear view's tracks.
 
-// Tube px between panels, which a panel's title takes
+// px above each panel, which its title takes
 export const PANEL_GAP = 28
 export const PANEL_REFERENCE_TUBE = '#4d4d4d'
 export const PANEL_TUBE = '#5b8cc4'
 export const PANEL_TUBES = [PANEL_TUBE, '#82abd9']
 export const PANEL_TITLE_FONT = '12px sans-serif'
-// a stack squeezed into a short track keeps its rules, not its titles
-export const MIN_TITLE_GAP_PX = 16
 
 export const TUBE_MAP_PANELS: { field: '' | FacetBy; label: string }[] = [
   { field: '', label: 'None' },
@@ -147,20 +145,65 @@ export function boxOf(drawing: TubeMapDrawing, node: string) {
   return undefined
 }
 
-// How many of a panel's walks pass through `box`, of how many it holds
+// How many of a panel's walks pass through `box`, of how many it holds, a
+// bundle counting each walk it stands for
 export function walksThrough(graph: Graph, box: string) {
   const all = new Set<string>()
   const here = new Set<string>()
   for (const p of graph.paths ?? []) {
     const walk = walkOf(p.name)
     if (walk !== graph.referencePath) {
-      all.add(walk)
-      if (p.nodeIds.includes(box)) {
-        here.add(walk)
+      for (const member of p.members ?? [walk]) {
+        all.add(member)
+        if (p.nodeIds.includes(box)) {
+          here.add(member)
+        }
       }
     }
   }
   return { here: here.size, of: all.size }
+}
+
+const COUNT_FONT = 'bold 11px sans-serif'
+const MIN_COUNT_RUN_PX = 80
+const MIN_COUNT_TUBE_PX = 9
+
+// Each bundle's count on its tube, along every straight run wide and tall
+// enough to hold it, so the count stands where its route parts from others
+export function drawBundleCounts(
+  ctx: CanvasRenderingContext2D,
+  picture: TubeMapPicture,
+  graph: Graph,
+  { x, y, width }: TubeMapTransform & { width: number },
+) {
+  const paths = graph.paths ?? []
+  if (!paths.some(p => p.members)) {
+    return
+  }
+  const counts = new Map<number, number>()
+  paths.forEach((p, i) => {
+    if (walkOf(p.name) !== graph.referencePath) {
+      counts.set(i, p.members?.length ?? 1)
+    }
+  })
+  ctx.font = COUNT_FONT
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#0b1f3a'
+  for (const r of picture.layers[0]?.rects ?? []) {
+    const n = counts.get(r.id)
+    const left = Math.max(0, x(r.x0))
+    const right = Math.min(width, x(r.x1))
+    const top = y(r.y0)
+    const bottom = y(r.y1)
+    if (
+      n !== undefined &&
+      right - left >= MIN_COUNT_RUN_PX &&
+      bottom - top >= MIN_COUNT_TUBE_PX
+    ) {
+      ctx.fillText(`×${n}`, left + 4, (top + bottom) / 2)
+    }
+  }
 }
 
 interface PanelOnScreen {
@@ -192,17 +235,15 @@ export function paintPanelHover(
         highlightNode: hit.box,
       })
     }
-    if (p.top - p.titleTop >= MIN_TITLE_GAP_PX) {
-      ctx.font = PANEL_TITLE_FONT
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'top'
-      ctx.fillStyle = '#c00000'
-      ctx.fillText(
-        ` · ${hit.here} of ${plural(hit.of, 'haplotype')} here`,
-        6 + ctx.measureText(p.label).width,
-        p.titleTop + 4,
-      )
-    }
+    ctx.font = PANEL_TITLE_FONT
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = '#c00000'
+    ctx.fillText(
+      ` · ${hit.here} of ${plural(hit.of, 'haplotype')} here`,
+      6 + ctx.measureText(p.label).width,
+      p.titleTop + 4,
+    )
   })
 }
 

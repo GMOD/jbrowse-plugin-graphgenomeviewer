@@ -354,6 +354,7 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
   }
   const {
     roles,
+    bundled,
     logWidths,
     foldBp,
     forwardReads,
@@ -385,7 +386,11 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
   if (roles) {
     rows.push(
       flatRow('ref', PANEL_REFERENCE_TUBE, 'reference'),
-      flatRow('hap', PANEL_TUBE, 'haplotype'),
+      flatRow(
+        'hap',
+        PANEL_TUBE,
+        bundled ? 'a route, as wide as the haplotypes taking it' : 'haplotype',
+      ),
     )
   }
   if (forwardReads) {
