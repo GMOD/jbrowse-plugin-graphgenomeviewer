@@ -235,6 +235,13 @@ function zoomInNotice(error: unknown, what: string) {
   return error
 }
 
+// gbz-base reads whole bp; a view asks at fractional ones
+const wholeBp = (region: Region) => ({
+  ...region,
+  start: Math.floor(region.start),
+  end: Math.ceil(region.end),
+})
+
 const isSet = (location: FileLocation) =>
   !('uri' in location) || location.uri !== ''
 
@@ -405,7 +412,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const { db, anchor, referenceSample, unreadableIndex } = await this.graph({
       signal,
     })
-    const { assemblyName, refName, start, end } = region
+    const { assemblyName, refName, start, end } = wholeBp(region)
     if (assemblyName !== anchor) {
       throw new HaplotypeWindowError(assemblyName, anchor)
     }
@@ -611,7 +618,8 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
   }
 
-  getFeatures(region: Region, opts: GbzFeatureOptions = {}) {
+  getFeatures(asked: Region, opts: GbzFeatureOptions = {}) {
+    const region = wholeBp(asked)
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor, unreadableIndex } = await this.graph(opts)
       if (!db.hasHaplotypeIndex) {

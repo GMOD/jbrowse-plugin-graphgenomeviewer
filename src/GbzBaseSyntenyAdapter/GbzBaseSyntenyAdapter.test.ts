@@ -103,6 +103,15 @@ test('the anchor window answers one record per haplotype fragment, PanSN-named a
   expect(fa.some(f => f.get('strand') === 1)).toBe(true)
 })
 
+test('a window at fractional bp, as a synteny view asks, reads the whole bp around it', async () => {
+  const fa = await feats(makeAdapter(), {
+    ...window,
+    start: window.start + 0.3,
+    end: window.end - 0.3,
+  })
+  expect(fa).toHaveLength((await feats(makeAdapter(), window)).length)
+})
+
 test('the other reference sample is a lane too, at its own prefix', async () => {
   const fa = await feats(makeAdapter(), window)
   expect(fa.some(f => mateOf(f).assemblyName === 'CHM13#0')).toBe(true)
