@@ -1,3 +1,13 @@
+## [6.25.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.24.1...v6.25.0) (2026-10-10)
+
+### Other Changes
+
+- Point the fold and index references at bandage-fold and gfa-to-tabix ([6f88713](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/6f8871340c70f3da59fc06c14a99ecae99006b33))
+- The paths and bubbles commands ([a91095b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a91095ba61854cb5bb5586ee741ce3dc0e41d4f9))
+- Point the fold references at gfa-to-tabix fold ([47830ba](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/47830ba396ecfa61a840a05ec1757cd747dd0c6b))
+- Read the graph.json manifest in Add pangenome graph track; coarse.foldBelowBp ([81aea67](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/81aea674bfd5029e384046baafb41f5f23c12143))
+- Gfa-to-tabix build replaces the script ([1539985](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1539985479889ef48001b8f69c8dc8eaa19bd361))
+
 ## [6.24.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.24.0...v6.24.1) (2026-10-10)
 
 ### Other Changes
