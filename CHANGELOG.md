@@ -1,3 +1,12 @@
+## [6.17.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.16.0...v6.17.0) (2026-10-10)
+
+### Other Changes
+
+- Hover paints on a canvas of its own ([36015e9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/36015e9619ec5c7de598c63d9dd973720c3a9c87))
+- Tube map legend keys compare by value ([84bd74a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/84bd74a6b1d32ae06a4fb7b5a00e5aa159e187ec))
+- Bump @jbrowse/bandage-core to 9.1.0 ([70e52a8](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/70e52a853b94103ae3090640ac9c8ac6c9d0ea44))
+- Pops descend: a bubble that is the whole drawing opens into its superbubbles ([bcafa69](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bcafa6918b6d632b19939952acd09bfd1ccc5a79))
+
 ## [6.16.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.15.0...v6.16.0) (2026-10-10)
 
 ### Other Changes
