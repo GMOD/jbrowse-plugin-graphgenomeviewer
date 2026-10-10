@@ -265,7 +265,9 @@ export interface WalkFragment {
  * a run then runs on outward while the next step's node is already in the
  * cut. Without the run-on a haplotype whose alternate allele straddles the
  * edge stopped short of a node other walks had brought into the cut, and that
- * node drew without it. The run-on adds no node, so one pass is enough.
+ * node drew without it. The run-on adds no node, so one pass is enough, but
+ * it reaches through nodes other walks brought in, so with a window edge inside
+ * a collapsed array a row's length depends on which haplotypes are cut.
  */
 export function walkCut(
   runs: WalkRun[],

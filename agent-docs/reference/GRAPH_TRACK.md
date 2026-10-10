@@ -237,7 +237,7 @@ Measured 2026-10-09, every haplotype, rows over the window against gbz-base's
 | C4A chr6:31,982,000-32,003,000           | 308 / 463 | 463 / 463          | 463 / 463                |
 | chr22, 150 windows of 0.6-100 kb, local  |           | 67,797 / 68,256    | 68,256 / 68,256          |
 | amylase cluster chr1:103.52-103.83 Mb    |           | 470 / 470          | 470 / 470                |
-| amylase chr1:103.56-103.66 Mb, inside it |           | 85 / 467           | 371 / 467                |
+| amylase chr1:103.56-103.66 Mb, inside it |           | 85 / 467           | 371 / 467, no yardstick  |
 
 The 0.6.0 column at the four named loci reads the hosted
 `hprc-v2.1-mc-grch38-w6.GRCh38` files, plugin 6.15.0.
@@ -254,13 +254,23 @@ after the read, 17 of the 150 windows (the 15 placed there on purpose), one more
 round of three reads and 0.1-0.6 MB. Without it one such window,
 25,557,894-25,558,540, matched gbz-base on none of its 459 rows. The rejoin adds
 4% to a cut's nodes and steps at the median, 28% at most (chr22:44.1-44.2 Mb,
-where it fixed 304 rows), and nothing to its reads. A window ending inside a
-collapsed cluster, amylase's, is the other case following helps: the copies a
-walk passes are filed where the reference places them, beyond the read. Of the
-96 amylase rows following leaves short, 82 rejoin inside the read, so nothing
-follows them, and measure 9-232 kb under gbz-base; 11 stop 81 kb in with no
-rejoin; 3 are contigs that end, partial in gbz-base too. Reading one chunk wider
-each side, simulated on 0.5.0 files, matched 456 of 468.
+where it fixed 304 rows), and nothing to its reads.
+
+A window whose edge falls inside the amylase array has no one length per
+haplotype for the two cuts to agree on. Both measure a row to its flanks, and
+inside the array a walk reaches the far flank more than once: HG00741#1 leaves
+GRCh38 at 103,620,893, lands at 103,715,097 across a deletion, then passes
+103,713,476-103,667,884 reversed. The walk cut holds the landing and measures 61
+kb; gbz-base's graph-distance context holds the reversed pass too and measures
+242 kb. The 93 rows where gbz-base runs longer are 39% gap between its fragments
+at the median and 79% at most. Eleven of them are path breaks in the graph, a
+contig's path ending with no `nx` tag and resuming as another path (NA19159#2's
+19.6 kb of haplotype later), which the walk cut reads as partial and gbz-base
+bridges as gap. With both edges outside the array the two agree on all 470 rows.
+A row's length there also depends on the haplotypes cut beside it, since
+`walkCut`'s run-on reaches through nodes other walks brought in: HG00126#2
+measures 61 kb alone and 99 kb beside every haplotype. At ABCA7, KIV-2 and the
+amylase figure's 150 kb window every row measures the same either way.
 
 Two budgets refuse a window with the zoom-in notice. Before any row is read, the
 three Tabix indexes estimate the compressed bytes the reads would fetch
