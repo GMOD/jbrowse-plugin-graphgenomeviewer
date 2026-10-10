@@ -16,6 +16,7 @@ import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { abgrAlpha } from '@jbrowse/bandage-core/renderer/colorBits'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
 import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -4425,6 +4426,27 @@ describe('a morph cut short', () => {
     expect(model.layoutResult).toBe(b)
     runFrames(1000)
     expect(b.nodePositions).toEqual(bEnds)
+  })
+
+  test('fades in what the next graph brings', async () => {
+    const model = createModel()
+    await model.loadGFA(BUBBLE, 'g')
+    runFrames(1000)
+    await model.loadGFA(`${BUBBLE}S\t5\tAA\nL\t4\t+\t5\t+\t0M\n`, 'g')
+    expect([...(model.morphEntering?.ids ?? [])]).toEqual(['5+'])
+    expect(model.morphEntering?.alpha).toBe(0)
+    const alphaOf = (id: string) => {
+      const batch = model.buildDrawing(undefined, false)!.batch
+      const run = batch.nodeStrokeRuns.get(id)!
+      return abgrAlpha(batch.nodeStrokes[run.start]!.color)
+    }
+    expect(alphaOf('5+')).toBe(0)
+    expect(alphaOf('4+')).toBe(255)
+    runFrames(160)
+    expect(model.morphEntering?.alpha).toBeGreaterThan(0)
+    runFrames(1000)
+    expect(model.morphEntering).toBeUndefined()
+    expect(alphaOf('5+')).toBe(255)
   })
 
   test('runs on when the cache hands back the layout on screen', async () => {

@@ -30,7 +30,7 @@ import { colorOfScheme } from '../nodeColor'
 import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
-import type { PaneTransform } from './morph'
+import type { MorphEntering, PaneTransform } from './morph'
 import type { HoveredTube, TubeMapRoutes } from './paneBase'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
@@ -437,6 +437,12 @@ export const withSettingActions = withFitViews
     setPositionsDirty() {
       self.positionsVersion++
     },
+    // one frame of a morph: the positions moved in place, and what it brings
+    // in has faded in this far, in one rebuild
+    setMorphFrame(entering: MorphEntering | undefined) {
+      self.morphEntering = entering
+      self.positionsVersion++
+    },
     zoomToFit() {
       // A host owns x, so a fit while hosted places the rows only.
       if (self.viewportOwner === 'host') {
@@ -642,11 +648,18 @@ export const withSettingActions = withFitViews
           nodes: nodeStarts,
           routes: routeStarts(routes, graph.edges, nodeStarts, ends.nodes),
         }
+        const ids = new Set(
+          Object.keys(next.nodePositions).filter(id => !shown[id]),
+        )
         const blend = (t: number) => {
           blendInto(next.nodePositions, starts.nodes, ends.nodes, t)
           blendInto(routes, starts.routes, ends.routes, t)
           if (isAlive(self)) {
-            self.setPositionsDirty()
+            self.setMorphFrame(
+              t < 1 && ids.size > 0
+                ? { layout: next, ids, alpha: t }
+                : undefined,
+            )
           }
         }
         blend(0)

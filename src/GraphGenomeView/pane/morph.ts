@@ -1,5 +1,7 @@
+import { fadeAbgr } from '@jbrowse/bandage-core/renderer/colorBits'
 import { strandSides } from '@jbrowse/bandage-core/util/geometry'
 
+import type { RenderBatch, Run } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph, NodeSegment } from '@jbrowse/bandage-core/types'
 import type { EdgeSides } from '@jbrowse/bandage-core/util/geometry'
 
@@ -242,6 +244,41 @@ export function routeStarts(
       ]
     }),
   )
+}
+
+// The nodes a morph brings into the drawing, and how far they have faded in.
+// `layout` is the layout they are new to, so a frame left over from a morph
+// cut short fades nothing in the next.
+export interface MorphEntering {
+  layout: object
+  ids: ReadonlySet<string>
+  alpha: number
+}
+
+// Fades the strokes of entering nodes and of every link touching one, so a
+// link that starts long, from a new node to a far neighbour, is not seen
+// until the morph has drawn it in. The batch is built fresh each frame, so
+// its colours are rewritten in place.
+export function fadeEntering(
+  batch: RenderBatch,
+  edges: Graph['edges'],
+  { ids, alpha }: MorphEntering,
+) {
+  const fade = (items: { color: number }[], run: Run | undefined) => {
+    for (let k = 0; run && k < run.count; k++) {
+      const item = items[run.start + k]!
+      item.color = fadeAbgr(item.color, alpha)
+    }
+  }
+  for (const id of ids) {
+    fade(batch.nodeStrokes, batch.nodeStrokeRuns.get(id))
+  }
+  edges.forEach(({ from, to }, i) => {
+    if (ids.has(from) || ids.has(to)) {
+      fade(batch.edgeCurves, batch.edgeCurveRuns.get(i))
+      fade(batch.arrows, batch.arrowRuns.get(i))
+    }
+  })
 }
 
 export function easeInOut(t: number) {

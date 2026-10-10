@@ -1,6 +1,10 @@
+import { abgrAlpha, packAbgr } from '@jbrowse/bandage-core/renderer/colorBits'
 import { expect, test } from 'vitest'
 
-import { blendInto, morphStarts, routeStarts } from './morph'
+
+import { blendInto, fadeEntering, morphStarts, routeStarts } from './morph'
+
+import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
 
 const identity = { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0 }
 
@@ -178,4 +182,37 @@ test('a deletion route moves with the nodes its ends attach to', () => {
     { x: 10, y: -5 },
     { x: 30, y: 0 },
   ])
+})
+
+test('a node a morph brings in fades with every link touching it', () => {
+  const ink = packAbgr(10, 20, 30, 255)
+  const stroke = () => ({ points: [], thickness: 1, color: ink })
+  const curve = () => ({ curves: [], thickness: 1, color: ink })
+  const batch: RenderBatch = {
+    nodeStrokes: [stroke(), stroke(), stroke()],
+    nodeStrokeRuns: new Map([
+      ['a', { start: 0, count: 1 }],
+      ['b', { start: 1, count: 2 }],
+    ]),
+    edgeCurves: [curve(), curve()],
+    edgeCurveRuns: new Map([
+      [0, { start: 0, count: 1 }],
+      [1, { start: 1, count: 1 }],
+    ]),
+    arrows: [{ x: 0, y: 0, angle: 0, length: 1, halfWidth: 1, color: ink }],
+    arrowRuns: new Map([[0, { start: 0, count: 1 }]]),
+  }
+  fadeEntering(
+    batch,
+    [
+      { from: 'a', to: 'b' },
+      { from: 'a', to: 'c' },
+    ],
+    { layout: {}, ids: new Set(['b']), alpha: 0.5 },
+  )
+  const alphas = (items: { color: number }[]) =>
+    items.map(i => abgrAlpha(i.color))
+  expect(alphas(batch.nodeStrokes)).toEqual([255, 128, 128])
+  expect(alphas(batch.edgeCurves)).toEqual([128, 255])
+  expect(alphas(batch.arrows)).toEqual([128])
 })

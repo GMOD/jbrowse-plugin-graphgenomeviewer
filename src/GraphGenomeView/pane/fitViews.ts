@@ -78,6 +78,7 @@ import {
 } from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
+import { fadeEntering } from './morph'
 import {
   HOVER_BRIGHTEN,
   MAX_CANVAS_HEIGHT,
@@ -597,6 +598,10 @@ export const withFitViews = withHostViews
         // passed so the shared edge-curve cache can tell a drag from a pan
         version: self.positionsVersion,
       })
+      const entering = self.morphEntering
+      if (entering?.layout === layoutResult) {
+        fadeEntering(batch, graph.edges, entering)
+      }
       return { batch, viewportBounds }
     },
     get overlayLabels() {
