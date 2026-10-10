@@ -1,3 +1,16 @@
+## [6.18.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.17.0...v6.18.0) (2026-10-10)
+
+### Other Changes
+
+- GPU note: the tube map with reads is inside a frame budget ([f99ccbe](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f99ccbeed54dd3fdc403295ea6f7eafc668e0738))
+- Reshoot the popped KIV-2 figure, its copies now bubbles of their own ([b457d80](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b457d801a7e6df05c22d02ec022b916921dea069))
+- The track folds each cut by its zoom, and the coarse tier is the same fold ([169fcc7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/169fcc7a30f83c17a877056c84dbf8ab2fa96b86))
+- Bump @jbrowse/bandage-core to 9.2.0 ([c5932ab](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c5932ab1bcdfcd505590b2bd9fc4107cda66cfc5))
+- A coarse cut hops as a fine one does, and the fold is a whole bp ([4c44e2f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4c44e2f8b586acb29f3de6ec64c9e2311c80b7a1))
+- Small variants draw as ticks: a hover names one, a click opens it ([3f4ef32](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3f4ef32ddfe026f62d5de8382a0cfa815184a136))
+- Ticks are rects, so a pointer and a test both find their box ([40b34ab](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/40b34abb89e7812f1bcf182b2b9472131140a0fb))
+- Bump @jbrowse/bandage-core to 9.3.0 ([4c4bb27](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4c4bb277ee750878053fadf865b0a3471f31bb20))
+
 ## [6.17.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.16.0...v6.17.0) (2026-10-10)
 
 ### Other Changes
