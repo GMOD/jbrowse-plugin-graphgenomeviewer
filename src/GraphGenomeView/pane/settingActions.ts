@@ -15,10 +15,12 @@ import { withFitViews } from './fitViews'
 import { keepInView, onScreen } from './keepInView'
 import {
   MORPH_MAX_NODES,
+  MORPH_MAX_STEP_MS,
   MORPH_MS,
   blendInto,
   easeInOut,
   morphStarts,
+  routeStarts,
 } from './morph'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -42,7 +44,7 @@ import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
 import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
-import type { Graph, LayoutResult, NodeSegment } from '@jbrowse/bandage-core/types'
+import type { LayoutResult } from '@jbrowse/bandage-core/types'
 import type {
   WalkEncoding,
   WalkLayer,
@@ -548,9 +550,7 @@ export const withSettingActions = withFitViews
     // bursts well above the frame rate. Coalescing to the next frame keeps the
     // drag live while bounding that work to once per frame instead of once
     // per event.
-    let morph:
-      | { frame: number; finish: () => void }
-      | undefined
+    let morph: { frame: number; finish: () => void } | undefined
 
     function finishMorph() {
       if (morph) {
@@ -595,11 +595,7 @@ export const withSettingActions = withFitViews
       // layout just landed, so a re-cut or a relayout reads as one picture
       // moving rather than a jump. Positions move in place as a drag moves
       // them, a frame at a time; anything new grows out of a neighbour.
-      morphFrom(
-        previous: LayoutResult | undefined,
-        previousGraph: Graph | undefined,
-        before: PaneTransform,
-      ) {
+      morphFrom(previous: LayoutResult | undefined, before: PaneTransform) {
         finishMorph()
         const next = self.layoutResult
         const graph = self.graph
@@ -630,52 +626,43 @@ export const withSettingActions = withFitViews
           translateX: self.translateX,
           translateY: self.translateY,
         }
-        const byEnds = (
-          routes: Record<number, NodeSegment[]> | undefined,
-          edges: Graph['edges'] | undefined,
-        ) =>
-          Object.fromEntries(
-            Object.entries(routes ?? {}).flatMap(([i, line]) => {
-              const edge = edges?.[Number(i)]
-              return edge ? [[`${edge.from}>${edge.to}`, line]] : []
-            }),
-          )
-        const nextRoutes = byEnds(next.deletionRoutes, graph.edges)
-        const ends = structuredClone({
-          nodes: next.nodePositions,
-          routes: nextRoutes,
-        })
+        const routes = Object.fromEntries(
+          Object.entries(next.deletionRoutes ?? {}).flatMap(([i, line]) => {
+            const edge = graph.edges[Number(i)]
+            return edge ? [[`${edge.from}>${edge.to}`, line]] : []
+          }),
+        )
+        const ends = structuredClone({ nodes: next.nodePositions, routes })
+        const nodeStarts = morphStarts(
+          previous.nodePositions,
+          before,
+          next.nodePositions,
+          after,
+          graph.edges,
+        )
         const starts = {
-          nodes: morphStarts(
-            previous.nodePositions,
-            before,
-            next.nodePositions,
-            after,
-            graph.edges,
-          ),
-          routes: morphStarts(
-            byEnds(previous.deletionRoutes, previousGraph?.edges),
-            before,
-            nextRoutes,
-            after,
-            [],
-          ),
+          nodes: nodeStarts,
+          routes: routeStarts(routes, nodeStarts, ends.nodes),
         }
         const blend = (t: number) => {
           blendInto(next.nodePositions, starts.nodes, ends.nodes, t)
-          blendInto(nextRoutes, starts.routes, ends.routes, t)
+          blendInto(routes, starts.routes, ends.routes, t)
           if (isAlive(self)) {
             self.setPositionsDirty()
           }
         }
         blend(0)
-        const t0 = performance.now()
+        let elapsed = 0
+        let last = performance.now()
         const step = () => {
           if (!isAlive(self) || self.layoutResult !== next) {
             morph = undefined
             return
           }
-          const t = Math.min(1, (performance.now() - t0) / MORPH_MS)
+          const now = performance.now()
+          elapsed += Math.min(now - last, MORPH_MAX_STEP_MS)
+          last = now
+          const t = Math.min(1, elapsed / MORPH_MS)
           blend(easeInOut(t))
           if (t < 1) {
             morph!.frame = requestAnimationFrame(step)
@@ -683,7 +670,12 @@ export const withSettingActions = withFitViews
             morph = undefined
           }
         }
-        morph = { frame: requestAnimationFrame(step), finish: () => { blend(1) } }
+        morph = {
+          frame: requestAnimationFrame(step),
+          finish: () => {
+            blend(1)
+          },
+        }
       },
       finishMorph,
       moveNode(nodeId: string, dx: number, dy: number) {

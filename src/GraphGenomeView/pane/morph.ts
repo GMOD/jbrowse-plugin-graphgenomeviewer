@@ -13,6 +13,9 @@ export interface PaneTransform {
 // geometry, which past it no longer fits a frame (GRAPH_SCALE_AND_LOD.md)
 export const MORPH_MAX_NODES = 3000
 export const MORPH_MS = 350
+// the most of the morph one frame may take, so a busy main thread delays
+// the motion rather than skipping it
+export const MORPH_MAX_STEP_MS = 34
 
 function arcPrefix(line: NodeSegment[]) {
   const arc = [0]
@@ -103,17 +106,7 @@ export function morphStarts(
       if (starts[other] || !line?.length) {
         continue
       }
-      const mid = line[Math.floor(line.length / 2)]!
-      let best = 0
-      let bestDistance = Infinity
-      end.forEach((p, k) => {
-        const d = (p.x - mid.x) ** 2 + (p.y - mid.y) ** 2
-        if (d < bestDistance) {
-          bestDistance = d
-          best = k
-        }
-      })
-      const anchor = from[best]!
+      const anchor = from[nearest(end, line[Math.floor(line.length / 2)]!)]!
       starts[other] = line.map(() => ({ ...anchor }))
       queue.push(other)
     }
@@ -122,6 +115,55 @@ export function morphStarts(
     starts[id] ??= line.map(p => ({ ...p }))
   }
   return starts
+}
+
+function nearest(line: NodeSegment[], p: NodeSegment) {
+  let best = 0
+  let bestDistance = Infinity
+  line.forEach((q, k) => {
+    const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2
+    if (d < bestDistance) {
+      bestDistance = d
+      best = k
+    }
+  })
+  return best
+}
+
+// Where each deletion route starts: its end shape moved as its two nodes
+// move, each point by the blend of the displacements at the node points its
+// ends attach to. Routes are keyed `from>to`.
+export function routeStarts(
+  routes: Positions,
+  nodeStarts: Positions,
+  nodeEnds: Positions,
+): Positions {
+  const shift = (id: string, at: NodeSegment) => {
+    const a = nodeStarts[id]
+    const b = nodeEnds[id]
+    if (!a || !b || b.length === 0) {
+      return { x: 0, y: 0 }
+    }
+    const k = nearest(b, at)
+    return { x: a[k]!.x - b[k]!.x, y: a[k]!.y - b[k]!.y }
+  }
+  return Object.fromEntries(
+    Object.entries(routes).map(([key, line]) => {
+      const [from = '', to = ''] = key.split('>')
+      const d0 = shift(from, line[0]!)
+      const d1 = shift(to, line.at(-1)!)
+      return [
+        key,
+        line.map((p, k) => {
+          const f = line.length > 1 ? k / (line.length - 1) : 0
+          return {
+            x: p.x + d0.x + (d1.x - d0.x) * f,
+            y: p.y + d0.y + (d1.y - d0.y) * f,
+          }
+        }),
+      ]
+    }),
+  )
 }
 
 export function easeInOut(t: number) {

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { blendInto, morphStarts } from './morph'
+import { blendInto, morphStarts, routeStarts } from './morph'
 
 const identity = { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0 }
 
@@ -93,4 +93,23 @@ test('the last frame writes the end positions exactly', () => {
   const ends = { a: [{ x: 0.1 + 0.2, y: 1 / 3 }] }
   blendInto(into, { a: [{ x: 7, y: -2 }] }, ends, 1)
   expect(into.a).toEqual(ends.a)
+})
+
+test('a deletion route moves with the nodes its ends attach to', () => {
+  const starts = routeStarts(
+    {
+      'a>b': [
+        { x: 0, y: 0 },
+        { x: 5, y: -5 },
+        { x: 10, y: 0 },
+      ],
+    },
+    { a: [{ x: -10, y: 0 }], b: [{ x: 30, y: 0 }] },
+    { a: [{ x: 0, y: 0 }], b: [{ x: 10, y: 0 }] },
+  )
+  expect(starts['a>b']).toEqual([
+    { x: -10, y: 0 },
+    { x: 10, y: -5 },
+    { x: 30, y: 0 },
+  ])
 })
