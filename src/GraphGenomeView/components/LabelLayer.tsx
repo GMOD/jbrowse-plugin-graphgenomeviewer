@@ -29,6 +29,7 @@ const svgStyle = {
 
 const GENE_INK = '#1c1c22'
 const TICK_PX = 9
+const TICK_WIDTH = 3
 
 const LabelLayer = observer(function LabelLayer({
   model,
@@ -81,18 +82,17 @@ const LabelLayer = observer(function LabelLayer({
         }}
       >
         {ticks.map(({ item: h, x, y }, i) => (
-          <line
+          <rect
             key={bubbleKey(h.bubble)}
             data-tick={i}
-            x1={x}
-            x2={x}
-            y1={y}
-            y2={y - TICK_PX}
-            stroke={BUBBLE_KIND_COLORS[h.kind]}
-            strokeWidth={3}
-            strokeLinecap="round"
+            x={x - TICK_WIDTH / 2}
+            y={y - TICK_PX}
+            width={TICK_WIDTH}
+            height={TICK_PX}
+            rx={TICK_WIDTH / 2}
+            fill={BUBBLE_KIND_COLORS[h.kind]}
             opacity={dimmedBubble(h) ? 0.35 : 1}
-            style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+            style={{ pointerEvents: 'all', cursor: 'pointer' }}
           />
         ))}
       </g>
