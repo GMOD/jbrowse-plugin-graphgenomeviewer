@@ -164,18 +164,20 @@ the track's sample table, the reference charcoal, with a key per value. Under
 routes each route splits by the value, its strands side by side, so a route
 reads as a stack of its groups.
 
-Thirty HPRC samples over GSTM1, a tube per route coloured by superpopulation:
-the routes through the gene are mostly AFR and AMR, and EUR, EAS and SAS take
-the deletion:
+Thirty HPRC samples over C4A and C4B, the RCCX module GRCh38 carries twice, as a
+tube per route coloured by superpopulation. The main route, five strands wide,
+steps round the 6.4 kb HERV-K in C4B's intron 9, so its C4B is short; GRCh38's
+route keeps both genes long. Thin tubes skip a whole 33 kb module, one C4 copy,
+or dip under C4A through an extra one:
 
-![GSTM1 as a tube per route coloured by superpopulation, AFR and AMR strands through the gene and EUR, EAS and SAS bands round it](../img/tube_map_gstm1_routes_by_population.png)
+![C4A and C4B as a tube per route coloured by superpopulation, the main route's five strands stepping round C4B's HERV-K and thin tubes round or through whole modules](../img/tube_map_c4_routes_by_population.png)
 
-The same 60 haplotypes as a tube per route, uncoloured, and as a tube each
-grouped by route:
+The same 60 haplotypes as a tube per route, uncoloured, 35 taking the main
+route, and as a tube each grouped by route:
 
-![GSTM1 as a tube per route, about seven routes for 60 haplotypes](../img/tube_map_gstm1_bundled.png)
+![C4 as a tube per route, 35 of 60 haplotypes on the route round C4B's HERV-K](../img/tube_map_c4_bundled.png)
 
-![GSTM1 as a tube per haplotype grouped by route and coloured by superpopulation](../img/tube_map_gstm1_grouped_by_population.png)
+![C4 as a tube per haplotype grouped by route and coloured by superpopulation](../img/tube_map_c4_grouped_by_population.png)
 
 ### Reads
 

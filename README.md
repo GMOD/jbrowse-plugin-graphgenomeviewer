@@ -34,11 +34,12 @@ above it.
 ![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes and the eight haplotypes' alignment rows](img/tube_map_micb_ref.png)
 
 - **Allele frequency as a tube map.** A tube per route, as wide as the
-  haplotypes taking it, coloured by superpopulation: over GSTM1 the routes
-  through the gene are mostly AFR and AMR, and EUR, EAS and SAS take the
-  deletion. Panels split the map by sample or a sample table column.
+  haplotypes taking it, coloured by superpopulation. Over C4's RCCX module, 35
+  of 60 haplotypes skip the 6.4 kb HERV-K in C4B, so their C4B is short; thin
+  tubes skip or add a whole 33 kb module, a C4 copy. Panels split the map by
+  sample or a sample table column.
 
-![GSTM1 as a tube per route coloured by superpopulation, AFR and AMR strands through the gene and EUR, EAS and SAS bands round it](img/tube_map_gstm1_routes_by_population.png)
+![C4A and C4B as a tube per route coloured by superpopulation, the main route's five strands stepping round C4B's HERV-K and thin tubes round or through whole modules](img/tube_map_c4_routes_by_population.png)
 
 ## As its own view
 

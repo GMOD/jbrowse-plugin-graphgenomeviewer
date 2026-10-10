@@ -47,6 +47,7 @@ const KIV2_ARRAY_LOC = 'chr6:160,614,798-160,647,758'
 const MHC_LOC = 'chr6:32,510,000-32,600,000'
 const MICB_LOC = 'chr6:31,505,400-31,507,400'
 const GSTM1_LOC = 'chr1:109,670,000-109,705,000'
+const C4_LOC = 'chr6:31,978,000-32,045,000'
 const GSTM1_SAMPLES = HAPLOTYPES.map(h => h.split('.')[0])
 
 const GENE_TRACK = {
@@ -430,24 +431,35 @@ const FIGURES = {
     session: gstm1Populations,
     act: hoverPanelBox('AFR', 109_690_800),
   },
-  // the 60 haplotypes as a tube per route, each as wide as its count
-  tube_map_gstm1_bundled: trackView(GSTM1_LOC, {
+  // the RCCX module's 60 haplotypes as a tube per route: 35 take one, skipping
+  // C4B's HERV-K, and the thin tubes skip or add a whole module
+  tube_map_c4_bundled: trackView(C4_LOC, {
     trackId: GBZ,
     layoutMode: 'tubemapref',
     subgraphHaplotypes: POPULATION_SAMPLES,
     tubeMapFold: 1000,
     tubeMapRoutes: 'bundled',
-    height: 600,
+    height: 700,
   }),
   // one map, each route a stack of its superpopulations' strands
-  tube_map_gstm1_routes_by_population: trackView(GSTM1_LOC, {
+  tube_map_c4_routes_by_population: trackView(C4_LOC, {
     trackId: GBZ,
     layoutMode: 'tubemapref',
     subgraphHaplotypes: POPULATION_SAMPLES,
     tubeMapFold: 1000,
     tubeMapRoutes: 'bundled',
     tubeMapColorBy: 'superpopulation',
-    height: 600,
+    height: 700,
+  }),
+  // every haplotype its own tube, ordered route by route and by population
+  tube_map_c4_grouped_by_population: trackView(C4_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'grouped',
+    tubeMapColorBy: 'superpopulation',
+    height: 900,
   }),
   // every haplotype its own tube in its superpopulation's hue
   tube_map_gstm1_by_population: trackView(GSTM1_LOC, {
@@ -455,16 +467,6 @@ const FIGURES = {
     layoutMode: 'tubemapref',
     subgraphHaplotypes: POPULATION_SAMPLES,
     tubeMapFold: 1000,
-    tubeMapColorBy: 'superpopulation',
-    height: 900,
-  }),
-  // every haplotype its own tube, ordered route by route and by population
-  tube_map_gstm1_grouped_by_population: trackView(GSTM1_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapRoutes: 'grouped',
     tubeMapColorBy: 'superpopulation',
     height: 900,
   }),
