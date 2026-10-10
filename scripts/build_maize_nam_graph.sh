@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 #
 # Builds a Minigraph-Cactus graph of B73 v5 and the 25 NAM founders over one
-# B73 window, the recipe MaizeGDB's Pangenome Viewer uses chromosome-wide
-# (bioRxiv 10.64898/2026.08.31.748368), and writes it as a gbz-base database.
+# chromosome, or one window of it: the recipe MaizeGDB's Pangenome Viewer uses
+# chromosome-wide (bioRxiv 10.64898/2026.08.31.748368), as gbz-base databases.
 #
 # MaizeGDB serves every assembly bgzipped with .fai/.gzi, so samtools fetches
-# each founder's slice by range request instead of downloading 26 genomes. The
-# window starts at the telomere, so B73 path coordinates are B73's own. Each
+# each chromosome or slice by range request instead of downloading 26 genomes.
+# A window starts at the telomere, so B73 path coordinates are B73's own. Each
 # founder's slice runs MARGIN bp past the end of its collinear chain with the
 # window; Cactus clips whatever of the margin aligns to nothing.
 #
-# Requires: docker, samtools (built with libcurl), minimap2, vg, gbz-base,
-#           gbz-haplotype-index
-# Usage:    bash scripts/build_maize_nam_graph.sh [outdir]
+# Requires: docker or singularity, samtools (built with libcurl), minimap2, vg,
+#           gbz-base, gbz-haplotype-index
+# Usage:    bash scripts/build_maize_nam_graph.sh <outdir> <chr> [window end, bp]
+#           The gbz-base steps are skipped where gbz-haplotype-index is missing,
+#           so a remote host can build the GBZ and another index it.
 #
 set -euo pipefail
 
-OUTDIR="${1:-maize_nam_graph_build}"
+OUTDIR="$1"
+CHR="$2"
+END="${3:-}"
 mkdir -p "$OUTDIR/fa"
 cd "$OUTDIR"
 
-CHR=chr8
-END=1600000
 SLICE=4000000
 MARGIN=100000
 NAME=maize_nam_${CHR}
@@ -59,13 +61,15 @@ while i >= 0:
 print(end)
 '
 
-fetch() { samtools faidx "$(fasta_url "$1")" "$CHR:1-$2" | sed "1s/.*/>$CHR/"; }
+fetch() { samtools faidx "$(fasta_url "$1")" "$CHR${2:+:1-$2}" | sed "1s/.*/>$CHR/"; }
 
 [ -s fa/B73.fa ] || fetch B73 "$END" > fa/B73.fa
 
 echo "B73 fa/B73.fa" > seqfile
 for g in $FOUNDERS; do
-  if [ ! -s "fa/$g.fa" ]; then
+  if [ -z "$END" ]; then
+    [ -s "fa/$g.fa" ] || fetch "$g" > "fa/$g.fa"
+  elif [ ! -s "fa/$g.fa" ]; then
     [ -s "slice/$g.fa" ] || { mkdir -p slice; fetch "$g" "$SLICE" > "slice/$g.fa"; }
     stop=$(minimap2 -x asm10 -t "$(nproc)" "slice/$g.fa" fa/B73.fa 2>/dev/null |
       python3 -c "$COLLINEAR_END" | awk -v margin="$MARGIN" -v cap="$SLICE" '
@@ -78,11 +82,16 @@ done
 
 if [ ! -s "out/$NAME.full.gbz" ]; then
   rm -rf js
-  docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE" \
-    cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
+  if docker info >/dev/null 2>&1; then
+    run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
+  else
+    run=(singularity exec --cleanenv -B "$PWD":/data --pwd /data "docker://$CACTUS_IMAGE")
+  fi
+  "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
     --gbz clip full --gfa clip full --vcf --maxCores "$(nproc)"
 fi
 
+command -v gbz-haplotype-index >/dev/null || exit 0
 for tier in "" .full; do
   gbz="out/$NAME$tier.gbz"
   vg snarls -T "$gbz" > "$NAME$tier.snarls"
