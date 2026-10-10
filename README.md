@@ -162,8 +162,7 @@ Needs JBrowse 5.0.0-beta.11 or later.
   to the segments lane or, for gbz-base and walk-indexed graphs, the haplotype
   lanes
 - Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`, the
-  `coarse` tier (`bandage-fold`, in
-  [bandage-core](https://github.com/GMOD/bandage-core/blob/main/docs/coarse-tier.md))
+  `coarse` tier (`gfa-to-tabix fold`)
 - Past the cut (5 Mb, or a gbz-base adapter's `nodeLimit`) the track asks you to
   zoom in. For a population view of a wide window, add the graph's VCF as a
   variant track (`vg deconstruct` makes one from a GBZ)
