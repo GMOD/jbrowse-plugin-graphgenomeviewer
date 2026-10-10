@@ -50,9 +50,9 @@ pnpm add -D @jbrowse/bandage-core@link:../bandage-core
 ```
 
 Run `pnpm build` in the core after each change, since the plugin reads its
-`dist/`. Undo the link with `pnpm add -D @jbrowse/bandage-core@^6` before
-committing `package.json` and the lockfile. The core's README covers rebuilding
-the WASM engine.
+`dist/`. Undo the link before committing by restoring `package.json` and the
+lockfile, then `pnpm install`. The core's README covers rebuilding the WASM
+engine.
 
 ## Testing
 

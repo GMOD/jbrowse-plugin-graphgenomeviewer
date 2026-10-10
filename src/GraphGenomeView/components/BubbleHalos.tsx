@@ -1,4 +1,4 @@
-import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import {
   BUBBLE_KIND_COLORS,
   BUBBLE_KIND_NAMES,
@@ -61,7 +61,7 @@ const BubbleHalos = observer(function BubbleHalos({
           .filter(h => !h.whole)
           .map(h => (
             <path
-              key={`${h.bubble.start}-${h.bubble.end}`}
+              key={bubbleKey(h.bubble)}
               d={h.path}
               fill="none"
               stroke={BUBBLE_KIND_COLORS[h.kind]}

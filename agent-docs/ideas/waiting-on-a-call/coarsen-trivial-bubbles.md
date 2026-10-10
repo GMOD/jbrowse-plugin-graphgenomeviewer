@@ -61,9 +61,9 @@ In build order:
   matters and is a local test: a source with k > 1 out-links to distinct nodes,
   each with exactly one in and one out, all converging on one sink, every arm
   under `maxAlleleBp`. In this file that catches four of the six bubbles; the
-  fifth is a nested superbubble needing the real algorithm, and the sixth is the
-  IS5 event itself, which must NOT collapse — `maxAlleleBp` handles that on its
-  own.
+  fifth is a nested superbubble needing the real algorithm, which bandage-core
+  now has (`bubbles/superbubbles.ts`), and the sixth is the IS5 event itself,
+  which must NOT collapse — `maxAlleleBp` handles that on its own.
 - **The floor becomes conditional on there being arms.** A `bubbleSpread` floor
   applied to a collapsed node is the same bug one level down.
 - **Path lanes are the open question, and why this figure is the test case.**
@@ -81,9 +81,10 @@ the wrong primitive** (`vg mod -u` measured at 0.95% on HPRC chr20, because at
 90 haplotypes almost no node has bidirected degree 2 — jbrowse-components'
 `agent-docs/reference/PANGENOME_GRAPHS.md` has the number), and **BubbleGun as
 published does not reach human chr1** (the PangyPlot team measured chrY 2 s / 1
-GB, chrX 30 s / 11 GB, chr9 ~40 min / 13 GB, chr1 hanging at 15+ GB).
-PangyPlot's second mechanism — merging degree-2 runs into polylines and
-grid-snapping — does not apply either: on chrY hprc.clip 39.4% of segments are
-junctions and the mean linear run is 2.8 segments, so RDP tops out at 59.5% and
-only grid snapping reaches 99%. That is a layout-space simplification for an
-overview, not something that makes one 20-node window legible.
+GB, chrX 30 s / 11 GB, chr9 ~40 min / 13 GB, chr1 hanging at 15+ GB; their
+flat-array port halves the memory but reports no chr1 run). PangyPlot's second
+mechanism — merging degree-2 runs into polylines and grid-snapping — does not
+apply either: on chrY hprc.clip 39.4% of segments are junctions and the mean
+linear run is 2.8 segments, so RDP tops out at 59.5% and only grid snapping
+reaches 99%. That is a layout-space simplification for an overview, not
+something that makes one 20-node window legible.

@@ -2814,7 +2814,29 @@ describe('popping a bubble', () => {
 
   // Without an index beside the source the bubbles come from the graph
   // itself, and a popped graph gets its own, so a superbubble opens in steps.
-  const RGFA_BUBBLE = RGFA + 'L\t3\t+\t2\t+\t0M\n'
+  // 4 flanks the bubble, which would otherwise be the whole graph.
+  const RGFA_BUBBLE =
+    RGFA +
+    'S\t4\tAAAA\tSN:Z:chr\tSO:i:8\tSR:i:0\n' +
+    'L\t3\t+\t2\t+\t0M\nL\t2\t+\t4\t+\t0M\n'
+
+  // chr 0 1 2 5, and an alt arm from 1 to 2 with a SNP between a and d: the
+  // pop of 1..2 derives itself by reach, so it opens into a..d instead
+  const RGFA_NESTED = [
+    'H\tVN:Z:1.0',
+    'S\t0\tAAAA\tSN:Z:chr\tSO:i:0\tSR:i:0',
+    'S\t1\tACGT\tSN:Z:chr\tSO:i:4\tSR:i:0',
+    'S\t2\tGGCC\tSN:Z:chr\tSO:i:8\tSR:i:0',
+    'S\t5\tTTAA\tSN:Z:chr\tSO:i:12\tSR:i:0',
+    'S\ta\tTT\tSN:Z:alt\tSO:i:0\tSR:i:1',
+    'S\tb\tG\tSN:Z:alt\tSO:i:2\tSR:i:1',
+    'S\tc\tC\tSN:Z:alt2\tSO:i:0\tSR:i:2',
+    'S\td\tAA\tSN:Z:alt\tSO:i:3\tSR:i:1',
+    ...['0 1', '1 2', '2 5', '1 a', 'a b', 'a c', 'b d', 'c d', 'd 2'].map(
+      l => `L\t${l.replace(' ', '\t+\t')}\t+\t0M`,
+    ),
+    '',
+  ].join('\n')
 
   test('a graph with no index derives its own bubbles', async () => {
     rpcRespond()
@@ -2843,23 +2865,46 @@ describe('popping a bubble', () => {
     rpcRespond()
     const model = createAnchoredModel()
     model.setLayoutMode('ordered')
-    await model.loadGFA(RGFA_BUBBLE, 'rgfa')
+    await model.loadGFA(RGFA_NESTED, 'rgfa')
     const window = model.graph!
+    expect(model.bubbles.map(b => b.segments)).toEqual(['1,a,b,c,d,2'])
 
     await model.popBubble(model.bubbles[0]!)
     const inner = model.graph!
     expect(model.popStack.map(p => p.graph)).toEqual([window])
-    expect(model.bubbles.map(b => b.segments)).toEqual(['1,3,2'])
+    const [snp, ...rest] = model.bubbles
+    expect(rest).toEqual([])
+    expect(snp).toMatchObject({ key: 'a>d', offReference: true, start: 8 })
 
-    await model.popBubble(model.bubbles[0]!)
+    expect(model.usesLayoutEngine).toBe(false)
+
+    // nothing in a..d is on the reference, so the ordered layout hands it to
+    // the layout engine
+    await model.popBubble(snp!)
     expect(model.popStack.map(p => p.graph)).toEqual([window, inner])
+    expect(model.graph!.name).toBe(`SNP in ${inner.name}`)
+    expect(model.bubbles).toEqual([])
+    expect(model.usesLayoutEngine).toBe(true)
 
     await model.unpopBubble()
     expect(model.graph).toBe(inner)
     expect(model.layoutMode).toBe('ordered')
+    expect(model.usesLayoutEngine).toBe(false)
     await model.unpopBubble()
     expect(model.graph).toBe(window)
     expect(model.poppedFrom).toBeUndefined()
+  })
+
+  test('a bubble off the reference lights no reference span', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    await model.loadGFA(RGFA_NESTED, 'rgfa')
+    await model.popBubble(model.bubbles[0]!)
+    const [snp] = model.bubbles
+    model.setHoveredBubble(snp!)
+    expect(model.hoveredSpan).toBeUndefined()
+    model.setHoveredBubble(model.poppedFrom!.bubble)
+    expect(model.hoveredSpan).toEqual({ start: 8, end: 8 })
   })
 
   test('a bubble naming no segment of the graph says so and opens nothing', async () => {

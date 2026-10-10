@@ -100,7 +100,14 @@ depth from walks when a GFA has no depth tag, so on a GBZ cut width is carriage.
 ## Consequences
 
 - Derived bubbles are chain-level: a nested bubble or an inverted stretch comes
-  out as one bubble. Popping descends, and `popStack` holds each level.
+  out as one bubble. Popping alone did not descend: every link that blocked an
+  interior boundary is still inside the pop, so all 73 pops with an interior on
+  E. coli, MHC class II and KIV-2 derived the bubble they opened. Since
+  2026-10-09 a bubble that covers the drawing opens into the outermost
+  superbubbles inside it instead (bandage-core's `bubbles/superbubbles.ts`,
+  BubbleGun's search, 24 ms on KIV-2's 15,808 nodes), capped at the 50 largest.
+  The same rule opens KIV-2's array, 98.7% of its window, at the top level.
+  `popStack` holds each level and the bubble opened from it.
 - Derived bubbles never claim an inversion. The strand a path first visits a
   node on is not evidence of one: a pggb path walking the window backwards made
   eleven SNPs read as inversions in a first draft.

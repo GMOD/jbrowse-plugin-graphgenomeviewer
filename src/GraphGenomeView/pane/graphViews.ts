@@ -1,5 +1,5 @@
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
-import { bubblesFromGraph } from '@jbrowse/bandage-core/bubbles/bubblesFromGraph'
+import { graphBubbles } from '@jbrowse/bandage-core/bubbles/superbubbles'
 import { resolveColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import {
   deletionDrawing,
@@ -524,7 +524,9 @@ export const withGraphViews = paneBase
     // The bubbles the graph itself states, for a graph with no index: a GBZ
     // cut, a pggb file, the inside of a popped bubble.
     get derivedBubbles() {
-      return self.graph ? bubblesFromGraph(self.graph) : []
+      return self.graph
+        ? graphBubbles(self.graph, self.popStack.at(-1)?.bubble)
+        : []
     },
   }))
   .views(self => ({
@@ -993,13 +995,13 @@ export const withGraphViews = paneBase
         : []
     },
     // The reference interval under the pointer: the hovered node's, or the
-    // hovered bubble's
+    // hovered bubble's where it has one of its own
     get hoveredSpan() {
       const nodeId = self.hoveredNode
       const bubble = self.hoveredBubble
       return nodeId !== null
         ? self.nodeSpan(nodeId)
-        : bubble
+        : bubble && !bubble.offReference
           ? { start: bubble.start, end: bubble.end }
           : undefined
     },

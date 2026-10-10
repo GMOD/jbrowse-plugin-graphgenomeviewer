@@ -475,12 +475,15 @@ magnitude.
 
 Two warnings before anyone builds either:
 
-- **Bubble enumeration is preprocessing, never runtime.** pangyplot's
-  `context/bubblegun-migration.md`: BubbleGun indexing costs chrY 2 s/1 GB, chrX
-  30 s/11 GB, chr9 ~40 min/13 GB, and **chr1 hangs at 15+ GB**. Their
-  integration was reverted from `main` over a ~50× regression. We dodge this
-  entirely by consuming `gfatools bubble` output (26 s, 4 GB, genome-wide)
-  instead.
+- **Genome-wide bubble enumeration is preprocessing, never runtime.**
+  pangyplot's `context/bubblegun-migration.md`: BubbleGun indexing costs chrY 2
+  s/1 GB, chrX 30 s/11 GB, chr9 ~40 min/13 GB, and **chr1 hangs at 15+ GB**.
+  Their integration was reverted from `main` over a ~50× regression. Their
+  flat-array port (`context/bubblegun-flat-repr.md`) halves the memory (chrY
+  peak 3.22 → 1.68 GB) but reports no chr1 run. We dodge this entirely by
+  consuming `gfatools bubble` output (26 s, 4 GB, genome-wide) instead. One
+  window is a different matter: bandage-core's `bubbles/superbubbles.ts` runs
+  the same search on a cut at runtime, 24 ms on KIV-2's 15,808 nodes.
 - **Per-graph sidecars were already tried here and rejected.** The removed
   `GfaTabixAdapter` was 487 lines plus five bespoke artifacts per graph, one of
   which was `.graph.coarse.bed.gz` — a precomputed coarse LOD. Any grid-snapping

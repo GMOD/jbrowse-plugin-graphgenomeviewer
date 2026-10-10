@@ -768,10 +768,15 @@ export const withLoadActions = withSettingActions.actions(self => {
           layoutMode: self.chosenLayoutMode,
           label: graph.name,
           indexBubbles: self.indexBubbles,
+          bubble,
         },
       ]
       self.indexBubbles = undefined
-      const label = `${BUBBLE_KIND_NAMES[classifyBubble(bubble, self.repeatArrays).kind]} at ${bubble.refName}:${bubble.start.toLocaleString()}`
+      const kind =
+        BUBBLE_KIND_NAMES[classifyBubble(bubble, self.repeatArrays).kind]
+      const label = bubble.offReference
+        ? `${kind} in ${graph.name}`
+        : `${kind} at ${bubble.refName}:${bubble.start.toLocaleString()}`
       self.graph = { ...sub, name: label }
       self.clearInteractionState()
       self.viewportOwner = 'fit'

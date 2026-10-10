@@ -352,6 +352,8 @@ export const paneBase = types
       layoutMode: LayoutModeValue
       label: string
       indexBubbles: MinigraphBubble[] | undefined
+      // the bubble opened out of `graph`
+      bubble: MinigraphBubble
     }[],
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion

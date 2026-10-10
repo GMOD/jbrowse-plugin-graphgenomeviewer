@@ -156,7 +156,7 @@ export const withHostViews = withWalkRowViews
         y: p.y * self.scaleY + self.translateY,
       })
       const bubble = self.hoveredNode === null ? self.hoveredBubble : null
-      if (bubble) {
+      if (bubble && !bubble.offReference) {
         const halo = self.bubbleHalos.find(h => sameBubble(h.bubble, bubble))
         return {
           start: bubble.start,

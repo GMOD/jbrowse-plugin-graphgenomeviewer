@@ -1,3 +1,4 @@
+import { bubbleKey } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { geneCoverageNote } from '@jbrowse/bandage-core/labelLayout'
 import { LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
@@ -83,7 +84,7 @@ const LabelLayer = observer(function LabelLayer({
       })}
       {routes.map(({ item: { halo: h, route }, x, y, w, text }) => (
         <LabelChip
-          key={`${h.bubble.start}-${h.bubble.end}-${route.route.steps.join(',')}`}
+          key={`${bubbleKey(h.bubble)}-${route.route.steps.join(',')}`}
           x={x}
           y={y}
           w={w}
@@ -97,7 +98,7 @@ const LabelLayer = observer(function LabelLayer({
       ))}
       {bubbles.map(({ item: h, x, y, w, text }) => (
         <LabelChip
-          key={`${h.bubble.start}-${h.bubble.end}`}
+          key={bubbleKey(h.bubble)}
           x={x}
           y={y}
           w={w}
