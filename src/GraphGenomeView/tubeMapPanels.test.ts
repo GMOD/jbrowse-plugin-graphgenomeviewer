@@ -61,9 +61,9 @@ test("a panel's graph is the reference and its walks, and what they visit", () =
 test('panels stack down the pane, a title gap above each', () => {
   const g = graph()
   const whole = tubeMapReferenceLayout(g)!
-  const laidOut = tubeMapPanelGroups(g, 'sample').map(({ key, paths }) => ({
-    key,
-    result: tubeMapReferenceLayout(graphOfPaths(g, paths)),
+  const laidOut = tubeMapPanelGroups(g, 'sample').map(group => ({
+    ...group,
+    result: tubeMapReferenceLayout(graphOfPaths(g, group.paths)),
   }))
   const split = withTubeMapPanels(whole, laidOut)
   const [a, b] = split.tubeMapPanels!
@@ -81,7 +81,11 @@ test('one group draws the whole map, unsplit', () => {
   const g = graph()
   const whole = tubeMapReferenceLayout(g)!
   const split = withTubeMapPanels(whole, [
-    { key: 'B', result: tubeMapReferenceLayout(graphOfPaths(g, ['B#1#c'])) },
+    {
+      key: 'B',
+      paths: ['B#1#c'],
+      result: tubeMapReferenceLayout(graphOfPaths(g, ['B#1#c'])),
+    },
   ])
   expect(split).toBe(whole)
 })

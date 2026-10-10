@@ -25,8 +25,7 @@ export interface TubeMapPanelGroup {
   paths: string[]
 }
 
-export interface TubeMapPanel {
-  key: string
+export interface TubeMapPanel extends TubeMapPanelGroup {
   result: LayoutResult & { tubeMap: TubeMapDrawing }
   // where the panel's drawing starts down the stack, in tube px
   top: number
@@ -102,20 +101,20 @@ export function graphOfPaths(graph: Graph, paths: readonly string[]): Graph {
 // above each, or `whole` alone when fewer than two groups draw
 export function withTubeMapPanels(
   whole: LayoutResult,
-  laidOut: { key: string; result: LayoutResult | undefined }[],
+  laidOut: (TubeMapPanelGroup & { result: LayoutResult | undefined })[],
 ): PaneLayout {
   const panels: TubeMapPanel[] = []
   const nodePositions: LayoutResult['nodePositions'] = {}
   let y = 0
   let minX = Infinity
   let maxX = -Infinity
-  for (const { key, result } of laidOut) {
+  for (const { key, paths, result } of laidOut) {
     const tubeMap = result?.tubeMap
     const extent = result?.extent
     if (tubeMap && extent) {
       const top = y + PANEL_GAP
       const height = (extent.maxY ?? 0) - (extent.minY ?? 0)
-      panels.push({ key, result: { ...result, tubeMap }, top, height })
+      panels.push({ key, paths, result: { ...result, tubeMap }, top, height })
       const dy = top - (extent.minY ?? 0)
       for (const [id, segments] of Object.entries(result.nodePositions)) {
         nodePositions[id] = segments.map(s => ({ x: s.x, y: s.y + dy }))

@@ -28,7 +28,7 @@ import {
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
-import { rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
+import { referenceBoxes, rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import {
   connectorAt,
   drawLitConnector,
@@ -756,6 +756,15 @@ export const withFitViews = withHostViews
         ? rulerBoxes(reference)
         : undefined
     },
+    // Split on the reference axis, the panels share x, so one ruler under
+    // the last reads for them all; on the own axis each panel has its own
+    get tubeMapPanelRulerBoxes() {
+      const { layoutResult } = self
+      const last = layoutResult?.tubeMapPanels?.at(-1)
+      return last && layoutResult?.referenceAxis && !self.hostPlacesX
+        ? rulerBoxes(referenceBoxes(last.result.tubeMap))
+        : undefined
+    },
     // The connectors run from the top of the pane down to the tubes' top
     get connectorZoneBottom() {
       const picture = self.tubeMapPicture
@@ -799,7 +808,7 @@ export const withFitViews = withHostViews
         const { graph, coarse } = drawing
         return {
           panel,
-          label: field === 'walk' ? self.walkLabel(panel.key) : panel.key,
+          label: field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key,
           picture: tubeMapPicture(drawing),
           tubeColors: (graph.paths ?? []).map(p => colorOf.get(p.name) ?? ''),
           nodeColors: self.tubeMapNodeColors

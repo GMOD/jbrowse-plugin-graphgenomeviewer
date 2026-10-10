@@ -79,6 +79,7 @@ export function paintTubeMap(
 }
 
 const TITLE_FONT = '12px sans-serif'
+const MIN_TITLE_GAP_PX = 16
 
 // Each panel of a split tube map under a rule and its title, which the canvas
 // draws so a figure's SVG carries them
@@ -110,11 +111,25 @@ function paintPanels(
     ctx.moveTo(0, Math.round(p.titleTop) + 0.5)
     ctx.lineTo(width, Math.round(p.titleTop) + 0.5)
     ctx.stroke()
-    ctx.font = TITLE_FONT
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    ctx.fillStyle = `rgba(${ink},0.85)`
-    ctx.fillText(p.label, 6, p.titleTop + 4)
+    // a stack squeezed into a short track keeps its rules, not its titles
+    if (p.top - p.titleTop >= MIN_TITLE_GAP_PX) {
+      ctx.font = TITLE_FONT
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+      ctx.fillStyle = `rgba(${ink},0.85)`
+      ctx.fillText(p.label, 6, p.titleTop + 4)
+    }
+  }
+  const last = panels.at(-1)
+  const boxes = model.tubeMapPanelRulerBoxes
+  if (last && boxes) {
+    drawTubeMapRuler(
+      ctx,
+      boxes,
+      { ...last.frame, width, darkMode: model.darkMode },
+      last.bottom + 4,
+      true,
+    )
   }
 }
 

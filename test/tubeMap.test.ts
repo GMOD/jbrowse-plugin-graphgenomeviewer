@@ -249,4 +249,69 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
     ).toBeGreaterThan(1000)
     await screenshot(page, 'tubemap-01-gbz-track-in-linear-view')
   }, 180_000)
+
+  // Splitting reaches the layout through the facet setting alone, as a
+  // session or the Panels menu writes it
+  it('splits a tube map into a panel per strain, each hovered on its own', async () => {
+    const container = `[data-testid="view-container-${REFERENCE_VIEW}"]`
+    const view = <T>(body: string) =>
+      page.evaluate(
+        ([id, fn]) =>
+          // eslint-disable-next-line @typescript-eslint/no-implied-eval
+          new Function('view', fn)(
+            window.JBrowseSession.views.find(v => v.id === id),
+          ),
+        [REFERENCE_VIEW, body],
+      ) as Promise<T>
+    await view(`view.setFacet('walk')`)
+    await page.waitForFunction(
+      id =>
+        window.JBrowseSession.views.find(v => v.id === id).tubeMapPanelViews
+          ?.length === 4,
+      { timeout: 60_000 },
+      REFERENCE_VIEW,
+    )
+    const panels = await view<
+      { label: string; top: number; bottom: number; tubes: number }[]
+    >(
+      `return view.tubeMapPanelViews.map(p => ({ label: p.label, top: p.top, bottom: p.bottom, tubes: p.panel.result.tubeMap.layout.tracks.length }))`,
+    )
+    expect(panels.map(p => p.label)).toEqual([
+      'Sakai',
+      'CFT073',
+      'NCTC86',
+      'IAI39',
+    ])
+    expect(panels.every(p => p.tubes === 2)).toBe(true)
+    for (let i = 1; i < panels.length; i++) {
+      expect(panels[i]!.top).toBeGreaterThan(panels[i - 1]!.bottom)
+    }
+
+    // a box in IAI39's panel, found the way the pointer finds one
+    const rect = await page.$eval(
+      `${container} [data-testid="graph-genome-canvas"]`,
+      el => {
+        const r = el.getBoundingClientRect()
+        return { x: r.x, y: r.y, width: r.width }
+      },
+    )
+    const last = panels[3]!
+    const hit = await view<{ sx: number; sy: number } | undefined>(
+      `for (let sy = ${last.top}; sy < ${last.bottom}; sy += 2) for (let sx = ${rect.width / 2}; sx < ${rect.width}; sx += 3) if (view.tubeMapNodeAt(sx, sy)) return { sx, sy }`,
+    )
+    expect(hit).toBeDefined()
+    await page.mouse.move(rect.x + hit!.sx, rect.y + hit!.sy)
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll('div')].some(d =>
+          d.textContent.includes(' bp, depth '),
+        ),
+      { timeout: 10_000 },
+    )
+    expect(await view('return view.hoveredPanel')).toBe(3)
+    expect(
+      await inkedPixels(page, `${container} [data-testid="graph-hover-layer"]`),
+    ).toBeGreaterThan(0)
+    await screenshot(page, 'tubemap-03-panel-per-strain')
+  }, 180_000)
 })

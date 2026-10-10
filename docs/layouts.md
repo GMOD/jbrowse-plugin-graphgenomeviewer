@@ -98,6 +98,36 @@ same bp across the curated KIV-2 array:
   Off by default, and off while reads are shown, since they are placed by the
   segments a fold merges
 
+### Panels
+
+**Layout → Panels** splits a tube map into small multiples, each the reference
+and one group's walks laid out alone, stacked down the pane under a rule and its
+name. `"facet": "sample"` or `"walk"` on the display does the same.
+
+- **A panel per sample** holds a sample's haplotypes, so a genotype reads as one
+  panel: both tubes through a box, one, or none
+- **A panel per haplotype** holds one walk, each a pairwise comparison with the
+  reference
+- On the reference axis the panels share x: a box sits at its bp in every panel
+  and under the linear view's tracks, and one ruler under the last panel reads
+  for them all. On the own axis each panel's columns are its own
+- Each panel merges its own runs, so a haplotype matching the reference across a
+  stretch draws it as one box
+- Hovering a box lights it in every panel that draws it and bands its span in
+  the linear view; the tooltip reads the panel under the pointer
+- Reads are not drawn while split, since a GAF names no sample
+
+GSTM1 is deleted on both copies in about half of Europeans. Eight HPRC samples'
+haplotypes as a panel each, under the RefSeq genes: HG01960 and HG00128 carry
+GSTM1 on one haplotype, and the other six skip it on both:
+
+![GSTM1 as a tube map track split by sample, eight panels under the RefSeq genes, two heterozygous and six homozygous null](../img/tube_map_gstm1_samples.png)
+
+Hovering HG01960's GSTM1 box lights the same box in HG00128's panel and bands
+the gene's span in the linear view:
+
+![The GSTM1 box hovered in HG01960's panel, lit in every panel and banded in the linear view](../img/tube_map_gstm1_samples_hover.png)
+
 ### Reads
 
 GAF reads draw under the haplotypes of a gbz-base track in both tube map

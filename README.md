@@ -33,6 +33,12 @@ above it.
 
 ![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes and the eight haplotypes' alignment rows](img/tube_map_micb_ref.png)
 
+- **Genotypes as panels.** A tube map split by sample lays each sample's
+  haplotypes out beside the reference. Over GSTM1, two of eight samples carry
+  the gene on one haplotype and six on neither.
+
+![GSTM1 as a tube map track split by sample, two heterozygous and six homozygous null](img/tube_map_gstm1_samples.png)
+
 ## As its own view
 
 **Add → Graph genome view** opens a whole GFA file. A graph track's **Launch →
@@ -52,6 +58,7 @@ node in the view bands its bp in the linear view:
 - gbz-base haplotypes as walks: the number of walks through a node as its
   thickness, walks lifted out as metro-map lanes or side by side, a panel per
   walk or a row per sample, each shading from its start to its end
+- Tube maps split into a panel per sample or per haplotype
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 - Figures as SVG: the graph track in the linear view's Export SVG, the graph
   genome view's own Export SVG, or a JSON spec with no browser

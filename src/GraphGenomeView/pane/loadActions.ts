@@ -125,7 +125,7 @@ export const withLoadActions = withSettingActions.actions(self => {
                   graphOfPaths(laid, paths),
                   self.graphRegion,
                 )
-                return { key, result: panel && withCoarse(panel) }
+                return { key, paths, result: panel && withCoarse(panel) }
               }),
             )
           : whole
