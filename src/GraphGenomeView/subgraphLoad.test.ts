@@ -473,7 +473,10 @@ describe('reads', () => {
 
     const alt = haplotypes!.rects.find(r => r.id === 1)!
     model.setHoveredTube(model.tubeAt(...onScreen(alt)))
-    expect(model.hoveredTubeText).toEqual({ label: 'alt', readout: 'haplotype' })
+    expect(model.hoveredTubeText).toEqual({
+      label: 'alt',
+      readout: 'haplotype',
+    })
   })
 
   test('beside reads the fold menu reads None, since no fold applies', async () => {
