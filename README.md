@@ -33,20 +33,18 @@ Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
 [Minigraph-Cactus](https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/pangenome.md)
 (GFA and GBZ), then index what you have:
 
-- **rGFA** — run
-  [`build_pangenome_graph.sh`](https://github.com/GMOD/jbrowse-components/blob/main/scripts/build_pangenome_graph.sh).
-  It calls [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) and
-  [gfatools](https://github.com/lh3/gfatools) and writes `.segs.bed.gz`,
-  `.links.bed.gz`, `.bubbles.bed.gz`, a coarse tier and a track config. Adapter:
-  `RgfaTabixAdapter`
-- **Plain GFA** (pggb, odgi, vg, base-level Minigraph-Cactus) — the same script,
-  with `--reference`, `--assembly` and `--snarls`, a VCF from
-  `vg deconstruct -a` or `pggb -V`, which `gfa-to-tabix bubbles` turns into
-  `.bubbles.bed.gz`
-- **Alleles, with a CIGAR each** — `gfa-to-tabix alleles <prefix>` (0.7.0+)
-  reads a `--layout contig` segment and link index (`build_pangenome_graph.sh`
-  writes one as `.contig.*`) and writes `.alleles.bed.gz`, which an alignments
-  track draws
+- **rGFA** — `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+). It calls
+  [gfatools](https://github.com/lh3/gfatools) for the bubbles and writes
+  `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`, `.alleles.bed.gz`, a
+  coarse tier, a `.graph.json` manifest and a track config. Opening
+  `out.segs.bed.gz` in **Add pangenome graph track** reads the manifest.
+  Adapter: `RgfaTabixAdapter`
+- **Plain GFA** (pggb, odgi, vg, base-level Minigraph-Cactus) — the same
+  command, with `--reference`, `--assembly` and `--snarls`, a VCF from
+  `vg deconstruct -a` or `pggb -V`
+- **Alleles, with a CIGAR each** — `build` writes `.alleles.bed.gz`, which an
+  alignments track draws; `gfa-to-tabix alleles <prefix>` makes one from a
+  `--layout contig` index
 - **Haplotype walks, as tabix files** — `vg convert -f graph.gbz`, then
   `gfa-to-tabix --walks`. Adapter: `WalkTabixSyntenyAdapter`, or
   `RgfaTabixAdapter` with `walksUri`
