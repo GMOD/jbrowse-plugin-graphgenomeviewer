@@ -1,0 +1,36 @@
+{
+  "plugins": [
+    {
+      "name": "GraphGenomeView",
+      "esmUrl": "https://jbrowse.org/plugins/jbrowse-plugin-graphgenomeviewer/latest/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "cactus",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "cactus-refseq",
+        "adapter": {
+          "type": "ChromSizesAdapter",
+          "chromSizesLocation": { "uri": "cactus.chrom.sizes" }
+        }
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "type": "GraphTrack",
+      "trackId": "cactus_gbz",
+      "name": "cactus (GBZ + GAF)",
+      "assemblyNames": ["cactus"],
+      "adapter": {
+        "type": "GbzBaseSyntenyAdapter",
+        "gbzDbLocation": { "uri": "cactus.gbz.db" },
+        "readsLocation": { "uri": "cactus_240_280.gaf" },
+        "assemblyNames": ["cactus"],
+        "referenceSample": "_gbwt_ref"
+      }
+    }
+  ]
+}

@@ -184,7 +184,6 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
     await screenshot(page, 'tubemap-02-gaf-reads-track')
   }, 180_000)
 
-  // img/tube_map_reads.png is this frame
   it('names the walks, the reads and their marks in the legends', async () => {
     await page.evaluate(
       ([viewId, id]) => {

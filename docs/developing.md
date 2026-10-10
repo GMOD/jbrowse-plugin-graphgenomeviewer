@@ -111,10 +111,12 @@ node scripts/shoot-figures.mjs            # every figure in img/
 node scripts/shoot-figures.mjs force_mhc  # one
 ```
 
-The script serves `dist/` to jbrowse.org's hosted HPRC demo, the way
-`host-compat` does, so a figure shows this checkout's drawing on real data. The
-two tube map figures draw local fixtures instead; the header of
-`scripts/shoot-figures.mjs` names the e2e tests that frame them.
+Every figure in `img/` is a spec in `FIGURES` in `scripts/shoot-figures.mjs`: a
+session, an optional action before the shot, and an optional config. The script
+refuses to run while `img/` holds an image without one. It serves `dist/` to
+jbrowse.org's hosted JBrowse, the way `host-compat` does, on the HPRC demo's
+config unless a figure names another; `tube_map_reads` names one in
+`test_data/cactus/`, served from the same host.
 
 The core's `bandage-figure` renders figures from a spec; see its
 [figures guide](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md).

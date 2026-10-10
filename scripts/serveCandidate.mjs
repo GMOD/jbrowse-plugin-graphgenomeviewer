@@ -1,6 +1,8 @@
 // Answers a hosted JBrowse's requests for this plugin with the local dist/, on
 // the page and on every worker it starts, so a real shipped config loads the
 // candidate instead of what jbrowse.org serves. Shared by host-compat-probe.mjs.
+// `fixtures` maps a path on the host to a local directory, served the same
+// way, so a figure can draw local data on a hosted JBrowse.
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -17,7 +19,40 @@ function distRelative(pathname) {
     : pathname.slice(demos + DEMOS_PATH.length)
 }
 
-export function candidateServer(distDir) {
+const CONTENT_TYPES = {
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+}
+
+// The file a fixture route names, sliced to the Range a sqlite or tabix
+// reader asks for
+function fixtureResponse(file, range) {
+  const bytes = fs.readFileSync(file)
+  const headers = [
+    {
+      name: 'Content-Type',
+      value: CONTENT_TYPES[path.extname(file)] ?? 'application/octet-stream',
+    },
+    { name: 'Access-Control-Allow-Origin', value: '*' },
+    { name: 'Accept-Ranges', value: 'bytes' },
+  ]
+  const [, from, to] = /bytes=(\d+)-(\d*)/.exec(range ?? '') ?? []
+  if (from === undefined) {
+    return { responseCode: 200, responseHeaders: headers, body: bytes }
+  }
+  const start = Number(from)
+  const end = Math.min(to ? Number(to) : bytes.length - 1, bytes.length - 1)
+  return {
+    responseCode: 206,
+    responseHeaders: [
+      ...headers,
+      { name: 'Content-Range', value: `bytes ${start}-${end}/${bytes.length}` },
+    ],
+    body: bytes.subarray(start, end + 1),
+  }
+}
+
+export function candidateServer(distDir, fixtures = {}) {
   // The whole dist, by the path under the plugin's url: the entry imports its
   // code-split chunks by their own hashed names, and answering those with the
   // entry would fail in a way that reads as a host incompatibility.
@@ -31,6 +66,35 @@ export function candidateServer(distDir) {
     return fs.existsSync(file) ? fs.readFileSync(file) : undefined
   }
 
+  function fixtureFile(url) {
+    const { pathname } = new URL(url)
+    for (const [prefix, dir] of Object.entries(fixtures)) {
+      if (pathname.startsWith(prefix)) {
+        const file = path.join(dir, pathname.slice(prefix.length))
+        return fs.existsSync(file) ? file : undefined
+      }
+    }
+    return undefined
+  }
+
+  function respond(request) {
+    const fixture = fixtureFile(request.url)
+    if (fixture) {
+      return fixtureResponse(fixture, request.headers.Range)
+    }
+    const body = candidateBody(request.url)
+    return body === undefined
+      ? undefined
+      : {
+          responseCode: 200,
+          responseHeaders: [
+            { name: 'Content-Type', value: 'application/javascript' },
+            { name: 'Access-Control-Allow-Origin', value: '*' },
+          ],
+          body,
+        }
+  }
+
   // Fetch patterns on each target's own session rather than
   // page.setRequestInterception, which pauses every request including the RPC
   // worker's and never resumes those. The worker imports the plugin too, for
@@ -38,20 +102,16 @@ export function candidateServer(distDir) {
   async function serveOn(client, where) {
     client.on('Fetch.requestPaused', async ({ requestId, request }) => {
       try {
-        const body = candidateBody(request.url)
-        if (process.env.PROBE_DEBUG && body) {
+        const response = respond(request)
+        if (process.env.PROBE_DEBUG && response) {
           console.error(`served ${request.url} to ${where}`)
         }
-        await (body === undefined
+        await (response === undefined
           ? client.send('Fetch.continueRequest', { requestId })
           : client.send('Fetch.fulfillRequest', {
               requestId,
-              responseCode: 200,
-              responseHeaders: [
-                { name: 'Content-Type', value: 'application/javascript' },
-                { name: 'Access-Control-Allow-Origin', value: '*' },
-              ],
-              body: body.toString('base64'),
+              ...response,
+              body: Buffer.from(response.body).toString('base64'),
             }))
       } catch {
         await client
@@ -63,6 +123,7 @@ export function candidateServer(distDir) {
       patterns: [
         { urlPattern: `*${DEMOS_PATH}*` },
         { urlPattern: '*/plugins/jbrowse-plugin-graphgenomeviewer/*' },
+        ...Object.keys(fixtures).map(prefix => ({ urlPattern: `*${prefix}*` })),
       ],
     })
   }

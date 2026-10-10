@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 //
-// Reshoots the figures in img/ from jbrowse.org's hosted HPRC demo, with this
-// checkout's dist/ standing in for the published bundle.
+// Reshoots the figures in img/ on jbrowse.org's hosted JBrowse, with this
+// checkout's dist/ standing in for the published bundle. FIGURES holds every
+// one, each `{ session, act?, config? }`: the session spec, what to do before
+// the shot, and the config, the HPRC demo's unless it names another.
 //
 // Usage:
 //   node scripts/shoot-figures.mjs                 # every figure, into img/
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //
-// Every figure is a linear view on the demo's hg38, the graph as one of its
-// tracks or as a view opened under it, so each reads against the genes and
-// annotations at their bp. tube_map_reads.png draws a local fixture instead: it
-// is a frame of test/tubeMapReads.test.ts, which writes
-// test-screenshots/tube_map_reads.png.
+// Every figure is a linear view, the graph as one of its tracks or as a view
+// opened under it, so each reads against the genes and annotations at their
+// bp. A figure on local data names a config under FIXTURES, which serves
+// test_data/ from the same host.
+import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -20,6 +22,8 @@ import puppeteer from 'puppeteer'
 import { candidateServer } from './serveCandidate.mjs'
 
 const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
+const FIXTURES = '/__figure_fixtures__/'
+const FIXTURES_URL = `https://jbrowse.org${FIXTURES}`
 const GENES = 'hg38_ncbiRefSeq_ucsc'
 const RGFA = 'hprc_minigraph_segments'
 const GBZ = 'hprc_v2_1_gbz_lanes'
@@ -123,13 +127,13 @@ function graphView(props) {
   }
 }
 
-function linearView(loc, tracks, below = []) {
+function linearView(loc, tracks, below = [], assembly = 'hg38') {
   return {
     sessionTracks: tracks.flatMap(t => t.sessionTrack ?? []),
     views: [
       {
         type: 'LinearGenomeView',
-        assembly: 'hg38',
+        assembly,
         loc,
         tracks: tracks.map(({ sessionTrack, ...track }) => track),
       },
@@ -294,59 +298,68 @@ function hoverPanelBox(sample, bp) {
 }
 
 const FIGURES = {
-  force_kiv2: forceKiv2Track,
+  force_kiv2: { session: forceKiv2Track },
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
-  force_kiv2_bubbles: trackView(
-    KIV2_LOC,
-    {
-      ...kiv2Force,
-      layers: { bubbles: true },
-    },
-    [VNTR_TRACK, BUBBLE_TRACK],
-  ),
+  force_kiv2_bubbles: {
+    session: trackView(
+      KIV2_LOC,
+      {
+        ...kiv2Force,
+        layers: { bubbles: true },
+      },
+      [VNTR_TRACK, BUBBLE_TRACK],
+    ),
+  },
   // six of the eight lack GSTM1; the strip pales HG00133's missing stretch, and
   // the synteny view under it reads HG00133 against GRCh38 from the same graph,
   // its deletion a wedge pinched to a point on HG00133's contig
-  force_gstm1_walk: trackView(
-    GSTM1_LOC,
-    {
-      trackId: GBZ,
-      layoutMode: 'force',
-      color: { field: 'position' },
-      subgraphHaplotypes: HAPLOTYPES,
-      walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
-      height: 460,
-    },
-    [mafLane(HAPLOTYPES)],
-    [
+  force_gstm1_walk: {
+    session: trackView(
+      GSTM1_LOC,
       {
-        type: 'LinearSyntenyView',
-        tracks: [GBZ],
-        collapseEmptyRows: true,
-        views: [
-          { assembly: 'hg38', loc: GSTM1_LOC, tracks: [GENE_TRACK] },
-          { assembly: 'HG00133.1', loc: 'CM090045.1:109,741,100-109,757,750' },
-        ],
+        trackId: GBZ,
+        layoutMode: 'force',
+        color: { field: 'position' },
+        subgraphHaplotypes: HAPLOTYPES,
+        walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
+        height: 460,
       },
-    ],
-  ),
+      [mafLane(HAPLOTYPES)],
+      [
+        {
+          type: 'LinearSyntenyView',
+          tracks: [GBZ],
+          collapseEmptyRows: true,
+          views: [
+            { assembly: 'hg38', loc: GSTM1_LOC, tracks: [GENE_TRACK] },
+            {
+              assembly: 'HG00133.1',
+              loc: 'CM090045.1:109,741,100-109,757,750',
+            },
+          ],
+        },
+      ],
+    ),
+  },
   // three routes through GSTM1: HG01960 through GRCh38's copy, HG00133 past
   // it, and HG03041 round a copy of its own the graph never merged with it
-  force_gstm1_three_ways: trackView(
-    GSTM1_LOC,
-    {
-      trackId: GBZ,
-      layoutMode: 'force',
-      subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
-      walkLayers: [
-        { walk: 'HG01960#1#CM088644.1' },
-        { walk: 'HG00133#1#CM090045.1' },
-        { walk: 'HG03041#2#CM088727.1' },
-      ],
-      height: 460,
-    },
-    [mafLane(['HG01960.1', 'HG00133.1', 'HG03041.2'])],
-  ),
+  force_gstm1_three_ways: {
+    session: trackView(
+      GSTM1_LOC,
+      {
+        trackId: GBZ,
+        layoutMode: 'force',
+        subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
+        walkLayers: [
+          { walk: 'HG01960#1#CM088644.1' },
+          { walk: 'HG00133#1#CM090045.1' },
+          { walk: 'HG03041#2#CM088727.1' },
+        ],
+        height: 460,
+      },
+      [mafLane(['HG01960.1', 'HG00133.1', 'HG03041.2'])],
+    ),
+  },
   force_kiv2_open: {
     session: trackView(
       KIV2_LOC,
@@ -369,21 +382,23 @@ const FIGURES = {
       }),
   },
   // each walk takes its own loops through the array: HG01960 skips GRCh38's
-  force_kiv2_facet: trackView(
-    KIV2_ARRAY_LOC,
-    {
-      ...kiv2Gbz,
-      walkLayers: [
-        { walk: 'GRCh38#0#chr6' },
-        { walk: 'HG00097#1#JBIRDD010000043.1' },
-        { walk: 'HG01960#1#JBHIHM010000036.1' },
-        { walk: 'HG00133#1#CM090050.1' },
-      ],
-      facet: 'walk',
-      height: 560,
-    },
-    [VNTR_TRACK],
-  ),
+  force_kiv2_facet: {
+    session: trackView(
+      KIV2_ARRAY_LOC,
+      {
+        ...kiv2Gbz,
+        walkLayers: [
+          { walk: 'GRCh38#0#chr6' },
+          { walk: 'HG00097#1#JBIRDD010000043.1' },
+          { walk: 'HG01960#1#JBHIHM010000036.1' },
+          { walk: 'HG00133#1#CM090050.1' },
+        ],
+        facet: 'walk',
+        height: 560,
+      },
+      [VNTR_TRACK],
+    ),
+  },
   walk_rows_kiv2: {
     session: trackView(
       KIV2_ARRAY_LOC,
@@ -416,7 +431,7 @@ const FIGURES = {
   },
   // a panel per sample, both haplotypes beside the reference: HG01960 and
   // HG00128 carry GSTM1 on one haplotype, the other six on neither
-  tube_map_gstm1_samples: gstm1Samples,
+  tube_map_gstm1_samples: { session: gstm1Samples },
   // HG01960's GSTM1 box hovered lights the same box in HG00128's panel and
   // bands the gene in the linear view
   tube_map_gstm1_samples_hover: {
@@ -424,7 +439,7 @@ const FIGURES = {
     act: hoverPanelBox('HG01960', 109_690_800),
   },
   // a panel per superpopulation, six samples each, by the track's sample table
-  tube_map_gstm1_populations: gstm1Populations,
+  tube_map_gstm1_populations: { session: gstm1Populations },
   // GSTM1's box hovered in AFR's panel: each title counts its haplotypes
   // through it
   tube_map_gstm1_populations_hover: {
@@ -433,73 +448,64 @@ const FIGURES = {
   },
   // the RCCX module's 60 haplotypes as a tube per route: 35 take one, skipping
   // C4B's HERV-K, and the thin tubes skip or add a whole module
-  tube_map_c4_bundled: trackView(C4_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapRoutes: 'bundled',
-    height: 700,
-  }),
-  // one map, each route a stack of its superpopulations' strands
-  tube_map_c4_routes_by_population: trackView(C4_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapRoutes: 'bundled',
-    tubeMapColorBy: 'superpopulation',
-    height: 700,
-  }),
-  // every haplotype its own tube, ordered route by route and by population
-  tube_map_c4_grouped_by_population: trackView(C4_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapRoutes: 'grouped',
-    tubeMapColorBy: 'superpopulation',
-    height: 900,
-  }),
-  // every haplotype its own tube in its superpopulation's hue
-  tube_map_gstm1_by_population: trackView(GSTM1_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapColorBy: 'superpopulation',
-    height: 900,
-  }),
-  // and a panel per superpopulation, each its own routes
-  tube_map_gstm1_populations_bundled: trackView(GSTM1_LOC, {
-    trackId: GBZ,
-    layoutMode: 'tubemapref',
-    subgraphHaplotypes: POPULATION_SAMPLES,
-    tubeMapFold: 1000,
-    tubeMapRoutes: 'bundled',
-    facet: 'superpopulation',
-    height: 900,
-  }),
-  tube_map_micb_track: trackView(
-    MICB_LOC,
-    {
-      trackId: GBZ,
-      layoutMode: 'tubemap',
-      subgraphHaplotypes: HAPLOTYPES,
-      height: 360,
-    },
-    [mafLane(HAPLOTYPES)],
-  ),
-  tube_map_micb_ref: trackView(
-    MICB_LOC,
-    {
+  tube_map_c4_bundled: {
+    session: trackView(C4_LOC, {
       trackId: GBZ,
       layoutMode: 'tubemapref',
-      subgraphHaplotypes: HAPLOTYPES,
-      height: 420,
-    },
-    [mafLane(HAPLOTYPES)],
-  ),
+      subgraphHaplotypes: POPULATION_SAMPLES,
+      tubeMapFold: 1000,
+      tubeMapRoutes: 'bundled',
+      height: 700,
+    }),
+  },
+  // one map, each route a stack of its superpopulations' strands
+  tube_map_c4_routes_by_population: {
+    session: trackView(C4_LOC, {
+      trackId: GBZ,
+      layoutMode: 'tubemapref',
+      subgraphHaplotypes: POPULATION_SAMPLES,
+      tubeMapFold: 1000,
+      tubeMapRoutes: 'bundled',
+      tubeMapColorBy: 'superpopulation',
+      height: 700,
+    }),
+  },
+  // every haplotype its own tube, ordered route by route and by population
+  tube_map_c4_grouped_by_population: {
+    session: trackView(C4_LOC, {
+      trackId: GBZ,
+      layoutMode: 'tubemapref',
+      subgraphHaplotypes: POPULATION_SAMPLES,
+      tubeMapFold: 1000,
+      tubeMapRoutes: 'grouped',
+      tubeMapColorBy: 'superpopulation',
+      height: 900,
+    }),
+  },
+  tube_map_micb_track: {
+    session: trackView(
+      MICB_LOC,
+      {
+        trackId: GBZ,
+        layoutMode: 'tubemap',
+        subgraphHaplotypes: HAPLOTYPES,
+        height: 360,
+      },
+      [mafLane(HAPLOTYPES)],
+    ),
+  },
+  tube_map_micb_ref: {
+    session: trackView(
+      MICB_LOC,
+      {
+        trackId: GBZ,
+        layoutMode: 'tubemapref',
+        subgraphHaplotypes: HAPLOTYPES,
+        height: 420,
+      },
+      [mafLane(HAPLOTYPES)],
+    ),
+  },
   // hovering one of HG00133's genotype cells keeps its tube and greys the rest
   tube_map_micb_row_hover: {
     session: trackView(
@@ -533,6 +539,24 @@ const FIGURES = {
     act: hoverExonVariant,
   },
   // HG01071's 47 kb allele comes in between HLA-DRB5 and HLA-DRB6
+  // sequenceTubeMap's cactus graph with the NA12879 reads over nodes 240..280,
+  // each read's mismatches marked
+  tube_map_reads: {
+    config: `${FIXTURES_URL}cactus/config.json`,
+    session: linearView(
+      'ref:23,555-23,615',
+      [
+        {
+          type: 'LinearGraphDisplay',
+          trackId: 'cactus_gbz',
+          layoutMode: 'tubemapref',
+          height: 520,
+        },
+      ],
+      [],
+      'cactus',
+    ),
+  },
   force_mhc: {
     session: trackView(MHC_LOC, {
       trackId: RGFA,
@@ -659,6 +683,13 @@ const { values, positionals } = parseArgs({
     version: { type: 'string', default: 'main' },
   },
 })
+const unspecified = fs
+  .readdirSync('img')
+  .map(file => path.parse(file).name)
+  .filter(name => !FIGURES[name])
+if (unspecified.length > 0) {
+  throw new Error(`img/ holds figures with no spec: ${unspecified.join(', ')}`)
+}
 const names = positionals.length > 0 ? positionals : Object.keys(FIGURES)
 
 const browser = await puppeteer.launch({
@@ -670,13 +701,13 @@ try {
     if (!figure) {
       throw new Error(`no figure ${name}: ${Object.keys(FIGURES).join(', ')}`)
     }
-    const { session, act } = figure.views ? { session: figure } : figure
+    const { session, act, config = CONFIG } = figure
     const context = await browser.createBrowserContext()
     const page = await context.newPage()
     await page.setViewport({ width: 1400, height: 1600 })
-    await candidateServer(values.dist)(page)
+    await candidateServer(values.dist, { [FIXTURES]: 'test_data' })(page)
     await page.goto(
-      `https://jbrowse.org/code/jb2/${values.version}/?config=${encodeURIComponent(CONFIG)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
+      `https://jbrowse.org/code/jb2/${values.version}/?config=${encodeURIComponent(config)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
       { waitUntil: 'domcontentloaded', timeout: 60_000 },
     )
     await waitPainted(page)
