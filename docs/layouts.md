@@ -146,6 +146,37 @@ EUR's or SAS's:
 
 ![GSTM1 split by superpopulation, the gene's box hovered and each panel's title counting its haplotypes through it](../img/tube_map_gstm1_populations_hover.png)
 
+### Routes and tube colour
+
+A tube per haplotype grows with the cohort; what a reader wants is how many
+haplotypes take each route. **Layout → Routes**, or `"tubeMapRoutes"` on the
+display:
+
+- **A tube per haplotype** draws each walk, as the file lists them
+- **Grouped by route** keeps a tube each but orders them route by route, so
+  identical routes stack together
+- **A tube per route** draws the walks taking one route, step for step, as one
+  tube as wide as their count, labelled `×n`; hovering it lists them. A fold
+  first (above) makes the routes alleles rather than SNP haplotypes
+
+**Layout → Tube color**, or `"tubeMapColorBy"`, paints each tube by a column of
+the track's sample table, the reference charcoal, with a key per value. Under
+routes each route splits by the value, its strands side by side, so a route
+reads as a stack of its groups.
+
+Thirty HPRC samples over GSTM1, a tube per route coloured by superpopulation:
+the routes through the gene are mostly AFR and AMR, and EUR, EAS and SAS take
+the deletion:
+
+![GSTM1 as a tube per route coloured by superpopulation, AFR and AMR strands through the gene and EUR, EAS and SAS bands round it](../img/tube_map_gstm1_routes_by_population.png)
+
+The same 60 haplotypes as a tube per route, uncoloured, and as a tube each
+grouped by route:
+
+![GSTM1 as a tube per route, about seven routes for 60 haplotypes](../img/tube_map_gstm1_bundled.png)
+
+![GSTM1 as a tube per haplotype grouped by route and coloured by superpopulation](../img/tube_map_gstm1_grouped_by_population.png)
+
 ### Reads
 
 GAF reads draw under the haplotypes of a gbz-base track in both tube map

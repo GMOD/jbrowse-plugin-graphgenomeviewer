@@ -3375,6 +3375,32 @@ describe('walk rows', () => {
     expect(model.highlightMenuItems()).toEqual([])
   })
 
+  // B#1 and A#1 both take segment 2, A#2 skips it with the reference
+  test('a tube map bundles the walks taking one route into a tube each', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+      tubeMapRoutes: 'bundled',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const paths = model.drawnGraph!.paths!
+    expect(paths.map(p => p.members?.length ?? 1)).toEqual([1, 2, 1])
+    expect(model.tubeMapKeys).toMatchObject({ bundled: true, roles: true })
+    expect(model.pathLegend).toEqual([])
+    model.setHoveredTube({ track: 1 })
+    expect(model.hoveredTubeText?.label).toBe('2 haplotypes')
+
+    model.setTubeMapRoutes('grouped')
+    await model.recomputeLayout()
+    expect(model.drawnGraph!.paths!.map(p => p.name)).toEqual([
+      'GRCh38#0#chr1',
+      'B#1#ctg',
+      'A#1#ctg',
+      'A#2#ctg',
+    ])
+  })
+
   test('a tube map split by sample lays each sample out beside the reference', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

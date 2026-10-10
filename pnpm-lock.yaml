@@ -46,8 +46,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^9.6.0
-        version: 9.6.0
+        specifier: ^9.7.0
+        version: 9.7.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -648,8 +648,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@9.6.0':
-    resolution: {integrity: sha512-2uYmYuWSZCkmpOKpSeJFZgPZ/OP0BPr344eS+o/QiSHVvyufth5wbA0FOknnCrDqfpu4KIROf/5lasKi6yYHUA==}
+  '@jbrowse/bandage-core@9.7.0':
+    resolution: {integrity: sha512-sEQtxaIGDLQBE5xDha8jDJfBVGQmaH64a2yzMu5SPIYnODjNqO/+Mvi+3OyeFbd7rSl5ubsZ82qeUoeIbjymJg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -756,8 +756,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/tubemap-core@0.2.1':
-    resolution: {integrity: sha512-93MYJ6W6pJQij5y055GBFsNxp/cOplN7/hC+wBxI5xbySZI385V627ENR2HN0aNbnIysxF+pWhl2pnehNRg5VA==}
+  '@jbrowse/tubemap-core@0.2.2':
+    resolution: {integrity: sha512-zeYQE3d/x8OHNJG61IcNwbbD0p5an0iaxLkRZ4Get4MeIFRS0oaM1Lj9BZrMvfh15tDzE51kbwhXvgr1RWozlw==}
 
   '@jbrowse/wiggle-core@5.0.0-beta.13':
     resolution: {integrity: sha512-Mu4H69Ozf90kuews+qmIX1iq3nYlJv3l6UH5fB9eTDwHohnL/HGSQRpgV2pB47YKKGJEcm3Yxd0kqXbfABIIMA==}
@@ -4138,11 +4138,11 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@9.6.0':
+  '@jbrowse/bandage-core@9.7.0':
     dependencies:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.0
-      '@jbrowse/tubemap-core': 0.2.1
+      '@jbrowse/tubemap-core': 0.2.2
 
   '@jbrowse/cigar-utils@5.0.0-beta.11': {}
 
@@ -4436,7 +4436,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/tubemap-core@0.2.1': {}
+  '@jbrowse/tubemap-core@0.2.2': {}
 
   '@jbrowse/wiggle-core@5.0.0-beta.13(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)':
     dependencies:

@@ -33,11 +33,12 @@ above it.
 
 ![MICB's exons 2–4 as a tube map on the reference axis under the RefSeq genes and the eight haplotypes' alignment rows](img/tube_map_micb_ref.png)
 
-- **Panels per group.** A tube map splits into a panel per sample, haplotype or
-  sample table column. Split by superpopulation with GSTM1's box hovered, each
-  title counts its haplotypes carrying the gene: 6 of AFR's 12, none of EUR's.
+- **Allele frequency as a tube map.** A tube per route, as wide as the
+  haplotypes taking it, coloured by superpopulation: over GSTM1 the routes
+  through the gene are mostly AFR and AMR, and EUR, EAS and SAS take the
+  deletion. Panels split the map by sample or a sample table column.
 
-![GSTM1 split by superpopulation, the gene's box hovered and each panel's title counting its haplotypes through it](img/tube_map_gstm1_populations_hover.png)
+![GSTM1 as a tube per route coloured by superpopulation, AFR and AMR strands through the gene and EUR, EAS and SAS bands round it](img/tube_map_gstm1_routes_by_population.png)
 
 ## As its own view
 
@@ -59,7 +60,8 @@ node in the view bands its bp in the linear view:
 - gbz-base haplotypes as walks: the number of walks through a node as its
   thickness, walks lifted out as metro-map lanes or side by side, a panel per
   walk or a row per sample, each shading from its start to its end
-- Tube maps split into a panel per sample, haplotype or sample table column
+- Tube maps split into a panel per sample, haplotype or sample table column,
+  drawn as a tube per route and coloured by a sample table column
 - GAF reads in the tube map, with their mismatches, from a gbz-base track
 - Figures as SVG: the graph track in the linear view's Export SVG, the graph
   genome view's own Export SVG, or a JSON spec with no browser
