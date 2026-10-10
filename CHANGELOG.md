@@ -1,3 +1,16 @@
+## [6.24.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.23.0...v6.24.0) (2026-10-10)
+
+### Other Changes
+
+- A panel's hover counts the bp under the pointer, not a whole merged run ([8dd869b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8dd869bb5baa7014a3dbdcadff677b3d618fc73e))
+- Shoot-figures --compare keeps an unchanged figure's file ([146ec23](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/146ec23f7d2c999575b242cd7c3d9559afb0f693))
+- TubeMapReads e2e no longer writes the reads figure's frame ([c625e33](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/c625e335fa5caab02e67dd58f4d810673d1940bb))
+- A reference-axis tube map labels the long boxes it squeezes with their length ([9e6d4bd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9e6d4bdafb26a35aa538cc86b7543fe0c4243a5c))
+- Figure watch: a weekly reshoot of img/ uploading what moved ([87d2f70](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/87d2f7017155dcaecb6af85043864b82e9049acb))
+- The squeezed boxes' length labels ([28571c1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/28571c1f6e871b687c152c32a63195c4cd5123dc))
+- Bump @jbrowse/bandage-core to 9.10.0, for force-laid nodes that bend as curves ([76dfa6e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/76dfa6ef16cbf141546fa3ded83eb1a5dd88fe8c))
+- Reshoot the tube map figures on bandage-core 9.9.2's curves ([9a3ce7a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9a3ce7acf2009ba5a6333a368907dd468bd6547d))
+
 ## [6.23.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.22.1...v6.23.0) (2026-10-10)
 
 ### Other Changes
