@@ -426,24 +426,28 @@ Walk rows now take the worker's runs, and the bars cost their spans: 26,863 at
 KIV-2 paint in 18–21 ms on Canvas2D. The step budget no longer applies to them;
 GRAPH_TRACK.md has the browser timings.
 
-## A cut's text: parsed in the worker, as tables (2026-10-10)
+## A GBZ cut: tables end to end (2026-10-10)
 
-A GBZ cut of every haplotype is GFA text, and the main thread used to parse and
-convert it. GetSubgraph now reads it in the worker with bandage-core's
-`gfaTables` (9.9.0) and transfers the tables, and `loadGraph` takes the same
-route for any S/L/W text. Best of 5 on ada, ms:
+A GBZ cut of every haplotype used to cross as GFA text, which the main thread
+parsed into an object per walk step. Now gbz-base's compact subgraph becomes
+`GraphTables` in the worker (`cutWindowTables`, bandage-core 10.0.0), the tables
+transfer without a copy, and `Graph.pathVisits` keeps visits as typed columns
+(`PathVisits`) that anchoring and the tube map read directly. A window over
+several reference fragments still joins as text, then reads as tables. Best of 5
+on ada, ms:
 
-| stage                        | KIV-2, 45 MB, 4.4 M steps | AMY1, 34 MB |
-| ---------------------------- | ------------------------- | ----------- |
-| parseGFA + convert, before   | 258 + 1,391               | 214 + 1,045 |
-| `gfaTables`, now in a worker | 318                       | 250         |
-| `graphFromTables`            | 366                       | 747         |
-| anchoring, before → after    | 322 → 217                 | 233 → 222   |
-| main thread, before → after  | 1,971 → 583               | 1,492 → 969 |
+| stage                                  | KIV-2, 45 MB of GFA, 4.4 M steps | AMY1, 34 MB, 1,816 walks |
+| -------------------------------------- | -------------------------------- | ------------------------ |
+| worker: cut + text + parse → cut only  | ~1,030 → ~570                    | ~1,110 → ~850            |
+| main: parseGFA + convert + anchor, 9.8 | 1,971                            | 1,492                    |
+| main: `graphFromTables` + anchor, 9.9  | 586                              | 1,085                    |
+| main: the same on visit columns, 10.0  | 239                              | 187                      |
+| heap after the graph, 9.9 → 10.0       | 621 → 199 MB                     | 502 → 125 MB             |
 
-The graphs are deep equal. What `graphFromTables` still costs is one `PathVisit`
-object per step (4.4 M on KIV-2) plus the GC behind them: the next lever is
-visits kept as columns, read per node by the code that wants them.
+Every stage's output is deep equal to the text route's on both cuts. What the
+worker still spends is gbz-base's extraction. On the main thread
+`graphFromTables` still writes each walk's `nodeIds` and each link's `pathIds`
+as string arrays, 4.4 M entries apiece on KIV-2.
 
 ## Why the region cap is the wrong knob
 

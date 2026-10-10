@@ -128,16 +128,12 @@ Needs JBrowse 5.0.0-beta.11 or later.
 
 We made r package ports of this functionality here
 
-- https://github.com/gmod/ggtubemap
-- https://github.com/gmod/ggbandage
-
-Standalone page
-
-- https://github.com/cmdcolin/BandageJS
-
-JBrowse tutorials on pangenomes
-
-- https://jbrowse.org/jb2/docs/tutorials/
+- [ggtubemap](https://github.com/gmod/ggtubemap) - R port of the tubemap concept
+- [ggbandage](https://github.com/gmod/ggbandage) - R port of the bandage layout
+- [BandageJS](https://github.com/cmdcolin/BandageJS) - Standalone 'app' outside
+  of JBrowse with bandage layouts
+- [JBrowsed 2 tutorials](https://jbrowse.org/jb2/docs/tutorials/) - Includes
+  several pangenome tutorials using this plugin
 
 ## License
 

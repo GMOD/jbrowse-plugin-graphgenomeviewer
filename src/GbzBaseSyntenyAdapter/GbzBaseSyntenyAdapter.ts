@@ -1,7 +1,7 @@
 import { GBZBase, SubgraphLimitError } from '@gmod/gbz-base'
 import {
   NodeLimitError,
-  cutWindowGFA,
+  cutWindowTables,
   haplotypePrefix,
   haplotypeWanted,
   nodeLimitError,
@@ -396,12 +396,12 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   }
 
   /**
-   * The graph view's cut of the window: the reference walk, every top-level
-   * snarl contained in it, and one W line per haplotype walk, PanSN-named
+   * The graph view's cut of the window, as tables: the reference walk, every
+   * top-level snarl contained in it, and one walk per haplotype, PanSN-named
    * when the database (or its companion) carries the haplotype index and
-   * `unknown#N` otherwise. The reference walk is the first W line, which is
-   * the one the view anchors on by default. With `haplotypes` the W lines are
-   * that set's and the nodes those walks visit, the reference walk kept.
+   * `unknown#N` otherwise. The reference walk is the first, which is the one
+   * the view anchors on by default. With `haplotypes` the walks are that
+   * set's and the nodes those walks visit, the reference walk kept.
    *
    * Only a window on the anchor can be cut: a haplotype lane's coordinates
    * are its own contig's, and the graph is indexed for random access on the
@@ -426,7 +426,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     if (keep !== undefined && !db.hasHaplotypeIndex) {
       throw new NoHaplotypeIndexError(unreadableIndex)
     }
-    return cutWindowGFA(db, query, start, end, {
+    return cutWindowTables(db, query, start, end, {
       context: this.getConf('context'),
       snarls: opts.snarls ?? this.getConf('subgraphSnarls'),
       limit: this.getConf('nodeLimit'),

@@ -397,15 +397,10 @@ export function graphOfPaths(graph: Graph, paths: readonly string[]): Graph {
   const nodeIds = new Set(keptPaths.flatMap(p => p.nodeIds))
   const nodes = graph.nodes.filter(n => nodeIds.has(n.id))
   const names = new Set(nodes.map(n => n.name))
-  const pathVisits = graph.pathVisits
-    ? new Map(
-        [...graph.pathVisits].flatMap(([segment, visits]) =>
-          names.has(segment)
-            ? [[segment, visits.filter(v => walks.has(v.path))] as const]
-            : [],
-        ),
-      )
-    : undefined
+  const pathVisits = graph.pathVisits?.filter(
+    path => walks.has(path),
+    segment => names.has(segment),
+  )
   return {
     ...graph,
     nodes,

@@ -3,6 +3,13 @@ import os from 'os'
 import path from 'path'
 
 import { Subgraph } from '@gmod/gbz-base'
+import {
+  cutWindowGFA,
+  cutWindowTables,
+  referencePathQuery,
+} from '@jbrowse/bandage-core/gbzWindow'
+import { gfaTables } from '@jbrowse/bandage-core/gfa/gfaTables'
+import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
 import { numericCigarToString } from '@jbrowse/cigar-utils'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -20,6 +27,7 @@ import Adapter, {
 import configSchema from './configSchema.ts'
 import GbzBaseSyntenyAdapterF from './index.ts'
 
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { SyntenyMate } from '@jbrowse/synteny-core'
 
 // micb-kir3dl1.gbz.db is gbwt-rs's 46-sample HPRC slice (MICB on chr6, KIR3DL1
@@ -386,9 +394,14 @@ test('a lane name resolves at haplotype depth before sample depth', () => {
 const gfaLines = (gfa: string, kind: string) =>
   gfa.split('\n').filter(line => line.startsWith(`${kind}\t`))
 
+// a cut as the GFA its tables stand for
+async function cutGFA(cut: Promise<string | GraphTables>) {
+  const tables = await cut
+  return typeof tables === 'string' ? tables : graphTablesGFA(tables)
+}
+
 test('getSubgraph cuts the window as GFA with the reference walk first and every haplotype PanSN-named', async () => {
-  const gfa = await makeAdapter().getSubgraph(window)
-  expect(gfaLines(gfa, 'H')[0]).toBe('H\tVN:Z:1.1\tRS:Z:GRCh38')
+  const gfa = await cutGFA(makeAdapter().getSubgraph(window))
   expect(gfaLines(gfa, 'S').length).toBeGreaterThan(30)
   expect(gfaLines(gfa, 'L').length).toBeGreaterThan(30)
   const walks = gfaLines(gfa, 'W').map(line => line.split('\t'))
@@ -403,9 +416,9 @@ test('getSubgraph cuts the window as GFA with the reference walk first and every
 
 test('getSubgraph with contained snarls holds more nodes than the reference walk alone', async () => {
   const region = { ...window, start: 31500000, end: 31501000 }
-  const withSnarls = await makeAdapter().getSubgraph(region)
-  const without = await makeAdapter({ subgraphSnarls: 'none' }).getSubgraph(
-    region,
+  const withSnarls = await cutGFA(makeAdapter().getSubgraph(region))
+  const without = await cutGFA(
+    makeAdapter({ subgraphSnarls: 'none' }).getSubgraph(region),
   )
   expect(gfaLines(withSnarls, 'S').length).toBeGreaterThan(
     gfaLines(without, 'S').length,
@@ -420,8 +433,8 @@ test('a companion haplotype index names the walks the same way', async () => {
     },
   })
   const [a, b] = await Promise.all([
-    makeAdapter().getSubgraph(window as never),
-    companion.getSubgraph(window as never),
+    cutGFA(makeAdapter().getSubgraph(window as never)),
+    cutGFA(companion.getSubgraph(window as never)),
   ])
   expect(b).toBe(a)
   const fa = await feats(companion, window)
@@ -436,17 +449,21 @@ test('getSubgraph for a haplotype set keeps those walks, the reference, and only
     assemblyNames: ['hg38', 'hg01106_p'],
     assemblyNameToPanSN: { hg38: 'GRCh38#0', hg01106_p: 'HG01106#1' },
   })
-  const whole = await adapter.getSubgraph(window)
-  const kept = await adapter.getSubgraph(window, {
-    haplotypes: ['hg01106_p', 'HG01106#2'],
-  })
+  const whole = await cutGFA(adapter.getSubgraph(window))
+  const kept = await cutGFA(
+    adapter.getSubgraph(window, {
+      haplotypes: ['hg01106_p', 'HG01106#2'],
+    }),
+  )
   const samples = (gfa: string) =>
     gfaLines(gfa, 'W').map(line => line.split('\t').slice(1, 3).join('#'))
   expect(samples(kept)[0]).toBe('GRCh38#0')
   expect(samples(kept).slice(1).sort()).toEqual(['HG01106#1', 'HG01106#2'])
   expect(gfaLines(kept, 'S').length).toBeLessThan(gfaLines(whole, 'S').length)
   expect(gfaLines(kept, 'S').length).toBeGreaterThan(0)
-  expect(await adapter.getSubgraph(window, { haplotypes: [] })).toBe(whole)
+  expect(await cutGFA(adapter.getSubgraph(window, { haplotypes: [] }))).toBe(
+    whole,
+  )
 })
 
 test('getFeatures for a haplotype set answers the same records as filtering the whole window', async () => {
@@ -475,7 +492,7 @@ test('getSubgraph for a haplotype set without a haplotype index says so', async 
   await expect(
     adapter.getSubgraph(window, { haplotypes: ['HG01106#1'] }),
   ).rejects.toThrow(NoHaplotypeIndexError)
-  expect(await adapter.getSubgraph(window)).toContain('W\tunknown\t')
+  expect(await cutGFA(adapter.getSubgraph(window))).toContain('W\tunknown\t')
 })
 
 test('getSubgraph refuses a window on a haplotype lane with a message naming the anchor', async () => {
@@ -861,7 +878,7 @@ const walksOf = (gfa: string, sample: string) =>
     .map(walk => `${walk[2]} ${walk[4]}-${walk[5]} ${walk[6]}`)
 
 test('getSubgraph across a reference gap holds both fragments, the reference walks first', async () => {
-  const gfa = await fragmented(1000).getSubgraph(acrossGap)
+  const gfa = await cutGFA(fragmented(1000).getSubgraph(acrossGap))
   const walks = gfaLines(gfa, 'W').map(line => line.split('\t')[1])
   expect(walks.slice(0, 2)).toEqual(['GRCh38', 'GRCh38'])
   expect(walksOf(gfa, 'GRCh38')).toEqual([
@@ -875,7 +892,7 @@ test('getSubgraph across a reference gap holds both fragments, the reference wal
 })
 
 test('a haplotype bridging the gap is one walk, and its link across the gap is kept', async () => {
-  const gfa = await fragmented(1000).getSubgraph(acrossGap)
+  const gfa = await cutGFA(fragmented(1000).getSubgraph(acrossGap))
   expect(walksOf(gfa, 'HG003')).toEqual(['1 0-10000 >1>2>4>5>6>7>8>9>11>12'])
   expect(walksOf(gfa, 'HG005')).toEqual(['1 0-10000 <12<11<9<8<7<6<5<4<2<1'])
   expect(gfaLines(gfa, 'L')).toContain('L\t6\t+\t7\t+\t0M')
@@ -885,7 +902,7 @@ test('a haplotype bridging the gap is one walk, and its link across the gap is k
 // path through 5 -> 8 comes back as two pieces meeting at 4000, and neither
 // cut writes the link
 test('a walk whose pieces meet between cuts is one walk, with the link between them', async () => {
-  const gfa = await fragmented(0).getSubgraph(acrossGap)
+  const gfa = await cutGFA(fragmented(0).getSubgraph(acrossGap))
   expect(walksOf(gfa, 'HG007')).toEqual(['1 0-8000 >1>2>4>5>8>9>11>12'])
   expect(walksOf(gfa, 'HG008')).toEqual(['1 0-8000 <12<11<9<8<5<4<2<1'])
   expect(gfaLines(gfa, 'L')).toContain('L\t5\t+\t8\t+\t0M')
@@ -894,7 +911,7 @@ test('a walk whose pieces meet between cuts is one walk, with the link between t
 // HG007 and HG008 walk 5 -> 8, so the graph links HG004's two paths
 test('two paths of a haplotype that meet stay two walks, though the graph links them', async () => {
   for (const context of [0, 1000, 1500]) {
-    const gfa = await fragmented(context).getSubgraph(acrossGap)
+    const gfa = await cutGFA(fragmented(context).getSubgraph(acrossGap))
     expect(walksOf(gfa, 'HG004')).toEqual([
       '1 0-4000 >1>2>4>5',
       '1 4000-8000 >8>9>11>12',
@@ -1053,4 +1070,25 @@ test('a bgzipped reads shorthand takes the .tbi beside it', () => {
   )
   const plain = configSchema.create({ reads: 'reads.gaf', assemblyNames: [] })
   expect(readConfObject(plain, ['readsIndex', 'location']).uri).toBe('')
+})
+
+// One cut's typed arrays become the tables with no GFA in between; across a
+// reference gap the cuts join as text
+test('a cut read as tables is the GFA cut parsed', async () => {
+  for (const [adapter, region] of [
+    [makeAdapter({ context: 1000 }), window],
+    [fragmented(1000), acrossGap],
+  ] as const) {
+    const { db } = await (
+      adapter as unknown as {
+        graph: () => Promise<{ db: Parameters<typeof cutWindowGFA>[0] }>
+      }
+    ).graph()
+    const query = await referencePathQuery(db, 'GRCh38', region.refName)
+    const opts = { context: 1000, snarls: 'contained', limit: 100_000 } as const
+    const { start, end } = region
+    expect(await cutWindowTables(db, query, start, end, opts)).toEqual(
+      gfaTables(await cutWindowGFA(db, query, start, end, opts)),
+    )
+  }
 })
