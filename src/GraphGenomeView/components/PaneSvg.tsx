@@ -351,8 +351,15 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
   if (!model.layoutResult?.tubeMap) {
     return []
   }
-  const { logWidths, foldBp, forwardReads, reverseReads, mismatches } =
-    model.tubeMapKeys
+  const {
+    logWidths,
+    foldBp,
+    forwardReads,
+    reverseReads,
+    substitution,
+    insertion,
+    deletion,
+  } = model.tubeMapKeys
   const reads = model.readsShown
   const rows: KeyRow[] = []
   const glyph = (key: string, char: string, label: string) =>
@@ -420,13 +427,13 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
       ),
     )
   }
-  if (mismatches.has('substitution')) {
+  if (substitution) {
     rows.push(glyph('sub', 'A', "a read's base unlike the node's"))
   }
-  if (mismatches.has('insertion')) {
+  if (insertion) {
     rows.push(glyph('ins', '*', 'bases a read inserts'))
   }
-  if (mismatches.has('deletion')) {
+  if (deletion) {
     rows.push(flatRow('del', 'grey', 'bases a read skips'))
   }
   if (foldBp !== undefined) {

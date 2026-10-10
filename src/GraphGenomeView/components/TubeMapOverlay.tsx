@@ -207,8 +207,15 @@ export const TubeMapLegend = observer(function TubeMapLegend({
 }: {
   model: GraphPaneModel
 }) {
-  const { logWidths, foldBp, forwardReads, reverseReads, mismatches } =
-    model.tubeMapKeys
+  const {
+    logWidths,
+    foldBp,
+    forwardReads,
+    reverseReads,
+    substitution,
+    insertion,
+    deletion,
+  } = model.tubeMapKeys
   const reads = model.readsShown
   const sampled = reads && reads.shown < reads.total ? reads : undefined
   const rows = [
@@ -228,17 +235,17 @@ export const TubeMapLegend = observer(function TubeMapLegend({
         {sampled.total.toLocaleString('en-US')} reads shown
       </LegendRow>
     ),
-    mismatches.has('substitution') && (
+    substitution && (
       <LegendRow key="sub" swatch={<span style={glyphSwatchStyle}>A</span>}>
         a read's base unlike the node's
       </LegendRow>
     ),
-    mismatches.has('insertion') && (
+    insertion && (
       <LegendRow key="ins" swatch={<span style={glyphSwatchStyle}>*</span>}>
         bases a read inserts
       </LegendRow>
     ),
-    mismatches.has('deletion') && (
+    deletion && (
       <LegendRow key="del" swatch={<DeletionSwatch />}>
         bases a read skips
       </LegendRow>

@@ -56,7 +56,7 @@ import {
   readConfObject,
 } from '@jbrowse/core/configuration'
 import { getSession } from '@jbrowse/core/util'
-import { untracked } from 'mobx'
+import { computed, untracked } from 'mobx'
 
 import { hostFrame } from '../host'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
@@ -86,6 +86,8 @@ import type {
   RenderBatch,
   Renderer,
 } from '@jbrowse/bandage-core/renderer/types'
+import type { TubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
+import type { TubeMapTransform } from '@jbrowse/bandage-core/tubeMap/frame'
 import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -103,6 +105,27 @@ function mismatchText(m: TubeMapMismatch) {
   const shown =
     seq.length > MAX_SHOWN_BASES ? `${seq.slice(0, MAX_SHOWN_BASES)}…` : seq
   return `insertion of ${formatBp(seq.length)} ${shown}`.trim()
+}
+
+// Which kinds of read mark are on screen, stopping once all three are found
+function mismatchKindsShown(
+  picture: TubeMapPicture | undefined,
+  frame: TubeMapTransform | undefined,
+  width: number,
+) {
+  const kinds = { substitution: false, insertion: false, deletion: false }
+  if (picture && frame && mismatchesLegible(frame.yScale)) {
+    let missing = 3
+    for (const m of picture.mismatches) {
+      if (!kinds[m.kind] && mismatchOnScreen(m, { x: frame.x, width })) {
+        kinds[m.kind] = true
+        if (--missing === 0) {
+          break
+        }
+      }
+    }
+  }
+  return kinds
 }
 
 export function walkRowGeneKey(
@@ -788,30 +811,38 @@ export const withFitViews = withHostViews
       }
     },
   }))
+  .views(self => {
+    // Compared by value: the marks in view are read off the transform, and
+    // the legend should redraw when a kind comes or goes, not every pan frame
+    const keys = computed(
+      () => {
+        const layout = self.layoutResult
+        const reads = layout?.tubeMap?.layout.reads ?? []
+        return {
+          logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
+          foldBp:
+            self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
+          forwardReads: reads.some(r => !r.is_reverse),
+          reverseReads: reads.some(r => r.is_reverse),
+          ...mismatchKindsShown(
+            self.tubeMapPicture,
+            self.tubeMapFrame,
+            self.paneWidth,
+          ),
+        }
+      },
+      { equals: (a, b) => JSON.stringify(a) === JSON.stringify(b) },
+    )
+    return {
+      // What the tube map's legend has to explain: that on the own axis a
+      // box is as wide as the log of its length, the fold its walks' ticks
+      // stand for, the reads' strands, and the marks on the reads in view
+      get tubeMapKeys() {
+        return keys.get()
+      },
+    }
+  })
   .views(self => ({
-    // What the tube map's legend has to explain: that on the own axis a
-    // box is as wide as the log of its length, the fold its walks' ticks
-    // stand for, the reads' strands, and the marks on the reads in view
-    get tubeMapKeys() {
-      const layout = self.layoutResult
-      const reads = layout?.tubeMap?.layout.reads ?? []
-      const picture = self.tubeMapPicture
-      const frame = self.tubeMapFrame
-      const shown =
-        picture && frame && mismatchesLegible(frame.yScale)
-          ? picture.mismatches.filter(m =>
-              mismatchOnScreen(m, { x: frame.x, width: self.paneWidth }),
-            )
-          : []
-      return {
-        logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
-        foldBp:
-          self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
-        forwardReads: reads.some(r => !r.is_reverse),
-        reverseReads: reads.some(r => r.is_reverse),
-        mismatches: new Set(shown.map(m => m.kind)),
-      }
-    },
     tubeMapNodeAt(sx: number, sy: number) {
       const drawing = self.layoutResult?.tubeMap
       const frame = self.tubeMapFrame

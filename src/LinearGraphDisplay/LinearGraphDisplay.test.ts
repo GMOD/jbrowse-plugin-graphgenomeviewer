@@ -17,6 +17,7 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
 import { types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
+import { reaction } from 'mobx'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import LinearGraphDisplayF from './index'
@@ -736,6 +737,24 @@ test("a folded tube map draws the cut's reference as merged nodes, and the rest 
   expect(nodes.filter(n => n.stable?.rank === 1)).toHaveLength(3)
   expect(pane.tubeMapDeviations).toEqual([])
   expect(pane.tubeMapKeys.foldBp).toBeUndefined()
+})
+
+test("a pan that changes nothing the tube map's legend says leaves it alone", async () => {
+  const { pane } = await shownGraph({ paths: true })
+  await pane.switchLayout('tubemap')
+  await wait(SETTLE_MS)
+  let notified = 0
+  const dispose = reaction(
+    () => pane.tubeMapKeys,
+    () => {
+      notified++
+    },
+  )
+  const frame = pane.tubeMapFrame
+  pane.setTransform(pane.scale, pane.translateX - 20, pane.translateY)
+  expect(pane.tubeMapFrame).not.toBe(frame)
+  expect(notified).toBe(0)
+  dispose()
 })
 
 test('a layout whose x is not reference bp draws its own viewport of the window alone, and still re-cuts', async () => {

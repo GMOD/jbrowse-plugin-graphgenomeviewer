@@ -11,7 +11,9 @@ function legend(readsShown: { shown: number; total: number } | undefined) {
       foldBp: undefined,
       forwardReads: true,
       reverseReads: false,
-      mismatches: new Set(),
+      substitution: false,
+      insertion: false,
+      deletion: false,
     },
     readsShown,
   }
