@@ -424,6 +424,18 @@ test('the coarse pair takes the csi indexes its adapter states', () => {
   )
 })
 
+test('the coarse pair takes foldBelowBp in place of aboveBpPerPx', () => {
+  const config = configSchema.create({
+    uri: 'hprc',
+    coarse: { uri: 'hprc.fold10000', foldBelowBp: 10000 },
+  })
+  expect(readConfObject(config, ['coarse', 'foldBelowBp'])).toBe(10000)
+  expect(readConfObject(config, ['coarse', 'aboveBpPerPx'])).toBeUndefined()
+  expect(readConfObject(config, ['coarse', 'segmentsLocation'])).toMatchObject({
+    uri: 'hprc.fold10000.segs.bed.gz',
+  })
+})
+
 test('a track with no coarse pair states no threshold', () => {
   const config = configSchema.create({ uri: 'hprc' })
   expect(readConfObject(config, ['coarse', 'aboveBpPerPx'])).toBeUndefined()

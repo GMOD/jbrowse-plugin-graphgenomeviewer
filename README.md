@@ -139,6 +139,10 @@ Needs JBrowse 5.0.0-beta.11 or later.
   (`.gbz.db`) as a `GraphTrack`. It finds the links and indexes beside the url,
   which a presigned url's signature doesn't cover; spell out each location in a
   config instead
+- Open track's **Add pangenome graph track** workflow also reads
+  `<prefix>.graph.json` beside a `<prefix>.segs.bed.gz` (written by
+  `gfa-to-tabix build`) for the coarse tier and the reference's PanSN sample;
+  without one, the track has no coarse tier
 - A hand-written track needs only the adapter:
 
 ```json
@@ -151,8 +155,8 @@ Needs JBrowse 5.0.0-beta.11 or later.
     "type": "RgfaTabixAdapter",
     "uri": "https://example.com/hprc",
     "coarse": {
-      "uri": "https://example.com/hprc.tier10000",
-      "aboveBpPerPx": 1000
+      "uri": "https://example.com/hprc.fold10000",
+      "foldBelowBp": 10000
     }
   }
 }
@@ -161,8 +165,8 @@ Needs JBrowse 5.0.0-beta.11 or later.
 - The track menu picks layout, colour and highlighted haplotypes, and switches
   to the segments lane or, for gbz-base and walk-indexed graphs, the haplotype
   lanes
-- Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`, the
-  `coarse` tier (`gfa-to-tabix fold`)
+- Cuts the window plus a window each side, up to 5 Mb; past `aboveBpPerPx`
+  (default `foldBelowBp / 10`), the `coarse` tier (`gfa-to-tabix fold`)
 - Past the cut (5 Mb, or a gbz-base adapter's `nodeLimit`) the track asks you to
   zoom in. For a population view of a wide window, add the graph's VCF as a
   variant track (`vg deconstruct` makes one from a GBZ)

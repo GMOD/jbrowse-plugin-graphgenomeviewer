@@ -103,17 +103,29 @@ At bovine DEFB (chr27:6.0-7.25 Mb) the fold keeps the large loops of the
 ## The tier
 
 `RgfaTabixAdapter`'s `coarse` slot names a second segments/links pair, and
-`aboveBpPerPx`, the zoom past which a settle cuts it. The pair is the same fold
-of the whole graph at a fixed size, written by `gfa-to-tabix fold`, a port of
-bandage-core's `foldVariants` (anchored rows, so one read holds the window).
-Since folding again at a larger size folds the original at that size, a tier cut
-draws what a fine cut drew just below the handover, provided `aboveBpPerPx` is
-the tier's size over `FOLD_PX`. A coarse cut has no bp cap, since
-`maxGraphNodes` counts what came back, hops as a fine cut does, and reads no
-bubble index. The display persists `cutRegion` and `coarseCut`, so a restored
+`aboveBpPerPx`, the zoom past which a settle cuts it, or `foldBelowBp`, the size
+the pair was folded at, from which `coarseHandover` derives that zoom as
+`foldBelowBp / FOLD_PX`. `aboveBpPerPx` wins when both are set. The pair is the
+same fold of the whole graph at a fixed size, written by `gfa-to-tabix fold`, a
+port of bandage-core's `foldVariants` (anchored rows, so one read holds the
+window). Since folding again at a larger size folds the original at that size, a
+tier cut draws what a fine cut drew just below the handover, provided
+`aboveBpPerPx` is the tier's size over `FOLD_PX`. A coarse cut has no bp cap,
+since `maxGraphNodes` counts what came back, hops as a fine cut does, and reads
+no bubble index. The display persists `cutRegion` and `coarseCut`, so a restored
 session re-makes the cut it saved. The segments lane (`LinearBasicDisplay` on
 the same track) does not switch tier: `RenderFeatureData` hands a feature
 adapter no bpPerPx.
+
+The Add pangenome graph track workflow fills the slot from the
+`<prefix>.graph.json` manifest `gfa-to-tabix build` writes beside
+`<prefix>.segs.bed.gz` (`src/GraphAddTrackWorkflow/graphManifest.ts`). It takes
+`tier` and `reference` (the PanSN sample, used when the user leaves Sample
+blank). It adds only the graph track, since `addTrackFromWidget` takes one
+config; the manifest's `bubbles` and `alleles` go unused. A manifest that is
+missing, unreadable, not schema 1, or names anything but a bare sibling file is
+ignored. The core adapter guesser behind plain Open track is synchronous, so it
+cannot read the manifest.
 
 ## Height
 
