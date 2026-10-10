@@ -261,7 +261,7 @@ what names the two that are not the reference:
 
 The plugin reads `gfatools bubble` output from `<prefix>.bubbles.bed.gz` beside
 the rGFA index, which HPRC's hosted graph has and `scripts/build_rgfa_tabix.sh`
-in jbrowse-components writes. For a GBZ cut, a pggb file or a popped bubble, the
+in jbrowse-components writes. For a GBZ cut, a pggb file or an open bubble, the
 plugin derives bubbles from the ordered layout's layering. With **Show... › Show
 bubble halos** on, the node layouts draw each structural variant as a halo along
 its nodes, coloured by kind, which the legend names. A variant under 50 bp is a
@@ -274,13 +274,15 @@ to 129 paths, is the halo named "3.0–175 kb repeat array (KIV-2), 129 routes":
 
 ![KIV-2 with its bubbles marked, under the HPRC bubbles track that draws the same records at their bp](../img/force_kiv2_bubbles.png)
 
-A bubble's label opens its nodes on their own, with a button back to the window.
-The popped graph derives its own bubbles, so a superbubble opens level by level.
-Opened in the track, the KIV-2 array keeps its strip, its reference segments sit
-at their bp under the curated KIV-2 annotation, and each copy-sized loop inside
-it is a bubble to open next:
+Clicking a bubble's label opens it in place: its nodes keep their colour, with
+the ramp spanning just the bubble, and the rest of the graph and the strip turn
+grey. The bubbles inside it get labels of their own, so a superbubble opens
+level by level. Clicking an open bubble's label closes it, as do the legend's
+**close** and a click on empty canvas. Opened, the KIV-2 array takes the whole
+ramp under the curated KIV-2 annotation, with the LPA exons and the flanks in
+grey beside it:
 
-![The KIV-2 array popped open in the track, its copies marked as bubbles of their own](../img/force_kiv2_popped.png)
+![The KIV-2 array open in the track: its nodes in colour, the rest of LPA grey](../img/force_kiv2_open.png)
 
 ## Haplotype walks
 

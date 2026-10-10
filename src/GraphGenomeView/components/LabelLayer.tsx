@@ -46,10 +46,9 @@ const LabelLayer = observer(function LabelLayer({
     : undefined
   const tickAt = (target: EventTarget) =>
     ticks[Number((target as Element).getAttribute('data-tick'))]
-  // lifted walks dim the bubbles none of them enters and the routes none of
-  // them takes
-  const dimmedBubble = (h: BubbleHalo) =>
-    walkLift !== undefined && !h.nodeIds.some(id => walkLift.nodeIds.has(id))
+  const dimmedBubble = (h: BubbleHalo) => model.bubbleFaded(h)
+  const isOpen = (h: BubbleHalo) => model.bubbleIsOpen(h.bubble)
+  // lifted walks dim the routes none of them takes
   const dimmedRoute = (r: RouteLabel) =>
     walkLift !== undefined && !r.route.walks.some(w => walkLift.names.has(w))
 
@@ -65,7 +64,7 @@ const LabelLayer = observer(function LabelLayer({
         onClick={e => {
           const tick = tickAt(e.target)
           if (tick) {
-            void model.popBubble(tick.item.bubble)
+            model.toggleBubble(tick.item.bubble)
           }
         }}
         onMouseOver={e => {
@@ -148,14 +147,14 @@ const LabelLayer = observer(function LabelLayer({
           text={text}
           color={BUBBLE_KIND_COLORS[h.kind]}
           dimmed={dimmedBubble(h)}
-          title={`${h.label}\n${h.bubble.segmentCount} segments${h.bubble.covering ? '' : ' · click to open'}`}
+          title={`${h.label}\n${h.bubble.segmentCount} segments${h.bubble.covering ? '' : isOpen(h) ? ' · click to close' : ' · click to open'}`}
           testId="graph-bubble-halo-label"
           // the bubble the drawing is would open into this same drawing
           onClick={
             h.bubble.covering
               ? undefined
               : () => {
-                  void model.popBubble(h.bubble)
+                  model.toggleBubble(h.bubble)
                 }
           }
           // a leave also fires as the view closing it unmounts the chip

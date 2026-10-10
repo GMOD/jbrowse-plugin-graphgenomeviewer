@@ -347,7 +347,7 @@ const FIGURES = {
     },
     [mafLane(['HG01960.1', 'HG00133.1', 'HG03041.2'])],
   ),
-  force_kiv2_popped: {
+  force_kiv2_open: {
     session: trackView(
       KIV2_LOC,
       {
@@ -365,7 +365,7 @@ const FIGURES = {
         const [array] = [...display.bubbles].sort(
           (a, b) => b.segmentCount - a.segmentCount,
         )
-        display.popBubble(array)
+        display.toggleBubble(array)
       }),
   },
   // each walk takes its own loops through the array: HG01960 skips GRCh38's

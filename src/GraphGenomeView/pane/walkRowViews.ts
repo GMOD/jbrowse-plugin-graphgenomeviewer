@@ -21,14 +21,12 @@ import type { SubgraphRegion } from '../../GetSubgraph'
 export const withWalkRowViews = withLaunchViews
   .views(self => ({
     // Whether the strip of walk rows sits under the drawing: asked for, on a
-    // standalone view whose layout draws nodes, for a graph with walks, and
-    // not while a bubble is popped
+    // standalone view whose layout draws nodes, for a graph with walks
     get walkStripShown() {
       return walkStripApplies({
         walkStrip: self.walkStrip,
         mode: { drawsNodes: self.modeDrawsNodes },
         drawsPicture: !!self.layoutResult?.tubeMap || !!self.walkRowBars,
-        popped: self.popStack.length > 0,
         walks: self.graph?.paths?.length ?? 0,
         host: !!self.host,
       })

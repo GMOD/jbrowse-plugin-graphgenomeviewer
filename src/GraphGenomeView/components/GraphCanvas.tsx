@@ -14,7 +14,7 @@ import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
 
-import BubbleHalos, { HaloLegend } from './BubbleHalos'
+import BubbleHalos, { HaloLegend, OpenBubbleLegend } from './BubbleHalos'
 import FacetPanels from './FacetPanels'
 import GenePins, { EXON_COLOR } from './GenePins'
 import GraphToolbar from './GraphToolbar'
@@ -24,7 +24,6 @@ import ReferenceStripOverlay, {
   ReferenceStripLegend,
 } from './ReferenceStripOverlay'
 import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
-import UnpopButton from './UnpopButton'
 import WalkKey, { walkSwatchStyle } from './WalkKey'
 import { WalkRowContextMenu } from './WalkRowContextMenu'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
@@ -379,6 +378,7 @@ const Legends = observer(function Legends({
         top: LEGEND_INSET_PX + model.referenceStripZonePx,
       }}
     >
+      <OpenBubbleLegend model={model} />
       <ReferenceRampLegend model={model} />
       <ReferenceStripLegend model={model} />
       <HaloLegend model={model} />
@@ -664,7 +664,6 @@ const GraphCanvas = observer(function GraphCanvas({
             <Legends model={model} />
           </>
         )}
-        <UnpopButton model={model} />
 
         {ownChrome ? (
           <div style={loadingLayerStyle}>

@@ -2677,48 +2677,7 @@ describe('the auto color scheme', () => {
   })
 })
 
-test('a popped bubble reads a node where it sits on each walk, as the whole graph does', async () => {
-  rpcRespond()
-  // 0 (10 bp) > 1 (4) > {2 (8) | 3 (4)} > 4 (4) > 5 (10)
-  const gfa = [
-    'H\tVN:Z:1.1',
-    'S\t0\tAAAAAAAAAA',
-    'S\t1\tACGT',
-    'S\t2\tGGCCGGCC',
-    'S\t3\tTTTT',
-    'S\t4\tCCCC',
-    'S\t5\tGGGGGGGGGG',
-    'L\t0\t+\t1\t+\t0M',
-    'L\t1\t+\t2\t+\t0M',
-    'L\t1\t+\t3\t+\t0M',
-    'L\t2\t+\t4\t+\t0M',
-    'L\t3\t+\t4\t+\t0M',
-    'L\t4\t+\t5\t+\t0M',
-    'W\tGRCh38\t0\tchr1\t0\t32\t>0>1>3>4>5',
-    'W\tB\t1\tctg\t0\t36\t>0>1>2>4>5',
-    '',
-  ].join('\n')
-  const model = stateModelFactory().create({
-    type: 'GraphGenomeView',
-    layoutMode: 'auto',
-  })
-  await model.loadGFA(gfa, 'walks')
-  model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
-  const onB = () => model.walkLift!.walks.find(w => w.name === 'B#1#ctg')!
-  model.setHoveredNode('2+')
-  expect(model.hoveredOn(onB())).toBe('ctg:14-22')
-
-  await model.popBubble(model.bubbles[0]!)
-  model.setHoveredNode('2+')
-  expect(model.hoveredOn(onB())).toBe('ctg:14-22')
-  expect(onB().range).toEqual({
-    contig: 'ctg',
-    start: 10,
-    end: 10 + onB().bp,
-  })
-})
-
-describe('popping a bubble', () => {
+describe('opening a bubble', () => {
   beforeEach(() => {
     mockRpcCall.mockReset()
     mockSession.tracks = []
@@ -2738,33 +2697,44 @@ describe('popping a bubble', () => {
     longestAllele: undefined,
   }
 
-  test('opens the bubble in the layout it was in and comes back to the window', async () => {
+  test('opens in place: the graph and its drawing stay, the rest greys', async () => {
     rpcRespond()
     const model = createAnchoredModel()
     model.setLayoutMode('force')
     await model.loadGFA(RGFA, 'rgfa')
     const window = model.graph!
+    const layouts = () =>
+      mockRpcCall.mock.calls.filter(c => c[1] === 'GraphComputeLayout').length
+    const laidOut = layouts()
 
-    await model.popBubble(bubble)
-    expect(model.layoutMode).toBe('force')
-    expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2', '3'])
-    expect(model.poppedFrom?.graph).toBe(window)
-    const laidOut = mockRpcCall.mock.calls
-      .filter(c => c[1] === 'GraphComputeLayout')
-      .at(-1)![2] as { graph: { nodes: { id: string }[] } }
-    expect(laidOut.graph.nodes.map(n => n.id).sort()).toEqual([
+    model.toggleBubble(bubble)
+    expect(model.graph).toBe(window)
+    expect(layouts()).toBe(laidOut)
+    expect(model.openBubble).toBe(bubble)
+    expect([...model.openBubbleFocus!.nodeIds].sort()).toEqual([
       '1+',
       '2+',
       '3+',
     ])
+    expect(model.openBubbleFocus!.walks).toEqual([])
 
-    await model.unpopBubble()
-    expect(model.graph).toBe(window)
-    expect(model.layoutMode).toBe('force')
-    expect(model.poppedFrom).toBeUndefined()
+    model.toggleBubble(bubble)
+    expect(model.openBubble).toBeUndefined()
+    expect(model.openBubbleFocus).toBeUndefined()
   })
 
-  test('a pop leaves the cut in flight to land', async () => {
+  test('an open bubble on the reference spans the ramp', async () => {
+    rpcRespond()
+    const model = createAnchoredModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    const whole = model.rampDomain
+    model.toggleBubble({ ...bubble, end: 8 })
+    expect(model.rampDomain).toEqual({ start: 4, end: 8 })
+    model.closeBubbles()
+    expect(model.rampDomain).toEqual(whole)
+  })
+
+  test('a re-cut keeps the bubbles still in it open', async () => {
     let respond = (_gfa: string) => {}
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
@@ -2776,53 +2746,24 @@ describe('popping a bubble', () => {
     const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'rgfa')
     const cut = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
-
-    await model.popBubble(bubble)
-    expect(model.poppedFrom).toBeDefined()
-    expect(model.isLoading).toBe(true)
+    model.toggleBubble(bubble)
 
     respond(SIMPLE_GFA)
     await cut
-    expect(model.poppedFrom).toBeUndefined()
     expect(model.graph!.nodes.map(n => n.name).sort()).toEqual(['1', '2'])
-    expect(model.isLoading).toBe(false)
-  })
-
-  test('a pane following its default layout still follows it after a pop', async () => {
-    rpcRespond()
-    const model = createModel()
-    await model.loadGFA(RGFA, 'rgfa')
-    expect(model.layoutMode).toBeUndefined()
-
-    await model.popBubble(bubble)
-    await model.unpopBubble()
-
-    expect(model.layoutMode).toBeUndefined()
-  })
-
-  // A spec names the whole graph, so bandage-figure would draw the window
-  // rather than the bubble on screen
-  test('a popped bubble offers no figure spec', async () => {
-    rpcRespond()
-    const model = createAnchoredModel()
-    model.setLayoutMode('force')
-    await model.loadGFA(RGFA, 'rgfa')
-    await model.popBubble(bubble)
-    expect(model.figureSpecUnavailable).toMatch(/go back out of this bubble/)
-    await model.unpopBubble()
-    expect(model.figureSpecUnavailable).not.toMatch(/bubble/)
+    expect(model.openBubbles).toEqual([bubble])
   })
 
   // Without an index beside the source the bubbles come from the graph
-  // itself, and a popped graph gets its own, so a superbubble opens in steps.
-  // 4 flanks the bubble, which would otherwise be the whole graph.
+  // itself, and an open one derives those inside it, so a superbubble opens
+  // in steps. 4 flanks the bubble, which would otherwise be the whole graph.
   const RGFA_BUBBLE =
     RGFA +
     'S\t4\tAAAA\tSN:Z:chr\tSO:i:8\tSR:i:0\n' +
     'L\t3\t+\t2\t+\t0M\nL\t2\t+\t4\t+\t0M\n'
 
-  // chr 0 1 2 5, and an alt arm from 1 to 2 with a SNP between a and d: the
-  // pop of 1..2 derives itself by reach, so it opens into a..d instead
+  // chr 0 1 2 5, and an alt arm from 1 to 2 with a SNP between a and d:
+  // opening 1..2 derives the SNP inside it
   const RGFA_NESTED = [
     'H\tVN:Z:1.0',
     'S\t0\tAAAA\tSN:Z:chr\tSO:i:0\tSR:i:0',
@@ -2867,53 +2808,44 @@ describe('popping a bubble', () => {
     expect(model.bubbleHalos).toEqual([])
   })
 
-  test('pops nest, and each level derives what it holds', async () => {
+  test('opening nests, and each open bubble lists what it holds', async () => {
     rpcRespond()
     const model = createAnchoredModel()
     model.setLayoutMode('ordered')
     await model.loadGFA(RGFA_NESTED, 'rgfa')
     const window = model.graph!
+    const [outer] = model.bubbles
     expect(model.bubbles.map(b => b.segments)).toEqual(['1,a,b,c,d,2'])
 
-    await model.popBubble(model.bubbles[0]!)
-    const inner = model.graph!
-    expect(model.popStack.map(p => p.graph)).toEqual([window])
-    const [snp, ...rest] = model.bubbles.filter(b => !b.covering)
-    expect(rest).toEqual([])
-    expect(snp).toMatchObject({ key: 'a>d', offReference: true, start: 8 })
-    // the popped bubble keeps its name over the drawing it now is
-    expect(model.bubbles.filter(b => b.covering).map(b => b.segments)).toEqual([
-      '1,a,b,c,d,2',
-    ])
+    model.toggleBubble(outer!)
+    const snp = model.bubbles.find(b => b.key === 'a>d')
+    expect(snp).toMatchObject({ offReference: true, start: 8 })
+    expect(model.bubbles.filter(b => b.covering)).toEqual([])
+    expect(model.bubbleFaded({ bubble: snp!, nodeIds: ['a+', 'd+'] })).toBe(
+      false,
+    )
+    expect(model.bubbleFaded({ bubble: snp!, nodeIds: ['0+'] })).toBe(true)
 
-    expect(model.usesLayoutEngine).toBe(false)
-
-    // nothing in a..d is on the reference, so the ordered layout hands it to
-    // the layout engine
-    await model.popBubble(snp!)
-    expect(model.popStack.map(p => p.graph)).toEqual([window, inner])
-    expect(model.graph!.name).toBe(`SNP in ${inner.name}`)
-    expect(model.bubbles.map(b => [b.key, b.covering])).toEqual([['a>d', true]])
-    expect(model.usesLayoutEngine).toBe(true)
-
-    await model.unpopBubble()
-    expect(model.graph).toBe(inner)
-    expect(model.layoutMode).toBe('ordered')
-    expect(model.usesLayoutEngine).toBe(false)
-    await model.unpopBubble()
+    model.toggleBubble(snp!)
+    expect(model.openBubbles).toEqual([outer, snp])
     expect(model.graph).toBe(window)
-    expect(model.poppedFrom).toBeUndefined()
+
+    // closing the outer one closes what is open inside it
+    model.toggleBubble(outer!)
+    expect(model.openBubbles).toEqual([])
+    expect(model.bubbles.map(b => b.segments)).toEqual(['1,a,b,c,d,2'])
   })
 
   test('a bubble off the reference lights no reference span', async () => {
     rpcRespond()
     const model = createAnchoredModel()
     await model.loadGFA(RGFA_NESTED, 'rgfa')
-    await model.popBubble(model.bubbles[0]!)
-    const [snp] = model.bubbles
+    const [outer] = model.bubbles
+    model.toggleBubble(outer!)
+    const snp = model.bubbles.find(b => b.key === 'a>d')
     model.setHoveredBubble(snp!)
     expect(model.hoveredSpan).toBeUndefined()
-    model.setHoveredBubble(model.poppedFrom!.bubble)
+    model.setHoveredBubble(outer!)
     expect(model.hoveredSpan).toEqual({ start: 8, end: 8 })
   })
 
@@ -2921,11 +2853,9 @@ describe('popping a bubble', () => {
     rpcRespond()
     const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'rgfa')
-    const window = model.graph
     mockSession.notify.mockClear()
-    await model.popBubble({ ...bubble, segments: 'x,y' })
-    expect(model.graph).toBe(window)
-    expect(model.poppedFrom).toBeUndefined()
+    model.toggleBubble({ ...bubble, segments: 'x,y' })
+    expect(model.openBubble).toBeUndefined()
     expect(mockSession.notify).toHaveBeenCalledWith(
       expect.stringContaining('widen the graph context'),
       'info',

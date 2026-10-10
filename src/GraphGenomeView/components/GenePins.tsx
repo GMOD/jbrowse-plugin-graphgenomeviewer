@@ -34,8 +34,16 @@ const GenePins = observer(function GenePins({
   const { genePins, walkLift, nodeInk } = model
   const { scaleX, scaleY, translateX, translateY, paneWidth, canvasHeight } =
     model
+  // an open bubble rings only its own exons
+  const focus = walkLift ? undefined : model.openBubbleFocus
+  const pins = focus
+    ? genePins.map(pin => ({
+        ...pin,
+        exonsByNode: pin.exonsByNode.filter(e => focus.nodeIds.has(e.nodeId)),
+      }))
+    : genePins
   const tree = exonOutlineTree(
-    exonStretches(genePins, nodeInk.halfWidthPx, walkLift),
+    exonStretches(pins, nodeInk.halfWidthPx, walkLift),
     {
       id,
       width: paneWidth,

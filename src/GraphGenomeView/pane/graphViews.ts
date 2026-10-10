@@ -1,4 +1,7 @@
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
+import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { bubbleSubgraph } from '@jbrowse/bandage-core/bubbles/popBubble'
 import { graphBubbles } from '@jbrowse/bandage-core/bubbles/superbubbles'
 import { resolveColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import {
@@ -80,6 +83,7 @@ import type { NodeColor } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
 import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { WalkRowGroupBy } from '../walkRowGroups'
+import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type {
   ColorScheme,
   ResolvedColorScheme,
@@ -91,6 +95,7 @@ import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
 import type { GraphNode } from '@jbrowse/bandage-core/types'
 import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
+import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
@@ -347,10 +352,14 @@ export const withGraphViews = paneBase
     get activeReferencePath() {
       return self.graph?.referencePath
     },
-    // Undefined for a graph with neither, where the ramp spans the drawn
-    // extent (computeReferenceRamp)
+    // An open bubble on the reference spans the ramp, so its own nodes take
+    // every hue while the rest is grey. Undefined for a graph with neither,
+    // where the ramp spans the drawn extent (computeReferenceRamp)
     get rampDomain() {
-      return self.statedColorDomain ?? self.graphRegion
+      const open = self.openBubbles.at(-1)
+      return open && !open.offReference && open.end > open.start
+        ? { start: open.start, end: open.end }
+        : (self.statedColorDomain ?? self.graphRegion)
     },
     // The ramp a lane coloured by reference position reads, computed only
     // when a layer asks for one: it is a neighbour walk per node
@@ -527,22 +536,83 @@ export const withGraphViews = paneBase
     },
   }))
   .views(self => ({
-    get poppedFrom() {
-      return self.popStack.at(-1)
-    },
     // The bubbles the graph itself states, for a graph with no index: a GBZ
-    // cut, a pggb file, the inside of a popped bubble.
+    // cut or a pggb file
     get derivedBubbles() {
-      return self.graph
-        ? graphBubbles(self.graph, self.popStack.at(-1)?.bubble)
+      return self.graph ? graphBubbles(self.graph) : []
+    },
+    // The bubbles inside each open one, derived from its segments alone, so a
+    // superbubble opens level by level
+    get openBubbleInsides() {
+      const { graph } = self
+      return graph
+        ? self.openBubbles.map(open =>
+            graphBubbles(
+              bubbleSubgraph(graph, bubbleSegmentIds(open)),
+              open,
+            ).filter(b => !b.covering),
+          )
         : []
+    },
+    get openBubble() {
+      return self.openBubbles.at(-1)
+    },
+    // The open bubble's segments and the links among them, which keep their
+    // colour while the rest of the drawing greys: a lift with no walks
+    get openBubbleFocus(): WalkLift | undefined {
+      const open = this.openBubble
+      const { graph } = self
+      if (!open || !graph) {
+        return undefined
+      }
+      const names = new Set(bubbleSegmentIds(open))
+      const nodeIds = new Set(
+        graph.nodes.filter(n => names.has(n.name)).map(n => n.id),
+      )
+      const edgeIndexes = new Set<number>()
+      graph.edges.forEach((e, i) => {
+        if (nodeIds.has(e.from) && nodeIds.has(e.to)) {
+          edgeIndexes.add(i)
+        }
+      })
+      return { walks: [], nodeIds, edgeIndexes, names: new Set() }
+    },
+    bubbleIsOpen(bubble: MinigraphBubble) {
+      return self.openBubbles.some(o => sameBubble(o, bubble))
+    },
+    // Whether a bubble's halo and name fade: lifted walks fade those none of
+    // them enters, and an open bubble those outside it other than the open
+    bubbleFaded({
+      bubble,
+      nodeIds,
+    }: {
+      bubble: MinigraphBubble
+      nodeIds: string[]
+    }) {
+      const lift = self.walkLift
+      const focus = this.openBubbleFocus
+      return lift
+        ? !nodeIds.some(id => lift.nodeIds.has(id))
+        : !!focus &&
+            !this.bubbleIsOpen(bubble) &&
+            !nodeIds.every(id => focus.nodeIds.has(id))
     },
   }))
   .views(self => ({
-    // The bubbles halos draw and pops open. Index rows win where both exist:
-    // gfatools measured every allele, the layered order only bounds them.
+    // The bubbles halos draw and labels open: the window's, and those inside
+    // each open one. Index rows win where both exist: gfatools measured every
+    // allele, the layered order only bounds them.
     get bubbles() {
-      return self.indexBubbles?.length ? self.indexBubbles : self.derivedBubbles
+      const base = self.indexBubbles?.length
+        ? self.indexBubbles
+        : self.derivedBubbles
+      const seen = new Set(base.map(bubbleKey))
+      return [
+        ...base,
+        ...self.openBubbleInsides
+          .flat()
+          .filter(b => !seen.has(bubbleKey(b)) && seen.add(bubbleKey(b))),
+      ]
     },
     // what the legend says the drawing leaves out, when it was folded
     get foldNote() {

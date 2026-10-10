@@ -107,7 +107,9 @@ depth from walks when a GFA has no depth tag, so on a GBZ cut width is carriage.
   superbubbles inside it instead (bandage-core's `bubbles/superbubbles.ts`,
   BubbleGun's search, 24 ms on KIV-2's 15,808 nodes), capped at the 50 largest.
   The same rule opens KIV-2's array, 98.7% of its window, at the top level.
-  `popStack` holds each level and the bubble opened from it.
+  Since 2026-10-10 a bubble opens in place rather than as a graph of its own:
+  `openBubbles` lists the open levels, and each derives the bubbles inside it
+  from `bubbleSubgraph` of its segments.
 - Derived bubbles never claim an inversion. The strand a path first visits a
   node on is not evidence of one: a pggb path walking the window backwards made
   eleven SNPs read as inversions in a first draft.

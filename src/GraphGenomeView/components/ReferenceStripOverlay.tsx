@@ -175,8 +175,9 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
             rows={[{ key: 'pale', background: LIFT_BACKDROP_CSS }]}
           />
           <span>
-            reference not on{' '}
-            {rowPerWalk ? "that row's walk" : model.liftedWalksLabel}
+            {model.walkLift
+              ? `reference not on ${rowPerWalk ? "that row's walk" : model.liftedWalksLabel}`
+              : 'reference outside the open bubble'}
           </span>
         </div>
       ) : null}

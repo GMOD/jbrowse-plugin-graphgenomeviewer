@@ -36,9 +36,7 @@ const SettingsMenu = observer(function SettingsMenu({
             icon: VisibilityIcon,
             subMenu: [
               ...model.showMenuItems(),
-              ...(model.modeDrawsNodes &&
-              model.walkChoices.length > 1 &&
-              model.popStack.length === 0
+              ...(model.modeDrawsNodes && model.walkChoices.length > 1
                 ? [
                     {
                       type: 'checkbox' as const,

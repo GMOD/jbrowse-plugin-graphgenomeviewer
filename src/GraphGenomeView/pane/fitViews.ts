@@ -236,7 +236,7 @@ export const withFitViews = withHostViews
     // zoomToFit. On a reference-bp layout x is the cut window rather than
     // how far the drawing reaches: an allele anchored far outside it is a
     // fact about the graph, not a reason to draw the window at 6% of the
-    // frame. A popped bubble fits to what it drew. Walk rows reach as far as
+    // frame. Walk rows reach as far as
     // the bars on screen, which a repeat pick or a sample filter narrows
     // after the layout ran.
     get layoutBounds() {
@@ -248,7 +248,7 @@ export const withFitViews = withHostViews
           : undefined
       return layout
         ? drawingBounds(layout, {
-            region: self.popStack.length === 0 ? self.graphRegion : undefined,
+            region: self.graphRegion,
             extent: rowsExtent && {
               ...rowsExtent,
               maxY: rowsExtent.maxY + (this.walkRowPlacement?.headersPx ?? 0),
@@ -716,11 +716,9 @@ export const withFitViews = withHostViews
     get figureSpecUnavailable() {
       return !self.drawsNodes
         ? `bandage-figure draws no ${layoutModeByValue(self.chosenLayoutMode).label} layout`
-        : self.popStack.length
-          ? 'A spec names the whole graph, so go back out of this bubble first'
-          : this.figureSpec()
-            ? undefined
-            : 'bandage-figure reads a graph cut from a gbz-base track or a GFA url'
+        : this.figureSpec()
+          ? undefined
+          : 'bandage-figure reads a graph cut from a gbz-base track or a GFA url'
     },
     // The drawing as a standalone SVG, fitted, with its genes, its lifted
     // walks' keys, facet panels and the strip of walk rows; see figureSvg
@@ -740,7 +738,6 @@ export const withFitViews = withHostViews
             connectorThickness: self.connectorThickness,
             region: self.graphRegion,
             colorDomain: self.statedColorDomain,
-            fitToDrawing: self.popStack.length > 0,
             genes: self.showGenes ? self.backboneGenes : undefined,
             walkRows: self.walkRowBars,
             walkRowPitch: self.walkRowPitch,

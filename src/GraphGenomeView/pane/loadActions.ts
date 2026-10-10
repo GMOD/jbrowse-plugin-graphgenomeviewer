@@ -1,9 +1,5 @@
-import {
-  BUBBLE_KIND_NAMES,
-  bubbleSegmentIds,
-  classifyBubble,
-} from '@jbrowse/bandage-core/bubbles/classifyBubble'
-import { bubbleSubgraph } from '@jbrowse/bandage-core/bubbles/popBubble'
+import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { foldVariants } from '@jbrowse/bandage-core/foldVariants'
 import {
   clipToWindow,
@@ -325,7 +321,11 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.walkGeneFeatures = undefined
     walkGeneCache.clear()
     self.repeatArrays = undefined
-    self.popStack = []
+    // a re-cut keeps the bubbles still in it open
+    const names = new Set(graph.nodes.map(n => n.name))
+    self.openBubbles = self.openBubbles.filter(b =>
+      bubbleSegmentIds(b).some(id => names.has(id)),
+    )
     // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
     // are ids, so all three address the graph being replaced here. Carrying
     // them over points the tooltip and the highlight at whatever now happens
@@ -428,13 +428,7 @@ export const withLoadActions = withSettingActions.actions(self => {
                 },
               ]
         })
-        // an open bubble derives its own; the index is the window's
-        const [outermost, ...popped] = self.popStack
-        if (outermost) {
-          self.popStack = [{ ...outermost, indexBubbles: bubbles }, ...popped]
-        } else {
-          self.indexBubbles = bubbles
-        }
+        self.indexBubbles = bubbles
       }
     } catch (e) {
       console.warn('[GraphGenomeView] no bubble index for this graph', e)
@@ -578,7 +572,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     walkGeneCache.clear()
     self.repeatArrays = undefined
     self.readsShown = undefined
-    self.popStack = []
+    self.openBubbles = []
     self.error = undefined
     self.isLoading = false
     self.loadCanceled = false
@@ -815,76 +809,39 @@ export const withLoadActions = withSettingActions.actions(self => {
         )
       }
     }),
-    // Open one bubble: the graph becomes the segments the bubble row names,
-    // drawn in the layout the reader is in. The graph it came from stays
-    // behind it, one click away, and the popped graph gets its own derived
-    // bubbles, so a superbubble opens progressively.
-    popBubble: flow(function* (bubble: MinigraphBubble) {
-      const graph = self.graph
-      if (!graph) {
+    // Open a bubble in place: it keeps its colour, the rest of the drawing
+    // greys, and the bubbles inside it get labels of their own. Opening an
+    // open one closes it and those inside it.
+    toggleBubble(bubble: MinigraphBubble) {
+      const open = self.openBubbles
+      const at = open.findIndex(o => sameBubble(o, bubble))
+      if (at >= 0) {
+        self.openBubbles = open.slice(0, at)
         return
       }
-      const sub = bubbleSubgraph(graph, bubbleSegmentIds(bubble))
-      if (sub.nodes.length === 0) {
+      const names = new Set(bubbleSegmentIds(bubble))
+      if (!self.graph?.nodes.some(n => names.has(n.name))) {
         getSession(self).notify(
           'None of the segments of this bubble are in the cut; widen the graph context to open it',
           'info',
         )
         return
       }
-      self.popStack = [
-        ...self.popStack,
-        {
-          graph,
-          layoutMode: self.chosenLayoutMode,
-          label: graph.name,
-          indexBubbles: self.indexBubbles,
-          bubble,
-        },
-      ]
-      self.indexBubbles = undefined
-      const kind =
-        BUBBLE_KIND_NAMES[classifyBubble(bubble, self.repeatArrays).kind]
-      const label = bubble.offReference
-        ? `${kind} in ${graph.name}`
-        : `${kind} at ${bubble.refName}:${bubble.start.toLocaleString()}`
-      self.graph = { ...sub, name: label }
-      self.clearInteractionState()
-      self.viewportOwner = 'fit'
-      self.isLoading = true
-      try {
-        if (yield* layoutInto(self.graph)) {
-          layoutSettled()
-        }
-      } catch (e) {
-        self.error = e
-        layoutSettled()
+      const insides = self.openBubbleInsides
+      let parent = insides.length - 1
+      while (
+        parent >= 0 &&
+        !insides[parent]!.some(b => sameBubble(b, bubble))
+      ) {
+        parent--
       }
-    }),
-    unpopBubble: flow(function* () {
-      const from = self.poppedFrom
-      if (!from) {
-        return
+      self.openBubbles = [...open.slice(0, parent + 1), bubble]
+    },
+    closeBubbles() {
+      if (self.openBubbles.length > 0) {
+        self.openBubbles = []
       }
-      self.popStack = self.popStack.slice(0, -1)
-      self.graph = from.graph
-      if (from.layoutMode !== self.chosenLayoutMode) {
-        self.setLayoutMode(from.layoutMode)
-        self.handledLayoutMode = from.layoutMode
-      }
-      self.indexBubbles = from.indexBubbles
-      self.clearInteractionState()
-      self.viewportOwner = 'fit'
-      self.isLoading = true
-      try {
-        if (yield* layoutInto(from.graph)) {
-          layoutSettled()
-        }
-      } catch (e) {
-        self.error = e
-        layoutSettled()
-      }
-    }),
+    },
     recomputeLayout: flow(function* () {
       const graph = wholeGraph()
       if (!graph) {

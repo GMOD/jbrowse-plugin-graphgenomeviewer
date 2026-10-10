@@ -9,7 +9,6 @@ import { observer } from 'mobx-react'
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
 
 import type { GraphPaneModel } from '../model'
-import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 
 // The bubbles over a node drawing: each a translucent halo along its nodes,
 // drawn once in layout units and moved with the canvas by one transform. The
@@ -31,7 +30,7 @@ const BubbleHalos = observer(function BubbleHalos({
 }: {
   model: GraphPaneModel
 }) {
-  const { bubbleHalos, walkLift, hoveredBubble } = model
+  const { bubbleHalos, hoveredBubble } = model
   if (bubbleHalos.length === 0) {
     return null
   }
@@ -44,10 +43,6 @@ const BubbleHalos = observer(function BubbleHalos({
     canvasHeight,
   } = model
   const halo = model.contigThickness * HALO_FACTOR
-  // lifted walks dim the bubbles none of them enters
-  const dimmedBubble = (h: BubbleHalo) =>
-    walkLift !== undefined && !h.nodeIds.some(id => walkLift.nodeIds.has(id))
-
   return (
     <svg
       style={svgStyle}
@@ -74,7 +69,7 @@ const BubbleHalos = observer(function BubbleHalos({
               strokeOpacity={
                 hoveredBubble && sameBubble(h.bubble, hoveredBubble)
                   ? 0.45
-                  : dimmedBubble(h)
+                  : model.bubbleFaded(h)
                     ? 0.06
                     : 0.22
               }
@@ -140,6 +135,46 @@ export const HaloLegend = observer(function HaloLegend({
           <span>{label}</span>
         </div>
       ))}
+    </div>
+  ) : null
+})
+
+const closeStyle = {
+  pointerEvents: 'auto' as const,
+  cursor: 'pointer',
+  border: 'none',
+  background: 'none',
+  padding: '0 2px',
+  font: 'inherit',
+  textDecoration: 'underline',
+}
+
+// What the colour is on while a bubble is open, and the way back out
+export const OpenBubbleLegend = observer(function OpenBubbleLegend({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  const open = model.openBubble
+  const halo = open
+    ? model.bubbleHalos.find(h => sameBubble(h.bubble, open))
+    : undefined
+  return open ? (
+    <div style={legendBoxStyle} data-testid="graph-open-bubble-legend">
+      <div style={legendRowStyle}>
+        {halo ? <HaloSwatch color={BUBBLE_KIND_COLORS[halo.kind]} /> : null}
+        <span>open: {halo?.label ?? 'bubble'}</span>
+        <button
+          type="button"
+          style={closeStyle}
+          data-testid="graph-close-bubble"
+          onClick={() => {
+            model.closeBubbles()
+          }}
+        >
+          close
+        </button>
+      </div>
     </div>
   ) : null
 })

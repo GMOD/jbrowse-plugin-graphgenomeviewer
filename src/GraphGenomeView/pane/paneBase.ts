@@ -362,20 +362,12 @@ export const paneBase = types
     walkRowSampleTable: undefined as SampleRow[] | undefined,
     // the tandem repeat arrays over the cut window, from the repeat track
     repeatArrays: undefined as RepeatArray[] | undefined,
-    // The graphs the open bubble was popped out of, outermost first, each
-    // with what closing back to it restores without a refetch. A stack so a
-    // popped superbubble can be mapped and popped again.
     // the layout mode the drawing was last laid out for, so a change from the
     // menu is not laid out a second time by the reaction that catches the rest
     handledLayoutMode: undefined as LayoutModeValue | undefined,
-    popStack: [] as {
-      graph: Graph
-      layoutMode: LayoutModeValue
-      label: string
-      indexBubbles: MinigraphBubble[] | undefined
-      // the bubble opened out of `graph`
-      bubble: MinigraphBubble
-    }[],
+    // The bubbles opened in place, outermost first, each inside the one before
+    // it. The drawing keeps the innermost in colour and greys the rest.
+    openBubbles: [] as MinigraphBubble[],
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     error: undefined as unknown,

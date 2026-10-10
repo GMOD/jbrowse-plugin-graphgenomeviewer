@@ -7,6 +7,7 @@ import {
   stripBlockAt,
   stripOverhang,
 } from '@jbrowse/bandage-core/referenceStrip'
+import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import { deviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
@@ -31,8 +32,7 @@ export const withHostViews = withWalkRowViews
   .views(self => ({
     // Whether the host places x. Only a layout whose x is reference bp can
     // take the window's transform; force, ordered and walk rows draw in
-    // their own coordinates inside the track, and a popped bubble is a
-    // picture of its own.
+    // their own coordinates inside the track.
     get hostPlacesX() {
       const { host, graphRegion: region } = self
       return (
@@ -40,7 +40,6 @@ export const withHostViews = withWalkRowViews
         host.initialized &&
         region !== undefined &&
         self.xIsReferenceBp &&
-        self.popStack.length === 0 &&
         !host.dynamicBlocks.contentBlocks.some(
           b => b.refName === region.refName && b.reversed,
         )
@@ -106,15 +105,25 @@ export const withHostViews = withWalkRowViews
     },
   }))
   .views(self => ({
+    // greyed outside an open bubble, as the drawing is
     get referenceStripBlocks() {
       const { graph } = self
-      return self.showReferenceStrip && self.referenceStripApplies && graph
-        ? referenceStripBlocks(graph, {
-            colorScheme: self.effectiveColorScheme,
-            referenceRamp: self.referenceRamp,
-            walks: self.walkLift?.walks,
-          })
-        : []
+      if (!self.showReferenceStrip || !self.referenceStripApplies || !graph) {
+        return []
+      }
+      const blocks = referenceStripBlocks(graph, {
+        colorScheme: self.effectiveColorScheme,
+        referenceRamp: self.referenceRamp,
+        walks: self.walkLift?.walks,
+      })
+      const focus = self.walkLift ? undefined : self.openBubbleFocus
+      return focus
+        ? blocks.map(b =>
+            focus.nodeIds.has(b.node)
+              ? b
+              : { ...b, colors: [LIFT_BACKDROP_CSS], faded: true },
+          )
+        : blocks
     },
     // Read off the live blocks, so the strip follows every frame of a pan
     // in the linear view

@@ -253,7 +253,7 @@ export const withRenderingActions = withLoadActions
           }
           const geometryStart = performance.now()
           const built = self.buildDrawing(
-            self.walkLift,
+            self.walkLift ?? self.openBubbleFocus,
             self.effectiveDrawPaths,
           )
           if (built) {
