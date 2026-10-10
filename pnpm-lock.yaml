@@ -46,8 +46,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^9.9.1
-        version: 9.9.1
+        specifier: ^9.10.0
+        version: 9.10.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -648,8 +648,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@9.9.1':
-    resolution: {integrity: sha512-zYIDynt/PKG0hcmczvIglgaLAlawP0zu7UTAq2QSrxGtuQqdBfmZcs0d9TEsGMDbMx/JZP7RXFsNEPNR3P4fQA==}
+  '@jbrowse/bandage-core@9.10.0':
+    resolution: {integrity: sha512-lTZWJvlKQ559qWAMudDFW+HGQzrIfMoX4ZRcJmKAEqOlBMl0FFw6GCLVH77Ug8LCXg0LTbuw0nAema29VHNFrQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -756,8 +756,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/tubemap-core@0.2.3':
-    resolution: {integrity: sha512-mb+WGjHm1k6BVItuPcyH3Srr6hwm1DakP3BKQhg41dBSIrZfUwxxwMxUvP84osa9aN2BNiP4mkY7S9IBMRUuRA==}
+  '@jbrowse/tubemap-core@0.2.4':
+    resolution: {integrity: sha512-R2eAqPXTLFR+FzaG9ZMdSootlxHSQifyWX3UmjLtuC77rdFu3nwDxRINrscZ+3u5iLJ0VbvuKBYUbbrd+FXkBQ==}
 
   '@jbrowse/wiggle-core@5.0.0-beta.13':
     resolution: {integrity: sha512-Mu4H69Ozf90kuews+qmIX1iq3nYlJv3l6UH5fB9eTDwHohnL/HGSQRpgV2pB47YKKGJEcm3Yxd0kqXbfABIIMA==}
@@ -4138,11 +4138,11 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@9.9.1':
+  '@jbrowse/bandage-core@9.10.0':
     dependencies:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.0
-      '@jbrowse/tubemap-core': 0.2.3
+      '@jbrowse/tubemap-core': 0.2.4
 
   '@jbrowse/cigar-utils@5.0.0-beta.11': {}
 
@@ -4436,7 +4436,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/tubemap-core@0.2.3': {}
+  '@jbrowse/tubemap-core@0.2.4': {}
 
   '@jbrowse/wiggle-core@5.0.0-beta.13(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)':
     dependencies:
