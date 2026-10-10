@@ -197,10 +197,18 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
       layoutError = undefined
       const previous = self.layoutResult
+      const previousGraph = laidOutGraph
+      const before = {
+        scaleX: self.scaleX,
+        scaleY: self.scaleY,
+        translateX: self.translateX,
+        translateY: self.translateY,
+      }
       laidOutGraph = graph
       self.layoutResult = computed.result
       self.setLayoutMs(computed.duration)
       self.followNewLayout(previous)
+      self.morphFrom(previous, previousGraph, before)
     }
     return live
   }

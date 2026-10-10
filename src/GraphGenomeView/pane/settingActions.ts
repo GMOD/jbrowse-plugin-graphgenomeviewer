@@ -13,6 +13,13 @@ import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { withFitViews } from './fitViews'
 import { keepInView, onScreen } from './keepInView'
+import {
+  MORPH_MAX_NODES,
+  MORPH_MS,
+  blendInto,
+  easeInOut,
+  morphStarts,
+} from './morph'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
@@ -21,6 +28,7 @@ import { colorOfScheme } from '../nodeColor'
 import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
+import type { PaneTransform } from './morph'
 import type { HoveredTube } from './paneBase'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
@@ -34,7 +42,7 @@ import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
 import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
-import type { LayoutResult } from '@jbrowse/bandage-core/types'
+import type { Graph, LayoutResult, NodeSegment } from '@jbrowse/bandage-core/types'
 import type {
   WalkEncoding,
   WalkLayer,
@@ -540,6 +548,18 @@ export const withSettingActions = withFitViews
     // bursts well above the frame rate. Coalescing to the next frame keeps the
     // drag live while bounding that work to once per frame instead of once
     // per event.
+    let morph:
+      | { frame: number; finish: () => void }
+      | undefined
+
+    function finishMorph() {
+      if (morph) {
+        cancelAnimationFrame(morph.frame)
+        morph.finish()
+        morph = undefined
+      }
+    }
+
     function requestPositionsDirtyFrame() {
       cancelAnimationFrame(self.positionsDirtyFrame)
       self.positionsDirtyFrame = requestAnimationFrame(() => {
@@ -571,7 +591,103 @@ export const withSettingActions = withFitViews
       // that mutates here and does not bump it gets stale curves, stale hit
       // boxes and stale labels, silently. Everything downstream of it is
       // reached from this one action.
+      // Slides the drawing from what `previous` drew under `before` to the
+      // layout just landed, so a re-cut or a relayout reads as one picture
+      // moving rather than a jump. Positions move in place as a drag moves
+      // them, a frame at a time; anything new grows out of a neighbour.
+      morphFrom(
+        previous: LayoutResult | undefined,
+        previousGraph: Graph | undefined,
+        before: PaneTransform,
+      ) {
+        finishMorph()
+        const next = self.layoutResult
+        const graph = self.graph
+        if (
+          !previous ||
+          !next ||
+          !graph ||
+          previous === next ||
+          previous.referenceAxis ||
+          next.referenceAxis ||
+          previous.pixelRows ||
+          next.pixelRows ||
+          self.facetGrid ||
+          graph.nodes.length > MORPH_MAX_NODES ||
+          typeof requestAnimationFrame === 'undefined' ||
+          ('matchMedia' in window &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+        ) {
+          return
+        }
+        // the fit autorun lands after this action; the start needs its frame
+        if (self.viewportOwner === 'fit') {
+          self.zoomToFit()
+        }
+        const after = {
+          scaleX: self.scaleX,
+          scaleY: self.scaleY,
+          translateX: self.translateX,
+          translateY: self.translateY,
+        }
+        const byEnds = (
+          routes: Record<number, NodeSegment[]> | undefined,
+          edges: Graph['edges'] | undefined,
+        ) =>
+          Object.fromEntries(
+            Object.entries(routes ?? {}).flatMap(([i, line]) => {
+              const edge = edges?.[Number(i)]
+              return edge ? [[`${edge.from}>${edge.to}`, line]] : []
+            }),
+          )
+        const nextRoutes = byEnds(next.deletionRoutes, graph.edges)
+        const ends = structuredClone({
+          nodes: next.nodePositions,
+          routes: nextRoutes,
+        })
+        const starts = {
+          nodes: morphStarts(
+            previous.nodePositions,
+            before,
+            next.nodePositions,
+            after,
+            graph.edges,
+          ),
+          routes: morphStarts(
+            byEnds(previous.deletionRoutes, previousGraph?.edges),
+            before,
+            nextRoutes,
+            after,
+            [],
+          ),
+        }
+        const blend = (t: number) => {
+          blendInto(next.nodePositions, starts.nodes, ends.nodes, t)
+          blendInto(nextRoutes, starts.routes, ends.routes, t)
+          if (isAlive(self)) {
+            self.setPositionsDirty()
+          }
+        }
+        blend(0)
+        const t0 = performance.now()
+        const step = () => {
+          if (!isAlive(self) || self.layoutResult !== next) {
+            morph = undefined
+            return
+          }
+          const t = Math.min(1, (performance.now() - t0) / MORPH_MS)
+          blend(easeInOut(t))
+          if (t < 1) {
+            morph!.frame = requestAnimationFrame(step)
+          } else {
+            morph = undefined
+          }
+        }
+        morph = { frame: requestAnimationFrame(step), finish: () => { blend(1) } }
+      },
+      finishMorph,
       moveNode(nodeId: string, dx: number, dy: number) {
+        finishMorph()
         const positions = self.layoutResult?.nodePositions
         if (positions?.[nodeId]) {
           for (const seg of positions[nodeId]) {
