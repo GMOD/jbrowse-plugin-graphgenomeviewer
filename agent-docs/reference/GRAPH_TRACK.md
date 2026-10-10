@@ -127,11 +127,12 @@ the config's `height` and a drag on the track's handle, as on any track.
   graph against the new window on every re-cut.
 - A force or ordered drawing morphs into the next one over 350 ms
   (`pane/morph.ts`). A node both share starts where the old transform drew it on
-  screen, and a node new to the cut grows out of the neighbour point nearest it.
-  A deletion route moves with its two nodes. Positions move in place a frame at
-  a time, as a node drag moves them, and a slow frame delays the motion rather
-  than skipping it. Anchored, row and faceted drawings, cuts over 3,000 nodes
-  and reduced motion snap.
+  screen. A node new to the cut starts collapsed at the mean of where its links
+  attach, so a new flank grows out of the node it hangs from and a new allele
+  out of the line between its ends. A deletion route moves with its two nodes.
+  Positions move in place a frame at a time, as a node drag moves them, and a
+  slow frame delays the motion rather than skipping it. Anchored, row and
+  faceted drawings, cuts over 3,000 nodes and reduced motion snap.
 - The selection is found again by node id. An edge index means nothing in
   another graph, so the hover goes.
 - The sample rows' order: the layout is handed the rows on screen, and a sample

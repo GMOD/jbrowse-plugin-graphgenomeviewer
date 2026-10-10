@@ -57,7 +57,7 @@ test('a start has its end point count, spaced along the old polyline', () => {
   ])
 })
 
-test('a node new to the drawing grows out of the neighbour point nearest it', () => {
+test('a node new to the drawing grows out of the end of the node it hangs from', () => {
   const starts = morphStarts(
     {
       a: [
@@ -86,6 +86,48 @@ test('a node new to the drawing grows out of the neighbour point nearest it', ()
   ])
   // nothing reaches c from a shared node, so it starts where it ends
   expect(starts.c).toEqual([{ x: 300, y: 300 }])
+})
+
+test('a new node bridging two shared ones starts between where its links attach', () => {
+  const starts = morphStarts(
+    {
+      a: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      d: [
+        { x: 100, y: 0 },
+        { x: 90, y: 0 },
+      ],
+    },
+    identity,
+    {
+      a: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      b: [
+        { x: 11, y: 0 },
+        { x: 12, y: 0 },
+      ],
+      c: [{ x: 13, y: 0 }],
+      d: [
+        { x: 15, y: 0 },
+        { x: 14, y: 0 },
+      ],
+    },
+    identity,
+    [
+      { from: 'a', to: 'b' },
+      { from: 'b', to: 'c' },
+      // c reaches d's start as d reads reversed, the point drawn at x 90
+      { from: 'c', to: 'd', fromStrand: '+', toStrand: '-' },
+    ],
+  )
+  // the chain spreads evenly along a's end at 10 to d's at 90
+  expect(starts.b![0]!.x).toBeCloseTo(110 / 3)
+  expect(starts.c![0]!.x).toBeCloseTo(190 / 3)
+  expect(starts.b![1]).toEqual(starts.b![0])
 })
 
 test('the last frame writes the end positions exactly', () => {
