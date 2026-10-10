@@ -708,16 +708,16 @@ export const withFitViews = withHostViews
     // Read off the live blocks, so the bands' tops follow every frame of a
     // pan in the linear view and their bottoms every pan of the tubes
     get tubeMapConnectors() {
-      const nodes = self.tubeMapReferenceNodes
+      const boxes = self.tubeMapConnectedBoxes
       const frame = self.tubeMapFrame
       const { host, graphRegion } = self
       const bp =
-        nodes && frame && host?.initialized && graphRegion
+        boxes && frame && host?.initialized && graphRegion
           ? hostFrame(host, graphRegion)
           : undefined
-      return nodes && frame && bp
+      return boxes && frame && bp
         ? tubeMapConnectors(
-            nodes,
+            boxes,
             b => b * bp.scale + bp.translateX,
             frame.x,
             self.paneWidth,

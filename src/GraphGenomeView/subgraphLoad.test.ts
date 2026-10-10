@@ -373,6 +373,95 @@ describe('reads', () => {
     expect(model.referenceRampOffKeys.offReference).toBe(false)
   })
 
+  // `flank` walks only s0, before the window, so the tube map draws no tube
+  // for it, and the legend and a hover pair names with the tubes drawn
+  test("a walk the window trims away takes no tube's colour", async () => {
+    const FLANK = [
+      'H\tVN:Z:1.0',
+      'S\ts0\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:31999000\tSR:i:0',
+      'S\th1\t*\tLN:i:50\tSN:Z:NA20809#2#CM094351.1\tSO:i:31900000\tSR:i:1',
+      'S\ts1\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:32000000\tSR:i:0',
+      'S\ts2\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:32001000\tSR:i:0',
+      'L\ts0\t+\ts1\t+\t0M',
+      'L\ts1\t+\th1\t+\t0M',
+      'L\th1\t+\ts2\t+\t0M',
+      'L\ts1\t+\ts2\t+\t0M',
+      'P\tref\ts0+,s1+,s2+\t*',
+      'P\tflank\ts0+\t*',
+      'P\talt\ts0+,s1+,h1+,s2+\t*',
+    ].join('\n')
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(FLANK)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createView({
+      layoutMode: 'tubemap',
+      loadedTrackId: TRACK.trackId,
+      loadedRegion: ON_HG38,
+    })
+    await model.load()
+
+    const { pathColors } = model.layoutResult!.tubeMap!
+    expect(model.pathLegend.map(e => [e.name, e.color])).toEqual([
+      ['ref', pathColors[0]],
+      ['alt', pathColors[1]],
+    ])
+    model.setHoveredRowWalks(['alt'])
+    expect(model.tubeMapTubeColors![1]).toBe(pathColors[1])
+    expect(model.tubeMapTubeColors![0]).not.toBe(pathColors[0])
+  })
+
+  // every walk runs s1 s2 straight through, so the tube map draws them as one
+  // box, which reports both: its length, and its span to the linear view
+  test('a box standing for a merged run reports the whole run', async () => {
+    const RUN = [
+      'H\tVN:Z:1.0',
+      'S\ts1\t*\tLN:i:1000\tSN:Z:GRCh38#0#chr6\tSO:i:32000000\tSR:i:0',
+      'S\ts2\t*\tLN:i:500\tSN:Z:GRCh38#0#chr6\tSO:i:32001000\tSR:i:0',
+      'S\th\t*\tLN:i:50\tSN:Z:NA20809#2#CM094351.1\tSO:i:31900000\tSR:i:1',
+      'S\ts3\t*\tLN:i:500\tSN:Z:GRCh38#0#chr6\tSO:i:32001500\tSR:i:0',
+      'L\ts1\t+\ts2\t+\t0M',
+      'L\ts2\t+\th\t+\t0M',
+      'L\th\t+\ts3\t+\t0M',
+      'L\ts2\t+\ts3\t+\t0M',
+      'P\tref\ts1+,s2+,s3+\t*',
+      'P\talt\ts1+,s2+,h+,s3+\t*',
+    ].join('\n')
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(RUN)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createView({
+      layoutMode: 'tubemap',
+      loadedTrackId: TRACK.trackId,
+      loadedRegion: ON_HG38,
+    })
+    await model.load()
+
+    const [box, ...rest] = model.layoutResult!.tubeMap!.members.keys()
+    expect(rest).toEqual([])
+    expect(model.nodeById!.get(box!)!.length).toBe(1500)
+    model.setHoveredNode(box!)
+    expect(model.hoveredSpan).toEqual({ start: 32_000_000, end: 32_001_500 })
+  })
+
+  test('beside reads the fold menu reads None, since no fold applies', async () => {
+    const model = await cutWithReads(() =>
+      Promise.resolve({ records: [READ], total: 1 }),
+    )
+    model.setTubeMapFold(50)
+    const fold = model
+      .layoutOptionMenuItems()
+      .find(item => 'label' in item && item.label === 'Fold variants') as {
+      subMenu: { label: string; checked: boolean }[]
+    }
+    expect(fold.subMenu.filter(i => i.checked).map(i => i.label)).toEqual([
+      'None',
+    ])
+  })
+
   test('reads that fail to load leave the graph drawn without them', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const model = await cutWithReads(() =>

@@ -8,7 +8,6 @@ import {
   stripOverhang,
 } from '@jbrowse/bandage-core/referenceStrip'
 import { referenceBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
-import { referenceNodes } from '@jbrowse/bandage-core/tubeMap/connectors'
 import { deviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import { tubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
@@ -61,24 +60,25 @@ export const withHostViews = withWalkRowViews
     },
     get tubeMapReference() {
       const drawing = self.layoutResult?.tubeMap
-      return drawing && self.drawnGraph
-        ? referenceBoxes(self.drawnGraph, drawing.layout)
-        : undefined
+      return drawing ? referenceBoxes(drawing.graph, drawing.layout) : undefined
     },
     // the folded variants, as ticks on the tubes of the walks carrying them
     get tubeMapDeviations() {
-      const coarse = self.layoutResult?.tubeMap?.coarse
-      const layout = self.layoutResult?.tubeMap?.layout
-      return coarse && layout
-        ? deviationMarks(coarse.graph, layout, coarse.deviations)
+      const drawing = self.layoutResult?.tubeMap
+      return drawing?.coarse
+        ? deviationMarks(
+            drawing.graph,
+            drawing.layout,
+            drawing.coarse.deviations,
+          )
         : []
     },
     // the reference boxes a linear view's connectors tie to its bp, which
     // the reference axis already puts under that bp
-    get tubeMapReferenceNodes() {
-      const layout = self.layoutResult
-      return layout?.tubeMap && !layout.referenceAxis && self.drawnGraph
-        ? referenceNodes(self.drawnGraph, layout.tubeMap.layout)
+    get tubeMapConnectedBoxes() {
+      const reference = this.tubeMapReference
+      return reference && !self.layoutResult?.referenceAxis
+        ? [...reference.values()].flat()
         : undefined
     },
   }))

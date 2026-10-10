@@ -671,12 +671,12 @@ test('a tube map on its own axis ties each reference box to its bp in the linear
   await pane.switchLayout('tubemap')
   await wait(SETTLE_MS)
   expect(pane.hostPlacesX).toBe(false)
-  const nodes = new Map(pane.tubeMapReferenceNodes!.map(n => [n.node, n]))
+  const boxes = new Map(pane.tubeMapConnectedBoxes!.map(b => [b.name, b]))
   const frame = pane.tubeMapFrame!
   const connectors = pane.tubeMapConnectors
   expect(connectors.length).toBeGreaterThan(3)
   for (const c of connectors) {
-    const n = nodes.get(c.node)!
+    const n = boxes.get(c.node)!
     expect(c.top0).toBeCloseTo(lgvX(view, n.bp0), 6)
     expect(c.top1).toBeCloseTo(lgvX(view, n.bp1), 6)
     expect(c.bottom0).toBeCloseTo(frame.x(n.x0), 6)
@@ -712,7 +712,8 @@ test("a folded tube map draws the cut's reference as merged nodes, and the rest 
   await pane.switchLayout('tubemap')
   await wait(SETTLE_MS)
   expect(labels()).toContain('Fold variants')
-  expect(pane.drawnGraph).toBe(pane.graph)
+  expect(pane.layoutResult?.tubeMap?.coarse).toBeUndefined()
+  expect(pane.drawnGraph).toBe(pane.layoutResult?.tubeMap?.graph)
   expect(pane.tubeMapKeys.foldBp).toBeUndefined()
 
   // the haplotype's three 100 bp insertions fold under 1 kb

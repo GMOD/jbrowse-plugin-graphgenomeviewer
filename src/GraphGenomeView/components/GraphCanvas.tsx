@@ -441,6 +441,9 @@ const HoverTooltips = observer(function HoverTooltips({
   const hoveredNodeData = model.hoveredNode
     ? model.nodeById?.get(model.hoveredNode)
     : null
+  const merged = model.hoveredNode
+    ? model.layoutResult?.tubeMap?.members.get(model.hoveredNode)
+    : undefined
 
   const hoveredEdgeData =
     model.hoveredEdge !== null && model.graph
@@ -470,7 +473,8 @@ const HoverTooltips = observer(function HoverTooltips({
       ) : null}
       {hoveredNodeData ? (
         <div style={tooltipStyle}>
-          <strong>{hoveredNodeData.name}</strong> —{' '}
+          <strong>{hoveredNodeData.name}</strong>
+          {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
           {hoveredNodeData.length.toLocaleString()} bp, depth{' '}
           {hoveredNodeData.depth.toFixed(1)}
           {/* Which assembly contributed this segment, and where it sits on it.

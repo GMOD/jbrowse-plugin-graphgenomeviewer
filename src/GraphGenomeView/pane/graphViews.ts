@@ -230,11 +230,11 @@ export const withGraphViews = paneBase
     get paneMeasured() {
       return true
     },
-    // The graph the drawing's node ids address: a folded tube map's coarse
-    // graph, the cut otherwise. Hover, details and labels read it, so a
-    // merged node reports its own span and length.
+    // The graph the drawing's node ids address: a tube map's, which is the
+    // window it drew with each merged run one node, the cut otherwise. Hover,
+    // details and labels read it, so a box reports its own span and length.
     get drawnGraph() {
-      return self.layoutResult?.tubeMap?.coarse?.graph ?? self.graph
+      return self.layoutResult?.tubeMap?.graph ?? self.graph
     },
   }))
   .views(self => ({
@@ -985,7 +985,7 @@ export const withGraphViews = paneBase
     // nodes, so under it the key follows the tubes, and names the colours
     // the tubes were drawn in.
     get pathLegend() {
-      const paths = self.graph?.paths
+      const paths = self.drawnGraph?.paths
       const tubeMap = self.layoutResult?.tubeMap
       const colouring = self.drawPaths || tubeMap
       return colouring && paths && pathColorsLegible(paths.length)

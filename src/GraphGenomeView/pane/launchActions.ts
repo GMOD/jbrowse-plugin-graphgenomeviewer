@@ -173,7 +173,8 @@ export const withLaunchActions = withRenderingActions
                 subMenu: TUBE_MAP_FOLDS.map(({ bp, label }) => ({
                   type: 'radio' as const,
                   label,
-                  checked: self.tubeMapFold === bp,
+                  // reads are placed by the cut's names, which a fold renames
+                  checked: (self.graph?.reads ? 0 : self.tubeMapFold) === bp,
                   disabled: bp > 0 && self.graph?.reads !== undefined,
                   onClick: () => {
                     self.setTubeMapFold(bp)
