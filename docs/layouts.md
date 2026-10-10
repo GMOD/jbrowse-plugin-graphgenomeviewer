@@ -115,6 +115,10 @@ the same.
 - On the reference axis the panels share x: a box sits at its bp in every panel
   and under the linear view's tracks, and one ruler under the last panel reads
   for them all. On the own axis each panel's columns are its own
+- The reference is charcoal and every haplotype blue, alternating two shades: a
+  panel's title already names its walks, so a hue per walk would add noise and
+  hide the routes, how many tubes take a box and how many go round it. A map
+  with more walks than its key can name, 16, is drawn the same way unsplit
 - Each panel merges its own runs, so a haplotype matching the reference across a
   stretch draws it as one box
 - Hovering a box lights it in every panel that draws it, a merged run included,

@@ -27,6 +27,7 @@ import GenePins, { EXON_COLOR } from './GenePins'
 import LabelLayer from './LabelLayer'
 import { paintReferenceStrip } from './ReferenceStripOverlay'
 import { paintTubeMap } from './TubeMapOverlay'
+import { PANEL_REFERENCE_TUBE, PANEL_TUBE } from '../tubeMapPanels'
 import WalkRowsOverlay from './WalkRowsOverlay'
 import { UNPLACED_SWATCH } from './legendStyles'
 
@@ -352,6 +353,7 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
     return []
   }
   const {
+    roles,
     logWidths,
     foldBp,
     forwardReads,
@@ -380,6 +382,12 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
       '',
       label,
     )
+  if (roles) {
+    rows.push(
+      flatRow('ref', PANEL_REFERENCE_TUBE, 'reference'),
+      flatRow('hap', PANEL_TUBE, 'haplotype'),
+    )
+  }
   if (forwardReads) {
     rows.push(
       swatchRow(

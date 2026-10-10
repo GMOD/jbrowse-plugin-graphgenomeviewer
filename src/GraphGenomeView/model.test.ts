@@ -26,6 +26,7 @@ import { walkRowTrees } from './components/WalkRowsOverlay'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import { EMPTY_BATCH, SELECT_BRIGHTEN } from './pane/paneBase'
+import { PANEL_REFERENCE_TUBE, PANEL_TUBES } from './tubeMapPanels'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
@@ -3400,6 +3401,10 @@ describe('walk rows', () => {
       [2, 3],
     )
     expect(views[1]!.titleTop).toBeGreaterThan(views[0]!.bottom - 1e-6)
+    // the title names the walks, so the tubes say only which is the reference
+    expect(views[1]!.tubeColors).toEqual([PANEL_REFERENCE_TUBE, ...PANEL_TUBES])
+    expect(model.tubeMapKeys.roles).toBe(true)
+    expect(model.pathLegend).toEqual([])
 
     // each panel answers for its own boxes and names its own tubes
     const [b, a] = views

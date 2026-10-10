@@ -17,6 +17,9 @@ import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 
 // Tube px between panels, which a panel's title takes
 export const PANEL_GAP = 28
+export const PANEL_REFERENCE_TUBE = '#4d4d4d'
+export const PANEL_TUBE = '#5b8cc4'
+export const PANEL_TUBES = [PANEL_TUBE, '#82abd9']
 export const PANEL_TITLE_FONT = '12px sans-serif'
 // a stack squeezed into a short track keeps its rules, not its titles
 export const MIN_TITLE_GAP_PX = 16
@@ -54,6 +57,21 @@ export interface TubeMapPanel extends TubeMapPanelGroup {
 export type PaneLayout = LayoutResult & { tubeMapPanels?: TubeMapPanel[] }
 
 const walkOf = (name: string) => pathOrigin(name).name
+
+// A tube coloured by its role where no key could name a hue per walk: the
+// reference charcoal and the haplotypes blue, neighbours alternating two
+// shades so each stays countable in a bundle
+export function roleTubeColors(
+  paths: readonly { name: string }[],
+  reference: string | undefined,
+) {
+  let haplotype = 0
+  return paths.map(p =>
+    walkOf(p.name) === reference
+      ? PANEL_REFERENCE_TUBE
+      : PANEL_TUBES[haplotype++ % PANEL_TUBES.length]!,
+  )
+}
 
 // A walk's value in a column: its haplotype's row (`HG00097#1`), else its
 // sample's, as groupWalkRows reads it

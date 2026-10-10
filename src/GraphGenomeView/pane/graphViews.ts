@@ -64,6 +64,7 @@ import {
   pickRepeatTrack,
 } from '../repeats/repeatFeatures'
 import { withCalls } from '../repeats/walkCalls'
+import { roleTubeColors } from '../tubeMapPanels'
 import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
@@ -976,14 +977,22 @@ export const withGraphViews = paneBase
     },
     // Beside tinted boxes the tubes step through greys, as they do beside
     // reads, so no tube shares a box's hue
+    // Past the walks a key can name, a hue per walk identifies nothing, so
+    // the tubes take their roles' colours
     get tubeMapTubeColors() {
-      const colors = self.layoutResult?.tubeMap?.pathColors
+      const drawing = self.layoutResult?.tubeMap
+      const colors = drawing?.pathColors
+      const paths = self.drawnGraph?.paths
       const tubes =
         colors && this.tubeMapNodeColors
           ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
-          : colors
+          : colors &&
+              paths &&
+              drawing.layout.reads.length === 0 &&
+              !pathColorsLegible(paths.length)
+            ? roleTubeColors(paths, self.drawnGraph.referencePath)
+            : colors
       const hovered = new Set(self.hoveredRowWalks)
-      const paths = self.drawnGraph?.paths
       return tubes && paths && hovered.size > 0
         ? tubes.map((color, i) =>
             hovered.has(paths[i]?.name ?? '') ? color : LIFT_BACKDROP_CSS,
@@ -1042,7 +1051,11 @@ export const withGraphViews = paneBase
       const paths = self.drawnGraph?.paths
       const tubeMap = self.layoutResult?.tubeMap
       const colouring = self.drawPaths || tubeMap
-      return colouring && paths && pathColorsLegible(paths.length)
+      // split panels colour tubes by role, which TubeMapLegend keys
+      return colouring &&
+        paths &&
+        pathColorsLegible(paths.length) &&
+        !self.layoutResult?.tubeMapPanels
         ? pathLegend(paths, self.tubeMapTubeColors)
         : []
     },

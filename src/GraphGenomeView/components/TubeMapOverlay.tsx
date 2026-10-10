@@ -19,7 +19,15 @@ import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
 import { legendBoxStyle, legendRowStyle } from './legendStyles'
-import { MIN_TITLE_GAP_PX, PANEL_TITLE_FONT } from '../tubeMapPanels'
+import {
+  MIN_TITLE_GAP_PX,
+  PANEL_REFERENCE_TUBE,
+  PANEL_TITLE_FONT,
+  PANEL_TUBE,
+} from '../tubeMapPanels'
+
+// variants folded into a box mark texture under a panel's routes
+const PANEL_TICK_ALPHA = 0.45
 
 import type { GraphPaneModel } from '../model'
 
@@ -102,7 +110,9 @@ function paintPanels(
       nodeColors: p.nodeColors,
     }
     drawTubeMap(ctx, p.picture, tubeFrame)
+    ctx.globalAlpha = PANEL_TICK_ALPHA
     drawDeviationMarks(ctx, p.deviations, tubeFrame)
+    ctx.globalAlpha = 1
     ctx.strokeStyle = `rgba(${ink},0.15)`
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -265,6 +275,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
   model: GraphPaneModel
 }) {
   const {
+    roles,
     logWidths,
     foldBp,
     forwardReads,
@@ -276,6 +287,28 @@ export const TubeMapLegend = observer(function TubeMapLegend({
   const reads = model.readsShown
   const sampled = reads && reads.shown < reads.total ? reads : undefined
   const rows = [
+    roles && (
+      <LegendRow
+        key="ref"
+        swatch={
+          <div
+            style={{ ...barSwatchStyle, backgroundColor: PANEL_REFERENCE_TUBE }}
+          />
+        }
+      >
+        reference
+      </LegendRow>
+    ),
+    roles && (
+      <LegendRow
+        key="hap"
+        swatch={
+          <div style={{ ...barSwatchStyle, backgroundColor: PANEL_TUBE }} />
+        }
+      >
+        haplotype
+      </LegendRow>
+    ),
     forwardReads && (
       <LegendRow key="fwd" swatch={<ReadSwatch colors={FORWARD_READ_COLORS} />}>
         read on the forward strand

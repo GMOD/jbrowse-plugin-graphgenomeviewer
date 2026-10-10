@@ -20,12 +20,17 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
+import { pathColorsLegible } from '@jbrowse/bandage-core/pathColors'
 import {
   FIT_PADDING,
   drawingBounds,
   fitTransform,
 } from '@jbrowse/bandage-core/pipeline'
-import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import {
+  LIFT_BACKDROP_CSS,
+  buildGeometry,
+} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import { referenceBoxes, rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
@@ -66,6 +71,7 @@ import {
   PANEL_GAP,
   boxOf,
   paintPanelHover,
+  roleTubeColors,
   walksThrough,
 } from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
@@ -98,6 +104,7 @@ import type {
 import type { TubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import type { TubeMapTransform } from '@jbrowse/bandage-core/tubeMap/frame'
 import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
+import type { Graph } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
@@ -796,17 +803,26 @@ export const withFitViews = withHostViews
         : []
     },
     // What each panel of a split tube map draws, which no pan changes: its
-    // picture, its tubes in the colours the whole map's key gives their
-    // walks, its boxes' tints and its folded variants
+    // picture, its tubes, its boxes' tints and its folded variants. A
+    // panel's title names its walks, so its tubes take their roles' colours
+    // and leave the routes to read: how many take a box, how many go round.
     get tubeMapPanelPictures() {
       const panels = self.layoutResult?.tubeMapPanels
       if (!panels) {
         return undefined
       }
-      const colors = self.tubeMapTubeColors
-      const colorOf = new Map(
-        (self.drawnGraph?.paths ?? []).map((p, i) => [p.name, colors?.[i]]),
-      )
+      const hovered = new Set(self.hoveredRowWalks)
+      const tubeColors = (graph: Graph) => {
+        const paths = graph.paths ?? []
+        return roleTubeColors(paths, graph.referencePath).map((color, i) => {
+          const name = paths[i]!.name
+          return hovered.size > 0 &&
+            !hovered.has(name) &&
+            pathOrigin(name).name !== graph.referencePath
+            ? LIFT_BACKDROP_CSS
+            : color
+        })
+      }
       const { field } = self.facetSetting
       return panels.map(panel => {
         const drawing = panel.result.tubeMap
@@ -817,7 +833,7 @@ export const withFitViews = withHostViews
             panel.label ??
             (field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key),
           picture: tubeMapPicture(drawing),
-          tubeColors: (graph.paths ?? []).map(p => colorOf.get(p.name) ?? ''),
+          tubeColors: tubeColors(graph),
           nodeColors: self.tubeMapNodeColors
             ? tubeMapNodeColors(
                 graph,
@@ -944,7 +960,15 @@ export const withFitViews = withHostViews
         const layout = self.layoutResult
         const split = layout?.tubeMapPanels !== undefined
         const reads = split ? [] : (layout?.tubeMap?.layout.reads ?? [])
+        const paths = self.drawnGraph?.paths ?? []
         return {
+          // tubes coloured reference and haplotype rather than per walk
+          roles:
+            split ||
+            (layout?.tubeMap !== undefined &&
+              reads.length === 0 &&
+              !self.tubeMapNodeColors &&
+              !pathColorsLegible(paths.length)),
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
