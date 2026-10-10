@@ -1,3 +1,19 @@
+## [6.24.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.24.0...v6.24.1) (2026-10-10)
+
+### Other Changes
+
+- Update README.md ([68b5997](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/68b59977a46dd9a390b2d4e9da347f9804e38eff))
+- GBZ cuts cross as tables built from gbz-base's typed arrays ([35a82ad](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/35a82adf565d74139e7c3dd02d191112b26504d0))
+- Link the do-it-yourself tutorials and outline the data formats and tools ([4254ae4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4254ae40840c001f096b4535c52f01c468b5865b))
+- README's see-also lists the graph repos and pangenome tutorials ([a7ba21e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a7ba21eac6413974560339c476e0aeeb34f95e1c))
+- README's see-also leaves the tutorials to the list at the top ([66bba7c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/66bba7c327f192f25f33625f2c532ba884a325c4))
+- Data formats as a list, not a table; fix the coarse tier script name ([7ed5aad](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7ed5aadf3b72a79b199fe47af675bb970cadc1d3))
+- GBZ walk rows cross as runs, as walk-file cuts' do ([0c60ca2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0c60ca206c0d04f2d3c2aad503cd5b6461db8884))
+- The alleles command; name the fold tier script in two comments ([3c3997b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3c3997bf4000bfa0e18122ffcc632ebda51cf5ea))
+- Drop the rGFA index script; gfa-to-tabix writes the index ([3d363fb](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3d363fb5d3445f4ed967a340c7b0ec1ba5103be9))
+- Bubble file sources, reflowed ([41db0b0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/41db0b050a28d274bd49aa6a1d46f8b56b1ee7df))
+- Bump @jbrowse/bandage-core to 10.0.1, for walkRows read by node index ([cb8d3a0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/cb8d3a0a59af1ff84b02bb1994f1e7ec0924ba07))
+
 ## [6.24.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.23.0...v6.24.0) (2026-10-10)
 
 ### Other Changes
