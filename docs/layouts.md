@@ -88,6 +88,9 @@ same bp across the curated KIV-2 array:
   scale, so its ruler is one line with round positions, and in a linear view the
   view's own ruler is the axis
 - A box's outline fades below 12 px wide, so a zoomed-out cut shows its tubes
+- On the reference axis a box off the reference draws a few px wide whatever its
+  length, so one of 1 kb or more too narrow for its length gets the length
+  beside it; a column of boxes of one length shares one label, `32.7 kb each`
 - On the own axis the fit stops at 5 px tubes: a longer cut opens at its left
   end and you pan along it, as in sequenceTubeMap, or zoom out for the whole cut
 - **Fold variants** folds every variant under a size into the reference, after
