@@ -1,3 +1,4 @@
+import { gfaTables } from '@jbrowse/bandage-core/gfa/gfaTables'
 import { getAdapter } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import { RpcMethodTypeWithRenameRegion } from '@jbrowse/core/pluggableElementTypes'
 import { rpcResultWithArrayBuffers } from '@jbrowse/core/util/librpc'
@@ -50,8 +51,8 @@ export interface GetSubgraphArgs {
   opts?: SubgraphCutOptions
 }
 
-// A cut is GFA text, or a walk-indexed graph's tables, whose typed arrays
-// cross to the main thread without a copy
+// A cut is tables, whose typed arrays cross to the main thread without a copy,
+// or GFA text the tables cannot hold
 declare module '@jbrowse/core/rpc/RpcRegistry' {
   interface RpcRegistry {
     GetSubgraph: {
@@ -106,9 +107,15 @@ export default class GetSubgraph extends RpcMethodTypeWithRenameRegion<'GetSubgr
       sessionId,
       adapterConfig,
     )
+    // A text cut is read into tables here, off the main thread: a GBZ cut of
+    // every haplotype is tens of MB of W lines
     if (isSubgraphAdapter(dataAdapter)) {
       const cut = await dataAdapter.getSubgraph(region, { ...opts, signal })
-      return typeof cut === 'string' ? cut : rpcResultWithArrayBuffers(cut)
+      if (typeof cut !== 'string') {
+        return rpcResultWithArrayBuffers(cut)
+      }
+      const tables = cut ? gfaTables(cut) : undefined
+      return tables ? rpcResultWithArrayBuffers(tables) : cut
     }
     // An empty result is how the view and the launch menu detect "this track
     // can't do subgraphs" — see the pane's cutSubgraph.

@@ -56,12 +56,42 @@ test('forwards the region and context to the adapter', async () => {
     dataAdapter: { getSubgraph },
   })
 
-  const result = await makeMethod().execute(
+  await makeMethod().execute(
     { ...makeArgs(), opts: { hops: 2 } },
     'MainThreadRpcDriver',
   )
   expect(getSubgraph).toHaveBeenCalledWith(region, { hops: 2 })
-  expect(result).toBe('H\tVN:Z:1.0')
+})
+
+// A GBZ cut of every haplotype is tens of MB of W lines, read here in the
+// worker rather than on the main thread
+test('reads a text cut into tables, buffers to transfer', async () => {
+  const getSubgraph = vi
+    .fn()
+    .mockResolvedValue('S\t1\tACGT\nW\tGRCh38\t0\tchr1\t0\t4\t>1\n')
+  mockGetAdapter.mockResolvedValue({
+    dataAdapter: { getSubgraph },
+  })
+
+  const result = await makeMethod().execute(makeArgs(), 'MainThreadRpcDriver')
+  expect(isRpcResult(result)).toBe(true)
+  const { value, transferables } = result as RpcResult
+  expect(value).toMatchObject({
+    nodes: { names: ['1'] },
+    walks: { names: ['GRCh38#0#chr1'] },
+  })
+  expect(transferables.length).toBeGreaterThan(0)
+})
+
+test('hands back as text a cut the tables cannot hold', async () => {
+  const text = 'S\t1\tACGT\tSM:Z:K12.1\n'
+  mockGetAdapter.mockResolvedValue({
+    dataAdapter: { getSubgraph: vi.fn().mockResolvedValue(text) },
+  })
+
+  expect(await makeMethod().execute(makeArgs(), 'MainThreadRpcDriver')).toBe(
+    text,
+  )
 })
 
 // A walk-indexed cut's tables go to postMessage with their buffers listed, so

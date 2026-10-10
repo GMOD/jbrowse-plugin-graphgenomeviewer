@@ -46,8 +46,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^9.8.1
-        version: 9.8.1
+        specifier: ^9.9.0
+        version: 9.9.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -648,8 +648,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@9.8.1':
-    resolution: {integrity: sha512-W9UX0nURfLjYiPDfuqvuazXuQHxB07ue/TfmPCTlPXaaTbyN0Uk3kxV9cdi/iOLebCiadx2r8rrdVbzI+3nYnA==}
+  '@jbrowse/bandage-core@9.9.0':
+    resolution: {integrity: sha512-ctWZkRfFsy8npJUXzeG+T2sd/Q1wFzDOvqWM2sHYIqnTIWyevhGqDm46PiQHdqoU1iaOrmCh9Dxd0MkCX6s66Q==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4138,7 +4138,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@9.8.1':
+  '@jbrowse/bandage-core@9.9.0':
     dependencies:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.0

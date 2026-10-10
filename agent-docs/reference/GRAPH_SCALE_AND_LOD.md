@@ -426,6 +426,25 @@ Walk rows now take the worker's runs, and the bars cost their spans: 26,863 at
 KIV-2 paint in 18–21 ms on Canvas2D. The step budget no longer applies to them;
 GRAPH_TRACK.md has the browser timings.
 
+## A cut's text: parsed in the worker, as tables (2026-10-10)
+
+A GBZ cut of every haplotype is GFA text, and the main thread used to parse and
+convert it. GetSubgraph now reads it in the worker with bandage-core's
+`gfaTables` (9.9.0) and transfers the tables, and `loadGraph` takes the same
+route for any S/L/W text. Best of 5 on ada, ms:
+
+| stage                        | KIV-2, 45 MB, 4.4 M steps | AMY1, 34 MB |
+| ---------------------------- | ------------------------- | ----------- |
+| parseGFA + convert, before   | 258 + 1,391               | 214 + 1,045 |
+| `gfaTables`, now in a worker | 318                       | 250         |
+| `graphFromTables`            | 366                       | 747         |
+| anchoring, before → after    | 322 → 217                 | 233 → 222   |
+| main thread, before → after  | 1,971 → 583               | 1,492 → 969 |
+
+The graphs are deep equal. What `graphFromTables` still costs is one `PathVisit`
+object per step (4.4 M on KIV-2) plus the GC behind them: the next lever is
+visits kept as columns, read per node by the code that wants them.
+
 ## Why the region cap is the wrong knob
 
 `MAX_GRAPH_REGION_BP` bounds the _fetch_, and it is the only cap applicable
