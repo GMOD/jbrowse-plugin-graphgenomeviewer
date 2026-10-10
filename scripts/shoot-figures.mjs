@@ -8,6 +8,7 @@
 // Usage:
 //   node scripts/shoot-figures.mjs                 # every figure, into img/
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
+//   node scripts/shoot-figures.mjs --compare /tmp/diffs   # old | new | diff
 //
 // Every figure is a linear view, the graph as one of its tracks or as a view
 // opened under it, so each reads against the genes and annotations at their
@@ -675,12 +676,97 @@ async function waitPainted(page) {
   )
 }
 
+// The pixels two shots of a figure differ by, and a strip of old, new and the
+// differing pixels in red, drawn on a blank page of the browser at hand
+async function compareShots(browser, before, after) {
+  const page = await browser.newPage()
+  try {
+    return await page.evaluate(
+      async (a, b) => {
+        const load = src =>
+          new Promise((resolve, reject) => {
+            const img = new Image()
+            img.onload = () => resolve(img)
+            img.onerror = reject
+            img.src = `data:image/png;base64,${src}`
+          })
+        const [old, next] = await Promise.all([load(a), load(b)])
+        const pixels = img => {
+          const c = new OffscreenCanvas(img.width, img.height)
+          const ctx = c.getContext('2d')
+          ctx.drawImage(img, 0, 0)
+          return ctx.getImageData(0, 0, img.width, img.height)
+        }
+        const w = Math.max(old.width, next.width)
+        const h = Math.max(old.height, next.height)
+        const pa = pixels(old)
+        const pb = pixels(next)
+        const diff = new ImageData(w, h)
+        let changed = 0
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const inA = x < old.width && y < old.height
+            const inB = x < next.width && y < next.height
+            const ia = (y * old.width + x) * 4
+            const ib = (y * next.width + x) * 4
+            const delta =
+              inA && inB
+                ? Math.max(
+                    Math.abs(pa.data[ia] - pb.data[ib]),
+                    Math.abs(pa.data[ia + 1] - pb.data[ib + 1]),
+                    Math.abs(pa.data[ia + 2] - pb.data[ib + 2]),
+                  )
+                : 255
+            const o = (y * w + x) * 4
+            if (delta > 30) {
+              changed++
+              diff.data.set([220, 30, 30, 255], o)
+            } else {
+              const v = inB ? 255 - (255 - pb.data[ib]) / 4 : 255
+              diff.data.set([v, v, v, 255], o)
+            }
+          }
+        }
+        if (changed === 0) {
+          return { changed }
+        }
+        const strip = new OffscreenCanvas(w * 3 + 20, h)
+        const ctx = strip.getContext('2d')
+        ctx.fillStyle = '#000'
+        ctx.fillRect(0, 0, strip.width, h)
+        ctx.drawImage(old, 0, 0)
+        ctx.drawImage(next, w + 10, 0)
+        ctx.putImageData(diff, 2 * w + 20, 0)
+        const blob = await strip.convertToBlob({ type: 'image/png' })
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        let binary = ''
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte)
+        }
+        return {
+          changed,
+          size:
+            old.width === next.width && old.height === next.height
+              ? undefined
+              : `${old.width}x${old.height} -> ${next.width}x${next.height}`,
+          strip: btoa(binary),
+        }
+      },
+      before.toString('base64'),
+      after.toString('base64'),
+    )
+  } finally {
+    await page.close()
+  }
+}
+
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     out: { type: 'string', default: 'img' },
     dist: { type: 'string', default: 'dist' },
     version: { type: 'string', default: 'main' },
+    compare: { type: 'string' },
   },
 })
 const unspecified = fs
@@ -738,9 +824,30 @@ try {
     // captureBeyondViewport resizes the page for the capture, and the pane
     // re-lays out into a blank frame
     const file = path.join(values.out, `${name}.png`)
+    const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
     await page.screenshot({ path: file, clip, captureBeyondViewport: false })
-    console.log(`wrote ${file}`)
     await context.close()
+    if (values.compare === undefined) {
+      console.log(`wrote ${file}`)
+    } else if (before === undefined) {
+      console.log(`wrote ${file}, new`)
+    } else {
+      const { changed, size, strip } = await compareShots(
+        browser,
+        before,
+        fs.readFileSync(file),
+      )
+      if (strip) {
+        fs.mkdirSync(values.compare, { recursive: true })
+        fs.writeFileSync(
+          path.join(values.compare, `${name}.png`),
+          Buffer.from(strip, 'base64'),
+        )
+      }
+      console.log(
+        `wrote ${file}, ${changed === 0 ? 'unchanged' : `${changed} px changed${size ? `, ${size}` : ''}`}`,
+      )
+    }
   }
 } finally {
   await browser.close()

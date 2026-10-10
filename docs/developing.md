@@ -109,6 +109,7 @@ pnpm dep && pnpm invalidate
 pnpm build
 node scripts/shoot-figures.mjs            # every figure in img/
 node scripts/shoot-figures.mjs force_mhc  # one
+node scripts/shoot-figures.mjs --compare /tmp/diffs  # old | new | diff per changed figure
 ```
 
 Every figure in `img/` is a spec in `FIGURES` in `scripts/shoot-figures.mjs`: a
