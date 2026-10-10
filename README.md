@@ -171,14 +171,47 @@ Needs JBrowse 5.0.0-beta.11 or later.
 
 ## See also
 
-We made r package ports of this functionality here
+Apps and figures
 
-- [ggtubemap](https://github.com/gmod/ggtubemap) - R port of the tubemap concept
-- [ggbandage](https://github.com/gmod/ggbandage) - R port of the bandage layout
-- [BandageJS](https://github.com/cmdcolin/BandageJS) - Standalone 'app' outside
-  of JBrowse with bandage layouts
-- [JBrowsed 2 tutorials](https://jbrowse.org/jb2/docs/tutorials/) - Includes
-  several pangenome tutorials using this plugin
+- [BandageJS](https://github.com/cmdcolin/BandageJS) - standalone page with the
+  same layouts, outside JBrowse
+- [ggbandage](https://github.com/GMOD/ggbandage) - R port of the Bandage layout,
+  as ggplot2 layers
+- [ggtubemap](https://github.com/GMOD/ggtubemap) - R port of the tube map, as
+  ggplot2 layers
+- [sequenceTubeMap, MemPanG26 edition](https://github.com/cmdcolin/sequenceTubeMap) -
+  our fork of the tube map app
+
+Libraries
+
+- [@jbrowse/bandage-core](https://github.com/GMOD/bandage-core) - the layout and
+  drawing engine behind this plugin
+- [@jbrowse/graph-stress-layout](https://github.com/GMOD/graph-stress-layout) -
+  stress layout that straightens the reference
+- [@jbrowse/tubemap-core](https://github.com/GMOD/tubemap-core) - tube map
+  layout
+- [@gmod/gbz-base](https://github.com/GMOD/gbz-base-js) - range-request reader
+  for `.gbz.db` databases
+
+Preparing data
+
+- [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) - indexes a GFA for the
+  graph track
+- [gbz-haplotype-index](https://github.com/GMOD/gbz-haplotype-index) - names
+  every walk in a gbz-base cut
+- [gfa-to-pairwise-paf](https://github.com/cmdcolin/gfa-to-pairwise-paf-rs) -
+  graph to PAF, for synteny views
+
+Tutorials, on [jbrowse.org](https://jbrowse.org/jb2/docs/tutorials/)
+
+- [HPRC part 1: graph alleles and haplotypes](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc/)
+- [HPRC part 2: haplotypes against each other](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_haplotypes/)
+- [HPRC part 3: repeat lengths](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_repeats/)
+- [Hosting your own graph](https://jbrowse.org/jb2/docs/tutorials/pangenome_prepare_graph/)
+- [Minigraph-Cactus](https://jbrowse.org/jb2/docs/tutorials/pangenome_cactus/),
+  [pggb](https://jbrowse.org/jb2/docs/tutorials/pangenome_ecoli/),
+  [mouse](https://jbrowse.org/jb2/docs/tutorials/pangenome_mouse/),
+  [cattle](https://jbrowse.org/jb2/docs/tutorials/pangenome_cattle/)
 
 ## License
 
