@@ -53,7 +53,8 @@ const MHC_LOC = 'chr6:32,510,000-32,600,000'
 const MICB_LOC = 'chr6:31,505,400-31,507,400'
 const GSTM1_LOC = 'chr1:109,670,000-109,705,000'
 const C4_LOC = 'chr6:31,978,000-32,045,000'
-const GSTM1_SAMPLES = HAPLOTYPES.map(h => h.split('.')[0])
+const CFHR_LOC = 'chr1:196,745,000-196,860,000'
+const SAMPLES = HAPLOTYPES.map(h => h.split('.')[0])
 
 const GENE_TRACK = {
   trackId: GENES,
@@ -233,10 +234,10 @@ async function hoverExonVariant(page) {
   await page.mouse.move(target.x, target.y)
 }
 
-const gstm1Samples = trackView(GSTM1_LOC, {
+const cfhrSamples = trackView(CFHR_LOC, {
   trackId: GBZ,
   layoutMode: 'tubemapref',
-  subgraphHaplotypes: GSTM1_SAMPLES,
+  subgraphHaplotypes: SAMPLES,
   tubeMapFold: 1000,
   facet: 'sample',
   height: 900,
@@ -251,7 +252,7 @@ const POPULATION_SAMPLES = [
   ...['HG02602', 'HG02698', 'HG03704', 'HG03834', 'HG03942', 'HG04160'],
 ]
 
-const gstm1Populations = trackView(GSTM1_LOC, {
+const cfhrPopulations = trackView(CFHR_LOC, {
   trackId: GBZ,
   layoutMode: 'tubemapref',
   subgraphHaplotypes: POPULATION_SAMPLES,
@@ -430,22 +431,22 @@ const FIGURES = {
       })
     },
   },
-  // a panel per sample, both haplotypes beside the reference: HG01960 and
-  // HG00128 carry GSTM1 on one haplotype, the other six on neither
-  tube_map_gstm1_samples: { session: gstm1Samples },
-  // HG01960's GSTM1 box hovered lights the same box in HG00128's panel and
-  // bands the gene in the linear view
-  tube_map_gstm1_samples_hover: {
-    session: gstm1Samples,
-    act: hoverPanelBox('HG01960', 109_690_800),
+  // a panel per sample, both haplotypes beside the reference: HG01109,
+  // HG01123, HG01960 and HG02055 lack CFHR3 and CFHR1 on both, the other four
+  // carry them
+  tube_map_cfhr_samples: { session: cfhrSamples },
+  // the reference's CFHR3-CFHR1 box hovered in HG01960's panel: each title
+  // counts its haplotypes through it, 2 of 2 for the carriers and 0 of 2 for
+  // the four without
+  tube_map_cfhr_samples_hover: {
+    session: cfhrSamples,
+    act: hoverPanelBox('HG01960', 196_826_000),
   },
-  // a panel per superpopulation, six samples each, by the track's sample table
-  tube_map_gstm1_populations: { session: gstm1Populations },
-  // GSTM1's box hovered in AFR's panel: each title counts its haplotypes
-  // through it
-  tube_map_gstm1_populations_hover: {
-    session: gstm1Populations,
-    act: hoverPanelBox('AFR', 109_690_800),
+  // a panel per superpopulation, six samples each, CFHR1's box hovered in
+  // AFR's: each title counts its haplotypes through it
+  tube_map_cfhr_populations_hover: {
+    session: cfhrPopulations,
+    act: hoverPanelBox('AFR', 196_826_000),
   },
   // the RCCX module's 60 haplotypes as a tube per route: 35 take one, skipping
   // C4B's HERV-K, and the thin tubes skip or add a whole module

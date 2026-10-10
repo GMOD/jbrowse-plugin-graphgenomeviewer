@@ -129,22 +129,24 @@ the same.
   haplotypes pass through the box, a frequency per group
 - Reads are not drawn while split, since a GAF names no sample
 
-GSTM1 is deleted on both copies in about half of Europeans. Eight HPRC samples'
-haplotypes as a panel each, under the RefSeq genes: HG01960 and HG00128 carry
-GSTM1 on one haplotype, and the other six skip it on both:
+An 85 kb deletion takes out CFHR3 and CFHR1 together, on 139 of HPRC's 464
+haplotypes. Eight samples as a panel each, under the RefSeq genes: HG01109,
+HG01123, HG01960 and HG02055 lack both genes on both haplotypes, and the other
+four carry them:
 
-![GSTM1 as a tube map track split by sample, eight panels under the RefSeq genes, two heterozygous and six homozygous null](../img/tube_map_gstm1_samples.png)
+![CFHR3 and CFHR1 as a tube map track split by sample, eight panels under the RefSeq genes, four with both haplotypes round the genes and four through them](../img/tube_map_cfhr_samples.png)
 
-Hovering HG01960's GSTM1 box lights the same box in HG00128's panel and bands
-the gene's span in the linear view:
+Hovering the reference's CFHR3–CFHR1 box in HG01960's panel bands the deletion's
+span in the linear view, and each title counts its haplotypes through the box: 2
+of 2 for the carriers, 0 of 2 for the rest:
 
-![The GSTM1 box hovered in HG01960's panel, lit in every panel and banded in the linear view](../img/tube_map_gstm1_samples_hover.png)
+![The CFHR3–CFHR1 box hovered in HG01960's panel, each title counting its haplotypes through it and the linear view banding the span](../img/tube_map_cfhr_samples_hover.png)
 
-Split by `superpopulation` instead, six samples each, GSTM1's box hovered: the
-titles count 6 of AFR's 12 haplotypes through it, 3 of AMR's, and none of EAS's,
-EUR's or SAS's:
+Split by `superpopulation` instead, six samples each, the same box hovered: the
+titles count 5 of AFR's 12 haplotypes through it, 7 of SAS's, 10 of EUR's, 11 of
+AMR's and all 12 of EAS's:
 
-![GSTM1 split by superpopulation, the gene's box hovered and each panel's title counting its haplotypes through it](../img/tube_map_gstm1_populations_hover.png)
+![CFHR3 and CFHR1 split by superpopulation, the deletion's box hovered and each panel's title counting its haplotypes through it](../img/tube_map_cfhr_populations_hover.png)
 
 ### Routes and tube colour
 
