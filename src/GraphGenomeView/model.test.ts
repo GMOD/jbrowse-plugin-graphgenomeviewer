@@ -3370,6 +3370,53 @@ describe('walk rows', () => {
     expect(model.highlightMenuItems()).toEqual([])
   })
 
+  test('a tube map split by sample lays each sample out beside the reference', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    expect(model.tubeMapPanelViews).toBeUndefined()
+    const panels = () =>
+      model
+        .layoutOptionMenuItems()
+        .flatMap(item =>
+          'subMenu' in item && item.label === 'Panels' ? item.subMenu : [],
+        )
+    expect(panels().map(item => item.label)).toEqual([
+      'None',
+      'A panel per sample',
+      'A panel per haplotype',
+    ])
+
+    model.setFacet('sample')
+    await model.recomputeLayout()
+    expect(model.layoutResult?.tubeMapPanels).toHaveLength(2)
+    const views = model.tubeMapPanelViews!
+    expect(views.map(v => v.label)).toEqual(['B', 'A'])
+    expect(views.map(v => v.panel.result.tubeMap.layout.tracks.length)).toEqual(
+      [2, 3],
+    )
+    expect(views[1]!.titleTop).toBeGreaterThan(views[0]!.bottom - 1e-6)
+
+    // each panel answers for its own boxes and names its own tubes
+    const [b, a] = views
+    expect(model.tubeMapPanelAt((b!.top + b!.bottom) / 2)).toBe(0)
+    expect(model.tubeMapPanelAt((a!.top + a!.bottom) / 2)).toBe(1)
+    model.setHoveredPanel(1)
+    expect(model.hoverGraph).toBe(a!.panel.result.tubeMap.graph)
+    model.setHoveredTube({ track: 2 })
+    expect(model.hoveredTubeText?.label).toBe(
+      model.walkLabel(a!.panel.result.tubeMap.graph.paths![2]!.name),
+    )
+
+    model.setFacet('')
+    await model.recomputeLayout()
+    expect(model.layoutResult?.tubeMapPanels).toBeUndefined()
+  })
+
   test('a lane reads the reference ramp only when it is coloured by it', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

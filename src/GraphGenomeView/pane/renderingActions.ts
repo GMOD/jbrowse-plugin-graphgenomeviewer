@@ -4,7 +4,12 @@ import { addDisposer } from '@jbrowse/mobx-state-tree'
 import { autorun, reaction, untracked } from 'mobx'
 
 import { withLoadActions } from './loadActions'
-import { EMPTY_BATCH, dependOn, paneViewportOf } from './paneBase'
+import {
+  EMPTY_BATCH,
+  TUBE_MAP_MODES,
+  dependOn,
+  paneViewportOf,
+} from './paneBase'
 import {
   hoverInRegion,
   nodeForLgvHover,
@@ -184,6 +189,7 @@ export const withRenderingActions = withLoadActions
             () => `${self.scale}-${self.translateX}-${self.translateY}`,
             () => {
               self.setHoveredNode(null)
+              self.setHoveredPanel(null)
               self.setHoveredBubble(null)
               self.setHoveredEdge(null)
             },
@@ -323,6 +329,21 @@ export const withRenderingActions = withLoadActions
           (to, from) => {
             if (to !== self.handledLayoutMode) {
               void self.relayout(from)
+            }
+          },
+        ),
+      )
+      // a tube map's panels are each laid out alone
+      addDisposer(
+        self,
+        reaction(
+          () =>
+            TUBE_MAP_MODES.has(self.chosenLayoutMode)
+              ? JSON.stringify(self.facetSetting)
+              : undefined,
+          (facet, was) => {
+            if (facet !== undefined && was !== undefined && self.graph) {
+              void self.recomputeLayout()
             }
           },
         ),

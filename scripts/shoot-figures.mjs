@@ -47,6 +47,7 @@ const KIV2_ARRAY_LOC = 'chr6:160,614,798-160,647,758'
 const MHC_LOC = 'chr6:32,510,000-32,600,000'
 const MICB_LOC = 'chr6:31,505,400-31,507,400'
 const GSTM1_LOC = 'chr1:109,670,000-109,705,000'
+const GSTM1_SAMPLES = HAPLOTYPES.map(h => h.split('.')[0])
 
 const GENE_TRACK = {
   trackId: GENES,
@@ -226,6 +227,51 @@ async function hoverExonVariant(page) {
   await page.mouse.move(target.x, target.y)
 }
 
+const gstm1Samples = trackView(GSTM1_LOC, {
+  trackId: GBZ,
+  layoutMode: 'tubemapref',
+  subgraphHaplotypes: GSTM1_SAMPLES,
+  tubeMapFold: 1000,
+  facet: 'sample',
+  height: 900,
+})
+
+// Points at the box `sample`'s panel draws over `bp` of the linear view, as a
+// reader would at a gene above it
+function hoverPanelBox(sample, bp) {
+  return async page => {
+    const target = await page.evaluate(
+      (name, at) => {
+        const view = window.JBrowseSession.views[0]
+        const display = view.tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearGraphDisplay')
+        const panel = display.tubeMapPanelViews.find(p => p.label === name)
+        const r = document
+          .querySelector(
+            '[data-testid="linear-graph-display"] [data-testid="graph-genome-canvas"]',
+          )
+          .getBoundingClientRect()
+        const sx =
+          view.bpToPx({ refName: display.graphRegion.refName, coord: at })
+            .offsetPx - view.offsetPx
+        for (let sy = panel.top; sy < panel.bottom; sy += 2) {
+          if (display.tubeMapNodeAt(sx, sy)) {
+            return { x: r.x + sx, y: r.y + sy }
+          }
+        }
+        return undefined
+      },
+      sample,
+      bp,
+    )
+    if (!target) {
+      throw new Error(`no box in ${sample}'s panel at ${bp}`)
+    }
+    await page.mouse.move(target.x, target.y)
+  }
+}
+
 const FIGURES = {
   force_kiv2: forceKiv2Track,
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
@@ -346,6 +392,15 @@ const FIGURES = {
         display.setRepeatKey(display.repeatChoices[0].key)
       })
     },
+  },
+  // a panel per sample, both haplotypes beside the reference: HG01960 and
+  // HG00128 carry GSTM1 on one haplotype, the other six on neither
+  tube_map_gstm1_samples: gstm1Samples,
+  // HG01960's GSTM1 box hovered lights the same box in HG00128's panel and
+  // bands the gene in the linear view
+  tube_map_gstm1_samples_hover: {
+    session: gstm1Samples,
+    act: hoverPanelBox('HG01960', 109_690_800),
   },
   tube_map_micb_track: trackView(
     MICB_LOC,

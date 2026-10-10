@@ -43,6 +43,11 @@ export function paintTubeMap(
     return
   }
   const width = model.paneWidth
+  const panels = model.tubeMapPanelViews
+  if (panels) {
+    paintPanels(ctx, model, panels, highlightNode)
+    return
+  }
   const tubeFrame = {
     ...frame,
     width,
@@ -70,6 +75,46 @@ export function paintTubeMap(
       frame.y(bounds.maxY) + 4,
       model.layoutResult?.referenceAxis,
     )
+  }
+}
+
+const TITLE_FONT = '12px sans-serif'
+
+// Each panel of a split tube map under a rule and its title, which the canvas
+// draws so a figure's SVG carries them
+function paintPanels(
+  ctx: CanvasRenderingContext2D,
+  model: GraphPaneModel,
+  panels: NonNullable<GraphPaneModel['tubeMapPanelViews']>,
+  highlightNode: string | null,
+) {
+  const width = model.paneWidth
+  const ink = model.darkMode ? '255,255,255' : '0,0,0'
+  for (const p of panels) {
+    if (p.bottom < 0 || p.titleTop > model.canvasHeight) {
+      continue
+    }
+    const tubeFrame = {
+      ...p.frame,
+      width,
+      highlightNode,
+      darkMode: model.darkMode,
+      tubeColors: p.tubeColors,
+      nodeColors: p.nodeColors,
+    }
+    drawTubeMap(ctx, p.picture, tubeFrame)
+    drawDeviationMarks(ctx, p.deviations, tubeFrame)
+    ctx.strokeStyle = `rgba(${ink},0.15)`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, Math.round(p.titleTop) + 0.5)
+    ctx.lineTo(width, Math.round(p.titleTop) + 0.5)
+    ctx.stroke()
+    ctx.font = TITLE_FONT
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = `rgba(${ink},0.85)`
+    ctx.fillText(p.label, 6, p.titleTop + 4)
   }
 }
 

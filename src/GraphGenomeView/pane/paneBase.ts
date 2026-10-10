@@ -12,6 +12,7 @@ import { lenientOptionalEnum } from '../lenientEnum'
 import type { SubgraphRegion } from '../../GetSubgraph'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { RepeatArray } from '../repeats/repeatFeatures'
+import type { PaneLayout } from '../tubeMapPanels'
 import type { SampleRow } from '../walkRowGroups'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
@@ -19,7 +20,7 @@ import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
 import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
 import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
-import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
+import type { Graph } from '@jbrowse/bandage-core/types'
 import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
 import type { Feature } from '@jbrowse/core/util'
@@ -324,7 +325,7 @@ export const paneBase = types
     // another. Undefined for an rGFA, whose backbone is fixed, and for a
     // graph with no region.
     loadedReferencePath: undefined as string | undefined,
-    layoutResult: undefined as LayoutResult | undefined,
+    layoutResult: undefined as PaneLayout | undefined,
     // what the legends in the pane's top-right corner measure, so no label
     // is placed under them
     legendSize: { width: 0, height: 0 },
@@ -366,6 +367,8 @@ export const paneBase = types
     statusMessage: '',
     hoveredNode: null as string | null,
     hoveredTube: null as HoveredTube | null,
+    // the tube map panel the pointer is over, while the map is split
+    hoveredPanel: null as number | null,
     // the walks of the per-sample lane row the linear view's pointer is on
     hoveredRowWalks: [] as string[],
     // the bubble whose label the pointer is on

@@ -261,6 +261,9 @@ export const withSettingActions = withFitViews
     setHoveredNode(nodeId: string | null) {
       self.hoveredNode = nodeId
     },
+    setHoveredPanel(panel: number | null) {
+      self.hoveredPanel = panel
+    },
     setHoveredTube(tube: HoveredTube | null) {
       const was = self.hoveredTube
       if (tube?.track !== was?.track || tube?.mismatch !== was?.mismatch) {
@@ -324,6 +327,7 @@ export const withSettingActions = withFitViews
     // is replaced, and by clearGraph.
     clearInteractionState() {
       self.hoveredNode = null
+      self.hoveredPanel = null
       self.hoveredWalkRow = null
       self.hoveredBubble = null
       self.hoveredEdge = null

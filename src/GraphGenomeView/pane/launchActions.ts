@@ -31,6 +31,7 @@ import { launchTracks } from '../../launchFromGraph/launchTracks'
 import { launchableSyntenyTracks } from '../../launchFromGraph/syntenyTracks'
 import { downloadText } from '../download'
 import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
+import { TUBE_MAP_PANELS, tubeMapPanelGroups } from '../tubeMapPanels'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
@@ -179,6 +180,21 @@ export const withLaunchActions = withRenderingActions
                   onClick: () => {
                     self.setTubeMapFold(bp)
                     void self.recomputeLayout()
+                  },
+                })),
+              },
+              {
+                label: 'Panels',
+                subMenu: TUBE_MAP_PANELS.map(({ field, label }) => ({
+                  type: 'radio' as const,
+                  label,
+                  checked: self.facetSetting.field === field,
+                  disabled:
+                    field !== '' &&
+                    (!self.graph ||
+                      tubeMapPanelGroups(self.graph, field).length < 2),
+                  onClick: () => {
+                    self.setFacet(field)
                   },
                 })),
               },

@@ -38,12 +38,18 @@ import { walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import { locLabel } from '../../launchFromGraph/contributors'
 import { geneModelsFrom } from '../genes/geneFeatures'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
+import {
+  graphOfPaths,
+  tubeMapPanelGroups,
+  withTubeMapPanels,
+} from '../tubeMapPanels'
 import { parseSamplesTsv } from '../walkRowGroups'
 import { walkRowLayoutOf, walkRowsGraph } from '../walkRowsCut.ts'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../../GetSubgraph'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GafReads } from '../../gaf/gafFile'
+import type { PaneLayout } from '../tubeMapPanels'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
@@ -105,10 +111,24 @@ export const withLoadActions = withSettingActions.actions(self => {
             self.host ? self.layoutResult?.sampleRows : undefined,
           )
     if (local) {
-      const result =
-        coarse && local.tubeMap
-          ? { ...local, tubeMap: { ...local.tubeMap, coarse } }
-          : local
+      const withCoarse = (r: LayoutResult) =>
+        coarse && r.tubeMap ? { ...r, tubeMap: { ...r.tubeMap, coarse } } : r
+      const whole = withCoarse(local)
+      const { field, domain } = self.facetSetting
+      const laid = coarse?.graph ?? drawn
+      const result: PaneLayout =
+        tubeMap && field !== ''
+          ? withTubeMapPanels(
+              whole,
+              tubeMapPanelGroups(laid, field, domain).map(({ key, paths }) => {
+                const panel = layoutModeByValue(self.chosenLayoutMode).run(
+                  graphOfPaths(laid, paths),
+                  self.graphRegion,
+                )
+                return { key, result: panel && withCoarse(panel) }
+              }),
+            )
+          : whole
       return { result, duration: performance.now() - start }
     }
     const settings = engineSettings()

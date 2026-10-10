@@ -1,0 +1,140 @@
+import { parsePanSN } from '@jbrowse/bandage-core/alleleProjection/projectAlleles'
+import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
+
+import type { FacetBy } from '@jbrowse/bandage-core/facetGrid'
+import type { TubeMapDrawing } from '@jbrowse/bandage-core/layout/tubeMapLayout'
+import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
+
+// A tube map split into small multiples: a panel per sample, or per walk, each
+// the reference and that group's walks laid out alone, stacked down the pane.
+// On the reference axis every panel's columns sit at their bp, so a box lines
+// up across the panels and with the linear view's tracks.
+
+// Tube px between panels, which a panel's title takes
+export const PANEL_GAP = 28
+
+export const TUBE_MAP_PANELS: { field: '' | FacetBy; label: string }[] = [
+  { field: '', label: 'None' },
+  { field: 'sample', label: 'A panel per sample' },
+  { field: 'walk', label: 'A panel per haplotype' },
+]
+
+export interface TubeMapPanelGroup {
+  key: string
+  // the graph's own path names, pieces of one walk included
+  paths: string[]
+}
+
+export interface TubeMapPanel {
+  key: string
+  result: LayoutResult & { tubeMap: TubeMapDrawing }
+  // where the panel's drawing starts down the stack, in tube px
+  top: number
+  height: number
+}
+
+// a pane's layout: a tube map split into panels carries them, and the stack's
+// extent and node positions in place of the whole map's
+export type PaneLayout = LayoutResult & { tubeMapPanels?: TubeMapPanel[] }
+
+const walkOf = (name: string) => pathOrigin(name).name
+
+// Each non-reference walk's group, in the order the graph states them, the
+// ones `domain` names first
+export function tubeMapPanelGroups(
+  graph: Graph,
+  by: FacetBy,
+  domain: readonly string[] = [],
+): TubeMapPanelGroup[] {
+  const groups = new Map<string, string[]>()
+  for (const { name } of graph.paths ?? []) {
+    const walk = walkOf(name)
+    if (walk !== graph.referencePath) {
+      const key = by === 'sample' ? parsePanSN(walk).sample : walk
+      const list = groups.get(key)
+      if (list) {
+        list.push(name)
+      } else {
+        groups.set(key, [name])
+      }
+    }
+  }
+  const rank = new Map(domain.map((key, i) => [key, i]))
+  const listed = (key: string) => rank.get(key) ?? domain.length
+  return [...groups]
+    .map(([key, paths], i) => ({ key, paths, i }))
+    .sort((a, b) => listed(a.key) - listed(b.key) || a.i - b.i)
+    .map(({ key, paths }) => ({ key, paths }))
+}
+
+// The reference and `paths` alone: the nodes they visit and the links between
+// them, without reads, which name no sample
+export function graphOfPaths(graph: Graph, paths: readonly string[]): Graph {
+  const kept = new Set(paths)
+  const keptPaths = (graph.paths ?? []).filter(
+    p => kept.has(p.name) || walkOf(p.name) === graph.referencePath,
+  )
+  const walks = new Set(keptPaths.map(p => walkOf(p.name)))
+  const nodeIds = new Set(keptPaths.flatMap(p => p.nodeIds))
+  const nodes = graph.nodes.filter(n => nodeIds.has(n.id))
+  const names = new Set(nodes.map(n => n.name))
+  const pathVisits = graph.pathVisits
+    ? new Map(
+        [...graph.pathVisits].flatMap(([segment, visits]) =>
+          names.has(segment)
+            ? [[segment, visits.filter(v => walks.has(v.path))] as const]
+            : [],
+        ),
+      )
+    : undefined
+  return {
+    ...graph,
+    nodes,
+    edges: graph.edges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to)),
+    paths: keptPaths,
+    anchorPaths: graph.anchorPaths?.filter(p => walks.has(p.name)),
+    pathVisits,
+    reads: undefined,
+  }
+}
+
+// `whole` with each group's own tube map stacked in its place, a title's gap
+// above each, or `whole` alone when fewer than two groups draw
+export function withTubeMapPanels(
+  whole: LayoutResult,
+  laidOut: { key: string; result: LayoutResult | undefined }[],
+): PaneLayout {
+  const panels: TubeMapPanel[] = []
+  const nodePositions: LayoutResult['nodePositions'] = {}
+  let y = 0
+  let minX = Infinity
+  let maxX = -Infinity
+  for (const { key, result } of laidOut) {
+    const tubeMap = result?.tubeMap
+    const extent = result?.extent
+    if (tubeMap && extent) {
+      const top = y + PANEL_GAP
+      const height = (extent.maxY ?? 0) - (extent.minY ?? 0)
+      panels.push({ key, result: { ...result, tubeMap }, top, height })
+      const dy = top - (extent.minY ?? 0)
+      for (const [id, segments] of Object.entries(result.nodePositions)) {
+        nodePositions[id] = segments.map(s => ({ x: s.x, y: s.y + dy }))
+      }
+      y = top + height
+      minX = Math.min(minX, extent.minX ?? minX)
+      maxX = Math.max(maxX, extent.maxX ?? maxX)
+    }
+  }
+  return panels.length > 1
+    ? {
+        ...whole,
+        nodePositions,
+        extent: {
+          ...(minX <= maxX ? { minX, maxX } : {}),
+          minY: 0,
+          maxY: y,
+        },
+        tubeMapPanels: panels,
+      }
+    : whole
+}

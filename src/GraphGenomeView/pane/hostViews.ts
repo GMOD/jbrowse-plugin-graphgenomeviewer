@@ -73,7 +73,10 @@ export const withHostViews = withWalkRowViews
     // the reference axis already puts under that bp
     get tubeMapConnectedBoxes() {
       const reference = this.tubeMapReference
-      return reference && !self.layoutResult?.referenceAxis
+      const { layoutResult } = self
+      return reference &&
+        !layoutResult?.referenceAxis &&
+        !layoutResult?.tubeMapPanels
         ? [...reference.values()].flat()
         : undefined
     },
@@ -82,7 +85,11 @@ export const withHostViews = withWalkRowViews
     // A linear view has the genes in a track of their own, at their bp
     get tubeMapGenes() {
       const reference = self.tubeMapReference
-      return self.showGenes && !self.host && reference && self.backboneGenes
+      return self.showGenes &&
+        !self.host &&
+        reference &&
+        self.backboneGenes &&
+        !self.layoutResult?.tubeMapPanels
         ? tubeMapGenes(reference, self.backboneGenes)
         : []
     },

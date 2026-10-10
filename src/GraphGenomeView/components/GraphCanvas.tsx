@@ -454,10 +454,10 @@ const HoverTooltips = observer(function HoverTooltips({
   model: GraphPaneModel
 }) {
   const hoveredNodeData = model.hoveredNode
-    ? model.nodeById?.get(model.hoveredNode)
+    ? model.hoverNodeById?.get(model.hoveredNode)
     : null
   const merged = model.hoveredNode
-    ? model.layoutResult?.tubeMap?.members.get(model.hoveredNode)
+    ? model.hoverDrawing?.members.get(model.hoveredNode)
     : undefined
 
   const hoveredEdgeData =

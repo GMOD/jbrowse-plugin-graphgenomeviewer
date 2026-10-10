@@ -34,11 +34,13 @@ import {
   drawLitConnector,
   tubeMapConnectors,
 } from '@jbrowse/bandage-core/tubeMap/connectors'
+import { deviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import {
   drawTubeMapHighlight,
   mismatchOnScreen,
   mismatchesLegible,
   tubeMapMismatchAt,
+  tubeMapPicture,
   tubeMapTrackAt,
 } from '@jbrowse/bandage-core/tubeMap/draw'
 import {
@@ -49,6 +51,7 @@ import {
   GENE_ROW_PX,
   tubeMapGeneRows,
 } from '@jbrowse/bandage-core/tubeMap/genes'
+import { tubeMapNodeColors } from '@jbrowse/bandage-core/tubeMap/nodeColors'
 import { padded } from '@jbrowse/bandage-core/viewport'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import {
@@ -59,6 +62,7 @@ import { getSession } from '@jbrowse/core/util'
 import { computed, untracked } from 'mobx'
 
 import { hostFrame } from '../host'
+import { PANEL_GAP } from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
 import {
@@ -93,6 +97,8 @@ import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 const MAX_SHOWN_BASES = 20
+// a squeezed stack of panels thins no further, as one tube map does
+const MIN_PANEL_Y_SCALE = 0.05
 
 function mismatchText(m: TubeMapMismatch) {
   if (m.kind === 'deletion') {
@@ -746,7 +752,9 @@ export const withFitViews = withHostViews
     // is already the axis
     get tubeMapRulerBoxes() {
       const reference = self.tubeMapReference
-      return reference && !self.hostPlacesX ? rulerBoxes(reference) : undefined
+      return reference && !self.hostPlacesX && !self.layoutResult?.tubeMapPanels
+        ? rulerBoxes(reference)
+        : undefined
     },
     // The connectors run from the top of the pane down to the tubes' top
     get connectorZoneBottom() {
@@ -773,6 +781,84 @@ export const withFitViews = withHostViews
           )
         : []
     },
+    // What each panel of a split tube map draws, which no pan changes: its
+    // picture, its tubes in the colours the whole map's key gives their
+    // walks, its boxes' tints and its folded variants
+    get tubeMapPanelPictures() {
+      const panels = self.layoutResult?.tubeMapPanels
+      if (!panels) {
+        return undefined
+      }
+      const colors = self.tubeMapTubeColors
+      const colorOf = new Map(
+        (self.drawnGraph?.paths ?? []).map((p, i) => [p.name, colors?.[i]]),
+      )
+      const { field } = self.facetSetting
+      return panels.map(panel => {
+        const drawing = panel.result.tubeMap
+        const { graph, coarse } = drawing
+        return {
+          panel,
+          label: field === 'walk' ? self.walkLabel(panel.key) : panel.key,
+          picture: tubeMapPicture(drawing),
+          tubeColors: (graph.paths ?? []).map(p => colorOf.get(p.name) ?? ''),
+          nodeColors: self.tubeMapNodeColors
+            ? tubeMapNodeColors(
+                graph,
+                self.effectiveColorScheme,
+                self.referenceRamp,
+              )
+            : undefined,
+          deviations: coarse ? deviationMarks(drawing, coarse.deviations) : [],
+        }
+      })
+    },
+  }))
+  .views(self => ({
+    // Each panel through the pane's transform at its place down the stack.
+    // On the reference axis the stack squeezes into the pane as one map does.
+    get tubeMapPanelViews() {
+      const pictures = self.tubeMapPanelPictures
+      const layout = self.layoutResult
+      if (!pictures || !layout) {
+        return undefined
+      }
+      const stack = layout.extent?.maxY ?? 0
+      const usable = self.canvasHeight - self.fitPadTop - FIT_PADDING
+      const yScale =
+        self.scaleY *
+        (layout.referenceAxis && stack > 0
+          ? Math.max(MIN_PANEL_Y_SCALE, Math.min(1, usable / stack))
+          : 1)
+      return pictures.map(p => {
+        const { panel } = p
+        const minY = panel.result.extent?.minY ?? 0
+        const top = panel.top * yScale + self.translateY
+        return {
+          ...p,
+          frame: tubeMapFrame(panel.result.tubeMap, {
+            scaleX: self.scaleX,
+            translateX: self.translateX,
+            scaleY: yScale,
+            translateY: self.translateY + (panel.top - minY) * yScale,
+            usableHeight: Infinity,
+          }),
+          titleTop: top - PANEL_GAP * yScale,
+          top,
+          bottom: top + panel.height * yScale,
+        }
+      })
+    },
+  }))
+  .views(self => ({
+    // the panel a pane y falls in, its title's gap included
+    tubeMapPanelAt(sy: number) {
+      const i =
+        self.tubeMapPanelViews?.findIndex(
+          v => v.titleTop <= sy && sy <= v.bottom,
+        ) ?? -1
+      return i < 0 ? null : i
+    },
   }))
   .views(self => ({
     // The hover alone, onto a transparent canvas over the drawing, so a
@@ -788,11 +874,14 @@ export const withFitViews = withHostViews
         ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        drawTubeMapHighlight(ctx, picture, {
-          ...frame,
-          width: self.paneWidth,
-          highlightNode: node,
-        })
+        // a box in every panel that draws it, so a variant reads across them
+        for (const v of self.tubeMapPanelViews ?? [{ picture, frame }]) {
+          drawTubeMapHighlight(ctx, v.picture, {
+            ...v.frame,
+            width: self.paneWidth,
+            highlightNode: node,
+          })
+        }
         drawLitConnector(
           ctx,
           self.tubeMapConnectors,
@@ -817,7 +906,8 @@ export const withFitViews = withHostViews
     const keys = computed(
       () => {
         const layout = self.layoutResult
-        const reads = layout?.tubeMap?.layout.reads ?? []
+        const split = layout?.tubeMapPanels !== undefined
+        const reads = split ? [] : (layout?.tubeMap?.layout.reads ?? [])
         return {
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
@@ -825,7 +915,7 @@ export const withFitViews = withHostViews
           forwardReads: reads.some(r => !r.is_reverse),
           reverseReads: reads.some(r => r.is_reverse),
           ...mismatchKindsShown(
-            self.tubeMapPicture,
+            split ? undefined : self.tubeMapPicture,
             self.tubeMapFrame,
             self.paneWidth,
           ),
@@ -843,22 +933,38 @@ export const withFitViews = withHostViews
     }
   })
   .views(self => ({
-    tubeMapNodeAt(sx: number, sy: number) {
+    // The drawing under a pane y: its panel's while the map is split
+    tubeMapUnder(sy: number) {
+      const views = self.tubeMapPanelViews
+      if (views) {
+        const i = self.tubeMapPanelAt(sy)
+        const v = i === null ? undefined : views[i]
+        return v && { drawing: v.panel.result.tubeMap, ...v }
+      }
       const drawing = self.layoutResult?.tubeMap
+      const picture = self.tubeMapPicture
       const frame = self.tubeMapFrame
+      return drawing && picture && frame
+        ? { drawing, picture, frame }
+        : undefined
+    },
+  }))
+  .views(self => ({
+    tubeMapNodeAt(sx: number, sy: number) {
+      const under = self.tubeMapUnder(sy)
       return (
-        (drawing && frame ? tubeMapNodeAt(drawing, frame, sx, sy) : null) ??
+        (under ? tubeMapNodeAt(under.drawing, under.frame, sx, sy) : null) ??
         connectorAt(self.tubeMapConnectors, self.connectorZoneBottom, sx, sy) ??
         null
       )
     },
     // The tube under a pane point, and the mismatch mark on it if any
     tubeAt(sx: number, sy: number): HoveredTube | null {
-      const picture = self.tubeMapPicture
-      const frame = self.tubeMapFrame
-      if (!picture || !frame) {
+      const under = self.tubeMapUnder(sy)
+      if (!under) {
         return null
       }
+      const { picture, frame } = under
       const mismatch = tubeMapMismatchAt(picture, frame, sx, sy)
       const track = mismatch?.readId ?? tubeMapTrackAt(picture, frame, sx, sy)
       return track === undefined ? null : { track, mismatch }
@@ -880,7 +986,7 @@ export const withFitViews = withHostViews
           ].join(', '),
         }
       }
-      const path = tube ? self.drawnGraph?.paths?.[tube.track] : undefined
+      const path = tube ? self.hoverGraph?.paths?.[tube.track] : undefined
       return path
         ? { label: self.walkLabel(path.name), readout: 'haplotype' }
         : undefined

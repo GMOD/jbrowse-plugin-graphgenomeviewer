@@ -984,6 +984,37 @@ export const withGraphViews = paneBase
         ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
         : undefined
     },
+    // The drawing the pointer is over: its panel's while a tube map is split,
+    // each panel laid out alone and merging its own runs
+    get hoverDrawing() {
+      const i = self.hoveredPanel
+      return (
+        (i === null
+          ? undefined
+          : self.layoutResult?.tubeMapPanels?.[i]?.result.tubeMap) ??
+        self.layoutResult?.tubeMap
+      )
+    },
+  }))
+  .views(self => ({
+    // the graph whose ids the hover names
+    get hoverGraph() {
+      return self.hoverDrawing?.graph ?? self.drawnGraph
+    },
+  }))
+  .views(self => ({
+    get hoverNodeById() {
+      const graph = self.hoverGraph
+      return graph === self.drawnGraph
+        ? self.nodeById
+        : graph && new Map(graph.nodes.map(n => [n.id, n]))
+    },
+    get hoverNeighbors() {
+      const graph = self.hoverGraph
+      return graph === self.drawnGraph
+        ? self.nodeNeighbors
+        : graph && buildNeighbors(graph)
+    },
   }))
   .views(self => ({
     // Which haplotype each ribbon colour belongs to, in the order the file
@@ -1007,8 +1038,12 @@ export const withGraphViews = paneBase
     get hoveredSpan() {
       const nodeId = self.hoveredNode
       const bubble = self.hoveredBubble
+      const nodeById = self.hoverNodeById
+      const neighbors = self.hoverNeighbors
       return nodeId !== null
-        ? self.nodeSpan(nodeId)
+        ? nodeById && neighbors
+          ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+          : undefined
         : bubble && !bubble.offReference
           ? { start: bubble.start, end: bubble.end }
           : undefined
