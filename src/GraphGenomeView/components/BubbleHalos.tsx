@@ -14,7 +14,8 @@ import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 // The bubbles over a node drawing: each a translucent halo along its nodes,
 // drawn once in layout units and moved with the canvas by one transform. The
 // halo takes no pointer events, so the nodes under it still hover and drag;
-// its name and its routes' chips are LabelLayer's.
+// its name and its routes' chips are LabelLayer's. A small variant is
+// LabelLayer's tick, and shows its halo only while hovered.
 
 const svgStyle = {
   position: 'absolute' as const,
@@ -58,7 +59,12 @@ const BubbleHalos = observer(function BubbleHalos({
         transform={`translate(${translateX} ${translateY}) scale(${scaleX} ${scaleY})`}
       >
         {bubbleHalos
-          .filter(h => !h.whole)
+          .filter(
+            h =>
+              !h.whole &&
+              (!h.tick ||
+                (hoveredBubble && sameBubble(h.bubble, hoveredBubble))),
+          )
           .map(h => (
             <path
               key={bubbleKey(h.bubble)}

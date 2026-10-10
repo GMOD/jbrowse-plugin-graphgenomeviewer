@@ -182,9 +182,10 @@ The plugin reads `gfatools bubble` output from `<prefix>.bubbles.bed.gz` beside
 the rGFA index, which HPRC's hosted graph has and `scripts/build_rgfa_tabix.sh`
 in jbrowse-components writes. For a GBZ cut, a pggb file or a popped bubble, the
 plugin derives bubbles from the ordered layout's layering. With **Show... › Show
-bubble halos** on, the node layouts draw each as a halo along its nodes,
-coloured by kind, which the legend names. It is off by default, since at base
-level every SNP's halo is a blob.
+bubble halos** on, the node layouts draw each structural variant as a halo along
+its nodes, coloured by kind, which the legend names. A variant under 50 bp is a
+tick above its nodes instead, with no name until hovered; a click opens it like
+a name does. Bubbles are off by default.
 
 The HPRC bubbles track draws the same `gfatools bubble` records at their bp, so
 each halo is a feature above it: the 3,018–174,966 bp record, 29 segments and up

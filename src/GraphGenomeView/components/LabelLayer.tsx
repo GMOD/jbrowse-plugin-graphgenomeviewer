@@ -1,7 +1,7 @@
-import { bubbleKey } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { geneCoverageNote } from '@jbrowse/bandage-core/labelLayout'
-import { LABEL_PX } from '@jbrowse/bandage-core/overlayLabels'
+import { LABEL_PX, labelWidth } from '@jbrowse/bandage-core/overlayLabels'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
 
@@ -28,17 +28,23 @@ const svgStyle = {
 }
 
 const GENE_INK = '#1c1c22'
+const TICK_PX = 9
 
 const LabelLayer = observer(function LabelLayer({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const { bubbles, genes, routes } = model.overlayLabels
-  if (bubbles.length + genes.length + routes.length === 0) {
+  const { bubbles, genes, routes, ticks } = model.overlayLabels
+  if (bubbles.length + genes.length + routes.length + ticks.length === 0) {
     return null
   }
-  const { walkLift, scaleY, translateY, contigThickness } = model
+  const { walkLift, scaleY, translateY, contigThickness, hoveredBubble } = model
+  const hoveredTick = hoveredBubble
+    ? ticks.find(t => sameBubble(t.item.bubble, hoveredBubble))
+    : undefined
+  const tickAt = (target: EventTarget) =>
+    ticks[Number((target as Element).getAttribute('data-tick'))]
   // lifted walks dim the bubbles none of them enters and the routes none of
   // them takes
   const dimmedBubble = (h: BubbleHalo) =>
@@ -53,6 +59,43 @@ const LabelLayer = observer(function LabelLayer({
       height={model.canvasHeight}
       data-testid="graph-label-layer"
     >
+      <g
+        data-testid="graph-bubble-ticks"
+        onClick={e => {
+          const tick = tickAt(e.target)
+          if (tick) {
+            void model.popBubble(tick.item.bubble)
+          }
+        }}
+        onMouseOver={e => {
+          const tick = tickAt(e.target)
+          if (tick) {
+            model.setHoveredBubble(tick.item.bubble)
+          }
+        }}
+        // a leave also fires as the view closing it unmounts the tick
+        onMouseOut={() => {
+          if (isAlive(model)) {
+            model.setHoveredBubble(null)
+          }
+        }}
+      >
+        {ticks.map(({ item: h, x, y }, i) => (
+          <line
+            key={bubbleKey(h.bubble)}
+            data-tick={i}
+            x1={x}
+            x2={x}
+            y1={y}
+            y2={y - TICK_PX}
+            stroke={BUBBLE_KIND_COLORS[h.kind]}
+            strokeWidth={3}
+            strokeLinecap="round"
+            opacity={dimmedBubble(h) ? 0.35 : 1}
+            style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+          />
+        ))}
+      </g>
       {genes.map(({ item: pin, x, y, w, text }) => {
         const { gene } = pin
         const note = geneCoverageNote(pin)
@@ -118,6 +161,16 @@ const LabelLayer = observer(function LabelLayer({
           }}
         />
       ))}
+      {hoveredTick ? (
+        <LabelChip
+          x={hoveredTick.x}
+          y={hoveredTick.y - TICK_PX - 4}
+          w={labelWidth(hoveredTick.item.label)}
+          text={hoveredTick.item.label}
+          color={BUBBLE_KIND_COLORS[hoveredTick.item.kind]}
+          testId="graph-bubble-tick-label"
+        />
+      ) : null}
     </svg>
   )
 })

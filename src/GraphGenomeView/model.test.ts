@@ -2855,8 +2855,13 @@ describe('popping a bubble', () => {
     expect(model.bubbleHalos).toEqual([])
     model.setShowBubbles(true)
     expect(
-      model.bubbleHalos.map(h => [h.label, h.members, h.path.startsWith('M')]),
-    ).toEqual([['≤4 bp ins', 1, true]])
+      model.bubbleHalos.map(h => [
+        h.label,
+        h.members,
+        h.path.startsWith('M'),
+        h.tick,
+      ]),
+    ).toEqual([['≤4 bp ins', 1, true, true]])
     model.setShowBubbles(false)
     expect(model.bubbleHalos).toEqual([])
   })
