@@ -202,17 +202,6 @@ Preparing data
 - [gfa-to-pairwise-paf](https://github.com/cmdcolin/gfa-to-pairwise-paf-rs) -
   graph to PAF, for synteny views
 
-Tutorials, on [jbrowse.org](https://jbrowse.org/jb2/docs/tutorials/)
-
-- [HPRC part 1: graph alleles and haplotypes](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc/)
-- [HPRC part 2: haplotypes against each other](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_haplotypes/)
-- [HPRC part 3: repeat lengths](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_repeats/)
-- [Hosting your own graph](https://jbrowse.org/jb2/docs/tutorials/pangenome_prepare_graph/)
-- [Minigraph-Cactus](https://jbrowse.org/jb2/docs/tutorials/pangenome_cactus/),
-  [pggb](https://jbrowse.org/jb2/docs/tutorials/pangenome_ecoli/),
-  [mouse](https://jbrowse.org/jb2/docs/tutorials/pangenome_mouse/),
-  [cattle](https://jbrowse.org/jb2/docs/tutorials/pangenome_cattle/)
-
 ## License
 
 GPL-3.0-or-later (this module is based on work from Bandage and ODGF graph
