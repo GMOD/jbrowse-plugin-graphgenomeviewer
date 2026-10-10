@@ -1,3 +1,17 @@
+## [6.22.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.22.0...v6.22.1) (2026-10-10)
+
+### Other Changes
+
+- Every figure in img/ is a spec in shoot-figures.mjs ([7586116](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/758611650d940cad3e3c265e8d646f77dd91250c))
+- Bump @jbrowse/bandage-core to 9.8.1, for unbroken tubes on the reference axis ([d311ed6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d311ed6dec57b066e822dbb523338c881b890832))
+- A text cut crosses from the worker as tables ([68db630](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/68db630a609f694925c066d3406927ce6cdcdd2a))
+- A morph cut short finishes its cached layout; new nodes attach as the renderer does ([e3d579d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e3d579d81e4373629bee4eed3b5c4f8d7b83a6ab))
+- Host-compat reads a gbz-base track into a synteny view ([bfb0f29](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bfb0f290e38d4f9e9cd01dc27d679ad2f0035ea6))
+- Force_gstm1_walk on a 260 px track, its caption naming the chord over GSTM1 ([56fd207](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/56fd2073215ef8abe9f16fb6dd5d6074b6752bac))
+- Shoot-figures --compare: changed pixels per figure, and an old | new | diff strip ([9c751e7](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9c751e7adbfa1b5bb5c4d1b17a9674edfb747f80))
+- Panel figures over CFHR3-CFHR1 instead of GSTM1 ([13e59e9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/13e59e9a6e18db0e82f7a09cdcf760f68cdd9155))
+- The thin tubes named, and the one-copy route hovered ([ccf8b3a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ccf8b3a02f4e62e0937ad5b50a5ffabdef0b120d))
+
 ## [6.22.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.21.0...v6.22.0) (2026-10-10)
 
 ### Other Changes
