@@ -8,3 +8,4 @@ minimumReleaseAgeExclude:
   - '@gmod/tabix@3.9.0'
   - '@jbrowse/bandage-core'
   - '@jbrowse/tubemap-core@0.2.1 || 0.2.2 || 0.2.3 || 0.2.4'
+  - '@jbrowse/graph-stress-layout@0.1.1'
