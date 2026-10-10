@@ -261,6 +261,15 @@ const cfhrPopulations = trackView(CFHR_LOC, {
   height: 1250,
 })
 
+const c4Bundled = trackView(C4_LOC, {
+  trackId: GBZ,
+  layoutMode: 'tubemapref',
+  subgraphHaplotypes: POPULATION_SAMPLES,
+  tubeMapFold: 1000,
+  tubeMapRoutes: 'bundled',
+  height: 700,
+})
+
 // Points at the box `sample`'s panel draws over `bp` of the linear view, as a
 // reader would at a gene above it
 function hoverPanelBox(sample, bp) {
@@ -294,6 +303,43 @@ function hoverPanelBox(sample, bp) {
     )
     if (!target) {
       throw new Error(`no box in ${sample}'s panel at ${bp}`)
+    }
+    await page.mouse.move(target.x, target.y)
+  }
+}
+
+// Points at the tube of the route `member` takes, in the column over `bp`, so
+// its hover lists every haplotype on that route
+function hoverRoute(member, bp) {
+  return async page => {
+    const target = await page.evaluate(
+      (name, at) => {
+        const view = window.JBrowseSession.views[0]
+        const display = view.tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearGraphDisplay')
+        const r = document
+          .querySelector(
+            '[data-testid="linear-graph-display"] [data-testid="graph-genome-canvas"]',
+          )
+          .getBoundingClientRect()
+        const sx =
+          view.bpToPx({ refName: display.graphRegion.refName, coord: at })
+            .offsetPx - view.offsetPx
+        for (let sy = 0; sy < r.height; sy += 1) {
+          const tube = display.tubeAt(sx, sy)
+          const path = tube && display.hoverGraph?.paths?.[tube.track]
+          if (path?.members?.some(m => m.startsWith(name))) {
+            return { x: r.x + sx, y: r.y + sy }
+          }
+        }
+        return undefined
+      },
+      member,
+      bp,
+    )
+    if (!target) {
+      throw new Error(`no tube of ${member}'s route at ${bp}`)
     }
     await page.mouse.move(target.x, target.y)
   }
@@ -450,15 +496,12 @@ const FIGURES = {
   },
   // the RCCX module's 60 haplotypes as a tube per route: 35 take one, skipping
   // C4B's HERV-K, and the thin tubes skip or add a whole module
-  tube_map_c4_bundled: {
-    session: trackView(C4_LOC, {
-      trackId: GBZ,
-      layoutMode: 'tubemapref',
-      subgraphHaplotypes: POPULATION_SAMPLES,
-      tubeMapFold: 1000,
-      tubeMapRoutes: 'bundled',
-      height: 700,
-    }),
+  tube_map_c4_bundled: { session: c4Bundled },
+  // HG00320's and HG03139's route hovered where it skips GRCh38's second
+  // module: one C4 gene
+  tube_map_c4_bundled_hover: {
+    session: c4Bundled,
+    act: hoverRoute('HG00320#1', 32_005_000),
   },
   // one map, each route a stack of its superpopulations' strands
   tube_map_c4_routes_by_population: {

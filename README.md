@@ -36,8 +36,8 @@ above it.
 - **Allele frequency as a tube map.** A tube per route, as wide as the
   haplotypes taking it, coloured by superpopulation. Over C4's RCCX module, 35
   of 60 haplotypes skip the 6.4 kb HERV-K in C4B, so their C4B is short; thin
-  tubes skip or add a whole 33 kb module, a C4 copy. Panels split the map by
-  sample or a sample table column.
+  tubes skip a whole 33 kb module, keeping one C4, or add one. Panels split the
+  map by sample or a sample table column.
 
 ![C4A and C4B as a tube per route coloured by superpopulation, the main route's five strands stepping round C4B's HERV-K and thin tubes round or through whole modules](img/tube_map_c4_routes_by_population.png)
 

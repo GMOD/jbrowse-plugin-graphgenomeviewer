@@ -169,8 +169,10 @@ reads as a stack of its groups.
 Thirty HPRC samples over C4A and C4B, the RCCX module GRCh38 carries twice, as a
 tube per route coloured by superpopulation. The main route, five strands wide,
 steps round the 6.4 kb HERV-K in C4B's intron 9, so its C4B is short; GRCh38's
-route keeps both genes long. Thin tubes skip a whole 33 kb module, one C4 copy,
-or dip under C4A through an extra one:
+route keeps both genes long. Among the thin tubes, three haplotypes skip a whole
+33 kb module and keep one C4, four add a module for three, and most of the rest
+dip under C4A through a module of their own and skip GRCh38's second: two
+copies, one the graph never merged with GRCh38's, as with HG03041's GSTM1 below:
 
 ![C4A and C4B as a tube per route coloured by superpopulation, the main route's five strands stepping round C4B's HERV-K and thin tubes round or through whole modules](../img/tube_map_c4_routes_by_population.png)
 
@@ -178,6 +180,11 @@ The same 60 haplotypes as a tube per route, uncoloured, 35 taking the main
 route, and as a tube each grouped by route:
 
 ![C4 as a tube per route, 35 of 60 haplotypes on the route round C4B's HERV-K](../img/tube_map_c4_bundled.png)
+
+Hovering a tube lists its route's haplotypes. The route that skips a whole
+module is HG00320's and HG03139's, one C4 apiece:
+
+![C4 as a tube per route, the route skipping GRCh38's second module hovered and naming HG03139#1 and HG00320#1](../img/tube_map_c4_bundled_hover.png)
 
 ![C4 as a tube per haplotype grouped by route and coloured by superpopulation](../img/tube_map_c4_grouped_by_population.png)
 
