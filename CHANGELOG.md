@@ -1,3 +1,12 @@
+## [6.23.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.22.1...v6.23.0) (2026-10-10)
+
+### Other Changes
+
+- Reshoot on bandage-core 9.8.1: unbroken tubes at the C4 hover and the reads ([873f4ad](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/873f4ad0cc7536cc1cb9ac16402e83c62953d018))
+- What a re-cut brings in fades in with its links as it moves ([68e5d72](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/68e5d72b59b9062741edc88811c2f149861b089d))
+- Format morph.test.ts ([e1aa17c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e1aa17cebec40cee27d7dde9c46e33536a9ae7cb))
+- Bump @jbrowse/bandage-core to 9.9.1, for steep tubes that keep their width ([9a4ff18](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9a4ff1823e26f4eed19307fcb06f1af1f5572e7e))
+
 ## [6.22.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.22.0...v6.22.1) (2026-10-10)
 
 ### Other Changes
