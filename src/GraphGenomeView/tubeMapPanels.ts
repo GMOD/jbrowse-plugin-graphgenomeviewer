@@ -1,4 +1,5 @@
 import { parsePanSN } from '@jbrowse/bandage-core/alleleProjection/projectAlleles'
+import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import { drawTubeMapHighlight } from '@jbrowse/bandage-core/tubeMap/draw'
 import { groupKeyComparator } from '@jbrowse/core/util/groupKeys'
@@ -268,6 +269,78 @@ export function drawBundleCounts(
       bottom - top >= MIN_COUNT_TUBE_PX
     ) {
       ctx.fillText(`×${n}`, left + 4, (top + bottom) / 2)
+    }
+  }
+}
+
+const LENGTH_FONT = '10px sans-serif'
+const MIN_LENGTH_LABEL_BP = 1000
+
+// Each box of a reference-axis map whose sequence the axis squeezes narrower
+// than its length's label, labelled beside it: off the reference a 33 kb
+// module draws a few px wide, as a SNP's box does. Boxes of one length
+// stacked in a column share a label, "each", at the lowest, where the stack
+// has room; a label that would overlap one already drawn is left out.
+export function drawSqueezedLengths(
+  ctx: CanvasRenderingContext2D,
+  drawing: TubeMapDrawing,
+  { x, y, width }: TubeMapTransform & { width: number },
+) {
+  if (!drawing.columns) {
+    return
+  }
+  const lengthOf = new Map(drawing.graph.nodes.map(n => [n.id, n.length]))
+  ctx.font = LENGTH_FONT
+  const stacks = new Map<
+    string,
+    { text: string; right: number; mid: number; count: number }
+  >()
+  // sparse, so forEach, which skips its holes
+  drawing.layout.nodes.forEach(node => {
+    const bp = lengthOf.get(node.name) ?? 0
+    const left = x(node.x)
+    const right = x(node.x + node.pixelWidth)
+    const text = formatBp(bp)
+    if (
+      node.order >= 0 &&
+      bp >= MIN_LENGTH_LABEL_BP &&
+      right - left < ctx.measureText(text).width
+    ) {
+      const mid = (y(node.y) + y(node.y + node.contentHeight)) / 2
+      const key = `${Math.round(right)}:${text}`
+      const stack = stacks.get(key)
+      if (stack) {
+        stack.count++
+        stack.mid = Math.max(stack.mid, mid)
+      } else {
+        stacks.set(key, { text, right, mid, count: 1 })
+      }
+    }
+  })
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+  ctx.fillStyle = 'rgba(0,0,0,0.75)'
+  const drawn: { x0: number; x1: number; y0: number; y1: number }[] = []
+  for (const { text, right, mid, count } of stacks.values()) {
+    const label = count > 1 ? `${text} each` : text
+    const box = {
+      x0: right + 3,
+      x1: right + 3 + ctx.measureText(label).width,
+      y0: mid - 6,
+      y1: mid + 6,
+    }
+    if (
+      box.x1 <= width &&
+      !drawn.some(
+        d => d.x0 < box.x1 && box.x0 < d.x1 && d.y0 < box.y1 && box.y0 < d.y1,
+      )
+    ) {
+      drawn.push(box)
+      ctx.strokeText(label, box.x0, mid)
+      ctx.fillText(label, box.x0, mid)
     }
   }
 }

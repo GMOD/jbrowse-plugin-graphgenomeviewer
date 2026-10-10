@@ -24,6 +24,7 @@ import {
   PANEL_TITLE_FONT,
   PANEL_TUBE,
   drawBundleCounts,
+  drawSqueezedLengths,
 } from '../tubeMapPanels'
 
 // variants folded into a box mark texture under a panel's routes
@@ -69,6 +70,7 @@ export function paintTubeMap(
   const drawn = model.layoutResult?.tubeMap
   if (drawn) {
     drawBundleCounts(ctx, picture, drawn.graph, tubeFrame)
+    drawSqueezedLengths(ctx, drawn, tubeFrame)
   }
   drawDeviationMarks(ctx, model.tubeMapDeviations, tubeFrame)
   drawTubeMapConnectors(
@@ -115,6 +117,7 @@ function paintPanels(
     }
     drawTubeMap(ctx, p.picture, tubeFrame)
     drawBundleCounts(ctx, p.picture, p.panel.result.tubeMap.graph, tubeFrame)
+    drawSqueezedLengths(ctx, p.panel.result.tubeMap, tubeFrame)
     ctx.globalAlpha = PANEL_TICK_ALPHA
     drawDeviationMarks(ctx, p.deviations, tubeFrame)
     ctx.globalAlpha = 1

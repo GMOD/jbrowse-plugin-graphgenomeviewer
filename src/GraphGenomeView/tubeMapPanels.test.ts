@@ -6,12 +6,15 @@ import { anchorGraph } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   PANEL_GAP,
   boxOf,
+  drawSqueezedLengths,
   graphOfPaths,
   memberAt,
   tubeMapPanelGroups,
   walksThrough,
   withTubeMapPanels,
 } from './tubeMapPanels'
+
+import type { TubeMapDrawing } from '@jbrowse/bandage-core/layout/tubeMapLayout'
 
 // A carries an insertion on its first haplotype; B lacks segment 3
 const GFA = [
@@ -135,4 +138,50 @@ test("a merged run's member is the one under the pointer's share of its width", 
   expect(at(-20)).toBe('left')
   expect(at(140)).toBe('right')
   expect(memberAt(members, () => undefined, 0, 100, 50)).toBeUndefined()
+})
+
+test('squeezed boxes of one length in a column share a label at the lowest', () => {
+  const box = (name: string, x: number, y: number, pixelWidth = 4) => ({
+    name,
+    x,
+    y,
+    pixelWidth,
+    contentHeight: 8,
+    order: 1,
+  })
+  // sparse, as the layout's are: index 1 is a hole
+  const nodes: ReturnType<typeof box>[] = []
+  nodes[0] = box('a', 10, 20)
+  nodes[2] = box('b', 10, 40)
+  nodes[3] = box('snp', 10, 60)
+  nodes[4] = box('ref', 100, 0, 400)
+  nodes[5] = box('lone', 300, 80)
+  const drawing = {
+    columns: [],
+    graph: {
+      nodes: [
+        { id: 'a', length: 32_738 },
+        { id: 'b', length: 32_738 },
+        { id: 'snp', length: 1 },
+        { id: 'ref', length: 40_000 },
+        { id: 'lone', length: 6_367 },
+      ],
+    },
+    layout: { nodes },
+  } as unknown as TubeMapDrawing
+  const written: [string, number][] = []
+  const ctx = {
+    measureText: (text: string) => ({ width: text.length * 6 }),
+    fillText: (text: string, _x: number, y: number) => written.push([text, y]),
+    strokeText: () => {},
+  } as unknown as CanvasRenderingContext2D
+  drawSqueezedLengths(ctx, drawing, {
+    x: (tx: number) => tx,
+    y: (ty: number) => ty,
+    width: 1000,
+  } as never)
+  expect(written).toEqual([
+    ['32.7 kb each', 44],
+    ['6.4 kb', 84],
+  ])
 })
