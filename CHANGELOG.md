@@ -1,3 +1,13 @@
+## [6.18.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.18.0...v6.18.1) (2026-10-10)
+
+### Other Changes
+
+- The legend states the fold whenever one applies ([2fe5753](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2fe575319337368fa950e0e55ad6aeee2aa500bc))
+- Tube maps split into a panel per sample or per haplotype ([79b9f3d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/79b9f3df25348de221882247664703deb84a0cff))
+- A ruler under the last on the reference axis, titles only where they fit ([0f9c70f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/0f9c70f4cf198a4e6e3573ab90f7ac24796ab03a))
+- Tube map panels by a sample table column, and a count per panel on hover ([262edaa](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/262edaa3a1a47ff2cd15d77e9b86001254bfa6b8))
+- Test against the latest release, 5.0.0-beta.13, not beta.11 ([8500c7c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8500c7c8d1fbe3f8da066bb4d364e830314672bd))
+
 ## [6.18.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.17.0...v6.18.0) (2026-10-10)
 
 ### Other Changes
