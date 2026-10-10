@@ -10,8 +10,8 @@
 # founder's slice runs MARGIN bp past the end of its collinear chain with the
 # window; Cactus clips whatever of the margin aligns to nothing.
 #
-# Requires: docker or singularity, samtools (built with libcurl), minimap2, vg,
-#           gbz-base, gbz-haplotype-index
+# Requires: cactus-pangenome (else docker for its image), samtools built with
+#           libcurl, minimap2, vg, gbz-base, gbz-haplotype-index
 # Usage:    bash scripts/build_maize_nam_graph.sh <outdir> <chr> [window end, bp]
 #           The gbz-base steps are skipped where gbz-haplotype-index is missing,
 #           so a remote host can build the GBZ and another index it.
@@ -82,11 +82,9 @@ done
 
 if [ ! -s "out/$NAME.full.gbz" ]; then
   rm -rf js
-  if docker info >/dev/null 2>&1; then
+  run=()
+  command -v cactus-pangenome >/dev/null ||
     run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
-  else
-    run=(singularity exec --cleanenv -B "$PWD":/data --pwd /data "docker://$CACTUS_IMAGE")
-  fi
   "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
     --gbz clip full --gfa clip full --vcf --maxCores "$(nproc)"
 fi
