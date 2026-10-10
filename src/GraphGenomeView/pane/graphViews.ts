@@ -7,6 +7,7 @@ import {
 } from '@jbrowse/bandage-core/deletionEdges'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
+import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { filterSamples, walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
   layoutModeByValue,
@@ -534,6 +535,13 @@ export const withGraphViews = paneBase
     // gfatools measured every allele, the layered order only bounds them.
     get bubbles() {
       return self.indexBubbles?.length ? self.indexBubbles : self.derivedBubbles
+    },
+    // what the legend says the drawing leaves out, when it was folded
+    get foldNote() {
+      const bp = self.foldedBelowBp
+      return bp === undefined
+        ? undefined
+        : `variants under ${formatBp(bp)} folded into the reference`
     },
   }))
   .views(self => ({

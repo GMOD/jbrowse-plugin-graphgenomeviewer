@@ -284,6 +284,19 @@ const exonSwatchStyle = {
   boxSizing: 'border-box' as const,
 }
 
+const FoldLegend = observer(function FoldLegend({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  const note = model.foldNote
+  return note ? (
+    <div style={legendBoxStyle} data-testid="graph-fold-legend">
+      <span>{note}</span>
+    </div>
+  ) : null
+})
+
 const GeneLegend = observer(function GeneLegend({
   model,
 }: {
@@ -370,6 +383,7 @@ const Legends = observer(function Legends({
       <ReferenceStripLegend model={model} />
       <HaloLegend model={model} />
       <GeneLegend model={model} />
+      <FoldLegend model={model} />
       <PathLegend model={model} />
       <TubeMapLegend model={model} />
       <WalkRowsLegend model={model} />

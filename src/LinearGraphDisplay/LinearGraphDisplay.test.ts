@@ -1333,3 +1333,37 @@ test("the linear view's SVG export draws the graph through the screen's transfor
     renderToStaticMarkup((await pane.renderSvg()) as React.ReactElement),
   ).toContain('data-testid="graph-pane-svg"')
 })
+
+const offReference = (pane: LinearGraphDisplayModel) =>
+  pane.graph!.nodes.filter(n => (n.stable?.rank ?? 0) > 0)
+
+test('variants under ten pixels of the zoom fold into the reference, and zooming in shows them', async () => {
+  const { view, pane, cuts } = await shownGraph()
+  // 60 bp per pixel folds the synthetic graph's 100 bp alleles
+  expect(offReference(pane)).toEqual([])
+  expect(pane.foldNote).toBe('variants under 600 bp folded into the reference')
+  // inside the cut's margins, but the fold it asks for is a hundredth
+  view.zoomTo(600 / WIDTH_PX)
+  view.scrollTo(1_030_000 / view.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(2)
+  expect(offReference(pane).length).toBeGreaterThan(0)
+  expect(pane.foldNote).toBeUndefined()
+})
+
+test('a folded drawing is clipped to the region it was cut for', async () => {
+  const { pane, cuts } = await shownGraph({ windowStart: 1_003_000 })
+  const { start, end } = cuts.at(-1)!.region
+  const backbone = pane.graph!.nodes.filter(n => n.stable?.rank === 0)
+  expect(backbone.length).toBeGreaterThan(0)
+  for (const node of backbone) {
+    expect(node.stable!.start).toBeGreaterThanOrEqual(start)
+    expect(node.stable!.start + node.length).toBeLessThanOrEqual(end)
+  }
+})
+
+test('a graph with walks is drawn whole at any zoom', async () => {
+  const { pane } = await shownGraph({ paths: true })
+  expect(offReference(pane).length).toBeGreaterThan(0)
+  expect(pane.foldNote).toBeUndefined()
+})

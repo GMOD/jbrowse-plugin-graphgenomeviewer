@@ -11,10 +11,11 @@ region cap is the wrong knob, and why bubble coarsening is **deliberately not
 built**. Every number here was measured in this repo or read out of vendored
 source; none is estimated.
 
-Scope: this is node count at chromosome scale. The hosted coarse tier
-(`RgfaTabixAdapter`'s `coarse` slot) and the tube map's **Fold variants**
-(`tubeMap/coarsen.ts`) came later and answer other questions: a tier to switch
-to when zoomed out, and a legible tube map at one locus.
+Scope: this is node count at chromosome scale. The track's fold by zoom
+(`foldVariants`, GRAPH_TRACK.md "Level of detail: the fold"), the coarse tier
+built by the same fold, and the tube map's **Fold variants**
+(`tubeMap/coarsen.ts`) came later and answer other questions: what a window
+shows at the zoom it is drawn at, and a legible tube map at one locus.
 
 ## The envelope
 

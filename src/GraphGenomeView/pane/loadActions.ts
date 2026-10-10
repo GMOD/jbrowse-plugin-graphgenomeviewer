@@ -4,7 +4,11 @@ import {
   classifyBubble,
 } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { bubbleSubgraph } from '@jbrowse/bandage-core/bubbles/popBubble'
-import { trimToWindow } from '@jbrowse/bandage-core/layout/trimToWindow'
+import { foldVariants } from '@jbrowse/bandage-core/foldVariants'
+import {
+  clipToWindow,
+  trimToWindow,
+} from '@jbrowse/bandage-core/layout/trimToWindow'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import {
   anchorFromPaths,
@@ -46,6 +50,10 @@ import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
+
+function totalBp(graph: Graph) {
+  return graph.nodes.reduce((sum, node) => sum + node.length, 0)
+}
 
 export const withLoadActions = withSettingActions.actions(self => {
   let loadController: AbortController | undefined
@@ -224,13 +232,16 @@ export const withLoadActions = withSettingActions.actions(self => {
   // `keepSelection` for a re-cut of the same source: node ids survive one
   // where edge indexes do not, so the selection is found again by id.
   // `readsOf` fetches the reads over the parsed graph before its one
-  // layout, since the tube map lays them out with the paths.
+  // layout, since the tube map lays them out with the paths. `foldBelowBp`
+  // is what a host's zoom cannot show: variants under it fold into the
+  // reference, and the drawing is clipped to the region it was cut for.
   function* parseAndLayout(
     source: string | WalkCut,
     name: string,
     region: SubgraphRegion | undefined,
     keepSelection = false,
     readsOf?: (graph: Graph) => Promise<GafReads>,
+    foldBelowBp = 0,
   ) {
     const signal = loadController?.signal
     self.setStatusMessage('Parsing GFA')
@@ -238,12 +249,22 @@ export const withLoadActions = withSettingActions.actions(self => {
       typeof source !== 'string' && source.walkRowRuns ? source : undefined
     const parsed = parseCut(source, name, region)
     const loaded = region ? loadedReference(parsed, region) : undefined
-    const graph =
+    const anchored =
       !self.referencePath &&
       loaded !== undefined &&
       loaded !== parsed.referencePath
         ? anchorFromPaths(parsed, loaded)
         : parsed
+    const folded =
+      foldBelowBp > 0 && !readsOf
+        ? foldVariants(anchored, foldBelowBp)
+        : anchored
+    const graph =
+      region && folded !== anchored
+        ? clipToWindow(folded, region, foldBelowBp)
+        : folded
+    self.foldedBelowBp =
+      totalBp(folded) < totalBp(anchored) ? foldBelowBp : undefined
     if (readsOf) {
       self.setStatusMessage('Reading alignments')
       try {
@@ -330,6 +351,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     region: SubgraphRegion,
     isLive: () => boolean,
     signal?: AbortSignal,
+    foldBelowBp = 0,
   ) {
     // The track config arrives as written, so the prefix is either the
     // `uri` shorthand or the segments location it expands to.
@@ -353,19 +375,28 @@ export const withLoadActions = withSettingActions.actions(self => {
         },
       )) as Feature[]
       if (isLive()) {
-        const bubbles = features.map(f => ({
-          refName: region.refName,
-          start: f.get('start'),
-          end: f.get('end'),
-          segmentCount: f.get('segmentCount') as number,
-          pathCount: (f.get('pathCount') as number | undefined) ?? 0,
-          inversion: f.get('inversion') as boolean,
-          shortestAlleleLength: f.get('shortestAlleleLength') as number,
-          longestAlleleLength: f.get('longestAlleleLength') as number,
-          segments: f.get('segments') as string,
-          shortestAllele: undefined,
-          longestAllele: undefined,
-        }))
+        const bubbles = features.flatMap(f => {
+          const start = f.get('start')
+          const end = f.get('end')
+          const longestAlleleLength = f.get('longestAlleleLength') as number
+          return Math.max(end - start, longestAlleleLength) < foldBelowBp
+            ? []
+            : [
+                {
+                  refName: region.refName,
+                  start,
+                  end,
+                  segmentCount: f.get('segmentCount') as number,
+                  pathCount: (f.get('pathCount') as number | undefined) ?? 0,
+                  inversion: f.get('inversion') as boolean,
+                  shortestAlleleLength: f.get('shortestAlleleLength') as number,
+                  longestAlleleLength,
+                  segments: f.get('segments') as string,
+                  shortestAllele: undefined,
+                  longestAllele: undefined,
+                },
+              ]
+        })
         // an open bubble derives its own; the index is the window's
         const [outermost, ...popped] = self.popStack
         if (outermost) {
@@ -510,6 +541,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.loadedReferencePath = undefined
     self.layoutResult = undefined
     self.indexBubbles = undefined
+    self.foldedBelowBp = undefined
     self.geneTrackFeatures = undefined
     self.walkGeneFeatures = undefined
     walkGeneCache.clear()
@@ -583,6 +615,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       adapterConfig: Record<string, unknown>,
       region: SubgraphRegion,
       opts: SubgraphCutOptions = {},
+      foldBelowBp = 0,
     ) {
       const { isLive, signal } = beginLoad()
       self.isLoading = true
@@ -621,6 +654,7 @@ export const withLoadActions = withSettingActions.actions(self => {
                   },
                 )
             : undefined,
+          foldBelowBp,
         )
         if (!isLive()) {
           return
@@ -632,7 +666,13 @@ export const withLoadActions = withSettingActions.actions(self => {
         yield Promise.all([
           opts.tier === 'coarse'
             ? undefined
-            : flow(loadBubbles)(adapterConfig, region, isLive, signal),
+            : flow(loadBubbles)(
+                adapterConfig,
+                region,
+                isLive,
+                signal,
+                self.foldedBelowBp,
+              ),
           flow(loadGenes)(region, isLive, signal),
           flow(loadRepeats)(region, isLive, signal),
         ])

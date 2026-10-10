@@ -55,6 +55,13 @@ import type { DisplayStatusPhase } from '@jbrowse/render-core/displayPhase'
 
 type GraphViewSpec = Omit<LaunchGraphGenomeViewArgs, 'session'>
 
+// A variant under this many of the linear view's pixels folds into the
+// reference before layout, so the drawing gains detail as the view zooms in.
+// It is the width build_pangenome_graph.sh gives a backbone node at the zoom a
+// graph hands over to its coarse tier, so a tier folded at its handover draws
+// what the fine cut drew just below it.
+export const FOLD_PX = 10
+
 const GraphTrackSettingsDialog = lazy(
   () => import('./components/GraphTrackSettingsDialog'),
 )
@@ -97,6 +104,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       dense: undefined as DenseWindow | undefined,
       // the haplotypes a walk-indexed graph's header names, once read
       haplotypeNames: undefined as string[] | undefined,
+      // the fold the latest cut asked for
+      cutFoldBp: 0,
     }))
     .views(self => ({
       get adapterConfig() {
@@ -149,6 +158,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
       capFor(tier: SubgraphTier) {
         return tier === 'coarse' ? Infinity : self.maxRegionBp
+      },
+      // Whether a zoom has moved far enough from the one the drawing was
+      // folded for that folding again would show or hide more. A graph with
+      // walks is never folded.
+      foldDrifted(bpPerPx: number) {
+        const want = FOLD_PX * bpPerPx
+        const had = self.cutFoldBp
+        return (
+          !self.graph?.paths?.length &&
+          (want >= 2 * had ||
+            (self.foldedBelowBp !== undefined && want <= had / 2))
+        )
       },
       get cutTier(): SubgraphTier {
         return self.coarseCut && self.coarseAboveBpPerPx !== undefined
@@ -267,15 +288,22 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           return
         }
         const coarse = self.cutTier === 'coarse'
-        return self.cutSubgraph(self.adapterConfig, region, {
-          hops: coarse ? 0 : self.subgraphContext,
-          haplotypes: self.chosenHaplotypes,
-          tier: coarse ? 'coarse' : undefined,
-          ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
-          ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
-            ? { snarls: 'overlapping' as const }
-            : {}),
-        })
+        self.cutFoldBp =
+          FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0)
+        return self.cutSubgraph(
+          self.adapterConfig,
+          region,
+          {
+            hops: coarse ? 0 : self.subgraphContext,
+            haplotypes: self.chosenHaplotypes,
+            tier: coarse ? 'coarse' : undefined,
+            ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
+            ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
+              ? { snarls: 'overlapping' as const }
+              : {}),
+          },
+          self.cutFoldBp,
+        )
       },
     }))
     .actions(self => ({
@@ -306,7 +334,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           denseCovers(self.dense, seen) ||
           (!self.loadCanceled &&
             self.tierAt(seen.bpPerPx) === self.cutTier &&
-            cutHolds(self.cutRegion, seen, margins))
+            cutHolds(self.cutRegion, seen, margins) &&
+            !self.foldDrifted(seen.bpPerPx))
         ) {
           return false
         }

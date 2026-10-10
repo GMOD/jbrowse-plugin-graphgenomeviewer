@@ -567,6 +567,9 @@ function Keys({
       ),
     )
   }
+  if (model.foldNote) {
+    rows.push(swatchRow('fold', () => null, 0, '', model.foldNote))
+  }
   rows.push(
     ...pathRows(model),
     ...tubeMapRows(model, idPrefix),

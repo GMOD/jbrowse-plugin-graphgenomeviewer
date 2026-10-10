@@ -79,15 +79,35 @@ drawn, suppressed for a minimized track, an empty viewport or an unmounted view
 body as core's displays are. A backend failure is folded into the error phase,
 and GraphCanvas shows it with the render hook's retry.
 
+## Level of detail: the fold
+
+Every cut is folded before layout at `FOLD_PX` (10) of the linear view's pixels:
+bandage-core's `foldVariants` keeps the backbone, every allele whose length or
+replaced reference reaches that many bp, and the shortest way from each one's
+ends back to the backbone, so the drawing gains detail as the view zooms in and
+nothing big is ever cut loose. The drawing is then clipped to the region it was
+cut for (`clipToWindow`), and the legend says what was folded. A graph with
+walks is drawn whole, since a folded detour would need every walk rerouted.
+Bubble index rows smaller than the fold are dropped, since their members are
+gone. Without margins any window change re-cuts; with them, a zoom whose fold
+differs twofold from the cut's re-cuts too.
+
+At bovine DEFB (chr27:6.0-7.25 Mb) the fold keeps the large loops of the
+1,233-node cut at every level: 45 alleles at 10 kb, 16 at 50 kb.
+
 ## The tier
 
-`RgfaTabixAdapter`'s `coarse` slot names a second segments/links pair at one
-node per bubble, and `aboveBpPerPx`, the zoom past which a settle cuts it. A
-coarse cut has no bp cap, since `maxGraphNodes` counts what came back; it asks
-for no hops, and reads no bubble index, since its nodes are the bubbles. The
-display persists `cutRegion` and `coarseCut`, so a restored session re-makes the
-cut it saved. The segments lane (`LinearBasicDisplay` on the same track) does
-not switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
+`RgfaTabixAdapter`'s `coarse` slot names a second segments/links pair, and
+`aboveBpPerPx`, the zoom past which a settle cuts it. The pair is the same fold
+of the whole graph at a fixed size, written by bandage-core's `bandage-fold` and
+indexed by gfa-to-tabix (anchored rows, so one read holds the window). Since
+folding again at a larger size folds the original at that size, a tier cut draws
+what a fine cut drew just below the handover, provided `aboveBpPerPx` is the
+tier's size over `FOLD_PX`. A coarse cut has no bp cap, since `maxGraphNodes`
+counts what came back, asks for no hops and reads no bubble index. The display
+persists `cutRegion` and `coarseCut`, so a restored session re-makes the cut it
+saved. The segments lane (`LinearBasicDisplay` on the same track) does not
+switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
 ## Height
 
