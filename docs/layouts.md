@@ -297,14 +297,14 @@ ones, and **Choose haplotypes...** searches the rest by name. A walk lifted
 alone shades light to dark along itself, so it can be followed round a loop; its
 key is a short bar of that gradient, with the stretch it runs over on the walk's
 own contig written under it as `contig:start-end (length)`. At GSTM1, HG00133
-runs cyan to navy past the loop its 18 kb deletion skips. The synteny view under
-it reads the same track as HG00133 aligned to GRCh38, and the deletion is the
-wedge pinched to a point on HG00133's contig. HPRC's own wfmash alignment puts
-it in the same place, inside the repeat that flanks GSTM1. Above the graph, six
-of the cut's eight haplotypes break across GSTM1 in the multiple alignment,
-HG00133 among them:
+runs cyan to navy past the 18 kb its deletion skips. The synteny view under it
+reads the same track as HG00133 aligned to GRCh38, and the deletion is the wedge
+pinched to a point on HG00133's contig. HPRC's own wfmash alignment puts it in
+the same place, inside the repeat that flanks GSTM1. Above the graph, six of the
+cut's eight haplotypes break across GSTM1 in the multiple alignment, HG00133
+among them:
 
-![HG00133's walk lifted at GSTM1 under the eight haplotypes' alignment rows, shading along itself past the loop it skips, over a synteny view of HG00133 against GRCh38 whose wedge is the deletion](../img/force_gstm1_walk.png)
+![HG00133's walk lifted at GSTM1 under the eight haplotypes' alignment rows, shading along itself past the stretch it skips, over a synteny view of HG00133 against GRCh38 whose wedge is the deletion](../img/force_gstm1_walk.png)
 
 Walks lifted together each take one flat colour, like the lines of a metro map,
 and draw a lane each through the nodes they visit; a lane missing from a node is
@@ -333,7 +333,7 @@ clicking it lifts that walk alone. While a node is hovered, each walk's key
 gives where that node sits on the walk's own contig, or says the walk does not
 visit it. Through the KIV-2 array, which the curated annotation above puts at
 GRCh38's 35 kb, each haplotype takes its own loops: HG00097 adds one to GRCh38's
-(+22.2 kb), HG01960 skips most of GRCh38's for the big teardrop (+49.9 kb), and
+(+22.2 kb), HG01960 skips most of GRCh38's for the big loop (+49.9 kb), and
 HG00133 takes both (+116.4 kb):
 
 ![The KIV-2 array side by side under the curated KIV-2 annotation: GRCh38, HG00097, HG01960 and HG00133 each take their own loops](../img/force_kiv2_facet.png)
