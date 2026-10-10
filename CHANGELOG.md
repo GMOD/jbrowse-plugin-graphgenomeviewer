@@ -1,3 +1,11 @@
+## [6.19.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.18.1...v6.19.0) (2026-10-10)
+
+### Other Changes
+
+- Tube map tubes by role where no key names a hue per walk ([a54483a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a54483abc74a4f472a2752a13a9d661a23ef6024))
+- The bubble the drawing is keeps its name, without the click to reopen it ([5ced7d3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5ced7d308db253777b8ff4b10c7434e1fe2533d9))
+- Bump @jbrowse/bandage-core to 9.4.0 ([f2a9c89](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/f2a9c892eb1a2e6773f5455ef35dede06f899b4c))
+
 ## [6.18.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.18.0...v6.18.1) (2026-10-10)
 
 ### Other Changes
