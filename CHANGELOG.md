@@ -1,3 +1,15 @@
+## [6.22.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.21.0...v6.22.0) (2026-10-10)
+
+### Other Changes
+
+- Tube map routes figures over C4's RCCX module instead of GSTM1 ([a2c2e96](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a2c2e96f37a0fc3349c280dc37624249f83b8a67))
+- A bubble's label opens it in place instead of cutting it out ([d0475d2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/d0475d213ef90c61180a02f197351754fd2edc4f))
+- Bump @jbrowse/bandage-core to 9.8.0, for an open bubble's focus ([65d4d14](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/65d4d14835ef893a16fe8aeb67ff48cb9db8ab5f))
+- A node new to a re-cut starts at the mean of where its links attach ([657f37d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/657f37d3ec085fea08288ee8e2f1bae8fcf71d58))
+- A re-cut landing mid-morph starts from where the drawing is ([ae04a4b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ae04a4bf15055fa2b64230bcd0f080288e6acf1a))
+- Gbz-base windows at fractional bp read the whole bp around them ([fc23912](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/fc239127e34952e27d45bf6eb2617a137fb1b194))
+- Reshoot every figure on main; captions follow the track's stress drawing ([b12ed69](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b12ed6917fe57c61e216a8b67ce8ba0e0c706716))
+
 ## [6.21.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.20.1...v6.21.0) (2026-10-10)
 
 ### Other Changes
