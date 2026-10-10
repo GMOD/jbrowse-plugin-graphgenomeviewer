@@ -185,6 +185,32 @@ export function boxOf(drawing: TubeMapDrawing, node: string) {
   return undefined
 }
 
+// The member of a merged run under pane x `sx`, a run drawn from `left` to
+// `right` across its members' bp, so a panel's count is of the bp the pointer
+// is on, not of the whole run. Undefined when no member has a span.
+export function memberAt(
+  members: readonly string[],
+  spanOf: (id: string) => { start: number; end: number } | undefined,
+  left: number,
+  right: number,
+  sx: number,
+) {
+  const spans = members.flatMap(id => {
+    const span = spanOf(id)
+    return span ? [{ id, ...span }] : []
+  })
+  if (spans.length === 0) {
+    return undefined
+  }
+  const start = Math.min(...spans.map(s => s.start))
+  const end = Math.max(...spans.map(s => s.end))
+  const share = right > left ? (sx - left) / (right - left) : 0
+  const bp = start + Math.min(1, Math.max(0, share)) * (end - start)
+  const distance = (s: { start: number; end: number }) =>
+    bp < s.start ? s.start - bp : bp >= s.end ? bp - s.end + 1 : 0
+  return spans.reduce((a, b) => (distance(b) < distance(a) ? b : a)).id
+}
+
 // How many of a panel's walks pass through `box`, of how many it holds, a
 // bundle counting each walk it stands for
 export function walksThrough(graph: Graph, box: string) {

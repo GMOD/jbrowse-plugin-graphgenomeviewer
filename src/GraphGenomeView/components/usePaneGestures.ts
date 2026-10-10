@@ -178,7 +178,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       pending.hover = null
       const node = nodeAt(x, y)
       model.setHoveredPanel(model.tubeMapPanelAt(sy))
-      model.setHoveredNode(node)
+      model.setHoveredNode(node, { x: sx, y: sy })
       model.setHoveredTube(
         node === null && model.layoutResult?.tubeMap
           ? model.tubeAt(sx, sy)

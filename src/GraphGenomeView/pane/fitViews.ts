@@ -71,6 +71,7 @@ import {
   NO_VALUE_TUBE,
   PANEL_GAP,
   boxOf,
+  memberAt,
   paintPanelHover,
   roleTubeColors,
   valueTubeColors,
@@ -869,6 +870,37 @@ export const withFitViews = withHostViews
     },
   }))
   .views(self => ({
+    // The node the pointer is on: inside a merged run, the member at the
+    // pointer's bp, so a run spanning the window counts what is under it
+    get hoveredMember() {
+      const id = self.hoveredNode
+      const members =
+        id === null ? undefined : self.hoverDrawing?.members.get(id)
+      if (!members) {
+        return id
+      }
+      const at = self.hoveredAt
+      const i = self.hoveredPanel
+      const under = i === null ? undefined : this.tubeMapPanelViews?.[i]
+      // sparse, so forEach, which skips its holes, as tubeMapNodeAt does
+      let box: { x: number; pixelWidth: number } | undefined
+      under?.panel.result.tubeMap.layout.nodes.forEach(n => {
+        if (n.name === id) {
+          box = n
+        }
+      })
+      const member =
+        at && under && box
+          ? memberAt(
+              members,
+              m => self.nodeSpan(m),
+              under.frame.x(box.x),
+              under.frame.x(box.x + box.pixelWidth),
+              at.x,
+            )
+          : undefined
+      return member ?? members[0]
+    },
     // For the hovered box, the box each panel draws it in and how many of
     // that panel's haplotypes pass through it: a frequency per group
     get tubeMapPanelHover() {
@@ -877,7 +909,7 @@ export const withFitViews = withHostViews
       if (id === null || !pictures) {
         return undefined
       }
-      const node = self.hoverDrawing?.members.get(id)?.[0] ?? id
+      const node = this.hoveredMember ?? id
       return pictures.map(({ panel }) => {
         const drawing = panel.result.tubeMap
         const box = boxOf(drawing, node)

@@ -274,8 +274,9 @@ export const withSettingActions = withFitViews
         self.connectedViewId = viewId
       }
     },
-    setHoveredNode(nodeId: string | null) {
+    setHoveredNode(nodeId: string | null, at?: { x: number; y: number }) {
       self.hoveredNode = nodeId
+      self.hoveredAt = nodeId === null ? null : (at ?? null)
     },
     setHoveredPanel(panel: number | null) {
       self.hoveredPanel = panel

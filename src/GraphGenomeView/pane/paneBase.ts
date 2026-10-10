@@ -376,6 +376,8 @@ export const paneBase = types
     loadCanceled: false,
     statusMessage: '',
     hoveredNode: null as string | null,
+    // where on the pane the pointer hovered it, when the canvas set it
+    hoveredAt: null as { x: number; y: number } | null,
     hoveredTube: null as HoveredTube | null,
     // the tube map panel the pointer is over, while the map is split
     hoveredPanel: null as number | null,

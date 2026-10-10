@@ -7,6 +7,7 @@ import {
   PANEL_GAP,
   boxOf,
   graphOfPaths,
+  memberAt,
   tubeMapPanelGroups,
   walksThrough,
   withTubeMapPanels,
@@ -118,4 +119,20 @@ test("a hovered node's box in each panel, and how many walks pass it", () => {
   const box = boxOf(b.tubeMap!, '3+')!
   expect(box).toBeDefined()
   expect(walksThrough(b.tubeMap!.graph, box)).toEqual({ here: 0, of: 1 })
+})
+
+test("a merged run's member is the one under the pointer's share of its width", () => {
+  const spans: Record<string, { start: number; end: number }> = {
+    left: { start: 100, end: 200 },
+    deleted: { start: 200, end: 1000 },
+    right: { start: 1000, end: 1100 },
+  }
+  const members = ['left', 'deleted', 'right']
+  const at = (sx: number) => memberAt(members, id => spans[id], 0, 100, sx)
+  expect(at(1)).toBe('left')
+  expect(at(50)).toBe('deleted')
+  expect(at(99)).toBe('right')
+  expect(at(-20)).toBe('left')
+  expect(at(140)).toBe('right')
+  expect(memberAt(members, () => undefined, 0, 100, 50)).toBeUndefined()
 })
