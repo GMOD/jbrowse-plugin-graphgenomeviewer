@@ -185,6 +185,9 @@ export const withSettingActions = withFitViews
     setTubeMapRoutes(routes: TubeMapRoutes) {
       self.tubeMapRoutes = routes
     },
+    setTubeMapColorBy(field: string) {
+      self.tubeMapColorBy = field
+    },
     setGeneTrackId(trackId: string) {
       self.geneTrackId = trackId
     },

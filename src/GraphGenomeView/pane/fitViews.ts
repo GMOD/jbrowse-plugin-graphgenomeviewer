@@ -68,10 +68,12 @@ import { computed, untracked } from 'mobx'
 
 import { hostFrame } from '../host'
 import {
+  NO_VALUE_TUBE,
   PANEL_GAP,
   boxOf,
   paintPanelHover,
   roleTubeColors,
+  valueTubeColors,
   walksThrough,
 } from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
@@ -821,9 +823,18 @@ export const withFitViews = withHostViews
         return undefined
       }
       const hovered = new Set(self.hoveredRowWalks)
+      const coloring = self.tubeMapColoring
       const tubeColors = (graph: Graph) => {
         const paths = graph.paths ?? []
-        return roleTubeColors(paths, graph.referencePath).map((color, i) => {
+        const base = coloring
+          ? valueTubeColors(
+              paths,
+              graph.referencePath,
+              coloring.valueOf,
+              coloring.palette,
+            )
+          : roleTubeColors(paths, graph.referencePath)
+        return base.map((color, i) => {
           const name = paths[i]!.name
           return hovered.size > 0 &&
             !hovered.has(name) &&
@@ -975,15 +986,36 @@ export const withFitViews = withHostViews
         const split = layout?.tubeMapPanels !== undefined
         const reads = split ? [] : (layout?.tubeMap?.layout.reads ?? [])
         const paths = self.drawnGraph?.paths ?? []
+        const coloring = self.tubeMapColoring
         return {
           // tubes coloured reference and haplotype rather than per walk
           bundled: paths.some(p => p.members),
+          // tubes in a column's hues, keyed value by value
+          values:
+            coloring && reads.length === 0
+              ? [
+                  ...[...coloring.palette].map(([value, color]) => ({
+                    value,
+                    color,
+                  })),
+                  ...(coloring.unvalued
+                    ? [
+                        {
+                          value: `${coloring.field}: none`,
+                          color: NO_VALUE_TUBE,
+                        },
+                      ]
+                    : []),
+                ]
+              : undefined,
           roles:
-            split ||
-            (layout?.tubeMap !== undefined &&
-              reads.length === 0 &&
-              !self.tubeMapNodeColors &&
-              (!pathColorsLegible(paths.length) || paths.some(p => p.members))),
+            !(coloring && reads.length === 0) &&
+            (split ||
+              (layout?.tubeMap !== undefined &&
+                reads.length === 0 &&
+                !self.tubeMapNodeColors &&
+                (!pathColorsLegible(paths.length) ||
+                  paths.some(p => p.members)))),
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,

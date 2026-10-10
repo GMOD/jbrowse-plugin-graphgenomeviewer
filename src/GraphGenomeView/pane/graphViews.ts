@@ -14,6 +14,7 @@ import {
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
 import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   pathColorsLegible,
   pathGreyCssColor,
@@ -64,7 +65,12 @@ import {
   pickRepeatTrack,
 } from '../repeats/repeatFeatures'
 import { withCalls } from '../repeats/walkCalls'
-import { roleTubeColors } from '../tubeMapPanels'
+import {
+  columnKeyOf,
+  roleTubeColors,
+  valueTubeColors,
+  valueTubePalette,
+} from '../tubeMapPanels'
 import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
@@ -769,6 +775,26 @@ export const withGraphViews = paneBase
     get walkRowGroupFields() {
       return metadataColumns(self.walkRowSampleTable)
     },
+    // The column colouring a tube map's tubes, once the table is read: each
+    // walk's value, and a hue per value across every walk of the cut, so
+    // the panels and the key agree
+    get tubeMapColoring() {
+      const field = self.tubeMapColorBy
+      const table = self.walkRowSampleTable
+      if (!field || !table || !this.walkRowGroupFields.includes(field)) {
+        return undefined
+      }
+      const valueOf = columnKeyOf(field, table)
+      const walks = (self.graph?.paths ?? [])
+        .map(p => pathOrigin(p.name).name)
+        .filter(w => w !== self.graph?.referencePath)
+      return {
+        field,
+        valueOf,
+        palette: valueTubePalette(walks.map(valueOf)),
+        unvalued: walks.some(w => valueOf(w) === ''),
+      }
+    },
     // How a tube map splits into panels: by sample or walk, or by a sample
     // table column once the table is read
     get tubeMapPanelSplit(): TubeMapPanelSplit | undefined {
@@ -983,15 +1009,23 @@ export const withGraphViews = paneBase
       const drawing = self.layoutResult?.tubeMap
       const colors = drawing?.pathColors
       const paths = self.drawnGraph?.paths
+      const coloring = self.tubeMapColoring
       const tubes =
-        colors && this.tubeMapNodeColors
-          ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
-          : colors &&
-              paths &&
-              drawing.layout.reads.length === 0 &&
-              (!pathColorsLegible(paths.length) || paths.some(p => p.members))
-            ? roleTubeColors(paths, self.drawnGraph.referencePath)
-            : colors
+        colors && paths && coloring && drawing.layout.reads.length === 0
+          ? valueTubeColors(
+              paths,
+              self.drawnGraph.referencePath,
+              coloring.valueOf,
+              coloring.palette,
+            )
+          : colors && this.tubeMapNodeColors
+            ? colors.map((_, i) => pathGreyCssColor(i, colors.length))
+            : colors &&
+                paths &&
+                drawing.layout.reads.length === 0 &&
+                (!pathColorsLegible(paths.length) || paths.some(p => p.members))
+              ? roleTubeColors(paths, self.drawnGraph.referencePath)
+              : colors
       const hovered = new Set(self.hoveredRowWalks)
       return tubes && paths && hovered.size > 0
         ? tubes.map((color, i) =>
@@ -1051,12 +1085,13 @@ export const withGraphViews = paneBase
       const paths = self.drawnGraph?.paths
       const tubeMap = self.layoutResult?.tubeMap
       const colouring = self.drawPaths || tubeMap
-      // split panels colour tubes by role, which TubeMapLegend keys
+      // tubes coloured by role or by a column take TubeMapLegend's key
       return colouring &&
         paths &&
         pathColorsLegible(paths.length) &&
         !self.layoutResult?.tubeMapPanels &&
-        !paths.some(p => p.members)
+        !paths.some(p => p.members) &&
+        !self.tubeMapColoring
         ? pathLegend(paths, self.tubeMapTubeColors)
         : []
     },

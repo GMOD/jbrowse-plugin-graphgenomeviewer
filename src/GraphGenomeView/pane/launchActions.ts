@@ -230,10 +230,24 @@ export const withLaunchActions = withRenderingActions
                   checked: self.tubeMapRoutes === value,
                   onClick: () => {
                     self.setTubeMapRoutes(value)
-                    void self.recomputeLayout()
                   },
                 })),
               },
+              ...(self.walkRowGroupFields.length > 0
+                ? [
+                    {
+                      label: 'Tube color',
+                      subMenu: ['', ...self.walkRowGroupFields].map(field => ({
+                        type: 'radio' as const,
+                        label: field ? `By ${field}` : 'By role',
+                        checked: self.tubeMapColorBy === field,
+                        onClick: () => {
+                          self.setTubeMapColorBy(field)
+                        },
+                      })),
+                    },
+                  ]
+                : []),
             ]
           : []),
         ...(repeat &&

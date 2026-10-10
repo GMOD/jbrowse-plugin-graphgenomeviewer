@@ -99,10 +99,11 @@ export const VIEWPORT_PANES_BUILT = 1
 export const WALK_GENE_ROWS = 40
 
 // What the canvas draws under the tube map, whose ink is all TubeMapOverlay's
-export type TubeMapRoutes = 'each' | 'bundled'
+export type TubeMapRoutes = 'each' | 'grouped' | 'bundled'
 
 export const TUBE_MAP_ROUTES: { value: TubeMapRoutes; label: string }[] = [
   { value: 'each', label: 'A tube per haplotype' },
+  { value: 'grouped', label: 'A tube per haplotype, grouped by route' },
   { value: 'bundled', label: 'A tube per route' },
 ]
 
@@ -270,9 +271,12 @@ export const paneBase = types
       // A tube per haplotype, or a tube per route the haplotypes take, as
       // wide as how many take it (bundleRoutes)
       tubeMapRoutes: lenientOptionalEnum<TubeMapRoutes>(
-        ['each', 'bundled'],
+        ['each', 'grouped', 'bundled'],
         'each',
       ),
+      // A sample table column whose values colour the tubes, the reference
+      // charcoal; empty colours them by role
+      tubeMapColorBy: types.optional(types.string, ''),
       // Which track the genes come from; empty picks the assembly's
       // annotation track (pickGeneTrack).
       geneTrackId: types.optional(types.string, ''),

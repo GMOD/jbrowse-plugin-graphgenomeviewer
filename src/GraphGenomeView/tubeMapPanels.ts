@@ -71,9 +71,49 @@ export function roleTubeColors(
   )
 }
 
+// a categorical palette for a column's values, a hue each in sorted order
+const VALUE_TUBES = [
+  '#4e79a7',
+  '#f28e2b',
+  '#59a14f',
+  '#e15759',
+  '#b07aa1',
+  '#76b7b2',
+  '#edc948',
+  '#9c755f',
+  '#ff9da7',
+  '#bab0ac',
+]
+export const NO_VALUE_TUBE = '#c8c8c8'
+
+// Each of a column's values its hue, in the order a JBrowse Group by sorts
+// them; a value past the palette, or none, is grey
+export function valueTubePalette(values: Iterable<string>) {
+  const sorted = [...new Set(values)]
+    .filter(v => v !== '')
+    .sort(groupKeyComparator())
+  return new Map(sorted.map((v, i) => [v, VALUE_TUBES[i] ?? NO_VALUE_TUBE]))
+}
+
+// The reference charcoal and each walk, or the bundle it stands for, in its
+// value's hue
+export function valueTubeColors(
+  paths: readonly { name: string; members?: string[] }[],
+  reference: string | undefined,
+  valueOf: (walk: string) => string,
+  palette: ReadonlyMap<string, string>,
+) {
+  return paths.map(p => {
+    const walk = walkOf(p.name)
+    return walk === reference
+      ? PANEL_REFERENCE_TUBE
+      : (palette.get(valueOf(p.members?.[0] ?? walk)) ?? NO_VALUE_TUBE)
+  })
+}
+
 // A walk's value in a column: its haplotype's row (`HG00097#1`), else its
 // sample's, as groupWalkRows reads it
-function columnKeyOf(field: string, table: SampleRow[]) {
+export function columnKeyOf(field: string, table: SampleRow[]) {
   const valueOf = new Map(table.map(row => [row.name, row[field] ?? '']))
   return (walk: string) => {
     const { sample, haplotype } = parsePanSN(walk)

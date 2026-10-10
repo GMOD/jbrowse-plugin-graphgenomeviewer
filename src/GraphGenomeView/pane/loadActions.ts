@@ -104,7 +104,13 @@ export const withLoadActions = withSettingActions.actions(self => {
         : undefined
     const laid = coarse?.graph ?? drawn
     const bundled = (g: Graph) =>
-      tubeMap && self.tubeMapRoutes === 'bundled' ? bundleRoutes(g) : g
+      tubeMap && self.tubeMapRoutes !== 'each'
+        ? bundleRoutes(
+            g,
+            self.tubeMapColoring?.valueOf,
+            self.tubeMapRoutes === 'bundled',
+          )
+        : g
     const runs = self.walkCut?.walkRowRuns
     const local =
       self.chosenLayoutMode === 'walkrows' && runs

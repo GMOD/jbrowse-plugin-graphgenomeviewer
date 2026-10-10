@@ -439,6 +439,35 @@ const FIGURES = {
     tubeMapRoutes: 'bundled',
     height: 600,
   }),
+  // one map, each route a stack of its superpopulations' strands
+  tube_map_gstm1_routes_by_population: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'bundled',
+    tubeMapColorBy: 'superpopulation',
+    height: 600,
+  }),
+  // every haplotype its own tube in its superpopulation's hue
+  tube_map_gstm1_by_population: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapColorBy: 'superpopulation',
+    height: 900,
+  }),
+  // every haplotype its own tube, ordered route by route and by population
+  tube_map_gstm1_grouped_by_population: trackView(GSTM1_LOC, {
+    trackId: GBZ,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'grouped',
+    tubeMapColorBy: 'superpopulation',
+    height: 900,
+  }),
   // and a panel per superpopulation, each its own routes
   tube_map_gstm1_populations_bundled: trackView(GSTM1_LOC, {
     trackId: GBZ,

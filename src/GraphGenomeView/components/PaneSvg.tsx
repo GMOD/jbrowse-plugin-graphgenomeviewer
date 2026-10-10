@@ -355,6 +355,7 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
   const {
     roles,
     bundled,
+    values,
     logWidths,
     foldBp,
     forwardReads,
@@ -383,6 +384,14 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
       '',
       label,
     )
+  if (values) {
+    rows.push(
+      flatRow('ref', PANEL_REFERENCE_TUBE, 'reference'),
+      ...values.map(({ value, color }) =>
+        flatRow(`value-${value}`, color, value),
+      ),
+    )
+  }
   if (roles) {
     rows.push(
       flatRow('ref', PANEL_REFERENCE_TUBE, 'reference'),

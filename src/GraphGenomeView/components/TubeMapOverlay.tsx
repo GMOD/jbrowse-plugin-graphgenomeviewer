@@ -280,6 +280,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
   const {
     roles,
     bundled,
+    values,
     logWidths,
     foldBp,
     forwardReads,
@@ -291,6 +292,20 @@ export const TubeMapLegend = observer(function TubeMapLegend({
   const reads = model.readsShown
   const sampled = reads && reads.shown < reads.total ? reads : undefined
   const rows = [
+    ...(values
+      ? [{ value: 'reference', color: PANEL_REFERENCE_TUBE }, ...values].map(
+          ({ value, color }) => (
+            <LegendRow
+              key={`value-${value}`}
+              swatch={
+                <div style={{ ...barSwatchStyle, backgroundColor: color }} />
+              }
+            >
+              {value}
+            </LegendRow>
+          ),
+        )
+      : []),
     roles && (
       <LegendRow
         key="ref"

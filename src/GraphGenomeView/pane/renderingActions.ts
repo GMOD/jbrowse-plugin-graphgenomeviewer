@@ -335,7 +335,8 @@ export const withRenderingActions = withLoadActions
           },
         ),
       )
-      // a tube map's panels are each laid out alone
+      // a tube map lays out again for its panels, its routes and the column
+      // its routes split by
       addDisposer(
         self,
         reaction(
@@ -345,6 +346,11 @@ export const withRenderingActions = withLoadActions
                   facet: self.facetSetting,
                   groupBy: self.walkRowGroupBy,
                   table: self.walkRowGroupBy && self.walkRowSampleTable?.length,
+                  routes: self.tubeMapRoutes,
+                  bundledBy:
+                    self.tubeMapRoutes !== 'each'
+                      ? self.tubeMapColoring?.field
+                      : undefined,
                 })
               : undefined,
           (facet, was) => {
