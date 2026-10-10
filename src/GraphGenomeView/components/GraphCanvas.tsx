@@ -463,9 +463,15 @@ const HoverTooltips = observer(function HoverTooltips({
     : undefined
 
   const walkRow = model.hoveredWalkRowText
+  const tube = model.hoveredTubeText
 
   return (
     <>
+      {tube && !hoveredNodeData ? (
+        <div style={tooltipStyle} data-testid="graph-tube-tooltip">
+          <strong>{tube.label}</strong> — {tube.readout}
+        </div>
+      ) : null}
       {walkRow && !hoveredNodeData ? (
         <div style={tooltipStyle} data-testid="graph-walk-row-tooltip">
           <strong>{walkRow.label}</strong> — {walkRow.readout}

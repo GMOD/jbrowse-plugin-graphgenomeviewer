@@ -173,10 +173,16 @@ export function usePaneGestures(model: GraphPaneModel) {
       )
     }
     if (pending.hover && model.nodePositions && model.graph) {
-      const { x, y } = screenToGraph(pending.hover.x, pending.hover.y)
+      const { x: sx, y: sy } = pending.hover
+      const { x, y } = screenToGraph(sx, sy)
       pending.hover = null
       const node = nodeAt(x, y)
       model.setHoveredNode(node)
+      model.setHoveredTube(
+        node === null && model.layoutResult?.tubeMap
+          ? model.tubeAt(sx, sy)
+          : null,
+      )
       model.setHoveredEdge(
         node || model.layoutResult?.tubeMap || !model.hoverLightsEverything
           ? null
@@ -262,6 +268,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
     model.stopDragging()
     model.setHoveredNode(null)
+    model.setHoveredTube(null)
     model.setHoveredEdge(null)
     model.setHoveredWalkRow(null)
   }

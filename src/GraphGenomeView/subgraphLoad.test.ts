@@ -447,6 +447,35 @@ describe('reads', () => {
     expect(model.hoveredSpan).toEqual({ start: 32_000_000, end: 32_001_500 })
   })
 
+  test('the pointer on a tube names its read or haplotype', async () => {
+    const model = await cutWithReads(() =>
+      Promise.resolve({ records: [{ ...READ, cs: ':2*ga:4' }], total: 1 }),
+    )
+    const picture = model.tubeMapPicture!
+    const { x, y } = model.tubeMapFrame!
+    const onScreen = (r: { x0: number; x1: number; y0: number; y1: number }) =>
+      [x((r.x0 + r.x1) / 2), y((r.y0 + r.y1) / 2)] as const
+    const [haplotypes, reads] = picture.layers
+
+    model.setHoveredTube(model.tubeAt(...onScreen(reads!.rects[0]!)))
+    expect(model.hoveredTubeText).toEqual({
+      label: 'r1',
+      readout: 'MAPQ 60, forward strand',
+    })
+
+    const mark = picture.mismatches.find(m => m.kind === 'substitution')!
+    model.setHoveredTube(
+      model.tubeAt(x((mark.x0 + mark.x1) / 2), y(mark.y + mark.height / 2)),
+    )
+    expect(model.hoveredTubeText?.readout).toBe(
+      'MAPQ 60, forward strand, substitution A',
+    )
+
+    const alt = haplotypes!.rects.find(r => r.id === 1)!
+    model.setHoveredTube(model.tubeAt(...onScreen(alt)))
+    expect(model.hoveredTubeText).toEqual({ label: 'alt', readout: 'haplotype' })
+  })
+
   test('beside reads the fold menu reads None, since no fold applies', async () => {
     const model = await cutWithReads(() =>
       Promise.resolve({ records: [READ], total: 1 }),

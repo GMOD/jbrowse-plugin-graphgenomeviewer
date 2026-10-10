@@ -5,7 +5,7 @@ import {
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { figureSpecSettings } from '@jbrowse/bandage-core/figureSettings'
-import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
+import { formatBp, rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import {
   LEGEND_INSET_PX,
   layoutLabels,
@@ -36,6 +36,8 @@ import {
 import {
   mismatchOnScreen,
   mismatchesLegible,
+  tubeMapMismatchAt,
+  tubeMapTrackAt,
 } from '@jbrowse/bandage-core/tubeMap/draw'
 import {
   tubeMapFrame,
@@ -71,14 +73,31 @@ import {
   uriOf,
 } from './paneBase'
 
+import type { HoveredTube } from './paneBase'
 import type { FacetGrid, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type {
   GeneGaps,
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
+import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
+
+const MAX_SHOWN_BASES = 20
+
+function mismatchText(m: TubeMapMismatch) {
+  if (m.kind === 'deletion') {
+    return `deletion of ${formatBp(m.length)}`
+  }
+  if (m.kind === 'substitution') {
+    return `substitution ${m.seq}`
+  }
+  const seq = m.seq ?? ''
+  const shown =
+    seq.length > MAX_SHOWN_BASES ? `${seq.slice(0, MAX_SHOWN_BASES)}…` : seq
+  return `insertion of ${formatBp(seq.length)} ${shown}`.trim()
+}
 
 export function walkRowGeneKey(
   pitch: RowPitch | undefined,
@@ -757,5 +776,38 @@ export const withFitViews = withHostViews
         connectorAt(self.tubeMapConnectors, self.connectorZoneBottom, sx, sy) ??
         null
       )
+    },
+    // The tube under a pane point, and the mismatch mark on it if any
+    tubeAt(sx: number, sy: number): HoveredTube | null {
+      const picture = self.tubeMapPicture
+      const frame = self.tubeMapFrame
+      if (!picture || !frame) {
+        return null
+      }
+      const mismatch = tubeMapMismatchAt(picture, frame, sx, sy)
+      const track = mismatch?.readId ?? tubeMapTrackAt(picture, frame, sx, sy)
+      return track === undefined ? null : { track, mismatch }
+    },
+    // A tube names its haplotype; a read its MAPQ and strand, and the
+    // mismatch under the pointer
+    get hoveredTubeText() {
+      const tube = self.hoveredTube
+      const layout = self.layoutResult?.tubeMap?.layout
+      const read = tube && layout?.reads.find(r => r.id === tube.track)
+      if (tube && read) {
+        const mapq = read.mapping_quality
+        return {
+          label: read.name ?? 'read',
+          readout: [
+            `MAPQ ${mapq ?? 'unknown'}`,
+            `${read.is_reverse ? 'reverse' : 'forward'} strand`,
+            ...(tube.mismatch ? [mismatchText(tube.mismatch)] : []),
+          ].join(', '),
+        }
+      }
+      const path = tube ? self.drawnGraph?.paths?.[tube.track] : undefined
+      return path
+        ? { label: self.walkLabel(path.name), readout: 'haplotype' }
+        : undefined
     },
   }))

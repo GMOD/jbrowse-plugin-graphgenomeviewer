@@ -18,6 +18,7 @@ import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
 import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
+import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
@@ -42,6 +43,12 @@ export const paperCss = ([r, g, b]: number[]) =>
 export const MIN_FIT_TUBE_PX = 5
 
 export const TUBE_MAP_MODES = new Set<string>(['tubemap', 'tubemapref'])
+
+// the tube the pointer is on, by track id, and the mismatch mark under it
+export interface HoveredTube {
+  track: number
+  mismatch?: TubeMapMismatch
+}
 
 export const ChooseSamplesDialog = lazy(
   () => import('../components/ChooseSamplesDialog'),
@@ -353,6 +360,7 @@ export const paneBase = types
     loadCanceled: false,
     statusMessage: '',
     hoveredNode: null as string | null,
+    hoveredTube: null as HoveredTube | null,
     // the walks of the per-sample lane row the linear view's pointer is on
     hoveredRowWalks: [] as string[],
     // the bubble whose label the pointer is on

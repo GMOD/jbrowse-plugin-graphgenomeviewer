@@ -21,6 +21,7 @@ import { colorOfScheme } from '../nodeColor'
 import { sizeOfNodeWidth } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
+import type { HoveredTube } from './paneBase'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
@@ -258,6 +259,12 @@ export const withSettingActions = withFitViews
     },
     setHoveredNode(nodeId: string | null) {
       self.hoveredNode = nodeId
+    },
+    setHoveredTube(tube: HoveredTube | null) {
+      const was = self.hoveredTube
+      if (tube?.track !== was?.track || tube?.mismatch !== was?.mismatch) {
+        self.hoveredTube = tube
+      }
     },
     setHoveredRowWalks(walks: string[]) {
       if (walks.join('\n') !== self.hoveredRowWalks.join('\n')) {
