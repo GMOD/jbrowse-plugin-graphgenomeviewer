@@ -212,15 +212,13 @@ export const withRenderingActions = withLoadActions
           }),
         )
 
-        // Autorun: hover and selection. Tracks `geometryVersion` because an
-        // upload drops the renderer's edge highlight.
+        // Autorun: the selection. The hover paints on a layer of its own.
         addDisposer(
           self,
           autorun(() => {
             const b = self.currentRenderingBackend as Renderer | undefined
-            dependOn(self.geometryVersion)
             if (b) {
-              self.applyHighlights(b)
+              self.applySelection(b)
               self.renderNow()
             }
           }),
@@ -239,7 +237,7 @@ export const withRenderingActions = withLoadActions
           if (self.layoutResult?.tubeMap || self.facetPanels) {
             dependOn(self.viewportDirty)
             b.uploadGeometry(EMPTY_BATCH)
-            self.setGeometryMetrics(0, 0, {
+            self.setGeometryMetrics(0, EMPTY_BATCH, {
               scale: untracked(() => self.scale),
               bounds: untracked(() => self.viewportToBuild()),
             })
@@ -254,7 +252,7 @@ export const withRenderingActions = withLoadActions
             b.uploadGeometry(built.batch)
             self.setGeometryMetrics(
               performance.now() - geometryStart,
-              built.batch.nodeStrokes.length,
+              built.batch,
               {
                 scale: untracked(() => self.scale),
                 bounds: built.viewportBounds,

@@ -382,9 +382,8 @@ export const paneBase = types
     // the transform at all. Rebuilding a 12k-edge hit index because the user
     // panned cost ~14 ms of the first mousemove after every gesture.
     positionsVersion: 0,
-    // Bumped per upload, so the hover autorun re-states its highlights
-    // against the batch the renderer now holds.
-    geometryVersion: 0,
+    // The batch the canvas holds, which the hover layer lights over it
+    drawnBatch: EMPTY_BATCH,
     // The zoom and the window the current batch was built for; a pan that
     // stays inside it needs no rebuild.
     builtViewport: undefined as BuiltViewport | undefined,

@@ -178,6 +178,32 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
     await screenshot(page, 'tubemap-00-standalone-both-axes')
   }, 60_000)
 
+  it('outlines a hovered box on the hover layer, leaving the tubes', async () => {
+    const pane = `[data-testid="view-container-${OWN_VIEW}"]`
+    const layer = `${pane} [data-testid="graph-hover-layer"]`
+    const tubes = () =>
+      page.evaluate(
+        sel => document.querySelector<HTMLCanvasElement>(sel)?.toDataURL(),
+        `${pane} [data-testid="graph-tube-map"]`,
+      )
+    const hover = (on: boolean) =>
+      page.evaluate(
+        (id, on) => {
+          const view = window.JBrowseSession.views.find(v => v.id === id)
+          view.setHoveredNode(on ? view.tubeMapPicture.nodes[0].name : null)
+        },
+        OWN_VIEW,
+        on,
+      )
+    const before = await tubes()
+    expect(await inkedPixels(page, layer)).toBe(0)
+    await hover(true)
+    expect(await inkedPixels(page, layer)).toBeGreaterThan(0)
+    expect(await tubes()).toBe(before)
+    await hover(false)
+    expect(await inkedPixels(page, layer)).toBe(0)
+  }, 60_000)
+
   it('pins the reference axis to the cut in bp', async () => {
     const columns = await page.evaluate(id => {
       const view = window.JBrowseSession.views.find(v => v.id === id)

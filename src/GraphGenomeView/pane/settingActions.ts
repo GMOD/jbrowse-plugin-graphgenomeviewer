@@ -33,6 +33,7 @@ import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
+import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
 import type { LayoutResult } from '@jbrowse/bandage-core/types'
 import type {
   WalkEncoding,
@@ -89,13 +90,13 @@ export const withSettingActions = withFitViews
     },
     setGeometryMetrics(
       ms: number,
-      strokeCount: number,
+      batch: RenderBatch,
       built: { scale: number; bounds: Bounds },
     ) {
       self.lastGeometryMs = ms
-      self.lastGeometryStrokeCount = strokeCount
+      self.lastGeometryStrokeCount = batch.nodeStrokes.length
       self.builtViewport = { ...built, viewportDirty: self.viewportDirty }
-      self.geometryVersion++
+      self.drawnBatch = batch
     },
     markPainted() {
       self.paintedViewport = self.builtViewport

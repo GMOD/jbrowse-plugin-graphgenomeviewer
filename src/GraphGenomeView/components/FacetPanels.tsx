@@ -5,6 +5,7 @@ import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRendere
 import { autorun, computed } from 'mobx'
 import { observer } from 'mobx-react'
 
+import { hoverLayerStyle } from './HoverLayer'
 import WalkKey from './WalkKey'
 import { useWheelZoom } from './usePaneGestures'
 
@@ -41,6 +42,8 @@ const titleStyle = {
   display: 'block',
 }
 
+const panelStyle = { position: 'relative' as const }
+
 const FacetPanel = observer(function FacetPanel({
   model,
   lift,
@@ -57,34 +60,48 @@ const FacetPanel = observer(function FacetPanel({
   handlers: PaneHandlers
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
+  const [hoverCanvas, setHoverCanvas] = useState<HTMLCanvasElement | null>(null)
   const walk = lift.walks[0]!
   useWheelZoom(canvas, model)
 
   useEffect(() => {
-    if (!canvas) {
+    if (!canvas || !hoverCanvas) {
       return undefined
     }
     const renderer = new Canvas2DRenderer(canvas)
+    const hover = new Canvas2DRenderer(hoverCanvas)
     renderer.resize(width, height)
+    hover.resize(width, height)
     const drawing = computed(() => model.buildDrawing(lift, false))
     let uploaded: ReturnType<typeof model.buildDrawing>
-    const dispose = autorun(() => {
-      const built = drawing.get()
-      if (!built) {
-        return
-      }
-      if (built !== uploaded) {
-        renderer.uploadGeometry(built.batch)
-        uploaded = built
-      }
-      model.applyHighlights(renderer)
-      model.paint(renderer)
-    })
+    const disposers = [
+      autorun(() => {
+        const built = drawing.get()
+        if (!built) {
+          return
+        }
+        if (built !== uploaded) {
+          renderer.uploadGeometry(built.batch)
+          uploaded = built
+        }
+        model.applySelection(renderer)
+        model.paint(renderer)
+      }),
+      autorun(() => {
+        const built = drawing.get()
+        if (built) {
+          model.paintHover(hover, built.batch)
+        }
+      }),
+    ]
     return () => {
-      dispose()
+      for (const dispose of disposers) {
+        dispose()
+      }
       renderer.dispose()
+      hover.dispose()
     }
-  }, [canvas, model, lift, width, height])
+  }, [canvas, hoverCanvas, model, lift, width, height])
 
   const label = model.walkLabel(walk.name)
   return (
@@ -106,19 +123,22 @@ const FacetPanel = observer(function FacetPanel({
           at={model.hoveredOn(walk)}
         />
       </button>
-      <canvas
-        ref={setCanvas}
-        data-testid="graph-facet-canvas"
-        style={{
-          width,
-          height,
-          display: 'block',
-          cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
-          touchAction: model.hostPlacesX ? 'auto' : 'none',
-          overscrollBehavior: 'contain',
-        }}
-        {...handlers}
-      />
+      <div style={panelStyle}>
+        <canvas
+          ref={setCanvas}
+          data-testid="graph-facet-canvas"
+          style={{
+            width,
+            height,
+            display: 'block',
+            cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+            touchAction: model.hostPlacesX ? 'auto' : 'none',
+            overscrollBehavior: 'contain',
+          }}
+          {...handlers}
+        />
+        <canvas ref={setHoverCanvas} style={hoverLayerStyle} />
+      </div>
     </div>
   )
 })

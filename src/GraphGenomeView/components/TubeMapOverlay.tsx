@@ -99,9 +99,7 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
           canvas.height = Math.round(height * dpr)
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
           ctx.clearRect(0, 0, width, height)
-          paintTubeMap(ctx, model, {
-            highlightNode: model.litNode ?? model.selectedNode,
-          })
+          paintTubeMap(ctx, model, { highlightNode: model.selectedNode })
         }
       }),
     [model],

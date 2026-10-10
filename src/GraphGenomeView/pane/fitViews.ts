@@ -31,9 +31,11 @@ import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInp
 import { rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import {
   connectorAt,
+  drawLitConnector,
   tubeMapConnectors,
 } from '@jbrowse/bandage-core/tubeMap/connectors'
 import {
+  drawTubeMapHighlight,
   mismatchOnScreen,
   mismatchesLegible,
   tubeMapMismatchAt,
@@ -79,7 +81,11 @@ import type {
   GeneGaps,
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
+import type { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
+import type {
+  RenderBatch,
+  Renderer,
+} from '@jbrowse/bandage-core/renderer/types'
 import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -453,42 +459,43 @@ export const withFitViews = withHostViews
     viewportToBuild() {
       return padded(paneViewportOf(self), VIEWPORT_PANES_BUILT)
     },
-    // Hover and selection as draw-time colour overrides, stated whole, so
-    // there is nothing to restore and nothing to go stale when a rebuild
-    // renumbers the batch
-    applyHighlights(b: Renderer) {
-      const { litNode, hoveredEdge, selectedNode } = self
-      const nodes = new Map<string, number>()
-      if (selectedNode !== null) {
-        nodes.set(selectedNode, SELECT_BRIGHTEN)
-      }
-      if (litNode !== null && litNode !== selectedNode) {
-        nodes.set(litNode, HOVER_BRIGHTEN)
-      }
-      b.setNodeHighlights(nodes)
-      b.setEdgeHighlight(hoveredEdge, HOVER_BRIGHTEN)
+    // The selection as a draw-time colour override, keyed by node so it
+    // survives a rebuild renumbering the batch. The hover is paintHover's,
+    // on a layer of its own.
+    applySelection(b: Renderer) {
+      const id = self.selectedNode
+      b.setNodeHighlights(
+        id === null ? new Map() : new Map([[id, SELECT_BRIGHTEN]]),
+      )
     },
-    // Draws the uploaded batch through the pane's transform
-    paint(b: Renderer) {
-      // getDpr(), never a bare `devicePixelRatio`: it is capped at
-      // MAX_DPR so this canvas costs what every other canvas in the app
-      // costs on a 3x display (the square of the ratio, i.e. 9x the
-      // pixels of 1x against the 4x everything else pays), and it is the
-      // same read `syncCanvasSize` sizes the backing store with — two
-      // call sites reading the global separately can disagree, and then
-      // the geometry lands at a different scale from the canvas under it.
+    // the hovered node, unless the selection already lights it
+    get hoverLayerNode() {
+      const { litNode, selectedNode } = self
+      return litNode === selectedNode ? null : litNode
+    },
+    // getDpr(), never a bare `devicePixelRatio`: it is capped at MAX_DPR so
+    // this canvas costs what every other canvas in the app costs on a 3x
+    // display, and it is the same read `syncCanvasSize` sizes the backing
+    // store with — two call sites reading the global separately can
+    // disagree, and then the geometry lands at a different scale from the
+    // canvas under it.
+    get paintTransform() {
       const dpr = getDpr()
-      b.updateTransform({
+      return {
         scaleX: self.scaleX * dpr,
         scaleY: self.scaleY * dpr,
         translateX: self.translateX * dpr,
         translateY: self.translateY * dpr,
-        // Handed over rather than read again by the backend: the
-        // thicknesses in the vertex buffer are css px and are expanded
-        // after this transform, so they need the same ratio the fields
-        // above were already multiplied by. See TransformUniform.dpr.
+        // the thicknesses in the vertex buffer are css px, expanded after
+        // this transform, so they need the same ratio
         dpr,
-      })
+      }
+    },
+  }))
+  .views(self => ({
+    // Draws the uploaded batch through the pane's transform
+    paint(b: Renderer) {
+      b.updateTransform(self.paintTransform)
       // Clear under a reference strip: GraphCanvas lays the paper below the
       // strip, so the linear view's gridlines show through between its blocks
       b.render(
@@ -742,6 +749,43 @@ export const withFitViews = withHostViews
             self.paneWidth,
           )
         : []
+    },
+  }))
+  .views(self => ({
+    // The hover alone, onto a transparent canvas over the drawing, so a
+    // pointer move repaints what it lights rather than every stroke under
+    // it. `batch` is what the canvas below holds.
+    paintHover(r: Canvas2DRenderer, batch: RenderBatch) {
+      const picture = self.tubeMapPicture
+      const frame = self.tubeMapFrame
+      const node = self.hoverLayerNode
+      if (picture && frame) {
+        const { ctx, canvas } = r
+        const dpr = getDpr()
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        drawTubeMapHighlight(ctx, picture, {
+          ...frame,
+          width: self.paneWidth,
+          highlightNode: node,
+        })
+        drawLitConnector(
+          ctx,
+          self.tubeMapConnectors,
+          self.connectorZoneBottom,
+          node,
+        )
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+      } else {
+        r.uploadGeometry(batch)
+        r.setNodeHighlights(
+          node === null ? new Map() : new Map([[node, HOVER_BRIGHTEN]]),
+        )
+        r.setEdgeHighlight(self.hoveredEdge, HOVER_BRIGHTEN)
+        r.updateTransform(self.paintTransform)
+        r.renderHighlights()
+      }
     },
   }))
   .views(self => ({

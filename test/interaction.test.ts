@@ -123,6 +123,38 @@ describe.skipIf(!runE2E)('pointer interaction', () => {
     expect(hit?.text).toMatch(/ bp, depth /)
   }, 120_000)
 
+  // The hover lights its node on a layer of its own, so a pointer move leaves
+  // the drawing's canvas as it was
+  it('hovering paints the hover layer, not the drawing', async () => {
+    const pixels = (testId: string) =>
+      page.evaluate(id => {
+        const canvas = document.querySelector<HTMLCanvasElement>(
+          `[data-testid="${id}"]`,
+        )
+        const ctx = canvas?.getContext('2d')
+        if (!canvas || !ctx) {
+          return { url: '', inked: 0 }
+        }
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        let inked = 0
+        for (let i = 3; i < data.length; i += 4) {
+          inked += data[i]! > 0 ? 1 : 0
+        }
+        return { url: canvas.toDataURL(), inked }
+      }, testId)
+
+    await page.mouse.move(1, 1)
+    const before = await pixels('graph-genome-canvas')
+    expect((await pixels('graph-hover-layer')).inked).toBe(0)
+
+    expect(await hoverUntilTooltip(/ bp, depth /)).toBeDefined()
+    expect((await pixels('graph-hover-layer')).inked).toBeGreaterThan(0)
+    expect((await pixels('graph-genome-canvas')).url).toBe(before.url)
+
+    await page.mouse.move(1, 1)
+    expect((await pixels('graph-hover-layer')).inked).toBe(0)
+  }, 120_000)
+
   // The node only moves on screen when geometry is rebuilt, and that rebuild is
   // coalesced to an animation frame. If the coalescing never scheduled, the canvas
   // would be unchanged after the drag.

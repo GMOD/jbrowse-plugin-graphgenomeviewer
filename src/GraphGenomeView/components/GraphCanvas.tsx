@@ -18,6 +18,7 @@ import BubbleHalos, { HaloLegend } from './BubbleHalos'
 import FacetPanels from './FacetPanels'
 import GenePins, { EXON_COLOR } from './GenePins'
 import GraphToolbar from './GraphToolbar'
+import HoverLayer from './HoverLayer'
 import LabelLayer from './LabelLayer'
 import ReferenceStripOverlay, {
   ReferenceStripLegend,
@@ -637,6 +638,7 @@ const GraphCanvas = observer(function GraphCanvas({
         ) : (
           <>
             <TubeMapOverlay model={model} />
+            <HoverLayer model={model} />
             <ReferenceStripOverlay model={model} />
             <RowLabels model={model} />
             <GraphSizeLabels model={model} />

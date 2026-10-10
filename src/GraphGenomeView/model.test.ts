@@ -25,6 +25,7 @@ import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 import { walkRowTrees } from './components/WalkRowsOverlay'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
+import { EMPTY_BATCH, SELECT_BRIGHTEN } from './pane/paneBase'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX } from './walkRowGroups'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
@@ -392,7 +393,7 @@ describe('performance instrumentation', () => {
     expect(model.showLoading).toBe(false)
     await model.loadGFA(SIMPLE_GFA, 'imported')
     expect(model.showLoading).toBe(true)
-    model.setGeometryMetrics(1, 3, {
+    model.setGeometryMetrics(1, EMPTY_BATCH, {
       scale: 1,
       bounds: { minX: 0, minY: 0, w: 1, h: 1 },
     })
@@ -400,7 +401,7 @@ describe('performance instrumentation', () => {
     model.markPainted()
     expect(model.showLoading).toBe(false)
 
-    model.setGeometryMetrics(1, 3, {
+    model.setGeometryMetrics(1, EMPTY_BATCH, {
       scale: 1,
       bounds: { minX: 0, minY: 0, w: 1, h: 1 },
     })
@@ -1668,12 +1669,23 @@ describe('hoverHighlight', () => {
     model.setHoveredNode('2+')
     expect(model.hoverHighlight).toBeUndefined()
     expect(model.litNode).toBeNull()
+    expect(model.hoverLayerNode).toBeNull()
+  })
+
+  // the selection's own brightening already marks it, so hovering it adds
+  // nothing over the top
+  test('the hover layer lights a node the selection does not', async () => {
+    const model = await loadedFromTrack()
+    model.setHoveredNode('2+')
+    expect(model.hoverLayerNode).toBe('2+')
+    model.setSelectedNode('2+')
+    expect(model.hoverLayerNode).toBeNull()
     const lit: ReadonlyMap<string, number>[] = []
-    model.applyHighlights({
+    model.applySelection({
       ...fakeRenderer(),
       setNodeHighlights: (m: ReadonlyMap<string, number>) => lit.push(m),
     })
-    expect(lit).toEqual([new Map()])
+    expect(lit).toEqual([new Map([['2+', SELECT_BRIGHTEN]])])
   })
 
   // A whole-file import has no region, so its stable names need not name anything
