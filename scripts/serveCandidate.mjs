@@ -80,7 +80,10 @@ export function candidateServer(distDir, fixtures = {}) {
   function respond(request) {
     const fixture = fixtureFile(request.url)
     if (fixture) {
-      return fixtureResponse(fixture, request.headers.Range)
+      const range = Object.entries(request.headers).find(
+        ([name]) => name.toLowerCase() === 'range',
+      )?.[1]
+      return fixtureResponse(fixture, range)
     }
     const body = candidateBody(request.url)
     return body === undefined
