@@ -1,7 +1,6 @@
 import { abgrAlpha, packAbgr } from '@jbrowse/bandage-core/renderer/colorBits'
 import { expect, test } from 'vitest'
 
-
 import { blendInto, fadeEntering, morphStarts, routeStarts } from './morph'
 
 import type { RenderBatch } from '@jbrowse/bandage-core/renderer/types'
