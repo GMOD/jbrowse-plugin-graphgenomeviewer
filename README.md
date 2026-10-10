@@ -2,6 +2,51 @@
 
 Pangenome graphs in JBrowse 2.
 
+## Do it yourself
+
+Tutorials from the [JBrowse 2 docs](https://jbrowse.org/jb2/docs/tutorials/),
+start to finish with commands you can run:
+
+- **[Hosting your own graph](https://jbrowse.org/jb2/docs/tutorials/pangenome_prepare_graph)**
+  — start here. One script turns an rGFA or GFA into the indexed files and track
+  config, then adds haplotype walks and gbz-base
+- [pggb](https://jbrowse.org/jb2/docs/tutorials/pangenome_ecoli) — build a
+  five-strain graph from FASTA, index it, project synteny and variants
+- [Minigraph-Cactus](https://jbrowse.org/jb2/docs/tutorials/pangenome_cactus) —
+  the same from `cactus-pangenome`
+- [Cattle](https://jbrowse.org/jb2/docs/tutorials/pangenome_cattle) and
+  [mouse](https://jbrowse.org/jb2/docs/tutorials/pangenome_mouse) — open a
+  published graph, `vg deconstruct` it, rank its bubbles
+- HPRC release 2:
+  [graph alleles](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc),
+  [haplotypes against each other](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_haplotypes),
+  [repeat lengths](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc_repeats)
+- [Graph genome view user guide](https://jbrowse.org/jb2/docs/user_guides/graph_genome_view)
+
+## What data to use
+
+Index the graph into tabix files, or a gbz-base database, so JBrowse reads one
+window at a time. A GFA that is small enough opens whole with **Add → Graph
+genome view**.
+
+| You have                                                | Make                                                            | With                                                                                                                                                                                                                                 | Adapter                                                          |
+| ------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| rGFA (minigraph, Minigraph-Cactus's SV graph)           | `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`, coarse tier | [`build_pangenome_graph.sh`](https://github.com/GMOD/jbrowse-components/blob/main/scripts/build_pangenome_graph.sh), which runs [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) and [gfatools](https://github.com/lh3/gfatools) | `RgfaTabixAdapter`                                               |
+| Plain GFA (pggb, odgi, vg, base-level Minigraph-Cactus) | the same, plus a snarl VCF for bubbles                          | the script above with `--snarls`; `vg deconstruct` or `pggb -V` writes the VCF                                                                                                                                                       | `RgfaTabixAdapter`                                               |
+| GBZ or W-line GFA, for haplotype walks                  | `.walks.bed.gz`, `.nodes.bed.gz`, `.links.bed.gz` per reference | `vg convert -f`, then `gfa-to-tabix --walks`                                                                                                                                                                                         | `WalkTabixSyntenyAdapter`, or `RgfaTabixAdapter` with `walksUri` |
+| GBZ, to serve walks from one database                   | `.gbz.db` and `.haplotype-index.db`                             | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`                                                                                                                                                                             | `GbzBaseSyntenyAdapter`                                          |
+| Reads                                                   | `.gaf.gz` and its `.tbi`                                        | `vg giraffe -o gaf`, `vg gamsort -G`, `bgzip`, `tabix`                                                                                                                                                                               | `reads` on the gbz-base adapter                                  |
+
+Other tools:
+
+- [`minigraph`](https://github.com/lh3/minigraph) builds an rGFA from
+  assemblies, and `minigraph --call` records each assembly's path through it
+- [pggb](https://github.com/pangenome/pggb) and
+  [Minigraph-Cactus](https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/pangenome.md)
+  build graphs from assemblies
+- [vg](https://github.com/vgteam/vg) 1.69.0+ converts, deconstructs and aligns
+  reads to a GBZ
+
 ## As a track of a linear view
 
 A `GraphTrack` cuts the graph for the view's window and redraws it as you pan. A
