@@ -16,7 +16,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * The `uri` shorthand takes the prefix the build script was given and resolves
  * `<uri>.segs.bed.gz`, `<uri>.links.bed.gz` and their `.tbi` indexes. `coarse`
  * takes the same shorthand for a second pair at one node per bubble, built by
- * `build_fold_tier.sh` in jbrowse-components, plus the zoom past which a
+ * `bandage-fold` in bandage-core, plus the zoom past which a
  * graph view following a linear view cuts it.
  *
  * `walksUri` takes the prefix of a walk-indexed file set in place of `uri`, and
