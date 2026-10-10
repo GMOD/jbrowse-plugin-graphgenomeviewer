@@ -825,7 +825,7 @@ test('a launch in the force layout cuts the window alone', async () => {
   expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
 })
 
-test('a track launched on the stress engine asks the layout engine for it, and switching back asks for FMMM', async () => {
+test('a force track lays out with the stress engine by default, and switching asks for FMMM', async () => {
   const { view, rpcCall } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -835,7 +835,6 @@ test('a track launched on the stress engine asks the layout engine for it, and s
     {
       type: 'LinearGraphDisplay',
       layoutMode: 'force',
-      layoutEngine: 'stress',
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel

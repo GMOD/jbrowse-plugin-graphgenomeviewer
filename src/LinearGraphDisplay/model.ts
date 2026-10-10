@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { ReactNode } from 'react'
 
+import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import {
   ConfigurationReference,
@@ -23,7 +24,9 @@ import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
+import { denseCovers, isNodeLimitError } from './denseWindow'
 import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
+import { lenientOptionalEnum } from '../GraphGenomeView/lenientEnum'
 import {
   GraphPaneMixin,
   MAX_GRAPH_REGION_BP,
@@ -37,7 +40,6 @@ import {
   trackLanes,
   walkIndexed,
 } from '../graphTrackConfig'
-import { denseCovers, isNodeLimitError } from './denseWindow'
 import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
@@ -76,6 +78,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       types.model({
         type: types.literal('LinearGraphDisplay'),
         configuration: ConfigurationReference(configSchema),
+        // a zoom re-cuts the graph, and stress keeps the drawing's
+        // orientation across re-cuts where FMMM turns it (ADR-044)
+        layoutEngine: lenientOptionalEnum(LAYOUT_ENGINE_VALUES, 'stress'),
         // the window the graph on screen was asked for, so a restored
         // session cuts it again
         cutRegion: types.maybe(types.frozen<SubgraphRegion>()),
