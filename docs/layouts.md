@@ -272,8 +272,8 @@ what names the two that are not the reference:
 ## Bubbles
 
 The plugin reads `gfatools bubble` output from `<prefix>.bubbles.bed.gz` beside
-the rGFA index, which HPRC's hosted graph has and `scripts/build_rgfa_tabix.sh`
-in jbrowse-components writes. For a GBZ cut, a pggb file or an open bubble, the
+the rGFA index, which `gfatools bubble` writes for an rGFA and
+`gfa-to-tabix bubbles` writes from a plain GFA's snarl VCF. For a GBZ cut, a pggb file or an open bubble, the
 plugin derives bubbles from the ordered layout's layering. With **Show... › Show
 bubble halos** on, the node layouts draw each structural variant as a halo along
 its nodes, coloured by kind, which the legend names. A variant under 50 bp is a

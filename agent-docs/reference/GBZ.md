@@ -53,8 +53,6 @@ configs).
   un-anchored `haplotype-index.db` were deleted from S3 on 2026-10-04.
 - `demos/ivg/hprc/hprc-chr20.gbz.db` (release 1.1) is still hosted; nothing we
   serve points at it.
-- `build_rgfa_tabix.sh` needs gawk: BSD awk ran the links join 25 minutes
-  without finishing.
 
 ## How the reader identifies walks
 

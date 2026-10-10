@@ -11,7 +11,7 @@ import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
 import { linkKey, parseLinkLine } from './rgfaBed.ts'
 
-// Built by scripts/build_rgfa_tabix.sh from the minigraph rGFA of four E. coli
+// Built by `gfa-to-tabix --layout contig` from the minigraph rGFA of four E. coli
 // strains at jbrowse.org/demos/ecoli_pangenome/ecoli_rgfa_slice.gfa (the
 // pangenome tutorial's figure data): 161 segments across four stable sequences,
 // ranks 0-3. Named rgfa_ecoli rather than ecoli_rgfa because the repo's
