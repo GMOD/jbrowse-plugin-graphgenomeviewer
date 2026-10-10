@@ -89,6 +89,7 @@ interface Cut {
   tier: SubgraphTier
   region: SubgraphRegion
   snarls?: string
+  hops?: number
 }
 
 const FORCE_LAYOUT = {
@@ -353,7 +354,7 @@ function createEnvironment({
       method: string,
       args: {
         region: SubgraphRegion
-        opts?: { tier?: SubgraphTier; snarls?: string }
+        opts?: { tier?: SubgraphTier; snarls?: string; hops?: number }
         signal?: AbortSignal
         adapterConfig?: { type?: string }
       },
@@ -395,6 +396,7 @@ function createEnvironment({
         tier: args.opts?.tier ?? 'fine',
         region: args.region,
         snarls: args.opts?.snarls,
+        hops: args.opts?.hops,
       }
       cuts.push(cut)
       if (args.signal) {
@@ -553,6 +555,8 @@ test('zooming out past the handover cuts the coarse tier, and back in the fine o
   view.zoomTo(3_000_000 / WIDTH_PX)
   await wait(SETTLE_MS)
   expect(cuts.at(-1)!.tier).toBe('coarse')
+  // a tier is the same graph folded, so it is cut the same way
+  expect(cuts.at(-1)!.hops).toBe(cuts[0]!.hops)
   expect(pane.cutTier).toBe('coarse')
   expect(pane.hostPlacesX).toBe(true)
   view.zoomTo(60_000 / WIDTH_PX)

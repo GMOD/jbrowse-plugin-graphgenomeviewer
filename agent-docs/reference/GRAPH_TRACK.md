@@ -104,10 +104,10 @@ indexed by gfa-to-tabix (anchored rows, so one read holds the window). Since
 folding again at a larger size folds the original at that size, a tier cut draws
 what a fine cut drew just below the handover, provided `aboveBpPerPx` is the
 tier's size over `FOLD_PX`. A coarse cut has no bp cap, since `maxGraphNodes`
-counts what came back, asks for no hops and reads no bubble index. The display
-persists `cutRegion` and `coarseCut`, so a restored session re-makes the cut it
-saved. The segments lane (`LinearBasicDisplay` on the same track) does not
-switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
+counts what came back, hops as a fine cut does, and reads no bubble index. The
+display persists `cutRegion` and `coarseCut`, so a restored session re-makes the
+cut it saved. The segments lane (`LinearBasicDisplay` on the same track) does
+not switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
 ## Height
 

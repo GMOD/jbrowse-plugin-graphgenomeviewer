@@ -270,9 +270,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       setMaxRegionBp(bp: number) {
         self.maxRegionBp = bp
       },
-      // Cut `cutRegion` again with the current options. A hop past a coarse
-      // cut reaches nothing new: every bubble node's two links are indexed
-      // under the backbone either side of it.
+      // Cut `cutRegion` again with the current options. A coarse cut hops as
+      // a fine one does, since a tier is the same graph folded.
       cut() {
         const region = self.cutRegion
         if (!region) {
@@ -288,13 +287,14 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           return
         }
         const coarse = self.cutTier === 'coarse'
-        self.cutFoldBp =
-          FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0)
+        self.cutFoldBp = Math.round(
+          FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0),
+        )
         return self.cutSubgraph(
           self.adapterConfig,
           region,
           {
-            hops: coarse ? 0 : self.subgraphContext,
+            hops: self.subgraphContext,
             haplotypes: self.chosenHaplotypes,
             tier: coarse ? 'coarse' : undefined,
             ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
