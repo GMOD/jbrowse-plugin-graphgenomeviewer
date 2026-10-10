@@ -40,8 +40,9 @@ Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
   `.links.bed.gz`, `.bubbles.bed.gz`, a coarse tier and a track config. Adapter:
   `RgfaTabixAdapter`
 - **Plain GFA** (pggb, odgi, vg, base-level Minigraph-Cactus) — the same script,
-  with `--reference`, `--assembly` and `--snarls`, a VCF from `vg deconstruct`
-  or `pggb -V`
+  with `--reference`, `--assembly` and `--snarls`, a VCF from
+  `vg deconstruct -a` or `pggb -V`, which `gfa-to-tabix bubbles` turns into
+  `.bubbles.bed.gz`
 - **Alleles, with a CIGAR each** — `gfa-to-tabix alleles <prefix>` (0.7.0+)
   reads a `--layout contig` segment and link index (`build_pangenome_graph.sh`
   writes one as `.contig.*`) and writes `.alleles.bed.gz`, which an alignments
@@ -54,8 +55,8 @@ Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
   `GbzBaseSyntenyAdapter`
 - **Reads** — `vg giraffe -o gaf`, `vg gamsort -G`, `bgzip`, `tabix` make a
   `.gaf.gz` for a gbz-base adapter's `reads`
-- **Minigraph paths per assembly** — `minigraph -cxasm --call`, which
-  `build_minigraph_paths.sh` runs per sample
+- **Minigraph paths per assembly** — `minigraph -cxasm --call` per sample, then
+  `gfa-to-tabix paths` (0.9.0+) writes one row per bubble and sample
 
 [vg](https://github.com/vgteam/vg) 1.69.0 or later covers the GBZ steps.
 
