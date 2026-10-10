@@ -6,7 +6,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   BASE_URL,
   PLUGIN_ESM_URL,
-  SCREENSHOT_DIR,
   cleanupJBrowse,
   createJBrowsePage,
   launchBrowser,
@@ -215,22 +214,6 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
         "Aa read's base unlike the node's",
       ]),
     )
-    await page.evaluate(
-      () =>
-        new Promise(resolve =>
-          requestAnimationFrame(() => requestAnimationFrame(resolve)),
-        ),
-    )
-    const view = await page.$(`[data-testid="view-container-${LGV}"]`)
-    const box = await view!.evaluate(el => {
-      const r = el.getBoundingClientRect()
-      return { x: r.x, y: r.y, width: r.width, height: r.height }
-    })
-    await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, 'tube_map_reads.png'),
-      clip: box,
-      captureBeyondViewport: false,
-    })
   }, 180_000)
 
   it('reads the same reads through a tabix index', async () => {
