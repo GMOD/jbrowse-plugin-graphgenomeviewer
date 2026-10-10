@@ -51,10 +51,6 @@ import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
-function totalBp(graph: Graph) {
-  return graph.nodes.reduce((sum, node) => sum + node.length, 0)
-}
-
 export const withLoadActions = withSettingActions.actions(self => {
   let loadController: AbortController | undefined
   // the samples TSV location the table was read from, or is being read from
@@ -263,8 +259,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       region && folded !== anchored
         ? clipToWindow(folded, region, foldBelowBp)
         : folded
-    self.foldedBelowBp =
-      totalBp(folded) < totalBp(anchored) ? foldBelowBp : undefined
+    self.foldedBelowBp = folded === anchored ? undefined : foldBelowBp
     if (readsOf) {
       self.setStatusMessage('Reading alignments')
       try {

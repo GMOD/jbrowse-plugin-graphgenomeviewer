@@ -1352,7 +1352,7 @@ test('variants under ten pixels of the zoom fold into the reference, and zooming
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(2)
   expect(offReference(pane).length).toBeGreaterThan(0)
-  expect(pane.foldNote).toBeUndefined()
+  expect(pane.foldNote).toBe('variants under 6 bp folded into the reference')
 })
 
 test('a folded drawing is clipped to the region it was cut for', async () => {

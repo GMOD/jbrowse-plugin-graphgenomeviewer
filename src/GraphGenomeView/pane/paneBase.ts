@@ -332,8 +332,8 @@ export const paneBase = types
     // one beside its segments. Undefined for a graph with no index, whose
     // bubbles are `derivedBubbles` instead.
     indexBubbles: undefined as MinigraphBubble[] | undefined,
-    // the size under which the graph on screen had variants folded into the
-    // reference, when the fold removed any
+    // the size under which the graph on screen has variants folded into the
+    // reference, by this cut or by the tier it was cut from
     foldedBelowBp: undefined as number | undefined,
     // the gene track's features over the cut window, read once per cut
     geneTrackFeatures: undefined as Feature[] | undefined,
