@@ -42,6 +42,10 @@ Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
 - **Plain GFA** (pggb, odgi, vg, base-level Minigraph-Cactus) — the same script,
   with `--reference`, `--assembly` and `--snarls`, a VCF from `vg deconstruct`
   or `pggb -V`
+- **Alleles, with a CIGAR each** — `gfa-to-tabix alleles <prefix>` (0.7.0+)
+  reads a `--layout contig` segment and link index (`build_pangenome_graph.sh`
+  writes one as `.contig.*`) and writes `.alleles.bed.gz`, which an alignments
+  track draws
 - **Haplotype walks, as tabix files** — `vg convert -f graph.gbz`, then
   `gfa-to-tabix --walks`. Adapter: `WalkTabixSyntenyAdapter`, or
   `RgfaTabixAdapter` with `walksUri`

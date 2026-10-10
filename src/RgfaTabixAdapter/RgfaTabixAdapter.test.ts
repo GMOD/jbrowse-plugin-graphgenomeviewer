@@ -346,7 +346,7 @@ test('getSubgraph resolves through the mapping too', async () => {
 })
 
 // The same four strains at one node per bubble: `gfatools bubble` over
-// test_data/ecoli_rgfa_slice.gfa, collapsed by build_bubble_tier.sh in
+// test_data/ecoli_rgfa_slice.gfa, collapsed by build_fold_tier.sh in
 // jbrowse-components at `--min-content 1000`. 14 bubbles over K12's 322 kb,
 // against 161 segments in the fine pair.
 function makeTieredAdapter() {
