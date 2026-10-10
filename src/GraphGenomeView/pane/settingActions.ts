@@ -556,16 +556,6 @@ export const withSettingActions = withFitViews
     // bursts well above the frame rate. Coalescing to the next frame keeps the
     // drag live while bounding that work to once per frame instead of once
     // per event.
-    let morph: { frame: number; finish: () => void } | undefined
-
-    function finishMorph() {
-      if (morph) {
-        cancelAnimationFrame(morph.frame)
-        morph.finish()
-        morph = undefined
-      }
-    }
-
     function requestPositionsDirtyFrame() {
       cancelAnimationFrame(self.positionsDirtyFrame)
       self.positionsDirtyFrame = requestAnimationFrame(() => {
@@ -575,34 +565,30 @@ export const withSettingActions = withFitViews
       })
     }
 
+    let morph: { frame: number; finish: () => void } | undefined
+
+    function stopMorph() {
+      if (morph) {
+        cancelAnimationFrame(morph.frame)
+        morph = undefined
+      }
+    }
+
+    function finishMorph() {
+      const running = morph
+      stopMorph()
+      running?.finish()
+    }
+
     return {
-      // Moves the position objects IN PLACE, which is the one thing
-      // jbrowse-components' upload invariant says not to do ("per-region
-      // upload values must be freshly constructed, never mutated — backends
-      // diff by reference identity"), so it is worth saying why this is not
-      // that case and what it costs instead.
-      //
-      // Nothing here diffs by identity: the geometry is rebuilt wholesale and
-      // handed over as one batch, so `nodePositions` identity is not a
-      // protocol between the model and the backend the way a per-region map
-      // is. What identity DOES drive is the fit: the zoom-to-fit autorun and
-      // `layoutBounds` — and so `canvasHeight` — key off `layoutResult`, and
-      // they mean "a new LAYOUT arrived", not "a node moved". Publishing a
-      // fresh positions record per frame of a drag would refit the drawing
-      // and resize the pane under the cursor, sixty times a second.
-      //
-      // So the change is announced by `positionsVersion` instead, and every
-      // cache that would otherwise trust identity takes it as a key. The cost
-      // of that trade is that the version is a thing to remember: a caller
-      // that mutates here and does not bump it gets stale curves, stale hit
-      // boxes and stale labels, silently. Everything downstream of it is
-      // reached from this one action.
       // Slides the drawing from what `previous` drew under `before` to the
       // layout just landed, so a re-cut or a relayout reads as one picture
       // moving rather than a jump. Positions move in place as a drag moves
-      // them, a frame at a time; anything new grows out of a neighbour.
+      // them, a frame at a time; anything new grows out of its neighbours.
       morphFrom(previous: LayoutResult | undefined, before: PaneTransform) {
-        finishMorph()
+        // a morph under way left `previous` where it is on screen, which is
+        // where this one starts
+        stopMorph()
         const next = self.layoutResult
         const graph = self.graph
         if (
@@ -685,6 +671,27 @@ export const withSettingActions = withFitViews
         }
       },
       finishMorph,
+      // Moves the position objects IN PLACE, which is the one thing
+      // jbrowse-components' upload invariant says not to do ("per-region
+      // upload values must be freshly constructed, never mutated — backends
+      // diff by reference identity"), so it is worth saying why this is not
+      // that case and what it costs instead.
+      //
+      // Nothing here diffs by identity: the geometry is rebuilt wholesale and
+      // handed over as one batch, so `nodePositions` identity is not a
+      // protocol between the model and the backend the way a per-region map
+      // is. What identity DOES drive is the fit: the zoom-to-fit autorun and
+      // `layoutBounds` — and so `canvasHeight` — key off `layoutResult`, and
+      // they mean "a new LAYOUT arrived", not "a node moved". Publishing a
+      // fresh positions record per frame of a drag would refit the drawing
+      // and resize the pane under the cursor, sixty times a second.
+      //
+      // So the change is announced by `positionsVersion` instead, and every
+      // cache that would otherwise trust identity takes it as a key. The cost
+      // of that trade is that the version is a thing to remember: a caller
+      // that mutates here and does not bump it gets stale curves, stale hit
+      // boxes and stale labels, silently. Everything downstream of it is
+      // reached from this one action.
       moveNode(nodeId: string, dx: number, dy: number) {
         finishMorph()
         const positions = self.layoutResult?.nodePositions
