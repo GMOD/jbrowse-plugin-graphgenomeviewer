@@ -60,17 +60,13 @@ export const withHostViews = withWalkRowViews
     },
     get tubeMapReference() {
       const drawing = self.layoutResult?.tubeMap
-      return drawing ? referenceBoxes(drawing.graph, drawing.layout) : undefined
+      return drawing ? referenceBoxes(drawing) : undefined
     },
     // the folded variants, as ticks on the tubes of the walks carrying them
     get tubeMapDeviations() {
       const drawing = self.layoutResult?.tubeMap
       return drawing?.coarse
-        ? deviationMarks(
-            drawing.graph,
-            drawing.layout,
-            drawing.coarse.deviations,
-          )
+        ? deviationMarks(drawing, drawing.coarse.deviations)
         : []
     },
     // the reference boxes a linear view's connectors tie to its bp, which
