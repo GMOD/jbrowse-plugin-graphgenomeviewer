@@ -1,3 +1,14 @@
+## [6.21.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.20.1...v6.21.0) (2026-10-10)
+
+### Other Changes
+
+- A re-cut or relayout slides the drawing from where it was to where it lands ([66bde2b](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/66bde2b5488b287f89e82f62625025b7879df8c9))
+- A morph moves deletion routes with their nodes, and a slow frame delays it rather than skipping it ([9363a6e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9363a6e173701f79449c52498dbafac7337fb58e))
+- A force drawing follows the linear view at once, stretched as a screen map, until its re-cut lands ([dde1aac](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/dde1aac798962f61d65d9d91b245407df162e425))
+- Layout → Routes: a tube per route, as wide as the haplotypes taking it ([a4a6e0f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a4a6e0f219619ec36e8936bbfc0facbadbdd0c85))
+- Tube color by a sample table column, and routes grouped without merging ([407bd0d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/407bd0df1e491c99be8193e63064f6e980608393))
+- Bump @jbrowse/bandage-core to 9.7.0; docs and figures for routes and tube colour ([27679ea](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/27679ea0af2af28eb73520fce031c40e23ebc496))
+
 ## [6.20.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.20.0...v6.20.1) (2026-10-10)
 
 ### Other Changes
