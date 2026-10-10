@@ -1,3 +1,10 @@
+## [6.20.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.19.0...v6.20.0) (2026-10-10)
+
+### Other Changes
+
+- Reshoot the popped KIV-2 figure: the array names itself again above its copies ([96df326](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/96df3264fcacff1e2a77b94dce45f6c8eedf12af))
+- A graph track lays out with the stress engine, so a zoom re-cut keeps its drawing ([da080a3](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/da080a38ffbb5eb10ba3788da81b4e36f133c72c))
+
 ## [6.19.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.18.1...v6.19.0) (2026-10-10)
 
 ### Other Changes
