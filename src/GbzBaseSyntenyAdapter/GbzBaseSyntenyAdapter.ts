@@ -20,6 +20,7 @@ import { openLocation } from '@jbrowse/core/util/io'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { findCompanion } from './companion.ts'
+import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import { GafFile } from '../gaf/gafFile.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
@@ -401,7 +402,8 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * when the database (or its companion) carries the haplotype index and
    * `unknown#N` otherwise. The reference walk is the first, which is the one
    * the view anchors on by default. With `haplotypes` the walks are that
-   * set's and the nodes those walks visit, the reference walk kept.
+   * set's and the nodes those walks visit, the reference walk kept. With
+   * `walkRows` the rows' runs come along, as on a walk-file cut.
    *
    * Only a window on the anchor can be cut: a haplotype lane's coordinates
    * are its own contig's, and the graph is indexed for random access on the
@@ -426,7 +428,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     if (keep !== undefined && !db.hasHaplotypeIndex) {
       throw new NoHaplotypeIndexError(unreadableIndex)
     }
-    return cutWindowTables(db, query, start, end, {
+    const cut = await cutWindowTables(db, query, start, end, {
       context: this.getConf('context'),
       snarls: opts.snarls ?? this.getConf('subgraphSnarls'),
       limit: this.getConf('nodeLimit'),
@@ -435,6 +437,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     }).catch((error: unknown) => {
       throw zoomInNotice(error, 'the graph')
     })
+    return typeof cut === 'string'
+      ? cut
+      : walkCutFor(cut, { start, end }, opts.walkRows)
   }
 
   private gaf = cachedSetup({

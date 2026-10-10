@@ -14,8 +14,8 @@ const RUN_GAP = 4
 type WalkRowMeta = Omit<WalkRow, 'runs'>
 
 /**
- * A walk-file cut for walk rows: the tables, and the rows' runs over the
- * window, which the main thread draws without a Graph of the walks' steps
+ * A cut for walk rows: the tables, and the rows' runs over the window, which
+ * the main thread draws without a Graph of the walks' steps
  */
 export type WalkCut = GraphTables & { walkRowRuns?: WalkRowRuns }
 
@@ -83,9 +83,8 @@ class RunWriter {
 }
 
 /**
- * `walkRows(graphFromTables(tables), region)` for a graph anchored by its
- * node tags, which is every walk-file cut: the first walk is the reference,
- * and a step is a node index. A gap between two pieces of one haplotype is a
+ * `walkRows(graphFromTables(tables), region)` for a cut whose first walk is
+ * the reference, which every walk-file and GBZ cut is; a step is a node index. A gap between two pieces of one haplotype is a
  * step of `-bp`. One difference: a walk reaching only one of the region's
  * flanks measures from that flank, where walkRows takes the whole walk the
  * cut holds, so its length is a lower bound that no longer grows with the

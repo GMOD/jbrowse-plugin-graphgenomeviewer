@@ -10,6 +10,8 @@ import {
 } from '@jbrowse/bandage-core/gbzWindow'
 import { gfaTables } from '@jbrowse/bandage-core/gfa/gfaTables'
 import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
+import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
+import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { numericCigarToString } from '@jbrowse/cigar-utils'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -26,7 +28,9 @@ import Adapter, {
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import GbzBaseSyntenyAdapterF from './index.ts'
+import { walkRowsOf } from '../RgfaTabixAdapter/walkRowRuns.ts'
 
+import type { WalkCut } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { SyntenyMate } from '@jbrowse/synteny-core'
 
@@ -1091,4 +1095,18 @@ test('a cut read as tables is the GFA cut parsed', async () => {
       gfaTables(await cutWindowGFA(db, query, start, end, opts)),
     )
   }
+})
+
+test('a cut for walk rows carries the rows a Graph of its walks would make', async () => {
+  const region = { ...window, end: 31520000 }
+  const cut = (await makeAdapter({ context: 1000 }).getSubgraph(region, {
+    walkRows: true,
+  })) as WalkCut
+  const fromRuns = walkRowsOf(cut.walkRowRuns!)
+  expect(fromRuns.rows.length).toBeGreaterThan(20)
+  expect(fromRuns).toEqual(
+    walkRows(loadGraph(cut, 'cut', { referencePath: 'GRCh38#0#chr6' }), region),
+  )
+  const plain = await makeAdapter({ context: 1000 }).getSubgraph(region)
+  expect(plain).not.toHaveProperty('walkRowRuns')
 })

@@ -109,4 +109,26 @@ describe.skipIf(!runE2E)('a gbz-base database added through Add track', () => {
     )
     await screenshot(page, 'addgbz-02-tube-map')
   }, 120_000)
+
+  it('draws walk rows from the runs the worker cut', async () => {
+    await page.evaluate(() => {
+      void window.JBrowseSession.views[0].tracks[0].displays[0].switchLayout(
+        'walkrows',
+      )
+    })
+    await waitForAppReady(page, () => {
+      const display = window.JBrowseSession.views[0].tracks[0].displays[0]
+      return (
+        !!display.walkCut?.walkRowRuns &&
+        (display.layoutResult?.rowLabels?.length ?? 0) > 20
+      )
+    })
+    const labels = await page.evaluate(
+      () =>
+        window.JBrowseSession.views[0].tracks[0].displays[0].layoutResult
+          .rowLabels,
+    )
+    expect(labels[0].label).toBe('GRCh38#0')
+    await screenshot(page, 'addgbz-03-walk-rows')
+  }, 120_000)
 })

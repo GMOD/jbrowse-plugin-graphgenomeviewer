@@ -27,7 +27,7 @@ export interface SubgraphCutOptions {
   // which snarls a GBZ cut follows past the window, over the track's
   // `subgraphSnarls`; 'overlapping' when the layout measures whole walks
   snarls?: 'none' | 'contained' | 'overlapping'
-  // a walk-file cut for walk rows: its runs come with the tables, and the
+  // a cut for walk rows: its runs come with the tables, and the
   // step budget, which guards a Graph of every step, does not apply
   walkRows?: boolean
 }
