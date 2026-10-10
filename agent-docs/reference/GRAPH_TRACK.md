@@ -45,8 +45,12 @@ A layout whose x is not reference bp — force-directed and ordered — draws in
 own coordinates inside the track, the way a variant matrix does: the pane owns
 its viewport (`fit`, then `user`), the wheel zooms, the Layout menu's Zoom to
 fit refits, and a drag or a wheel on the canvas stays inside the track. The
-settle clock still re-cuts it as the view moves. A popped bubble is a picture of
-its own the same way.
+settle clock still re-cuts it as the view moves. Until the re-cut lands, a
+stretch clock moves the drawing with the host as a map of screen x, the way a
+linear track stretches its blocks: `x' = k (x + offsetPx) - offsetPx'`, with `k`
+the ratio of the two bpPerPx and y zoomed about the drawing's middle. The
+stretched drawing is the `user`'s, so the fit cannot undo it, and the re-cut
+fits and morphs from it. A popped bubble is a picture of its own the same way.
 
 Such a drawing gets a reference strip (`bandage-core/src/referenceStrip.ts`,
 `ReferenceStripOverlay`): each backbone node at its bp in the host's frame,

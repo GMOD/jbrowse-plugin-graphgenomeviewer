@@ -403,6 +403,36 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
     }))
     .actions(self => ({
+      stretchWithHost(
+        before: { bpPerPx: number; offsetPx: number },
+        now: { bpPerPx: number; offsetPx: number },
+      ) {
+        const layout = self.layoutResult
+        const bounds = self.layoutBounds
+        if (
+          !layout ||
+          !bounds ||
+          layout.referenceAxis ||
+          layout.pixelRows ||
+          layout.tubeMap ||
+          self.facetGrid
+        ) {
+          return
+        }
+        // no longer the fit, so the fit autorun cannot undo it before the
+        // re-cut lands; followNewLayout fits the new drawing
+        if (self.viewportOwner === 'fit') {
+          self.viewportOwner = 'user'
+        }
+        const k = before.bpPerPx / now.bpPerPx
+        const midY =
+          self.translateY + self.scaleY * (bounds.minY + bounds.h / 2)
+        self.scale *= k
+        self.translateX = k * (self.translateX + before.offsetPx) - now.offsetPx
+        self.translateY = midY - k * (midY - self.translateY)
+      },
+    }))
+    .actions(self => ({
       forceLoad() {
         const seen = self.settledWindow
         if (seen) {
@@ -457,6 +487,32 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                 a?.scale === b?.scale && a?.translateX === b?.translateX,
               fireImmediately: true,
               name: 'GraphHostFrame',
+            },
+          ),
+        )
+        // The stretch clock: a drawing whose x is not bp follows the host's
+        // zoom and pan as a screen-space map, x' = k x + c, until the re-cut
+        // lands and morphs from it, as a linear track stretches its blocks
+        let seen: { bpPerPx: number; offsetPx: number } | undefined
+        addDisposer(
+          self,
+          reaction(
+            () =>
+              self.host && !self.hostPlacesX
+                ? { bpPerPx: self.host.bpPerPx, offsetPx: self.host.offsetPx }
+                : undefined,
+            now => {
+              const before = seen
+              seen = now
+              if (now && before && now.bpPerPx > 0) {
+                self.stretchWithHost(before, now)
+              }
+            },
+            {
+              equals: (a, b) =>
+                a?.bpPerPx === b?.bpPerPx && a?.offsetPx === b?.offsetPx,
+              fireImmediately: true,
+              name: 'GraphHostStretch',
             },
           ),
         )

@@ -608,6 +608,7 @@ export const withSettingActions = withFitViews
           next.referenceAxis ||
           previous.pixelRows ||
           next.pixelRows ||
+          next.tubeMap ||
           self.facetGrid ||
           graph.nodes.length > MORPH_MAX_NODES ||
           typeof requestAnimationFrame === 'undefined' ||

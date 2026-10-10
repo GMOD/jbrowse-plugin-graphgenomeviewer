@@ -1370,3 +1370,29 @@ test('a graph with walks is drawn whole at any zoom', async () => {
   expect(offReference(pane).length).toBeGreaterThan(0)
   expect(pane.foldNote).toBeUndefined()
 })
+
+test('a force drawing follows the linear view at once, as a screen map, until the re-cut lands', async () => {
+  const { view } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force' },
+  )
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(pane.hostPlacesX).toBe(false)
+  const { scale, translateX } = pane
+  view.horizontalScroll(40)
+  expect(pane.scale).toBe(scale)
+  expect(pane.translateX).toBeCloseTo(translateX - 40, 6)
+
+  const at = pane.translateX
+  const offset = view.offsetPx
+  view.zoomTo(view.bpPerPx / 2)
+  expect(pane.scale).toBeCloseTo(scale * 2, 9)
+  // a screen x maps as the view's own does: x' = 2 (x + offset) - offset'
+  expect(pane.translateX).toBeCloseTo(2 * (at + offset) - view.offsetPx, 6)
+})
