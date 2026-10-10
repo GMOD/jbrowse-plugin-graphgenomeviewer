@@ -27,6 +27,15 @@ budget at `maxGraphNodes`. What is left on the main thread — `buildGeometry` a
 ~60 ms for 15k nodes, `graphLabels` per mousemove — a GPU backend does not
 touch.
 
+**The tube map with reads is inside budget too.** The cactus graph with
+NA12879's full 51k-read GAF, cut to `ref:10,000-30,000` (4,551 reads after
+sampling, 1,979 mismatch marks) on a 1388×1200 pane in headless Chrome: a pan
+frame is 2.3 ms of script and ~10 ms once a 1 px readback forces the raster. It
+was ~10 ms at 781 reads as well, so the frame is the canvas's fixed cost, not
+the read count, and a GPU would not shorten it. Hover lives on its own canvas
+(`HoverLayer`) and costs 0.2 ms; repainting the whole tube map for it cost 1.7
+ms of script plus that raster.
+
 **What it would cost.** The host does not re-export `@jbrowse/render-core`
 (ADR-030 in jbrowse-components keeps the GPU surface static-import-only), so the
 HAL ladder would be bundled: about 30 KB minified on a 55 KB entry. And a
