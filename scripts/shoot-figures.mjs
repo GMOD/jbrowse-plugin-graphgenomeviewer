@@ -322,7 +322,7 @@ const FIGURES = {
         color: { field: 'position' },
         subgraphHaplotypes: HAPLOTYPES,
         walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
-        height: 460,
+        height: 260,
       },
       [mafLane(HAPLOTYPES)],
       [
