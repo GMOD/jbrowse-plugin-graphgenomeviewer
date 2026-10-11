@@ -71,6 +71,15 @@ landing had left the reference term dead, changed the shuffle order of the
 schedule for graphs with no backbone, and omitted link × link; all three are
 fixed above.
 
+Two placement changes followed the same day (graph-stress-layout d10468b): a
+piece clears what is drawn beyond one lane of its anchors rather than two, which
+let loops off adjacent anchors cross at the neck, and a spine shorter than its
+gap hangs deeper the wider the gap, so its links leave the allele lane. MHC
+class II went to 5 / 5 / 0, KIV-2 rGFA to 5 / 2 / 1, CFH to 0 / 2 / 0, and the
+GBZ cut to 211 / 349 / 23. Hanging a multi-curve piece on its majority curve,
+leaning a teardrop by shear, and rejecting candidates that swing behind the
+frame were each measured and declined; the numbers sit at the code.
+
 ## Consequences
 
 - The reference is exactly straight, so a track's drawing is the placement's:
@@ -89,6 +98,11 @@ fixed above.
   schedule drew better. Relaxing just those pieces with the rest held stretched
   the junction nodes across the gap instead (node crossings 22 to 48, length
   error 0.3% to 57%); the note is at the chord case in `stressPlacement.ts`.
+- `GraphGenomeView` still defaults to FMMM (ADR-044). On the KIV-2 walks figure
+  (`bandage-core/figures/kiv2_walks.json`) the placement engine draws GRCh38
+  straight with HG00097's extra copy as a ring beside it and HG01960's big loop
+  below, where FMMM tangles the array's small loops into a knot beside the big
+  one; the view's default is worth revisiting once the engine is published.
 - FMMM is as it was. Seeding it from the placement changes nothing, since OGDF's
   multilevel keeps only the coarsest level's seeds (ADR-042), and the untested
   `singleLevel` is now tested: it honours every seed and repulsion then buckles
