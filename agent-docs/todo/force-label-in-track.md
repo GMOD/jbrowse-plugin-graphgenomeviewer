@@ -2,8 +2,8 @@
 name: force-label-in-track
 description:
   A track's "Force-directed" layout runs the stress engine, which draws an
-  anchored graph by placement alone, so the label names an engine the track
-  does not use.
+  anchored graph by placement alone, so the label names an engine the track does
+  not use.
 metadata:
   category: visual
   area: menus
@@ -22,9 +22,8 @@ metadata:
   layout" group in `GraphSettingsDialog.tsx`), and the mode's description says
   "OGDF FMMM". Only the graph view, whose engine defaults to FMMM, draws what
   the label says.
-- The JBrowse 2 v5 paper stopped calling Figure 5's track drawing
-  force-directed on 2026-10-11 (paper b70e5c0), so the paper and the menu now
-  disagree.
+- The JBrowse 2 v5 paper stopped calling Figure 5's track drawing force-directed
+  on 2026-10-11 (paper b70e5c0), so the paper and the menu now disagree.
 - Options: label the mode by the engine that will run it in that host ("Placed"
   or "Stress" in a track, "Force-directed" in the view), or rename the mode
   "Free layout" with the engine as a second line.
