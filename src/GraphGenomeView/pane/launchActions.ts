@@ -4,7 +4,6 @@ import {
   LAYOUT_MODES,
   layoutModeByValue,
 } from '@jbrowse/bandage-core/layoutModes'
-import { pushLaunchViewMenuItem } from '@jbrowse/core/ui'
 import { getSession } from '@jbrowse/core/util'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import HubIcon from '@mui/icons-material/Hub'
@@ -29,6 +28,7 @@ import {
   showInLinearView,
 } from '../../launchFromGraph/launchFromGraph'
 import { launchTracks } from '../../launchFromGraph/launchTracks'
+import { pushLaunchItem } from '../../launchFromGraph/pushLaunchItem'
 import { launchableSyntenyTracks } from '../../launchFromGraph/syntenyTracks'
 import { downloadText } from '../download'
 import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
@@ -523,7 +523,7 @@ export const withLaunchActions = withRenderingActions
           self.showSyntenyView(trackId)
         },
       })) {
-        pushLaunchViewMenuItem(items, item)
+        pushLaunchItem(items, item)
       }
       return items
     },

@@ -60,8 +60,10 @@ const SettingsMenu = observer(function SettingsMenu({
           },
           { type: 'divider' as const },
           {
-            label: 'Settings',
+            label: 'Graph settings...',
             icon: SettingsIcon,
+            helpText:
+              'Layout engine and quality, node limit and width, genes, reference path and color scheme',
             onClick: () => {
               setSettingsOpen(true)
             },

@@ -242,8 +242,8 @@ reference sample and a `#haplotype` line per other haplotype with rows: 462 on
 chr22, 9.75 kB. From 0.5.0 the first line also carries `maxnode:i:` and `cap:i:`
 (the most steps in one row, which nothing reads). The adapter takes these lines
 in one header read, and `GetGraphHaplotypes` hands the haplotype names to the
-track: the Settings field becomes a searchable pick list that still takes a
-typed prefix, and the Haplotypes menu counts them. Without the lines the field
+track: the Graph settings field becomes a searchable pick list that still takes
+a typed prefix, and the Haplotypes menu counts them. Without the lines the field
 takes typed names.
 
 The set a cut is for lives in the display's session state, `subgraphHaplotypes`.
