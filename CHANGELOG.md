@@ -1,3 +1,35 @@
+## [6.26.1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.26.0...v6.26.1) (2026-10-11)
+
+### Documentation
+
+- MaizeGDB's NAM founder graph at Zm00001eb332160, three launch links ([579d9ca](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/579d9ca451efafd2d67ced634743f7452c95717c))
+- B73 chr8:1-450kb, its genes and TEs, and the NAM clip and full graphs ([eb82517](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/eb82517f74920bd7cc75c478ea7a3b4ebb75e44f))
+- The chr8 rebuild's founder lengths, clip vs full and force layout, and Tzi8 lifted in MaizeGDB's GFA ([3c9c030](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3c9c0305efacdb8603635bb139f428b4e8e403d4))
+
+### Other Changes
+
+- The stress engine draws anchored graphs by placement alone ([9b71b4e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/9b71b4e53586ca750adea77fcb1a447c7d12f9bb))
+- Link × link, seed independence, and the early-shipped caption ([2ba5b79](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2ba5b7949be9b8a54758ed8793c4a5d1ebb553ee))
+- The placement follow-up and the view's engine default ([a02abc6](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a02abc644e2a391a4fc00a3f6fef975c28966c28))
+- The placement commits of the review round, as a table ([ec7fc64](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/ec7fc64df67b813b207ac9a36622541087cc0b5e))
+- Updates ([bc850d1](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/bc850d1ca796914e2e8f5e9dccdff6a5fbe0e19f))
+- One panel of left-aligned keys, ramp as bar plus start-end (length) ([8b67f27](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/8b67f2703dd6c570f61748c6cc675786f1eb5ed0))
+- Aligned bars per section, muted notes, shorter strip and halo rows ([20ca860](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/20ca8606b388687bc05bbfff7a5960a2e647ee0b))
+- 'Graph settings...' with a help tip listing its contents, rocket on Launch ([79eed2f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/79eed2fe642bdedc2ded8f998a50eae894b17487))
+- Reshoot every figure for the one-panel legend ([5007c25](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/5007c25fcd6ff54895f793120e42cfb73e60c19b))
+- Graph settings: Subgraph, Drawing and Force-directed layout groups ([17b7882](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/17b7882b477cbe8d752a4b127993afb84a0e0b3b))
+- Layout menu: 'Force-directed' like its heading, not 'Force-directed layout' ([57d853e](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/57d853e83409589d52643e83945621e149db5abe))
+- Maize NAM recipe: pass Toil a --maxMemory ([13d6792](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/13d679240357c706b066eaaadc906564b0bfb1de))
+- Maize NAM recipe: run cactus in a memory-capped systemd scope ([82e962d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/82e962dce18e2082eaf421068deb8b287daf6294))
+- A fold of a fold closely matches a single fold, not exactly ([a84e609](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/a84e609efebe642456ef3f41303ba436677c2110))
+- Rewrap the fold paragraph for prettier ([1fa0d9c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/1fa0d9cf9b036201020e34dc2cd3280484f2ba75))
+- Tube map beside tinted boxes: grey role tubes keyed reference and haplotype ([155ec1d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/155ec1d91f4a4f9cb92d5aac544a4a768c6f341a))
+- One list of rows drawn by both the screen and the SVG export ([7c9f49f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/7c9f49f5bb750230e1ad9cf09815bfe0dbe84f6c))
+- Terser tube map and strip rows ([2e7e804](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2e7e8048c69fa96b42b8cdc715e7fcb4943d0517))
+- Hover tooltip moves beside a legend that reaches its corner ([3a26bd2](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3a26bd2475dfaa2e3e8c2a6af2b2915a1db15baa))
+- Legend review fixes: grey role key beside reads, facet tooltip, read marks named ([3e6488a](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3e6488a0a00706df5d553eb7a719124089c675d3))
+- Reshoot figures for the shared legend rows and grey role tubes ([2b7497f](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2b7497f9655b2a58f7fba8d38bdbe2359539b4eb))
+
 ## [6.26.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.25.0...v6.26.0) (2026-10-11)
 
 ### Other Changes
