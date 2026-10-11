@@ -8,6 +8,7 @@ import {
   LIFT_BACKDROP_CSS,
   REFERENCE_RAMP_ALT_CSS,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { walkKey } from '@jbrowse/bandage-core/walkKey'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
@@ -24,12 +25,17 @@ import ReferenceStripOverlay, {
   ReferenceStripLegend,
 } from './ReferenceStripOverlay'
 import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
-import WalkKey, { walkSwatchStyle } from './WalkKey'
+import WalkKey, { walkBarStyle, walkSwatchStyle } from './WalkKey'
 import { WalkRowContextMenu } from './WalkRowContextMenu'
 import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
-import { UNPLACED_SWATCH, legendBoxStyle, legendRowStyle } from './legendStyles'
+import {
+  UNPLACED_SWATCH,
+  legendBoxStyle,
+  legendNoteStyle,
+  legendRowStyle,
+} from './legendStyles'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -196,6 +202,9 @@ const WalkReadout = observer(function WalkReadout({
   if (!lift) {
     return null
   }
+  const swatch = lift.walks.some(w => walkKey(w, model.walkReference).shades)
+    ? walkBarStyle
+    : walkSwatchStyle
   return (
     <div style={legendBoxStyle} data-testid="graph-walk-readout">
       {lift.walks.map(w => (
@@ -208,21 +217,19 @@ const WalkReadout = observer(function WalkReadout({
         />
       ))}
       {/* the ramp's own key, which names this, is off while walks are lifted */}
-      {model.liftPaintsOffReference ? <OffReferenceRow /> : null}
+      {model.liftPaintsOffReference ? (
+        <OffReferenceRow swatch={swatch} />
+      ) : null}
       <div style={legendRowStyle}>
-        <div style={{ ...walkSwatchStyle, background: LIFT_BACKDROP_CSS }} />
+        <div style={{ ...swatch, background: LIFT_BACKDROP_CSS }} />
         <span>not on {model.liftedWalksLabel}</span>
       </div>
     </div>
   )
 })
 
-// The reference-position ramp, as a short bar before the interval it runs over
-const rampBarStyle = {
-  ...walkSwatchStyle,
-  width: 48,
-  background: RAMP_GRADIENT_CSS,
-}
+// The reference-position ramp, as a short bar before the interval it runs
+// over; the colours off it are bars of the same width
 
 const ReferenceRampLegend = observer(function ReferenceRampLegend({
   model,
@@ -238,13 +245,13 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
   return domain ? (
     <div style={legendBoxStyle} data-testid="graph-ramp-legend">
       <div style={legendRowStyle}>
-        <div style={rampBarStyle} />
+        <div style={{ ...walkBarStyle, background: RAMP_GRADIENT_CSS }} />
         <span>{`${start.toLocaleString()}-${end.toLocaleString()} (${formatBp(end - start)})`}</span>
       </div>
-      {offReference ? <OffReferenceRow /> : null}
+      {offReference ? <OffReferenceRow swatch={walkBarStyle} /> : null}
       {unplaced ? (
         <div style={legendRowStyle}>
-          <div style={{ ...walkSwatchStyle, background: UNPLACED_SWATCH }} />
+          <div style={{ ...walkBarStyle, background: UNPLACED_SWATCH }} />
           <span>no reference position</span>
         </div>
       ) : null}
@@ -254,10 +261,10 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
 
 // The charcoal both the ramp and a lane coloured by reference position give
 // sequence the reference does not carry
-function OffReferenceRow() {
+function OffReferenceRow({ swatch }: { swatch: typeof walkSwatchStyle }) {
   return (
     <div style={legendRowStyle}>
-      <div style={{ ...walkSwatchStyle, background: REFERENCE_RAMP_ALT_CSS }} />
+      <div style={{ ...swatch, background: REFERENCE_RAMP_ALT_CSS }} />
       <span>off the reference</span>
     </div>
   )
@@ -277,8 +284,11 @@ const FoldLegend = observer(function FoldLegend({
 }) {
   const note = model.foldNote
   return note ? (
-    <div style={legendBoxStyle} data-testid="graph-fold-legend">
-      <span>{note}</span>
+    <div
+      style={{ ...legendBoxStyle, ...legendNoteStyle }}
+      data-testid="graph-fold-legend"
+    >
+      {note}
     </div>
   ) : null
 })

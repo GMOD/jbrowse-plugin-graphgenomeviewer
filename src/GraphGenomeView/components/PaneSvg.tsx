@@ -211,16 +211,28 @@ function walkRow(model: GraphPaneModel, walk: LiftedWalk, id: string) {
   )
 }
 
-function flatRow(key: string, color: string, label: string) {
+function flatRow(key: string, color: string, label: string, width = SWATCH_PX) {
   return swatchRow(
     key,
-    x => (
-      <Swatch id={key} x={x} stops={[{ offset: 0, color }]} width={SWATCH_PX} />
-    ),
-    SWATCH_PX,
+    x => <Swatch id={key} x={x} stops={[{ offset: 0, color }]} width={width} />,
+    width,
     '',
     label,
   )
+}
+
+function noteRow(key: string, text: string): KeyRow {
+  const width = text.length * CHAR_PX
+  return {
+    key,
+    width,
+    height: ROW_PX,
+    draw: right => (
+      <text key={key} {...FONT} x={right - width} y={0} fill="#666">
+        {text}
+      </text>
+    ),
+  }
 }
 
 // The strip's own colours, a row per lifted walk, else the node scheme's
@@ -272,7 +284,7 @@ function stripKeyRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
       ),
       SWATCH_PX,
       '',
-      `top strip: reference segments at their bp${rowPerWalk ? ', a row per walk' : ''}`,
+      `top strip: reference at its bp${rowPerWalk ? ', a row per walk' : ''}`,
     ),
   ]
   if (model.referenceStripFaded) {
@@ -297,7 +309,7 @@ function stripKeyRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
         ),
         SWATCH_PX,
         '',
-        'the graph draws reference past this edge',
+        'graph runs past this edge',
       ),
     )
   }
@@ -560,10 +572,14 @@ function Keys({
       ),
     )
     if (model.referenceRampOffKeys.offReference) {
-      rows.push(flatRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference'))
+      rows.push(
+        flatRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference', BAR_PX),
+      )
     }
     if (model.referenceRampOffKeys.unplaced) {
-      rows.push(flatRow('unplaced', UNPLACED_SWATCH, 'no reference position'))
+      rows.push(
+        flatRow('unplaced', UNPLACED_SWATCH, 'no reference position', BAR_PX),
+      )
     }
   }
   rows.push(...stripKeyRows(model, idPrefix), ...haloRows(model))
@@ -590,7 +606,7 @@ function Keys({
     )
   }
   if (model.foldNote) {
-    rows.push(swatchRow('fold', () => null, 0, '', model.foldNote))
+    rows.push(noteRow('fold', model.foldNote))
   }
   rows.push(
     ...pathRows(model),
@@ -598,16 +614,31 @@ function Keys({
     ...walkRowsKeyRows(model, idPrefix),
   )
   if (lift && !model.facetPanels) {
+    const swatchWidth = lift.walks.some(
+      w => walkKey(w, model.walkReference).shades,
+    )
+      ? BAR_PX
+      : SWATCH_PX
     lift.walks.forEach((walk, i) => {
       rows.push(walkRow(model, walk, `${idPrefix}-walk-${i}`))
     })
     if (model.liftPaintsOffReference) {
       rows.push(
-        flatRow('lift-off', REFERENCE_RAMP_ALT_CSS, 'off the reference'),
+        flatRow(
+          'lift-off',
+          REFERENCE_RAMP_ALT_CSS,
+          'off the reference',
+          swatchWidth,
+        ),
       )
     }
     rows.push(
-      flatRow('faded', LIFT_BACKDROP_CSS, `not on ${model.liftedWalksLabel}`),
+      flatRow(
+        'faded',
+        LIFT_BACKDROP_CSS,
+        `not on ${model.liftedWalksLabel}`,
+        swatchWidth,
+      ),
     )
   }
   if (rows.length === 0) {

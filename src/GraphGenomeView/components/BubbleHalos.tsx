@@ -115,10 +115,14 @@ export function haloKeyEntries(model: GraphPaneModel) {
       kindsByColor.set(color, kinds)
     }
   }
-  return [...kindsByColor].map(([color, kinds]) => ({
-    color,
-    label: `bubble: ${[...kinds].join(', ')}`,
-  }))
+  return [...kindsByColor].map(([color, kinds]) => {
+    const names = [...kinds].join(' or ')
+    return {
+      color,
+      label:
+        names === BUBBLE_KIND_NAMES.superbubble ? names : `${names} bubble`,
+    }
+  })
 }
 
 export const HaloLegend = observer(function HaloLegend({

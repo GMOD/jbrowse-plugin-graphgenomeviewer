@@ -12,7 +12,7 @@ export const walkSwatchStyle = {
   flex: 'none',
 }
 const walkBlockStyle = { marginBottom: 2 }
-const walkBarStyle = { ...walkSwatchStyle, width: 48 }
+export const walkBarStyle = { ...walkSwatchStyle, width: 48 }
 
 // One walk's key: a swatch, or a short bar of the scale its lane shades by,
 // then its name; see walkKey for the words. `at`, where the hovered node sits

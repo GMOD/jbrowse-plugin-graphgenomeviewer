@@ -165,7 +165,7 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
       <div style={legendRowStyle}>
         <StripSwatch rows={stripRows(model)} />
         <span>
-          top strip: reference segments at their bp
+          top strip: reference at its bp
           {rowPerWalk ? ', a row per walk' : ''}
         </span>
       </div>
@@ -184,7 +184,7 @@ export const ReferenceStripLegend = observer(function ReferenceStripLegend({
       {model.referenceStripOverhangs ? (
         <div style={legendRowStyle}>
           <OverhangSwatch />
-          <span>the graph draws reference past this edge</span>
+          <span>graph runs past this edge</span>
         </div>
       ) : null}
     </div>
