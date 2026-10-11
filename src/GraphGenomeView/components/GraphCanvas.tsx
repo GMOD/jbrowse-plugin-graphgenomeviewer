@@ -1,41 +1,26 @@
 import { useEffect, useRef } from 'react'
 
-import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import { edgeHoverText } from '@jbrowse/bandage-core/hoverText'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
-import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
-import {
-  LIFT_BACKDROP_CSS,
-  REFERENCE_RAMP_ALT_CSS,
-} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import { walkKey } from '@jbrowse/bandage-core/walkKey'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
 
-import BubbleHalos, { HaloLegend, OpenBubbleLegend } from './BubbleHalos'
+import BubbleHalos from './BubbleHalos'
 import FacetPanels from './FacetPanels'
-import GenePins, { EXON_COLOR } from './GenePins'
+import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import HoverLayer from './HoverLayer'
 import LabelLayer from './LabelLayer'
-import ReferenceStripOverlay, {
-  ReferenceStripLegend,
-} from './ReferenceStripOverlay'
-import TubeMapOverlay, { TubeMapLegend } from './TubeMapOverlay'
-import WalkKey, { walkBarStyle, walkSwatchStyle } from './WalkKey'
+import { LegendPanel } from './Legend'
+import ReferenceStripOverlay from './ReferenceStripOverlay'
+import TubeMapOverlay from './TubeMapOverlay'
 import { WalkRowContextMenu } from './WalkRowContextMenu'
-import WalkRowsOverlay, { WalkRowsLegend } from './WalkRowsOverlay'
+import WalkRowsOverlay from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
-import {
-  UNPLACED_SWATCH,
-  legendBoxStyle,
-  legendNoteStyle,
-  legendRowStyle,
-} from './legendStyles'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
@@ -169,145 +154,6 @@ const legendStackStyle = {
   zIndex: 4,
 }
 
-const pathSwatchStyle = { width: 18, height: 3, borderRadius: 2 }
-
-// Which haplotype each ribbon colour is. The ribbons are one stroke per path
-// fanned across every edge the path crosses, so without this the drawing states
-// that the alleles are taken by *different* samples and never which.
-const PathLegend = observer(function PathLegend({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  const { pathLegend } = model
-  return pathLegend.length > 0 ? (
-    <div style={legendBoxStyle} data-testid="graph-path-legend">
-      {pathLegend.map(({ name, label, color }) => (
-        <div key={name} style={legendRowStyle}>
-          <div style={{ ...pathSwatchStyle, backgroundColor: color }} />
-          <span>{label}</span>
-        </div>
-      ))}
-    </div>
-  ) : null
-})
-
-// Each lifted walk's key, then what the faded rest is
-const WalkReadout = observer(function WalkReadout({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  const lift = model.walkLift
-  if (!lift) {
-    return null
-  }
-  const swatch = lift.walks.some(w => walkKey(w, model.walkReference).shades)
-    ? walkBarStyle
-    : walkSwatchStyle
-  return (
-    <div style={legendBoxStyle} data-testid="graph-walk-readout">
-      {lift.walks.map(w => (
-        <WalkKey
-          key={w.name}
-          walk={w}
-          label={model.walkLabel(w.name)}
-          reference={model.walkReference}
-          at={model.hoveredOn(w)}
-        />
-      ))}
-      {/* the ramp's own key, which names this, is off while walks are lifted */}
-      {model.liftPaintsOffReference ? (
-        <OffReferenceRow swatch={swatch} />
-      ) : null}
-      <div style={legendRowStyle}>
-        <div style={{ ...swatch, background: LIFT_BACKDROP_CSS }} />
-        <span>not on {model.liftedWalksLabel}</span>
-      </div>
-    </div>
-  )
-})
-
-// The reference-position ramp, as a short bar before the interval it runs
-// over; the colours off it are bars of the same width
-
-const ReferenceRampLegend = observer(function ReferenceRampLegend({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  // under lifted walks each lane states its own scale, and the rest is grey
-  const domain = model.walkLift ? undefined : model.referenceRampDomain
-  const { offReference, unplaced } = model.referenceRampOffKeys
-  // a measured domain runs between node midpoints, which can fall on a half bp
-  const start = Math.round(domain?.start ?? 0)
-  const end = Math.round(domain?.end ?? 0)
-  return domain ? (
-    <div style={legendBoxStyle} data-testid="graph-ramp-legend">
-      <div style={legendRowStyle}>
-        <div style={{ ...walkBarStyle, background: RAMP_GRADIENT_CSS }} />
-        <span>{`${start.toLocaleString()}-${end.toLocaleString()} (${formatBp(end - start)})`}</span>
-      </div>
-      {offReference ? <OffReferenceRow swatch={walkBarStyle} /> : null}
-      {unplaced ? (
-        <div style={legendRowStyle}>
-          <div style={{ ...walkBarStyle, background: UNPLACED_SWATCH }} />
-          <span>no reference position</span>
-        </div>
-      ) : null}
-    </div>
-  ) : null
-})
-
-// The charcoal both the ramp and a lane coloured by reference position give
-// sequence the reference does not carry
-function OffReferenceRow({ swatch }: { swatch: typeof walkSwatchStyle }) {
-  return (
-    <div style={legendRowStyle}>
-      <div style={{ ...swatch, background: REFERENCE_RAMP_ALT_CSS }} />
-      <span>off the reference</span>
-    </div>
-  )
-}
-
-const exonSwatchStyle = {
-  ...walkSwatchStyle,
-  border: `2px solid ${EXON_COLOR}`,
-  borderRadius: 5,
-  boxSizing: 'border-box' as const,
-}
-
-const FoldLegend = observer(function FoldLegend({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  const note = model.foldNote
-  return note ? (
-    <div
-      style={{ ...legendBoxStyle, ...legendNoteStyle }}
-      data-testid="graph-fold-legend"
-    >
-      {note}
-    </div>
-  ) : null
-})
-
-const GeneLegend = observer(function GeneLegend({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  return model.genePins.some(pin => pin.exonsByNode.length > 0) ? (
-    <div style={legendBoxStyle} data-testid="graph-gene-legend">
-      <div style={legendRowStyle}>
-        <div style={exonSwatchStyle} />
-        <span>exon</span>
-      </div>
-    </div>
-  ) : null
-})
-
 const nodeLabelStyle = {
   position: 'absolute' as const,
   transform: 'translate(-50%, -50%)',
@@ -375,16 +221,7 @@ const Legends = observer(function Legends({
         top: LEGEND_INSET_PX + model.referenceStripZonePx,
       }}
     >
-      <OpenBubbleLegend model={model} />
-      <ReferenceRampLegend model={model} />
-      <ReferenceStripLegend model={model} />
-      <HaloLegend model={model} />
-      <GeneLegend model={model} />
-      <FoldLegend model={model} />
-      <PathLegend model={model} />
-      <TubeMapLegend model={model} />
-      <WalkRowsLegend model={model} />
-      <WalkReadout model={model} />
+      <LegendPanel model={model} />
     </div>
   )
 })

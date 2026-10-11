@@ -8,9 +8,6 @@ export const legendBoxStyle = {
   whiteSpace: 'nowrap' as const,
 }
 
-// getNodeColor's grey for a node the ramp cannot place
-export const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
-
 export const legendRowStyle = { display: 'flex', alignItems: 'center', gap: 5 }
 
 // A line with no swatch, such as what the drawing folded away

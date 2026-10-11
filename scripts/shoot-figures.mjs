@@ -9,6 +9,7 @@
 //   node scripts/shoot-figures.mjs                 # every figure, into img/
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //   node scripts/shoot-figures.mjs --compare /tmp/diffs   # old | new | diff
+//   node scripts/shoot-figures.mjs force_kiv2 --svg /tmp/svg   # + Export SVG
 //
 // Every figure is a linear view, the graph as one of its tracks or as a view
 // opened under it, so each reads against the genes and annotations at their
@@ -811,6 +812,7 @@ const { values, positionals } = parseArgs({
     dist: { type: 'string', default: 'dist' },
     version: { type: 'string', default: 'main' },
     compare: { type: 'string' },
+    svg: { type: 'string' },
   },
 })
 const unspecified = fs
@@ -865,6 +867,13 @@ try {
         height: Math.max(...rects.map(r => r.bottom)) - y,
       }
     })
+    if (values.svg !== undefined) {
+      const svg = await page.evaluate(() =>
+        window.JBrowseSession.views[0].exportSvg({ save: false }),
+      )
+      fs.mkdirSync(values.svg, { recursive: true })
+      fs.writeFileSync(path.join(values.svg, `${name}.svg`), svg)
+    }
     // captureBeyondViewport resizes the page for the capture, and the pane
     // re-lays out into a blank frame
     const file = path.join(values.out, `${name}.png`)

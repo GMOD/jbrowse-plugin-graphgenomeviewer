@@ -1154,7 +1154,7 @@ export const withGraphViews = paneBase
       const paths = self.drawnGraph?.paths
       const tubeMap = self.layoutResult?.tubeMap
       const colouring = self.drawPaths || tubeMap
-      // tubes coloured by role or by a column take TubeMapLegend's key
+      // tubes coloured by role or by a column take the tube map's role or value key
       return colouring &&
         paths &&
         pathColorsLegible(paths.length) &&
