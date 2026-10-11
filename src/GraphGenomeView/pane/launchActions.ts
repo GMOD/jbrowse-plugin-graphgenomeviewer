@@ -39,6 +39,9 @@ import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { MenuItem } from '@jbrowse/core/ui'
 
+const layoutMenuLabel = (mode: { label: string }) =>
+  mode.label.replace(/ layout$/, '')
+
 export const withLaunchActions = withRenderingActions
   .actions(self => ({
     // Move the linear view already on screen, or open one if there is none,
@@ -462,12 +465,12 @@ export const withLaunchActions = withRenderingActions
       const options = this.layoutOptionMenuItems()
       return [
         {
-          label: `Layout: ${layoutModeByValue(self.chosenLayoutMode).label.replace(/ layout$/, '')}`,
+          label: `Layout: ${layoutMenuLabel(layoutModeByValue(self.chosenLayoutMode))}`,
           icon: HubIcon,
           subMenu: [
             ...LAYOUT_MODES.map(mode => ({
               type: 'radio' as const,
-              label: mode.label,
+              label: layoutMenuLabel(mode),
               checked: self.chosenLayoutMode === mode.value,
               disabled: self.graph ? !mode.available(self.graph) : false,
               disabledHelpText: mode.description,
