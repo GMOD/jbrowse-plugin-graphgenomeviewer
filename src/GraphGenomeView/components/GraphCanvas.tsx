@@ -149,17 +149,16 @@ const RowLabels = observer(function RowLabels({
 
 // Top RIGHT: the row labels own the left edge and the hover tooltip owns the
 // bottom right, so this is the one corner nothing else claims. A row-structured
-// layout draws its band across the middle, which is what the keys are for. The
-// two keys stack rather than each claiming the corner, since a path-coloured
-// graph can also be reference-position coloured.
+// layout draws its band across the middle, which is what the keys are for.
+// Every key stretches to the widest, so together they read as one panel.
 const legendStackStyle = {
   position: 'absolute' as const,
   top: LEGEND_INSET_PX,
   right: LEGEND_INSET_PX,
   display: 'flex',
   flexDirection: 'column' as const,
-  alignItems: 'flex-end',
-  gap: 4,
+  borderRadius: 3,
+  overflow: 'hidden' as const,
   pointerEvents: 'none' as const,
   zIndex: 4,
 }
@@ -218,21 +217,11 @@ const WalkReadout = observer(function WalkReadout({
   )
 })
 
-// The reference-position ramp, as a strip labelled with the interval it runs
-// over. Nothing on screen used to say that red-to-magenta means left-to-right of
-// the cut window, so two tutorials carried that sentence in prose and a reader
-// arriving at a figure had no way to know it at all.
-const rampStripStyle = {
-  minWidth: 90,
-  height: 8,
-  borderRadius: 2,
+// The reference-position ramp, as a short bar before the interval it runs over
+const rampBarStyle = {
+  ...walkSwatchStyle,
+  width: 48,
   background: RAMP_GRADIENT_CSS,
-}
-
-const rampEndsStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 8,
 }
 
 const ReferenceRampLegend = observer(function ReferenceRampLegend({
@@ -248,11 +237,9 @@ const ReferenceRampLegend = observer(function ReferenceRampLegend({
   const end = Math.round(domain?.end ?? 0)
   return domain ? (
     <div style={legendBoxStyle} data-testid="graph-ramp-legend">
-      <div style={rampStripStyle} />
-      <div style={rampEndsStyle}>
-        <span>{start.toLocaleString()}</span>
-        <span>({formatBp(end - start)})</span>
-        <span>{end.toLocaleString()}</span>
+      <div style={legendRowStyle}>
+        <div style={rampBarStyle} />
+        <span>{`${start.toLocaleString()}-${end.toLocaleString()} (${formatBp(end - start)})`}</span>
       </div>
       {offReference ? <OffReferenceRow /> : null}
       {unplaced ? (
