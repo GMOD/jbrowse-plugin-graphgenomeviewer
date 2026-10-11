@@ -71,14 +71,31 @@ landing had left the reference term dead, changed the shuffle order of the
 schedule for graphs with no backbone, and omitted link × link; all three are
 fixed above.
 
-Two placement changes followed the same day (graph-stress-layout d10468b): a
-piece clears what is drawn beyond one lane of its anchors rather than two, which
-let loops off adjacent anchors cross at the neck, and a spine shorter than its
-gap hangs deeper the wider the gap, so its links leave the allele lane. MHC
-class II went to 5 / 5 / 0, KIV-2 rGFA to 5 / 2 / 1, CFH to 0 / 2 / 0, and the
-GBZ cut to 211 / 349 / 23. Hanging a multi-curve piece on its majority curve,
-leaning a teardrop by shear, and rejecting candidates that swing behind the
-frame were each measured and declined; the numbers sit at the code.
+Five placement commits followed the same day (graph-stress-layout d10468b to
+b8c8a2c), each measured on the same cuts. Crossings on MHC class II, KIV-2 rGFA,
+CFH and the GBZ cut, as link × node / link × link / node × node:
+
+| change                                                               | MHC       | KIV-2     | CFH       | GBZ            |
+| -------------------------------------------------------------------- | --------- | --------- | --------- | -------------- |
+| one-lane anchor exemption; a short bar hangs deeper under a wide gap | 5 / 5 / 0 | 5 / 2 / 1 | 0 / 2 / 0 | 211 / 349 / 23 |
+| no piece behind its frame (the notch on every walk panel)            | 2 / 6 / 0 | 5 / 2 / 1 | 0 / 2 / 0 | 242 / 469 / 13 |
+| loops on the same feet longest first; coarse clearance; fit to 0.1%  | 3 / 5 / 0 | 5 / 2 / 1 | 0 / 2 / 0 | 243 / 411 / 13 |
+| teardrop leans up to 80°                                             | 3 / 5 / 0 | 5 / 2 / 1 | 0 / 2 / 0 | 223 / 400 / 13 |
+
+The GBZ cut lays out in 0.9 s, from 1.1 s, with the coarse clearance check. The
+code carries the numbers for the variants measured and declined. Hanging a
+multi-curve piece on its majority curve, leaning by shear at any angle,
+exempting only siblings' feet, and splayed legs each raised crossings. Making a
+narrower loop yield and re-place after a wide one whose leg pierces it freed the
+pierced loop but re-placed it as a hairpin on long legs.
+
+A second independent review (2026-10-11) reproduced the counts and profiled the
+placement. Its one unimplemented recommendation is to split a piece with three
+or more anchors on one frame at its anchored spine nodes, so the placer puts
+each node by its own anchor and draws each segment between them as a lens,
+teardrop or bar of its own. On the GBZ cut every link longer than a hundred link
+lengths belongs to such a piece, and the junction hub beside the big loop is one
+of them.
 
 ## Consequences
 
