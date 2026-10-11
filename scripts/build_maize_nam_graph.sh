@@ -15,6 +15,8 @@
 # Usage:    bash scripts/build_maize_nam_graph.sh <outdir> <chr> [window end, bp]
 #           The gbz-base steps are skipped where gbz-haplotype-index is missing,
 #           so a remote host can build the GBZ and another index it.
+#           To run two chromosomes at once on one host, give each its share:
+#           MAX_MEMORY=50G CORES=12 bash scripts/build_maize_nam_graph.sh ...
 #
 set -euo pipefail
 
@@ -85,11 +87,18 @@ if [ ! -s "out/$NAME.full.gbz" ]; then
   run=()
   command -v cactus-pangenome >/dev/null ||
     run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
-  # Toil otherwise schedules by cores alone: on a 125 GB host, four 17 GB
-  # minigraph jobs per run thrashed it. Default: 80% of memory free at launch.
+  # minigraph uses ~26 GB per job against Toil's ~17 GB request, so
+  # --maxMemory alone let four per run thrash a 125 GB host. A systemd scope
+  # makes the cap hard. Past it the kernel kills one job and Toil retries it;
+  # cactus-pangenome --restart on ./js resumes a failed run. MAX_MEMORY
+  # defaults to 80% of the memory free at launch.
   MAX_MEMORY="${MAX_MEMORY:-$(awk '/^MemAvailable/ { printf "%dG", $2 * 0.8 / 1048576 }' /proc/meminfo 2>/dev/null)}"
-  "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
-    --gbz clip full --gfa clip full --vcf --maxCores "$(nproc)" ${MAX_MEMORY:+--maxMemory "$MAX_MEMORY"}
+  cap=()
+  if [ -n "$MAX_MEMORY" ] && systemctl --user show-environment >/dev/null 2>&1; then
+    cap=(systemd-run --user --scope -p MemoryMax="$MAX_MEMORY" -p MemorySwapMax=1G -p OOMPolicy=continue)
+  fi
+  "${cap[@]}" "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
+    --gbz clip full --gfa clip full --vcf --maxCores "${CORES:-$(nproc)}" ${MAX_MEMORY:+--maxMemory "$MAX_MEMORY"}
 fi
 
 command -v gbz-haplotype-index >/dev/null || exit 0
