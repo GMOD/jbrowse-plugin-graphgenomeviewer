@@ -43,28 +43,46 @@ Two causes, neither a tuning matter:
 ## Decision
 
 A component with a backbone keeps `stressPlacement`'s drawing: the SGD schedule
-and the untangle pass run only on components the placement reached nothing of.
+and the untangle pass run only on components the placement reached nothing of,
+and the reference term, which only ever acted on placed points, is gone.
 Smoothing restores a chain's length by bulging its interior out from the chord
-between its ends, which stay put.
+between its ends, which stay put. Crossings as link × node / link × link / node
+× node:
 
-| cut                     | shipped: link × node / node × node | now         | time        |
-| ----------------------- | ---------------------------------- | ----------- | ----------- |
-| MHC class II, 279 nodes | 6 / 32                             | 9 / 2       | 170 → 42 ms |
-| KIV-2 rGFA, 58 nodes    | 7 / 13                             | 6 / 3       | 74 → 14 ms  |
-| CFH, 44 nodes           | 1 / 3                              | 0 / 0       |             |
-| AMY1, 42 nodes          | 0 / 2                              | 1 / 0       |             |
-| KIV-2 GBZ, 8 haplotypes | 140 / 69, 58 twisted loops         | 226 / 22, 3 | 6.9 → 1.6 s |
+| cut                     | shipped (6.26.0)         | now                     | time        |
+| ----------------------- | ------------------------ | ----------------------- | ----------- |
+| MHC class II, 279 nodes | 6 / 1 / 32               | 9 / 18 / 2              | 170 → 42 ms |
+| KIV-2 rGFA, 58 nodes    | 7 / 1 / 13               | 6 / 2 / 3               | 74 → 14 ms  |
+| CFH, 44 nodes           | 1 / 0 / 3                | 0 / 6 / 0               |             |
+| AMY1, 42 nodes          | 0 / 1 / 2                | 1 / 0 / 0               |             |
+| KIV-2 GBZ, 8 haplotypes | 140 / 165 / 69, 58 twist | 226 / 342 / 22, 3 twist | 6.9 → 1.6 s |
 
-Chain lengths hold to 0.3% on the GBZ cut where the schedule left them 54% off.
-Zoom continuity, the reason the graph track uses this engine, is unchanged or
-better: 0° turns at every step at both loci, and the movement the fit leaves
-within 0.1-2.8 points of the shipped engine, 3-4x faster.
+Link × link is the one count that rises: the placement puts a piece whose
+anchors lie on different curves on the chord between them, and those links cross
+each other where the schedule had bent them apart. Chain lengths hold to 0.3% on
+the GBZ cut where the schedule left them 54% off (the harness's length error on
+CFH and AMY1 is deletion routes, drawn at arch length by design). Zoom
+continuity, the reason the graph track uses this engine, is unchanged or better:
+turns of 0-1° at every step at both loci, and the movement the fit leaves within
+0.1-2.8 points of the shipped engine, 3-4x faster.
+
+An independent review (2026-10-11) reproduced every count, and found the first
+landing had left the reference term dead, changed the shuffle order of the
+schedule for graphs with no backbone, and omitted link × link; all three are
+fixed above.
 
 ## Consequences
 
 - The reference is exactly straight, so a track's drawing is the placement's:
   lenses, teardrops on stems, arches for deletions, nested on their parent's
-  outside.
+  outside. A placed component is the same under every seed, and nothing pushes
+  its overlapping points apart beyond the placement's own candidate search; the
+  untangle pass runs only on components with no backbone.
+- bandage-core 10.2.0 shipped the engine's new description string before
+  graph-stress-layout was published with the behaviour, so until bandage-core
+  depends on 0.2.0 the settings dialog describes a drawing the engine does not
+  yet make. Under 0.x the `^0.1.1` range does not admit 0.2.0; the bump needs
+  the range changed.
 - A piece anchored on two different curves hangs on the chord between them and
   its links stay long: on the GBZ cut the haplotype junction nodes between the
   big loop and the rings draw as a hub of straight links, the one place the
