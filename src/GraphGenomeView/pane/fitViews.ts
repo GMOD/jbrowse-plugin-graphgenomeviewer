@@ -435,20 +435,23 @@ export const withFitViews = withHostViews
     get facetGrid() {
       return this.facetGridIn(self.host ? this.canvasHeight : this.paneCeiling)
     },
+    // The hover tooltip's distance from the pane's right edge: in the corner,
+    // unless the legend reaches down into its room, and then beside it. A
+    // faceted pane mounts no legend, so its last measured size is stale.
+    get tooltipRightPx() {
+      const { width, height } = self.legendSize
+      const legendBottom = LEGEND_INSET_PX + self.referenceStripZonePx + height
+      return !self.facetPanels &&
+        width > 0 &&
+        legendBottom > this.canvasHeight - TOOLTIP_ROOM_PX
+        ? width + 2 * LEGEND_INSET_PX
+        : TOOLTIP_INSET_PX
+    },
     // The pane is as tall as the drawing, rather than a fixed box the drawing
     // floats in. A row layout's rows are px, so its height is a sum; an
     // isotropic layout has no height of its own and takes its aspect ratio
     // at the width's fit. Neither reads `scale`, so the fit reads this
     // without feeding back into it.
-    // The hover tooltip's distance from the pane's right edge: in the corner,
-    // unless the legend reaches down into its room, and then beside it
-    get tooltipRightPx() {
-      const { width, height } = self.legendSize
-      const legendBottom = LEGEND_INSET_PX + self.referenceStripZonePx + height
-      return width > 0 && legendBottom > this.canvasHeight - TOOLTIP_ROOM_PX
-        ? width + 2 * LEGEND_INSET_PX
-        : TOOLTIP_INSET_PX
-    },
     get canvasHeight(): number {
       const bounds = this.layoutBounds
       const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
@@ -1060,10 +1063,10 @@ export const withFitViews = withHostViews
             !(coloring && reads.length === 0) &&
             (split ||
               (layout?.tubeMap !== undefined &&
-                reads.length === 0 &&
                 (!!self.tubeMapNodeColors ||
-                  !pathColorsLegible(paths.length) ||
-                  paths.some(p => p.members)))),
+                  (reads.length === 0 &&
+                    (!pathColorsLegible(paths.length) ||
+                      paths.some(p => p.members)))))),
           haplotypeTube:
             !split && self.tubeMapNodeColors ? TINTED_TUBES[0]! : PANEL_TUBE,
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,

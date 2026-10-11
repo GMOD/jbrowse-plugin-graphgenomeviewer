@@ -351,7 +351,7 @@ function Keys({
   const left = right - boxWidth + pad
   const top = LEGEND_INSET_PX + model.referenceStripZonePx
   const placed: { row: KeyRow; y: number }[] = []
-  let y = top + ROW_PX - 1 - pad / 2
+  let y = top + 12 - pad / 2
   for (const section of sections) {
     y += pad
     for (const row of section) {

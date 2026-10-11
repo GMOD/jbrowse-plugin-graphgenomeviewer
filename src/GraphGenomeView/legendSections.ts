@@ -328,7 +328,7 @@ export function tubeMapRows(model: GraphPaneModel): LegendRow[] {
       tubeRow(
         'hap',
         haplotypeTube,
-        bundled ? 'route, ×n haplotypes' : 'haplotype',
+        bundled ? 'shared route, ×n haplotypes' : 'haplotype',
       ),
     )
   }
@@ -358,24 +358,24 @@ export function tubeMapRows(model: GraphPaneModel): LegendRow[] {
   if (substitution) {
     rows.push({
       key: 'sub',
-      label: 'mismatch',
+      label: 'read mismatch',
       swatch: { kind: 'glyph', char: 'A' },
     })
   }
   if (insertion) {
     rows.push({
       key: 'ins',
-      label: 'insertion',
+      label: 'read insertion',
       swatch: { kind: 'glyph', char: '*' },
     })
   }
   if (deletion) {
-    rows.push(tubeRow('del', 'grey', 'deletion'))
+    rows.push(tubeRow('del', 'grey', 'read deletion'))
   }
   if (foldBp !== undefined) {
     rows.push({
       key: 'tube-fold',
-      label: `variant under ${formatBp(foldBp)}`,
+      label: `haplotype variant < ${formatBp(foldBp)}`,
       swatch: {
         kind: 'tick',
         color: deviationInk(),

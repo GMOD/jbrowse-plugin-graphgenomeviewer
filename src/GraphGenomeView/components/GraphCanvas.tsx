@@ -31,8 +31,8 @@ import type { GraphPaneModel } from '../model'
 
 // Bottom RIGHT, not bottom left: the row labels of a row-structured layout are
 // pinned to the left edge, so a bottom-left tooltip lands on top of them and
-// covers the one thing that says which haplotype a row is. Nothing is drawn
-// against the right edge.
+// covers the one thing that says which haplotype a row is. Where the legend
+// reaches down to it, it moves left of the legend.
 const tooltipStyle = {
   position: 'absolute' as const,
   bottom: TOOLTIP_INSET_PX,
