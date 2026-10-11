@@ -112,12 +112,11 @@ window). Since folding again at a larger size closely matches folding the
 original at that size, a tier cut draws nearly what a fine cut drew just below
 the handover, provided `aboveBpPerPx` is the tier's size over `FOLD_PX`. The two
 can differ where the way back from a big allele to the backbone runs through
-part of a small one. A coarse cut has no bp cap,
-since `maxGraphNodes` counts what came back, hops as a fine cut does, and reads
-no bubble index. The display persists `cutRegion` and `coarseCut`, so a restored
-session re-makes the cut it saved. The segments lane (`LinearBasicDisplay` on
-the same track) does not switch tier: `RenderFeatureData` hands a feature
-adapter no bpPerPx.
+part of a small one. A coarse cut has no bp cap, since `maxGraphNodes` counts
+what came back, hops as a fine cut does, and reads no bubble index. The display
+persists `cutRegion` and `coarseCut`, so a restored session re-makes the cut it
+saved. The segments lane (`LinearBasicDisplay` on the same track) does not
+switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
 The Add pangenome graph track workflow fills the slot from the
 `<prefix>.graph.json` manifest `gfa-to-tabix build` writes beside
