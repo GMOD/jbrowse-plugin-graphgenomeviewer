@@ -115,6 +115,9 @@ import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 const MAX_SHOWN_BASES = 20
+export const TOOLTIP_INSET_PX = 8
+// a two-line tooltip and its inset
+const TOOLTIP_ROOM_PX = 48
 // a squeezed stack of panels thins no further, as one tube map does
 const MIN_PANEL_Y_SCALE = 0.05
 
@@ -437,6 +440,15 @@ export const withFitViews = withHostViews
     // isotropic layout has no height of its own and takes its aspect ratio
     // at the width's fit. Neither reads `scale`, so the fit reads this
     // without feeding back into it.
+    // The hover tooltip's distance from the pane's right edge: in the corner,
+    // unless the legend reaches down into its room, and then beside it
+    get tooltipRightPx() {
+      const { width, height } = self.legendSize
+      const legendBottom = LEGEND_INSET_PX + self.referenceStripZonePx + height
+      return width > 0 && legendBottom > this.canvasHeight - TOOLTIP_ROOM_PX
+        ? width + 2 * LEGEND_INSET_PX
+        : TOOLTIP_INSET_PX
+    },
     get canvasHeight(): number {
       const bounds = this.layoutBounds
       const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight

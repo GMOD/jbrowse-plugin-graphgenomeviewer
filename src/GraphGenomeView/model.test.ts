@@ -5,6 +5,7 @@
 
 import { spreadFor } from '@jbrowse/bandage-core/bubbleSpreads'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import {
   PROPORTIONAL_LENGTH,
   bandageAutoScale,
@@ -1359,6 +1360,17 @@ describe('canvas height follows the drawing', () => {
     expect(model.scale).toBeCloseTo(scale, 10)
     expect(model.translateY).toBeCloseTo(translateY + 66, 5)
     expect(model.canvasHeight).toBe(canvasHeight + 66)
+  })
+
+  test('the hover tooltip moves beside a legend that reaches its corner', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.setLegendSize({ width: 150, height: 60 })
+    expect(model.tooltipRightPx).toBe(8)
+
+    model.setLegendSize({ width: 150, height: model.canvasHeight })
+    expect(model.tooltipRightPx).toBe(150 + 2 * LEGEND_INSET_PX)
   })
 
   test('a pane with no layout in it yet is full height', () => {

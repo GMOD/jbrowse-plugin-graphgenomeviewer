@@ -24,6 +24,7 @@ import WalkStripLocator from './WalkStripLocator'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
+import { TOOLTIP_INSET_PX } from '../pane/fitViews'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
 import type { GraphPaneModel } from '../model'
@@ -34,8 +35,7 @@ import type { GraphPaneModel } from '../model'
 // against the right edge.
 const tooltipStyle = {
   position: 'absolute' as const,
-  bottom: 8,
-  right: 8,
+  bottom: TOOLTIP_INSET_PX,
   background: 'rgba(0,0,0,0.75)',
   color: 'white',
   padding: '4px 8px',
@@ -313,21 +313,22 @@ const HoverTooltips = observer(function HoverTooltips({
 
   const walkRow = model.hoveredWalkRowText
   const tube = model.hoveredTubeText
+  const tipStyle = { ...tooltipStyle, right: model.tooltipRightPx }
 
   return (
     <>
       {tube && !hoveredNodeData ? (
-        <div style={tooltipStyle} data-testid="graph-tube-tooltip">
+        <div style={tipStyle} data-testid="graph-tube-tooltip">
           <strong>{tube.label}</strong> — {tube.readout}
         </div>
       ) : null}
       {walkRow && !hoveredNodeData ? (
-        <div style={tooltipStyle} data-testid="graph-walk-row-tooltip">
+        <div style={tipStyle} data-testid="graph-walk-row-tooltip">
           <strong>{walkRow.label}</strong> — {walkRow.readout}
         </div>
       ) : null}
       {hoveredNodeData ? (
-        <div style={tooltipStyle}>
+        <div style={tipStyle}>
           <strong>{hoveredNodeData.name}</strong>
           {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
           {hoveredNodeData.length.toLocaleString()} bp, depth{' '}
@@ -345,7 +346,7 @@ const HoverTooltips = observer(function HoverTooltips({
         </div>
       ) : null}
       {hoveredEdgeText ? (
-        <div style={tooltipStyle}>
+        <div style={tipStyle}>
           {/* A deletion edge is the one link that means something on its own —
               the backbone it skips is sequence some haplotype does not carry —
               so it says how much rather than just naming its endpoints. */}
