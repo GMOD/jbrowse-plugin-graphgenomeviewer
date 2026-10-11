@@ -218,7 +218,7 @@ function stripRows(model: GraphPaneModel): LegendRow[] {
   return [
     {
       key: 'strip',
-      label: `top strip: reference at its bp${rowPerWalk ? ', a row per walk' : ''}`,
+      label: `top strip: reference${rowPerWalk ? ', a row per walk' : ''}`,
       swatch: { kind: 'bands', bands: stripBands(model) },
     },
     ...(model.referenceStripFaded
@@ -328,7 +328,7 @@ export function tubeMapRows(model: GraphPaneModel): LegendRow[] {
       tubeRow(
         'hap',
         haplotypeTube,
-        bundled ? 'a route, as wide as the haplotypes taking it' : 'haplotype',
+        bundled ? 'route, ×n haplotypes' : 'haplotype',
       ),
     )
   }
@@ -358,24 +358,24 @@ export function tubeMapRows(model: GraphPaneModel): LegendRow[] {
   if (substitution) {
     rows.push({
       key: 'sub',
-      label: "a read's base unlike the node's",
+      label: 'mismatch',
       swatch: { kind: 'glyph', char: 'A' },
     })
   }
   if (insertion) {
     rows.push({
       key: 'ins',
-      label: 'bases a read inserts',
+      label: 'insertion',
       swatch: { kind: 'glyph', char: '*' },
     })
   }
   if (deletion) {
-    rows.push(tubeRow('del', 'grey', 'bases a read skips'))
+    rows.push(tubeRow('del', 'grey', 'deletion'))
   }
   if (foldBp !== undefined) {
     rows.push({
       key: 'tube-fold',
-      label: `a haplotype's variant under ${formatBp(foldBp)}`,
+      label: `variant under ${formatBp(foldBp)}`,
       swatch: {
         kind: 'tick',
         color: deviationInk(),

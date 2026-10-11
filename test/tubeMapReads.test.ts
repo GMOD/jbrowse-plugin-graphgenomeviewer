@@ -211,7 +211,7 @@ describe.skipIf(!runE2E)('GAF reads in a tube map track', () => {
       expect.arrayContaining([
         'read on the forward strand',
         'read on the reverse strand',
-        "Aa read's base unlike the node's",
+        'Amismatch',
       ]),
     )
   }, 180_000)
