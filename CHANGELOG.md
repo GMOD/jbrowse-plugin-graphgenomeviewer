@@ -1,3 +1,15 @@
+## [6.26.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.25.0...v6.26.0) (2026-10-11)
+
+### Other Changes
+
+- Build a Minigraph-Cactus graph of B73 and the 25 NAM founders over chr8:1-1.6Mb ([23526a9](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/23526a9542a2c314b0d60ec9300bacf02afb3a4e))
+- Cut each NAM founder slice at the end of its collinear chain with B73 ([50abfa4](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/50abfa4a2bfe7a4bd1d34c9dd211d63520f1ea43))
+- Build a whole maize chromosome, or a window of it, under docker or singularity ([4edb173](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/4edb17310c855dc5eaf9091030b2f279afd575b2))
+- Serve fixture byte ranges whatever case the Range header arrives in ([3adcd3c](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/3adcd3cfa48af5c0e64ef2e4cd96ffdc0b34dbed))
+- Run cactus-pangenome natively where installed, else its docker image ([b3e9a4d](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/b3e9a4d473c758609e880a1c2abb50676f0a6757))
+- Bump @jbrowse/bandage-core to 10.1.0, for vg fragment path names and sub-kb walk-row deltas ([e408fdd](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/e408fdd8709573d7fcfa2a1cf329c7f56b72085a))
+- Let typos read NAM, the maize founder panel ([2295863](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/commit/2295863065c513a0be00b97449fe11721def7fea))
+
 ## [6.25.0](https://github.com/cmdcolin/jbrowse-plugin-graphgenomeviewer/compare/v6.24.1...v6.25.0) (2026-10-10)
 
 ### Other Changes
