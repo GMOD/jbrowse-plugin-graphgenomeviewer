@@ -26,6 +26,9 @@ STRUC = "STRUC"
 REPID = "REPID"
 # Intentional misspelling in test case checking that misspellings are rejected
 Reigon = "Reigon"
+# Nested Association Mapping: the maize founder panel
+NAM = "NAM"
+nam = "nam"
 # vg's graph alignment format
 GAM = "GAM"
 # E. coli's thr operon genes (thrL, thrA) in the reference tests
