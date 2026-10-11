@@ -27,7 +27,7 @@ import GenePins, { EXON_COLOR } from './GenePins'
 import LabelLayer from './LabelLayer'
 import { paintReferenceStrip } from './ReferenceStripOverlay'
 import { paintTubeMap } from './TubeMapOverlay'
-import { PANEL_REFERENCE_TUBE, PANEL_TUBE } from '../tubeMapPanels'
+import { PANEL_REFERENCE_TUBE } from '../tubeMapPanels'
 import WalkRowsOverlay from './WalkRowsOverlay'
 import { UNPLACED_SWATCH } from './legendStyles'
 
@@ -366,6 +366,7 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
   }
   const {
     roles,
+    haplotypeTube,
     bundled,
     values,
     logWidths,
@@ -409,7 +410,7 @@ function tubeMapRows(model: GraphPaneModel, idPrefix: string): KeyRow[] {
       flatRow('ref', PANEL_REFERENCE_TUBE, 'reference'),
       flatRow(
         'hap',
-        PANEL_TUBE,
+        haplotypeTube,
         bundled ? 'a route, as wide as the haplotypes taking it' : 'haplotype',
       ),
     )

@@ -1523,7 +1523,7 @@ describe('zoomToFit on a tube map', () => {
     expect(right).toBeLessThanOrEqual(model.width - 40 + 1e-6)
   })
 
-  test('Reference position tints the boxes on the ramp and greys the tubes', async () => {
+  test('Reference position tints the boxes on the ramp and greys the tubes by role', async () => {
     const model = await tubeMap(2)
     model.setColorScheme('reference-position')
     expect(model.referenceRampDomain).toBeDefined()
@@ -1536,11 +1536,13 @@ describe('zoomToFit on a tube map', () => {
     expect(colors.get('b0+')).toBe('rgba(217,38,38,1)')
     expect(colors.get('b2+')).toBe('rgba(217,38,217,1)')
     expect(colors.get('a1+')).toBe('rgba(60,65,72,1)')
-    expect(model.tubeMapTubeColors).toEqual([
-      'hsl(0, 0%, 25%)',
-      'hsl(0, 0%, 70%)',
-    ])
-    expect(model.pathLegend.map(e => e.color)).toEqual(model.tubeMapTubeColors)
+    // greys by role, keyed reference and haplotype rather than walk by walk
+    expect(model.tubeMapTubeColors).toEqual(['#4d4d4d', '#8c8c8c'])
+    expect(model.pathLegend).toEqual([])
+    expect(model.tubeMapKeys).toMatchObject({
+      roles: true,
+      haplotypeTube: '#8c8c8c',
+    })
   })
 
   // on an anchored graph, where Auto paints every other layout on the ramp

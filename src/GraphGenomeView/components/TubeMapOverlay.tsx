@@ -22,7 +22,6 @@ import { legendBoxStyle, legendRowStyle } from './legendStyles'
 import {
   PANEL_REFERENCE_TUBE,
   PANEL_TITLE_FONT,
-  PANEL_TUBE,
   drawBundleCounts,
   drawSqueezedLengths,
 } from '../tubeMapPanels'
@@ -282,6 +281,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
 }) {
   const {
     roles,
+    haplotypeTube,
     bundled,
     values,
     logWidths,
@@ -325,7 +325,7 @@ export const TubeMapLegend = observer(function TubeMapLegend({
       <LegendRow
         key="hap"
         swatch={
-          <div style={{ ...barSwatchStyle, backgroundColor: PANEL_TUBE }} />
+          <div style={{ ...barSwatchStyle, backgroundColor: haplotypeTube }} />
         }
       >
         {bundled ? 'a route, as wide as the haplotypes taking it' : 'haplotype'}

@@ -70,6 +70,8 @@ import { hostFrame } from '../host'
 import {
   NO_VALUE_TUBE,
   PANEL_GAP,
+  PANEL_TUBE,
+  TINTED_TUBES,
   boxOf,
   memberAt,
   paintPanelHover,
@@ -1047,9 +1049,11 @@ export const withFitViews = withHostViews
             (split ||
               (layout?.tubeMap !== undefined &&
                 reads.length === 0 &&
-                !self.tubeMapNodeColors &&
-                (!pathColorsLegible(paths.length) ||
+                (!!self.tubeMapNodeColors ||
+                  !pathColorsLegible(paths.length) ||
                   paths.some(p => p.members)))),
+          haplotypeTube:
+            !split && self.tubeMapNodeColors ? TINTED_TUBES[0]! : PANEL_TUBE,
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,
