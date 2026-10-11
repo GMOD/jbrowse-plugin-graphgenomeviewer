@@ -85,8 +85,11 @@ if [ ! -s "out/$NAME.full.gbz" ]; then
   run=()
   command -v cactus-pangenome >/dev/null ||
     run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
+  # Toil otherwise schedules by cores alone: on a 125 GB host, four 17 GB
+  # minigraph jobs per run thrashed it. Default: 80% of memory free at launch.
+  MAX_MEMORY="${MAX_MEMORY:-$(awk '/^MemAvailable/ { printf "%dG", $2 * 0.8 / 1048576 }' /proc/meminfo 2>/dev/null)}"
   "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
-    --gbz clip full --gfa clip full --vcf --maxCores "$(nproc)"
+    --gbz clip full --gfa clip full --vcf --maxCores "$(nproc)" ${MAX_MEMORY:+--maxMemory "$MAX_MEMORY"}
 fi
 
 command -v gbz-haplotype-index >/dev/null || exit 0
