@@ -4,5 +4,78 @@
       "name": "GraphGenomeView",
       "esmUrl": "https://jbrowse.org/plugins/jbrowse-plugin-graphgenomeviewer/latest/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
     }
+  ],
+  "assemblies": [
+    {
+      "name": "B73",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "B73-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/B73.fa.gz"
+        }
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "type": "FeatureTrack",
+      "trackId": "b73_genes",
+      "name": "B73 v5 genes (Zm00001eb.1)",
+      "assemblyNames": ["B73"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/b73_genes.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "b73_te",
+      "name": "B73 v5 TEs",
+      "assemblyNames": ["B73"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/b73_te.gff3.gz"
+      }
+    },
+    {
+      "type": "GraphTrack",
+      "trackId": "maize_nam_clip",
+      "name": "NAM founders, Minigraph-Cactus (clip)",
+      "assemblyNames": ["B73"],
+      "adapter": {
+        "type": "GbzBaseSyntenyAdapter",
+        "gbzDbLocation": {
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/maize_nam_chr8.gbz.db"
+        },
+        "haplotypeIndexLocation": {
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/maize_nam_chr8.haplotype-index.db"
+        },
+        "assemblyNames": ["B73"],
+        "assemblyNameToPanSN": {
+          "B73": "B73#0"
+        }
+      }
+    },
+    {
+      "type": "GraphTrack",
+      "trackId": "maize_nam_full",
+      "name": "NAM founders, Minigraph-Cactus (full)",
+      "assemblyNames": ["B73"],
+      "adapter": {
+        "type": "GbzBaseSyntenyAdapter",
+        "gbzDbLocation": {
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/maize_nam_chr8.full.gbz.db"
+        },
+        "haplotypeIndexLocation": {
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/maize_nam_chr8.full.haplotype-index.db"
+        },
+        "assemblyNames": ["B73"],
+        "assemblyNameToPanSN": {
+          "B73": "B73#0"
+        }
+      }
+    }
   ]
 }
