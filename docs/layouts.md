@@ -6,9 +6,9 @@ The plugin ships seven layouts:
   [Bandage](https://github.com/rrwick/Bandage), seeded along the reference to
   read left to right. The engine lays out unbranching runs, so a base-level cut
   of 15,000 nodes draws in a few seconds. A graph track draws it with the stress
-  engine instead, which holds the reference along x, so zooming in reads as
-  cropping one picture rather than drawing a new one. The settings dialog
-  switches between the two engines.
+  engine instead, which holds the reference straight along x and places each
+  variant against it, so zooming in reads as cropping one picture rather than
+  drawing a new one. The settings dialog switches between the two engines.
 - **Ordered**: x is reference order, so every node gets room and a bubble reads
   as a lens. It scrolls sideways.
 - **Anchored**: x is reference bp, one row per stable rank, aligned under a

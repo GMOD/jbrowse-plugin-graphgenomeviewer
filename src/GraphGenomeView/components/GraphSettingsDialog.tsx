@@ -142,9 +142,9 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             }}
           />
           <Caption>
-            Which engine draws the force-directed layout. Stress reads distances
-            along the graph as distances on the page, so the reference draws
-            straight; it is experimental, and slower than FMMM on large cuts.
+            Which engine draws the force-directed layout. Stress draws the
+            reference straight and hangs each variant off it in place, so a zoom
+            re-cut keeps the picture; FMMM lets the whole graph settle.
           </Caption>
           <EngineOnly model={model} />
         </div>
