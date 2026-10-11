@@ -25,6 +25,7 @@ import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
+import { facetKeyRows } from './legendSections'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import { EMPTY_BATCH, SELECT_BRIGHTEN } from './pane/paneBase'
@@ -3240,7 +3241,11 @@ describe('walk rows', () => {
     model.setFacet('walk')
     const grid = model.facetGrid!
     expect(model.viewBox).toEqual({ width: grid.width, height: grid.height })
-    expect(model.canvasHeight).toBe(Math.max(160, grid.total))
+    // the grid, then the key line under it
+    expect(model.canvasHeight).toBe(Math.max(160, grid.total + 8 + 19))
+    expect(facetKeyRows(model).map(r => r.label)).toEqual([
+      "not on the panel's walk",
+    ])
     expect(model.scale).toBeCloseTo(grid.scale, 10)
     expect(model.scale).not.toBeCloseTo(whole, 10)
     expect(

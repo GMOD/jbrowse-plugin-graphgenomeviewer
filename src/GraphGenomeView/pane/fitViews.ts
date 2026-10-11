@@ -1,4 +1,5 @@
 import {
+  FACET_GAP_PX,
   FACET_PAD_PX,
   facetCells,
   facetGrid,
@@ -116,6 +117,9 @@ import type { FileLocation } from '@jbrowse/core/util/types'
 
 const MAX_SHOWN_BASES = 20
 export const TOOLTIP_INSET_PX = 8
+export const FACET_KEY_ROW_PX = 19
+// the facet key line and the grid gap above it
+export const FACET_KEY_PX = FACET_GAP_PX + FACET_KEY_ROW_PX
 // a two-line tooltip and its inset
 const TOOLTIP_ROOM_PX = 48
 // a squeezed stack of panels thins no further, as one tube map does
@@ -432,8 +436,11 @@ export const withFitViews = withHostViews
           })
         : undefined
     },
+    // the facet grid's room leaves the key line under it
     get facetGrid() {
-      return this.facetGridIn(self.host ? this.canvasHeight : this.paneCeiling)
+      return this.facetGridIn(
+        (self.host ? this.canvasHeight : this.paneCeiling) - FACET_KEY_PX,
+      )
     },
     // The hover tooltip's distance from the pane's right edge: in the corner,
     // unless the legend reaches down into its room, and then beside it. A
@@ -461,7 +468,7 @@ export const withFitViews = withHostViews
       }
       const grid = this.facetGrid
       if (grid) {
-        return Math.max(MIN_CANVAS_HEIGHT, grid.total)
+        return Math.max(MIN_CANVAS_HEIGHT, grid.total + FACET_KEY_PX)
       }
       // never shorter than the legend, which a flat drawing would clip
       const floor = Math.max(

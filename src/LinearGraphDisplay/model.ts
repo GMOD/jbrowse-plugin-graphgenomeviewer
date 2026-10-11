@@ -31,6 +31,7 @@ import {
   MAX_GRAPH_REGION_BP,
   formatSpanBp,
 } from '../GraphGenomeView/model'
+import { FACET_KEY_PX } from '../GraphGenomeView/pane/fitViews'
 import {
   configHaplotypes,
   cutsByHaplotype,
@@ -535,8 +536,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           reaction(
             () => `${self.facetSetting.field} ${self.facetPlacement?.count}`,
             () => {
-              const needs = self.facetGridIn(self.paneCeiling)?.total ?? 0
-              if ((self.facetGrid?.total ?? 0) > self.height) {
+              const needs =
+                (self.facetGridIn(self.paneCeiling - FACET_KEY_PX)?.total ??
+                  0) + FACET_KEY_PX
+              if ((self.facetGrid?.total ?? 0) + FACET_KEY_PX > self.height) {
                 self.setHeight(Math.max(self.height, Math.ceil(needs)))
               }
             },
