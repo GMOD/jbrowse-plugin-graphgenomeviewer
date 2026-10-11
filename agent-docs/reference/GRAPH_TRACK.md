@@ -108,9 +108,11 @@ the pair was folded at, from which `coarseHandover` derives that zoom as
 `foldBelowBp / FOLD_PX`. `aboveBpPerPx` wins when both are set. The pair is the
 same fold of the whole graph at a fixed size, written by `gfa-to-tabix fold`, a
 port of bandage-core's `foldVariants` (anchored rows, so one read holds the
-window). Since folding again at a larger size folds the original at that size, a
-tier cut draws what a fine cut drew just below the handover, provided
-`aboveBpPerPx` is the tier's size over `FOLD_PX`. A coarse cut has no bp cap,
+window). Since folding again at a larger size closely matches folding the
+original at that size, a tier cut draws nearly what a fine cut drew just below
+the handover, provided `aboveBpPerPx` is the tier's size over `FOLD_PX`. The two
+can differ where the way back from a big allele to the backbone runs through
+part of a small one. A coarse cut has no bp cap,
 since `maxGraphNodes` counts what came back, hops as a fine cut does, and reads
 no bubble index. The display persists `cutRegion` and `coarseCut`, so a restored
 session re-makes the cut it saved. The segments lane (`LinearBasicDisplay` on
