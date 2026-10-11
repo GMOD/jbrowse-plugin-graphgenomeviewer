@@ -30,6 +30,7 @@ Commitment, not size, separates an item here from a proposal in
 | ---------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------ |
 | [Halo behind arrowheads](todo/halo-behind-arrowheads.md)                     | drawing    | Prototype the barb-only stroke and look at an abutting joint.      |
 | [The lifted walk's colour on its bar](todo/lifted-walk-colour-on-its-bar.md) | walk strip | Pick between a chip beside the label and an outline round the bar. |
+| ["Force-directed" in a track](todo/force-label-in-track.md)                 | menus      | Pick the track label for force mode under the stress engine.       |
 
 ## Measure first
 
