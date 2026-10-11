@@ -492,8 +492,10 @@ export const withLaunchActions = withRenderingActions
           ],
         },
         {
-          label: `Color: ${this.colorSchemeLabel(self.chosenColorScheme)}`,
+          label: `Color: ${self.colorSchemeLock?.value ?? this.colorSchemeLabel(self.chosenColorScheme)}`,
           icon: PaletteIcon,
+          disabled: self.colorSchemeLock !== undefined,
+          disabledHelpText: self.colorSchemeLock?.why,
           subMenu: COLOR_SCHEMES.map(scheme => ({
             type: 'radio' as const,
             label: this.colorSchemeLabel(scheme.value),

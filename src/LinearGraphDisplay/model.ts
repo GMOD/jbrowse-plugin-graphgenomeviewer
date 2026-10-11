@@ -693,7 +693,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             label: 'Graph settings...',
             icon: SettingsIcon,
             helpText:
-              'Layout engine and quality, node limit and width, graph context, which haplotypes load, and color scheme',
+              'Subgraph context, haplotypes and node limit; node width and path colors; the force-directed layout engine',
             onClick: () => {
               this.openSettings()
             },

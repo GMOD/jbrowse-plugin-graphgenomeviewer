@@ -63,7 +63,7 @@ const SettingsMenu = observer(function SettingsMenu({
             label: 'Graph settings...',
             icon: SettingsIcon,
             helpText:
-              'Layout engine and quality, node limit and width, genes, reference path and color scheme',
+              'Subgraph node limit; node width and path colors; the force-directed layout engine',
             onClick: () => {
               setSettingsOpen(true)
             },
