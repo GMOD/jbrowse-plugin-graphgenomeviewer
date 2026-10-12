@@ -3,6 +3,7 @@ import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
+import { locationIsSet } from '../locationName.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import {
   anchoredCut,
@@ -96,9 +97,7 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       [...under, 'segmentsIndex'],
     )
     const walksLocation: FileLocation = this.getConf('walksLocation')
-    const hasWalks =
-      under.length === 0 &&
-      (!('uri' in walksLocation) || walksLocation.uri !== '')
+    const hasWalks = under.length === 0 && locationIsSet(walksLocation)
     const links = openTabixSlot(
       this,
       [...under, 'linksLocation'],

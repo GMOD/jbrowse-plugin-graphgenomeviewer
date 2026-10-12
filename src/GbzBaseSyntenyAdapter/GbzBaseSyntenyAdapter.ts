@@ -22,6 +22,7 @@ import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import { findCompanion } from './companion.ts'
 import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import { GafFile } from '../gaf/gafFile.ts'
+import { locationIsSet } from '../locationName.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
@@ -243,16 +244,13 @@ const wholeBp = (region: Region) => ({
   end: Math.ceil(region.end),
 })
 
-const isSet = (location: FileLocation) =>
-  !('uri' in location) || location.uri !== ''
-
 export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBaseSyntenyAdapterConfig> {
   private graph = cachedSetup({
     label: 'Opening pangenome database',
     setup: async () => {
       const gbzDb: FileLocation = this.getConf('gbzDbLocation')
       const configured: FileLocation = this.getConf('haplotypeIndexLocation')
-      const companion = isSet(configured)
+      const companion = locationIsSet(configured)
         ? { location: configured }
         : await findCompanion(gbzDb, this.pluginManager)
       const indexLocation = companion.location
@@ -447,10 +445,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     setup: async () => {
       const location: FileLocation = this.getConf('readsLocation')
       const index: FileLocation = this.getConf(['readsIndex', 'location'])
-      return isSet(location)
+      return locationIsSet(location)
         ? new GafFile(
             openLocation(location, this.pluginManager),
-            isSet(index)
+            locationIsSet(index)
               ? openTabixSlot(this, ['readsLocation'], ['readsIndex'])
               : undefined,
           )

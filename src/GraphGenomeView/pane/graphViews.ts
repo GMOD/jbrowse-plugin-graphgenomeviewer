@@ -52,6 +52,7 @@ import { computed } from 'mobx'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
 import { walkRowRuns, walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
+import { locationIsSet } from '../../locationName.ts'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
 import {
   GENE_ADAPTER_TYPES,
@@ -837,9 +838,7 @@ export const withGraphViews = paneBase
     get walkRowSamplesTsv(): FileLocation | undefined {
       const location = self.sourceAdapter?.samplesTsvLocation as
         FileLocation | undefined
-      return location && (!('uri' in location) || location.uri)
-        ? location
-        : undefined
+      return location && locationIsSet(location) ? location : undefined
     },
     // The sample table's columns walk rows can group by
     get walkRowGroupFields() {
