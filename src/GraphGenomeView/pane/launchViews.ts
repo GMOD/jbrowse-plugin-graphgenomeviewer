@@ -2,7 +2,6 @@ import {
   backboneNodes,
   backboneSpan,
 } from '@jbrowse/bandage-core/anchoredNodes'
-import { nodeReferenceSpan } from '@jbrowse/bandage-core/referenceSpan'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { getContainingView, getSession } from '@jbrowse/core/util'
 
@@ -160,12 +159,7 @@ export const withLaunchViews = withGraphViews
         ? resolveLocationAssembly(self.assemblyResolver, own)
         : undefined
       const region = self.graphRegion
-      const nodeById = self.nodeById
-      const neighbors = self.nodeNeighbors
-      const span =
-        region && nodeById && neighbors
-          ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
-          : undefined
+      const span = region ? self.nodeSpan(nodeId) : undefined
       const onReference =
         region && span
           ? {

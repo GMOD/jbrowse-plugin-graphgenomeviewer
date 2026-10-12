@@ -6,7 +6,6 @@ import {
   clampZoom,
   fittedTranslateY,
 } from '@jbrowse/bandage-core/pipeline'
-import { nodeReferenceSpan } from '@jbrowse/bandage-core/referenceSpan'
 import { zoomAbout } from '@jbrowse/bandage-core/viewport'
 import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { isAlive } from '@jbrowse/mobx-state-tree'
@@ -358,17 +357,13 @@ export const withSettingActions = withFitViews
     },
     showNodeDetails(nodeId: string) {
       const node = self.nodeById?.get(nodeId)
-      const nodeById = self.nodeById
-      const neighbors = self.nodeNeighbors
-      if (node && nodeById && neighbors) {
+      if (node) {
         const session = getSession(self)
         const region = self.graphRegion
         // refName/start/end are what makes the widget show a location rather
         // than a bare id, and they are the same span the linear view
         // highlights on hover.
-        const span = region
-          ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
-          : undefined
+        const span = region ? self.nodeSpan(nodeId) : undefined
         if (isSessionModelWithWidgets(session)) {
           session.showWidget(
             session.addWidget('BaseFeatureWidget', 'baseFeature', {
