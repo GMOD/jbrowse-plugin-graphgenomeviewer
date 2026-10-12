@@ -24,7 +24,7 @@ import puppeteer from 'puppeteer'
 
 import { candidateServer } from './serveCandidate.mjs'
 
-const DEFAULT_VERSIONS = ['v5.0.0-beta.13', 'main']
+const DEFAULT_VERSIONS = ['v5.0.0-beta.11', 'v5.0.0-beta.13', 'main']
 // A real shipped config that names this plugin, and the window part 1 of the
 // HPRC tutorial cuts from its segments track.
 const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
