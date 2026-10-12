@@ -343,6 +343,8 @@ export const paneBase = types
     // graph with no region.
     loadedReferencePath: undefined as string | undefined,
     layoutResult: undefined as PaneLayout | undefined,
+    // the mode that drew layoutResult: force where the chosen one could not
+    drawnLayoutMode: undefined as LayoutModeValue | undefined,
     // what the legends in the pane's top-right corner measure, so no label
     // is placed under them
     legendSize: { width: 0, height: 0 },

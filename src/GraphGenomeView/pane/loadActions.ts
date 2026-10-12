@@ -49,6 +49,7 @@ import type { GafReads } from '../../gaf/gafFile'
 import type { PaneLayout } from '../tubeMapPanels'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
@@ -134,17 +135,21 @@ export const withLoadActions = withSettingActions.actions(self => {
               }),
             )
           : whole
-      return { result, duration: performance.now() - start }
+      return {
+        result,
+        duration: performance.now() - start,
+        mode: self.chosenLayoutMode,
+      }
     }
     const settings = engineSettings()
     const hit = forceLayouts.ready(graph, settings)
-    if (hit) {
-      return { result: hit, duration: performance.now() - start }
-    }
-    return (yield forceLayouts.layout(graph, settings, callEngine)) as {
-      result: LayoutResult
-      duration: number
-    }
+    const forced = hit
+      ? { result: hit, duration: performance.now() - start }
+      : ((yield forceLayouts.layout(graph, settings, callEngine)) as {
+          result: LayoutResult
+          duration: number
+        })
+    return { ...forced, mode: 'force' as LayoutModeValue }
   }
 
   // Which layout request is the live one. A layout is async and nothing in
@@ -210,6 +215,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
       laidOutGraph = graph
       self.layoutResult = computed.result
+      self.drawnLayoutMode = computed.mode
       self.setLayoutMs(computed.duration)
       self.followNewLayout(previous)
       self.morphFrom(previous, before)
@@ -564,6 +570,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.graphRegion = undefined
     self.loadedReferencePath = undefined
     self.layoutResult = undefined
+    self.drawnLayoutMode = undefined
     self.indexBubbles = undefined
     self.foldedBelowBp = undefined
     self.geneTrackFeatures = undefined
@@ -603,6 +610,7 @@ export const withLoadActions = withSettingActions.actions(self => {
       // a graph that landed ahead of its layout has nothing of its own drawn
       if (self.graph !== laidOutGraph) {
         self.layoutResult = undefined
+        self.drawnLayoutMode = undefined
       }
       self.isLoading = false
       self.statusMessage = ''

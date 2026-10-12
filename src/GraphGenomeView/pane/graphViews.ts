@@ -909,10 +909,12 @@ export const withGraphViews = paneBase
     // Whether the canvas draws the graph's nodes. A tube map and walk rows
     // draw a picture of their own over it, so what sits on nodes (genes,
     // bubble halos, deletion arcs, the reference strip) has nowhere to go.
-    // Read off what was drawn rather than the mode asked for, which falls
-    // back to the force layout on a graph it cannot draw.
+    // Read off the mode that drew the layout on screen, not the one asked
+    // for: that one falls back to force on a graph it cannot draw, and its
+    // layout may still be on its way.
     get drawsNodes() {
-      return !self.layoutResult?.tubeMap && !this.walkRowBars
+      return layoutModeByValue(self.drawnLayoutMode ?? self.chosenLayoutMode)
+        .drawsNodes
     },
     // Exons and names on the nodes that carry them, in layout units. Reads
     // positionsVersion so a dragged node takes its exons with it.

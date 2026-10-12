@@ -2960,6 +2960,30 @@ describe('walk rows', () => {
     expect(model.walkStripShown).toBe(false)
   })
 
+  test('walk rows still on screen draw no nodes until the force layout replacing them lands', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    expect(model.drawsNodes).toBe(false)
+    let land = () => {}
+    mockRpcCall.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          land = () => {
+            resolve({ result: MOCK_LAYOUT, duration: 5 })
+          }
+        }),
+    )
+    const relayout = model.switchLayout('force')
+    expect(model.drawsNodes).toBe(false)
+    land()
+    await relayout
+    expect(model.drawsNodes).toBe(true)
+  })
+
   test('a cohort of walks packs into the pane, its names and readouts on hover', async () => {
     rpcRespond()
     const cohort = [
