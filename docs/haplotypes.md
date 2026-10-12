@@ -1,8 +1,11 @@
 # Haplotypes
 
-A gbz-base cut includes the haplotypes' walks. A node draws thicker the more
-walks visit it, and each route through a bubble is labelled with its haplotypes
-and length.
+This page covers walks: lifting them, comparing them in panels, colouring them,
+and reading them as walk rows. Walks need a gbz-base or walk-indexed graph
+([data.md](data.md)).
+
+A node draws thicker the more walks visit it, and each route through a bubble is
+labelled with its haplotypes and length.
 
 ## Lifting walks
 
@@ -19,14 +22,21 @@ Tube maps have no picker, since their tubes are the walks.
   so an inversion reads as red to yellow where the reference reads yellow to red
   (HG002's H2 haplotype at MAPT)
 
-At GSTM1, HG00133 runs cyan to navy past the 18 kb its deletion skips:
+### Example: GSTM1
+
+HG00133 lifted alone runs cyan to navy past the 18 kb its deletion skips:
 
 ![HG00133's walk lifted at GSTM1 under the eight haplotypes' alignment rows](../img/force_gstm1_walk.png)
 
-HG01960 runs through GRCh38's GSTM1, HG00133 skips it, and HG03041 loops round a
-copy the graph never merged with GRCh38's. HPRC's wfmash alignment runs HG03041
-straight through, so the loop reflects how the graph was built, and 84 of 463
-haplotypes have it. Synteny drawn from the graph shows both as a gap:
+Lifting three haplotypes together shows three routes:
+
+- HG01960 runs through GRCh38's GSTM1
+- HG00133 skips it
+- HG03041 loops round a copy the graph never merged with GRCh38's. HPRC's wfmash
+  alignment runs HG03041 straight through, so the loop reflects how the graph was
+  built. 84 of 463 haplotypes have it
+
+Synteny drawn from the graph shows both skips as a gap:
 
 ![HG01960, HG00133 and HG03041 lifted at GSTM1](../img/force_gstm1_three_ways.png)
 
@@ -103,10 +113,3 @@ at KIV-2, 13 of 32 threaded copies take the hue of a reference copy of the other
 repeat type. To colour by the true unit, load
 [jbrowse-plugin-tandem-repeat](https://github.com/GMOD/jbrowse-plugin-tandem-repeat)
 and right-click a VCF 4.5 `<CNV:TR>` record.
-
-## Figures
-
-- **Export SVG** in the graph genome view saves the drawing, keys and panels
-- In a linear view, the view's **Export SVG** draws the track as shown
-- A JSON spec renders with no browser. See
-  [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md)

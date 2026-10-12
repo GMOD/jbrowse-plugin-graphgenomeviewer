@@ -1,5 +1,8 @@
 # Bubbles
 
+A bubble is a place where paths split and rejoin, such as a SNP, an indel or a
+repeat array. The node layouts can mark each one.
+
 - **Sources:** `<prefix>.bubbles.bed.gz` beside an rGFA index holds
   `gfatools bubble` records, and `gfa-to-tabix bubbles` writes the same file
   from a plain GFA's snarl VCF. A GBZ cut, a pggb file or an open bubble gets

@@ -8,34 +8,41 @@ Pangenome graphs in JBrowse 2.
 
 ![KIV-2 as a graph track under RefSeq genes and the curated KIV-2 annotation, its reference segments on a strip at their bp](img/force_kiv2.png)
 
-## Install
+## Quick start
 
-Needs JBrowse 5.0.0-beta.11 or later.
+1. Add the plugin to your JBrowse 5.0.0-beta.11 or later config:
 
-```json
-{
-  "plugins": [
-    {
-      "name": "GraphGenomeView",
-      "esmUrl": "https://jbrowse.org/plugins/jbrowse-plugin-graphgenomeviewer/latest/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
-    }
-  ]
-}
-```
+   ```json
+   {
+     "plugins": [
+       {
+         "name": "GraphGenomeView",
+         "esmUrl": "https://jbrowse.org/plugins/jbrowse-plugin-graphgenomeviewer/latest/dist/jbrowse-plugin-graphgenomeviewer.esm.js"
+       }
+     ]
+   }
+   ```
 
-## Using it
+2. Open a graph:
+   - **A small GFA:** Add → **Graph genome view** opens the whole file
+   - **A large graph:** index it with
+     [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) or build a gbz-base
+     database, then File → **Open track**. The track redraws the graph for the
+     view's window as you pan. See [docs/data.md](docs/data.md)
 
-- **A small GFA:** Add → **Graph genome view** opens the whole file
-- **A large graph:** index it with [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix)
-  or build a gbz-base database, then File → **Open track**. The track redraws
-  the graph for the view's window as you pan. See [docs/data.md](docs/data.md)
-- **Open a cut as a view:** a graph track's Launch → **Graph genome view**.
-  Hovering a node bands its bp in the linear view
-- **Pick a layout:** force-directed, ordered, anchored, sample rows, walk rows
-  or tube map ([docs/layouts.md](docs/layouts.md))
-- **Highlight haplotypes:** lift walks, or show a panel per walk
-  ([docs/haplotypes.md](docs/haplotypes.md))
-- **Export:** SVG from the track or the view
+3. Explore:
+   - Pick a layout from the track menu: force-directed, ordered, anchored,
+     sample rows, walk rows or tube map ([docs/layouts.md](docs/layouts.md))
+   - Lift haplotypes or show a panel per walk
+     ([docs/haplotypes.md](docs/haplotypes.md))
+   - Launch → **Graph genome view** on a track opens its cut as a view, where
+     hovering a node bands its bp in the linear view
+   - Export SVG from the track or the view
+
+The [JBrowse tutorials](#tutorials) walk through the whole process with
+commands you can run.
+
+## What it draws
 
 ![The KIV-2 array side by side: GRCh38, HG00097, HG01960 and HG00133 each followed start to end](img/force_kiv2_facet.png)
 
@@ -61,12 +68,15 @@ In the [JBrowse 2 docs](https://jbrowse.org/jb2/docs/tutorials/):
 
 ## Docs
 
-- [Data and track config](docs/data.md)
-- [Layouts](docs/layouts.md), [tube maps](docs/tube-maps.md),
-  [haplotypes](docs/haplotypes.md), [bubbles](docs/bubbles.md),
-  [genes](docs/genes.md)
-- [Maize NAM founders](docs/maize.md)
-- [Developing](docs/developing.md)
+In reading order:
+
+1. [Data and track config](docs/data.md): index a graph and write the track
+2. [Layouts](docs/layouts.md): the seven layouts, colour, the reference strip
+3. [Haplotypes](docs/haplotypes.md): lifting, panels, colouring, walk rows
+4. [Tube maps](docs/tube-maps.md): panels, routes, reads
+5. [Bubbles](docs/bubbles.md) and [genes](docs/genes.md)
+6. [Maize NAM founders](docs/maize.md): a worked example
+7. [Developing](docs/developing.md): build, test, release
 
 ## See also
 

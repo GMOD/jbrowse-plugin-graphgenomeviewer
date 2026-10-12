@@ -47,9 +47,15 @@ view bands the same bp across the curated KIV-2 array:
 
 ![KIV-2's 68 kb allele hovered: the strip boxes the span between its flanks, and the linear view bands it over the KIV-2 annotation](../img/force_kiv2_hover.png)
 
-## Other docs
+## Export
+
+- **Export SVG** in the graph genome view saves the drawing, keys and panels
+- In a linear view, the view's **Export SVG** draws the track as shown
+- A JSON spec renders with no browser. See
+  [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md)
+
+## Next
 
 - [Tube maps](tube-maps.md): panels, routes, reads
 - [Haplotypes](haplotypes.md): lifting, facets, colouring, walk rows
 - [Bubbles](bubbles.md) and [genes](genes.md)
-- [Data](data.md): indexing a graph and configuring tracks

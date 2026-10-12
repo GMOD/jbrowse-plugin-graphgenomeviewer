@@ -1,7 +1,12 @@
 # Tube maps
 
-`@jbrowse/tubemap-core` lays out sequenceTubeMap's tubes from the P and W lines,
-reference first. A reverse-strand walk runs through its boxes right to left.
+A tube map draws every path as a coloured tube through boxed nodes, like a metro
+map. `@jbrowse/tubemap-core` lays out sequenceTubeMap's tubes from the P and W
+lines, reference first. A reverse-strand walk runs through its boxes right to
+left.
+
+Pick **Tube map** or **Tube map on reference** from the layout menu
+([layouts.md](layouts.md)).
 
 ## Axes
 
