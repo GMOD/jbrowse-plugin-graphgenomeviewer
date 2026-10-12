@@ -337,14 +337,15 @@ export const withRenderingActions = withLoadActions
           },
         ),
       )
-      // a tube map lays out again for its panels, its routes and the column
-      // its routes split by
+      // a tube map lays out again for its fold, its panels, its routes and
+      // the column its routes split by
       addDisposer(
         self,
         reaction(
           () =>
             TUBE_MAP_MODES.has(self.chosenLayoutMode)
               ? JSON.stringify({
+                  fold: self.tubeMapFold,
                   facet: self.facetSetting,
                   groupBy: self.walkRowGroupBy,
                   table: self.walkRowGroupBy && self.walkRowSampleTable?.length,

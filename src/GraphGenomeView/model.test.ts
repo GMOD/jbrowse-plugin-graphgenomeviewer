@@ -22,7 +22,7 @@ import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
 import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
-import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
+import { applySnapshot, getSnapshot, types } from '@jbrowse/mobx-state-tree'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
 import { facetKeyRows } from './legendSections'
@@ -1598,6 +1598,19 @@ describe('zoomToFit on a tube map', () => {
     expect(nodes.length).toBeGreaterThan(0)
     expect(nodes.every(n => model.tubeMapNodeColors!.has(n.name))).toBe(true)
     expect(model.referenceRampOffKeys.unplaced).toBe(false)
+  })
+
+  test('a fold change lays the tube map out again', async () => {
+    rpcRespond()
+    const { view: model } = types
+      .model({ view: stateModelFactory() })
+      .create({ view: { type: 'GraphGenomeView', layoutMode: 'tubemap' } })
+    await model.loadGFA(snpChainGfa(2), '2 SNPs')
+    expect(model.layoutResult!.tubeMap!.coarse).toBeUndefined()
+    model.setTubeMapFold(1000)
+    expect(model.layoutResult!.tubeMap!.coarse).toBeDefined()
+    model.setTubeMapFold(0)
+    expect(model.layoutResult!.tubeMap!.coarse).toBeUndefined()
   })
   test('a hovered lane row keeps its tube and fades the rest', async () => {
     const model = await tubeMap(2)

@@ -217,7 +217,6 @@ export const withLaunchActions = withRenderingActions
                   disabled: bp > 0 && self.graph?.reads !== undefined,
                   onClick: () => {
                     self.setTubeMapFold(bp)
-                    void self.recomputeLayout()
                   },
                 })),
               },
