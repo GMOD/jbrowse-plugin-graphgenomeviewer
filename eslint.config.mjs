@@ -9,9 +9,11 @@ export default defineConfig(
   {
     ignores: [
       'eslint.config.mjs',
+      // plain JS, linted by eslint.scripts.config.mjs
+      'eslint.scripts.config.mjs',
       'esbuild.mjs',
-      'dist/*',
       'scripts/*',
+      'dist/*',
       // build/test config, outside tsconfig.eslint.json's `src` project so
       // typed linting cannot parse them
       'vitest.config.ts',
