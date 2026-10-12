@@ -468,9 +468,11 @@ export const withLaunchActions = withRenderingActions
     },
     graphMenuItems(): MenuItem[] {
       const options = this.layoutOptionMenuItems()
+      const mode = layoutModeByValue(self.chosenLayoutMode)
+      const engine = ENGINE_NAMES.find(([e]) => e === self.layoutEngine)![1]
       return [
         {
-          label: `Layout: ${layoutMenuLabel(layoutModeByValue(self.chosenLayoutMode))}`,
+          label: `Layout: ${layoutMenuLabel(mode)}${mode.value === 'force' ? ` (${engine})` : ''}`,
           icon: HubIcon,
           subMenu: [
             ...LAYOUT_MODES.flatMap(mode => {
