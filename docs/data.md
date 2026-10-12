@@ -9,15 +9,15 @@ Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
 (GFA and GBZ), then index it. [vg](https://github.com/vgteam/vg) 1.69.0 or later
 covers the GBZ steps.
 
-| Data                            | Commands                                                         | Adapter                                        |
-| ------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
-| rGFA                            | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)              | `RgfaTabixAdapter`                             |
-| Plain GFA (pggb, odgi, vg)      | the same, plus `--reference`, `--assembly`, `--snarls`           | `RgfaTabixAdapter`                             |
-| Alleles with a CIGAR each       | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index | alignments track |
-| Walks as tabix files            | `vg convert -f graph.gbz`, then `gfa-to-tabix --walks`           | `WalkTabixSyntenyAdapter`, or `RgfaTabixAdapter` with `walksUri` |
-| Walks as one database           | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`         | `GbzBaseSyntenyAdapter`                        |
-| Reads                           | `vg giraffe -o gaf`, `vg gamsort -G`, `bgzip`, `tabix`           | `reads` on a gbz-base adapter                  |
-| Minigraph paths per assembly    | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)    | one row per bubble and sample                  |
+| Data                         | Commands                                                                                         | Adapter                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                              | `RgfaTabixAdapter`                                               |
+| Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                           | `RgfaTabixAdapter`                                               |
+| Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index | alignments track                                                 |
+| Walks as tabix files         | `vg convert -f graph.gbz`, then `gfa-to-tabix --walks`                                           | `WalkTabixSyntenyAdapter`, or `RgfaTabixAdapter` with `walksUri` |
+| Walks as one database        | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`                                         | `GbzBaseSyntenyAdapter`                                          |
+| Reads                        | `vg giraffe -o gaf`, `vg gamsort -G`, `bgzip`, `tabix`                                           | `reads` on a gbz-base adapter                                    |
+| Minigraph paths per assembly | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)                                    | one row per bubble and sample                                    |
 
 `gfa-to-tabix build` calls [gfatools](https://github.com/lh3/gfatools) for
 bubbles and writes `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`,
@@ -64,6 +64,6 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 - **Walk files:**
   `{ "type": "WalkTabixSyntenyAdapter", "walksUri": "….GRCh38", "assemblyNames": ["hg38"] }`
   draws the same haplotype lanes with no database
-- The track menu picks layout, colour and highlighted haplotypes, and switches to
-  the segments lane or, for gbz-base and walk-indexed graphs, the haplotype
+- The track menu picks layout, colour and highlighted haplotypes, and switches
+  to the segments lane or, for gbz-base and walk-indexed graphs, the haplotype
   lanes

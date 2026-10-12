@@ -15,6 +15,9 @@ pnpm lint
 Serve a JBrowse Web pointed at `config.json`, whose `plugins` entry targets
 `http://localhost:9000/dist/out.js`.
 
+`pnpm install` points git at `.githooks`, whose pre-push hook runs
+`format:check`, both typechecks and `lint`. Skip it with `git push --no-verify`.
+
 `pnpm typecheck` runs TypeScript 7 through the `typescript7` alias, while
 `typescript` stays on 6 for typescript-eslint and the core's declaration build.
 `npx tsc` picks 6.
@@ -29,8 +32,8 @@ relative to `import.meta.url`:
   someone first picks the force-directed layout
 - `chunks/*.js`: other lazy code
 
-A dynamic `import()` takes no subresource-integrity hash. For pinned bytes, serve
-the plugin from an immutable, versioned url you control.
+A dynamic `import()` takes no subresource-integrity hash. For pinned bytes,
+serve the plugin from an immutable, versioned url you control.
 
 ## The core
 

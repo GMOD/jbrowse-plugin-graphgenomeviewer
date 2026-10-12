@@ -1,14 +1,14 @@
 # Layouts
 
-| Layout                | x axis                                    | Needs                        |
-| --------------------- | ----------------------------------------- | ---------------------------- |
-| Force-directed        | graph shape, seeded along the reference   | any graph                    |
-| Ordered               | reference order, so a bubble reads as a lens | rGFA or reference path    |
-| Anchored              | reference bp, a row per stable rank       | rGFA or reference path       |
-| Sample rows           | reference bp, a row per assembly          | W or P lines                 |
-| Walk rows             | each walk's own bp, a bar per haplotype   | W or P lines                 |
-| Tube map              | node order, widths log-scaled             | W or P lines                 |
-| Tube map on reference | reference bp                              | W or P lines and a reference |
+| Layout                | x axis                                       | Needs                        |
+| --------------------- | -------------------------------------------- | ---------------------------- |
+| Force-directed        | graph shape, seeded along the reference      | any graph                    |
+| Ordered               | reference order, so a bubble reads as a lens | rGFA or reference path       |
+| Anchored              | reference bp, a row per stable rank          | rGFA or reference path       |
+| Sample rows           | reference bp, a row per assembly             | W or P lines                 |
+| Walk rows             | each walk's own bp, a bar per haplotype      | W or P lines                 |
+| Tube map              | node order, widths log-scaled                | W or P lines                 |
+| Tube map on reference | reference bp                                 | W or P lines and a reference |
 
 - **Force-directed** uses Bandage's OGDF FMMM engine. It lays out unbranching
   runs, so a 15,000-node cut draws in a few seconds. A graph track uses the
@@ -16,8 +16,9 @@
   one picture. The Layout menu and the settings dialog switch engines
 - **Walk rows** make a repeat expansion read as bar length. See
   [haplotypes.md](haplotypes.md#walk-rows)
-- **Tube maps** follow [sequenceTubeMap](https://github.com/vgteam/sequenceTubeMap).
-  See [tube-maps.md](tube-maps.md)
+- **Tube maps** follow
+  [sequenceTubeMap](https://github.com/vgteam/sequenceTubeMap). See
+  [tube-maps.md](tube-maps.md)
 
 ## Colour
 
@@ -31,12 +32,13 @@
 ## Reference strip
 
 In a linear view's track, a force-directed or ordered drawing has no bp axis. A
-strip along the top draws each reference segment at its bp, in its node's colour.
+strip along the top draws each reference segment at its bp, in its node's
+colour.
 
 - Touching segments alternate between two tiers while 12 px or more wide on
   average. A base-level cut draws as one band
-- Hovering a node or bubble name boxes its reference span on the strip and
-  draws a leader to the node. An allele's span runs between its flanks
+- Hovering a node or bubble name boxes its reference span on the strip and draws
+  a leader to the node. An allele's span runs between its flanks
 - While haplotypes are lifted, the strip gives each walk a row, pale where the
   walk skips a segment. A deletion is a pale gap
 - A triangle at either end says the graph draws reference past that edge

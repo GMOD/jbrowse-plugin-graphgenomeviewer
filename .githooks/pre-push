@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pnpm format:check
+pnpm typecheck
+pnpm typecheck:tests
+pnpm lint

@@ -9,8 +9,8 @@ stretch of node that carries it, and pins the gene's name under its midpoint.
 - A gene partly in the cut says how much: `LPA · 35 of 132.8 kb`
 - A tube map in its own view draws genes in rows above the tubes. In a linear
   view the gene track shows them
-- Where the linear view shows genes as a lane, the graph names only what the lane
-  draws
+- Where the linear view shows genes as a lane, the graph names only what the
+  lane draws
 - Records spanning a whole sequence (RefSeq's `region`) and records with no
   `gene_name`, `Name`, `gene` or `gene_id` get no name
 

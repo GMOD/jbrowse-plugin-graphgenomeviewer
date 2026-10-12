@@ -39,8 +39,8 @@ Pangenome graphs in JBrowse 2.
      hovering a node bands its bp in the linear view
    - Export SVG from the track or the view
 
-The [JBrowse tutorials](#tutorials) walk through the whole process with
-commands you can run.
+The [JBrowse tutorials](#tutorials) walk through the whole process with commands
+you can run.
 
 ## What it draws
 
@@ -93,8 +93,8 @@ In reading order:
 - [@jbrowse/tubemap-core](https://github.com/GMOD/tubemap-core) (npm): tube map
   layout
 - [@gmod/gbz-base](https://github.com/GMOD/gbz-base-js) (npm): `.gbz.db` reader
-- [ggbandage](https://github.com/GMOD/ggbandage) (R): Bandage layout as
-  ggplot2 layers
+- [ggbandage](https://github.com/GMOD/ggbandage) (R): Bandage layout as ggplot2
+  layers
 - [ggtubemap](https://github.com/GMOD/ggtubemap) (R): tube map as ggplot2 layers
 - [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix): indexes a GFA
 - [gbz-haplotype-index](https://github.com/GMOD/gbz-haplotype-index): names

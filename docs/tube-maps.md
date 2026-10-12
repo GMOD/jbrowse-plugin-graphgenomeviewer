@@ -14,8 +14,8 @@ Pick **Tube map** or **Tube map on reference** from the layout menu
   length (2 bp is 8 px, 100 bp 56, 1 kb 84, 22 kb 121), and the legend says no
   box is to scale. A cut too long for 5 px tubes opens at its left end, so pan
   along it or zoom out
-- **Reference axis:** each column sits at its bp, so boxes are to scale, with
-  up to 24 px per column boundary for curves. A box off the reference draws a few
+- **Reference axis:** each column sits at its bp, so boxes are to scale, with up
+  to 24 px per column boundary for curves. A box off the reference draws a few
   px wide, with its length beside it when 1 kb or more
 - In a linear view's track, tubes squeeze to the track's height, so drag it
   taller for wider tubes. On the own axis, a band joins each reference node's bp
@@ -26,7 +26,8 @@ Pick **Tube map** or **Tube map on reference** from the layout menu
 ## Fold variants
 
 **Fold variants** folds every variant under a size into the reference, as in
-svSTM ([van den Brandt et al., EuroVis 2025](https://doi.org/10.2312/evs.20251091)).
+svSTM
+([van den Brandt et al., EuroVis 2025](https://doi.org/10.2312/evs.20251091)).
 Each walk marks its allele as a tick on its tube. MICB's 22 kb cut goes from 475
 columns to 34 under 3 bp, and to one box under 50 bp. It is off by default, and
 off while reads are shown.
@@ -104,8 +105,8 @@ tabix -p gaf reads.gaf.gz
 - A tabix index needs numeric ids. Without one the plugin reads the whole file,
   up to 50 MB
 - Only gbz-base tracks take reads
-- Up to 5000 reads a cut. Forward reads are blue and reverse red. Haplotype tubes
-  turn grey beside reads
+- Up to 5000 reads a cut. Forward reads are blue and reverse red. Haplotype
+  tubes turn grey beside reads
 - The cs tag's edits draw on the reads: substituted bases, `*` for an insertion,
   grey for a deletion
 
@@ -124,7 +125,8 @@ Hovering a genotype cell of a callset or MAF row lifts that haplotype's walk
 ![HG00133's genotype cell hovered: its tube keeps its colour and the other walks go grey](../img/tube_map_micb_row_hover.png)
 
 Reads under sequenceTubeMap's cactus test graph, with mismatches lettered. A
-haplotype index (`gbz-haplotype-index --from-db cactus.gbz.db
-cactus.haplotype-index.db`) names the non-reference paths:
+haplotype index
+(`gbz-haplotype-index --from-db cactus.gbz.db cactus.haplotype-index.db`) names
+the non-reference paths:
 
 ![GAF reads under the haplotypes of a tube map track](../img/tube_map_reads.png)
