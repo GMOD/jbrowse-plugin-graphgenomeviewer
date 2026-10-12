@@ -200,15 +200,11 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 
 ## Walk-indexed cuts
 
-A walk-indexed `RgfaTabixAdapter` names a third file, `walksLocation`: one row
-per haplotype path per reference chunk, beside node and link rows filed under
-the same chunks (row formats at the top of `src/RgfaTabixAdapter/walkRows.ts`).
-`walksUri` names all three by their shared prefix, in place of `uri`. From
-gfa-to-tabix 0.5.0, `--walks -o <prefix>` writes one set per reference sample,
-`<prefix>.<sample>.{walks,nodes,links}.bed.gz`, so a track names the set for its
-assembly's reference, `<prefix>.<sample>`, whose `#reference` header line names
-that one sample. A 0.4.0 build holds every reference in one set, which a track
-names by `<prefix>` alone:
+A walk-indexed `RgfaTabixAdapter` names a walk file, `walksLocation`, which
+`gfa-to-tabix --walks` (1.0 or later) writes one per reference sample as
+`<prefix>.<sample>.walks.bed.gz`. `walksUri` names it and its `.tbi` by
+`<prefix>.<sample>`, in place of `uri`, and the track names the file for its
+assembly's reference:
 
 ```js
 {
@@ -218,34 +214,36 @@ names by `<prefix>` alone:
   assemblyNames: ['hg38'],
   adapter: {
     type: 'RgfaTabixAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    walksUri: 'https://example.org/hprc-v2.1-mc-grch38.GRCh38',
     assemblyNameToPanSN: { hg38: 'GRCh38' },
     defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
   },
 }
 ```
 
-A cut reads all three together over whole chunks, from a chunk before the window
-to the window's end, so a row filed under its chunk's first base is found as
-well as one spanning the chunk. A node is filed under the chunk holding its
-start, so a node reaching into the window can be filed several chunks back. From
-gfa-to-tabix 0.5.0 each file's first header line gives the longest node as
-`maxnode:i:`, and the cut starts ceil(maxnode / chunk) chunks before the
-window's own, at least one. Without it the cut starts one chunk back, which
-holds for vg's graphs, chopped to nodes of at most 1,024 bp; an unchopped graph
-from an older build loses any node starting further back. `getFeatures` reads
-from the same start. `anchoredCut`, the coarse tier and the bubble halos read no
-anchor interval of a walk-indexed file.
+[@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) reads and cuts the
+file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
+format 2 (`format:i:2` on the header's first line; the converter's
+`docs/walks-format.md`) and refuses a format 1 file from gfa-to-tabix 0.12 or
+earlier. A chunk lists the reference's path through it once, each distinct route
+a haplotype takes off that path once, the lengths of the nodes those routes
+visit, and each path piece as the routes it takes.
 
-The walk file's header holds a `chunk:i:` line, which sets the chunk size
-(`walkChunk` when absent), and from gfa-to-tabix 0.4.0 a `#reference` line per
-reference sample and a `#haplotype` line per other haplotype with rows: 462 on
-chr22, 9.75 kB. From 0.5.0 the first line also carries `maxnode:i:` and `cap:i:`
-(the most steps in one row, which nothing reads). The adapter takes these lines
-in one header read, and `GetGraphHaplotypes` hands the haplotype names to the
-track: the Graph settings field becomes a searchable pick list that still takes
-a typed prefix, and the Haplotypes menu counts them. Without the lines the field
-takes typed names.
+- A cut reads whole chunks, from the chunk before the window to the window's
+  end. A node is filed under the chunk holding its start, so the cut starts
+  ceil(maxnode / chunk) chunks before the window's own, at least one, from the
+  header's `maxnode:i:`. `getFeatures` reads from the same start, and reads the
+  reference rows. `anchoredCut`, the coarse tier and the bubble halos read no
+  anchor interval of a walk-indexed file
+- graph-walks decodes each chunk once: the reference's nodes with their
+  positions, and the kept walks' steps. The cut's tables then place its nodes
+  off the reference and list the links among its nodes, from the reference rows
+  and every route. Placing a route's nodes follows walk rows in path-name order,
+  only as far as the last route a row is first to take
+- The header names the reference sample and every other haplotype with rows: 463
+  on chr22's GRCh38 file. The adapter reads it once, and `GetGraphHaplotypes`
+  hands the names to the track: the Graph settings field becomes a searchable
+  pick list that still takes a typed prefix, and the Haplotypes menu counts them
 
 The set a cut is for lives in the display's session state, `subgraphHaplotypes`.
 Unset, it is the config's `defaultHaplotypes`, else the lanes the track's
@@ -253,44 +251,16 @@ Unset, it is the config's `defaultHaplotypes`, else the lanes the track's
 `subgraphHaplotypes: []`, is every haplotype whatever the config says: the
 Haplotypes menu's "Every haplotype in the graph" sets it, and a harness tracing
 a cut for every haplotype sets the same. A graph view opened from the track
-takes the set with it. The cut decodes only those walks and the reference's; the
-rest are dropped on their name column before their steps are split. Each
-fragment runs from its first to its last step on the reference inside the window
-plus 1 kb, then on outward while the next node is already in the cut, so an
-allele straddling the edge draws every walk that crosses it.
+takes the set with it. The cut decodes only those walks and the reference's.
+Each fragment runs from its first to its last step on the reference inside the
+window plus 1 kb, then on outward while the next node is already in the cut, so
+an allele straddling the edge draws every walk that crosses it.
 
-### Format 2
-
-gfa-to-tabix's format 2 (`format:i:2` on the walk file's first header line; the
-converter's `docs/walks-format.md`) holds the whole cut in the walk file. A
-chunk lists the reference's path through it once, each distinct route a
-haplotype takes off that path once, the lengths of the nodes those routes visit,
-and each path piece as the routes it takes. `WalkReader` reads the header first,
-and on format 2 reads and sizes the walk file alone; the node and link slots
-`walksUri` resolves are never opened.
-
-- `walkFormat2.ts` decodes each chunk once: the reference's nodes with their
-  positions, and the kept walks' steps in the arrays `joinPieces` takes
-- `WalkGraph.tables(kept)` then places the cut's nodes off the reference and
-  lists the links among the cut's nodes, from the reference rows and every
-  route. Placing a route's nodes follows walk rows in path-name order, only as
-  far as the last route a row is first to take
-- `getFeatures` reads the reference rows, and `PanSNRefNames` the walk file's
-  index, in either format
-
-Checked 2026-10-12 against gfa-to-tabix 0.11.0's format-1 files from the same
-chr22 graph (`walkFormat2.test.ts`): 50 windows of 0.6-100 kb on GRCh38 and
-CHM13, 8 haplotypes or every one, give the same GFA line for line, apart from
-3,111 nodes off the reference in one 22q11 window. Format 1 placed those on
-CHM13's own path, whose piece through them is filed under a chunk the window
-does not read; format 2 places them on the first-named path among the chunks
-read. The four walks_* fixtures, rebuilt in both formats, also match their walk
-rows and reference features.
-
-The 50 windows took 2.66 s in format 2 against 2.74 s in format 1, warm and
-local. A window in the 16.3 Mb repeats is the slowest relative to format 1, at
-0.24 s against 0.12 s: its routes are long and nest, so the routes repeat nodes
-that format 1's node file listed once.
+Before format 1 went, format 2 was checked against gfa-to-tabix 0.11.0's format
+1 files of the same chr22 graph: 50 windows of 0.6-100 kb on GRCh38 and CHM13
+gave the same GFA line for line, apart from 3,111 nodes off the reference in one
+22q11 window, which format 2 places on the first-named path among the chunks
+read. graph-walks keeps the four fixture graphs' format 1 cuts as goldens.
 
 ### Walks that leave the window
 

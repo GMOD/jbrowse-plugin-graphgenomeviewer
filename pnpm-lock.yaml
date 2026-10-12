@@ -29,6 +29,9 @@ importers:
       '@jbrowse/display-ui':
         specifier: 5.0.0-beta.11
         version: 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@7.2.0)
+      '@jbrowse/graph-walks':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.11
         version: 5.0.0-beta.11(react@19.3.0)
@@ -666,6 +669,10 @@ packages:
 
   '@jbrowse/graph-stress-layout@1.0.0':
     resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
+    engines: {node: '>=20'}
+
+  '@jbrowse/graph-walks@1.0.0':
+    resolution: {integrity: sha512-/4nfD2RYQkspOC038UmRagYl5keL26J+Ijngqvi9P3PH/DCe3dBYberxH1BcHgNk6G3wOAtsVNK1A3SnvDRKUQ==}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@6.0.0':
@@ -4153,6 +4160,8 @@ snapshots:
       - supports-color
 
   '@jbrowse/graph-stress-layout@1.0.0': {}
+
+  '@jbrowse/graph-walks@1.0.0': {}
 
   '@jbrowse/jexl@6.0.0': {}
 
