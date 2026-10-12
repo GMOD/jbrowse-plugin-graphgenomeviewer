@@ -27,7 +27,7 @@ metadata:
   BED), aliased by PanSN name (`HG00097#1`). Walk rows read it per row through
   `walkGeneReads`; the tube map could read the same tracks, then map each gene
   through the nodes of that haplotype's walk.
-- Limits inherited from reads (`docs/layouts.md`, Reads):
+- Limits inherited from reads (`docs/tube-maps.md`, Reads):
   - only gbz-base tracks take reads
   - a tabix GAF index needs numeric node ids; without one a file is read whole,
     up to 50 MB
