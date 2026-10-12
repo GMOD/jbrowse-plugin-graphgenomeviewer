@@ -22,13 +22,13 @@ import Adapter, {
   NoHaplotypeIndexError,
   NoReferenceSampleError,
   PairTargetError,
-  laneAssemblyName,
   resolveReferenceSample,
   widestWalkGap,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import GbzBaseSyntenyAdapterF from './index.ts'
 import { walkRowsOf } from '../RgfaTabixAdapter/walkRowRuns.ts'
+import { laneAssemblyName } from '../synteny/lanePairs.ts'
 
 import type { WalkCut } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
@@ -387,7 +387,7 @@ test('the node limit fails lanes and a graph cut as a zoom-in notice naming a sp
 })
 
 test('a lane name resolves at haplotype depth before sample depth', () => {
-  const name = { sample: 'HG002', haplotype: 2, contig: 'chr1', fragment: 0 }
+  const name = 'HG002#2'
   expect(laneAssemblyName({}, name)).toBe('HG002#2')
   expect(laneAssemblyName({ HG002: 'hg002' }, name)).toBe('hg002')
   expect(laneAssemblyName({ HG002: 'hg002', 'HG002#2': 'hg002_p' }, name)).toBe(

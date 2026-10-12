@@ -15,7 +15,7 @@ import { WalkReader, walkSubgraph } from '../RgfaTabixAdapter/walkReader.ts'
 import { walkNameFilter } from '../RgfaTabixAdapter/walkRows.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
-import { requestedPairs } from '../synteny/lanePairs.ts'
+import { laneAssemblyName, requestedPairs } from '../synteny/lanePairs.ts'
 
 import type { WalkTabixSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -26,14 +26,6 @@ import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
-
-/**
- * The lane a haplotype draws on: the JBrowse assembly the config maps to it at
- * haplotype or sample depth, else its own PanSN prefix
- */
-export function laneOf(asmByPrefix: Record<string, string>, prefix: string) {
-  return asmByPrefix[prefix] ?? asmByPrefix[panSNSample(prefix)] ?? prefix
-}
 
 const haplotypeOf = (fragment: WalkFragment) =>
   panSNHaplotype(fragment.name) ?? fragment.name
@@ -99,7 +91,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
             prefix !== anchorPrefix && panSNSample(prefix) !== anchorPrefix,
         )
         .map(prefix => ({
-          name: laneOf(asmByPrefix, prefix),
+          name: laneAssemblyName(asmByPrefix, prefix),
           label: prefix,
           group: panSNSample(prefix),
         })),
@@ -230,7 +222,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
             query,
             assemblyName: region.assemblyName,
             refName: region.refName,
-            mateAssemblyName: laneOf(asmByPrefix, haplotypeOf(query)),
+            mateAssemblyName: laneAssemblyName(asmByPrefix, haplotypeOf(query)),
           }),
         ),
       ),

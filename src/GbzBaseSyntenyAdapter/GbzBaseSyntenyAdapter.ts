@@ -26,7 +26,7 @@ import { locationIsSet } from '../locationName.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
-import { requestedPairs } from '../synteny/lanePairs.ts'
+import { laneAssemblyName, requestedPairs } from '../synteny/lanePairs.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -93,20 +93,6 @@ export class HaplotypeWindowError extends Error {
       `the graph is cut on its reference, ${anchor}; a window on ${assemblyName} has no reference coordinates to cut at. Open the graph from a ${anchor} view, and find this haplotype's lane there`,
     )
   }
-}
-
-/**
- * The lane a haplotype draws on: the JBrowse assembly the config maps to it at
- * haplotype or sample depth, else its own PanSN prefix. The fallback stays at
- * haplotype depth, unlike the multi-genome PAF adapters', because a diploid
- * sample's two walks are two lanes here.
- */
-export function laneAssemblyName(
-  asmByPrefix: Record<string, string>,
-  name: Pick<PathName, 'sample' | 'haplotype'>,
-) {
-  const prefix = haplotypePrefix(name)
-  return asmByPrefix[prefix] ?? asmByPrefix[name.sample] ?? prefix
 }
 
 /**
@@ -334,7 +320,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     for (const haplotype of await this.getHaplotypes(opts)) {
       if (haplotype.sample !== referenceSample) {
         lanes.push({
-          name: laneAssemblyName(asmByPrefix, haplotype),
+          name: laneAssemblyName(asmByPrefix, haplotype.prefix),
           label: haplotype.prefix,
           group: haplotype.sample,
         })
@@ -518,7 +504,10 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
             alignment,
             assemblyName,
             refName,
-            lane: laneAssemblyName(asmByPrefix, alignment.name),
+            lane: laneAssemblyName(
+              asmByPrefix,
+              haplotypePrefix(alignment.name),
+            ),
           })
         : undefined
       return feature === undefined ? [] : [feature]
