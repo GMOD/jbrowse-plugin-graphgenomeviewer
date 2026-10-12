@@ -696,7 +696,9 @@ async function waitPainted(page) {
     () => {
       const text = document.body.innerText
       const tracks = [
-        ...document.querySelectorAll('[data-testid="linear-graph-display"]'),
+        ...document.querySelectorAll(
+          '[data-testid="linear-graph-display"]:not([data-display-phase="tooLarge"])',
+        ),
       ]
       const drawn =
         tracks.length > 0

@@ -45,7 +45,9 @@ try {
     .waitForFunction(
       () => {
         const roots = [
-          ...document.querySelectorAll('[data-testid="linear-graph-display"]'),
+          ...document.querySelectorAll(
+            '[data-testid="linear-graph-display"]:not([data-display-phase="tooLarge"])',
+          ),
         ]
         return (
           roots.length > 0 &&

@@ -123,7 +123,7 @@ export function setupJBrowse({
     console.log('skipping build (SKIP_BUILD=1)')
   } else {
     fs.rmSync(distDir, { recursive: true, force: true })
-    execSync('pnpm build:bundle', { stdio: 'inherit', timeout: 120_000 })
+    execSync('pnpm build', { stdio: 'inherit', timeout: 120_000 })
   }
 
   const pluginDir = path.join(TEST_JBROWSE_DIR, 'plugin')

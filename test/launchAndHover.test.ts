@@ -327,7 +327,7 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
             (t: { configuration: { trackId: string } }) =>
               t.configuration.trackId === trackId,
           ).displays[0]
-        const { scale, translateX } = d.referenceStripFrame
+        const { scale, translateX } = d.hostBpFrame
         const onScreen = d.referenceStripBlocks.filter(
           (b: { bp0: number; bp1: number }) =>
             (b.bp1 - b.bp0) * scale > 6 &&

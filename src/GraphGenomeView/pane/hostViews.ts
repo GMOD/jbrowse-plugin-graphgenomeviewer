@@ -25,7 +25,8 @@ export const withHostViews = withWalkRowViews
     get xIsReferenceBp() {
       return (
         self.layoutResult?.referenceAxis === true &&
-        layoutModeByValue(self.chosenLayoutMode).cutMargins
+        layoutModeByValue(self.drawnLayoutMode ?? self.chosenLayoutMode)
+          .cutMargins
       )
     },
   }))
@@ -131,9 +132,6 @@ export const withHostViews = withWalkRowViews
               : { ...b, colors: [LIFT_BACKDROP_CSS], faded: true },
           )
         : blocks
-    },
-    get referenceStripFrame() {
-      return self.hostBpFrame
     },
   }))
   .views(self => ({
