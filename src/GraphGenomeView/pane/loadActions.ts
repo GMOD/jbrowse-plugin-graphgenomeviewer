@@ -574,8 +574,6 @@ export const withLoadActions = withSettingActions.actions(self => {
     awaitedRun = undefined
   }
 
-  // The graph and everything derived from it, dropped; any load in
-  // flight ends too, or it would land its graph afterwards
   // The graph a layout of the current mode draws: a walk-rows cut's
   // stepless walks parsed whole once a layout that draws nodes needs them
   function wholeGraph() {
@@ -590,6 +588,8 @@ export const withLoadActions = withSettingActions.actions(self => {
     return whole
   }
 
+  // Drops the graph and all it derived, and ends any load in flight, which
+  // would otherwise land its graph afterwards
   function dropGraph() {
     abortLoad()
     self.graph = undefined
