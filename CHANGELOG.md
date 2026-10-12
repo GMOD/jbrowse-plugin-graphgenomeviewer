@@ -1,3 +1,18 @@
+## [7.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.0.0...v7.1.0) (2026-10-12)
+
+### Other Changes
+
+- Update bandage-core to 10.2.3 ([381faf6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/381faf684d213deb2e1d8eefe2bb0e142a3e0a5a))
+- Pare README and docs, split layouts.md into topic files ([ab200d2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ab200d23bacc4b13f208e4a88450ac54bfdd1488))
+- Order the README as quick start then docs; move Export to layouts ([584f5c1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/584f5c114cc5b6a1c5a3e3f9cdc5bfadb984d73d))
+- Drop the maize page from the README index ([f4c20a2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f4c20a2285d05edccfb08dcb9d43b2cbf822bd38))
+- Match Arrange menu labels in docs ([ccfadb6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ccfadb6a6a3e1add666f88b8d3da8e69b26526d9))
+- Drop route chips, which bandage-core no longer places ([fedee4e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fedee4e56aacf8c5f73b28187524fa239172fa81))
+- Bump @jbrowse/bandage-core to 10.2.4 ([ff3572b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ff3572b655e16d8f4df723fd40d22dbecec12f6a))
+- Track menu: force-directed once per engine (FMMM, stress) ([79a43bb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/79a43bbf26b44c23c7fff5286579fa0c895ae947))
+- Track menu: name the engine in the Layout header ([5592502](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/55925029527f48c26f73a6080e627f2983e4e063))
+- Format docs; add a pre-push hook for the fast CI checks ([c64596e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c64596e8cfdae1e9f8fec4d197dea6f46d8acc5c))
+
 ## [7.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v6.27.0...v7.0.0) (2026-10-12)
 
 ### Other Changes
