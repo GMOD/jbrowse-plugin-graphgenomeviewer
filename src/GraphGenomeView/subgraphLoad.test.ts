@@ -494,6 +494,30 @@ describe('reads', () => {
     ])
   })
 
+  test('a re-cut stopped while reading reads leaves the last count in its legend', async () => {
+    const model = await cutWithReads(() =>
+      Promise.resolve({ records: [READ], total: 3 }),
+    )
+    let answer: (reads: unknown) => void = () => {}
+    const graph = model.graph
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(PATHS)
+        : new Promise(resolve => {
+            answer = resolve
+          }),
+    )
+    const load = model.load()
+    await vi.waitFor(() => {
+      expect(mockRpcCall.mock.calls.at(-1)![1]).toBe('GetGraphReads')
+    })
+    model.stopLoad()
+    answer({ records: [READ, READ], total: 9 })
+    await load
+    expect(model.graph).toBe(graph)
+    expect(model.readsShown).toEqual({ shown: 1, total: 3 })
+  })
+
   test('reads that fail to load leave the graph drawn without them', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const model = await cutWithReads(() =>

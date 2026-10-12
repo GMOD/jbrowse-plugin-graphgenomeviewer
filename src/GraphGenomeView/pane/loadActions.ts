@@ -291,28 +291,27 @@ export const withLoadActions = withSettingActions.actions(self => {
       region && folded !== anchored
         ? clipToWindow(folded, region, foldBelowBp)
         : folded
-    self.foldedBelowBp = folded === anchored ? undefined : foldBelowBp
+    let readsShown: { shown: number; total: number } | undefined
     if (readsOf) {
       self.setStatusMessage('Reading alignments')
       try {
         const { records, total } = (yield readsOf(graph)) as GafReads
         graph.reads = records
-        self.readsShown = { shown: records.length, total }
+        readsShown = { shown: records.length, total }
       } catch (e) {
         if (signal?.aborted) {
           return
         }
         console.warn('[GraphGenomeView] no reads for this graph', e)
-        self.readsShown = undefined
       }
       if (signal?.aborted) {
         return
       }
-    } else {
-      self.readsShown = undefined
     }
     const selected = keepSelection ? self.selectedNode : null
     self.graph = graph
+    self.foldedBelowBp = folded === anchored ? undefined : foldBelowBp
+    self.readsShown = readsShown
     self.walkCut = walkCut
     self.graphRegion = region
     self.loadedReferencePath = loaded
