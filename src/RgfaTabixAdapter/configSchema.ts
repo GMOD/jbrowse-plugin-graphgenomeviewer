@@ -1,5 +1,6 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
-import { types } from '@jbrowse/mobx-state-tree'
+
+import { tabixIndexSchema, tbiBeside } from '../panSNTabix.ts'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -48,22 +49,15 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * ```
  */
 
-function tbi(uri: string, baseUri: unknown, csi: unknown) {
-  return {
-    indexType: csi ? 'CSI' : 'TBI',
-    location: { uri: `${uri}.${csi ? 'csi' : 'tbi'}`, baseUri },
-  }
-}
-
 function prefixLocations(snap: Record<string, unknown>) {
   const { uri, baseUri, csi } = snap
   return typeof uri === 'string'
     ? {
         ...snap,
         segmentsLocation: { uri: `${uri}.segs.bed.gz`, baseUri },
-        segmentsIndex: tbi(`${uri}.segs.bed.gz`, baseUri, csi),
+        segmentsIndex: tbiBeside(`${uri}.segs.bed.gz`, baseUri, csi),
         linksLocation: { uri: `${uri}.links.bed.gz`, baseUri },
-        linksIndex: tbi(`${uri}.links.bed.gz`, baseUri, csi),
+        linksIndex: tbiBeside(`${uri}.links.bed.gz`, baseUri, csi),
       }
     : snap
 }
@@ -77,11 +71,11 @@ function walksLocations(snap: Record<string, unknown>) {
   return {
     ...snap,
     walksLocation: { uri: file('walks'), baseUri },
-    walksIndex: tbi(file('walks'), baseUri, csi),
+    walksIndex: tbiBeside(file('walks'), baseUri, csi),
     segmentsLocation: { uri: file('nodes'), baseUri },
-    segmentsIndex: tbi(file('nodes'), baseUri, csi),
+    segmentsIndex: tbiBeside(file('nodes'), baseUri, csi),
     linksLocation: { uri: file('links'), baseUri },
-    linksIndex: tbi(file('links'), baseUri, csi),
+    linksIndex: tbiBeside(file('links'), baseUri, csi),
   }
 }
 
@@ -95,25 +89,6 @@ export function normalizeSnapshot(snap: Record<string, unknown>) {
     ),
   )
 }
-
-const indexSchema = (name: string, defaultUri: string) =>
-  ConfigurationSchema(name, {
-    /**
-     * #slot
-     */
-    indexType: {
-      model: types.enumeration('IndexType', ['TBI', 'CSI']),
-      type: 'stringEnum',
-      defaultValue: 'TBI',
-    },
-    /**
-     * #slot
-     */
-    location: {
-      type: 'fileLocation',
-      defaultValue: { uri: defaultUri, locationType: 'UriLocation' },
-    },
-  })
 
 const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
   /**
@@ -146,7 +121,7 @@ const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
   /**
    * #slot
    */
-  segmentsIndex: indexSchema(
+  segmentsIndex: tabixIndexSchema(
     'RgfaCoarseSegmentsIndex',
     '/path/to/graph.tier.segs.bed.gz.tbi',
   ),
@@ -163,7 +138,7 @@ const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
   /**
    * #slot
    */
-  linksIndex: indexSchema(
+  linksIndex: tabixIndexSchema(
     'RgfaCoarseLinksIndex',
     '/path/to/graph.tier.links.bed.gz.tbi',
   ),
@@ -187,7 +162,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
     /**
      * #slot
      */
-    segmentsIndex: indexSchema(
+    segmentsIndex: tabixIndexSchema(
       'RgfaSegmentsIndex',
       '/path/to/graph.segs.bed.gz.tbi',
     ),
@@ -206,7 +181,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
     /**
      * #slot
      */
-    linksIndex: indexSchema(
+    linksIndex: tabixIndexSchema(
       'RgfaLinksIndex',
       '/path/to/graph.links.bed.gz.tbi',
     ),
@@ -223,7 +198,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
     /**
      * #slot
      */
-    walksIndex: indexSchema('RgfaWalksIndex', ''),
+    walksIndex: tabixIndexSchema('RgfaWalksIndex'),
     /**
      * #slot
      * the reference chunk the walk file's rows are filed under, in bp, when
