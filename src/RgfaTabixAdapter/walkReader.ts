@@ -125,6 +125,7 @@ export class WalkReader {
     const stop = () => {
       reads.abort(signal?.reason)
     }
+    signal?.throwIfAborted()
     signal?.addEventListener('abort', stop, { once: true })
     const rows: WalkRow[] = []
     let cut: ReturnType<typeof walkCut>

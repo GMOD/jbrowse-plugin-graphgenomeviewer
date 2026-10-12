@@ -8,6 +8,7 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import { WalkReader } from './walkReader.ts'
 import { walkRowsOf } from './walkRowRuns.ts'
 
 import type { WalkCut } from './walkRowRuns.ts'
@@ -451,4 +452,36 @@ test('a walk the read cuts off is read on to the chunk its row names', async () 
   ])
   // the window's chunks, then on to chunk 4000; HG003#1's contig ends
   expect(new Set(reads.map(String))).toEqual(new Set(['0,1500', '2000,4001']))
+})
+
+test('a cut on a signal already aborted reads no row', async () => {
+  const file = (kind: string) => {
+    const path = `${fixturePrefix}.${kind}.bed.gz`
+    return new TabixIndexedFile({ path, tbiPath: `${path}.tbi` })
+  }
+  const reader = new WalkReader(
+    { walks: file('walks'), nodes: file('nodes'), links: file('links') },
+    1000,
+  )
+  await reader.header({})
+  const bytes = vi
+    .spyOn(TabixIndexedFile.prototype, 'bytesForRegions')
+    .mockResolvedValue(0)
+  const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
+  const aborted = new AbortController()
+  aborted.abort(new Error('panned away'))
+  await expect(
+    reader.cut(
+      'GRCh38#0#chr1',
+      { start: 1000, end: 2600 },
+      {
+        signal: aborted.signal,
+        stepBudget: Infinity,
+        byteBudget: Infinity,
+      },
+    ),
+  ).rejects.toThrow('panned away')
+  expect(getLines).not.toHaveBeenCalled()
+  getLines.mockRestore()
+  bytes.mockRestore()
 })
