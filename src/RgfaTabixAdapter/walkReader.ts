@@ -160,7 +160,8 @@ export class WalkReader {
         read(this.files.walks, addRow).then(() => {
           const error = stepBudgetError(
             rows,
-            opts.stepBudget * READ_STEPS_PER_KEPT,
+            opts.stepBudget,
+            READ_STEPS_PER_KEPT,
             region,
             chunk,
             keep !== undefined,

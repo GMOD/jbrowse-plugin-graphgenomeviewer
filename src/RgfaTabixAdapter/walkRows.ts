@@ -587,8 +587,8 @@ function endpoint(line: string, from: number, to: number) {
 }
 
 /**
- * The zoom-in notice for a cut whose walk rows hold more steps than `budget`,
- * or undefined when they fit. A window reads whole chunks, those before it
+ * The zoom-in notice for a cut whose walk rows hold more steps than
+ * `readPerKept` times `stepBudget`, or undefined when they fit. A window reads whole chunks, those before it
  * included, so the span that fits is counted in chunks from the window's
  * start; when the chunks a window there always reads are over on their own,
  * no zoom fits and the notice asks for fewer haplotypes. A cut for every
@@ -597,7 +597,8 @@ function endpoint(line: string, from: number, to: number) {
  */
 export function stepBudgetError(
   rows: WalkRow[],
-  budget: number,
+  stepBudget: number,
+  readPerKept: number,
   window: { start: number; end: number },
   chunk: number,
   filtered: boolean,
@@ -610,6 +611,7 @@ export function stepBudgetError(
     perChunk.set(row.chunkStart, (perChunk.get(row.chunkStart) ?? 0) + row.n)
     walks.add(row.name)
   }
+  const budget = stepBudget * readPerKept
   if (total <= budget) {
     return undefined
   }
@@ -629,7 +631,7 @@ export function stepBudgetError(
   error.message =
     fitsBp > 0
       ? `Zoom in to about ${getBpDisplayStr(fitsBp)}${fewerFit ? ', or choose fewer haplotypes,' : ''} to see the graph`
-      : `Too many haplotype steps here to draw ${filtered ? 'these haplotypes' : 'every haplotype'} (${read.toLocaleString()} against walkStepBudget ${budget.toLocaleString()}); choose fewer haplotypes`
+      : `Too many haplotype steps here to draw ${filtered ? 'these haplotypes' : 'every haplotype'} (${read.toLocaleString()} steps read, over ${readPerKept} × walkStepBudget of ${stepBudget.toLocaleString()}); choose fewer haplotypes`
   return error
 }
 
