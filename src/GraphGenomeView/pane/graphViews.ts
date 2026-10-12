@@ -320,12 +320,6 @@ export const withGraphViews = paneBase
         ? modeUsesLayoutEngine(self.chosenLayoutMode, self.graph)
         : false
     },
-    // A rank-0 backbone to draw x against, whether the segments declared it
-    // (rGFA) or a path walk derived it. Only a GFA with neither tags nor
-    // paths has no backbone at all, and there force is the one honest layout.
-    get canAnchorLayout() {
-      return self.graph?.nodes.some(n => n.stable?.rank === 0) ?? false
-    },
     // The paths this graph could be anchored on, for the picker. Empty for an
     // rGFA, which has no P/W records and needs none.
     get anchorPaths() {

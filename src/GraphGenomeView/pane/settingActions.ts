@@ -225,9 +225,6 @@ export const withSettingActions = withFitViews
         })
       }
     },
-    setFacetColumns(columns: number | undefined) {
-      self.writeGrammar({ facet: { ...self.facetSetting, columns } })
-    },
     toggleWalk(walk: string) {
       const layers = self.walkLayers
       self.walkLayers = layers.some(l => l.walk === walk)

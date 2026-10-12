@@ -828,7 +828,6 @@ describe('layoutMode', () => {
     const model = createAnchoredModel()
     await model.loadGFA(RGFA, 'rgfa')
 
-    expect(model.canAnchorLayout).toBe(true)
     expect(layoutCalls()).toHaveLength(0)
     expect(model.layoutResult).toBeDefined()
   })
@@ -888,7 +887,6 @@ describe('layoutMode', () => {
     const model = createModel()
     await model.loadGFA(SIMPLE_GFA, 'plain')
 
-    expect(model.canAnchorLayout).toBe(false)
     expect(layoutCalls()).toHaveLength(1)
     const { graph, options } = layoutArgs(0)
     expect(graph.nodes.some(n => 'x' in n || 'y' in n)).toBe(false)
@@ -1091,7 +1089,6 @@ describe('reference path', () => {
     await model.loadGFA(PGGB_GFA, 'pggb')
 
     expect(model.activeReferencePath).toBe('K12#1#chr')
-    expect(model.canAnchorLayout).toBe(true)
     // laid out from the walk, so the force engine is never reached
     expect(layoutCalls()).toHaveLength(0)
     expect(backboneStarts(model)).toEqual(['1@100', '2@105', '4@106'])
@@ -3282,7 +3279,12 @@ describe('walk rows', () => {
     model.zoom(2, 10, 10)
     expect(model.viewportOwner).toBe('user')
 
-    model.setFacetColumns(model.facetGrid!.columns === 1 ? 2 : 1)
+    model.writeGrammar({
+      facet: {
+        ...model.facetSetting,
+        columns: model.facetGrid!.columns === 1 ? 2 : 1,
+      },
+    })
     expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
   })
 
@@ -3307,7 +3309,7 @@ describe('walk rows', () => {
     ])
     // a row layout's x is bp, so its panels stack full width
     expect(model.facetGrid!.columns).toBe(1)
-    model.setFacetColumns(2)
+    model.writeGrammar({ facet: { ...model.facetSetting, columns: 2 } })
     expect(model.facetGrid!.columns).toBe(2)
     model.setFacet('')
     expect(model.facetPanels).toBeUndefined()
@@ -3373,7 +3375,7 @@ describe('walk rows', () => {
     })
     model.setFacet('walk')
     expect(model.facetSpec).toEqual({ field: 'walk', domain: [], columns: 3 })
-    model.setFacetColumns(undefined)
+    model.writeGrammar({ facet: { ...model.facetSetting, columns: undefined } })
     expect(model.facetSpec).toBe('walk')
     expect(
       stateModelFactory().create({
