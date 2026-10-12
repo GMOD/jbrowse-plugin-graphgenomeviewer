@@ -4,9 +4,11 @@ import path from 'path'
 
 import { Subgraph } from '@gmod/gbz-base'
 import {
+  NoReferenceSampleError,
   cutWindowGFA,
   cutWindowTables,
   referencePathQuery,
+  resolveReferenceSample,
 } from '@jbrowse/bandage-core/gbzWindow'
 import { gfaTables } from '@jbrowse/bandage-core/gfa/gfaTables'
 import { graphTablesGFA } from '@jbrowse/bandage-core/gfa/graphTables'
@@ -20,9 +22,7 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter, {
   NoHaplotypeIndexError,
-  NoReferenceSampleError,
   PairTargetError,
-  resolveReferenceSample,
   widestWalkGap,
 } from './GbzBaseSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'

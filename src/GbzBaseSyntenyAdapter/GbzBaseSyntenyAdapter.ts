@@ -44,11 +44,6 @@ import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature, SimpleFeatureSerialized } from '@jbrowse/core/util'
 import type { FileLocation, Region } from '@jbrowse/core/util/types'
 
-export {
-  NoReferenceSampleError,
-  resolveReferenceSample,
-} from '@jbrowse/bandage-core/gbzWindow'
-
 export class NoHaplotypeIndexError extends Error {
   override name = 'NoHaplotypeIndexError'
 
@@ -75,7 +70,7 @@ export interface GbzHaplotype {
  * fetched features' mates carry, `label` its PanSN prefix and `group` its
  * sample, so a diploid sample's two lanes sit together
  */
-export interface GbzHeaderLane {
+interface GbzHeaderLane {
   name: string
   label: string
   group: string
@@ -83,7 +78,6 @@ export interface GbzHeaderLane {
 
 export { PairTargetError } from '../synteny/lanePairs.ts'
 export type { LanePair } from '../synteny/lanePairs.ts'
-export type GbzFeatureOptions = LaneFeatureOptions
 
 export class HaplotypeWindowError extends Error {
   override name = 'HaplotypeWindowError'
@@ -95,13 +89,15 @@ export class HaplotypeWindowError extends Error {
   }
 }
 
+type ResolvedAlignment = Extract<HaplotypeAlignment, { resolved: true }>
+
 /**
  * The id of one haplotype fragment: the walk's GBWT position at its first node
  * in the window, which is a property of the graph, so the same fragment gets
  * the same id on a refetch of the same window and the display's hover and
  * selection survive it. `clipToRegion` suffixes the window.
  */
-function fragmentId(name: PathName, alignment: HaplotypeAlignment) {
+function fragmentId(name: PathName, alignment: ResolvedAlignment) {
   return `${haplotypePrefix(name)}#${name.contig}@${alignment.start.node}.${alignment.start.offset}`
 }
 
@@ -111,13 +107,13 @@ export function fragmentFeature({
   refName,
   lane,
 }: {
-  alignment: HaplotypeAlignment
+  alignment: ResolvedAlignment
   assemblyName: string
   refName: string
   lane: string
 }) {
   const { refStart, refEnd, strand, cigar } = alignment
-  if (!alignment.resolved || refEnd <= refStart) {
+  if (refEnd <= refStart) {
     return undefined
   } else {
     const { name, hapStart, hapEnd } = alignment
@@ -197,7 +193,12 @@ export function widestWalkGap(subgraphs: Subgraph[], kept: Set<string>) {
       const prefix = haplotypePrefix(name)
       if (kept.has(prefix)) {
         const key = `${prefix}#${name.contig}`
-        byPath.set(key, [...(byPath.get(key) ?? []), [start, end]])
+        const spans = byPath.get(key)
+        if (spans) {
+          spans.push([start, end])
+        } else {
+          byPath.set(key, [[start, end]])
+        }
       }
     }
   }
@@ -466,7 +467,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
   }
 
-  private async anchorFeatures(region: Region, opts: GbzFeatureOptions) {
+  private async anchorFeatures(region: Region, opts: LaneFeatureOptions) {
     const { db } = await this.graph(opts)
     const { assemblyName, refName, start, end } = region
     const targetPrefix = resolvePanSNPrefix(this, opts.targetAssemblyName)
@@ -526,7 +527,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
   private async pairFeatures(
     region: Region,
     pairs: LanePair[],
-    opts: GbzFeatureOptions,
+    opts: LaneFeatureOptions,
   ) {
     const { db } = await this.graph(opts)
     const { refName, start, end } = region
@@ -610,7 +611,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     )
   }
 
-  getFeatures(asked: Region, opts: GbzFeatureOptions = {}) {
+  getFeatures(asked: Region, opts: LaneFeatureOptions = {}) {
     const region = wholeBp(asked)
     return ObservableCreate<Feature>(async observer => {
       const { db, anchor, unreadableIndex } = await this.graph(opts)
