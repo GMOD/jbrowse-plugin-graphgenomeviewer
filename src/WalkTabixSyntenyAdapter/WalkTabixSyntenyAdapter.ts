@@ -40,16 +40,18 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     pluginManager?: PluginManager,
   ) {
     super(config, getSubAdapter, pluginManager)
-    const nodes = openTabixSlot(this, ['nodesLocation'], ['nodesIndex'])
+    const walks = openTabixSlot(this, ['walksLocation'], ['walksIndex'])
     this.reader = new WalkReader(
       {
-        walks: openTabixSlot(this, ['walksLocation'], ['walksIndex']),
-        nodes,
+        walks,
+        nodes: openTabixSlot(this, ['nodesLocation'], ['nodesIndex']),
         links: openTabixSlot(this, ['linksLocation'], ['linksIndex']),
       },
       this.getConf('walkChunk'),
     )
-    this.refNames = new PanSNRefNames(nodes, this)
+    // the walk file names the sequences in either format; format 2 has no
+    // node file
+    this.refNames = new PanSNRefNames(walks, this)
   }
 
   private get anchor() {

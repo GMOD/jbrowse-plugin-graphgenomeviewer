@@ -259,6 +259,39 @@ fragment runs from its first to its last step on the reference inside the window
 plus 1 kb, then on outward while the next node is already in the cut, so an
 allele straddling the edge draws every walk that crosses it.
 
+### Format 2
+
+gfa-to-tabix's format 2 (`format:i:2` on the walk file's first header line;
+the converter's `docs/walks-format.md`) holds the whole cut in the walk file.
+A chunk lists the reference's path through it once, each distinct route a
+haplotype takes off that path once, the lengths of the nodes those routes
+visit, and each path piece as the routes it takes. `WalkReader` reads the
+header first, and on format 2 reads and sizes the walk file alone; the node and
+link slots `walksUri` resolves are never opened.
+
+- `walkFormat2.ts` decodes each chunk once: the reference's nodes with their
+  positions, and the kept walks' steps in the arrays `joinPieces` takes
+- `WalkGraph.tables(kept)` then places the cut's nodes off the reference and
+  lists the links among the cut's nodes, from the reference rows and every
+  route. Placing a route's nodes follows walk rows in path-name order, only as
+  far as the last route a row is first to take
+- `getFeatures` reads the reference rows, and `PanSNRefNames` the walk file's
+  index, in either format
+
+Checked 2026-10-12 against gfa-to-tabix 0.11.0's format-1 files from the same
+chr22 graph (`walkFormat2.test.ts`): 50 windows of 0.6-100 kb on GRCh38 and
+CHM13, 8 haplotypes or every one, give the same GFA line for line, apart from
+3,111 nodes off the reference in one 22q11 window. Format 1 placed those on
+CHM13's own path, whose piece through them is filed under a chunk the window
+does not read; format 2 places them on the first-named path among the chunks
+read. The four walks_* fixtures, rebuilt in both formats, also match their walk
+rows and reference features.
+
+The 50 windows took 2.66 s in format 2 against 2.74 s in format 1, warm and
+local. A window in the 16.3 Mb repeats is the slowest relative to format 1, at
+0.24 s against 0.12 s: its routes are long and nest, so the routes repeat
+nodes that format 1's node file listed once.
+
 ### Walks that leave the window
 
 A walk that leaves the reference inside the window, through steps off it or

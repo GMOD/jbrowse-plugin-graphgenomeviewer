@@ -1,6 +1,7 @@
 import { panSNHaplotype } from '@jbrowse/bandage-core/pansn'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 
+import { decodeChunk, pieceLinks } from './walkFormat2.ts'
 import { walkCutFor } from './walkRowRuns.ts'
 import { checkRange, getLines } from '../tabixRange.ts'
 import {
@@ -18,6 +19,7 @@ import {
   walkRowName,
 } from './walkRows.ts'
 
+import type { DecodedChunk } from './walkFormat2.ts'
 import type { WalkRow } from './walkRows.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
@@ -91,13 +93,17 @@ export class WalkReader {
     opts: WalkCutOptions,
   ) {
     const { signal, keep, links = true, context = WALK_CONTEXT } = opts
-    const { chunk, lookback } = await this.header({ signal })
+    const { chunk, lookback, format } = await this.header({ signal })
+    // format 2 holds the whole cut in its walk file
+    const format2 = format === 2
     const from = chunkQueryStart(region.start, chunk, lookback)
-    const files = [
-      this.files.walks,
-      this.files.nodes,
-      ...(links ? [this.files.links] : []),
-    ]
+    const files = format2
+      ? [this.files.walks]
+      : [
+          this.files.walks,
+          this.files.nodes,
+          ...(links ? [this.files.links] : []),
+        ]
     const bytesFor = async (spans: { start: number; end: number }[]) => {
       const sizes = await Promise.all(
         files.map(file =>
@@ -156,24 +162,67 @@ export class WalkReader {
     const addLink = (line: string) => {
       graph.addLink(line)
     }
-    try {
-      await Promise.all([
-        read(this.files.walks, addRow).then(() => {
-          const error = stepBudgetError(
-            rows,
-            opts.stepBudget,
-            READ_STEPS_PER_KEPT,
-            region,
-            chunk,
-            keep !== undefined,
-          )
-          if (error) {
-            throw error
+    const decoded = new Set<number>()
+    const ends: DecodedChunk['ends'] = []
+    // Format 2: each chunk read is decoded once, into the rows, nodes and
+    // links format 1 would have filed, and the links between pieces read
+    const readChunks = async (start = from, end = region.end) => {
+      const byChunk = new Map<number, string[][]>()
+      await read(
+        this.files.walks,
+        line => {
+          const cols = line.split('\t')
+          const cs = +cols[1]!
+          const held = byChunk.get(cs)
+          if (held) {
+            held.push(cols)
+          } else {
+            byChunk.set(cs, [cols])
           }
-        }),
-        read(this.files.nodes, addNode),
-        ...(links ? [read(this.files.links, addLink)] : []),
-      ])
+        },
+        start,
+        end,
+      )
+      for (const [cs, chunkRows] of byChunk) {
+        if (decoded.has(cs)) {
+          continue
+        }
+        decoded.add(cs)
+        const chunkCut = decodeChunk(chunkRows, keep)
+        rows.push(...chunkCut.rows)
+        for (const [id, node] of chunkCut.nodes) {
+          graph.placeNode(id, node)
+        }
+        graph.addFormat2Chunk(chunkCut.chunk)
+        ends.push(...chunkCut.ends)
+      }
+      if (links) {
+        for (const [a, b] of pieceLinks(ends)) {
+          graph.addLinkEnds(a, b)
+        }
+      }
+    }
+    const checkSteps = () => {
+      const error = stepBudgetError(
+        rows,
+        opts.stepBudget,
+        READ_STEPS_PER_KEPT,
+        region,
+        chunk,
+        keep !== undefined,
+      )
+      if (error) {
+        throw error
+      }
+    }
+    try {
+      await (format2
+        ? readChunks().then(checkSteps)
+        : Promise.all([
+            read(this.files.walks, addRow).then(checkSteps),
+            read(this.files.nodes, addNode),
+            ...(links ? [read(this.files.links, addLink)] : []),
+          ]))
       // the chunks read, first to last, which a follow widens to the
       // farthest chunk a cut-off walk goes on in, so the reference between
       // is read too
@@ -201,11 +250,17 @@ export class WalkReader {
         first = Math.min(first, ...starts)
         last = Math.max(last, ...starts)
         await Promise.all(
-          spans.flatMap(({ start, end }) => [
-            read(this.files.walks, addRow, start, end),
-            read(this.files.nodes, addNode, start, end),
-            ...(links ? [read(this.files.links, addLink, start, end)] : []),
-          ]),
+          spans.flatMap(({ start, end }) =>
+            format2
+              ? [readChunks(start, end)]
+              : [
+                  read(this.files.walks, addRow, start, end),
+                  read(this.files.nodes, addNode, start, end),
+                  ...(links
+                    ? [read(this.files.links, addLink, start, end)]
+                    : []),
+                ],
+          ),
         )
         cut = walkCut(joinPieces(rows), graph.nodes, refName)
       }

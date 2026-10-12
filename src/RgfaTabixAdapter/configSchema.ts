@@ -26,8 +26,10 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `<walksUri>.links.bed.gz` and their `.tbi` indexes. `gfa-to-tabix --walks -o
  * <prefix>` writes a set per reference sample from 0.5.0, so a track names one
  * as `<prefix>.<sample>`; a set from 0.4.0 holds every reference, and the track
- * names `<prefix>`. Such a graph's cut carries the haplotypes' walks, and
- * `defaultHaplotypes` names the ones it is cut for until the user picks others.
+ * names `<prefix>`. A format-2 set (`format:i:2` in the walk file's header) is
+ * the walk file alone, and the adapter reads no other. Such a graph's cut
+ * carries the haplotypes' walks, and `defaultHaplotypes` names the ones it is
+ * cut for until the user picks others.
  *
  * #example
  * ```js

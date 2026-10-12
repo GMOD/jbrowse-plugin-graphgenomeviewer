@@ -16,6 +16,7 @@ import {
   parseSegmentRow,
   segmentSamples,
 } from './rgfaBed.ts'
+import { referenceNodes } from './walkFormat2.ts'
 import { WalkReader, walkSubgraph } from './walkReader.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
@@ -69,6 +70,7 @@ interface GraphIndex {
   segments: TabixIndexedFile
   links: TabixIndexedFile
   walks?: WalkReader
+  walkFile?: TabixIndexedFile
   refNames: PanSNRefNames
 }
 
@@ -89,7 +91,8 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
 
   // refNames off the SEGMENT index: it is the one that names every stable
   // sequence the graph is anchored to, where the link index only names those a
-  // link touches.
+  // link touches. A walk-indexed graph's walk file names the same sequences,
+  // and format 2 has no segment file.
   private openIndex(under: string[]): GraphIndex {
     const segments = openTabixSlot(
       this,
@@ -103,20 +106,20 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       [...under, 'linksLocation'],
       [...under, 'linksIndex'],
     )
+    const walkFile = hasWalks
+      ? openTabixSlot(this, ['walksLocation'], ['walksIndex'])
+      : undefined
     return {
       segments,
       links,
-      walks: hasWalks
+      walkFile,
+      walks: walkFile
         ? new WalkReader(
-            {
-              walks: openTabixSlot(this, ['walksLocation'], ['walksIndex']),
-              nodes: segments,
-              links,
-            },
+            { walks: walkFile, nodes: segments, links },
             this.getConf('walkChunk'),
           )
         : undefined,
-      refNames: new PanSNRefNames(segments, this),
+      refNames: new PanSNRefNames(walkFile ?? segments, this),
     }
   }
 
@@ -152,9 +155,52 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       if (tabixRefName !== undefined) {
         // a walk-indexed node row names only its chunk's first base, and a
         // node crossing in from a chunk before is filed there
-        const start = this.fine.walks
-          ? await this.fine.walks.queryStart(query.start, opts)
+        const { walks, walkFile } = this.fine
+        const start = walks
+          ? await walks.queryStart(query.start, opts)
           : query.start
+        if (walkFile && (await walks?.header(opts))?.format === 2) {
+          // a format-2 graph's reference nodes are its ref rows' steps
+          const refRows: string[][] = []
+          await updateStatus('Downloading walks', statusCallback, () =>
+            getLines(walkFile, tabixRefName, start, query.end, {
+              signal,
+              lineCallback: line => {
+                const cols = line.split('\t')
+                if (cols[3] === 'ref') {
+                  refRows.push(cols)
+                }
+              },
+            }),
+          )
+          // as format 1's node rows do, every node of the chunks read that
+          // ends past the window's start
+          const seen = new Set<number>()
+          for (const node of referenceNodes(refRows)) {
+            if (
+              node.refName === tabixRefName &&
+              node.end > query.start &&
+              !seen.has(node.id)
+            ) {
+              seen.add(node.id)
+              const id = String(node.id)
+              observer.next(
+                new SimpleFeature({
+                  uniqueId: id,
+                  refName: query.refName,
+                  start: node.start,
+                  end: node.end,
+                  name: id,
+                  type: 'segment',
+                  rank: 0,
+                  stableName: node.refName,
+                }),
+              )
+            }
+          }
+          observer.complete()
+          return
+        }
         await updateStatus('Downloading segments', statusCallback, () =>
           getLines(this.fine.segments, tabixRefName, start, query.end, {
             signal,
