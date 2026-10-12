@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^10.2.2
-        version: 10.2.2
+        specifier: ^10.2.3
+        version: 10.2.3
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -636,8 +636,8 @@ packages:
   '@jbrowse/add-track-core@5.0.0-beta.13':
     resolution: {integrity: sha512-JKKXQPVkY/1unPiWh7p7P5t/jhi+hEqBcaT+X9Ste5gUS9tKjvUi2SsQQP8Mk0fmEApRq/iX8wF4gNwNGwx8WA==}
 
-  '@jbrowse/bandage-core@10.2.2':
-    resolution: {integrity: sha512-rsBlfdbQsReIJDXT4TAbHX33OZ76tRvqpJUXCvt+cPXioqhL7Gsq1gcllhl/YNPh179Z1tHf25tJfhejvcQ+Og==}
+  '@jbrowse/bandage-core@10.2.3':
+    resolution: {integrity: sha512-RPK+0h3Z08haxpTPwZHFvHH9PO89yIGg9LDaTMCvzsvenbKvYCoJ+JsRRtOuTtpeJpXN+UbPRMW57Avnexsvww==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -666,6 +666,10 @@ packages:
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
+
+  '@jbrowse/graph-fmmm-layout@1.0.2':
+    resolution: {integrity: sha512-/wIO50DsK87me7qTlo1D6h65Onjk2LMxaWSP19jk220kJp8bic8hL6ITz1+NTi+CttKm0CyzNWJ/eDwgSayGJw==}
+    engines: {node: '>=20'}
 
   '@jbrowse/graph-stress-layout@1.0.0':
     resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
@@ -4065,10 +4069,11 @@ snapshots:
 
   '@jbrowse/add-track-core@5.0.0-beta.13': {}
 
-  '@jbrowse/bandage-core@10.2.2':
+  '@jbrowse/bandage-core@10.2.3':
     dependencies:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.1
+      '@jbrowse/graph-fmmm-layout': 1.0.2
       '@jbrowse/graph-stress-layout': 1.0.0
       '@jbrowse/tubemap-core': 1.1.0
 
@@ -4158,6 +4163,8 @@ snapshots:
       - '@mui/material-pigment-css'
       - '@types/react'
       - supports-color
+
+  '@jbrowse/graph-fmmm-layout@1.0.2': {}
 
   '@jbrowse/graph-stress-layout@1.0.0': {}
 
