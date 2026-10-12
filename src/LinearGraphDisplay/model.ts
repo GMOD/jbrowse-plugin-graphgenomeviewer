@@ -153,9 +153,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return self.cutRegion !== undefined
       },
       get cutHaplotypes() {
-        return this.chosenHaplotypes
-      },
-      get chosenHaplotypes() {
         return (
           self.subgraphHaplotypes ??
           configHaplotypes(this.adapterConfig) ??
@@ -312,7 +309,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           region,
           {
             hops: self.subgraphContext,
-            haplotypes: self.chosenHaplotypes,
+            haplotypes: self.cutHaplotypes,
             tier: coarse ? 'coarse' : undefined,
             ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
             ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
@@ -406,7 +403,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             'GetGraphHaplotypes',
             { adapterConfig },
           )
-          if (isAlive(self)) {
+          if (isAlive(self) && self.adapterConfig === adapterConfig) {
             self.setHaplotypeNames(names)
           }
         } catch (e) {
@@ -574,7 +571,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           !trackId ||
           !self.hasGraph ||
           self.coarseCut ||
-          self.regionTooLarge
+          self.regionTooLarge ||
+          denseCovers(self.dense, seen)
         ) {
           return undefined
         }
@@ -589,13 +587,19 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             end,
           },
           subgraphContext: self.subgraphContext,
-          subgraphHaplotypes: self.chosenHaplotypes,
+          subgraphHaplotypes: self.cutHaplotypes,
           maxRegionBp: Math.max(self.maxRegionBp, end - start),
           ...self.grammar,
           layoutMode: self.chosenLayoutMode,
           referencePath: self.referencePath,
           geneTrackId: self.geneTrackId,
           walkLayers: self.walkLayers,
+          layoutEngine: self.layoutEngine,
+          layoutQuality: self.layoutQuality,
+          bubbleSpread: self.bubbleSpread,
+          linearLayout: self.linearLayout,
+          maxGraphNodes: self.maxGraphNodes,
+          connectedViewId: self.host?.id,
         } satisfies GraphViewSpec
       },
     }))
@@ -695,8 +699,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           {
             label: 'Graph settings...',
             icon: SettingsIcon,
-            helpText:
-              'Subgraph context, haplotypes and node limit; node width and path colors; the force-directed layout engine',
+            helpText: 'Subgraph, drawing and force-directed layout',
             onClick: () => {
               this.openSettings()
             },

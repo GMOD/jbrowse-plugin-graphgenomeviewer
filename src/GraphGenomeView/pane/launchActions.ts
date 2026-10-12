@@ -61,7 +61,7 @@ export const withLaunchActions = withRenderingActions
         session,
         location: target.location,
         assembly: target.assembly,
-        connectedViewId: self.connectedViewId,
+        connectedViewId: self.pairedViewId,
         tracks: launchTracks({
           session,
           assemblyName: target.assembly,
@@ -83,7 +83,7 @@ export const withLaunchActions = withRenderingActions
         session: getSession(self),
         location: target.location,
         assembly: target.assembly,
-        connectedViewId: self.connectedViewId,
+        connectedViewId: self.pairedViewId,
       })
     },
     showSyntenyView(trackId: string) {
