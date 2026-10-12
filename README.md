@@ -75,8 +75,7 @@ In reading order:
 3. [Haplotypes](docs/haplotypes.md): lifting, panels, colouring, walk rows
 4. [Tube maps](docs/tube-maps.md): panels, routes, reads
 5. [Bubbles](docs/bubbles.md) and [genes](docs/genes.md)
-6. [Maize NAM founders](docs/maize.md): a worked example
-7. [Developing](docs/developing.md): build, test, release
+6. [Developing](docs/developing.md): build, test, release
 
 ## See also
 
