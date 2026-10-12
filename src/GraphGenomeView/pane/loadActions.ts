@@ -577,6 +577,8 @@ export const withLoadActions = withSettingActions.actions(self => {
     self.walkGeneFeatures = undefined
     walkGeneCache.clear()
     self.repeatArrays = undefined
+    self.walkRowSampleTable = undefined
+    sampleTableKey = undefined
     self.readsShown = undefined
     self.openBubbles = []
     self.error = undefined
@@ -737,7 +739,8 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
     }),
     // The source track's samples TSV, read once per location, for walk
-    // rows to group by. A failed read leaves the rows ungrouped and says so.
+    // rows to group by. A failed read leaves the rows ungrouped, says so,
+    // and is tried again on the next call.
     loadWalkRowSampleTable: flow(function* () {
       const location = self.walkRowSamplesTsv
       const key = location ? JSON.stringify(location) : undefined
@@ -756,6 +759,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         }
       } catch (e) {
         if (isAlive(self) && key === sampleTableKey) {
+          sampleTableKey = undefined
           getSession(self).notify(
             `Walk rows cannot be grouped: the samples table did not load (${String(e)})`,
             'warning',

@@ -4017,6 +4017,15 @@ describe('walk rows grouped by a sample column', () => {
       expect.stringContaining('404'),
       'warning',
     )
+    mockReadFile.mockResolvedValue(TSV)
+    await model.loadWalkRowSampleTable()
+    expect(model.walkRowGroupFields).toEqual(['population', 'superpopulation'])
+  })
+
+  test('a dropped graph takes its samples table with it', async () => {
+    const model = await groupedModel()
+    model.clearGraph()
+    expect(model.walkRowSampleTable).toBeUndefined()
   })
 
   test('a track with no samples TSV reads nothing', async () => {

@@ -87,13 +87,14 @@ export const withRenderingActions = withLoadActions
           ),
         )
         // Walk rows and tube map panels read the source track's samples
-        // TSV, to group by its columns
+        // TSV, to group by its columns, again for a graph after a dropped one
         addDisposer(
           self,
           reaction(
             () =>
-              self.chosenLayoutMode === 'walkrows' ||
-              TUBE_MAP_MODES.has(self.chosenLayoutMode)
+              self.hasGraph &&
+              (self.chosenLayoutMode === 'walkrows' ||
+                TUBE_MAP_MODES.has(self.chosenLayoutMode))
                 ? JSON.stringify(self.walkRowSamplesTsv ?? null)
                 : undefined,
             key => {
