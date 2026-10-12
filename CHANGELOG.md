@@ -1,3 +1,10 @@
+## [7.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v6.27.0...v7.0.0) (2026-10-12)
+
+### Other Changes
+
+- Read walk files with @jbrowse/graph-walks, walk format 2 only ([c786390](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c78639099de1d9cbcac987cb83b1831faf6fc0b9))
+- Point the walk-lane example at the hosted format 2 file ([7fc6858](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7fc6858eaf991a67280490f3ee3d9787e96e2a70))
+
 ## [6.27.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v6.26.1...v6.27.0) (2026-10-12)
 
 ### Other Changes
