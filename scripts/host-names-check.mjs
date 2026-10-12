@@ -9,10 +9,14 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { fetchHostNames } from './fetch-host-names.mjs'
 
-const dir = path.join(import.meta.dirname, 'host-names')
+const dir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'host-names',
+)
 const main = path.join(
   fs.mkdtempSync(path.join(os.tmpdir(), 'host-names-')),
   'main.json',
