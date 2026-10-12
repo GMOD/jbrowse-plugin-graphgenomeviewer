@@ -5,6 +5,7 @@ import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { locationIsSet } from '../locationName.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
+import { getLines } from '../tabixRange.ts'
 import {
   anchoredCut,
   closingLinks,
@@ -15,7 +16,6 @@ import {
   parseSegmentRow,
   segmentSamples,
 } from './rgfaBed.ts'
-import { getLines } from './tabixRange.ts'
 import { WalkReader, walkSubgraph } from './walkReader.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'

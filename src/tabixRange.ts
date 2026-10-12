@@ -15,7 +15,10 @@ export async function getLines(
   refName: string,
   start: number,
   end: number,
-  opts: { signal?: AbortSignal; lineCallback: (line: string) => void },
+  opts: {
+    signal?: AbortSignal
+    lineCallback: (line: string, fileOffset: number) => void
+  },
 ) {
   checkRange(refName, start, end)
   return file.getLines(refName, start, end, opts)

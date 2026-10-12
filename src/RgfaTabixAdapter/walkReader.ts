@@ -1,8 +1,8 @@
 import { panSNHaplotype } from '@jbrowse/bandage-core/pansn'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 
-import { checkRange, getLines } from './tabixRange.ts'
 import { walkCutFor } from './walkRowRuns.ts'
+import { checkRange, getLines } from '../tabixRange.ts'
 import {
   WalkGraph,
   byteBudgetError,
