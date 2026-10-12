@@ -162,8 +162,11 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
               const { segment, anchored } = parseSegmentRow(line)
               // An anchored index also returns the alleles under the region,
               // which lie on other stable sequences and have no place on this
-              // one.
-              if (anchored && segment.refName !== tabixRefName) {
+              // one; a lookback chunk returns nodes ending before it
+              if (
+                (anchored && segment.refName !== tabixRefName) ||
+                segment.end <= query.start
+              ) {
                 return
               }
               // `samples` lists the haplotypes whose paths visit the segment and
