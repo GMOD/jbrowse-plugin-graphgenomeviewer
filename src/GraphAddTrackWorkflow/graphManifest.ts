@@ -1,6 +1,11 @@
 import { openLocation } from '@jbrowse/core/util/io'
 
-import { locationName, readsSiblings, renamed } from '../locationName'
+import {
+  SEGMENTS_SUFFIX,
+  locationName,
+  readsSiblings,
+  renamed,
+} from '../locationName'
 
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { FileLocation } from '@jbrowse/core/util'
@@ -12,7 +17,6 @@ export interface GraphManifest {
   tier?: { prefix: string; foldBelowBp: number }
 }
 
-const SEGMENTS_SUFFIX = '.segs.bed.gz'
 const FETCH_TIMEOUT_MS = 5000
 
 // A bare file name beside the manifest: no directory, scheme or leading dot

@@ -7,6 +7,7 @@ import { viewportOf } from '@jbrowse/bandage-core/viewport'
 import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
+import { SEGMENTS_SUFFIX } from '../../locationName.ts'
 import { lenientOptionalEnum } from '../lenientEnum'
 
 import type { MorphEntering } from './morph'
@@ -76,8 +77,6 @@ export const TUBE_MAP_FOLDS = [
   { bp: 50, label: 'Under 50 bp, leaving structural variants' },
   { bp: 1000, label: 'Under 1 kb' },
 ]
-
-const SEGMENTS_SUFFIX = '.segs.bed.gz'
 
 // The rGFA index prefix an adapter config names, from either spelling the
 // config schema accepts: the `uri` shorthand or an explicit segments location.
