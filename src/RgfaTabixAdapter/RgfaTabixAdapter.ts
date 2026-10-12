@@ -1,4 +1,4 @@
-import { panSNHaplotype, resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
+import { resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
 import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
@@ -15,9 +15,7 @@ import {
   segmentSamples,
 } from './rgfaBed.ts'
 import { getLines } from './tabixRange.ts'
-import { WalkReader } from './walkReader.ts'
-import { walkCutFor } from './walkRowRuns.ts'
-import { walkNameFilter } from './walkRows.ts'
+import { WalkReader, walkSubgraph } from './walkReader.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
@@ -72,9 +70,6 @@ interface GraphIndex {
   walks?: WalkReader
   refNames: PanSNRefNames
 }
-
-// How much graph a walk cut keeps around the window, on the reference
-const WALK_CONTEXT = 1000
 
 export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
@@ -251,7 +246,13 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       )
     }
     if (index.walks) {
-      return this.walkSubgraph(index.walks, tabixRefName, region, opts)
+      return walkSubgraph(index.walks, tabixRefName, region, {
+        signal,
+        prefixes: opts.haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
+        walkRows: opts.walkRows,
+        stepBudget: this.getConf('walkStepBudget'),
+        byteBudget: this.getConf('walkByteBudget'),
+      })
     }
     const layout = { anchored: false }
     await getLines(index.segments, tabixRefName, region.start, region.end, {
@@ -324,25 +325,5 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
 
     return formatSubgraph(segments, links)
-  }
-
-  // Only the walks `haplotypes` asks for, and the reference's, are decoded
-  private async walkSubgraph(
-    walks: WalkReader,
-    refName: string,
-    region: Region,
-    opts: SubgraphAdapterOptions,
-  ) {
-    const { graph, kept, fragments } = await walks.cut(refName, region, {
-      signal: opts.signal,
-      keep: walkNameFilter(
-        opts.haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
-        panSNHaplotype(refName),
-      ),
-      stepBudget: opts.walkRows ? Infinity : this.getConf('walkStepBudget'),
-      byteBudget: this.getConf('walkByteBudget'),
-      context: WALK_CONTEXT,
-    })
-    return walkCutFor(graph.tables(kept, fragments), region, opts.walkRows)
   }
 }

@@ -1,6 +1,8 @@
+import { panSNHaplotype } from '@jbrowse/bandage-core/pansn'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 
 import { checkRange, getLines } from './tabixRange.ts'
+import { walkCutFor } from './walkRowRuns.ts'
 import {
   WalkGraph,
   byteBudgetError,
@@ -12,6 +14,7 @@ import {
   stepBudgetError,
   walkCut,
   walkHeader,
+  walkNameFilter,
   walkRowName,
 } from './walkRows.ts'
 
@@ -31,6 +34,9 @@ const READ_STEPS_PER_KEPT = 8
 const FOLLOW_ROUNDS = 3
 const FOLLOW_CHUNKS = 4
 
+// bp of reference a cut keeps past each end of the window
+const WALK_CONTEXT = 1000
+
 export interface WalkFileSet {
   walks: TabixIndexedFile
   nodes: TabixIndexedFile
@@ -43,8 +49,7 @@ export interface WalkCutOptions {
   keep?: (name: string) => boolean
   stepBudget: number
   byteBudget: number
-  // bp of reference kept past each end of the window
-  context: number
+  context?: number
   // false leaves the link file unread, for a caller that draws no edges
   links?: boolean
 }
@@ -85,7 +90,7 @@ export class WalkReader {
     region: { start: number; end: number },
     opts: WalkCutOptions,
   ) {
-    const { signal, keep, links = true } = opts
+    const { signal, keep, links = true, context = WALK_CONTEXT } = opts
     const { chunk, lookback } = await this.header({ signal })
     const from = chunkQueryStart(region.start, chunk, lookback)
     const files = [
@@ -127,7 +132,7 @@ export class WalkReader {
       refName,
       start: region.start,
       end: region.end,
-      context: opts.context,
+      context,
     })
     const read = (
       file: TabixIndexedFile,
@@ -219,4 +224,30 @@ export class WalkReader {
     }
     return { graph, ...cut }
   }
+}
+
+/**
+ * The graph display's cut of a walk-indexed window: the reference walk, the
+ * walks of `prefixes` (every walk when undefined), and the nodes and links
+ * they visit. Walk rows draw runs, so the step budget spares them.
+ */
+export async function walkSubgraph(
+  reader: WalkReader,
+  refName: string,
+  region: { start: number; end: number },
+  opts: {
+    signal?: AbortSignal
+    prefixes?: string[]
+    walkRows?: boolean
+    stepBudget: number
+    byteBudget: number
+  },
+) {
+  const { graph, kept, fragments } = await reader.cut(refName, region, {
+    signal: opts.signal,
+    keep: walkNameFilter(opts.prefixes, panSNHaplotype(refName)),
+    stepBudget: opts.walkRows ? Infinity : opts.stepBudget,
+    byteBudget: opts.byteBudget,
+  })
+  return walkCutFor(graph.tables(kept, fragments), region, opts.walkRows)
 }

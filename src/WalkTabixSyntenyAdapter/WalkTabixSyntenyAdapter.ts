@@ -11,8 +11,7 @@ import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 
 import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
-import { WalkReader } from '../RgfaTabixAdapter/walkReader.ts'
-import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
+import { WalkReader, walkSubgraph } from '../RgfaTabixAdapter/walkReader.ts'
 import { walkNameFilter } from '../RgfaTabixAdapter/walkRows.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
@@ -27,9 +26,6 @@ import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { getSubAdapterType } from '@jbrowse/core/data_adapters/dataAdapterCache'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
-
-// How much graph a cut keeps around the window, on the reference
-const WALK_CONTEXT = 1000
 
 /**
  * The lane a haplotype draws on: the JBrowse assembly the config maps to it at
@@ -119,11 +115,10 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       : []
   }
 
-  private budgets(walkRows?: boolean) {
+  private budgets() {
     return {
-      stepBudget: walkRows ? Infinity : this.getConf('walkStepBudget'),
+      stepBudget: this.getConf('walkStepBudget'),
       byteBudget: this.getConf('walkByteBudget'),
-      context: WALK_CONTEXT,
     }
   }
 
@@ -140,15 +135,12 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
         `${region.assemblyName} ${region.refName} is not in this graph's index; the graph is cut on ${this.anchor}, mapped to its PanSN prefix in assemblyNameToPanSN`,
       )
     }
-    const { graph, kept, fragments } = await this.reader.cut(refName, region, {
-      ...this.budgets(walkRows),
+    return walkSubgraph(this.reader, refName, region, {
+      ...this.budgets(),
       signal,
-      keep: walkNameFilter(
-        haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
-        panSNHaplotype(refName),
-      ),
+      prefixes: haplotypes?.map(lane => resolvePanSNPrefix(this, lane)),
+      walkRows,
     })
-    return walkCutFor(graph.tables(kept, fragments), region, walkRows)
   }
 
   // The window's walks for the haplotypes named and the reference, with no
