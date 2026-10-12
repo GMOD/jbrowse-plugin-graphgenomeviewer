@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^10.2.3
-        version: 10.2.3
+        specifier: ^10.2.4
+        version: 10.2.4
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -636,8 +636,8 @@ packages:
   '@jbrowse/add-track-core@5.0.0-beta.13':
     resolution: {integrity: sha512-JKKXQPVkY/1unPiWh7p7P5t/jhi+hEqBcaT+X9Ste5gUS9tKjvUi2SsQQP8Mk0fmEApRq/iX8wF4gNwNGwx8WA==}
 
-  '@jbrowse/bandage-core@10.2.3':
-    resolution: {integrity: sha512-RPK+0h3Z08haxpTPwZHFvHH9PO89yIGg9LDaTMCvzsvenbKvYCoJ+JsRRtOuTtpeJpXN+UbPRMW57Avnexsvww==}
+  '@jbrowse/bandage-core@10.2.4':
+    resolution: {integrity: sha512-XYTrI00U7ECY+agup+rwF0OmEQOS+b8oCjo5YZyyBljHEwiVAA6Z2rDon54Vr21ihxvnifQkzrSWe0BNEcw/7Q==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4069,7 +4069,7 @@ snapshots:
 
   '@jbrowse/add-track-core@5.0.0-beta.13': {}
 
-  '@jbrowse/bandage-core@10.2.3':
+  '@jbrowse/bandage-core@10.2.4':
     dependencies:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.1
