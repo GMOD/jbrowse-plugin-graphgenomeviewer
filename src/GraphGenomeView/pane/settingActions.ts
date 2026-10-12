@@ -78,6 +78,22 @@ export const withSettingActions = withFitViews
       self.translateY = t.translateY
     },
   }))
+  .actions(self => {
+    // a stated reference-position domain, kept through schemes that take
+    // none so switching back restores it
+    let keptDomain: typeof self.statedColorDomain
+    return {
+      setColorScheme(scheme: ColorScheme) {
+        if (
+          self.statedColorDomain ||
+          self.chosenColorScheme === 'reference-position'
+        ) {
+          keptDomain = self.statedColorDomain
+        }
+        self.writeGrammar({ color: colorOfScheme(scheme, keptDomain) })
+      },
+    }
+  })
   .actions(self => ({
     setError(error: unknown) {
       self.error = error
@@ -149,11 +165,6 @@ export const withSettingActions = withFitViews
     },
     setShowPerf(show: boolean) {
       self.showPerf = show
-    },
-    setColorScheme(scheme: ColorScheme) {
-      self.writeGrammar({
-        color: colorOfScheme(scheme, self.statedColorDomain),
-      })
     },
     setBubbleSpread(spread: BubbleSpread) {
       self.bubbleSpread = spread

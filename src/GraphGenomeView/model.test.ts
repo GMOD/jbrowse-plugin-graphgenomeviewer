@@ -2737,6 +2737,9 @@ describe('the auto color scheme', () => {
 
     model.setColorScheme('depth')
     expect(model.referenceRampDomain).toBeUndefined()
+    model.setColorScheme('uniform')
+    model.setColorScheme('reference-position')
+    expect(model.referenceRampDomain).toEqual({ start: 1000, end: 5000 })
   })
 
   // With no region stated it falls back to what was drawn, so a file-loaded
