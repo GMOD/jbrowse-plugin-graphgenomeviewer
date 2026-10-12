@@ -485,39 +485,52 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
   }
 
-  // The gene track's features over the cut, which `geneFeatures` makes genes
-  // of for the backbone to carry.
-  function* loadGenes(
+  // The annotation tracks read over the cut: genes, which `geneFeatures`
+  // makes genes of for the backbone to carry, and tandem repeat arrays, for
+  // the walk rows to measure between and tile by
+  const annotations = {
+    genes: {
+      trackId: () => self.geneTrack?.trackId,
+      set: (features: Feature[] | undefined) => {
+        self.geneTrackFeatures = features
+      },
+    },
+    repeats: {
+      trackId: () => self.repeatTrack?.trackId,
+      set: (features: Feature[] | undefined) => {
+        self.repeatArrays = features && repeatArraysFrom(features)
+      },
+    },
+  }
+  type Annotation = keyof typeof annotations
+
+  function* loadAnnotation(
+    kind: Annotation,
     region: SubgraphRegion,
     isLive: () => boolean,
     signal?: AbortSignal,
   ) {
-    const features = yield* trackFeatures(
-      self.geneTrack?.trackId,
-      region,
-      'genes',
-      signal,
-    )
+    const { trackId, set } = annotations[kind]
+    const features = yield* trackFeatures(trackId(), region, kind, signal)
     if (features && isLive()) {
-      self.geneTrackFeatures = features
+      set(features)
     }
   }
 
-  // The tandem repeat arrays over the cut, from the session's repeat
-  // track, for the walk rows to measure between and tile by.
-  function* loadRepeats(
-    region: SubgraphRegion,
-    isLive: () => boolean,
-    signal?: AbortSignal,
-  ) {
-    const features = yield* trackFeatures(
-      self.repeatTrack?.trackId,
-      region,
-      'repeats',
-      signal,
-    )
-    if (features && isLive()) {
-      self.repeatArrays = repeatArraysFrom(features)
+  // One annotation read again alone, for a track change. Live only while
+  // the track it read is still the one chosen, so a slow read cannot land
+  // over the pick that followed it.
+  function* reloadAnnotation(kind: Annotation) {
+    const { trackId, set } = annotations[kind]
+    const region = self.graphRegion
+    const track = trackId()
+    if (region) {
+      set(undefined)
+      yield* loadAnnotation(
+        kind,
+        region,
+        () => self.graphRegion === region && trackId() === track,
+      )
     }
   }
 
@@ -651,8 +664,8 @@ export const withLoadActions = withSettingActions.actions(self => {
       if (region && live && self.graph) {
         const isLive = () => self.graphRegion === region
         yield Promise.all([
-          flow(loadGenes)(region, isLive),
-          flow(loadRepeats)(region, isLive),
+          flow(loadAnnotation)('genes', region, isLive),
+          flow(loadAnnotation)('repeats', region, isLive),
         ])
       }
     }),
@@ -721,8 +734,8 @@ export const withLoadActions = withSettingActions.actions(self => {
                 signal,
                 self.foldedBelowBp,
               ),
-          flow(loadGenes)(region, isLive, signal),
-          flow(loadRepeats)(region, isLive, signal),
+          flow(loadAnnotation)('genes', region, isLive, signal),
+          flow(loadAnnotation)('repeats', region, isLive, signal),
         ])
       } catch (e) {
         if (isLive()) {
@@ -735,22 +748,14 @@ export const withLoadActions = withSettingActions.actions(self => {
         }
       }
     }),
-    // Re-read one annotation track alone, for a track change. The graph,
-    // its layout and any open bubble stay as they are. Live only while the
-    // track it read is still the one chosen, so a slow read cannot land
-    // over the pick that followed it.
+    // A track change re-reads that annotation alone. The graph, its layout
+    // and any open bubble stay as they are.
     reloadRepeats: flow(function* () {
-      const region = self.graphRegion
-      const trackId = self.repeatTrack?.trackId
-      if (region) {
-        self.repeatArrays = undefined
-        yield* loadRepeats(
-          region,
-          () =>
-            self.graphRegion === region &&
-            self.repeatTrack?.trackId === trackId,
-        )
-      }
+      yield* reloadAnnotation('repeats')
+    }),
+    reloadGenes: flow(function* () {
+      walkGeneCache.clear()
+      yield* reloadAnnotation('genes')
     }),
     // The source track's samples TSV, read once per location, for walk
     // rows to group by. A failed read leaves the rows ungrouped, says so,
@@ -819,19 +824,6 @@ export const withLoadActions = withSettingActions.actions(self => {
         JSON.stringify(self.walkGeneReads?.reads ?? []) === key
       ) {
         self.walkGeneFeatures = reads.length ? fetched : undefined
-      }
-    }),
-    reloadGenes: flow(function* () {
-      walkGeneCache.clear()
-      const region = self.graphRegion
-      const trackId = self.geneTrack?.trackId
-      if (region) {
-        self.geneTrackFeatures = undefined
-        yield* loadGenes(
-          region,
-          () =>
-            self.graphRegion === region && self.geneTrack?.trackId === trackId,
-        )
       }
     }),
     // Open a bubble in place: it keeps its colour, the rest of the drawing
