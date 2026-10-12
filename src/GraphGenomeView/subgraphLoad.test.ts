@@ -1,5 +1,7 @@
 import stateModelFactory from './viewModel'
 
+import type { readConfObject } from '@jbrowse/core/configuration'
+
 const mockRpcCall = vi.fn()
 const mockSession = {
   tracks: [] as Record<string, unknown>[],
@@ -32,9 +34,11 @@ vi.mock('@jbrowse/core/util', () => ({
 
 vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
   ...(await importOriginal()),
-  readConfObject: vi.fn(
-    (obj: Record<string, unknown>, key: string) => obj[key],
-  ),
+  readConfObject: vi
+    .fn<typeof readConfObject>()
+    .mockImplementation(
+      (obj: Record<string, unknown>, key?: unknown) => obj[String(key)],
+    ),
 }))
 
 // pangenome_hprc's segments track once NA20809 haplotype 2 is loaded
@@ -296,7 +300,7 @@ describe('reads', () => {
     secondary: false,
   }
 
-  function cutWithReads(reads: () => Promise<unknown>) {
+  async function cutWithReads(reads: () => Promise<unknown>) {
     mockSession.tracks = [READS_TRACK]
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
@@ -310,7 +314,8 @@ describe('reads', () => {
       loadedTrackId: READS_TRACK.trackId,
       loadedRegion: ON_HG38,
     })
-    return model.load().then(() => model)
+    await model.load()
+    return model
   }
 
   test('a track naming reads fetches them over the cut before its layout', async () => {

@@ -236,13 +236,14 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
 
     await clickMenuText(`Open in ${ASSEMBLY} — ${REF_NAME}:`)
     await page.waitForFunction(
-      ([viewId, start]: [string, number]) => {
+      (viewId: string, start: number) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
         const block = view.dynamicBlocks.contentBlocks[0]
         return !!block && block.start <= start && block.end >= start
       },
       { timeout: 60_000 },
-      [LGV_ID, target.start],
+      LGV_ID,
+      target.start,
     )
     await screenshot(page, 'out-02-linear-view-moved-to-node')
 

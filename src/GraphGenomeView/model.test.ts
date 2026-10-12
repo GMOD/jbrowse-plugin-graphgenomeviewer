@@ -21,7 +21,7 @@ import { abgrAlpha } from '@jbrowse/bandage-core/renderer/colorBits'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
 import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
-import { LAUNCH_LABEL } from '@jbrowse/core/ui'
+import { LAUNCH_LABEL, resolveSubMenu } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot, types } from '@jbrowse/mobx-state-tree'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
@@ -122,9 +122,11 @@ vi.mock('@jbrowse/core/util', () => {
 // config schema) call ConfigurationSchema at module-eval time.
 vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
   ...(await importOriginal()),
-  readConfObject: vi.fn((obj: Record<string, unknown>, key: string) =>
-    key === 'assemblyNames' ? (obj.assemblyNames ?? []) : obj[key],
-  ),
+  readConfObject: vi
+    .fn<typeof readConfObject>()
+    .mockImplementation((obj: Record<string, unknown>, key?: unknown) =>
+      key === 'assemblyNames' ? (obj.assemblyNames ?? []) : obj[String(key)],
+    ),
 }))
 
 const mockReadFile = vi.hoisted(() => vi.fn())
@@ -400,7 +402,7 @@ describe('performance instrumentation', () => {
     expect(model.showLoading).toBe(true)
     model.setGeometryMetrics(1, EMPTY_BATCH, {
       scale: 1,
-      bounds: { minX: 0, minY: 0, w: 1, h: 1 },
+      bounds: { minX: 0, minY: 0, maxX: 1, maxY: 1 },
     })
     expect(model.showLoading).toBe(true)
     model.markPainted()
@@ -408,7 +410,7 @@ describe('performance instrumentation', () => {
 
     model.setGeometryMetrics(1, EMPTY_BATCH, {
       scale: 1,
-      bounds: { minX: 0, minY: 0, w: 1, h: 1 },
+      bounds: { minX: 0, minY: 0, maxX: 1, maxY: 1 },
     })
     expect(model.showLoading).toBe(true)
     model.markPainted()
@@ -3205,7 +3207,6 @@ describe('walk rows', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',
       layoutMode: 'auto',
-      colorScheme: 'grey',
     })
     await model.loadGFA(WALKS_GFA, 'walks')
     model.liftWalks(['B#1#ctg', 'GRCh38#0#chr1'])
@@ -3454,13 +3455,13 @@ describe('walk rows', () => {
       model
         .layoutOptionMenuItems()
         .flatMap(item =>
-          'subMenu' in item && item.label === 'Panels' ? item.subMenu : [],
+          'subMenu' in item && item.label === 'Panels'
+            ? resolveSubMenu(item)
+            : [],
         )
-    expect(panels().map(item => item.label)).toEqual([
-      'None',
-      'A panel per sample',
-      'A panel per haplotype',
-    ])
+    expect(
+      panels().map(item => ('label' in item ? item.label : undefined)),
+    ).toEqual(['None', 'A panel per sample', 'A panel per haplotype'])
 
     model.setFacet('sample')
     await model.recomputeLayout()
@@ -3570,8 +3571,9 @@ describe('annotation reads beside a cut', () => {
     assemblyNames: ['hg38'],
     adapter: { type, tag: trackId },
   })
-  const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
-  const adapterOnly = (obj: Record<string, unknown>, key: string) =>
+  const bySlot = (obj: Record<string, unknown>, key?: unknown) =>
+    obj[String(key)]
+  const adapterOnly = (obj: Record<string, unknown>, key?: unknown) =>
     key === 'adapter' ? obj.adapter : undefined
 
   // each CoreGetFeatures read, held open until the test settles it
@@ -3725,8 +3727,9 @@ describe('genes on a backbone of another assembly', () => {
 
   let gfa = CHR6_WALKS
   let geneAt = { refName: 'chr6', start: 1002, end: 1008 }
-  const bySlot = (obj: Record<string, unknown>, key: string) => obj[key]
-  const adapterOnly = (obj: Record<string, unknown>, key: string) =>
+  const bySlot = (obj: Record<string, unknown>, key?: unknown) =>
+    obj[String(key)]
+  const adapterOnly = (obj: Record<string, unknown>, key?: unknown) =>
     key === 'adapter' ? obj.adapter : undefined
 
   function sessionWith(assemblyName: string, graphAdapter = {}) {

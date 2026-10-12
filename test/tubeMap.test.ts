@@ -163,7 +163,7 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
       return {
         error: view.error ? String(view.error) : undefined,
         tracks: view.layoutResult.tubeMap.layout.tracks.length,
-        legend: view.pathLegend.map(e => e.label).sort(),
+        legend: view.pathLegend.map((e: { label: string }) => e.label).sort(),
       }
     }, OWN_VIEW)
     expect(state.error).toBeUndefined()
@@ -207,7 +207,9 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
   it('pins the reference axis to the cut in bp', async () => {
     const columns = await page.evaluate(id => {
       const view = window.JBrowseSession.views.find(v => v.id === id)
-      return view.layoutResult.tubeMap.columns.map(c => [c.bp0, c.bp1])
+      return view.layoutResult.tubeMap.columns.map(
+        (c: { bp0: number; bp1: number }) => [c.bp0, c.bp1],
+      )
     }, REFERENCE_VIEW)
     expect(columns[0][0]).toBe(1004500)
     expect(columns.at(-1)[1]).toBe(1004961)
@@ -256,12 +258,13 @@ describe.skipIf(!runE2E)('the tube map layouts', () => {
     const container = `[data-testid="view-container-${REFERENCE_VIEW}"]`
     const view = <T>(body: string) =>
       page.evaluate(
-        ([id, fn]) =>
+        (id: string, fn: string) =>
           // eslint-disable-next-line @typescript-eslint/no-implied-eval
           new Function('view', fn)(
             window.JBrowseSession.views.find(v => v.id === id),
           ),
-        [REFERENCE_VIEW, body],
+        REFERENCE_VIEW,
+        body,
       ) as Promise<T>
     await view(`view.setFacet('walk')`)
     await page.waitForFunction(

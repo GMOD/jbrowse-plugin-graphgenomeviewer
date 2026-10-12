@@ -84,7 +84,9 @@ describe.skipIf(!runE2E)('hovering a node with walks lifted', () => {
   it('leaves the view where it is and keeps the readout up', async () => {
     await page.evaluate(id => {
       const v = window.JBrowseSession.views.find(v => v.id === id)
-      v.liftWalks(v.walkChoices.slice(0, 2).map(c => c.name))
+      v.liftWalks(
+        v.walkChoices.slice(0, 2).map((c: { name: string }) => c.name),
+      )
     }, VIEW)
     await waitForAppReady(page, () =>
       Boolean(

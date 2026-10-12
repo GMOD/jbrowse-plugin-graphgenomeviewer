@@ -32,6 +32,7 @@ import type { LinearGraphDisplayModel } from './model'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { MenuItem } from '@jbrowse/core/ui'
+import type { Instance } from '@jbrowse/mobx-state-tree'
 
 const REF = 'chr1'
 const ASM = 'hg38'
@@ -355,6 +356,7 @@ function createEnvironment({
       args: {
         region: SubgraphRegion
         opts?: { tier?: SubgraphTier; snarls?: string; hops?: number }
+        options?: { engine: string }
         signal?: AbortSignal
         adapterConfig?: { type?: string }
       },
@@ -459,11 +461,11 @@ function createEnvironment({
       },
     }))
     .actions(self => ({
-      setView(view: InstanceType<typeof LinearGenomeModel>) {
+      setView(view: Instance<typeof LinearGenomeModel>) {
         self.view = view
         return view
       },
-      setOther(view: InstanceType<typeof LinearGenomeModel>) {
+      setOther(view: Instance<typeof LinearGenomeModel>) {
         self.other = view
         return view
       },
@@ -679,7 +681,7 @@ test('the phase is loading until the graph is drawn, and a failed cut is an erro
   })
   // the chrome shows a ready track's status as background progress
   expect(display.statusMessage).toBe('')
-  rpcCall.mockImplementationOnce(() => Promise.reject(new Error('index gone')))
+  rpcCall.mockRejectedValueOnce(new Error('index gone'))
   display.reload()
   await vi.waitFor(() => {
     expect(display.displayPhase).toBe('error')
@@ -875,7 +877,7 @@ test('a force track lays out with the stress engine by default, and switching as
   const engines = () =>
     rpcCall.mock.calls
       .filter(c => c[1] === 'GraphComputeLayout')
-      .map(c => (c[2] as { options: { engine: string } }).options.engine)
+      .map(c => c[2].options?.engine)
   expect(engines()).toEqual(['stress'])
 
   display.setLayoutEngine('fmmm')
@@ -968,10 +970,17 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   display.setFacet('walk')
   display.setWalkRowSamples(['HG1'])
   display.setHover('off')
-  const slots = ['layoutMode', 'color', 'size', 'layers', 'facet', 'rows']
+  const slots = [
+    'layoutMode',
+    'color',
+    'size',
+    'layers',
+    'facet',
+    'rows',
+  ] as const
   expect(
     Object.fromEntries(
-      [...slots, 'hover'].map(s => [
+      [...slots, 'hover' as const].map(s => [
         s,
         readConfObject(display.configuration, s),
       ]),

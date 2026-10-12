@@ -8,6 +8,7 @@
 // call site narrows to the few members it reads.
 interface JBrowseTestSession {
   views: any[]
+  removeView(view: unknown): void
 }
 
 declare global {
