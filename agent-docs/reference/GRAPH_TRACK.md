@@ -410,7 +410,7 @@ chr22:11.80–11.864 Mb, 8 haplotypes used to stay under the step budget and rea
 
 ## Lanes from walks
 
-`WalkTabixSyntenyAdapter` reads the same file set as haplotype lanes for
+`WalkTabixSyntenyAdapter` reads the same walk file as haplotype lanes for
 `MultiWaySyntenyDisplay`, and cuts the graph display's subgraph as a
 walk-indexed `RgfaTabixAdapter` does (both go through `WalkReader`), so one
 track carries both displays with no gbz-base database:
@@ -423,7 +423,7 @@ track carries both displays with no gbz-base database:
   assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
   adapter: {
     type: 'WalkTabixSyntenyAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f2.GRCh38',
     assemblyNames: ['hg38'],
     assemblyNameToPanSN: {
       hg38: 'GRCh38#0',

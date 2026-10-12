@@ -57,7 +57,7 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
   {
     /**
      * #slot
-     * The first entry is the anchor: the JBrowse assembly the file set's
+     * The first entry is the anchor: the JBrowse assembly the walk file's
      * reference sample is loaded as. A haplotype needs no entry: its lane
      * draws on the session assembly `assemblyNameToPanSN` maps to it, at
      * haplotype (`HG002#1`) or sample (`HG002`) depth, and a haplotype with no
