@@ -49,7 +49,6 @@ import type { GafReads } from '../../gaf/gafFile'
 import type { PaneLayout } from '../tubeMapPanels'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
-import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
@@ -59,17 +58,22 @@ export const withLoadActions = withSettingActions.actions(self => {
   let loadController: AbortController | undefined
   // the samples TSV location the table was read from, or is being read from
   let sampleTableKey: string | undefined
+  // The engine run the live layout waits on, which alone writes the status
+  // line, and each run by the promise the force cache hands every request
+  // that shares it
+  let awaitedRun: object | undefined
+  const runOf = new WeakMap<Promise<unknown>, object>()
 
-  function callEngine(request: EngineRequest) {
+  // A StatusCallback takes an RpcStatus, which `statusMessageText` reads
+  function callEngine(request: EngineRequest, run: object) {
     const { rpcManager } = getSession(self)
     return rpcManager.call(getRpcSessionId(self), 'GraphComputeLayout', {
       ...request,
       signal: loadController?.signal,
-      // A StatusCallback takes an RpcStatus, not a string — it may be a
-      // bare label, a phase, or a phase that threw. `statusMessageText` is
-      // core's reader for the human-facing line.
       statusCallback: status => {
-        self.setStatusMessage(statusMessageText(status) ?? '')
+        if (run === awaitedRun) {
+          self.setStatusMessage(statusMessageText(status) ?? '')
+        }
       },
     }) as Promise<{ result: LayoutResult; duration: number }>
   }
@@ -143,13 +147,21 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
     const settings = engineSettings()
     const hit = forceLayouts.ready(graph, settings)
-    const forced = hit
-      ? { result: hit, duration: performance.now() - start }
-      : ((yield forceLayouts.layout(graph, settings, callEngine)) as {
-          result: LayoutResult
-          duration: number
-        })
-    return { ...forced, mode: 'force' as LayoutModeValue }
+    if (hit) {
+      return {
+        result: hit,
+        duration: performance.now() - start,
+        mode: 'force' as const,
+      }
+    }
+    const run = {}
+    const pending = forceLayouts.layout(graph, settings, r =>
+      callEngine(r, run),
+    )
+    awaitedRun = runOf.get(pending) ?? run
+    runOf.set(pending, awaitedRun)
+    const forced = (yield pending) as { result: LayoutResult; duration: number }
+    return { ...forced, mode: 'force' as const }
   }
 
   // Which layout request is the live one. A layout is async and nothing in
@@ -177,6 +189,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   // flight; the stale result must not land.
   function* layoutInto(graph: Graph) {
     const request = ++liveRequest
+    awaitedRun = undefined
     const isLive = () => self.graph === graph && request === liveRequest
     const signal = loadController?.signal
     let computed
@@ -545,6 +558,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     loadInFlight = undefined
     liveLoad++
     liveRequest++
+    awaitedRun = undefined
   }
 
   // The graph and everything derived from it, dropped; any load in

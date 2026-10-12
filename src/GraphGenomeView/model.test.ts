@@ -104,6 +104,7 @@ vi.mock('@jbrowse/core/util', () => {
     },
     getRpcSessionId: () => 'test',
     isSessionModelWithWidgets: () => false,
+    statusMessageText: (status: unknown) => status,
     // Add stubs for other potentially imported items
     parseLocString: () => ({}),
     getEnv: () => ({}),
@@ -427,6 +428,38 @@ describe('performance instrumentation', () => {
     expect(model.lastLayoutMs).toBeUndefined()
     expect(model.lastGeometryMs).toBeUndefined()
     expect(model.lastGeometryStrokeCount).toBeUndefined()
+  })
+
+  test('only the force run the live layout waits on writes the status line', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'imported')
+    const runs: ((status: string) => void)[] = []
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, _method: string, args: { statusCallback: never }) => {
+        runs.push(args.statusCallback)
+        return new Promise(() => {})
+      },
+    )
+    model.setLayoutQuality(3)
+    void model.recomputeLayout()
+    model.setLayoutQuality(1)
+    void model.recomputeLayout()
+    runs[0]!('superseded')
+    expect(model.statusMessage).toBe('Computing layout')
+    runs[1]!('live')
+    expect(model.statusMessage).toBe('live')
+
+    // back to a run still in flight, which the force cache shares
+    model.setLayoutQuality(3)
+    void model.recomputeLayout()
+    expect(runs).toHaveLength(2)
+    runs[0]!('shared')
+    expect(model.statusMessage).toBe('shared')
+
+    model.stopLoad()
+    runs[0]!('stopped')
+    expect(model.statusMessage).toBe('')
   })
 
   test('clearGraph drops every hover naming a part of the graph', async () => {
