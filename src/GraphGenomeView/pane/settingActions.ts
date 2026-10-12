@@ -344,6 +344,10 @@ export const withSettingActions = withFitViews
     // is replaced, and by clearGraph.
     clearInteractionState() {
       self.hoveredNode = null
+      self.hoveredAt = null
+      self.hoveredTube = null
+      self.hoveredRowWalks = []
+      self.stripHover = null
       self.hoveredPanel = null
       self.hoveredWalkRow = null
       self.hoveredBubble = null

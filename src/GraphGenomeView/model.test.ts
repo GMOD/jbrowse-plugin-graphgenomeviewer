@@ -429,6 +429,21 @@ describe('performance instrumentation', () => {
     expect(model.lastGeometryStrokeCount).toBeUndefined()
   })
 
+  test('clearGraph drops every hover naming a part of the graph', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'imported')
+    model.setHoveredNode('1+', { x: 5, y: 5 })
+    model.setHoveredTube({ track: 1 })
+    model.setHoveredRowWalks(['A#1#ctg'])
+    model.setStripHover({ row: 'A#1#ctg', offset: 3 })
+    model.clearGraph()
+    expect(model.hoveredAt).toBeNull()
+    expect(model.hoveredTube).toBeNull()
+    expect(model.hoveredRowWalks).toEqual([])
+    expect(model.stripHover).toBeNull()
+  })
+
   test('clearGraph drops the source with the graph, so the import form is not a view still loading', async () => {
     rpcRespond()
     mockSession.tracks = [TEST_TRACK]

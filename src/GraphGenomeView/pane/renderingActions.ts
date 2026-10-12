@@ -191,6 +191,8 @@ export const withRenderingActions = withLoadActions
             () => `${self.scale}-${self.translateX}-${self.translateY}`,
             () => {
               self.setHoveredNode(null)
+              self.setHoveredTube(null)
+              self.setHoveredWalkRow(null)
               self.setHoveredPanel(null)
               self.setHoveredBubble(null)
               self.setHoveredEdge(null)
