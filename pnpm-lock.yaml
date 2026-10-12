@@ -701,8 +701,8 @@ packages:
   '@jbrowse/text-indexing-core@4.3.0':
     resolution: {integrity: sha512-138Xdv09uMUgjFTtywzET7ypt9yEWrt7ZMSK9iwHlqXjXx6MHEl7+bKLWNPk4R9K/s5Q8PlCEOwofWVcevCweA==}
 
-  '@jbrowse/tubemap-core@1.0.0':
-    resolution: {integrity: sha512-6mkKyeq2onugbvptWeq49gCy26cYjLki8YRGXgBVSdg/uFUdL7+qoiu1vMWTa+9YOOBhs21QBG+9oan+iQJvtw==}
+  '@jbrowse/tubemap-core@1.1.0':
+    resolution: {integrity: sha512-7x08COgIJJaSbThSJ2kq5khv92snriLbpvCigyVYRIGt8CK0n9fmtF2tKtWoCHnkkjL7KuMwpjvHqxvJ4pV/XQ==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -4063,7 +4063,7 @@ snapshots:
       '@gmod/gbz-base': 7.4.0
       '@gmod/tabix': 3.10.1
       '@jbrowse/graph-stress-layout': 1.0.0
-      '@jbrowse/tubemap-core': 1.0.0
+      '@jbrowse/tubemap-core': 1.1.0
 
   '@jbrowse/cigar-utils@5.0.0-beta.11': {}
 
@@ -4211,7 +4211,7 @@ snapshots:
 
   '@jbrowse/text-indexing-core@4.3.0': {}
 
-  '@jbrowse/tubemap-core@1.0.0': {}
+  '@jbrowse/tubemap-core@1.1.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
