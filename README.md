@@ -33,7 +33,7 @@ Pangenome graphs in JBrowse 2.
 3. Explore:
    - Pick a layout from the track menu: force-directed, ordered, anchored,
      sample rows, walk rows or tube map ([docs/layouts.md](docs/layouts.md))
-   - Lift haplotypes or show a panel per walk
+   - Lift haplotypes or show a panel per haplotype
      ([docs/haplotypes.md](docs/haplotypes.md))
    - Launch → **Graph genome view** on a track opens its cut as a view, where
      hovering a node bands its bp in the linear view

@@ -44,10 +44,10 @@ Synteny drawn from the graph shows both skips as a gap:
 
 With two or more lifted, **Haplotypes › Arrange** facets the pane.
 
-- **A panel per walk** draws the layout once per walk on a shared scale, yellow
+- **A panel per haplotype** draws the layout once per walk on a shared scale, yellow
   at the walk's start and red at its end. A panel's title is its key, and
   clicking it lifts that walk alone
-- **A row per sample, a column per haplotype** lays panels out like
+- **A row per sample** puts a haplotype in each column, like
   `facet_grid(sample ~ haplotype)`
 - Panels share one view, so a pan, zoom or hover in one applies to all. As many
   go across as draw each panel largest; `columns` fixes the count
