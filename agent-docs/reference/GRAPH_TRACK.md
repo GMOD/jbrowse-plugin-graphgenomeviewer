@@ -261,13 +261,13 @@ allele straddling the edge draws every walk that crosses it.
 
 ### Format 2
 
-gfa-to-tabix's format 2 (`format:i:2` on the walk file's first header line;
-the converter's `docs/walks-format.md`) holds the whole cut in the walk file.
-A chunk lists the reference's path through it once, each distinct route a
-haplotype takes off that path once, the lengths of the nodes those routes
-visit, and each path piece as the routes it takes. `WalkReader` reads the
-header first, and on format 2 reads and sizes the walk file alone; the node and
-link slots `walksUri` resolves are never opened.
+gfa-to-tabix's format 2 (`format:i:2` on the walk file's first header line; the
+converter's `docs/walks-format.md`) holds the whole cut in the walk file. A
+chunk lists the reference's path through it once, each distinct route a
+haplotype takes off that path once, the lengths of the nodes those routes visit,
+and each path piece as the routes it takes. `WalkReader` reads the header first,
+and on format 2 reads and sizes the walk file alone; the node and link slots
+`walksUri` resolves are never opened.
 
 - `walkFormat2.ts` decodes each chunk once: the reference's nodes with their
   positions, and the kept walks' steps in the arrays `joinPieces` takes
@@ -289,8 +289,8 @@ rows and reference features.
 
 The 50 windows took 2.66 s in format 2 against 2.74 s in format 1, warm and
 local. A window in the 16.3 Mb repeats is the slowest relative to format 1, at
-0.24 s against 0.12 s: its routes are long and nest, so the routes repeat
-nodes that format 1's node file listed once.
+0.24 s against 0.12 s: its routes are long and nest, so the routes repeat nodes
+that format 1's node file listed once.
 
 ### Walks that leave the window
 
