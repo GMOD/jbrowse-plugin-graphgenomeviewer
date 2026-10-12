@@ -24,13 +24,13 @@ function isAbsent(value: unknown) {
   return value === undefined || value === null
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function isTier(tier: unknown): tier is NonNullable<GraphManifest['tier']> {
   return (
-    isRecord(tier) &&
+    isPlainRecord(tier) &&
     isSiblingName(tier.prefix) &&
     typeof tier.foldBelowBp === 'number' &&
     Number.isFinite(tier.foldBelowBp) &&
@@ -45,7 +45,7 @@ export function parseGraphManifest(text: string): GraphManifest | undefined {
   } catch {
     return undefined
   }
-  if (!isRecord(json) || json.schema !== 1) {
+  if (!isPlainRecord(json) || json.schema !== 1) {
     return undefined
   }
   const { reference, tier, index, contig, bubbles, alleles } = json
