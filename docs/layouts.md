@@ -289,10 +289,9 @@ to 129 paths, is the halo named "3.0–175 kb repeat array (KIV-2), 129 routes":
 Clicking a bubble's label opens it in place: its nodes keep their colour, with
 the ramp spanning just the bubble, and the rest of the graph and the strip turn
 grey. The bubbles inside it get labels of their own, so a superbubble opens
-level by level. Clicking an open bubble's label closes it, as do the legend's
-**close** and a click on empty canvas. Opened, the KIV-2 array takes the whole
-ramp under the curated KIV-2 annotation, with the LPA exons and the flanks in
-grey beside it:
+level by level. Clicking an open bubble's label closes it, as does the legend's
+**close**. Opened, the KIV-2 array takes the whole ramp under the curated KIV-2
+annotation, with the LPA exons and the flanks in grey beside it:
 
 ![The KIV-2 array open in the track: its nodes in colour, the rest of LPA grey](../img/force_kiv2_open.png)
 

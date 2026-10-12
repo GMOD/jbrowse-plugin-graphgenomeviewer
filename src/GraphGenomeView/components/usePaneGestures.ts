@@ -305,8 +305,6 @@ export function usePaneGestures(model: GraphPaneModel) {
       model.setSelectedNode(node)
       if (node) {
         model.showNodeDetails(node)
-      } else {
-        model.closeBubbles()
       }
     }
   }
