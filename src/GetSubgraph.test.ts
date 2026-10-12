@@ -11,8 +11,8 @@ import { isRpcResult } from '@jbrowse/core/util/librpc'
 import GetSubgraph from './GetSubgraph'
 import GraphPlugin from './index'
 
-import type { RpcResult } from '@jbrowse/core/util/librpc'
 import type { AbstractRootModel } from '@jbrowse/core/util'
+import type { RpcResult } from '@jbrowse/core/util/librpc'
 
 vi.mock('@jbrowse/core/data_adapters/dataAdapterCache')
 

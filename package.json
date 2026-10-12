@@ -31,6 +31,7 @@
     "start": "node esbuild.mjs --watch",
     "build": "NODE_ENV=production node esbuild.mjs",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
+    "typecheck:tests": "node node_modules/typescript7/bin/tsc --noEmit -p tsconfig.test.json",
     "host-compat": "node scripts/host-compat-probe.mjs",
     "host-names": "node scripts/host-names-check.mjs",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0 && eslint --no-config-lookup -c eslint.scripts.config.mjs --max-warnings 0 scripts esbuild.mjs",
@@ -39,7 +40,7 @@
     "bench": "vitest bench --run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "prepack": "pnpm build",
-    "preversion": "node scripts/ci-green.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm host-names && pnpm host-compat",
+    "preversion": "node scripts/ci-green.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm typecheck:tests && pnpm test && pnpm build && pnpm host-names && pnpm host-compat",
     "version": "node scripts/version.mjs",
     "postversion": "git push --follow-tags"
   },

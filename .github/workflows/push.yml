@@ -28,6 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm typecheck
+      - run: pnpm typecheck:tests
       - run: pnpm lint
       # Formatting drifts silently otherwise: `pnpm format` is the only thing
       # that writes it. Beside lint rather than inside it because prettier and
