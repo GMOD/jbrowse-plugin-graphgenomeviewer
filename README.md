@@ -84,23 +84,32 @@ In reading order:
 - [sequenceTubeMap, MemPanG26 edition](https://github.com/cmdcolin/sequenceTubeMap):
   our fork of the tube map app
 
-### Programmatic usage
+Supporting utility libraries
 
-- [@jbrowse/bandage-core](https://github.com/GMOD/bandage-core) (npm): layout
-  and drawing engine, plus `bandage-figure` for SVGs with no browser
-- [@jbrowse/graph-stress-layout](https://github.com/GMOD/graph-stress-layout)
-  (npm): stress layout
+- [@jbrowse/bandage-core](https://github.com/GMOD/bandage-core) (npm): bandage
+  layout and drawing engine
 - [@jbrowse/tubemap-core](https://github.com/GMOD/tubemap-core) (npm): tube map
   layout
 - [@gmod/gbz-base](https://github.com/GMOD/gbz-base-js) (npm): `.gbz.db` reader
-- [ggbandage](https://github.com/GMOD/ggbandage) (R): Bandage layout as ggplot2
-  layers
-- [ggtubemap](https://github.com/GMOD/ggtubemap) (R): tube map as ggplot2 layers
+
+Supporting graph layout libraries
+
+- [@jbrowse/graph-stress-layout](https://github.com/GMOD/graph-stress-layout)
+- [@jbrowse/graph-fmmm-layout](https://github.com/GMOD/graph-fmmm-layout)
+
+Supporting data preparation toolkits
+
 - [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix): indexes a GFA
 - [gbz-haplotype-index](https://github.com/GMOD/gbz-haplotype-index): names
   every walk in a gbz-base cut
 - [gfa-to-pairwise-paf](https://github.com/cmdcolin/gfa-to-pairwise-paf-rs):
   graph to PAF, for synteny views
+
+Standalone R packages
+
+- [ggbandage](https://github.com/GMOD/ggbandage) (R): Bandage layout as ggplot2
+  layers
+- [ggtubemap](https://github.com/GMOD/ggtubemap) (R): tube map as ggplot2 layers
 
 ## License
 
