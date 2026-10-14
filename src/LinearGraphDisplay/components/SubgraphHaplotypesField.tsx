@@ -14,12 +14,8 @@ const useStyles = makeStyles()({
   },
 })
 
-export function parseHaplotypeList(text: string) {
-  const names = text
-    .split(/[\s,]+/)
-    .map(name => name.trim())
-    .filter(name => name !== '')
-  return names.length === 0 ? undefined : names
+function parseHaplotypeList(text: string) {
+  return text.split(/[\s,]+/).filter(name => name !== '')
 }
 
 const HaplotypeListField = observer(function HaplotypeListField({
@@ -29,7 +25,7 @@ const HaplotypeListField = observer(function HaplotypeListField({
 }) {
   const [draft, setDraft] = useState(model.cutHaplotypes?.join(', ') ?? '')
   const apply = () => {
-    const parsed = parseHaplotypeList(draft) ?? []
+    const parsed = parseHaplotypeList(draft)
     const unchanged =
       parsed.join('\n') === (model.cutHaplotypes ?? []).join('\n')
     if (!unchanged) {

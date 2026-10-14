@@ -38,7 +38,6 @@ import {
 import { pushLaunchItem } from '../launchFromGraph/pushLaunchItem'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
-import type { DenseWindow } from './denseWindow'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
 import type { GraphLayers } from '../GraphGenomeView/graphLayers'
 import type { HostWindow } from '../GraphGenomeView/host'
@@ -118,7 +117,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       recuts: 0,
       // the host window the settle clock last woke on
       settledWindow: undefined as HostWindow | undefined,
-      dense: undefined as DenseWindow | undefined,
+      // where a cut came back over its node limit (denseCovers)
+      dense: undefined as SubgraphRegion | undefined,
       // the haplotypes a walk-indexed graph's header names, once read
       haplotypeNames: undefined as string[] | undefined,
       // the fold the latest cut asked for
@@ -271,7 +271,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         self.subgraphHaplotypes = haplotypes
         self.dense = undefined
       },
-      setDense(window: DenseWindow | undefined) {
+      setDense(window: SubgraphRegion | undefined) {
         self.dense = window
       },
       setHaplotypeNames(names: string[] | undefined) {

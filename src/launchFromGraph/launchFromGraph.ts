@@ -4,10 +4,12 @@ import { locLabel, locString } from './contributors'
 import { linearViewTarget } from './linearViewTarget'
 
 import type { Contributor, GraphLocation } from './contributors'
+import type { SubgraphRegion } from '../GetSubgraph'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 
 export interface TrackScanSession {
   tracks: AnyConfigurationModel[]
+  // core's getTrackName reads these
   assemblies: AnyConfigurationModel[]
   // optional, as a hand-built session in a test has none
   assemblyManager?: {
@@ -46,17 +48,11 @@ export interface GraphLaunchSession extends TrackScanSession {
     type: string,
     snapshot?: Record<string, unknown>,
   ) => Promise<{ id: string }>
-  assemblyNames: string[]
   views: unknown[]
   // optional, as a hand-built session in a test has none
   notifyError?: (message: string, error?: unknown) => void
   // a highlight every linear view on its assembly draws
-  addHighlight?: (highlight: {
-    refName: string
-    start: number
-    end: number
-    assemblyName: string
-  }) => void
+  addHighlight?: (highlight: SubgraphRegion) => void
 }
 
 // A launch is a promise nothing waits on. Let go, a refusal moved nothing and
@@ -107,9 +103,7 @@ export function paddedLocation(
 // assemblies, or the reference is filtered out by the name this replaces.
 export function withReferenceRegion(
   contributors: Contributor[],
-  region:
-    | { refName: string; assemblyName: string; start: number; end: number }
-    | undefined,
+  region: SubgraphRegion | undefined,
 ): Contributor[] {
   return region
     ? contributors.map(c =>
