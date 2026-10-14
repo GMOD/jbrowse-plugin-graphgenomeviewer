@@ -8,12 +8,7 @@ import { getSession } from '@jbrowse/core/util'
 import { addDisposer, types } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
 
-import {
-  GraphPaneMixin,
-  MAX_GRAPH_REGION_BP,
-  fileName,
-  formatSpanBp,
-} from './model'
+import { GraphPane, MAX_GRAPH_REGION_BP, fileName, formatSpanBp } from './model'
 import {
   configHaplotypes,
   graphReferenceAssembly,
@@ -39,7 +34,7 @@ export default function stateModelFactory() {
     .compose(
       'GraphGenomeView',
       BaseViewModel,
-      GraphPaneMixin(),
+      GraphPane,
       types.model({
         type: types.literal('GraphGenomeView'),
         // a whole GFA the view loads on attach, kept so the source round-trips

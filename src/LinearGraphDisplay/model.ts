@@ -27,7 +27,7 @@ import { denseCovers, isNodeLimitError } from './denseWindow'
 import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
 import { lenientOptionalEnum } from '../GraphGenomeView/lenientEnum'
 import {
-  GraphPaneMixin,
+  GraphPane,
   MAX_GRAPH_REGION_BP,
   formatSpanBp,
 } from '../GraphGenomeView/model'
@@ -89,7 +89,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       'LinearGraphDisplay',
       BaseDisplay,
       TrackHeightMixin(),
-      GraphPaneMixin(),
+      GraphPane,
       types.model({
         type: types.literal('LinearGraphDisplay'),
         configuration: ConfigurationReference(configSchema),
