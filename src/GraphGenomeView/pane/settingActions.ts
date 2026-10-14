@@ -5,7 +5,6 @@ import { zoomAbout } from '@jbrowse/bandage-core/viewport'
 import { getSession, isSessionModelWithWidgets } from '@jbrowse/core/util'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 
-import { withFitViews } from './fitViews'
 import { keepInView, onScreen } from './keepInView'
 import {
   MORPH_MAX_NODES,
@@ -17,6 +16,7 @@ import {
   routeStarts,
 } from './morph'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
+import { withTubeMapViews } from './tubeMapViews'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 import { withLayer } from '../graphLayers'
@@ -45,7 +45,7 @@ import type {
   WalkLayer,
 } from '@jbrowse/bandage-core/walkEncoding'
 
-export const withSettingActions = withFitViews
+export const withSettingActions = withTubeMapViews
   .actions(() => ({
     // each host overrides: a view assigns its props, a track display writes
     // its config. Its own block, so the setters below reach the override
