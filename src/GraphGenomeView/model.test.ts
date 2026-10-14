@@ -4356,6 +4356,46 @@ describe('walk rows grouped by a sample column', () => {
     expect(model.tubeMapKeys.values).toBeUndefined()
   })
 
+  test("a walk row opens and reads genes on its haplotype's own contig", async () => {
+    const was = vi.mocked(readConfObject).getMockImplementation()
+    vi.mocked(readConfObject).mockImplementation(
+      (obj: Record<string, unknown>, key?: unknown) => obj[String(key)],
+    )
+    mockSession.assemblyNames = ['B.1']
+    mockSession.assemblyAliases = { 'B#1': 'B.1' }
+    mockSession.tracks = [
+      { ...SAMPLES_TRACK, assemblyNames: [] },
+      {
+        trackId: 'b-genes',
+        name: 'B genes',
+        assemblyNames: ['B#1'],
+        adapter: { type: 'Gff3TabixAdapter' },
+      },
+    ]
+    try {
+      const model = await groupedModel()
+      const b = model.walkRowBars!.rows.findIndex(r => r.sample === 'B') + 1
+      const target = model.walkRowLaunchTarget(b)!
+      expect(target).toMatchObject({
+        assembly: 'B.1',
+        location: { sample: 'B', haplotype: 'B#1', refName: 'ctg' },
+      })
+      const { start, end } = target.location
+      expect(model.walkGeneReads!.reads).toEqual([
+        {
+          row: model.walkRowBars!.rows[b - 1]!.name,
+          trackId: 'b-genes',
+          region: { assemblyName: 'B.1', refName: 'ctg', start, end },
+        },
+      ])
+      expect(model.walkRowLaunchTarget(0)?.location.sample).toBe('GRCh38')
+    } finally {
+      vi.mocked(readConfObject).mockImplementation(was!)
+      mockSession.assemblyNames = []
+      mockSession.assemblyAliases = {}
+    }
+  })
+
   test('no samples table, no Group by...', async () => {
     mockSession.tracks = []
     const model = await groupedModel()
