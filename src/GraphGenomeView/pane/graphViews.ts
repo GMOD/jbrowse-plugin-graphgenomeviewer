@@ -516,14 +516,9 @@ export const withGraphViews = paneBase
     get labelsNodeSizes() {
       return !self.layoutResult?.tubeMap && !this.walkLift
     },
-    // Empty rather than undefined: every consumer maps over it, and a layout
-    // with no row structure (FMMM) is a normal state, not a missing one.
-    get rowLabels() {
-      return self.layoutResult?.rowLabels ?? []
-    },
-    // Deletions the layout found inside an allele, empty for the same reason
-    // rowLabels is: a layout drawn at sequence scale states none, because
-    // there a node's drawn extent already IS its length. `deletions` beside
+    // Deletions the layout found inside an allele, empty rather than
+    // undefined: a layout drawn at sequence scale states none, because there
+    // a node's drawn extent already IS its length. `deletions` beside
     // this one is the bare-edge kind, which every layout has.
     get alleleDeletions() {
       return self.layoutResult?.alleleDeletions ?? []

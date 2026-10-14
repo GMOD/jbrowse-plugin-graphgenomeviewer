@@ -1,6 +1,6 @@
 // How much of the drawing a pan or zoom leaves on screen in each axis, or
 // all of it when it is smaller
-export const KEEP_IN_VIEW_PX = 48
+const KEEP_IN_VIEW_PX = 48
 
 // The shift that brings a span starting at `lo`, `size` px long, back to
 // overlapping [0, extent] by `margin` px

@@ -1471,7 +1471,7 @@ describe('canvas height follows the drawing', () => {
     await model.loadGFA(manyRankGfa(40), '41 rows')
     model.zoomToFit()
 
-    const rows = model.rowLabels
+    const rows = model.drawnRowLabels
     expect(rows).toHaveLength(41)
     // the drawing genuinely does not fit, or this asserts nothing
     expect(model.layoutBounds!.h).toBeGreaterThan(model.canvasHeight)
@@ -2375,7 +2375,7 @@ describe('layoutBounds on a reference axis', () => {
   test('rows are spaced against the region, not the stretched backbone', async () => {
     const model = createAnchoredModel()
     await model.cutSubgraph({ type: 'RgfaTabixAdapter' }, FAR_REGION)
-    const rowYs = [...new Set(model.rowLabels.map(r => r.y))].sort(
+    const rowYs = [...new Set(model.drawnRowLabels.map(r => r.y))].sort(
       (a, b) => a - b,
     )
     expect(rowYs.length).toBeGreaterThan(1)
@@ -2514,7 +2514,7 @@ describe('a row layout draws y in pixels', () => {
   test('zooming x leaves the rows where they are', async () => {
     const model = await anchored(5)
     const rowsAt = () =>
-      model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
+      model.drawnRowLabels.map(r => r.y * model.scaleY + model.translateY)
     const before = rowsAt()
     const scaleBefore = model.scaleX
 
@@ -2608,7 +2608,7 @@ describe('what the row axis draws, in pixels', () => {
     expect(points.length).toBeGreaterThan(0)
     // the node tubes, which is what a row pitch is about: the arc reaches above
     // them by design, so it is measured on its own below
-    const rowYs = model.rowLabels.map(
+    const rowYs = model.drawnRowLabels.map(
       r => r.y * model.scaleY + model.translateY,
     )
 
@@ -2684,7 +2684,7 @@ describe('what the row axis draws, in pixels', () => {
     // the ROWS, not every drawn point: the deletion arc's bow is sized in x
     // units, so it grows with the zoom by design and would mask this
     const rowYs = () =>
-      model.rowLabels.map(r => r.y * model.scaleY + model.translateY)
+      model.drawnRowLabels.map(r => r.y * model.scaleY + model.translateY)
     const rowsBefore = rowYs()
     const before = render(model)
 

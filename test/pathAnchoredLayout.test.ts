@@ -154,7 +154,7 @@ describe.skipIf(!runE2E)('a pggb GFA anchored from its paths', () => {
         drawPaths: view.drawPaths,
         pathCount: view.pathCount,
         legend: view.pathLegend.map((e: { label: string }) => e.label),
-        rows: view.rowLabels.length,
+        rows: view.drawnRowLabels.length,
       }
     }, RIBBONS_VIEW)
 
