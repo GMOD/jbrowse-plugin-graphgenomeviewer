@@ -7,13 +7,12 @@ import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { keepInView, onScreen } from './keepInView'
 import {
-  MORPH_MAX_NODES,
-  MORPH_MAX_STEP_MS,
-  MORPH_MS,
   blendInto,
-  easeInOut,
+  canMorph,
   morphStarts,
+  motionAllowed,
   routeStarts,
+  runMorph,
 } from './morph'
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { withTubeMapViews } from './tubeMapViews'
@@ -594,16 +593,8 @@ export const withSettingActions = withTubeMapViews
           !shown ||
           !next ||
           !graph ||
-          previous.referenceAxis ||
-          next.referenceAxis ||
-          previous.pixelRows ||
-          next.pixelRows ||
-          next.tubeMap ||
-          self.facetGrid ||
-          graph.nodes.length > MORPH_MAX_NODES ||
-          typeof requestAnimationFrame === 'undefined' ||
-          ('matchMedia' in window &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          !canMorph(previous, next, graph.nodes.length, !!self.facetGrid) ||
+          !motionAllowed()
         ) {
           return
         }
@@ -639,30 +630,13 @@ export const withSettingActions = withTubeMapViews
           }
         }
         blend(0)
-        let elapsed = 0
-        let last = performance.now()
-        const step = () => {
-          if (!isAlive(self) || self.layoutResult !== next) {
+        morph = runMorph(
+          blend,
+          () => isAlive(self) && self.layoutResult === next,
+          () => {
             morph = undefined
-            return
-          }
-          const now = performance.now()
-          elapsed += Math.min(now - last, MORPH_MAX_STEP_MS)
-          last = now
-          const t = Math.min(1, elapsed / MORPH_MS)
-          blend(easeInOut(t))
-          if (t < 1) {
-            morph!.frame = requestAnimationFrame(step)
-          } else {
-            morph = undefined
-          }
-        }
-        morph = {
-          frame: requestAnimationFrame(step),
-          finish: () => {
-            blend(1)
           },
-        }
+        )
       },
       finishMorph,
       // Moves the position objects IN PLACE, which is the one thing

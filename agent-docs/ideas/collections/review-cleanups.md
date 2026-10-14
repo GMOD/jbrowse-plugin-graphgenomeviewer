@@ -7,8 +7,8 @@ description:
 
 # Review cleanups
 
-Cleanups that wait on judgement are in
-[simplifications-awaiting-a-call](simplifications-awaiting-a-call.md).
+The synteny adapters' shared dispatch waits on a call, in
+[synteny-getfeatures-dispatch](../waiting-on-a-call/synteny-getfeatures-dispatch.md).
 
 ## Views and actions
 
