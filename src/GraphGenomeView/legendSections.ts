@@ -152,7 +152,7 @@ function rampRows(model: GraphPaneModel): LegendRow[] {
   return [
     {
       key: 'ramp',
-      label: `${start.toLocaleString()}-${end.toLocaleString()} (${formatBp(end - start)})`,
+      label: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
       swatch: { kind: 'fill', stops: RAMP_GRADIENT_STOPS, width: BAR_PX },
     },
     ...(offReference
