@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 
-import { edgeHoverText, regionLabel } from '@jbrowse/bandage-core/hoverText'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
@@ -13,6 +12,7 @@ import FacetPanels from './FacetPanels'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
 import HoverLayer from './HoverLayer'
+import HoverTooltip from './HoverTooltip'
 import LabelLayer from './LabelLayer'
 import { LegendPanel } from './Legend'
 import { PaneSvgLayer } from './PaneLayer'
@@ -23,30 +23,11 @@ import WalkRowsOverlay from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
-import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { TOOLTIP_INSET_PX } from '../pane/fitViews'
 import { PAPER_CSS } from '../pane/paneBase'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
-import type { chipReadoutAt } from './LabelLayer'
 import type { GraphPaneModel } from '../model'
-
-// Bottom right of the canvas, clear of the row labels on the left edge and of
-// a walk strip under the canvas. Where the legend reaches down to it, it moves
-// left of the legend.
-const tooltipStyle = {
-  position: 'absolute' as const,
-  bottom: TOOLTIP_INSET_PX,
-  lineHeight: 'normal',
-  background: 'rgba(0,0,0,0.75)',
-  color: 'white',
-  padding: '4px 8px',
-  borderRadius: 4,
-  fontSize: 12,
-  pointerEvents: 'none' as const,
-  zIndex: 6,
-}
 
 const wrapperStyle = { position: 'relative' as const }
 
@@ -271,95 +252,6 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
   )
 })
 
-const HoverTooltips = observer(function HoverTooltips({
-  model,
-  chip,
-}: {
-  model: GraphPaneModel
-  chip: ReturnType<typeof chipReadoutAt>
-}) {
-  const hoveredNodeData = model.hoveredNode
-    ? model.hoverNodeById?.get(model.hoveredNode)
-    : null
-  const merged = model.hoveredNode
-    ? model.hoverDrawing?.members.get(model.hoveredNode)
-    : undefined
-
-  const hoveredEdgeData =
-    model.hoveredEdge !== null && model.graph
-      ? model.graph.edges[model.hoveredEdge]
-      : null
-
-  const ownLocation = hoveredNodeData
-    ? nodeOwnLocation(hoveredNodeData)
-    : undefined
-
-  const hoveredEdgeText = hoveredEdgeData
-    ? edgeHoverText(
-        hoveredEdgeData,
-        model.deletions.find(d => d.edgeIndex === model.hoveredEdge),
-        id => model.nodeById?.get(id)?.name ?? id,
-      )
-    : undefined
-
-  const walkRow = model.hoveredWalkRowText
-  const tube = model.hoveredTubeText
-  const tipStyle = { ...tooltipStyle, right: model.tooltipRightPx }
-
-  return chip ? (
-    <div style={tipStyle} data-testid="graph-chip-tooltip">
-      <strong>{chip.label}</strong> — {chip.readout}
-    </div>
-  ) : (
-    <>
-      {tube && !hoveredNodeData ? (
-        <div style={tipStyle} data-testid="graph-tube-tooltip">
-          <strong>{tube.label}</strong> — {tube.readout}
-        </div>
-      ) : null}
-      {walkRow && !hoveredNodeData ? (
-        <div style={tipStyle} data-testid="graph-walk-row-tooltip">
-          <strong>{walkRow.label}</strong> — {walkRow.readout}
-        </div>
-      ) : null}
-      {hoveredNodeData ? (
-        <div style={tipStyle}>
-          <strong>{hoveredNodeData.name}</strong>
-          {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
-          {hoveredNodeData.length.toLocaleString()} bp, depth{' '}
-          {hoveredNodeData.depth.toFixed(1)}
-          {/* Which assembly contributed this segment, and where it sits on it.
-              rGFA states both, and until now neither reached the screen: the
-              node was a bare id in a picture. */}
-          {ownLocation ? (
-            <>
-              <br />
-              {ownLocation.sample} {regionLabel(ownLocation)} (rank{' '}
-              {hoveredNodeData.stable?.rank})
-            </>
-          ) : null}
-        </div>
-      ) : null}
-      {hoveredEdgeText ? (
-        <div style={tipStyle}>
-          {/* A deletion edge is the one link that means something on its own —
-              the backbone it skips is sequence some haplotype does not carry —
-              so it says how much rather than just naming its endpoints. */}
-          {hoveredEdgeText.deletion ? (
-            <>
-              <strong>Deletion</strong> {hoveredEdgeText.deletion.bp}
-              <br />
-              {hoveredEdgeText.deletion.where}
-            </>
-          ) : (
-            <>Edge: {hoveredEdgeText.ends}</>
-          )}
-        </div>
-      ) : null}
-    </>
-  )
-})
-
 // Flat rather than under a "Launch view" submenu: this menu is two or three
 // items long and every one of them is contextual to the node just clicked. The
 // submenu grouping earns its keep in the long view and track menus.
@@ -512,7 +404,7 @@ const GraphCanvas = observer(function GraphCanvas({
           </div>
         ) : null}
 
-        <HoverTooltips model={model} chip={hoveredChip} />
+        <HoverTooltip model={model} chip={hoveredChip} />
       </div>
 
       {model.walkStripShown ? <WalkStrip model={model} /> : null}
