@@ -14,7 +14,7 @@ import type { RepeatCall } from './repeatFeatures'
 // the array take the allele that fit one spanning it, and the spanning walk
 // then read as a disagreement.
 
-export interface WalkCall extends RepeatCall {
+interface WalkCall extends RepeatCall {
   // undefined where the walk and the allele are not both measurements
   agrees?: boolean
 }

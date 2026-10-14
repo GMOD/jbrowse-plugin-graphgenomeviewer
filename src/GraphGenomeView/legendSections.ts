@@ -38,10 +38,10 @@ import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 // draw the same rows from one place
 
 export const SWATCH_PX = 18
-export const BAR_PX = 48
+const BAR_PX = 48
 
 // getNodeColor's grey for a node the ramp cannot place
-export const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
+const UNPLACED_SWATCH = 'rgb(160, 160, 160)'
 // LIFT_BACKDROP_CSS reads paler alone than faded strokes do where they
 // overlap, so the key samples it darker
 const FADED_SWATCH = 'rgba(160, 160, 160, 0.45)'
@@ -93,7 +93,7 @@ export interface LegendRow {
   closesBubble?: true
 }
 
-export interface LegendSection {
+interface LegendSection {
   testid: string
   rows: LegendRow[]
 }
