@@ -28,5 +28,4 @@ jobs:
           node-version: 24.x
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: npx puppeteer browsers install chrome
       - run: pnpm host-compat --published

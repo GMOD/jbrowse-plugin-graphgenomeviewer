@@ -29,7 +29,6 @@ jobs:
           node-version: 24.x
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: npx puppeteer browsers install chrome
       - run: pnpm build
       # bash, so pipefail keeps a failed reshoot from passing through tee
       - shell: bash

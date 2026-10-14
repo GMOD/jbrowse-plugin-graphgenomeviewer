@@ -55,7 +55,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm host-names
-      - run: npx puppeteer browsers install chrome
       - run: pnpm host-compat
 
   e2e-tests:
@@ -72,7 +71,6 @@ jobs:
           node-version: 24.x
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: npx puppeteer browsers install chrome
       # The newest release in scripts/host-names/, by url rather than --tag:
       # the v5 releases on GitHub are drafts, which the CLI's unauthenticated
       # release lookup cannot see. The zip beside the hosted build is the same
