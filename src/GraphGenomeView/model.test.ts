@@ -1235,6 +1235,25 @@ describe('node budget', () => {
     consoleSpy.mockRestore()
   })
 
+  test('a declined graph does not keep the last graph drawn under it', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const model = withLimit(2)
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    expect(model.layoutResult).toBeDefined()
+
+    await model.loadGFA(
+      'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nS\t3\tTT\nL\t1\t+\t2\t+\t0M\nL\t2\t+\t3\t+\t0M\n',
+      'three nodes',
+    )
+
+    expect(String(model.error)).toMatch(/too large to draw/i)
+    expect(model.graph!.nodes).toHaveLength(3)
+    expect(model.layoutResult).toBeUndefined()
+    expect(model.drawnLayoutMode).toBeUndefined()
+    consoleSpy.mockRestore()
+  })
+
   test('walk rows draw a graph over the budget, since they draw no nodes', async () => {
     rpcRespond()
     const model = withLimit(1)

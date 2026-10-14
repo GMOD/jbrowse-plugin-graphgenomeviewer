@@ -184,6 +184,14 @@ export const withLoadActions = withSettingActions.actions(self => {
   // a haplotype's genes by track and contig span
   const walkGeneCache = new Map<string, GeneModel[]>()
 
+  function dropLayoutOfReplacedGraph() {
+    if (self.graph !== laidOutGraph) {
+      laidOutGraph = undefined
+      self.layoutResult = undefined
+      self.drawnLayoutMode = undefined
+    }
+  }
+
   // Applied under a guard because a layout is async and the user can load a
   // different graph, or ask for a different layout of it, while one is in
   // flight; the stale result must not land.
@@ -211,6 +219,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         return false
       }
       layoutError = e
+      dropLayoutOfReplacedGraph()
       throw e
     }
     const live = isLive()
@@ -636,11 +645,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     // The user's stop, leaving whatever is drawn under it
     stopLoad() {
       abortLoad()
-      // a graph that landed ahead of its layout has nothing of its own drawn
-      if (self.graph !== laidOutGraph) {
-        self.layoutResult = undefined
-        self.drawnLayoutMode = undefined
-      }
+      dropLayoutOfReplacedGraph()
       self.isLoading = false
       self.statusMessage = ''
       self.loadCanceled = true
