@@ -36,6 +36,12 @@ import type { Region } from '@jbrowse/core/util/types'
 // kB of compressed blocks, and re-fetching them per pan is the cost this avoids.
 const CHUNK_CACHE_SIZE = 50 * 2 ** 20
 
+// A file slot whose default is a url, '' for none
+export const fileLocationSlot = (uri: string) => ({
+  type: 'fileLocation' as const,
+  defaultValue: { uri, locationType: 'UriLocation' },
+})
+
 /**
  * The index slot `openTabixSlot` reads: its own `location` and `indexType`
  */
@@ -52,10 +58,7 @@ export const tabixIndexSchema = (name: string, defaultUri = '') =>
     /**
      * #slot
      */
-    location: {
-      type: 'fileLocation',
-      defaultValue: { uri: defaultUri, locationType: 'UriLocation' },
-    },
+    location: fileLocationSlot(defaultUri),
   })
 
 // The index slot's snapshot for a file whose `.tbi`, or `.csi`, sits beside it
@@ -63,6 +66,20 @@ export function tbiBeside(uri: string, baseUri: unknown, csi: unknown) {
   return {
     indexType: csi ? 'CSI' : 'TBI',
     location: { uri: `${uri}.${csi ? 'csi' : 'tbi'}`, baseUri },
+  }
+}
+
+// The `walksUri` shorthand: `<walksUri>.walks.bed.gz` and its index
+export function walksLocations(snap: Record<string, unknown>) {
+  const { walksUri, baseUri, csi } = snap
+  if (typeof walksUri !== 'string') {
+    return snap
+  }
+  const walks = `${walksUri}.walks.bed.gz`
+  return {
+    ...snap,
+    walksLocation: { uri: walks, baseUri },
+    walksIndex: tbiBeside(walks, baseUri, csi),
   }
 }
 

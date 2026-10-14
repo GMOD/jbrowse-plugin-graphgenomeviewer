@@ -1,6 +1,11 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 
-import { tabixIndexSchema, tbiBeside } from '../panSNTabix.ts'
+import {
+  fileLocationSlot,
+  tabixIndexSchema,
+  tbiBeside,
+  walksLocations,
+} from '../panSNTabix.ts'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -62,19 +67,6 @@ function prefixLocations(snap: Record<string, unknown>) {
     : snap
 }
 
-function walksLocations(snap: Record<string, unknown>) {
-  const { walksUri, baseUri, csi } = snap
-  if (typeof walksUri !== 'string') {
-    return snap
-  }
-  const file = (kind: string) => `${walksUri}.${kind}.bed.gz`
-  return {
-    ...snap,
-    walksLocation: { uri: file('walks'), baseUri },
-    walksIndex: tbiBeside(file('walks'), baseUri, csi),
-  }
-}
-
 function normalizeSnapshot(snap: Record<string, unknown>) {
   const { coarse, baseUri, csi } = snap
   return walksLocations(
@@ -107,13 +99,7 @@ const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
   /**
    * #slot
    */
-  segmentsLocation: {
-    type: 'fileLocation',
-    defaultValue: {
-      uri: '/path/to/graph.tier.segs.bed.gz',
-      locationType: 'UriLocation',
-    },
-  },
+  segmentsLocation: fileLocationSlot('/path/to/graph.tier.segs.bed.gz'),
   /**
    * #slot
    */
@@ -124,13 +110,7 @@ const RgfaTabixCoarseTier = ConfigurationSchema('RgfaTabixCoarseTier', {
   /**
    * #slot
    */
-  linksLocation: {
-    type: 'fileLocation',
-    defaultValue: {
-      uri: '/path/to/graph.tier.links.bed.gz',
-      locationType: 'UriLocation',
-    },
-  },
+  linksLocation: fileLocationSlot('/path/to/graph.tier.links.bed.gz'),
   /**
    * #slot
    */
@@ -148,13 +128,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * one row per segment: `stableName start end segmentId rank`, as emitted by
      * `gfatools gfa2bed -m`
      */
-    segmentsLocation: {
-      type: 'fileLocation',
-      defaultValue: {
-        uri: '/path/to/graph.segs.bed.gz',
-        locationType: 'UriLocation',
-      },
-    },
+    segmentsLocation: fileLocationSlot('/path/to/graph.segs.bed.gz'),
     /**
      * #slot
      */
@@ -167,13 +141,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * one row per link per endpoint, each carrying both endpoints in full so a
      * neighbour on another stable sequence needs no segment-id lookup
      */
-    linksLocation: {
-      type: 'fileLocation',
-      defaultValue: {
-        uri: '/path/to/graph.links.bed.gz',
-        locationType: 'UriLocation',
-      },
-    },
+    linksLocation: fileLocationSlot('/path/to/graph.links.bed.gz'),
     /**
      * #slot
      */
@@ -187,10 +155,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      * the reference's path, the ways haplotypes leave it and each haplotype's
      * piece. Unset means the graph has no walks.
      */
-    walksLocation: {
-      type: 'fileLocation',
-      defaultValue: { uri: '', locationType: 'UriLocation' },
-    },
+    walksLocation: fileLocationSlot(''),
     /**
      * #slot
      */
