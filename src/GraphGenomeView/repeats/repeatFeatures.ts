@@ -273,7 +273,7 @@ export function repeatArraysFrom(features: FeatureLike[]): RepeatArray[] {
         (stated && !PACKED_NAME.test(stated) ? stated : undefined) ??
         (motif && motif.length <= 12
           ? `(${motif})n`
-          : `${refName}:${(start + 1).toLocaleString()}-${end.toLocaleString()}`),
+          : `${refName}:${(start + 1).toLocaleString('en-US')}-${end.toLocaleString('en-US')}`),
       refName,
       start,
       end,

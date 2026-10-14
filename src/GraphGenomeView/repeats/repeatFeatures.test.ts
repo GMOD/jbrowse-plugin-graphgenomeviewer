@@ -68,6 +68,18 @@ test('vamos motifs and an unnamed array fall back to a motif or locus name', () 
   )
 })
 
+test("an unnamed array's locus name reads the same in every locale", () => {
+  const format = Number.prototype.toLocaleString
+  const german = vi
+    .spyOn(Number.prototype, 'toLocaleString')
+    .mockImplementation(function (this: number, locales, options) {
+      return format.call(this, locales ?? 'de-DE', options)
+    })
+  const [array] = repeatArraysFrom([{ ...base, period: 5548 }])
+  german.mockRestore()
+  expect(array!.name).toBe('chr6:160,616,003-160,646,753')
+})
+
 test('a feature stating no unit is left out, and rows sort by start', () => {
   const arrays = repeatArraysFrom([
     { ...base, start: 5000, end: 6000, period: 2 },
