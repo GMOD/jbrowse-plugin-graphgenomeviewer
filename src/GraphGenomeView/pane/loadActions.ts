@@ -238,12 +238,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       }
       layoutError = undefined
       const previous = self.layoutResult
-      const before = {
-        scaleX: self.scaleX,
-        scaleY: self.scaleY,
-        translateX: self.translateX,
-        translateY: self.translateY,
-      }
+      const before = self.screenTransform
       laidOutGraph = graph
       self.layoutResult = computed.result
       self.drawnLayoutMode = computed.mode

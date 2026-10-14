@@ -15,8 +15,6 @@ interface Attachment {
   side: EdgeSides['from']
 }
 
-export type PaneTransform = ScreenTransform
-
 // Morphs above this many nodes snap instead: each frame rebuilds the
 // geometry, which past it no longer fits a frame (GRAPH_SCALE_AND_LOD.md)
 export const MORPH_MAX_NODES = 3000
