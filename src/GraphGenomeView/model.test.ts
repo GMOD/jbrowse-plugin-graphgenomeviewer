@@ -4273,6 +4273,12 @@ describe('walk rows grouped by a sample column', () => {
     expect(model.figureUnavailable).toBeUndefined()
   })
 
+  test('a tube colour column keys nothing outside a tube map', async () => {
+    const model = await groupedModel({ tubeMapColorBy: 'superpopulation' })
+    expect(model.tubeMapColoring?.field).toBe('superpopulation')
+    expect(model.tubeMapKeys.values).toBeUndefined()
+  })
+
   test('no samples table, no Group by...', async () => {
     mockSession.tracks = []
     const model = await groupedModel()

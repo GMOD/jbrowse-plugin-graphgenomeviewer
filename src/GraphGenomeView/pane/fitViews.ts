@@ -21,17 +21,12 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
-import { pathColorsLegible } from '@jbrowse/bandage-core/pathColors'
 import {
   FIT_PADDING,
   drawingBounds,
   fitTransform,
 } from '@jbrowse/bandage-core/pipeline'
-import {
-  LIFT_BACKDROP_CSS,
-  buildGeometry,
-} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import { referenceBoxes, rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
@@ -75,8 +70,6 @@ import {
   boxOf,
   memberAt,
   paintPanelHover,
-  roleTubeColors,
-  valueTubeColors,
   walksThrough,
 } from '../tubeMapPanels'
 import { SECTION_HEADER_PX, sectionPlacement } from '../walkRowGroups'
@@ -110,7 +103,6 @@ import type {
 import type { TubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import type { TubeMapTransform } from '@jbrowse/bandage-core/tubeMap/frame'
 import type { TubeMapMismatch } from '@jbrowse/bandage-core/tubeMap/mismatches'
-import type { Graph } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
@@ -845,27 +837,6 @@ export const withFitViews = withHostViews
       if (!panels) {
         return undefined
       }
-      const hovered = new Set(self.hoveredRowWalks)
-      const coloring = self.tubeMapColoring
-      const tubeColors = (graph: Graph) => {
-        const paths = graph.paths ?? []
-        const base = coloring
-          ? valueTubeColors(
-              paths,
-              graph.referencePath,
-              coloring.valueOf,
-              coloring.palette,
-            )
-          : roleTubeColors(paths, graph.referencePath)
-        return base.map((color, i) => {
-          const name = paths[i]!.name
-          return hovered.size > 0 &&
-            !hovered.has(name) &&
-            pathOrigin(name).name !== graph.referencePath
-            ? LIFT_BACKDROP_CSS
-            : color
-        })
-      }
       const { field } = self.facetSetting
       return panels.map(panel => {
         const drawing = panel.result.tubeMap
@@ -876,7 +847,11 @@ export const withFitViews = withHostViews
             panel.label ??
             (field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key),
           picture: tubeMapPicture(drawing),
-          tubeColors: tubeColors(graph),
+          tubeColors: self.fadeUnhovered(
+            self.tubeColorsOf(graph, drawing.pathColors),
+            graph.paths ?? [],
+            graph.referencePath,
+          ),
           nodeColors: self.tubeMapNodeColors
             ? tubeMapNodeColors(
                 graph,
@@ -1041,12 +1016,12 @@ export const withFitViews = withHostViews
         const reads = split ? [] : (layout?.tubeMap?.layout.reads ?? [])
         const paths = self.drawnGraph?.paths ?? []
         const coloring = self.tubeMapColoring
+        const kind = self.tubeColorKind
         return {
-          // tubes coloured reference and haplotype rather than per walk
           bundled: paths.some(p => p.members),
           // tubes in a column's hues, keyed value by value
           values:
-            coloring && !self.tubeMapReads
+            kind === 'value' && coloring
               ? [
                   ...[...coloring.palette].map(([value, color]) => ({
                     value,
@@ -1062,16 +1037,9 @@ export const withFitViews = withHostViews
                     : []),
                 ]
               : undefined,
-          roles:
-            !(coloring && !self.tubeMapReads) &&
-            (split ||
-              (layout?.tubeMap !== undefined &&
-                (!!self.tubeMapNodeColors ||
-                  (!self.tubeMapReads &&
-                    (!pathColorsLegible(paths.length) ||
-                      paths.some(p => p.members)))))),
-          haplotypeTube:
-            !split && self.tubeMapNodeColors ? TINTED_TUBES[0]! : PANEL_TUBE,
+          // tubes coloured reference and haplotype rather than per walk
+          roles: kind === 'role' || kind === 'tinted',
+          haplotypeTube: kind === 'tinted' ? TINTED_TUBES[0]! : PANEL_TUBE,
           logWidths: layout?.tubeMap !== undefined && !layout.referenceAxis,
           foldBp:
             self.tubeMapDeviations.length > 0 ? self.tubeMapFold : undefined,

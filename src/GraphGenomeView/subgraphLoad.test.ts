@@ -41,6 +41,11 @@ vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
     ),
 }))
 
+const mockReadFile = vi.hoisted(() => vi.fn())
+vi.mock('@jbrowse/core/util/io', () => ({
+  openLocation: () => ({ readFile: mockReadFile }),
+}))
+
 // pangenome_hprc's segments track once NA20809 haplotype 2 is loaded
 const TRACK = {
   trackId: 'segments',
@@ -357,6 +362,35 @@ describe('reads', () => {
     expect(model.tubeMapReads).toBe(false)
     expect(model.colorSchemeLock).toBeUndefined()
     expect(model.effectiveColorScheme).toBe('reference-position')
+  })
+
+  // the reads take the reds and blues, so the tubes keep their greys, which
+  // the key names walk by walk
+  test('beside reads a tube colour column leaves the key naming each walk', async () => {
+    const model = await cutWithReads(() =>
+      Promise.resolve({ records: [READ], total: 1 }),
+    )
+    mockSession.tracks = [
+      {
+        ...READS_TRACK,
+        adapter: {
+          ...READS_TRACK.adapter,
+          samplesTsvLocation: {
+            uri: 'samples.tsv',
+            locationType: 'UriLocation',
+          },
+        },
+      },
+    ]
+    mockReadFile.mockResolvedValue('name\tpopulation\nalt\tYRI\n')
+    await model.loadWalkRowSampleTable()
+    model.setTubeMapColorBy('population')
+    expect(model.tubeMapColoring?.field).toBe('population')
+    expect(model.tubeMapKeys.values).toBeUndefined()
+    expect(model.pathLegend.map(e => [e.name, e.color])).toEqual([
+      ['hg38', model.tubeMapTubeColors![0]],
+      ['alt', model.tubeMapTubeColors![1]],
+    ])
   })
 
   // A tube map draws the window alone, so its ramp key speaks for its boxes:

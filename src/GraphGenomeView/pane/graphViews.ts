@@ -93,7 +93,7 @@ import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
-import type { GraphNode } from '@jbrowse/bandage-core/types'
+import type { Graph, GraphNode } from '@jbrowse/bandage-core/types'
 import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
 import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
@@ -121,6 +121,8 @@ export interface GraphGrammar {
   rows?: GraphRows
   hover?: HoverHighlight
 }
+
+type TubeColorKind = 'value' | 'tinted' | 'role' | 'path'
 
 // The rows walk rows draw: `kept` names the samples whose walks show, by the
 // name before the haplotype number; unset shows every walk the cut holds
@@ -1065,36 +1067,76 @@ export const withGraphViews = paneBase
           )
         : undefined
     },
-    // Beside tinted boxes, and past the walks a key can name, the tubes take
-    // their roles' colours: a hue per walk would either share a box's or
-    // identify nothing
+    // How a tube map colours its tubes: a hue per value of the column
+    // picked; grey by role beside tinted boxes, which a hue per walk would
+    // share; the reference charcoal and the haplotypes blue in a panel, whose
+    // title names its walks, and past the walks a key can name; else a hue
+    // per walk. Beside reads, which take the reds and blues, that hue is grey.
+    get tubeColorKind(): TubeColorKind | undefined {
+      const layout = self.layoutResult
+      const paths = self.drawnGraph?.paths ?? []
+      const reads = self.tubeMapReads
+      return !layout?.tubeMap
+        ? undefined
+        : self.tubeMapColoring && !reads
+          ? 'value'
+          : layout.tubeMapPanels
+            ? 'role'
+            : this.tubeMapNodeColors
+              ? 'tinted'
+              : !reads &&
+                  (!pathColorsLegible(paths.length) ||
+                    paths.some(p => p.members))
+                ? 'role'
+                : 'path'
+    },
+    // `graph`'s tubes as tubeColorKind colours them, `pathColors` being
+    // its drawing's hue per walk
+    tubeColorsOf(graph: Graph, pathColors: readonly string[]) {
+      const paths = graph.paths ?? []
+      const kind = this.tubeColorKind
+      const coloring = self.tubeMapColoring
+      return kind === 'value' && coloring
+        ? valueTubeColors(
+            paths,
+            graph.referencePath,
+            coloring.valueOf,
+            coloring.palette,
+          )
+        : kind === 'tinted'
+          ? roleTubeColors(paths, graph.referencePath, TINTED_TUBES)
+          : kind === 'role'
+            ? roleTubeColors(paths, graph.referencePath)
+            : pathColors
+    },
+    // While a lane row is hovered, every tube but its walks' and `kept`'s
+    // fades. A panel keeps its reference to compare against; the unsplit map
+    // fades it with the rest.
+    fadeUnhovered(
+      colors: readonly string[],
+      paths: readonly { name: string }[],
+      kept?: string,
+    ) {
+      const hovered = new Set(self.hoveredRowWalks)
+      return hovered.size > 0
+        ? colors.map((color, i) => {
+            const name = paths[i]?.name ?? ''
+            return hovered.has(name) ||
+              (kept !== undefined && pathOrigin(name).name === kept)
+              ? color
+              : LIFT_BACKDROP_CSS
+          })
+        : colors
+    },
     get tubeMapTubeColors() {
       const drawing = self.layoutResult?.tubeMap
-      const colors = drawing?.pathColors
-      const paths = self.drawnGraph?.paths
-      const coloring = self.tubeMapColoring
-      const tubes =
-        colors && paths && coloring && drawing.layout.reads.length === 0
-          ? valueTubeColors(
-              paths,
-              self.drawnGraph.referencePath,
-              coloring.valueOf,
-              coloring.palette,
-            )
-          : colors && paths && this.tubeMapNodeColors
-            ? roleTubeColors(paths, self.drawnGraph.referencePath, TINTED_TUBES)
-            : colors &&
-                paths &&
-                drawing.layout.reads.length === 0 &&
-                (!pathColorsLegible(paths.length) || paths.some(p => p.members))
-              ? roleTubeColors(paths, self.drawnGraph.referencePath)
-              : colors
-      const hovered = new Set(self.hoveredRowWalks)
-      return tubes && paths && hovered.size > 0
-        ? tubes.map((color, i) =>
-            hovered.has(paths[i]?.name ?? '') ? color : LIFT_BACKDROP_CSS,
+      const graph = self.drawnGraph
+      return drawing && graph
+        ? this.fadeUnhovered(
+            this.tubeColorsOf(graph, drawing.pathColors),
+            graph.paths ?? [],
           )
-        : tubes
+        : undefined
     },
     // A node's reference interval, an allele's between its flanks
     nodeSpan(nodeId: string) {
@@ -1142,20 +1184,17 @@ export const withGraphViews = paneBase
     // Empty unless the ribbons are actually on: a colour key beside a drawing
     // with no colours in it is a legend for nothing.
     // The tube map colours its tubes whether or not paths are drawn on the
-    // nodes, so under it the key follows the tubes, and names the colours
-    // the tubes were drawn in.
+    // nodes, so under it the key follows the tubes: walk by walk where each
+    // has a hue, and otherwise the tube map's own key names the colours.
     get pathLegend() {
       const paths = self.drawnGraph?.paths
-      const tubeMap = self.layoutResult?.tubeMap
-      const colouring = self.drawPaths || tubeMap
-      // tubes coloured by role or by a column take the tube map's role or value key
-      return colouring &&
+      const keyed = self.layoutResult?.tubeMap
+        ? self.tubeColorKind === 'path'
+        : self.drawPaths
+      return keyed &&
         paths &&
         pathColorsLegible(paths.length) &&
-        !self.layoutResult?.tubeMapPanels &&
-        !self.tubeMapNodeColors &&
-        !paths.some(p => p.members) &&
-        !self.tubeMapColoring
+        !paths.some(p => p.members)
         ? pathLegend(paths, self.tubeMapTubeColors)
         : []
     },
