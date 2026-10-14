@@ -7,7 +7,8 @@ const mockSession = {
   tracks: [] as Record<string, unknown>[],
   rpcManager: { call: mockRpcCall },
   assemblyManager: {
-    has: () => false,
+    has: (_name: string) => false,
+    get: (_name: string) => undefined as { name: string } | undefined,
     assemblyList: [] as { name: string; aliases: string[] }[],
   },
 }
@@ -103,6 +104,8 @@ async function cut(region: typeof ON_HG38, gfa = GFA) {
 beforeEach(() => {
   mockRpcCall.mockReset()
   mockSession.tracks = [TRACK]
+  mockSession.assemblyManager.has = () => false
+  mockSession.assemblyManager.get = () => undefined
   mockSession.assemblyManager.assemblyList = []
 })
 
@@ -119,6 +122,17 @@ test('a cut on another assembly the track names is refused, naming the reference
   expect(String(model.error)).toMatch(/cut on its reference, hg38/)
   expect(model.hasGraph).toBe(false)
   expect(mockRpcCall).not.toHaveBeenCalled()
+})
+
+test("a track naming its reference by an alias of the region's assembly cuts it", async () => {
+  mockSession.tracks = [{ ...TRACK, assemblyNames: ['GRCh38', 'NA20809.2'] }]
+  const hg38 = { name: 'hg38', aliases: ['GRCh38'] }
+  const known = (name: string) => name === 'hg38' || name === 'GRCh38'
+  mockSession.assemblyManager.has = known
+  mockSession.assemblyManager.get = name => (known(name) ? hg38 : undefined)
+  const model = await cut(ON_HG38)
+  expect(model.error).toBeUndefined()
+  expect(model.nodeCount).toBe(3)
 })
 
 test('a cut that finds no segments is an error, not an empty graph', async () => {

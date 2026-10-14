@@ -295,11 +295,28 @@ function createEnvironment({
     },
     { pluginManager },
   )
+  const aliasTrackConfig = trackSchema.create(
+    {
+      type: 'GraphTrack',
+      trackId: 'graph-on-alias',
+      name: 'graph on an alias of its reference',
+      assemblyNames: ['GRCh38'],
+      adapter: { type: 'RgfaTabixAdapter', uri: 'graph' },
+      displays: [
+        {
+          type: 'LinearGraphDisplay',
+          displayId: 'graph-on-alias-LinearGraphDisplay',
+        },
+      ],
+    },
+    { pluginManager },
+  )
   const trackConfigs = [
     trackConfig,
     gbzTrackConfig,
     walkIndexedTrackConfig,
     featureTrackConfig,
+    aliasTrackConfig,
   ]
   if (geneLaneFilter) {
     trackConfigs.push(
@@ -436,8 +453,11 @@ function createEnvironment({
           { name: 'HG1.1', aliases: ['HG1#1'] },
           { name: 'HG2.1', aliases: ['HG2#1'] },
         ],
-        get: (name: string) => (name === ASM ? assembly : undefined),
-        has: (name: string) => name === ASM,
+        get: (name: string) =>
+          name === ASM || assembly.aliases.includes(name)
+            ? assembly
+            : undefined,
+        has: (name: string) => name === ASM || assembly.aliases.includes(name),
         waitForAssembly: () => Promise.resolve(assembly),
         isValidRefName: () => true,
       },
@@ -1056,6 +1076,18 @@ test('a 4.0 FeatureTrack config still opens as the graph', async () => {
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
   expect(display.hasGraph).toBe(true)
+})
+
+test("a track naming its reference by an alias of the view's assembly cuts the window", async () => {
+  const { view, cuts } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('graph-on-alias')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(display.error).toBeUndefined()
+  expect(cuts).toHaveLength(1)
 })
 
 test('a GBZ track cuts for the lanes it names', async () => {

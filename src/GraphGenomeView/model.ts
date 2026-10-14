@@ -1,11 +1,13 @@
 import { cutsWholeWalks as wholeWalksRule } from '@jbrowse/bandage-core/layout/walkStrip'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+import { getSession } from '@jbrowse/core/util'
 
 import {
   configHaplotypes,
   graphReferenceAssembly,
   offReferenceProblem,
 } from '../graphTrackConfig'
+import { canonicalAssemblyName } from '../launchFromGraph/launchFromGraph'
 import { withLaunchActions } from './pane/launchActions'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
@@ -30,16 +32,19 @@ export const GraphPane = withLaunchActions
     get cutHaplotypes() {
       return self.subgraphHaplotypes ?? self.trackHaplotypes
     },
-    // why the source track cannot cut `region`, which is a window on an
-    // assembly other than the graph's reference
+    // Why the source track cannot cut `region`, which is a window on an
+    // assembly other than the graph's reference. A track may name its
+    // reference by an alias of the assembly the window is on.
     offReference(region: SubgraphRegion) {
       const track = self.sourceTrack
-      return track
-        ? offReferenceProblem(
-            graphReferenceAssembly(track),
-            region.assemblyName,
+      const reference = track && graphReferenceAssembly(track)
+      const session = getSession(self)
+      return reference === undefined
+        ? undefined
+        : offReferenceProblem(
+            canonicalAssemblyName(session, reference),
+            canonicalAssemblyName(session, region.assemblyName),
           )
-        : undefined
     },
     // Walk rows, and the strip of them under a node layout, measure whole
     // walks, which a GBZ cut only follows when asked, so a layout change
