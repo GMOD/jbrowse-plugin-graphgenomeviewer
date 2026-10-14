@@ -1,4 +1,7 @@
-import { mergeOverlappingByName } from '@jbrowse/bandage-core/genes/geneFiles'
+import {
+  mergeOverlappingByName,
+  mergedIntervals,
+} from '@jbrowse/bandage-core/genes/geneFiles'
 import { readConfObject } from '@jbrowse/core/configuration'
 
 import { REPEAT_TRACK_HINT } from '../repeats/repeatFeatures'
@@ -111,20 +114,6 @@ function exonsOf(f: FeatureLike, into: { start: number; end: number }[]) {
   }
 }
 
-function merged(intervals: { start: number; end: number }[]) {
-  const sorted = [...intervals].sort((a, b) => a.start - b.start)
-  const out: { start: number; end: number }[] = []
-  for (const iv of sorted) {
-    const last = out.at(-1)
-    if (last && iv.start <= last.end) {
-      last.end = Math.max(last.end, iv.end)
-    } else {
-      out.push({ ...iv })
-    }
-  }
-  return out
-}
-
 // Genes from a track's features: every top-level feature but a whole-sequence
 // record, named by the first of gene_name, name, gene and gene_id it carries,
 // with the exons found anywhere under it merged. A feature with no exons is one exon,
@@ -158,7 +147,7 @@ export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
       start,
       end,
       strand: (field(f, 'strand') as number | undefined) ?? 0,
-      exons: exons.length ? merged(exons) : [{ start, end }],
+      exons: exons.length ? mergedIntervals(exons) : [{ start, end }],
     })
   }
   return mergeOverlappingByName(genes)
