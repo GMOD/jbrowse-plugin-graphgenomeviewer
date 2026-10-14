@@ -1,4 +1,5 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
+import { WALK_BUDGETS } from '@jbrowse/graph-walks'
 
 import {
   fileLocationSlot,
@@ -170,7 +171,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      */
     walkStepBudget: {
       type: 'integer',
-      defaultValue: 4_000_000,
+      defaultValue: WALK_BUDGETS.stepBudget,
     },
     /**
      * #slot
@@ -181,7 +182,7 @@ const RgfaTabixAdapter = ConfigurationSchema(
      */
     walkByteBudget: {
       type: 'integer',
-      defaultValue: 8_000_000,
+      defaultValue: WALK_BUDGETS.byteBudget,
     },
     /**
      * #slot

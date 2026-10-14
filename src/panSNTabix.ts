@@ -7,9 +7,9 @@ import {
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
+import { refNameLookup, resolveRefName } from '@jbrowse/graph-walks'
 import { types } from '@jbrowse/mobx-state-tree'
 
-import { buildRefNameLookup, resolveRefName } from './refNameLookup.ts'
 import { bytesForRegions } from './tabixRange.ts'
 
 import type {
@@ -20,9 +20,8 @@ import type { Region } from '@jbrowse/core/util/types'
 
 // What a tabix-indexed graph track answers about its own reference names, for
 // the two adapters that read one: `RgfaTabixAdapter` over segments and links,
-// and `MinigraphBubbleAdapter` over bubbles. The name lookup is in
-// refNameLookup.ts, which scripts/dump-subgraph.ts loads under node's type
-// stripping.
+// and `MinigraphBubbleAdapter` over bubbles. @jbrowse/graph-walks builds the
+// name lookup.
 //
 // A class rather than a base class, for the reason ComparativeAdapterBase.ts
 // records: a base generic over the config cannot prove a slot name to
@@ -116,7 +115,7 @@ export class PanSNRefNames {
   // read going for the rest, and retries a failed read.
   private lookup = cachedSetup({
     setup: async opts =>
-      buildRefNameLookup(await this.file.getReferenceSequenceNames(opts)),
+      refNameLookup(await this.file.getReferenceSequenceNames(opts)),
   })
 
   constructor(

@@ -8,10 +8,11 @@ import {
 } from '@jbrowse/bandage-core/pansn'
 import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
+import { walksKept } from '@jbrowse/graph-walks'
 
 import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
 import { isNodeLimitError } from '../LinearGraphDisplay/denseWindow.ts'
-import { WalkIndex, walksKept } from '../RgfaTabixAdapter/walkReader.ts'
+import { WalkIndex } from '../RgfaTabixAdapter/walkReader.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import {

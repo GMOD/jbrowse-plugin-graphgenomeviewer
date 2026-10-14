@@ -1,9 +1,5 @@
-import { panSNHaplotype, resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
-import {
-  WalkReader,
-  referenceNodes,
-  walkNameFilter,
-} from '@jbrowse/graph-walks'
+import { resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
+import { WalkReader, referenceNodes, walksKept } from '@jbrowse/graph-walks'
 
 import { getLines } from '../tabixRange.ts'
 import { walkCutFor } from './walkRowRuns.ts'
@@ -19,15 +15,6 @@ import type {
 export const BUDGET_SLOTS = {
   steps: 'walkStepBudget',
   bytes: 'walkByteBudget',
-}
-
-/**
- * The walks a cut decodes: the reference's and those `prefixes` names. A pggb
- * P-line names a reference with no haplotype field (`chm13#chr1`), so the
- * filter matches the reference by its whole name.
- */
-export function walksKept(prefixes: string[] | undefined, refName: string) {
-  return walkNameFilter(prefixes, panSNHaplotype(refName) ?? refName)
 }
 
 /**

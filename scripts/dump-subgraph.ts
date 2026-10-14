@@ -16,9 +16,9 @@
 import fs from 'node:fs'
 
 import { TabixIndexedFile } from '@gmod/tabix'
+import { refNameLookup, resolveRefName } from '@jbrowse/graph-walks'
 
 import { rgfaCut } from '../src/RgfaTabixAdapter/rgfaCut.ts'
-import { buildRefNameLookup, resolveRefName } from '../src/refNameLookup.ts'
 
 const [prefix, sample, refName, start, end, out, hops = '1'] =
   process.argv.slice(2)
@@ -32,9 +32,7 @@ const files = {
   segments: new TabixIndexedFile({ path: `${prefix}.segs.bed.gz` }),
   links: new TabixIndexedFile({ path: `${prefix}.links.bed.gz` }),
 }
-const lookup = buildRefNameLookup(
-  await files.segments.getReferenceSequenceNames(),
-)
+const lookup = refNameLookup(await files.segments.getReferenceSequenceNames())
 const tabixRefName = resolveRefName(lookup, sample, refName)
 if (tabixRefName === undefined) {
   throw new Error(`${prefix}.segs.bed.gz has no sequence ${sample} ${refName}`)
