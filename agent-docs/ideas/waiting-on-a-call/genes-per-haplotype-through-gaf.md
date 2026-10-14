@@ -2,17 +2,17 @@
 name: genes-per-haplotype-through-gaf
 description:
   Draw each gene through the nodes a haplotype carries it on, with that
-  haplotype's edits marked, as transcripts in GAF.
-metadata:
-  category: measure
-  area: tube map
-  first_move:
-    "Map one gene through one haplotype's walk by hand and compare with the
-    reference-box lane."
-  order: 1
+  haplotype's edits marked, as transcripts in GAF; waits on reads leaving the
+  deprecated GBZ route.
 ---
 
 # Genes per haplotype through GAF
+
+- Waits on
+  [reads-on-an-rgfa-or-a-standalone-gfa.md](reads-on-an-rgfa-or-a-standalone-gfa.md):
+  the route draws through the reads pipeline, which only gbz-base tracks feed.
+  Once it can run, the first move is to map one gene through one haplotype's
+  walk by hand and compare with the reference-box lane.
 
 - Goal: draw each gene through the nodes a haplotype carries it on, with that
   haplotype's edits marked. The gene lane (`tubeMap/genes.ts`) maps genes

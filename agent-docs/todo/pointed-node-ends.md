@@ -24,5 +24,3 @@ metadata:
     so the drawn direction there is now meaningful.
 - First step: have each layout emit a per-node drawn strand, then taper the node
   end in `buildGeometry`. Force and tube map could go first.
-
-## Walk strip

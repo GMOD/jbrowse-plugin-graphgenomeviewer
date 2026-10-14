@@ -19,5 +19,3 @@ metadata:
 - `walkStripLabelsTree` in `bandage-core/src/layout/walkStrip.ts` takes the
   lifted set as `bold`. An additive optional argument with each walk's colour
   avoids a breaking core change.
-
-## Tube map
