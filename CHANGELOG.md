@@ -1,3 +1,19 @@
+## [7.1.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.3...v7.1.4) (2026-10-14)
+
+### Other Changes
+
+- Keep a graph view's region by canonical assembly and refName ([154af4a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/154af4a22c3ad8b74a5f2e8fc76d393d7d7286bc))
+- Send lane adapters canonical assembly names ([563c37e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/563c37e6cd1457acd37bc8d0512c9c8adf324242))
+- Drop a recut's graph when a stop lands before its layout ([37a1d34](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/37a1d344e39ed7ef4cdc4a1d8738819956f78945))
+- Grey an open bubble's surroundings in the SVG export too ([adadb57](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/adadb576a24f25811445512cdf1c8cfcba4c6445))
+- Measure the legend only at rest, and again on returning to rest ([7157425](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/715742553e7508af08bce656a79bea6b516e2005))
+- Give the dense-chunk walk-file test its own 60 s timeout ([0a657fc](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0a657fc24a0d02475c35e82f9cfed787e9891d78))
+- End the strip hover before the bubble legend grows in the hover e2e ([a69f1e9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a69f1e9454b5e8a26ae41bde8ea130b97a6f8137))
+- Trim preversion to what can change after CI, and publish.yml's no-ops ([94f0e09](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/94f0e09f3fc650b0706a04b07de6f8b56794aca8))
+- Drop setPaneHeight and highlightInLinearView's return value, which only tests used ([eadfedd](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/eadfedd3dd00eb22ed7de0d2bd3ae8d95f605497))
+- Colour walk-row hsl() runs with bandage-core's hslToRgb ([fe47e6c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fe47e6c3f9d9ffda5548b9daf6e49f5b39225436))
+- Move the morph gate and frame loop into morph.ts ([abf9842](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/abf9842ccaf36ce955a10ca8426f1d20e8d49564))
+
 ## [7.1.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.2...v7.1.3) (2026-10-14)
 
 ### Other Changes
