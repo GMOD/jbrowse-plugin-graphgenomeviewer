@@ -63,6 +63,9 @@ const config = {
   // Automatic JSX runtime; react/jsx-runtime is a JBrowse global (ReExports).
   jsx: 'automatic',
   metafile: true,
+  // esbuild only warns on `ns.name` from `import * as ns` when the host
+  // serves no `name`, and the bundle reads undefined there at runtime
+  logOverride: { 'import-is-undefined': 'error' },
   plugins: [
     hostShim({
       keys: JBrowseReExports,
