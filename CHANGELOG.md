@@ -1,3 +1,14 @@
+## [7.1.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.2...v7.1.3) (2026-10-14)
+
+### Other Changes
+
+- File the review's skipped cleanups and open items ([52c3734](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/52c3734b879528f65292f36c49723dc15c8338ff))
+- File the review's open bugs as todos and its remaining cleanups ([5f30eae](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5f30eae24940dbd854ba1a43994ad32c7ef579f7))
+- Lint against tsconfig.test.json and drop tsconfig.eslint.json ([786be27](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/786be27a3a0d6c30fd00970a61964cf19dd9f6a0))
+- Move isNodeLimitError out of the display into src/nodeLimitError.ts ([453a2a1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/453a2a130bbfd054c1bdcfbe2c1e87c3d40304e5))
+- Correct three comments on lane pairs, lane-offering adapters and subgraph cutters ([62bfe9b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/62bfe9bbe65d6da3066024e773bc959e63865df6))
+- Draw the screen legend's swatches with the SVG export's SvgSwatch ([1610e76](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1610e76a7c25cd9671d4e894985fb1b4bf0dc4f5))
+
 ## [7.1.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.1...v7.1.2) (2026-10-14)
 
 ### Other Changes
