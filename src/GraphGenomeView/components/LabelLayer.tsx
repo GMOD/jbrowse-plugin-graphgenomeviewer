@@ -1,11 +1,11 @@
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { geneCoverageNote } from '@jbrowse/bandage-core/labelLayout'
 import { LABEL_PX, labelWidth } from '@jbrowse/bandage-core/overlayLabels'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
 
-import { EXON_COLOR } from './GenePins'
 import LabelChip, { inChip } from './LabelChip'
 import { PaneSvgLayer } from './PaneLayer'
 

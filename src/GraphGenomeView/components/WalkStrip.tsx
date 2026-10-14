@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   walkRowReadout,
@@ -15,7 +15,7 @@ import { RAMP_GRADIENT_CSS } from '@jbrowse/bandage-core/referenceRampCss'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
 
-import ElTree from './ElTree'
+import ElTree, { useSvgId } from './ElTree'
 import { LegendSwatchView } from './Legend'
 import PaneContextMenu from './PaneContextMenu'
 import { legendRowStyle } from './legendStyles'
@@ -67,7 +67,7 @@ const StripBars = observer(function StripBars({
   ramp: { start: number; end: number } | undefined
   rowGenes: Map<string, RowGene[]> | undefined
 }) {
-  const idPrefix = useId().replace(/[^\w-]/g, '')
+  const idPrefix = useSvgId()
   const tree = useMemo(
     () => walkRowsTree(bars, frame, { ramp, rowGenes, idPrefix }),
     [bars, frame, ramp, rowGenes, idPrefix],

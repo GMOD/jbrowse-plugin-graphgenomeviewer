@@ -1,10 +1,10 @@
-import { useCallback, useId, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import { walkRowsTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { computed } from 'mobx'
 import { observer } from 'mobx-react'
 
-import ElTree from './ElTree'
+import ElTree, { useSvgId } from './ElTree'
 import { PaneOverlayCanvas, PaneSvgLayer } from './PaneLayer'
 import { SECTION_HEADER_PX } from '../walkRowGroups'
 import { paintWalkRowSpans, walkRowSpans } from '../walkRowSpans'
@@ -140,7 +140,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model: GraphPaneModel
   vector?: boolean
 }) {
-  const idPrefix = useId().replace(/[^\w-]/g, '')
+  const idPrefix = useSvgId()
   const bars = model.walkRowBars
   const place = model.walkRowPlacement
   const pitch = model.walkRowPitch

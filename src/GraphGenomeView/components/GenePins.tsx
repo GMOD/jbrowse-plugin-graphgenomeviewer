@@ -1,12 +1,10 @@
-import { useId } from 'react'
-
 import {
   exonOutlineTree,
   exonStretches,
 } from '@jbrowse/bandage-core/genes/exonOutline'
 import { observer } from 'mobx-react'
 
-import ElTree from './ElTree'
+import ElTree, { useSvgId } from './ElTree'
 import { PaneSvgLayer } from './PaneLayer'
 
 import type { GraphPaneModel } from '../model'
@@ -15,14 +13,12 @@ import type { GraphPaneModel } from '../model'
 // stretch of node, as core's exonOutlineTree draws it for every host, moved by
 // the same transform the halos use. Their names are LabelLayer's.
 
-export { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
-
 const GenePins = observer(function GenePins({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const id = `exon-outline-${useId().replaceAll(/[^\w-]/g, '')}`
+  const id = `exon-outline-${useSvgId()}`
   const { genePins, walkLift, nodeInk } = model
   const { scaleX, scaleY, translateX, translateY, paneWidth, canvasHeight } =
     model
