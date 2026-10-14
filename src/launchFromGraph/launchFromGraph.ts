@@ -1,6 +1,7 @@
+import { regionLabel } from '@jbrowse/bandage-core/hoverText'
 import { readConfObject } from '@jbrowse/core/configuration'
 
-import { locLabel, locString } from './contributors'
+import { locString } from './contributors'
 import { linearViewTarget } from './linearViewTarget'
 
 import type { Contributor, GraphLocation } from './contributors'
@@ -154,13 +155,13 @@ export function showInLinearView({
   if (existing) {
     reportFailure(
       session,
-      `Could not show ${assembly} ${locLabel(location)}`,
+      `Could not show ${assembly} ${regionLabel(location)}`,
       Promise.resolve(existing.navToLocString(locString(location), assembly)),
     )
     viewId = existing.id
   } else {
     viewId = session.addView('LinearGenomeView', {
-      displayName: `${assembly} — ${locLabel(location)}`,
+      displayName: `${assembly} — ${regionLabel(location)}`,
       init: { assembly, loc: locString(location), tracks },
     }).id
   }

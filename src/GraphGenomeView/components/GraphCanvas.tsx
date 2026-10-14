@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { edgeHoverText } from '@jbrowse/bandage-core/hoverText'
+import { edgeHoverText, regionLabel } from '@jbrowse/bandage-core/hoverText'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
@@ -22,7 +22,7 @@ import WalkRowsOverlay from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
-import { locLabel, nodeOwnLocation } from '../../launchFromGraph/contributors'
+import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { TOOLTIP_INSET_PX } from '../pane/fitViews'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
@@ -345,7 +345,7 @@ const HoverTooltips = observer(function HoverTooltips({
           {ownLocation ? (
             <>
               <br />
-              {ownLocation.sample} {locLabel(ownLocation)} (rank{' '}
+              {ownLocation.sample} {regionLabel(ownLocation)} (rank{' '}
               {hoveredNodeData.stable?.rank})
             </>
           ) : null}

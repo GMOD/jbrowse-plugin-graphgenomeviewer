@@ -1,6 +1,7 @@
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { foldVariants } from '@jbrowse/bandage-core/foldVariants'
+import { regionLabel } from '@jbrowse/bandage-core/hoverText'
 import {
   clipToWindow,
   trimToWindow,
@@ -32,7 +33,6 @@ import {
 import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
 import { walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
-import { locLabel } from '../../launchFromGraph/contributors'
 import { geneModelsFrom } from '../genes/geneFeatures'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
 import {
@@ -740,7 +740,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         }
         yield* parseAndLayout(
           cut,
-          locLabel(region),
+          regionLabel(region),
           region,
           true,
           namesReads(adapterConfig)

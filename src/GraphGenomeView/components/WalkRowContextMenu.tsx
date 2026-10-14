@@ -1,10 +1,9 @@
+import { regionLabel } from '@jbrowse/bandage-core/hoverText'
 import { Menu } from '@jbrowse/core/ui'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import FilterListOffIcon from '@mui/icons-material/FilterListOff'
 import LineStyleIcon from '@mui/icons-material/LineStyle'
 import { observer } from 'mobx-react'
-
-import { locLabel } from '../../launchFromGraph/contributors'
 
 import type { GraphPaneModel } from '../model'
 import type { WalkRows } from '@jbrowse/bandage-core/layout/walkRows'
@@ -50,7 +49,7 @@ export const WalkRowContextMenu = observer(function WalkRowContextMenu({
       menuItems={[
         target && assembly
           ? {
-              label: `Linear genome view — ${assembly} ${locLabel(target.location)}`,
+              label: `Linear genome view — ${assembly} ${regionLabel(target.location)}`,
               icon: LineStyleIcon,
               onClick: () => {
                 model.showInLinearView({ location: target.location, assembly })
