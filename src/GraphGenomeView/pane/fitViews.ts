@@ -781,8 +781,8 @@ export const withFitViews = withHostViews
               rowGeneGaps: self.walkRowGeneGaps,
             },
             // the SVG carries the spec only where the spec draws this same
-            // picture
-            spec: this.figureSpecUnavailable ? undefined : this.figureSpec(),
+            // picture: one of nodes (figureSpecUnavailable)
+            spec: self.drawsNodes ? this.figureSpec() : undefined,
           })
         : undefined
     },
