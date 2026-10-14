@@ -300,11 +300,11 @@ describe('reads', () => {
     secondary: false,
   }
 
-  async function cutWithReads(reads: () => Promise<unknown>) {
+  async function cutWithReads(reads: () => Promise<unknown>, gfa = PATHS) {
     mockSession.tracks = [READS_TRACK]
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
-        ? Promise.resolve(PATHS)
+        ? Promise.resolve(gfa)
         : method === 'GetGraphReads'
           ? reads()
           : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
@@ -341,6 +341,22 @@ describe('reads', () => {
     expect(model.effectiveColorScheme).toBe('uniform')
     expect(model.tubeMapNodeColors).toBeUndefined()
     expect(model.colorSchemeLock?.value).toBe('By strand')
+  })
+
+  // the panels draw no reads, so the boxes take the scheme picked
+  test('a tube map split into panels colours its boxes beside reads', async () => {
+    const model = await cutWithReads(
+      () => Promise.resolve({ records: [READ], total: 1 }),
+      PATHS.replace('P\talt', 'P\tA#1#c').concat('\nP\tB#1#c\t1+,2+,4+\t*'),
+    )
+    expect(model.tubeMapReads).toBe(true)
+    model.setFacet('sample')
+    await model.recomputeLayout()
+    model.setColorScheme('reference-position')
+    expect(model.layoutResult?.tubeMapPanels).toHaveLength(2)
+    expect(model.tubeMapReads).toBe(false)
+    expect(model.colorSchemeLock).toBeUndefined()
+    expect(model.effectiveColorScheme).toBe('reference-position')
   })
 
   // A tube map draws the window alone, so its ramp key speaks for its boxes:

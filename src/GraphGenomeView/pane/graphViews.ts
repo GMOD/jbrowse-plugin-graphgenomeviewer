@@ -470,8 +470,13 @@ export const withGraphViews = paneBase
         ? 'uniform'
         : resolveColorScheme(self.chosenColorScheme, self.graph)
     },
+    // Panels lay their walks out without the reads
     get tubeMapReads() {
-      return (self.layoutResult?.tubeMap?.layout.reads.length ?? 0) > 0
+      const layout = self.layoutResult
+      return (
+        !layout?.tubeMapPanels &&
+        (layout?.tubeMap?.layout.reads.length ?? 0) > 0
+      )
     },
     // Why no node scheme is on screen to pick, for every control that
     // offers one: lifted walks colour their own lanes and grey the rest,

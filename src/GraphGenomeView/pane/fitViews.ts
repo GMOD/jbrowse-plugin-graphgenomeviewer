@@ -1046,7 +1046,7 @@ export const withFitViews = withHostViews
           bundled: paths.some(p => p.members),
           // tubes in a column's hues, keyed value by value
           values:
-            coloring && reads.length === 0
+            coloring && !self.tubeMapReads
               ? [
                   ...[...coloring.palette].map(([value, color]) => ({
                     value,
@@ -1063,11 +1063,11 @@ export const withFitViews = withHostViews
                 ]
               : undefined,
           roles:
-            !(coloring && reads.length === 0) &&
+            !(coloring && !self.tubeMapReads) &&
             (split ||
               (layout?.tubeMap !== undefined &&
                 (!!self.tubeMapNodeColors ||
-                  (reads.length === 0 &&
+                  (!self.tubeMapReads &&
                     (!pathColorsLegible(paths.length) ||
                       paths.some(p => p.members)))))),
           haplotypeTube:
