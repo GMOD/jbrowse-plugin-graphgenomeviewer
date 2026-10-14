@@ -86,12 +86,14 @@ const FacetPanel = observer(function FacetPanel({
     }
     const renderer = new Canvas2DRenderer(canvas)
     const hover = new Canvas2DRenderer(hoverCanvas)
-    renderer.resize(width, height)
-    hover.resize(width, height)
     const drawing = computed(() => model.buildDrawing(lift, false))
     let uploaded: ReturnType<typeof model.buildDrawing>
     const disposers = [
       autorun(() => {
+        const grid = model.facetGrid
+        if (grid) {
+          renderer.resize(grid.width, grid.height)
+        }
         const built = drawing.get()
         if (!built) {
           return
@@ -104,6 +106,10 @@ const FacetPanel = observer(function FacetPanel({
         model.paint(renderer)
       }),
       autorun(() => {
+        const grid = model.facetGrid
+        if (grid) {
+          hover.resize(grid.width, grid.height)
+        }
         const built = drawing.get()
         if (built) {
           model.paintHover(hover, built.batch)
@@ -117,7 +123,7 @@ const FacetPanel = observer(function FacetPanel({
       renderer.dispose()
       hover.dispose()
     }
-  }, [canvas, hoverCanvas, model, lift, width, height])
+  }, [canvas, hoverCanvas, model, lift])
 
   const label = model.walkLabel(walk.name)
   return (
