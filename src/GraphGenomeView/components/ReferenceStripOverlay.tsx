@@ -30,7 +30,6 @@ export function paintReferenceStrip(
     drawReferenceStrip(ctx, model.referenceStripBlocks, frame, {
       width: model.paneWidth,
       lit,
-      darkMode: model.darkMode,
       dpr,
     })
   }

@@ -168,11 +168,6 @@ export const withGraphViews = paneBase
     get grammar(): GraphGrammar {
       return {}
     },
-    // Light paper even under a dark theme: Bandage's deletion edges, the
-    // deletion labels and the gene ink are near-black, and vanish on dark
-    get darkMode() {
-      return false
-    },
     // a source declared but not yet loaded
     get hasPendingSource() {
       return false

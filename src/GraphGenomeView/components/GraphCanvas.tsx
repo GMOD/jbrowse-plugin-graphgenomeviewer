@@ -25,6 +25,7 @@ import { usePaneGestures, useWheelZoom } from './usePaneGestures'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { TOOLTIP_INSET_PX } from '../pane/fitViews'
+import { PAPER_CSS } from '../pane/paneBase'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
 import type { chipReadoutAt } from './LabelLayer'
@@ -467,7 +468,7 @@ const GraphCanvas = observer(function GraphCanvas({
             style={{
               ...paperStyle,
               top: model.referenceStripZonePx,
-              background: model.paperCss,
+              background: PAPER_CSS,
             }}
           />
         ) : null}

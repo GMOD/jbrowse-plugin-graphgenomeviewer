@@ -14,7 +14,6 @@ import { tubeMapPicture } from '@jbrowse/bandage-core/tubeMap/draw'
 import { tubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
 
 import { hostFrame } from '../host'
-import { PAPER_DARK, PAPER_LIGHT, paperCss } from './paneBase'
 import { withWalkRowViews } from './walkRowViews'
 
 export const withHostViews = withWalkRowViews
@@ -189,9 +188,6 @@ export const withHostViews = withWalkRowViews
       return self.referenceStripShown && frame
         ? stripBlockAt(self.referenceStripBlocks, frame, sx, sy)
         : undefined
-    },
-    get paperCss() {
-      return paperCss(self.darkMode ? PAPER_DARK : PAPER_LIGHT)
     },
     // the strip, and the gap the fit leaves under it
     get referenceStripZonePx() {

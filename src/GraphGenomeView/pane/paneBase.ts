@@ -35,13 +35,11 @@ export const MAX_CANVAS_HEIGHT = 600
 // Floor, so a window holding only backbone — one row, no height at all — still
 // leaves room to hover a node and read its tooltip.
 export const MIN_CANVAS_HEIGHT = 160
-// the pane's background, as the renderer clears to it and as CSS
-export const PAPER_LIGHT: [number, number, number, number] = [1, 1, 1, 1]
-export const PAPER_DARK: [number, number, number, number] = [
-  0.12, 0.12, 0.12, 1,
-]
-export const paperCss = ([r, g, b]: number[]) =>
-  `rgb(${[r, g, b].map(v => Math.round(v! * 255)).join(', ')})`
+// The pane's background, as the renderer clears to it and as CSS. It stays
+// white under a dark theme, because Bandage's deletion edges, the deletion
+// labels and the gene ink are near-black.
+export const PAPER: [number, number, number, number] = [1, 1, 1, 1]
+export const PAPER_CSS = 'rgb(255, 255, 255)'
 // The thinnest a fit draws a tube map's tubes
 export const MIN_FIT_TUBE_PX = 5
 

@@ -10,6 +10,7 @@ import { LegendRowView } from './Legend'
 import { useWheelZoom } from './usePaneGestures'
 import { facetKeyRows, walkKeyRow } from '../legendSections'
 import { FACET_KEY_ROW_PX } from '../pane/fitViews'
+import { PAPER_CSS } from '../pane/paneBase'
 
 import type { PaneHandlers } from './usePaneGestures'
 import type { GraphPaneModel } from '../model'
@@ -176,7 +177,7 @@ const FacetPanels = observer(function FacetPanels({
         width: model.paneWidth,
         minHeight: model.canvasHeight,
         gridTemplateColumns: `repeat(${columns}, ${width}px)`,
-        background: model.darkMode ? '#1f1f1f' : 'white',
+        background: PAPER_CSS,
       }}
     >
       {panels.map((lift, i) => (

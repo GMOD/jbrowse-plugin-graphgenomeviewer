@@ -49,8 +49,7 @@ import {
   MAX_CANVAS_HEIGHT,
   MIN_CANVAS_HEIGHT,
   MIN_FIT_TUBE_PX,
-  PAPER_DARK,
-  PAPER_LIGHT,
+  PAPER,
   SELECT_BRIGHTEN,
   VIEWPORT_PANES_BUILT,
   dependOn,
@@ -493,13 +492,7 @@ export const withFitViews = withHostViews
       b.updateTransform(self.paintTransform)
       // Clear under a reference strip: GraphCanvas lays the paper below the
       // strip, so the linear view's gridlines show through between its blocks
-      b.render(
-        self.referenceStripShown
-          ? [0, 0, 0, 0]
-          : self.darkMode
-            ? PAPER_DARK
-            : PAPER_LIGHT,
-      )
+      b.render(self.referenceStripShown ? [0, 0, 0, 0] : PAPER)
     },
   }))
   .views(self => ({

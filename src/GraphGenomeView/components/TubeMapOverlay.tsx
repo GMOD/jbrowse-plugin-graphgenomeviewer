@@ -50,7 +50,6 @@ export function paintTubeMap(
     ...frame,
     width,
     highlightNode,
-    darkMode: model.darkMode,
     tubeColors: model.tubeMapTubeColors,
     nodeColors: model.tubeMapNodeColors,
   }
@@ -90,7 +89,6 @@ function paintPanels(
   highlightNode: string | null,
 ) {
   const width = model.paneWidth
-  const ink = model.darkMode ? '255,255,255' : '0,0,0'
   for (const p of panels) {
     if (p.bottom < 0 || p.titleTop > model.canvasHeight) {
       continue
@@ -99,7 +97,6 @@ function paintPanels(
       ...p.frame,
       width,
       highlightNode,
-      darkMode: model.darkMode,
       tubeColors: p.tubeColors,
       nodeColors: p.nodeColors,
     }
@@ -109,7 +106,7 @@ function paintPanels(
     ctx.globalAlpha = PANEL_TICK_ALPHA
     drawDeviationMarks(ctx, p.deviations, tubeFrame)
     ctx.globalAlpha = 1
-    ctx.strokeStyle = `rgba(${ink},0.15)`
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(0, Math.round(p.titleTop) + 0.5)
@@ -118,7 +115,7 @@ function paintPanels(
     ctx.font = PANEL_TITLE_FONT
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-    ctx.fillStyle = `rgba(${ink},0.85)`
+    ctx.fillStyle = 'rgba(0,0,0,0.85)'
     ctx.fillText(p.label, 6, p.titleTop + 4)
   }
   const last = panels.at(-1)
@@ -127,7 +124,7 @@ function paintPanels(
     drawTubeMapRuler(
       ctx,
       boxes,
-      { ...last.frame, width, darkMode: model.darkMode },
+      { ...last.frame, width },
       last.bottom + 4,
       true,
     )
