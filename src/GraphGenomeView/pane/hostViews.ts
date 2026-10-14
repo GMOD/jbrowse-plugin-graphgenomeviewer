@@ -166,17 +166,13 @@ export const withHostViews = withWalkRowViews
       if (!self.referenceStripShown) {
         return undefined
       }
-      const toScreen = (p: { x: number; y: number }) => ({
-        x: p.x * self.scaleX + self.translateX,
-        y: p.y * self.scaleY + self.translateY,
-      })
       const bubble = self.hoveredNode === null ? self.hoveredBubble : null
       if (bubble && !bubble.offReference) {
         const halo = self.bubbleHalos.find(h => sameBubble(h.bubble, bubble))
         return {
           start: bubble.start,
           end: bubble.end,
-          anchor: halo ? toScreen(halo.labelAt) : undefined,
+          anchor: halo ? self.toScreen(halo.labelAt) : undefined,
         }
       }
       const nodeId = self.hoveredNode ?? self.selectedNode
@@ -184,7 +180,7 @@ export const withHostViews = withWalkRowViews
       return span && nodeId !== null
         ? {
             ...span,
-            anchor: nodeAnchor(self.nodePositions?.[nodeId], toScreen),
+            anchor: nodeAnchor(self.nodePositions?.[nodeId], self.toScreen),
           }
         : undefined
     },

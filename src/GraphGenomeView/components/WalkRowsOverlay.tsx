@@ -134,10 +134,7 @@ const WalkRowSpansCanvas = observer(function WalkRowSpansCanvas({
           ]
         : [{ first: 0, count: bars.rows.length + 1, rowY: place.rowY(0) }]
       paintWalkRowSpans(ctx, painted, {
-        scaleX: model.scaleX,
-        scaleY: model.scaleY,
-        translateX: model.translateX,
-        translateY: model.translateY,
+        ...model.screenTransform,
         width,
         height,
         rowPx: pitch.rowPx,
@@ -194,10 +191,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   const row =
     hovered >= 0 ? [bars.reference, ...bars.rows][hovered]! : undefined
   const frame = {
-    scaleX: model.scaleX,
-    scaleY: model.scaleY,
-    translateX: model.translateX,
-    translateY: model.translateY,
+    ...model.screenTransform,
     width,
     height: canvasHeight,
     ...pitch,

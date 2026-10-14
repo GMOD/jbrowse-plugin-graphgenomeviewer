@@ -81,6 +81,7 @@ import {
 } from '../tubeMapPanels'
 import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
+import type { ScreenTransform } from './keepInView'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GraphLayers } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
@@ -990,12 +991,7 @@ export const withGraphViews = paneBase
     //
     // Everything that mixes the two axes takes their ratio as `yToX`
     // (scaleY / scaleX) — see computeEdgeCurves.
-    get scaleX() {
-      return axisScaleOf(self.scale, self.pixelRows).scaleX
-    },
-    get scaleY() {
-      return axisScaleOf(self.scale, self.pixelRows).scaleY
-    },
+    //
     // The pair, for everything that draws or hit-tests. Handed over as one
     // value on purpose: every consumer needs both, and passing them separately
     // let a caller supply the x scale and default y, which compiles and draws
@@ -1003,8 +999,29 @@ export const withGraphViews = paneBase
     get axisScale() {
       return axisScaleOf(self.scale, self.pixelRows)
     },
+    get scaleX() {
+      return this.axisScale.scaleX
+    },
+    get scaleY() {
+      return this.axisScale.scaleY
+    },
   }))
   .views(self => ({
+    // layout units to pane px
+    get screenTransform(): ScreenTransform {
+      return {
+        scaleX: self.scaleX,
+        scaleY: self.scaleY,
+        translateX: self.translateX,
+        translateY: self.translateY,
+      }
+    },
+    toScreen(p: { x: number; y: number }) {
+      return {
+        x: p.x * self.scaleX + self.translateX,
+        y: p.y * self.scaleY + self.translateY,
+      }
+    },
     get deletionDrawing() {
       return self.graph
         ? deletionDrawing(self.graph, self.allDeletions, self.showDeletionEdges)

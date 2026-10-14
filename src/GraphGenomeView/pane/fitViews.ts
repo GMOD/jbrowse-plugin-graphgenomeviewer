@@ -780,10 +780,7 @@ export const withFitViews = withHostViews
       const drawing = self.layoutResult?.tubeMap
       return drawing
         ? tubeMapFrame(drawing, {
-            scaleX: self.scaleX,
-            translateX: self.translateX,
-            scaleY: self.scaleY,
-            translateY: self.translateY,
+            ...self.screenTransform,
             usableHeight: self.canvasHeight - self.fitPadTop - FIT_PADDING,
           })
         : undefined

@@ -16,7 +16,8 @@ interface DrawingBox {
   h: number
 }
 
-interface Placement {
+// layout units to pane px, per axis
+export interface ScreenTransform {
   scaleX: number
   scaleY: number
   translateX: number
@@ -25,7 +26,7 @@ interface Placement {
 
 export function keepInView(
   bounds: DrawingBox,
-  t: Placement,
+  t: ScreenTransform,
   view: { width: number; height: number },
 ) {
   return {
@@ -48,7 +49,7 @@ export function keepInView(
 
 export function onScreen(
   bounds: DrawingBox,
-  t: Placement,
+  t: ScreenTransform,
   view: { width: number; height: number },
 ) {
   const left = bounds.minX * t.scaleX + t.translateX

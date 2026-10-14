@@ -69,10 +69,7 @@ export const withWalkRowViews = withLaunchViews
       const id = self.stripHover ? self.hoveredNode : null
       return id === null
         ? undefined
-        : nodeAnchor(self.nodePositions?.[id], p => ({
-            x: p.x * self.scaleX + self.translateX,
-            y: p.y * self.scaleY + self.translateY,
-          }))
+        : nodeAnchor(self.nodePositions?.[id], self.toScreen)
     },
   }))
   .views(self => ({

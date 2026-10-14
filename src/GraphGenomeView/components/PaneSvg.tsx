@@ -52,12 +52,7 @@ function Body({
   if (!built) {
     return null
   }
-  const transform = {
-    scaleX: model.scaleX,
-    scaleY: model.scaleY,
-    translateX: model.translateX,
-    translateY: model.translateY,
-  }
+  const transform = model.screenTransform
   if (rasterize) {
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(width * RASTER_SCALE)
