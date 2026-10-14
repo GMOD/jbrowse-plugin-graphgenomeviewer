@@ -828,10 +828,9 @@ export const withFitViews = withHostViews
           )
         : []
     },
-    // What each panel of a split tube map draws, which no pan changes: its
-    // picture, its tubes, its boxes' tints and its folded variants. A
-    // panel's title names its walks, so its tubes take their roles' colours
-    // and leave the routes to read: how many take a box, how many go round.
+    // What each panel of a split tube map draws, which no pan or hover
+    // changes: its picture, its tubes, its boxes' tints and its folded
+    // variants
     get tubeMapPanelPictures() {
       const panels = self.layoutResult?.tubeMapPanels
       if (!panels) {
@@ -847,11 +846,7 @@ export const withFitViews = withHostViews
             panel.label ??
             (field === 'walk' ? self.walkLabel(panel.paths[0]!) : panel.key),
           picture: tubeMapPicture(drawing),
-          tubeColors: self.fadeUnhovered(
-            self.tubeColorsOf(graph, drawing.pathColors),
-            graph.paths ?? [],
-            graph.referencePath,
-          ),
+          tubeColors: self.tubeColorsOf(graph, drawing.pathColors),
           nodeColors: self.tubeMapNodeColors
             ? tubeMapNodeColors(
                 graph,
@@ -911,12 +906,24 @@ export const withFitViews = withHostViews
         return box ? { box, ...walksThrough(drawing.graph, box) } : undefined
       })
     },
+    // apart from the pictures, so a lane row's hover redraws no panel
+    get tubeMapPanelTubeColors() {
+      return self.tubeMapPanelPictures?.map(({ panel, tubeColors }) => {
+        const { graph } = panel.result.tubeMap
+        return self.fadeUnhovered(
+          tubeColors,
+          graph.paths ?? [],
+          graph.referencePath,
+        )
+      })
+    },
     // Each panel through the pane's transform at its place down the stack.
     // On the reference axis the stack squeezes into the pane as one map does.
     get tubeMapPanelViews() {
       const pictures = self.tubeMapPanelPictures
+      const tubeColors = this.tubeMapPanelTubeColors
       const layout = self.layoutResult
-      if (!pictures || !layout) {
+      if (!pictures || !tubeColors || !layout) {
         return undefined
       }
       // the titles keep their px and the drawings squeeze into the rest
@@ -929,7 +936,7 @@ export const withFitViews = withHostViews
           ? Math.max(MIN_PANEL_Y_SCALE, Math.min(1, usable / drawings))
           : 1)
       let y = self.translateY
-      return pictures.map(p => {
+      return pictures.map((p, i) => {
         const { panel } = p
         const minY = panel.result.extent?.minY ?? 0
         const titleTop = y
@@ -937,6 +944,7 @@ export const withFitViews = withHostViews
         y = top + panel.height * yScale
         return {
           ...p,
+          tubeColors: tubeColors[i]!,
           frame: tubeMapFrame(panel.result.tubeMap, {
             scaleX: self.scaleX,
             translateX: self.translateX,

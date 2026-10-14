@@ -16,13 +16,17 @@ import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
-import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import {
+  LIFT_BACKDROP_CSS,
+  buildGeometry,
+} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { abgrAlpha } from '@jbrowse/bandage-core/renderer/colorBits'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
 import { walkHighlight } from '@jbrowse/bandage-core/walkHighlight'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { LAUNCH_LABEL, resolveSubMenu } from '@jbrowse/core/ui'
 import { applySnapshot, getSnapshot, types } from '@jbrowse/mobx-state-tree'
+import { autorun } from 'mobx'
 
 import { walkRowTrees } from './components/WalkRowsOverlay'
 import { facetKeyRows } from './legendSections'
@@ -3520,6 +3524,30 @@ describe('walk rows', () => {
     model.setFacet('')
     await model.recomputeLayout()
     expect(model.layoutResult?.tubeMapPanels).toBeUndefined()
+  })
+
+  // the pictures are a layout's worth of work per panel
+  test("a hovered lane row fades a split tube map's tubes and redraws no panel", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+      facet: 'sample',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const drawn: unknown[] = []
+    const stop = autorun(() => drawn.push(model.tubeMapPanelPictures))
+    model.setHoveredRowWalks(['A#1#ctg'])
+    expect(drawn).toHaveLength(1)
+    stop()
+    const [b, a] = model.tubeMapPanelViews!
+    expect(b!.tubeColors).toEqual([PANEL_REFERENCE_TUBE, LIFT_BACKDROP_CSS])
+    // A#2 comes first in the file
+    expect(a!.tubeColors).toEqual([
+      PANEL_REFERENCE_TUBE,
+      LIFT_BACKDROP_CSS,
+      PANEL_TUBES[1],
+    ])
   })
 
   test('a lane reads the reference ramp only when it is coloured by it', async () => {
