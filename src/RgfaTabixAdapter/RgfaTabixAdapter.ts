@@ -81,6 +81,16 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     return this.fine.refNames.assemblyRefNames(opts)
   }
 
+  // getFeatures reads a walk file from the chunk before the window
+  async getRegionByteSize(regions: Region[], opts: BaseOptions = {}) {
+    const { walks, refNames } = this.fine
+    return refNames.regionBytes(
+      regions,
+      opts,
+      walks && (start => walks.reader.queryStart(start, opts)),
+    )
+  }
+
   public async hasDataForRefName() {
     return true
   }

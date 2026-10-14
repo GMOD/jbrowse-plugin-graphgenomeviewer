@@ -29,6 +29,10 @@ export default class MinigraphBubbleAdapter extends BaseFeatureDataAdapter<Minig
     return this.refNames.assemblyRefNames(opts)
   }
 
+  async getRegionByteSize(regions: Region[], opts: BaseOptions = {}) {
+    return this.refNames.regionBytes(regions, opts)
+  }
+
   public async hasDataForRefName() {
     return true
   }

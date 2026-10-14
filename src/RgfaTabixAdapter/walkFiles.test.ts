@@ -238,6 +238,9 @@ test('a cut or a feature read over a range that is not finite queries nothing', 
   await expect(
     firstValueFrom(adapter.getFeatures(region).pipe(toArray())),
   ).rejects.toThrow(/not a finite range/)
+  await expect(adapter.getRegionByteSize([region])).rejects.toThrow(
+    /not a finite range/,
+  )
   expect(getLines).not.toHaveBeenCalled()
   expect(bytes).not.toHaveBeenCalled()
   getLines.mockRestore()
@@ -262,6 +265,18 @@ test("a walk-indexed graph's features are the reference nodes overlapping the wi
     makeAdapter(headerPrefix).getFeatures(chr1(1000, 2300)).pipe(toArray()),
   )
   expect(features.map(f => f.get('name'))).toEqual(['2', '3', '4'])
+})
+
+test('the byte gate measures a walk file from the chunk before the window', async () => {
+  const bytes = vi.spyOn(TabixIndexedFile.prototype, 'bytesForRegions')
+  const size = await makeAdapter(headerPrefix).getRegionByteSize([
+    chr1(2100, 2600),
+  ])
+  expect(size).toBeGreaterThan(0)
+  expect(bytes.mock.calls.map(call => call[0])).toEqual([
+    [{ refName: 'GRCh38#0#chr1', start: 1000, end: 2600 }],
+  ])
+  bytes.mockRestore()
 })
 
 test('getFeatures reads from the chunk before the window', async () => {

@@ -82,6 +82,16 @@ test('getFeatures returns the segments on a stable sequence', async () => {
   ])
 })
 
+test("the byte gate measures a region from the segment file's index", async () => {
+  const bytes = vi.spyOn(TabixIndexedFile.prototype, 'bytesForRegions')
+  const size = await makeAdapter().getRegionByteSize([k12])
+  expect(size).toBeGreaterThan(0)
+  expect(bytes.mock.calls.map(call => call[0])).toEqual([
+    [{ refName: 'K12#1#chr', start: k12.start, end: k12.end }],
+  ])
+  bytes.mockRestore()
+})
+
 test('getFeatures resolves a PanSN name given unqualified', async () => {
   const qualified = await firstValueFrom(
     makeAdapter()

@@ -36,6 +36,12 @@ const mhc = {
   end: 32420000,
 }
 
+test("the byte gate measures a region from the bubble file's index", async () => {
+  const adapter = makeAdapter()
+  expect(await adapter.getRegionByteSize([mhc])).toBeGreaterThan(0)
+  expect(await adapter.getRegionByteSize([{ ...mhc, refName: 'chr7' }])).toBe(0)
+})
+
 test('getRefNames lists the sequences the bubbles sit on', async () => {
   expect(await makeAdapter().getRefNames()).toEqual(['chr6'])
 })

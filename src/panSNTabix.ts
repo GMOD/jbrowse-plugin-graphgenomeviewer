@@ -10,6 +10,7 @@ import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { types } from '@jbrowse/mobx-state-tree'
 
 import { buildRefNameLookup, resolveRefName } from './refNameLookup.ts'
+import { bytesForRegions } from './tabixRange.ts'
 
 import type {
   BaseFeatureDataAdapter,
@@ -140,5 +141,29 @@ export class PanSNRefNames {
       resolvePanSNPrefix(this.adapter, region.assemblyName),
       region.refName,
     )
+  }
+
+  /**
+   * The compressed bytes a read of `regions` fetches from the file, as its
+   * index estimates them, for the display's byte gate. `queryStart` moves a
+   * region's start to where the read begins.
+   */
+  async regionBytes(
+    regions: Region[],
+    opts: BaseOptions = {},
+    queryStart = async (start: number) => start,
+  ) {
+    const spans = []
+    for (const region of regions) {
+      const refName = await this.resolve(region, opts)
+      if (refName !== undefined) {
+        spans.push({
+          refName,
+          start: await queryStart(region.start),
+          end: region.end,
+        })
+      }
+    }
+    return bytesForRegions(this.file, spans, opts)
   }
 }
