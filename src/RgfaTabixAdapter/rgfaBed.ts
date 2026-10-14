@@ -120,9 +120,9 @@ export function linkKey(link: RgfaLink) {
   return `${link.source}${link.sourceStrand}${link.target}${link.targetStrand}`
 }
 
-// Both endpoints of a link are written into every row, so the same link is
-// indexed under each endpoint's stable sequence and arrives twice for a region
-// covering both; linkKey dedupes it. Returns the endpoints the cut lacked.
+// gfa-to-tabix writes both endpoints of a link into every row and files the
+// link under each endpoint's stable sequence, so a read covering both returns
+// it twice; linkKey dedupes it. Returns the endpoints the cut lacked.
 export function addLink(
   segments: Map<string, RgfaSegment>,
   links: Map<string, RgfaLink>,

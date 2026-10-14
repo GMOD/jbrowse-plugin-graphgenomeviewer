@@ -33,7 +33,8 @@ const fixture = (name: string) =>
 //   W HG00097 1 chr1 >1>2>3>4>5>6
 const headerPrefix = fixture('walks2_header')
 
-// The same walks with the reference named as pggb names a P-line, GRCh38#chr1
+// walks2_header's walks with the reference named as pggb names a P-line,
+// GRCh38#chr1
 const twoPartPrefix = fixture('walks2_twopart')
 
 // An unchopped graph, node 1 spanning 0-2600 and filed under chunk 0 alone:

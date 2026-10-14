@@ -87,8 +87,9 @@ export class WalkIndex {
 
   /**
    * The reference nodes overlapping a window, from the ref rows of its
-   * chunks. A node row names only its chunk's first base, and a node crossing
-   * in from a chunk before is filed there, so the read starts at queryStart.
+   * chunks. A row's tabix interval is its chunk's first base, and gfa-to-tabix
+   * files a node crossing in from a chunk before under that chunk, so the read
+   * starts at queryStart.
    */
   async referenceNodes(
     refName: string,
