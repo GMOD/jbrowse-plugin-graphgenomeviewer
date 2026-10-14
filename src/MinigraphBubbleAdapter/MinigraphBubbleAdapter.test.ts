@@ -4,11 +4,13 @@ import {
   bubbleLabel,
   parseBubbleLine,
 } from '@jbrowse/bandage-core/bubbles/bubbleLine'
+import PluginManager from '@jbrowse/core/PluginManager'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './MinigraphBubbleAdapter.ts'
 import configSchema from './configSchema.ts'
+import MinigraphBubbleAdapterF from './index.ts'
 
 // Unmodified `gfatools bubble` output cut to chr6:32.4-32.7 Mb, so the column
 // order here is the real one. Its stable names are bare (`chr6`) rather than
@@ -160,4 +162,17 @@ test('reports assembly-facing contigs for a PanSN-named file', async () => {
   // through unchanged — the bare case must not regress
   const adapter = makeAdapter()
   expect(await adapter.getRefNames({ assemblyName: 'hg38' })).toEqual(['chr6'])
+})
+
+test("the adapter type expands the uri shorthand with the schema's preprocessor", () => {
+  const pluginManager = new PluginManager()
+  MinigraphBubbleAdapterF(pluginManager)
+  pluginManager.createPluggableElements()
+  const { normalizeSnapshot } = pluginManager.getAdapterType(
+    'MinigraphBubbleAdapter',
+  )
+  expect(normalizeSnapshot?.({ uri: 'bb.bed.gz' })).toMatchObject({
+    bubblesLocation: { uri: 'bb.bed.gz' },
+    index: { location: { uri: 'bb.bed.gz.tbi' } },
+  })
 })

@@ -34,7 +34,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * ```
  */
 
-export function normalizeSnapshot(snap: Record<string, unknown>) {
+function normalizeSnapshot(snap: Record<string, unknown>) {
   const { walksUri, baseUri, csi } = snap
   if (typeof walksUri !== 'string') {
     return snap

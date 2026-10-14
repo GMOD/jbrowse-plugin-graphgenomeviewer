@@ -251,6 +251,18 @@ test('walksUri names the walk file and its index', () => {
   })
 })
 
+test("the adapter type expands walksUri with the schema's preprocessor", () => {
+  const pluginManager = new PluginManager()
+  WalkTabixSyntenyAdapterF(pluginManager)
+  pluginManager.createPluggableElements()
+  const { normalizeSnapshot } = pluginManager.getAdapterType(
+    'WalkTabixSyntenyAdapter',
+  )
+  expect(normalizeSnapshot?.({ walksUri: 'hprc.GRCh38' })).toMatchObject({
+    walksLocation: { uri: 'hprc.GRCh38.walks.bed.gz' },
+  })
+})
+
 test('the adapter type declares lanes, lane pairs and the graph cut', () => {
   const pluginManager = new PluginManager()
   WalkTabixSyntenyAdapterF(pluginManager)

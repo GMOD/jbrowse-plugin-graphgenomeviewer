@@ -6,12 +6,14 @@ import { gunzipSync } from 'node:zlib'
 
 import { TabixIndexedFile } from '@gmod/tabix'
 import { parseGFA } from '@jbrowse/bandage-core/gfa-core/index'
+import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import RgfaTabixAdapterF from './index.ts'
 import { linkKey, parseLinkLine } from './rgfaBed.ts'
 
 import type { WalkCut } from './walkRowRuns.ts'
@@ -436,6 +438,17 @@ test("getSubgraph with tier: 'coarse' cuts the coarse pair", async () => {
   // a bubble keeps its source segment's id, so it joins back to the fine pair
   const fineIds = new Set(fine.nodes.map(n => n.id))
   expect(bubbles.every(n => fineIds.has(n.id))).toBe(true)
+})
+
+test("the adapter type expands the uri shorthand with the schema's preprocessor", () => {
+  const pluginManager = new PluginManager()
+  RgfaTabixAdapterF(pluginManager)
+  pluginManager.createPluggableElements()
+  const { normalizeSnapshot } = pluginManager.getAdapterType('RgfaTabixAdapter')
+  expect(normalizeSnapshot?.({ uri: 'hprc', walksUri: 'w' })).toMatchObject({
+    segmentsLocation: { uri: 'hprc.segs.bed.gz' },
+    walksLocation: { uri: 'w.walks.bed.gz' },
+  })
 })
 
 test('the coarse uri shorthand resolves a pair against the adapter baseUri', () => {

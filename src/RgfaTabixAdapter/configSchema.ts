@@ -75,7 +75,7 @@ function walksLocations(snap: Record<string, unknown>) {
   }
 }
 
-export function normalizeSnapshot(snap: Record<string, unknown>) {
+function normalizeSnapshot(snap: Record<string, unknown>) {
   const { coarse, baseUri, csi } = snap
   return walksLocations(
     prefixLocations(
