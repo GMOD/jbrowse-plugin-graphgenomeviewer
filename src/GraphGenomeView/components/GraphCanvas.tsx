@@ -261,7 +261,7 @@ const GraphCanvas = observer(function GraphCanvas({
     error: renderError,
     retry: retryRender,
   } = useRenderingBackend(createGraphRenderer, model)
-  const { handlers, contextMenu, closeContextMenu, hoveredChip } =
+  const { handlers, canvasStyle, contextMenu, closeContextMenu, hoveredChip } =
     usePaneGestures(model)
   useWheelZoom(canvas, model)
   const faceted = model.facetPanels !== undefined
@@ -294,12 +294,9 @@ const GraphCanvas = observer(function GraphCanvas({
           ref={canvasRef}
           data-testid="graph-genome-canvas"
           style={{
+            ...canvasStyle,
             width: model.paneWidth,
             height: model.canvasHeight,
-            cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
-            // a pane the linear view drags leaves a finger its scroll
-            touchAction: model.hostPlacesX ? 'auto' : 'none',
-            overscrollBehavior: 'contain',
             display: 'block',
             position: 'relative',
             zIndex: 1,
@@ -308,7 +305,11 @@ const GraphCanvas = observer(function GraphCanvas({
         />
 
         {faceted ? (
-          <FacetPanels model={model} handlers={handlers} />
+          <FacetPanels
+            model={model}
+            handlers={handlers}
+            canvasStyle={canvasStyle}
+          />
         ) : (
           <>
             <TubeMapOverlay model={model} />

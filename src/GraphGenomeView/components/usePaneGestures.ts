@@ -23,8 +23,7 @@ export function useWheelZoom(
     if (!canvas) {
       return undefined
     }
-    const c = canvas
-    function handleWheel(e: WheelEvent) {
+    const handleWheel = (e: WheelEvent) => {
       if (model.hostPlacesX) {
         return
       }
@@ -32,16 +31,16 @@ export function useWheelZoom(
         e.stopPropagation()
       }
       e.preventDefault()
-      const rect = c.getBoundingClientRect()
+      const rect = canvas.getBoundingClientRect()
       model.zoom(
         wheelZoomFactor(e),
         e.clientX - rect.left,
         e.clientY - rect.top,
       )
     }
-    c.addEventListener('wheel', handleWheel, { passive: false })
+    canvas.addEventListener('wheel', handleWheel, { passive: false })
     return () => {
-      c.removeEventListener('wheel', handleWheel)
+      canvas.removeEventListener('wheel', handleWheel)
     }
   }, [canvas, model])
 }
@@ -316,7 +315,15 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
   }
 
+  const canvasStyle: React.CSSProperties = {
+    cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+    // a pane the linear view drags leaves a finger its scroll
+    touchAction: model.hostPlacesX ? 'auto' : 'none',
+    overscrollBehavior: 'contain',
+  }
+
   return {
+    canvasStyle,
     handlers: {
       onMouseDown,
       onPointerDown,

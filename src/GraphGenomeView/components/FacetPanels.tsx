@@ -65,6 +65,7 @@ const FacetPanel = observer(function FacetPanel({
   height,
   cell,
   handlers,
+  canvasStyle,
 }: {
   model: GraphPaneModel
   lift: WalkLift
@@ -72,6 +73,7 @@ const FacetPanel = observer(function FacetPanel({
   height: number
   cell: { gridRow: number; gridColumn: number }
   handlers: PaneHandlers
+  canvasStyle: React.CSSProperties
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
   const [hoverCanvas, setHoverCanvas] = useState<HTMLCanvasElement | null>(null)
@@ -139,14 +141,7 @@ const FacetPanel = observer(function FacetPanel({
         <canvas
           ref={setCanvas}
           data-testid="graph-facet-canvas"
-          style={{
-            width,
-            height,
-            display: 'block',
-            cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
-            touchAction: model.hostPlacesX ? 'auto' : 'none',
-            overscrollBehavior: 'contain',
-          }}
+          style={{ ...canvasStyle, width, height, display: 'block' }}
           {...handlers}
         />
         <canvas ref={setHoverCanvas} style={hoverLayerStyle} />
@@ -158,9 +153,11 @@ const FacetPanel = observer(function FacetPanel({
 const FacetPanels = observer(function FacetPanels({
   model,
   handlers,
+  canvasStyle,
 }: {
   model: GraphPaneModel
   handlers: PaneHandlers
+  canvasStyle: React.CSSProperties
 }) {
   const panels = model.facetPanels
   const grid = model.facetGrid
@@ -192,6 +189,7 @@ const FacetPanels = observer(function FacetPanels({
             gridColumn: (place.cells[i]! % columns) + 1,
           }}
           handlers={handlers}
+          canvasStyle={canvasStyle}
         />
       ))}
       <div
