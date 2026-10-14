@@ -558,6 +558,14 @@ test('a pan inside the cut moves x and fetches nothing; one past it re-cuts once
   expect(graphX(pane, 2_030_000)).toBeCloseTo(lgvX(view, 2_030_000), 6)
 })
 
+test('under a twentieth of a bp per pixel, where the fold rounds to 0 bp, a pan inside the cut fetches nothing', async () => {
+  const { view, cuts } = await shownGraph({ windowBp: 30 })
+  expect(view.bpPerPx).toBeLessThan(0.05)
+  view.horizontalScroll(100)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+})
+
 test('zooming out past the handover cuts the coarse tier, and back in the fine one', async () => {
   const { view, pane, cuts } = await shownGraph()
   view.zoomTo(3_000_000 / WIDTH_PX)

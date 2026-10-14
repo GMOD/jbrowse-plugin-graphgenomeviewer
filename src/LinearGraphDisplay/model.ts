@@ -175,13 +175,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
       // Whether a zoom has moved far enough from the one the drawing was
       // folded for that folding again would show or hide more. A graph with
-      // walks is never folded.
+      // walks is never folded, and a fold rounded to 0 bp counts as 1 bp.
       foldDrifted(bpPerPx: number) {
         const want = FOLD_PX * bpPerPx
         const had = self.cutFoldBp
         return (
           !self.graph?.paths?.length &&
-          (want >= 2 * had ||
+          (want >= 2 * Math.max(had, 1) ||
             (self.foldedBelowBp !== undefined && want <= had / 2))
         )
       },
