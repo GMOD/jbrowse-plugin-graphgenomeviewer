@@ -2,7 +2,7 @@ import { weightedLcs } from '@gmod/gbz-base/lcs'
 import { pairAlignments, pairCigar } from '@gmod/gbz-base/pairAlignment'
 import { panSNContig } from '@jbrowse/bandage-core/pansn'
 
-import SyntenyFeature from '../synteny/SyntenyFeature.ts'
+import { matchFeature } from '../synteny/matchFeature.ts'
 
 import type { PairChain, PairEdit } from '@gmod/gbz-base/pairAlignment'
 import type { WalkFragment, WalkNode } from '@jbrowse/graph-walks'
@@ -157,9 +157,8 @@ export function referenceAligner(nodes: Map<number, WalkNode>) {
 }
 
 /**
- * One record of a walk aligned to another: on the target walk's contig, with
- * the query walk as its mate and the CIGAR read along the target, a `D` being
- * target bases the query lacks.
+ * One record of a walk aligned to another, with its short balanced bubbles as
+ * mismatches
  */
 export function chainFeature({
   chain,
@@ -176,32 +175,25 @@ export function chainFeature({
   refName: string
   mateAssemblyName: string
 }) {
-  const start = target.hapStart + chain.targetStart
-  const end = target.hapStart + chain.targetEnd
-  const mateStart = query.hapStart + chain.queryStart
-  const mateEnd = query.hapStart + chain.queryEnd
   const edits = bubblesAsMismatches(chain.edits)
-  const matches = edits.reduce((sum, [op, n]) => sum + (op === '=' ? n : 0), 0)
-  const columns = edits.reduce((sum, [, n]) => sum + n, 0)
-  const id = `${target.name}:${start}-${end}|${query.name}:${mateStart}-${mateEnd}`
-  return new SyntenyFeature({
-    uniqueId: id,
-    assemblyName,
-    refName,
-    start,
-    end,
-    type: 'match',
-    strand: chain.strand === '-' ? -1 : 1,
-    CIGAR: pairCigar(edits),
-    syntenyId: id,
-    identity: matches / Math.max(columns, 1),
-    numMatches: matches,
-    blockLen: columns,
-    mate: {
-      refName: panSNContig(query.name),
-      start: mateStart,
-      end: mateEnd,
-      assemblyName: mateAssemblyName,
+  return matchFeature({
+    target: {
+      name: target.name,
+      assemblyName,
+      refName,
+      start: target.hapStart + chain.targetStart,
+      end: target.hapStart + chain.targetEnd,
     },
+    query: {
+      name: query.name,
+      assemblyName: mateAssemblyName,
+      refName: panSNContig(query.name),
+      start: query.hapStart + chain.queryStart,
+      end: query.hapStart + chain.queryEnd,
+    },
+    strand: chain.strand,
+    cigar: pairCigar(edits),
+    matches: edits.reduce((sum, [op, n]) => sum + (op === '=' ? n : 0), 0),
+    columns: edits.reduce((sum, [, n]) => sum + n, 0),
   })
 }

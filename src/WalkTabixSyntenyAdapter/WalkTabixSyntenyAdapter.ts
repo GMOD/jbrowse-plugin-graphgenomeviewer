@@ -14,7 +14,11 @@ import { isNodeLimitError } from '../LinearGraphDisplay/denseWindow.ts'
 import { WalkIndex, walksKept } from '../RgfaTabixAdapter/walkReader.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
-import { laneAssemblyName, requestedPairs } from '../synteny/lanePairs.ts'
+import {
+  laneAssemblyName,
+  lanePairsStatus,
+  requestedPairs,
+} from '../synteny/lanePairs.ts'
 
 import type { WalkTabixSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -211,7 +215,6 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     pairs: LanePair[],
     opts: LaneFeatureOptions,
   ) {
-    const [first] = pairs
     const sides = pairs.map(pair => ({
       pair,
       featurePrefix: resolvePanSNPrefix(this, pair.queryAssemblyName),
@@ -222,9 +225,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       region,
       sides.flatMap(side => [side.featurePrefix, side.matePrefix]),
       opts,
-      pairs.length === 1 && first
-        ? `Reading ${first.queryAssemblyName} against ${first.targetAssemblyName}`
-        : `Reading ${pairs.length} lane pairs`,
+      lanePairsStatus(pairs),
     )
     const align = walkAligner(graph.nodes)
     const walksOf = (prefix: string) =>

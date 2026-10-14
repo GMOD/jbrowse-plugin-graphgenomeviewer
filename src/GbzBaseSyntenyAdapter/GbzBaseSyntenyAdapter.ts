@@ -26,7 +26,12 @@ import { locationIsSet } from '../locationName.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import SyntenyFeature from '../synteny/SyntenyFeature.ts'
-import { laneAssemblyName, requestedPairs } from '../synteny/lanePairs.ts'
+import {
+  laneAssemblyName,
+  lanePairsStatus,
+  requestedPairs,
+} from '../synteny/lanePairs.ts'
+import { matchFeature } from '../synteny/matchFeature.ts'
 
 import type { GbzBaseSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -138,12 +143,8 @@ function fragmentFeature({
   }
 }
 
-/**
- * One record of a lane pair, on the target walk's own contig with the query
- * walk as its mate. gbz-base writes the CIGAR along the target, a `D` being
- * target bases the query lacks, which is the side a JBrowse feature is, so it
- * passes through unchanged.
- */
+// gbz-base writes the CIGAR along the target, which is the side a JBrowse
+// feature is, so it passes through unchanged
 function pairFeature({
   pair,
   lane,
@@ -153,26 +154,25 @@ function pairFeature({
   lane: string
   mateLane: string
 }) {
-  const id = `${haplotypePrefix(pair.target)}#${pair.target.contig}:${pair.targetStart}-${pair.targetEnd}|${haplotypePrefix(pair.query)}#${pair.query.contig}:${pair.queryStart}-${pair.queryEnd}`
-  return new SyntenyFeature({
-    uniqueId: id,
-    assemblyName: lane,
-    refName: pair.target.contig,
-    start: pair.targetStart,
-    end: pair.targetEnd,
-    type: 'match',
-    strand: pair.strand === '-' ? -1 : 1,
-    CIGAR: pair.cigar,
-    syntenyId: id,
-    identity: pair.matches / Math.max(pair.columns, 1),
-    numMatches: pair.matches,
-    blockLen: pair.columns,
-    mate: {
+  return matchFeature({
+    target: {
+      name: `${haplotypePrefix(pair.target)}#${pair.target.contig}`,
+      assemblyName: lane,
+      refName: pair.target.contig,
+      start: pair.targetStart,
+      end: pair.targetEnd,
+    },
+    query: {
+      name: `${haplotypePrefix(pair.query)}#${pair.query.contig}`,
+      assemblyName: mateLane,
       refName: pair.query.contig,
       start: pair.queryStart,
       end: pair.queryEnd,
-      assemblyName: mateLane,
     },
+    strand: pair.strand,
+    cigar: pair.cigar,
+    matches: pair.matches,
+    columns: pair.columns,
   })
 }
 
@@ -547,7 +547,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     const query = await this.referenceQuery(refName, opts)
     const nodeLimit: number = this.getConf('nodeLimit')
     const baseContext: number = this.getConf('context')
-    const [first] = pairs
     const cut = (path: PathQuery, context: number) =>
       db.getSubgraphs({
         path,
@@ -580,13 +579,9 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
         : subgraphs
     }
     const subgraphs =
-      query && first && answerable.length > 0
-        ? await updateStatus(
-            pairs.length === 1
-              ? `Reading ${first.queryAssemblyName} against ${first.targetAssemblyName}`
-              : `Reading ${pairs.length} lane pairs`,
-            opts.statusCallback,
-            () => bridged(query),
+      query && answerable.length > 0
+        ? await updateStatus(lanePairsStatus(pairs), opts.statusCallback, () =>
+            bridged(query),
           )
         : []
     return subgraphs.flatMap(subgraph =>
