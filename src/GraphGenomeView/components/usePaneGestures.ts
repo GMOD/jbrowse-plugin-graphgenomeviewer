@@ -5,6 +5,7 @@ import {
   findHoveredNode,
 } from '@jbrowse/bandage-core/util/hitDetection'
 import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
+import { screenToLayout } from '@jbrowse/bandage-core/viewport'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { chipReadoutAt } from './LabelLayer'
@@ -78,25 +79,16 @@ export function usePaneGestures(model: GraphPaneModel) {
   const [hoveredChip, setHoveredChip] =
     useState<ReturnType<typeof chipReadoutAt>>(undefined)
 
-  function screenToGraph(screenX: number, screenY: number) {
-    return {
-      x: (screenX - model.translateX) / model.scaleX,
-      y: (screenY - model.translateY) / model.scaleY,
-    }
-  }
-
-  function getMouseCoord(e: React.MouseEvent) {
+  // the event's point in pane px, against the canvas it is on
+  function pointerAt(e: React.MouseEvent) {
     const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect()
-    return screenToGraph(e.clientX - rect.left, e.clientY - rect.top)
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
 
-  // The node at a graph coordinate, which mousedown, mousemove and click all
-  // need. Takes the coordinate rather than the event so a caller that already
-  // has one does not pay for a second getBoundingClientRect.
-  function nodeAt(x: number, y: number) {
-    const { nodePositions } = model
-    const sx = x * model.scaleX + model.translateX
-    const sy = y * model.scaleY + model.translateY
+  // The node at a pane point, which mousedown, mousemove and click all need.
+  // Takes the point rather than the event so a caller that already has one
+  // does not pay for a second getBoundingClientRect.
+  function nodeAt(sx: number, sy: number) {
     if (model.layoutResult?.tubeMap) {
       return model.tubeMapNodeAt(sx, sy)
     }
@@ -104,16 +96,42 @@ export function usePaneGestures(model: GraphPaneModel) {
     if (onStrip) {
       return onStrip
     }
-    return nodePositions
-      ? findHoveredNode(
-          nodePositions,
-          x,
-          y,
-          model.axisScale,
-          model.positionsVersion,
-          model.nodeInk,
-        )
-      : null
+    const { nodePositions } = model
+    if (!nodePositions) {
+      return null
+    }
+    const { x, y } = screenToLayout(sx, sy, model, model.axisScale)
+    return findHoveredNode(
+      nodePositions,
+      x,
+      y,
+      model.axisScale,
+      model.positionsVersion,
+      model.nodeInk,
+    )
+  }
+
+  function edgeAt(sx: number, sy: number) {
+    const { nodePositions, graph } = model
+    if (!nodePositions || !graph) {
+      return null
+    }
+    const { x, y } = screenToLayout(sx, sy, model, model.axisScale)
+    return findHoveredEdge(
+      nodePositions,
+      graph,
+      x,
+      y,
+      model.axisScale,
+      // resolved, so the hit index bounds the ribbons that are actually
+      // drawn — see effectiveDrawPaths. Facet panels draw none.
+      model.effectiveDrawPaths && !model.facetPanels,
+      model.positionsVersion,
+      model.deletionEdgeIndexes,
+      model.hiddenEdgeIndexes,
+      model.deletionRoutes,
+      model.layoutResult?.stranded,
+    )
   }
 
   // The linear view drags by mouse events, so a hosted pane that pans itself
@@ -137,7 +155,7 @@ export function usePaneGestures(model: GraphPaneModel) {
         return
       }
       e.currentTarget.setPointerCapture(e.pointerId)
-      const { x, y } = getMouseCoord(e)
+      const { x, y } = pointerAt(e)
       // a tube map's boxes are the layout's, and the strip's are bp, not
       // positions to drag
       const node =
@@ -156,37 +174,36 @@ export function usePaneGestures(model: GraphPaneModel) {
 
   function applyPending() {
     const pending = pendingRef.current
+    const { pan, hover } = pending
     pending.frame = 0
-    if (pending.pan) {
+    pending.pan = null
+    pending.hover = null
+    if (pan) {
       model.setTransform(
         model.scale,
-        model.translateX + pending.pan.dx,
-        model.translateY + pending.pan.dy,
-      )
-      pending.pan = null
-    }
-    if (pending.hover) {
-      const chip = model.facetPanels
-        ? undefined
-        : chipReadoutAt(model.overlayLabels, pending.hover.x, pending.hover.y)
-      setHoveredChip(was =>
-        was?.label === chip?.label && was?.readout === chip?.readout
-          ? was
-          : chip,
+        model.translateX + pan.dx,
+        model.translateY + pan.dy,
       )
     }
+    if (!hover) {
+      return
+    }
+    const { x: sx, y: sy } = hover
+    const chip = model.facetPanels
+      ? undefined
+      : chipReadoutAt(model.overlayLabels, sx, sy)
+    setHoveredChip(was =>
+      was?.label === chip?.label && was?.readout === chip?.readout ? was : chip,
+    )
     const bars = model.walkRowBars
-    if (pending.hover && bars) {
-      const i = model.walkRowAt(pending.hover.x, pending.hover.y)
+    if (bars) {
+      const i = model.walkRowAt(sx, sy)
       model.setHoveredWalkRow(
         i === undefined ? null : [bars.reference, ...bars.rows][i]!.name,
       )
     }
-    if (pending.hover && model.nodePositions && model.graph) {
-      const { x: sx, y: sy } = pending.hover
-      const { x, y } = screenToGraph(sx, sy)
-      pending.hover = null
-      const node = nodeAt(x, y)
+    if (model.nodePositions && model.graph) {
+      const node = nodeAt(sx, sy)
       model.setHoveredPanel(model.tubeMapPanelAt(sy))
       model.setHoveredNode(node, { x: sx, y: sy })
       model.setHoveredTube(
@@ -197,22 +214,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       model.setHoveredEdge(
         node || model.layoutResult?.tubeMap || !model.hoverLightsEverything
           ? null
-          : findHoveredEdge(
-              model.nodePositions,
-              model.graph,
-              x,
-              y,
-              model.axisScale,
-              // resolved, so the hit index bounds the ribbons that are
-              // actually drawn — see effectiveDrawPaths. Facet panels draw
-              // none.
-              model.effectiveDrawPaths && !model.facetPanels,
-              model.positionsVersion,
-              model.deletionEdgeIndexes,
-              model.hiddenEdgeIndexes,
-              model.deletionRoutes,
-              model.layoutResult?.stranded,
-            ),
+          : edgeAt(sx, sy),
       )
     }
   }
@@ -287,7 +289,7 @@ export function usePaneGestures(model: GraphPaneModel) {
   // tags that nothing surfaced. The items come from the model's launch targets,
   // so what is offered is what can actually be opened.
   function onContextMenu(e: React.MouseEvent) {
-    const { x, y } = getMouseCoord(e)
+    const { x, y } = pointerAt(e)
     const node = nodeAt(x, y)
     const { clientX, clientY } = e
     if (node) {
@@ -295,10 +297,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       setContextMenu({ clientX, clientY, nodeId: node })
       return
     }
-    const row = model.walkRowAt(
-      x * model.scaleX + model.translateX,
-      y * model.scaleY + model.translateY,
-    )
+    const row = model.walkRowAt(x, y)
     if (row !== undefined) {
       e.preventDefault()
       setContextMenu({ clientX, clientY, row })
@@ -308,7 +307,7 @@ export function usePaneGestures(model: GraphPaneModel) {
   function onClick(e: React.MouseEvent) {
     // a click that ended a drag selects nothing
     if (!hasMovedRef.current) {
-      const { x, y } = getMouseCoord(e)
+      const { x, y } = pointerAt(e)
       const node = nodeAt(x, y)
       model.setSelectedNode(node)
       if (node) {
