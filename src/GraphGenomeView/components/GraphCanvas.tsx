@@ -15,6 +15,7 @@ import GraphToolbar from './GraphToolbar'
 import HoverLayer from './HoverLayer'
 import LabelLayer from './LabelLayer'
 import { LegendPanel } from './Legend'
+import { PaneSvgLayer } from './PaneLayer'
 import ReferenceStripOverlay from './ReferenceStripOverlay'
 import TubeMapOverlay from './TubeMapOverlay'
 import { WalkRowContextMenu } from './WalkRowContextMenu'
@@ -175,18 +176,6 @@ const deletionLabelStyle = {
   fontWeight: 600,
 }
 
-// Under the labels (z 3) and over the canvas, so a leader runs beneath the text
-// it points from rather than across it. `overflow: visible` because a label
-// displaced past the canvas edge is culled by the placement, not clipped here.
-const leaderStyle = {
-  position: 'absolute' as const,
-  left: 0,
-  top: 0,
-  pointerEvents: 'none' as const,
-  overflow: 'visible' as const,
-  zIndex: 2,
-}
-
 // Measures itself for the model, so no label is placed under a legend and
 // none gives way to one that is not drawn.
 //
@@ -246,12 +235,11 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
   )
   return (
     <>
+      {/* under the labels (z 3), so a leader runs beneath the text it points
+          from; the placement culls a label past the canvas edge, so the
+          layer leaves overflow visible */}
       {leaders.length > 0 ? (
-        <svg
-          style={leaderStyle}
-          width={model.paneWidth}
-          height={model.canvasHeight}
-        >
+        <PaneSvgLayer model={model} zIndex={2} overflow="visible">
           {leaders.map(({ key, arcX, arcY, labelX, labelY }) => (
             <line
               key={key}
@@ -264,7 +252,7 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
               strokeWidth={1}
             />
           ))}
-        </svg>
+        </PaneSvgLayer>
       ) : null}
       {labels.map(({ key, text, x, y, kind }) => (
         <div

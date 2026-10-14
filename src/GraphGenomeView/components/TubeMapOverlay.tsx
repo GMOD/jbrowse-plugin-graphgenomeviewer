@@ -1,14 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 
-import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
 import { drawTubeMapRuler } from '@jbrowse/bandage-core/tubeMap/axis'
 import { drawTubeMapConnectors } from '@jbrowse/bandage-core/tubeMap/connectors'
 import { drawDeviationMarks } from '@jbrowse/bandage-core/tubeMap/deviations'
 import { drawTubeMap } from '@jbrowse/bandage-core/tubeMap/draw'
 import { drawTubeMapGenes } from '@jbrowse/bandage-core/tubeMap/genes'
-import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
+import { PaneOverlayCanvas } from './PaneLayer'
 import {
   PANEL_TITLE_FONT,
   drawBundleCounts,
@@ -19,14 +18,6 @@ import {
 const PANEL_TICK_ALPHA = 0.45
 
 import type { GraphPaneModel } from '../model'
-
-const canvasStyle = {
-  position: 'absolute' as const,
-  left: 0,
-  top: 0,
-  pointerEvents: 'none' as const,
-  zIndex: 1,
-}
 
 // The tubes, their connectors, genes and ruler, onto a canvas sized to the
 // pane or onto the linear view's SVG export
@@ -142,38 +133,19 @@ const TubeMapOverlay = observer(function TubeMapOverlay({
 }: {
   model: GraphPaneModel
 }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const { tubeMapPicture, paneWidth, canvasHeight } = model
-  useEffect(
-    () =>
-      autorun(() => {
-        const canvas = ref.current
-        const ctx = canvas?.getContext('2d')
-        if (canvas && ctx && model.tubeMapPicture && model.tubeMapFrame) {
-          const dpr = getDpr()
-          const width = model.paneWidth
-          const height = model.canvasHeight
-          canvas.width = Math.round(width * dpr)
-          canvas.height = Math.round(height * dpr)
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-          ctx.clearRect(0, 0, width, height)
-          paintTubeMap(ctx, model, { highlightNode: model.selectedNode })
-        }
-      }),
+  const paint = useCallback(
+    (ctx: CanvasRenderingContext2D) => {
+      paintTubeMap(ctx, model, { highlightNode: model.selectedNode })
+    },
     [model],
   )
-  // Mounted whether or not there is a tube map, so the autorun above has its
-  // canvas the moment a layout brings one.
   return (
-    <canvas
-      ref={ref}
-      data-testid={tubeMapPicture ? 'graph-tube-map' : undefined}
-      style={{
-        ...canvasStyle,
-        width: paneWidth,
-        height: canvasHeight,
-        display: tubeMapPicture ? 'block' : 'none',
-      }}
+    <PaneOverlayCanvas
+      model={model}
+      zIndex={1}
+      shown={!!model.tubeMapPicture}
+      testId="graph-tube-map"
+      paint={paint}
     />
   )
 })

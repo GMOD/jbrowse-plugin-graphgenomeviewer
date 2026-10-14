@@ -1,11 +1,11 @@
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useCallback, useId, useMemo } from 'react'
 
 import { walkRowsTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { getDpr } from '@jbrowse/bandage-core/renderer/canvas'
-import { autorun, computed } from 'mobx'
+import { computed } from 'mobx'
 import { observer } from 'mobx-react'
 
 import ElTree from './ElTree'
+import { PaneOverlayCanvas, PaneSvgLayer } from './PaneLayer'
 import { SECTION_HEADER_PX } from '../walkRowGroups'
 import { paintWalkRowSpans, walkRowSpans } from '../walkRowSpans'
 
@@ -31,15 +31,6 @@ import type {
 // The walk rows pair a repeat record's allele with each walk — see
 // repeats/walkCalls.ts, which also holds the threshold a red readout is read
 // off. Colouring each copy by its unit is jbrowse-plugin-tandem-repeat's.
-
-const svgStyle = {
-  position: 'absolute' as const,
-  left: 0,
-  top: 0,
-  pointerEvents: 'none' as const,
-  overflow: 'visible' as const,
-  zIndex: 3,
-}
 
 // The rows' trees, a section at a time while grouped. walkRowsTree puts its
 // i-th row at i * rowPx below its reference row and draws that row too, so
@@ -83,45 +74,31 @@ export function walkRowTrees(
   ]
 }
 
-const canvasStyle = { ...svgStyle, overflow: undefined }
-
-// Repainted by an autorun, as the other overlay canvases are, so a pan moves
-// the bars in the same frame as the drawing. The spans are recut only when
-// the rows, the zoom or the ramp change.
-const WalkRowSpansCanvas = observer(function WalkRowSpansCanvas({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const spans = computed(() => {
-      const bars = model.walkRowBars
-      return bars
-        ? walkRowSpans(
-            [bars.reference, ...bars.rows],
-            model.scaleX,
-            model.referenceRampDomain,
-          )
-        : undefined
-    })
-    return autorun(() => {
-      const canvas = ref.current
-      const ctx = canvas?.getContext('2d')
+// The spans are recut only when the rows, the zoom or the ramp change
+function WalkRowSpansCanvas({ model }: { model: GraphPaneModel }) {
+  const spans = useMemo(
+    () =>
+      computed(() => {
+        const bars = model.walkRowBars
+        return bars
+          ? walkRowSpans(
+              [bars.reference, ...bars.rows],
+              model.scaleX,
+              model.referenceRampDomain,
+            )
+          : undefined
+      }),
+    [model],
+  )
+  const paint = useCallback(
+    (ctx: CanvasRenderingContext2D) => {
       const bars = model.walkRowBars
       const place = model.walkRowPlacement
       const pitch = model.walkRowPitch
       const painted = spans.get()
-      if (!canvas || !ctx || !bars || !place || !pitch || !painted) {
+      if (!bars || !place || !pitch || !painted) {
         return
       }
-      const width = model.paneWidth
-      const height = model.canvasHeight
-      const dpr = getDpr()
-      canvas.width = Math.round(width * dpr)
-      canvas.height = Math.round(height * dpr)
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, width, height)
       const sections = model.walkRowGroups?.sections
       const blocks = sections?.length
         ? [
@@ -135,27 +112,25 @@ const WalkRowSpansCanvas = observer(function WalkRowSpansCanvas({
         : [{ first: 0, count: bars.rows.length + 1, rowY: place.rowY(0) }]
       paintWalkRowSpans(ctx, painted, {
         ...model.screenTransform,
-        width,
-        height,
+        width: model.paneWidth,
+        height: model.canvasHeight,
         rowPx: pitch.rowPx,
         barPx: pitch.barPx,
         origin: bars.origin,
         blocks,
       })
-    })
-  }, [model])
+    },
+    [model, spans],
+  )
   return (
-    <canvas
-      ref={ref}
-      data-testid="graph-walk-rows-spans"
-      style={{
-        ...canvasStyle,
-        width: model.paneWidth,
-        height: model.canvasHeight,
-      }}
+    <PaneOverlayCanvas
+      model={model}
+      zIndex={3}
+      testId="graph-walk-rows-spans"
+      paint={paint}
     />
   )
-})
+}
 
 // `vector` for an SVG export, which draws the bars as walkRowsTree's rects
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
@@ -199,11 +174,11 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
   return (
     <>
       {vector ? null : <WalkRowSpansCanvas model={model} />}
-      <svg
-        style={svgStyle}
-        width={width}
-        height={canvasHeight}
-        data-testid="graph-walk-rows"
+      <PaneSvgLayer
+        model={model}
+        zIndex={3}
+        overflow="visible"
+        testId="graph-walk-rows"
       >
         {walkRowTrees(
           vector ? bars : bare,
@@ -244,7 +219,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
             strokeWidth={1}
           />
         ) : null}
-      </svg>
+      </PaneSvgLayer>
     </>
   )
 })
