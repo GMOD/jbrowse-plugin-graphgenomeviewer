@@ -21,7 +21,6 @@ Commitment, not size, separates an item here from a proposal in
 | -------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
 | [Each row's own genes in bandage-figure](todo/figure-rows-own-genes.md)    | walk strip | Add a spec field mapping each sample to its gene file.                            |
 | [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs. |
-| [The force mode's description](todo/force-label-in-track.md)               | menus      | Take the first bandage-core release after 10.2.4.                                 |
 
 ## Needs a visual call
 
