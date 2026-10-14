@@ -5,10 +5,11 @@ import {
 import { readConfObject } from '@jbrowse/core/configuration'
 
 import { REPEAT_TRACK_HINT } from '../repeats/repeatFeatures'
+import { namedTrack, ownField, trackLabel } from '../trackFeatures'
 
+import type { FeatureLike, TrackChoice } from '../trackFeatures'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
-import type { Feature } from '@jbrowse/core/util'
 
 // The adapters whose tracks hold gene models, in the order the session's
 // tracks are searched when no track is named.
@@ -33,20 +34,20 @@ const BED_ADAPTER_TYPES = new Set(['BedTabixAdapter', 'BedAdapter'])
 // first gene-bearing track on the assembly whose name says it is annotation,
 // else the first non-BED gene-bearing track. A track whose name says repeats is
 // never picked unnamed, as "RepeatMasker annotation" would be.
-export function pickGeneTrack<
-  T extends { trackId: string; name?: string; adapterType: string },
->(tracks: T[], named: string) {
+export function pickGeneTrack<T extends TrackChoice>(
+  tracks: T[],
+  named: string,
+) {
   if (named) {
-    return tracks.find(t => t.trackId === named)
+    return namedTrack(tracks, named)
   }
-  const label = (t: T) => `${t.trackId} ${t.name ?? ''}`
   const candidates = tracks.filter(
     t =>
       GENE_ADAPTER_TYPES.has(t.adapterType) &&
-      !REPEAT_TRACK_HINT.test(label(t)),
+      !REPEAT_TRACK_HINT.test(trackLabel(t)),
   )
   return (
-    candidates.find(t => GENE_TRACK_HINT.test(label(t))) ??
+    candidates.find(t => GENE_TRACK_HINT.test(trackLabel(t))) ??
     candidates.find(t => !BED_ADAPTER_TYPES.has(t.adapterType))
   )
 }
@@ -82,14 +83,6 @@ const WHOLE_SEQUENCE_TYPES = new Set([
   'scaffold',
 ])
 
-type FeatureLike = Feature | Record<string, unknown>
-
-function field(f: FeatureLike, name: string): unknown {
-  return typeof (f as Feature).get === 'function'
-    ? (f as Feature).get(name)
-    : (f as Record<string, unknown>)[name]
-}
-
 // JBrowse's BED parser splits a coding BED12 block into CDS and UTR parts and
 // keeps `exon` for non-coding ones, so all of them are exon
 const EXON_PARTS = new Set([
@@ -101,14 +94,14 @@ const EXON_PARTS = new Set([
 ])
 
 function exonsOf(f: FeatureLike, into: { start: number; end: number }[]) {
-  const type = field(f, 'type')
+  const type = ownField(f, 'type')
   if (typeof type === 'string' && EXON_PARTS.has(type)) {
     into.push({
-      start: field(f, 'start') as number,
-      end: field(f, 'end') as number,
+      start: ownField(f, 'start') as number,
+      end: ownField(f, 'end') as number,
     })
   }
-  const children = field(f, 'subfeatures') as FeatureLike[] | undefined
+  const children = ownField(f, 'subfeatures') as FeatureLike[] | undefined
   for (const child of children ?? []) {
     exonsOf(child, into)
   }
@@ -126,16 +119,16 @@ export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
   const genes: GeneModel[] = []
   for (const f of features) {
     const name =
-      (field(f, 'gene_name') as string | undefined) ??
-      (field(f, 'name') as string | undefined) ??
-      (field(f, 'gene') as string | undefined) ??
-      (field(f, 'gene_id') as string | undefined)
-    const start = field(f, 'start') as number
-    const end = field(f, 'end') as number
+      (ownField(f, 'gene_name') as string | undefined) ??
+      (ownField(f, 'name') as string | undefined) ??
+      (ownField(f, 'gene') as string | undefined) ??
+      (ownField(f, 'gene_id') as string | undefined)
+    const start = ownField(f, 'start') as number
+    const end = ownField(f, 'end') as number
     if (
       !name ||
       !(end > start) ||
-      WHOLE_SEQUENCE_TYPES.has(field(f, 'type') as string)
+      WHOLE_SEQUENCE_TYPES.has(ownField(f, 'type') as string)
     ) {
       continue
     }
@@ -143,10 +136,10 @@ export function geneModelsFrom(features: FeatureLike[]): GeneModel[] {
     exonsOf(f, exons)
     genes.push({
       name,
-      refName: field(f, 'refName') as string,
+      refName: ownField(f, 'refName') as string,
       start,
       end,
-      strand: (field(f, 'strand') as number | undefined) ?? 0,
+      strand: (ownField(f, 'strand') as number | undefined) ?? 0,
       exons: exons.length ? mergedIntervals(exons) : [{ start, end }],
     })
   }
