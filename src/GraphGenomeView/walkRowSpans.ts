@@ -89,6 +89,8 @@ export interface WalkRowSpans {
   // where each drawn row's spans start in `bars` and `gaps`
   barRows: Uint32Array
   gapRows: Uint32Array
+  // the furthest any span reaches along its row, in bp, and at least 1
+  longest: number
 }
 
 function channels(capacity: number) {
@@ -141,6 +143,7 @@ export function walkRowSpans(
   const gaps = channels(total)
   const barRows = new Uint32Array(rows.length + 1)
   const gapRows = new Uint32Array(rows.length + 1)
+  let longest = 1
   pieces.forEach((runs, row) => {
     for (const run of runs) {
       const c = run.gap ? gaps : bars
@@ -150,6 +153,7 @@ export function walkRowSpans(
         c.x2[i] = x2
         c.row[i] = row
         c.color[i] = color
+        longest = Math.max(longest, c.x2[i])
       }
     }
     barRows[row + 1] = bars.count
@@ -160,6 +164,7 @@ export function walkRowSpans(
     gaps: slice(gaps, 0, gaps.count),
     barRows,
     gapRows,
+    longest,
   }
 }
 
@@ -188,12 +193,7 @@ export function paintWalkRowSpans(
   spans: WalkRowSpans,
   f: WalkRowSpanFrame,
 ) {
-  let longest = 1
-  for (const c of [spans.bars, spans.gaps]) {
-    for (const x2 of c.x2) {
-      longest = Math.max(longest, x2)
-    }
-  }
+  const { longest } = spans
   const block = {
     start: 0,
     end: longest,
