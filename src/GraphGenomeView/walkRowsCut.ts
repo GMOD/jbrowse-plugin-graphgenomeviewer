@@ -3,8 +3,10 @@ import {
   backbonePositions,
   overlapsWindow,
 } from '@jbrowse/bandage-core/anchoredNodes'
-import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
-import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
+import {
+  walkRowLabels,
+  walkRowsExtent,
+} from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 
 import { walkPath } from '../RgfaTabixAdapter/walkRowRuns.ts'
@@ -74,10 +76,7 @@ export function walkRowLayoutOf(
     nodePositions: backbonePositions(
       overWindow.length > 0 ? overWindow : backbone,
     ),
-    rowLabels: [walks.reference, ...walks.rows].map((row, i) => ({
-      label: row.label,
-      y: i * ROW_HEIGHT_PX,
-    })),
+    rowLabels: walkRowLabels(walks),
     referenceAxis: true,
     pixelRows: true,
     extent: walkRowsExtent(walks),
