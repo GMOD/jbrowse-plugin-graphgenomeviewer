@@ -1,4 +1,11 @@
+import { walkRowsTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { groupKeyComparator } from '@jbrowse/core/util/groupKeys'
+
+import type { El } from '@jbrowse/bandage-core/el'
+import type {
+  WalkRowsFrame,
+  WalkRowsWithCalls,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // Walk rows stacked into one section per value of a sample table's column,
 // as jbrowse-plugin-tandem-repeat's "Group by…" stacks its alleles. Placement
@@ -180,4 +187,46 @@ export function sectionPlacement(sections: WalkRowSection[], rowPx: number) {
       return best
     },
   }
+}
+
+// The rows' trees, a section at a time while grouped. walkRowsTree puts its
+// i-th row at i * rowPx below its reference row and draws that row too, so
+// each section is drawn shifted down to its place with its reference row
+// dropped.
+export function walkRowTrees(
+  bars: WalkRowsWithCalls,
+  sections: WalkRowSection[],
+  rowY: (i: number) => number,
+  frame: WalkRowsFrame & { rowPx: number },
+  o: Parameters<typeof walkRowsTree>[2] & { idPrefix: string },
+): El[] {
+  if (sections.length === 0) {
+    return [walkRowsTree(bars, frame, o)]
+  }
+  return [
+    walkRowsTree({ ...bars, rows: [] }, frame, o),
+    ...sections.flatMap((section, k) => {
+      const tree = walkRowsTree(
+        {
+          ...bars,
+          rows: bars.rows.slice(
+            section.first - 1,
+            section.first - 1 + section.count,
+          ),
+        },
+        {
+          ...frame,
+          translateY:
+            frame.translateY +
+            (rowY(section.first) - frame.rowPx) * frame.scaleY,
+        },
+        { ...o, idPrefix: `${o.idPrefix}-s${k}` },
+      )
+      return tree.children.filter(
+        (c): c is El =>
+          typeof c !== 'string' &&
+          c.attrs['data-testid'] !== 'graph-walk-reference',
+      )
+    }),
+  ]
 }

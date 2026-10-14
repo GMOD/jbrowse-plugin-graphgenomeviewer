@@ -1,21 +1,14 @@
 import { useCallback, useMemo } from 'react'
 
-import { walkRowsTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { computed } from 'mobx'
 import { observer } from 'mobx-react'
 
 import ElTree, { useSvgId } from './ElTree'
 import { PaneOverlayCanvas, PaneSvgLayer } from './PaneLayer'
-import { SECTION_HEADER_PX } from '../walkRowGroups'
+import { SECTION_HEADER_PX, walkRowTrees } from '../walkRowGroups'
 import { paintWalkRowSpans, walkRowSpans } from '../walkRowSpans'
 
 import type { GraphPaneModel } from '../model'
-import type { WalkRowSection } from '../walkRowGroups'
-import type { El } from '@jbrowse/bandage-core/el'
-import type {
-  WalkRowsFrame,
-  WalkRowsWithCalls,
-} from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference
 // row, each on its own bp axis from the window's left edge. The runs paint as
@@ -31,48 +24,6 @@ import type {
 // The walk rows pair a repeat record's allele with each walk — see
 // repeats/walkCalls.ts, which also holds the threshold a red readout is read
 // off. Colouring each copy by its unit is jbrowse-plugin-tandem-repeat's.
-
-// The rows' trees, a section at a time while grouped. walkRowsTree puts its
-// i-th row at i * rowPx below its reference row and draws that row too, so
-// each section is drawn shifted down to its place with its reference row
-// dropped.
-export function walkRowTrees(
-  bars: WalkRowsWithCalls,
-  sections: WalkRowSection[],
-  rowY: (i: number) => number,
-  frame: WalkRowsFrame & { rowPx: number },
-  o: Parameters<typeof walkRowsTree>[2] & { idPrefix: string },
-): El[] {
-  if (sections.length === 0) {
-    return [walkRowsTree(bars, frame, o)]
-  }
-  return [
-    walkRowsTree({ ...bars, rows: [] }, frame, o),
-    ...sections.flatMap((section, k) => {
-      const tree = walkRowsTree(
-        {
-          ...bars,
-          rows: bars.rows.slice(
-            section.first - 1,
-            section.first - 1 + section.count,
-          ),
-        },
-        {
-          ...frame,
-          translateY:
-            frame.translateY +
-            (rowY(section.first) - frame.rowPx) * frame.scaleY,
-        },
-        { ...o, idPrefix: `${o.idPrefix}-s${k}` },
-      )
-      return tree.children.filter(
-        (c): c is El =>
-          typeof c !== 'string' &&
-          c.attrs['data-testid'] !== 'graph-walk-reference',
-      )
-    }),
-  ]
-}
 
 // The spans are recut only when the rows, the zoom or the ramp change
 function WalkRowSpansCanvas({ model }: { model: GraphPaneModel }) {
