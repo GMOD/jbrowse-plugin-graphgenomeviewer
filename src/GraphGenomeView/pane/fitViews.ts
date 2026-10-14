@@ -453,7 +453,6 @@ export const withFitViews = withHostViews
     // without feeding back into it.
     get canvasHeight(): number {
       const bounds = this.layoutBounds
-      const usableWidth = self.paneWidth - FIT_PADDING - this.fitPadRight
       const ceiling = this.paneCeiling
       if (!bounds) {
         return ceiling
@@ -469,20 +468,19 @@ export const withFitViews = withHostViews
           2 * LEGEND_INSET_PX +
           self.referenceStripZonePx,
       )
+      const pads = this.fitPads
+      const padsY = pads.top + pads.bottom
       if (self.pixelRows) {
-        return Math.min(
-          ceiling,
-          Math.max(floor, bounds.h + this.fitPadTop + FIT_PADDING),
-        )
+        return Math.min(ceiling, Math.max(floor, bounds.h + padsY))
       }
+      const usableWidth = self.paneWidth - pads.left - pads.right
       return bounds.w > 0 && usableWidth > 0
         ? Math.min(
             ceiling,
             Math.max(
               floor,
               bounds.h * Math.max(usableWidth / bounds.w, this.minFitScale) +
-                this.fitPadTop +
-                FIT_PADDING,
+                padsY,
             ),
           )
         : ceiling
@@ -495,32 +493,44 @@ export const withFitViews = withHostViews
         ? { width: grid.width, height: grid.height }
         : { width: self.paneWidth, height: this.canvasHeight }
     },
+    // The fit's margins: a facet panel's all round, else room for the row
+    // labels, the genes and strip above, and the legend where legendRoom
+    // puts it
+    get fitPads() {
+      return this.facetGrid
+        ? {
+            left: FACET_PAD_PX,
+            top: FACET_PAD_PX,
+            right: FACET_PAD_PX,
+            bottom: FACET_PAD_PX,
+          }
+        : {
+            left: this.fitPadLeft,
+            top: this.fitPadTop,
+            right: this.fitPadRight,
+            bottom: FIT_PADDING,
+          }
+    },
+    // the view box's height inside the fit's margins
+    get usableHeight() {
+      const { top, bottom } = this.fitPads
+      return this.viewBox.height - top - bottom
+    },
     // Where the fit puts the drawing, or undefined until there is a layout
     // and a measured canvas to fit it into
     get fittedTransform() {
       const bounds = this.layoutBounds
-      const grid = this.facetGrid
-      return !bounds
-        ? undefined
-        : grid
-          ? fitTransform(bounds, grid.width, grid.height, self.pixelRows, {
-              padLeft: FACET_PAD_PX,
-              padTop: FACET_PAD_PX,
-              padRight: FACET_PAD_PX,
-              padBottom: FACET_PAD_PX,
-            })
-          : fitTransform(
-              bounds,
-              self.paneWidth,
-              this.canvasHeight,
-              self.pixelRows,
-              {
-                minScale: this.minFitScale,
-                padLeft: this.fitPadLeft,
-                padTop: this.fitPadTop,
-                padRight: this.fitPadRight,
-              },
-            )
+      const { width, height } = this.viewBox
+      const pads = this.fitPads
+      return bounds
+        ? fitTransform(bounds, width, height, self.pixelRows, {
+            minScale: this.facetGrid ? 0 : this.minFitScale,
+            padLeft: pads.left,
+            padTop: pads.top,
+            padRight: pads.right,
+            padBottom: pads.bottom,
+          })
+        : undefined
     },
   }))
   .views(self => ({
@@ -781,7 +791,7 @@ export const withFitViews = withHostViews
       return drawing
         ? tubeMapFrame(drawing, {
             ...self.screenTransform,
-            usableHeight: self.canvasHeight - self.fitPadTop - FIT_PADDING,
+            usableHeight: self.usableHeight,
           })
         : undefined
     },
@@ -926,7 +936,7 @@ export const withFitViews = withHostViews
       // the titles keep their px and the drawings squeeze into the rest
       const titles = pictures.length * PANEL_GAP
       const drawings = pictures.reduce((h, p) => h + p.panel.height, 0)
-      const usable = self.canvasHeight - self.fitPadTop - FIT_PADDING - titles
+      const usable = self.usableHeight - titles
       const yScale =
         self.scaleY *
         (layout.referenceAxis && drawings > 0

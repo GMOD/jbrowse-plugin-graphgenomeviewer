@@ -1490,6 +1490,28 @@ describe('canvas height follows the drawing', () => {
     expect(model.translateY).toBeCloseTo((model.canvasHeight - h) / 2, 5)
   })
 
+  test('an isotropic pane is as tall as its drawing at the fit, past its row labels', async () => {
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GraphComputeLayout'
+        ? Promise.resolve({
+            result: {
+              ...MOCK_LAYOUT,
+              rowLabels: [{ label: 'a label wider than the padding', y: 0 }],
+            },
+            duration: 5,
+          })
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'labelled')
+    model.zoomToFit()
+    expect(model.fitPadLeft).toBeGreaterThan(40)
+    expect(model.canvasHeight).toBeCloseTo(
+      model.layoutBounds!.h * model.scale + model.fitPadTop + 40,
+      6,
+    )
+  })
+
   // The floor is the reason a pane has a minimum at all: below it there is no
   // room to hover a node and read its tooltip, so a smaller request loses.
   test('paneHeight cannot go under the hover floor', async () => {
