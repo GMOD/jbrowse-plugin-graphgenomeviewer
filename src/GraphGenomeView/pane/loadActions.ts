@@ -429,8 +429,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
     settle()
   }
 
-  // Runs `body` as a load: it raises the spinner and clears the error first,
-  // and reports a failure and ends the spinner only while it is the live load
+  // Runs `body` as a load. It raises the spinner and clears the error first,
+  // and while it is the live load it reports a failure and ends the spinner.
   function* runLoad(
     label: string,
     body: (load: {

@@ -332,7 +332,6 @@ export const withSettingActions = withFitViews
       self.draggingNode = null
       self.isPanning = false
     },
-    // whatever the pointer was over in the pane
     clearHover() {
       self.hoveredNode = null
       self.hoveredAt = null

@@ -331,8 +331,8 @@ export const withRenderingActions = withLoadActions
       )
       // An engine setting or the node cap lays the graph out again whatever
       // changed it: the settings dialog, the menu, the config editor, Reset
-      // track settings, undo or a session delta. A mode change lays out
-      // through relayout.
+      // track settings, undo or a session delta. A change of layout mode lays
+      // the graph out through relayout, so this reaction skips it.
       addDisposer(
         self,
         reaction(
