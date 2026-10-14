@@ -136,7 +136,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               testId="graph-node-limit-select"
               onChange={limit => {
                 model.setMaxGraphNodes(Number(limit))
-                void model.recomputeLayout()
               }}
             />
             <Caption>
@@ -253,7 +252,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               testId="graph-layout-engine-select"
               onChange={engine => {
                 model.setLayoutEngine(engine)
-                void model.recomputeLayout()
               }}
             />
             <Caption>
@@ -273,7 +271,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               testId="graph-layout-quality-select"
               onChange={quality => {
                 model.setLayoutQuality(Number(quality))
-                void model.recomputeLayout()
               }}
             />
             <Caption>
@@ -289,7 +286,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               testId="graph-bubble-spread-select"
               onChange={spread => {
                 model.setBubbleSpread(spread)
-                void model.recomputeLayout()
               }}
             />
             <Caption>How far the layout opens a bubble</Caption>
@@ -301,7 +297,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
               checked={model.linearLayout}
               onChange={linear => {
                 model.setLinearLayout(linear)
-                void model.recomputeLayout()
               }}
             >
               <Caption>Keeps a chain of nodes on one line where it can</Caption>

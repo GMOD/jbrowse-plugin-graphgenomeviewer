@@ -54,7 +54,19 @@ import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
-export const withLoadActions = withSettingActions.actions(self => {
+const withEngineSettings = withSettingActions.views(self => ({
+  get engineSettings() {
+    return engineSettingsOf({
+      engine: self.layoutEngine,
+      quality: self.layoutQuality,
+      linearLayout: self.linearLayout,
+      bubbleSpread: self.bubbleSpread,
+      showDeletionEdges: self.showDeletionEdges,
+    })
+  },
+}))
+
+export const withLoadActions = withEngineSettings.actions(self => {
   let loadController: AbortController | undefined
   // the samples TSV location the table was read from, or is being read from
   let sampleTableKey: string | undefined
@@ -76,16 +88,6 @@ export const withLoadActions = withSettingActions.actions(self => {
         }
       },
     }) as Promise<{ result: LayoutResult; duration: number }>
-  }
-
-  function engineSettings() {
-    return engineSettingsOf({
-      engine: self.layoutEngine,
-      quality: self.layoutQuality,
-      linearLayout: self.linearLayout,
-      bubbleSpread: self.bubbleSpread,
-      showDeletionEdges: self.showDeletionEdges,
-    })
   }
 
   // Single dispatch point for every layout mode. A mode that returns a
@@ -145,7 +147,7 @@ export const withLoadActions = withSettingActions.actions(self => {
         mode: self.chosenLayoutMode,
       }
     }
-    const settings = engineSettings()
+    const settings = self.engineSettings
     const hit = forceLayouts.ready(graph, settings)
     if (hit) {
       return {
@@ -165,9 +167,9 @@ export const withLoadActions = withSettingActions.actions(self => {
   }
 
   // Which layout request is the live one. A layout is async and nothing in
-  // the UI waits for it, so several are routinely in flight: every control
-  // in the settings dialog fires `recomputeLayout` on change, and a force
-  // layout takes seconds where an anchored one is instant.
+  // the UI waits for it, so several are routinely in flight: every engine
+  // setting lays the graph out again on change, and a force layout takes
+  // seconds where an anchored one is instant.
   //
   // The graph identity below is not enough to order them, because the
   // competing requests are usually layouts of the SAME graph. Left to

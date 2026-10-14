@@ -310,7 +310,7 @@ export const withLaunchActions = withRenderingActions
           label: 'Show deletion edges',
           checked: self.showDeletionEdges,
           onClick: () => {
-            void self.toggleDeletionEdges()
+            self.setShowDeletionEdges(!self.showDeletionEdges)
           },
         },
         {
@@ -489,10 +489,7 @@ export const withLaunchActions = withRenderingActions
                       self.chosenLayoutMode === mode.value &&
                       self.layoutEngine === engine,
                     onClick: () => {
-                      self.setLayoutEngine(engine)
-                      void (self.chosenLayoutMode === mode.value
-                        ? self.recomputeLayout()
-                        : self.switchLayout(mode.value))
+                      void self.switchForceEngine(engine)
                     },
                   }))
                 : [

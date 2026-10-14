@@ -199,6 +199,28 @@ function createAnchoredModel(props: { layers?: GraphLayers } = {}) {
   })
 }
 
+// A view attached to a tree, so afterAttach installs its reactions. A root
+// model never attaches.
+function attachedModel(props: { layoutMode?: LayoutModeValue } = {}) {
+  return types
+    .model({ view: stateModelFactory() })
+    .create({ view: { type: 'GraphGenomeView', ...props } }).view
+}
+
+// waits until every layout a reaction asked for has finished
+function layoutsSettled(model: { isLoading: boolean }) {
+  return vi.waitFor(() => {
+    expect(model.isLoading).toBe(false)
+  })
+}
+
+// The menu's deletions toggle, then the relayout the engine reaction runs on
+// an attached view. A root model installs no reactions.
+async function toggleDeletionEdges(model: ReturnType<typeof createModel>) {
+  model.setShowDeletionEdges(!model.showDeletionEdges)
+  await model.recomputeLayout()
+}
+
 const TEST_REGION = {
   refName: 'chr1',
   assemblyName: 'hg38',
@@ -974,18 +996,96 @@ describe('layoutMode', () => {
   // drawing never lets it do
   test('toggling deletion edges lays only a force layout out again', async () => {
     rpcRespond()
-    const model = createModel()
+    const model = attachedModel()
     await model.loadGFA(RGFA, 'rgfa')
     expect(layoutCalls()).toHaveLength(1)
 
-    await model.toggleDeletionEdges()
-    expect(model.showDeletionEdges).toBe(false)
+    model.setShowDeletionEdges(false)
+    await layoutsSettled(model)
     expect(layoutCalls()).toHaveLength(2)
 
-    model.setLayoutMode('auto')
-    await model.recomputeLayout()
-    await model.toggleDeletionEdges()
+    await model.switchLayout('auto')
+    model.setShowDeletionEdges(true)
+    await layoutsSettled(model)
     expect(layoutCalls()).toHaveLength(2)
+  })
+
+  // the config editor, Reset track settings, undo and a session delta write
+  // the layers without the menu
+  test('a deletions layer written from outside the menu lays a force layout out again', async () => {
+    rpcRespond()
+    const model = attachedModel()
+    await model.loadGFA(RGFA, 'rgfa')
+    expect(layoutCalls()).toHaveLength(1)
+
+    model.writeGrammar({ layers: { deletions: false } })
+    await layoutsSettled(model)
+
+    expect(model.showDeletionEdges).toBe(false)
+    expect(layoutCalls()).toHaveLength(2)
+  })
+
+  test('an engine setting leaves a layout the engine did not draw alone', async () => {
+    rpcRespond()
+    const model = attachedModel({ layoutMode: 'auto' })
+    await model.loadGFA(RGFA, 'rgfa')
+    const drawn = model.layoutResult
+
+    model.setLayoutQuality(4)
+    model.setShowDeletionEdges(false)
+    await layoutsSettled(model)
+
+    expect(model.layoutResult).toBe(drawn)
+    expect(layoutCalls()).toHaveLength(0)
+  })
+
+  test('a force engine picked from the menu lays out once', async () => {
+    rpcRespond()
+    const model = attachedModel({ layoutMode: 'auto' })
+    await model.loadGFA(SIMPLE_GFA, 'plain')
+    expect(model.usesLayoutEngine).toBe(true)
+    expect(layoutCalls()).toHaveLength(1)
+    const pick = (label: string) => {
+      ;(
+        model.graphMenuItems()[0] as {
+          subMenu: (MenuItem & { onClick: () => void })[]
+        }
+      ).subMenu
+        .find(item => item.label === label)!
+        .onClick()
+    }
+
+    const fmmm = model.layoutResult
+
+    pick('Force-directed (stress)')
+    await layoutsSettled(model)
+    expect(model.chosenLayoutMode).toBe('force')
+    expect(layoutArgs(1).options.engine).toBe('stress')
+    expect(layoutCalls()).toHaveLength(2)
+
+    pick('Force-directed (FMMM)')
+    await layoutsSettled(model)
+    expect(layoutCalls()).toHaveLength(2)
+    expect(model.layoutResult).toBe(fmmm)
+  })
+
+  test('the node cap lays out again only a layout that draws nodes', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const model = attachedModel()
+    await model.loadGFA(SIMPLE_GFA, 'plain')
+
+    model.setMaxGraphNodes(1)
+    await layoutsSettled(model)
+    expect(String(model.error)).toMatch(/too large to draw/i)
+
+    await model.switchLayout('walkrows')
+    expect(model.error).toBeUndefined()
+    const drawn = model.layoutResult
+    model.setMaxGraphNodes(5000)
+    await layoutsSettled(model)
+    expect(model.layoutResult).toBe(drawn)
+    consoleSpy.mockRestore()
   })
 
   // Comparing the two drawings is the workflow the README leads with, and the
@@ -4530,7 +4630,7 @@ describe('keeping the drawing on screen', () => {
         ? Promise.resolve({ result: shifted, duration: 5 })
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
 
     expect(model.viewportOwner).toBe('fit')
     expect(model.scale).toBeCloseTo(model.fittedTransform!.scale, 10)
@@ -4740,20 +4840,20 @@ describe('a morph cut short', () => {
     await model.loadGFA(BUBBLE, 'g')
     const a = model.layoutResult!
     const aEnds = structuredClone(a.nodePositions)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     const b = model.layoutResult!
     runFrames(1000)
     const bEnds = structuredClone(b.nodePositions)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     runFrames(1000)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     expect(model.layoutResult).toBe(b)
     runFrames(100)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     expect(model.layoutResult).toBe(a)
     runFrames(1000)
     expect(a.nodePositions).toEqual(aEnds)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     expect(model.layoutResult).toBe(b)
     runFrames(1000)
     expect(b.nodePositions).toEqual(bEnds)
@@ -4783,13 +4883,13 @@ describe('a morph cut short', () => {
   test('runs on when the cache hands back the layout on screen', async () => {
     const model = createModel()
     await model.loadGFA(BUBBLE, 'g')
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     const b = model.layoutResult!
     runFrames(1000)
     const bEnds = structuredClone(b.nodePositions)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     runFrames(1000)
-    await model.toggleDeletionEdges()
+    await toggleDeletionEdges(model)
     runFrames(100)
     // what the node-limit select does
     model.setMaxGraphNodes(model.maxGraphNodes)

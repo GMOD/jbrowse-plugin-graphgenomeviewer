@@ -230,9 +230,9 @@ export function paneViewportOf(model: {
 // Worth keeping because a session revisits the same layout. The two drawings
 // answer different questions and the README's own figure is one subgraph in
 // both, so Anchored <-> Force is a round trip a reader makes repeatedly — and
-// every control in the settings dialog calls `recomputeLayout` on change
-// whether or not the current mode reads what it changed, which made picking a
-// reference path in force mode a multi-second re-run of an identical layout.
+// picking a reference path calls `recomputeLayout` whether or not the current
+// mode reads it, which in force mode was a multi-second re-run of an identical
+// layout.
 // Both are hits. The cache itself is core's, which BandageJS keeps too.
 export const forceLayouts = createForceLayoutCache()
 

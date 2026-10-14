@@ -888,7 +888,9 @@ test('a launch in the force layout cuts the window alone', async () => {
   expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
 })
 
-test('a force track lays out with the stress engine by default, and switching asks for FMMM', async () => {
+// Reset track settings, undo and the config editor write the deletions
+// layer to the config, as setSlot does here
+test('a force track lays out with the stress engine by default, and an engine setting from anywhere lays it out again', async () => {
   const { view, rpcCall } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -910,8 +912,14 @@ test('a force track lays out with the stress engine by default, and switching as
   expect(engines()).toEqual(['stress'])
 
   display.setLayoutEngine('fmmm')
-  await display.recomputeLayout()
-  expect(engines()).toEqual(['stress', 'fmmm'])
+  await vi.waitFor(() => {
+    expect(engines()).toEqual(['stress', 'fmmm'])
+  })
+
+  display.configuration.setSlot('layers', { deletions: false })
+  await vi.waitFor(() => {
+    expect(engines()).toEqual(['stress', 'fmmm', 'fmmm'])
+  })
 })
 
 test('the drawing is the track height, and resizing the track resizes it', async () => {
