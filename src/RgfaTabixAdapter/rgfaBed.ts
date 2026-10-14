@@ -205,12 +205,12 @@ export function closingSpans(
   return [
     ...mergedSpans(
       held.filter(segment => segment.rank > 0),
-      unread,
+      segment => unread.has(segment.id),
       window.end - window.start,
     ),
     ...mergedSpans(
       held.filter(segment => segment.rank === 0 && outside(segment)),
-      new Set(held.map(segment => segment.id)),
+      () => true,
       0,
     ),
   ]
@@ -218,7 +218,7 @@ export function closingSpans(
 
 function mergedSpans(
   segments: RgfaSegment[],
-  unread: Set<string>,
+  isUnread: (segment: RgfaSegment) => boolean,
   maxGap: number,
 ) {
   const sorted = [...segments].sort(
@@ -231,14 +231,14 @@ function mergedSpans(
       span?.refName === segment.refName &&
       segment.start - span.end <= maxGap
     ) {
-      span.needed ||= segment.start > span.end || unread.has(segment.id)
+      span.needed ||= segment.start > span.end || isUnread(segment)
       span.end = Math.max(span.end, segment.end)
     } else {
       spans.push({
         refName: segment.refName,
         start: segment.start,
         end: segment.end,
-        needed: unread.has(segment.id),
+        needed: isUnread(segment),
       })
     }
   }
