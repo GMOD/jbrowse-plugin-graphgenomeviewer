@@ -2,7 +2,7 @@
 name: review-cleanups
 description:
   Splits and dedupes a code review found that need no call, from fitViews.ts and
-  graphViews.ts down to the lane adapters' duplicates and three stale comments.
+  graphViews.ts down to the lane adapters' duplicates.
 ---
 
 # Review cleanups
@@ -50,9 +50,6 @@ Cleanups that wait on judgement are in
   carry both
 - `wholeBp` (`GbzBaseSyntenyAdapter.ts` 227) floors and ceils a region; the walk
   adapter passes fractional coordinates into its cut and status text
-- Stale comments: `GbzBaseSyntenyAdapter/configSchema.ts` 25-26 on lane
-  composition, `GraphTrack/index.ts` 11-12 ("only gbz-base offers lanes"),
-  `GetSubgraph.ts` 67-68, which leaves out `WalkTabixSyntenyAdapter`
 
 ## Ports from BandageJS
 
