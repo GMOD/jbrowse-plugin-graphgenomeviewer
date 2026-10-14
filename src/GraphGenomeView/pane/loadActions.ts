@@ -411,6 +411,33 @@ export const withLoadActions = withEngineSettings.actions(self => {
     settle()
   }
 
+  // Runs `body` as a load: it raises the spinner and clears the error first,
+  // and reports a failure and ends the spinner only while it is the live load
+  function* runLoad(
+    label: string,
+    body: (load: {
+      isLive: () => boolean
+      signal: AbortSignal
+    }) => Generator<PromiseLike<unknown>, void, unknown>,
+  ) {
+    const load = beginLoad()
+    self.isLoading = true
+    self.error = undefined
+    try {
+      yield* body(load)
+    } catch (e) {
+      if (load.isLive()) {
+        console.error(`[GraphGenomeView.${label}]`, e)
+        self.error = e
+      }
+    } finally {
+      if (load.isLive()) {
+        endLoad()
+      }
+    }
+    return load.isLive()
+  }
+
   // Features over the cut. A failed read warns and returns undefined, so an
   // annotation never fails the load.
   function* readFeatures(
@@ -567,26 +594,13 @@ export const withLoadActions = withEngineSettings.actions(self => {
     source: string | ((signal: AbortSignal) => Promise<string>),
     region?: SubgraphRegion,
   ) {
-    const { isLive, signal } = beginLoad()
-    self.isLoading = true
-    self.error = undefined
-    try {
+    return yield* runLoad('loadWholeGFA', function* ({ isLive, signal }) {
       const text =
         typeof source === 'string' ? source : ((yield source(signal)) as string)
       if (isLive()) {
         yield* parseAndLayout(text, name, region)
       }
-    } catch (e) {
-      if (isLive()) {
-        console.error('[GraphGenomeView.loadWholeGFA]', e)
-        self.error = e
-      }
-    } finally {
-      if (isLive()) {
-        endLoad()
-      }
-    }
-    return isLive()
+    })
   }
 
   function abortLoad() {
@@ -699,11 +713,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
       opts: SubgraphCutOptions = {},
       foldBelowBp = 0,
     ) {
-      const { isLive, signal } = beginLoad()
-      self.isLoading = true
-      self.error = undefined
-      self.setStatusMessage('Fetching subgraph')
-      try {
+      yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
+        self.setStatusMessage('Fetching subgraph')
         const fetchStart = performance.now()
         const cut = (yield getSession(self).rpcManager.call(
           getRpcSessionId(self),
@@ -758,16 +769,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
           flow(loadAnnotation)('genes', region, isLive, signal),
           flow(loadAnnotation)('repeats', region, isLive, signal),
         ])
-      } catch (e) {
-        if (isLive()) {
-          console.error('[GraphGenomeView.cutSubgraph]', e)
-          self.error = e
-        }
-      } finally {
-        if (isLive()) {
-          endLoad()
-        }
-      }
+      })
     }),
     // A track change re-reads that annotation alone. The graph, its layout
     // and any open bubble stay as they are.
