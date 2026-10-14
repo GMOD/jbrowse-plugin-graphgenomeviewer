@@ -365,6 +365,21 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     })
     await screenshot(page, 'demo-04-reference-strip-hover')
 
+    // the legend measures itself only at rest, so the hover ends before the
+    // bubbles' legend grows and the labels move
+    await page.mouse.move(0, 0)
+    await page.waitForFunction(
+      ([viewId, trackId]: string[]) =>
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0].legendAtRest,
+      { timeout: 10_000 },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+
     // a bubble's name lights the bubble's span, not the node the linear view
     // reads under the pointer's x
     await page.evaluate(
