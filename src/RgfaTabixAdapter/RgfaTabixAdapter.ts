@@ -169,12 +169,12 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
               },
             }),
           )
-          // every node of the chunks read that ends past the window's start
           const seen = new Set<number>()
           for (const node of referenceNodes(refRows)) {
             if (
               node.refName === tabixRefName &&
               node.end > query.start &&
+              node.start < query.end &&
               !seen.has(node.id)
             ) {
               seen.add(node.id)

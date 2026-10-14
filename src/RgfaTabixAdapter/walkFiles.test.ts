@@ -257,6 +257,13 @@ test("a node longer than a chunk is read back as far as the header's maxnode rea
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
 })
 
+test("a walk-indexed graph's features are the reference nodes overlapping the window", async () => {
+  const features = await firstValueFrom(
+    makeAdapter(headerPrefix).getFeatures(chr1(1000, 2300)).pipe(toArray()),
+  )
+  expect(features.map(f => f.get('name'))).toEqual(['2', '3', '4'])
+})
+
 test('getFeatures reads from the chunk before the window', async () => {
   const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
   await firstValueFrom(
