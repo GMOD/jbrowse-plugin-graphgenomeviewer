@@ -2,8 +2,8 @@
 name: simplifications-awaiting-a-call
 description:
   Cleanups a review skipped on a judgement worth re-checking, such as a
-  duplicate HSL helper, the morph gate and test-only members. Each entry lists
-  the reason, the case against it, and a first move.
+  duplicate HSL helper and the morph gate. Each entry lists the reason, the case
+  against it, and a first move.
 ---
 
 # Simplifications awaiting a call
@@ -47,10 +47,3 @@ Each entry gives the case against the skip, so the decision can be made again.
   building a model.
 - First move: list the gate's conditions and count the tests that reach
   `morphFrom` today.
-
-## Members only tests use
-
-- `setPaneHeight` (`pane/settingActions.ts`) has no production caller, and only
-  a test reads `highlightInLinearView`'s return value
-  (`src/launchFromGraph/launchFromGraph.ts`).
-- Both stayed because removing them changes tests and nothing at runtime.

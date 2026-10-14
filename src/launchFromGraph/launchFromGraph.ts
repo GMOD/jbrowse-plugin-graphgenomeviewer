@@ -229,7 +229,6 @@ export function highlightInLinearView({
       assemblyName: assembly,
     })
   }
-  return target !== undefined
 }
 
 // Which assemblies a track covers, for deciding whether a panel can draw it at

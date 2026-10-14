@@ -228,13 +228,6 @@ export const withSettingActions = withTubeMapViews
         l.walk === walk ? { ...l, color: { ...l.color, ...color } } : l,
       )
     },
-
-    // Undefined restores the built-in ceiling. Nothing recomputes: the pane
-    // reads canvasHeight and the drawing is placed by zoomToFit, which the
-    // caller runs if it wants the drawing refitted into the new pane.
-    setPaneHeight(px: number | undefined) {
-      self.paneHeight = px
-    },
     setWalkRowSamples(samples: string[] | undefined) {
       self.writeGrammar({ rows: samples ? { kept: samples } : {} })
     },

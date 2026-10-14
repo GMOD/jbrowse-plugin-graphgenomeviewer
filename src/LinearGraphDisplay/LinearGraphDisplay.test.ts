@@ -15,7 +15,7 @@ import {
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
-import { getType, types } from '@jbrowse/mobx-state-tree'
+import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { reaction } from 'mobx'
@@ -1488,7 +1488,7 @@ test('the graph genome view a track opens takes every pane setting but where its
   display.setTubeMapColorBy('population')
   display.setRepeatTrackId('repeats')
   display.setRepeatKey('chr1:1-10')
-  display.setPaneHeight(300)
+  applyPatch(display, { op: 'replace', path: '/paneHeight', value: 300 })
   const spec = display.graphViewSpec!
   expect(spec).toMatchObject({
     tubeMapFold: 50,
