@@ -177,6 +177,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   // one over the top of the chosen one seconds later, with the dropdown
   // still naming the choice that was discarded.
   let liveRequest = 0
+  let liveRequestPending = false
   // the error the last failed layout raised, which the next one to land clears
   let layoutError: unknown
   // the graph the layout on screen was computed for
@@ -197,6 +198,7 @@ export const withLoadActions = withSettingActions.actions(self => {
   // flight; the stale result must not land.
   function* layoutInto(graph: Graph) {
     const request = ++liveRequest
+    liveRequestPending = true
     awaitedRun = undefined
     const isLive = () => self.graph === graph && request === liveRequest
     const signal = loadController?.signal
@@ -221,6 +223,11 @@ export const withLoadActions = withSettingActions.actions(self => {
       layoutError = e
       dropLayoutOfReplacedGraph()
       throw e
+    } finally {
+      if (request === liveRequest) {
+        liveRequestPending = false
+        settle()
+      }
     }
     const live = isLive()
     if (live) {
@@ -387,15 +394,19 @@ export const withLoadActions = withSettingActions.actions(self => {
     }
   }
 
-  function endLoad() {
-    loadInFlight = undefined
-    self.finishLoading()
-  }
-
-  function layoutSettled() {
-    if (loadInFlight === undefined) {
+  // The spinner stays up while a load or the layout last asked for is in
+  // flight. Clearing it sooner reports "done" while the layout the user
+  // asked for is still computing, the common case when a cheap choice
+  // follows an expensive one.
+  function settle() {
+    if (loadInFlight === undefined && !liveRequestPending) {
       self.finishLoading()
     }
+  }
+
+  function endLoad() {
+    loadInFlight = undefined
+    settle()
   }
 
   // The bubble index that the hosted HPRC build keeps beside its segments,
@@ -580,6 +591,7 @@ export const withLoadActions = withSettingActions.actions(self => {
     loadInFlight = undefined
     liveLoad++
     liveRequest++
+    liveRequestPending = false
     awaitedRun = undefined
   }
 
@@ -871,19 +883,11 @@ export const withLoadActions = withSettingActions.actions(self => {
       }
       self.isLoading = true
       self.setStatusMessage('Computing layout')
-
       try {
-        // A superseded request leaves the spinner to the request that
-        // replaced it: clearing it here reports "done" while the layout the
-        // user actually asked for is still being computed, which is the
-        // common case when a cheap choice follows an expensive one.
-        if (yield* layoutInto(graph)) {
-          layoutSettled()
-        }
+        yield* layoutInto(graph)
       } catch (e) {
         console.error('[GraphGenomeView.recomputeLayout]', e)
         self.error = e
-        layoutSettled()
       }
     }),
   }

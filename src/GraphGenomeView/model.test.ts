@@ -560,6 +560,51 @@ describe('performance instrumentation', () => {
     expect(model.isLoading).toBe(false)
   })
 
+  test('a load whose layout was replaced leaves the spinner to the replacement', async () => {
+    const { answers, layouts, holdLayouts } = heldCuts()
+    holdLayouts()
+    const model = createModel()
+    const load = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[0]!(SIMPLE_GFA)
+    await vi.waitFor(() => {
+      expect(layouts).toHaveLength(1)
+    })
+    model.setLayoutQuality(4)
+    const relayout = model.recomputeLayout()
+    await vi.waitFor(() => {
+      expect(layouts).toHaveLength(2)
+    })
+
+    layouts[0]!()
+    await load
+    expect(model.isLoading).toBe(true)
+
+    layouts[1]!()
+    await relayout
+    expect(model.isLoading).toBe(false)
+  })
+
+  test('a load that fails while an outrun one is laying out ends with that layout', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { answers, layouts, holdLayouts } = heldCuts()
+    holdLayouts()
+    const model = createModel()
+    const first = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[0]!(SIMPLE_GFA)
+    await vi.waitFor(() => {
+      expect(layouts).toHaveLength(1)
+    })
+    const second = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
+    answers[1]!('')
+    await second
+    expect(String(model.error)).toMatch(/no GFA/)
+
+    layouts[0]!()
+    await first
+    expect(model.isLoading).toBe(false)
+    consoleSpy.mockRestore()
+  })
+
   test('a stop before a new graph is laid out draws nothing of the last one', async () => {
     const { answers, layouts, holdLayouts } = heldCuts()
     const model = createModel()
