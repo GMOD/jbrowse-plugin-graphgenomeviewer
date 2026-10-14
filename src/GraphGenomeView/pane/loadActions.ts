@@ -411,6 +411,26 @@ export const withLoadActions = withEngineSettings.actions(self => {
     settle()
   }
 
+  // Features over the cut. A failed read warns and returns undefined, so an
+  // annotation never fails the load.
+  function* readFeatures(
+    adapterConfig: Record<string, unknown>,
+    region: SubgraphRegion,
+    what: string,
+    signal?: AbortSignal,
+  ) {
+    try {
+      return (yield getSession(self).rpcManager.call(
+        getRpcSessionId(self),
+        'CoreGetFeatures',
+        { adapterConfig, regions: [region], signal },
+      )) as Feature[]
+    } catch (e) {
+      console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
+      return undefined
+    }
+  }
+
   // The bubble index that the hosted HPRC build keeps beside its segments,
   // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
   // window. A graph whose source has no such file, the ordinary case for a
@@ -430,81 +450,63 @@ export const withLoadActions = withEngineSettings.actions(self => {
     if (adapterConfig.type !== 'RgfaTabixAdapter' || prefix === undefined) {
       return
     }
-    try {
-      const features = (yield getSession(self).rpcManager.call(
-        getRpcSessionId(self),
-        'CoreGetFeatures',
-        {
-          adapterConfig: {
-            type: 'MinigraphBubbleAdapter',
-            uri: `${prefix}.bubbles.bed.gz`,
-            baseUri: adapterConfig.baseUri,
-            assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
-          },
-          regions: [region],
-          signal,
-        },
-      )) as Feature[]
-      if (isLive()) {
-        const bubbles = features.flatMap(f => {
-          const start = f.get('start')
-          const end = f.get('end')
-          const longestAlleleLength = f.get('longestAlleleLength') as number
-          return Math.max(end - start, longestAlleleLength) < foldBelowBp
-            ? []
-            : [
-                {
-                  refName: region.refName,
-                  start,
-                  end,
-                  segmentCount: f.get('segmentCount') as number,
-                  pathCount: (f.get('pathCount') as number | undefined) ?? 0,
-                  inversion: f.get('inversion') as boolean,
-                  shortestAlleleLength: f.get('shortestAlleleLength') as number,
-                  longestAlleleLength,
-                  segments: f.get('segments') as string,
-                  shortestAllele: undefined,
-                  longestAllele: undefined,
-                },
-              ]
-        })
-        self.indexBubbles = bubbles
-      }
-    } catch (e) {
-      console.warn('[GraphGenomeView] no bubble index for this graph', e)
+    const features = yield* readFeatures(
+      {
+        type: 'MinigraphBubbleAdapter',
+        uri: `${prefix}.bubbles.bed.gz`,
+        baseUri: adapterConfig.baseUri,
+        assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
+      },
+      region,
+      'bubble index',
+      signal,
+    )
+    if (features && isLive()) {
+      self.indexBubbles = features.flatMap(f => {
+        const start = f.get('start')
+        const end = f.get('end')
+        const longestAlleleLength = f.get('longestAlleleLength') as number
+        return Math.max(end - start, longestAlleleLength) < foldBelowBp
+          ? []
+          : [
+              {
+                refName: region.refName,
+                start,
+                end,
+                segmentCount: f.get('segmentCount') as number,
+                pathCount: (f.get('pathCount') as number | undefined) ?? 0,
+                inversion: f.get('inversion') as boolean,
+                shortestAlleleLength: f.get('shortestAlleleLength') as number,
+                longestAlleleLength,
+                segments: f.get('segments') as string,
+                shortestAllele: undefined,
+                longestAllele: undefined,
+              },
+            ]
+      })
     }
   }
 
-  // A session track's features over the cut. Undefined when the session
-  // has no such track or the read fails: an annotation is never the
-  // graph's problem.
+  // A session track's features over the cut, undefined when the session has
+  // no such track
   function* trackFeatures(
     trackId: string | undefined,
     region: SubgraphRegion,
     what: string,
     signal?: AbortSignal,
   ) {
-    const session = getSession(self)
     const config = trackId
-      ? session.tracks.find(t => t.trackId === trackId)
+      ? getSession(self).tracks.find(t => t.trackId === trackId)
       : undefined
     if (!config) {
       return undefined
     }
-    try {
-      return (yield session.rpcManager.call(
-        getRpcSessionId(self),
-        'CoreGetFeatures',
-        {
-          adapterConfig: readConfObject(config, 'adapter'),
-          regions: [region],
-          signal,
-        },
-      )) as Feature[]
-    } catch (e) {
-      console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
-      return undefined
-    }
+    return yield* readFeatures(
+      readConfObject(config, 'adapter'),
+      region,
+      what,
+      signal,
+    )
   }
 
   // The annotation tracks read over the cut: genes, which `geneFeatures`
