@@ -144,6 +144,15 @@ export const withFitViews = withHostViews
         ? labels.map((l, i) => ({ ...l, y: place.rowY(i) }))
         : labels
     },
+    // The row labels on the canvas, each at its pane px `top`. A row scrolled
+    // out is dropped rather than clamped to the edge, so a label never points
+    // at a row that is not there.
+    get visibleRowLabels() {
+      return this.drawnRowLabels.flatMap(({ label, y }) => {
+        const top = self.toScreen({ x: 0, y }).y
+        return top >= 0 && top <= this.canvasHeight ? [{ label, y, top }] : []
+      })
+    },
     // The row labels are pinned to the pane's left edge, so the fit starts
     // the drawing past the widest one.
     get fitPadLeft() {

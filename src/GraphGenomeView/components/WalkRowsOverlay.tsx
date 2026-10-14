@@ -157,14 +157,18 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
     return null
   }
   const { paneWidth: width, canvasHeight } = model
-  const Y = (y: number) => y * model.scaleY + model.translateY
   const hovered = model.hoveredWalkRowText
     ? [bars.reference, ...bars.rows].findIndex(
         r => r.name === model.hoveredWalkRow,
       )
     : -1
-  const row =
-    hovered >= 0 ? [bars.reference, ...bars.rows][hovered]! : undefined
+  const lit =
+    hovered >= 0
+      ? {
+          row: [bars.reference, ...bars.rows][hovered]!,
+          start: model.toScreen({ x: bars.origin, y: place.rowY(hovered) }),
+        }
+      : undefined
   const frame = {
     ...model.screenTransform,
     width,
@@ -197,7 +201,9 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
           <text
             key={header.key}
             x={10}
-            y={Y(header.top) + SECTION_HEADER_PX - 4}
+            y={
+              model.toScreen({ x: 0, y: header.top }).y + SECTION_HEADER_PX - 4
+            }
             fontFamily="sans-serif"
             fontSize={11}
             fontWeight="bold"
@@ -207,12 +213,12 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
             {header.title}
           </text>
         ))}
-        {row ? (
+        {lit ? (
           <rect
             data-testid="graph-walk-row-hovered"
-            x={bars.origin * model.scaleX + model.translateX - 2}
-            y={Y(place.rowY(hovered)) - pitch.rowPx / 2 - 1}
-            width={row.bp * model.scaleX + 4}
+            x={lit.start.x - 2}
+            y={lit.start.y - pitch.rowPx / 2 - 1}
+            width={lit.row.bp * model.scaleX + 4}
             height={pitch.rowPx + 2}
             fill="none"
             stroke="#111"

@@ -87,35 +87,29 @@ const rowLabelStyle = {
 // own positioning context (canvasAreaStyle) — against the wrapper it picks up
 // the toolbar's height and names the wrong row. Pinned to the left edge rather
 // than to the row's own x, because a row's leftmost node is wherever its first
-// allele happens to branch. Rows scrolled out of the canvas are dropped rather
-// than clamped to the edge, so a label never points at a row that is not
-// there.
+// allele happens to branch.
+//
+// Keyed on the row, not on the label: two rows can have the same words. The
+// sample-row layout names row 0 for the assembly the backbone comes from and
+// the rows below it for the samples contributing alleles, and a diploid
+// reference is in both lists — one haplotype is the reference path, the other
+// walks alleles of its own, and `parsePanSN` reduces both to one sample name.
 const RowLabels = observer(function RowLabels({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const rowLabels = model.drawnRowLabels
   return (
     <>
-      {rowLabels.map(({ label, y }) => {
-        const screenY = y * model.scaleY + model.translateY
-        return screenY >= 0 && screenY <= model.canvasHeight ? (
-          // Keyed on the row, not on the label: two rows can carry the same
-          // words. The sample-row layout names row 0 for the assembly the
-          // backbone comes from and the rows below it for the samples
-          // contributing alleles, and a diploid reference is in both lists —
-          // one haplotype is the reference path, the other walks alleles of its
-          // own, and `parsePanSN` reduces both to one sample name.
-          <div
-            key={y}
-            data-testid="graph-row-label"
-            style={{ ...rowLabelStyle, top: screenY }}
-          >
-            {label}
-          </div>
-        ) : null
-      })}
+      {model.visibleRowLabels.map(({ label, y, top }) => (
+        <div
+          key={y}
+          data-testid="graph-row-label"
+          style={{ ...rowLabelStyle, top }}
+        >
+          {label}
+        </div>
+      ))}
     </>
   )
 })

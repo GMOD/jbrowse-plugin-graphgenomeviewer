@@ -450,19 +450,16 @@ function SizeLabels({ model }: { model: GraphPaneModel }) {
 function RowLabels({ model }: { model: GraphPaneModel }) {
   return (
     <g fontFamily={FONT.fontFamily}>
-      {model.drawnRowLabels.map(({ label, y }) => {
-        const screenY = y * model.scaleY + model.translateY
-        return screenY >= 0 && screenY <= model.canvasHeight ? (
-          <Chip
-            key={y}
-            x={10}
-            y={screenY}
-            text={label}
-            fontSize={11}
-            anchor="start"
-          />
-        ) : null
-      })}
+      {model.visibleRowLabels.map(({ label, y, top }) => (
+        <Chip
+          key={y}
+          x={10}
+          y={top}
+          text={label}
+          fontSize={11}
+          anchor="start"
+        />
+      ))}
     </g>
   )
 }
