@@ -1,3 +1,10 @@
+## [7.1.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.4...v7.1.5) (2026-10-14)
+
+### Other Changes
+
+- Depend on bandage-core 10.2.7, which keeps a two-part walk name ([9068eb9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9068eb98094f802f2dce1dab40575970994450a8))
+- Close the SVG export check: vector and raster match 7.1.1's ([5a8ea50](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5a8ea509597597b0d4e62a76fb026f4ace79dae2))
+
 ## [7.1.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.3...v7.1.4) (2026-10-14)
 
 ### Other Changes
