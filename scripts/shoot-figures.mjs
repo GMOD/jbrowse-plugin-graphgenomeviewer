@@ -825,18 +825,20 @@ if (unspecified.length > 0) {
   throw new Error(`img/ holds figures with no spec: ${unspecified.join(', ')}`)
 }
 const names = positionals.length > 0 ? positionals : Object.keys(FIGURES)
+const unknown = names.filter(name => !FIGURES[name])
+if (unknown.length > 0) {
+  throw new Error(
+    `no figure ${unknown.join(', ')}: ${Object.keys(FIGURES).join(', ')}`,
+  )
+}
 
-const browser = await puppeteer.launch({
-  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
-})
-try {
-  for (const name of names) {
-    const figure = FIGURES[name]
-    if (!figure) {
-      throw new Error(`no figure ${name}: ${Object.keys(FIGURES).join(', ')}`)
-    }
-    const { session, act, config = CONFIG } = figure
-    const context = await browser.createBrowserContext()
+async function shoot(browser, name) {
+  const { session, act, config = CONFIG } = FIGURES[name]
+  const file = path.join(values.out, `${name}.png`)
+  const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
+  const context = await browser.createBrowserContext()
+  let after
+  try {
     const page = await context.newPage()
     await page.setViewport({ width: 1400, height: 1600 })
     await candidateServer(values.dist, { [FIXTURES]: 'test_data' })(page)
@@ -878,38 +880,49 @@ try {
     }
     // captureBeyondViewport resizes the page for the capture, and the pane
     // re-lays out into a blank frame
-    const file = path.join(values.out, `${name}.png`)
-    const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
-    const after = Buffer.from(
+    after = Buffer.from(
       await page.screenshot({ clip, captureBeyondViewport: false }),
     )
+  } finally {
     await context.close()
-    if (values.compare === undefined || before === undefined) {
-      fs.writeFileSync(file, after)
-      console.log(`wrote ${file}${before ? '' : ', new'}`)
-    } else {
-      const { changed, size, strip } = await compareShots(
-        browser,
-        before,
-        after,
-      )
-      // an unchanged figure keeps its file, so anti-aliasing noise leaves
-      // no diff to commit
-      if (changed === 0) {
-        console.log(`kept ${file}, unchanged`)
-      } else {
-        fs.writeFileSync(file, after)
-        fs.mkdirSync(values.compare, { recursive: true })
-        fs.writeFileSync(
-          path.join(values.compare, `${name}.png`),
-          Buffer.from(strip, 'base64'),
-        )
-        console.log(
-          `wrote ${file}, ${changed} px changed${size ? `, ${size}` : ''}`,
-        )
-      }
+  }
+  if (values.compare === undefined || before === undefined) {
+    fs.writeFileSync(file, after)
+    console.log(`wrote ${file}${before ? '' : ', new'}`)
+    return
+  }
+  const { changed, size, strip } = await compareShots(browser, before, after)
+  // an unchanged figure keeps its file, so anti-aliasing noise leaves no diff
+  // to commit
+  if (changed === 0) {
+    console.log(`kept ${file}, unchanged`)
+    return
+  }
+  fs.writeFileSync(file, after)
+  fs.mkdirSync(values.compare, { recursive: true })
+  fs.writeFileSync(
+    path.join(values.compare, `${name}.png`),
+    Buffer.from(strip, 'base64'),
+  )
+  console.log(`wrote ${file}, ${changed} px changed${size ? `, ${size}` : ''}`)
+}
+
+const browser = await puppeteer.launch({
+  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
+})
+const failed = []
+try {
+  for (const name of names) {
+    try {
+      await shoot(browser, name)
+    } catch (e) {
+      failed.push(name)
+      console.log(`FAILED ${name}: ${e instanceof Error ? e.message : e}`)
     }
   }
 } finally {
   await browser.close()
+}
+if (failed.length > 0) {
+  process.exitCode = 1
 }

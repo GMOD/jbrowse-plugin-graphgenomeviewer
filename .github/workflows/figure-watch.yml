@@ -4,8 +4,8 @@ name: Figure watch
 # a drawing change upstream or here reaches them without a reshoot: the track's
 # stress engine reshaped every force figure, and tube_map_micb took position
 # colour, with nobody looking. Each week this reshoots them all and uploads an
-# old | new | diff strip for each that moved. It fails nothing; read the
-# summary.
+# old | new | diff strip for each that moved. A moved figure fails nothing; one
+# that could not be shot fails the run. Read the summary.
 on:
   schedule:
     - cron: '0 10 * * 1'
@@ -39,8 +39,8 @@ jobs:
       - if: always()
         run: |
           {
-            echo '## Figures that moved'
-            grep -E 'px changed|, new' figure-watch.log || echo 'none'
+            echo '## Figures that moved or failed'
+            grep -E 'px changed|, new|^FAILED' figure-watch.log || echo 'none'
           } >> "$GITHUB_STEP_SUMMARY"
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
