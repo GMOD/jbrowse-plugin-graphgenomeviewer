@@ -3935,6 +3935,32 @@ describe('annotation reads beside a cut', () => {
     mockSession.assemblyAliases = {}
   })
 
+  test('a file stated beside a region reads its annotations inside its load', async () => {
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    const model = createModel()
+    const loaded = model.loadGFAFromLocation(
+      { uri: 'https://example.com/g.gfa', locationType: 'UriLocation' },
+      TEST_REGION,
+    )
+    await vi.waitFor(() => {
+      expect(reads.map(r => r.tag)).toEqual(['genes-a', 'trgt'])
+    })
+    expect(model.isLoading).toBe(true)
+    const featureReads = mockRpcCall.mock.calls.filter(
+      c => c[1] === 'CoreGetFeatures',
+    )
+    expect(featureReads.map(c => c[2].signal)).toEqual([
+      expect.any(AbortSignal),
+      expect.any(AbortSignal),
+    ])
+
+    readOf('genes-a').settle([gene('ABC1')])
+    readOf('trgt').settle([])
+    await loaded
+    expect(model.isLoading).toBe(false)
+    expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+  })
+
   test('a slow gene read does not land over the pick that followed it', async () => {
     const model = createModel()
     await cutAndSettle(model)

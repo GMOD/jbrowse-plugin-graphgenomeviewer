@@ -435,7 +435,6 @@ export const withLoadActions = withEngineSettings.actions(self => {
         endLoad()
       }
     }
-    return load.isLive()
   }
 
   // Features over the cut. A failed read warns and returns undefined, so an
@@ -568,6 +567,17 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }
   }
 
+  // The annotation reads over a cut, each landing as it arrives
+  function annotationReads(
+    region: SubgraphRegion,
+    isLive: () => boolean,
+    signal: AbortSignal,
+  ) {
+    return (['genes', 'repeats'] as const).map(kind =>
+      flow(loadAnnotation)(kind, region, isLive, signal),
+    )
+  }
+
   // One annotation read again alone, for a track change. Live only while
   // the track it read is still the one chosen, so a slow read cannot land
   // over the pick that followed it.
@@ -588,17 +598,23 @@ export const withLoadActions = withEngineSettings.actions(self => {
   // Raises `isLoading` before any fetch, so a view waiting on a remote file
   // shows its loading state instead of the import form. Text already in
   // hand is parsed without yielding first. `region` is the window a
-  // declared file was stated beside, which the parse anchors on.
+  // declared file was stated beside, which the parse anchors on and the
+  // annotations are read over.
   function* loadWholeGFA(
     name: string,
     source: string | ((signal: AbortSignal) => Promise<string>),
     region?: SubgraphRegion,
   ) {
-    return yield* runLoad('loadWholeGFA', function* ({ isLive, signal }) {
+    yield* runLoad('loadWholeGFA', function* ({ isLive, signal }) {
       const text =
         typeof source === 'string' ? source : ((yield source(signal)) as string)
-      if (isLive()) {
-        yield* parseAndLayout(text, name, region)
+      if (!isLive()) {
+        return
+      }
+      yield* parseAndLayout(text, name, region)
+      if (region && isLive()) {
+        self.setStatusMessage('Reading annotations')
+        yield Promise.all(annotationReads(region, isLive, signal))
       }
     })
   }
@@ -691,18 +707,11 @@ export const withLoadActions = withEngineSettings.actions(self => {
       region?: SubgraphRegion,
     ) {
       self.setStatusMessage('Fetching GFA')
-      const live = yield* loadWholeGFA(
+      yield* loadWholeGFA(
         fileName(location) || 'GFA',
         signal => openLocation(location).readFile({ encoding: 'utf8', signal }),
         region,
       )
-      if (region && live && self.graph) {
-        const isLive = () => self.graphRegion === region
-        yield Promise.all([
-          flow(loadAnnotation)('genes', region, isLive),
-          flow(loadAnnotation)('repeats', region, isLive),
-        ])
-      }
     }),
     // One cut of a region, laid out with the annotations over it. Whether
     // the region may be cut is the caller's call; overlapping cuts are
@@ -766,8 +775,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
                 signal,
                 self.foldedBelowBp,
               ),
-          flow(loadAnnotation)('genes', region, isLive, signal),
-          flow(loadAnnotation)('repeats', region, isLive, signal),
+          ...annotationReads(region, isLive, signal),
         ])
       })
     }),
