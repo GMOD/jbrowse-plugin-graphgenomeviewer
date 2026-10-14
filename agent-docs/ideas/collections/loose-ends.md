@@ -19,9 +19,6 @@ description:
   view canonicalize both names in `offReference`
   (`src/GraphGenomeView/model.ts`) through `canonicalAssemblyName`; the GBZ
   adapter needs the same, though the route is deprecated.
-- `isNodeLimitError` lives in `src/LinearGraphDisplay/denseWindow.ts`, and
-  `WalkTabixSyntenyAdapter` imports it from there, so an adapter depends on a
-  display module. It belongs beside `src/GetSubgraph.ts`.
 - Nobody has looked at an SVG export since `PaneSvg`'s raster and vector paths
   merged and the dark-paper branches went. Only the unit test covers it. Export
   the same figure from a 7.1.1 build and from main and compare.
