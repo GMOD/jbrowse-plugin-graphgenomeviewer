@@ -217,7 +217,7 @@ function layoutsSettled(model: { isLoading: boolean }) {
 // The menu's deletions toggle, then the relayout the engine reaction runs on
 // an attached view. A root model installs no reactions.
 async function toggleDeletionEdges(model: ReturnType<typeof createModel>) {
-  model.setShowDeletionEdges(!model.showDeletionEdges)
+  model.setLayer('deletions', !model.showDeletionEdges)
   await model.recomputeLayout()
 }
 
@@ -1000,12 +1000,12 @@ describe('layoutMode', () => {
     await model.loadGFA(RGFA, 'rgfa')
     expect(layoutCalls()).toHaveLength(1)
 
-    model.setShowDeletionEdges(false)
+    model.setLayer('deletions', false)
     await layoutsSettled(model)
     expect(layoutCalls()).toHaveLength(2)
 
     await model.switchLayout('auto')
-    model.setShowDeletionEdges(true)
+    model.setLayer('deletions', true)
     await layoutsSettled(model)
     expect(layoutCalls()).toHaveLength(2)
   })
@@ -1032,7 +1032,7 @@ describe('layoutMode', () => {
     const drawn = model.layoutResult
 
     model.setLayoutQuality(4)
-    model.setShowDeletionEdges(false)
+    model.setLayer('deletions', false)
     await layoutsSettled(model)
 
     expect(model.layoutResult).toBe(drawn)
@@ -2816,7 +2816,7 @@ describe('what the row axis draws, in pixels', () => {
 
     expect(render(hidden).length).toBeLessThan(render(shown).length)
 
-    hidden.setShowDeletionEdges(true)
+    hidden.setLayer('deletions', true)
     expect(hidden.hiddenEdgeIndexes!.size).toBe(0)
   })
 
@@ -3064,7 +3064,7 @@ describe('opening a bubble', () => {
     await model.loadGFA(RGFA_BUBBLE, 'rgfa')
     // off by default
     expect(model.bubbleHalos).toEqual([])
-    model.setShowBubbles(true)
+    model.setLayer('bubbles', true)
     expect(
       model.bubbleHalos.map(h => [
         h.label,
@@ -3073,7 +3073,7 @@ describe('opening a bubble', () => {
         h.tick,
       ]),
     ).toEqual([['≤4 bp ins', 1, true, true]])
-    model.setShowBubbles(false)
+    model.setLayer('bubbles', false)
     expect(model.bubbleHalos).toEqual([])
   })
 
@@ -3371,7 +3371,7 @@ describe('walk rows', () => {
     })
     await model.load()
     expect(model.figureSpec()).not.toHaveProperty('showDeletionEdges')
-    model.setShowDeletionEdges(false)
+    model.setLayer('deletions', false)
     expect(model.figureSpec()?.showDeletionEdges).toBe(false)
   })
 

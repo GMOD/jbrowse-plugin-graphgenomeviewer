@@ -160,9 +160,6 @@ export const withSettingActions = withFitViews
     setLayer(layer: GraphLayer, on: boolean) {
       self.writeGrammar({ layers: withLayer(self.grammar.layers, layer, on) })
     },
-    setDrawPaths(draw: boolean) {
-      this.setLayer('paths', draw)
-    },
     setShowPerf(show: boolean) {
       self.showPerf = show
     },
@@ -176,18 +173,6 @@ export const withSettingActions = withFitViews
       self.writeGrammar({
         size: sizeOfNodeWidth(width, self.contigThickness),
       })
-    },
-    setShowBubbles(show: boolean) {
-      this.setLayer('bubbles', show)
-    },
-    setShowDeletionEdges(show: boolean) {
-      this.setLayer('deletions', show)
-    },
-    setShowGenes(show: boolean) {
-      this.setLayer('genes', show)
-    },
-    setShowReferenceStrip(show: boolean) {
-      this.setLayer('referenceStrip', show)
     },
     setTubeMapFold(bp: number) {
       self.tubeMapFold = bp

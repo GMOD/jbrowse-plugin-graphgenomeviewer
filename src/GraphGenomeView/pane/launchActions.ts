@@ -35,6 +35,7 @@ import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 import { TUBE_MAP_PANELS, tubeMapPanelGroups } from '../tubeMapPanels'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
+import type { GraphLayer } from '../graphLayers'
 import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
@@ -298,23 +299,17 @@ export const withLaunchActions = withRenderingActions
       ]
     },
     showMenuItems(): MenuItem[] {
+      const layerItem = (label: string, layer: GraphLayer) => ({
+        type: 'checkbox' as const,
+        label,
+        checked: self.layerSet.has(layer),
+        onClick: () => {
+          self.setLayer(layer, !self.layerSet.has(layer))
+        },
+      })
       return [
-        {
-          type: 'checkbox',
-          label: 'Show bubble halos',
-          checked: self.showBubbles,
-          onClick: () => {
-            self.setShowBubbles(!self.showBubbles)
-          },
-        },
-        {
-          type: 'checkbox',
-          label: 'Show deletion edges',
-          checked: self.showDeletionEdges,
-          onClick: () => {
-            self.setShowDeletionEdges(!self.showDeletionEdges)
-          },
-        },
+        layerItem('Show bubble halos', 'bubbles'),
+        layerItem('Show deletion edges', 'deletions'),
         {
           label: 'Hover highlight',
           subMenu: radioItems(
@@ -326,25 +321,9 @@ export const withLaunchActions = withRenderingActions
             self.setHover,
           ),
         },
-        {
-          type: 'checkbox',
-          label: 'Show genes on the backbone',
-          checked: self.showGenes,
-          onClick: () => {
-            self.setShowGenes(!self.showGenes)
-          },
-        },
+        layerItem('Show genes on the backbone', 'genes'),
         ...(self.referenceStripApplies
-          ? [
-              {
-                type: 'checkbox' as const,
-                label: 'Show reference strip',
-                checked: self.showReferenceStrip,
-                onClick: () => {
-                  self.setShowReferenceStrip(!self.showReferenceStrip)
-                },
-              },
-            ]
+          ? [layerItem('Show reference strip', 'referenceStrip')]
           : []),
       ]
     },

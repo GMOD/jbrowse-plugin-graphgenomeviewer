@@ -185,7 +185,7 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
             label="Draw paths"
             checked={model.drawPaths}
             onChange={draw => {
-              model.setDrawPaths(draw)
+              model.setLayer('paths', draw)
             }}
           >
             <Caption>

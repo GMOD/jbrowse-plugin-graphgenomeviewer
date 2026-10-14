@@ -1003,7 +1003,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   display.setLayoutMode('ordered')
   display.setColorScheme('depth')
   display.setNodeWidth('uniform')
-  display.setShowBubbles(true)
+  display.setLayer('bubbles', true)
   display.setFacet('walk')
   display.setWalkRowSamples(['HG1'])
   display.setHover('off')
@@ -1581,13 +1581,13 @@ test("the gene chips name what the gene lane draws, and never the molecule's sou
 
 test("the linear view's SVG export draws the graph through the screen's transform", async () => {
   const { pane } = await shownGraph()
-  pane.setShowGenes(false)
+  pane.setLayer('genes', false)
   const markup = renderToStaticMarkup(
     (await pane.renderSvg()) as React.ReactElement,
   )
   expect(markup).toContain('data-testid="graph-pane-svg"')
   expect(markup).toMatch(/<path d="M/)
-  pane.setShowReferenceStrip(false)
+  pane.setLayer('referenceStrip', false)
   await pane.switchLayout('tubemapref')
   await wait(SETTLE_MS)
   expect(
