@@ -115,6 +115,34 @@ function walkRowsFromCut(
   return runs ? walkRowsOf(runs, unit) : undefined
 }
 
+// undefined for a pane outside any track or view, as a test makes one
+function orUndefined<T>(get: () => T) {
+  try {
+    return get()
+  } catch {
+    return undefined
+  }
+}
+
+function nodeMapOf(graph: Graph) {
+  const m = new Map<string, GraphNode>()
+  for (const n of graph.nodes) {
+    m.set(n.id, n)
+  }
+  return m
+}
+
+// A node's reference interval, an allele's between its flanks
+function spanIn(
+  nodeId: string,
+  nodeById: Map<string, GraphNode> | undefined,
+  neighbors: ReturnType<typeof buildNeighbors> | undefined,
+) {
+  return nodeById && neighbors
+    ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+    : undefined
+}
+
 // The layout, node color and hover as a host stores them: a view of its own
 // as props, a track display in its config
 export interface GraphGrammar {
@@ -154,11 +182,10 @@ export const withGraphViews = paneBase
     },
     // the track the graph is cut from: the one the pane is a display of
     get sourceTrack(): AnyConfigurationModel | undefined {
-      try {
-        return getContainingTrack(self).configuration
-      } catch {
-        return undefined
-      }
+      return orUndefined(() => getContainingTrack(self).configuration)
+    },
+    get containingView(): object | undefined {
+      return orUndefined(() => getContainingView(self))
     },
   }))
   .views(self => {
@@ -261,14 +288,7 @@ export const withGraphViews = paneBase
   }))
   .views(self => ({
     get nodeById() {
-      if (self.drawnGraph) {
-        const m = new Map<string, GraphNode>()
-        for (const n of self.drawnGraph.nodes) {
-          m.set(n.id, n)
-        }
-        return m
-      }
-      return undefined
+      return self.drawnGraph && nodeMapOf(self.drawnGraph)
     },
     // bp per node id, which is all the label overlay needs of a GraphNode.
     // Held here rather than rebuilt in the component: that render runs on
@@ -752,10 +772,8 @@ export const withGraphViews = paneBase
     },
     // the filter of the gene track's lane in the view the pane draws in
     get geneLaneFilter() {
-      let view: object
-      try {
-        view = getContainingView(self)
-      } catch {
+      const view = self.containingView
+      if (!view) {
         return undefined
       }
       const filters = laneFilters(view, self.geneTrack?.trackId)
@@ -774,14 +792,13 @@ export const withGraphViews = paneBase
         ? geneModelsFrom(lane ? features.filter(f => lane.passes(f)) : features)
         : undefined
     },
-  }))
-  .views(self => ({
     // The genes on the drawn backbone under its own refNames. The track's
     // config puts its reference on the cut's assembly, whatever the walk's
     // name. After "Draw x along" another walk, the backbone takes the genes
     // only where its PanSN prefix names their assembly.
     get backboneGenes() {
-      const { backbone, geneAssembly, geneFeatures } = self
+      const { backbone } = self
+      const { geneAssembly, geneFeatures } = this
       const binds =
         self.drawsLoadedReference ||
         (geneAssembly !== undefined &&
@@ -877,46 +894,47 @@ export const withGraphViews = paneBase
         unvalued: walks.some(w => valueOf(w) === ''),
       }
     },
+    // The grouping by a sample table column, once the table is read and
+    // has that column
+    get tableGroupBy() {
+      const groupBy = self.walkRowGroupBy
+      const table = self.walkRowSampleTable
+      return groupBy && table && this.walkRowGroupFields.includes(groupBy.field)
+        ? { groupBy, table }
+        : undefined
+    },
     // How a tube map splits into panels: by sample or walk, or by a sample
-    // table column once the table is read
+    // table column
     get tubeMapPanelSplit(): TubeMapPanelSplit | undefined {
       const { field, domain } = self.facetSetting
-      const groupBy = self.walkRowGroupBy
-      const table = self.walkRowSampleTable
+      const grouped = this.tableGroupBy
       return field !== ''
         ? { by: field, domain }
-        : groupBy && table && this.walkRowGroupFields.includes(groupBy.field)
-          ? { by: 'column', ...groupBy, table }
+        : grouped
+          ? { by: 'column', ...grouped.groupBy, table: grouped.table }
           : undefined
     },
-    // The filtered rows in a section per value of the grouped column, or
+    // the cohort's rows the sample filter keeps
+    get keptCohortRows() {
+      const bars = this.cohortWalkRows
+      return bars && filterSamples(bars.rows, self.walkRowSamples)
+    },
+    // The kept rows in a section per value of the grouped column, or
     // undefined while ungrouped or the table lacks that column
     get walkRowGroups() {
-      const bars = this.cohortWalkRows
-      const table = self.walkRowSampleTable
-      const groupBy = self.walkRowGroupBy
-      return bars &&
-        table &&
-        groupBy &&
-        this.walkRowGroupFields.includes(groupBy.field)
-        ? groupWalkRows(
-            filterSamples(bars.rows, self.walkRowSamples),
-            table,
-            groupBy,
-          )
+      const rows = this.keptCohortRows
+      const grouped = this.tableGroupBy
+      return rows && grouped
+        ? groupWalkRows(rows, grouped.table, grouped.groupBy)
         : undefined
     },
     // The bars the overlay draws: the cohort's, narrowed by the sample
     // filter, and stacked section by section while grouped
     get walkRowBars() {
       const bars = this.cohortWalkRows
-      return bars
-        ? {
-            ...bars,
-            rows:
-              this.walkRowGroups?.rows ??
-              filterSamples(bars.rows, self.walkRowSamples),
-          }
+      const rows = this.keptCohortRows
+      return bars && rows
+        ? { ...bars, rows: this.walkRowGroups?.rows ?? rows }
         : undefined
     },
     // Whether the canvas draws the graph's nodes. A tube map and walk rows
@@ -1154,12 +1172,8 @@ export const withGraphViews = paneBase
           )
         : undefined
     },
-    // A node's reference interval, an allele's between its flanks
     nodeSpan(nodeId: string) {
-      const { nodeById, nodeNeighbors: neighbors } = self
-      return nodeById && neighbors
-        ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
-        : undefined
+      return spanIn(nodeId, self.nodeById, self.nodeNeighbors)
     },
     // The drawing the pointer is over: its panel's while a tube map is split,
     // each panel laid out alone and merging its own runs
@@ -1172,22 +1186,18 @@ export const withGraphViews = paneBase
         self.layoutResult?.tubeMap
       )
     },
-  }))
-  .views(self => ({
     // the graph whose ids the hover names
     get hoverGraph() {
-      return self.hoverDrawing?.graph ?? self.drawnGraph
+      return this.hoverDrawing?.graph ?? self.drawnGraph
     },
-  }))
-  .views(self => ({
     get hoverNodeById() {
-      const graph = self.hoverGraph
+      const graph = this.hoverGraph
       return graph === self.drawnGraph
         ? self.nodeById
-        : graph && new Map(graph.nodes.map(n => [n.id, n]))
+        : graph && nodeMapOf(graph)
     },
     get hoverNeighbors() {
-      const graph = self.hoverGraph
+      const graph = this.hoverGraph
       return graph === self.drawnGraph
         ? self.nodeNeighbors
         : graph && buildNeighbors(graph)
@@ -1219,24 +1229,18 @@ export const withGraphViews = paneBase
     get hoveredSpan() {
       const nodeId = self.hoveredNode
       const bubble = self.hoveredBubble
-      const nodeById = self.hoverNodeById
-      const neighbors = self.hoverNeighbors
       return nodeId !== null
-        ? nodeById && neighbors
-          ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
-          : undefined
+        ? spanIn(nodeId, self.hoverNodeById, self.hoverNeighbors)
         : bubble && !bubble.offReference
           ? { start: bubble.start, end: bubble.end }
           : undefined
     },
-  }))
-  .views(self => ({
     // The hovered span, for a connected linear view to highlight. Only a
     // graph cut from a track has one: a whole-file import has no region, and
     // its stable names need not name anything in a loaded assembly.
     get hoverHighlight() {
       const region = self.graphRegion
-      const span = self.hoveredSpan
+      const span = this.hoveredSpan
       return region && span && self.chosenHover !== 'off'
         ? {
             refName: region.refName,

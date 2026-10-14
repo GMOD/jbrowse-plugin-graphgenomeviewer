@@ -2,7 +2,7 @@ import {
   backboneNodes,
   backboneSpan,
 } from '@jbrowse/bandage-core/anchoredNodes'
-import { getContainingView, getSession } from '@jbrowse/core/util'
+import { getSession } from '@jbrowse/core/util'
 
 import { withGraphViews } from './graphViews'
 import {
@@ -27,12 +27,7 @@ export const withLaunchViews = withGraphViews
     // that view's window and the cut is re-made when the window leaves it.
     // A pane that is a view of its own has none.
     get host(): LinearHost | undefined {
-      let view: unknown
-      try {
-        view = getContainingView(self)
-      } catch {
-        return undefined
-      }
+      const view = self.containingView
       return isLinearHost(view) ? view : undefined
     },
   }))

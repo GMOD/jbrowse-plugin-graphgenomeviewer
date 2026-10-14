@@ -965,12 +965,10 @@ export const withFitViews = withHostViews
         }
       })
     },
-  }))
-  .views(self => ({
     // the panel a pane y falls in, its title's gap included
     tubeMapPanelAt(sy: number) {
       const i =
-        self.tubeMapPanelViews?.findIndex(
+        this.tubeMapPanelViews?.findIndex(
           v => v.titleTop <= sy && sy <= v.bottom,
         ) ?? -1
       return i < 0 ? null : i
@@ -1094,10 +1092,8 @@ export const withFitViews = withHostViews
         ? { drawing, picture, frame }
         : undefined
     },
-  }))
-  .views(self => ({
     tubeMapNodeAt(sx: number, sy: number) {
-      const under = self.tubeMapUnder(sy)
+      const under = this.tubeMapUnder(sy)
       return (
         (under ? tubeMapNodeAt(under.drawing, under.frame, sx, sy) : null) ??
         connectorAt(self.tubeMapConnectors, self.connectorZoneBottom, sx, sy) ??
@@ -1106,7 +1102,7 @@ export const withFitViews = withHostViews
     },
     // The tube under a pane point, and the mismatch mark on it if any
     tubeAt(sx: number, sy: number): HoveredTube | null {
-      const under = self.tubeMapUnder(sy)
+      const under = this.tubeMapUnder(sy)
       if (!under) {
         return null
       }
