@@ -74,50 +74,53 @@ function scored(row: { bp: number; complete: boolean }, call: RepeatCall) {
   }
 }
 
-// A phased genotype names its walk's haplotype outright. The rest go by
-// length: the walks that span the array against the alleles reads spanned,
-// then everything else against what those two left. That decides the
-// ambiguous cases on merit: which walk carries the one allele a lone spanning
-// read supports, and which allele a walk that stops inside the array is drawn
-// against.
+// A phased genotype names its walk's haplotype outright, though a contig
+// break can give that haplotype two walks. Within a haplotype, and among the
+// unphased alleles, pairing goes by length: the walks that span the array
+// against the alleles reads spanned, then everything else against what those
+// two left. That decides the ambiguous cases on merit: which walk takes the
+// one allele a lone spanning read supports, and which allele a walk that stops
+// inside the array is drawn against.
 function pairSample<
   R extends { bp: number; complete: boolean; haplotype?: number },
 >(rows: R[], calls: RepeatCall[]) {
   const out = new Map<number, WalkCall>()
   const taken = new Set<RepeatCall>()
-  rows.forEach((row, i) => {
-    const call = calls.find(
-      c => c.haplotype !== undefined && c.haplotype === row.haplotype,
-    )
-    if (call) {
-      taken.add(call)
-      out.set(i, scored(row, call))
-    }
-  })
-  const unphased = calls.filter(call => call.haplotype === undefined)
   const ranked = byLength(rows, r => r.bp)
-  const stages = [
-    [ranked.filter(r => r.item.complete), unphased.filter(backed)],
-    [ranked, unphased],
-  ] as const
-  for (const [pool, group] of stages) {
-    const free = pool.filter(r => !out.has(r.i))
-    const open = byLength(
-      group.filter(call => !taken.has(call)),
-      call => call.bp,
-    )
-    nearest(
-      free.map(r => r.item.bp),
-      open.map(c => c.item.bp),
-    ).forEach((pick, k) => {
-      if (pick !== undefined) {
-        const row = free[k]!
-        const call = open[pick]!.item
-        taken.add(call)
-        out.set(row.i, scored(row.item, call))
-      }
-    })
+  const pair = (pool: typeof ranked, group: RepeatCall[]) => {
+    const stages = [
+      [pool.filter(r => r.item.complete), group.filter(backed)],
+      [pool, group],
+    ] as const
+    for (const [walks, alleles] of stages) {
+      const free = walks.filter(r => !out.has(r.i))
+      const open = byLength(
+        alleles.filter(call => !taken.has(call)),
+        call => call.bp,
+      )
+      nearest(
+        free.map(r => r.item.bp),
+        open.map(c => c.item.bp),
+      ).forEach((pick, k) => {
+        if (pick !== undefined) {
+          const row = free[k]!
+          const call = open[pick]!.item
+          taken.add(call)
+          out.set(row.i, scored(row.item, call))
+        }
+      })
+    }
   }
+  for (const haplotype of new Set(calls.flatMap(c => c.haplotype ?? []))) {
+    pair(
+      ranked.filter(r => r.item.haplotype === haplotype),
+      calls.filter(c => c.haplotype === haplotype),
+    )
+  }
+  pair(
+    ranked,
+    calls.filter(c => c.haplotype === undefined),
+  )
   return out
 }
 
