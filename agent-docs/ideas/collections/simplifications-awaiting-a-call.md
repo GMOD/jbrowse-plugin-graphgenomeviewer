@@ -2,9 +2,8 @@
 name: simplifications-awaiting-a-call
 description:
   Cleanups a review skipped on a judgement worth re-checking, such as a
-  duplicate HSL helper, two legend swatch renderers, the morph gate, and
-  preversion repeating CI. Each entry lists the reason, the case against it, and
-  a first move.
+  duplicate HSL helper, the morph gate, and preversion repeating CI. Each entry
+  lists the reason, the case against it, and a first move.
 ---
 
 # Simplifications awaiting a call
@@ -21,22 +20,6 @@ Each entry gives the case against the skip, so the decision can be made again.
 - Against: a one-unit difference in one channel is invisible, so the trade is a
   few changed pixels for eight fewer lines of colour maths.
 - First move: switch to `hslToRgb` and compare a walk-row screenshot by eye.
-
-## One swatch renderer for the screen legend and the SVG export
-
-- The legend draws each swatch twice, as HTML in `Legend.tsx`
-  (`LegendSwatchView`, `stopsCss`) and as SVG in `PaneSvg.tsx` (`Gradient`,
-  `SvgSwatch`). Both switch over the same ten swatch kinds, and only reading
-  both keeps them in step.
-- Drawing `SvgSwatch` on screen too would remove about 90 lines.
-- Skipped because the e2e screenshots changed: Chrome snaps HTML boxes to whole
-  pixels but antialiases SVG rects at fractional positions.
-- Against: the screenshots are not baselines (`test/setup.ts`: "nothing here
-  diffs against a golden image"), so a changed screenshot fails no check. The
-  open question is whether softer swatch edges look worse, and rects placed on
-  whole pixels might not change at all.
-- First move: render `SvgSwatch` in a small `<svg>` inside `LegendSwatchView`,
-  then compare a legend at 1x and 2x DPR in light and dark themes.
 
 ## The synteny adapters' getFeatures dispatch
 
