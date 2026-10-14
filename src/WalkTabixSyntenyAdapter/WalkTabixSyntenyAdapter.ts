@@ -8,11 +8,15 @@ import {
 } from '@jbrowse/bandage-core/pansn'
 import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
-import { WalkReader, walkNameFilter } from '@jbrowse/graph-walks'
+import { WalkReader } from '@jbrowse/graph-walks'
 
 import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
 import { isNodeLimitError } from '../LinearGraphDisplay/denseWindow.ts'
-import { BUDGET_SLOTS, walkSubgraph } from '../RgfaTabixAdapter/walkReader.ts'
+import {
+  BUDGET_SLOTS,
+  walkSubgraph,
+  walksKept,
+} from '../RgfaTabixAdapter/walkReader.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import { laneAssemblyName, requestedPairs } from '../synteny/lanePairs.ts'
@@ -143,7 +147,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
         .cut(refName, region, {
           ...this.budgets(),
           signal: opts.signal,
-          keep: walkNameFilter(prefixes, panSNHaplotype(refName)),
+          keep: walksKept(prefixes, refName),
           links: false,
         })
         .catch((error: unknown) => {

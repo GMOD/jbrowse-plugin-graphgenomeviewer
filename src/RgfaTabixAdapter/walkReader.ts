@@ -12,6 +12,15 @@ export const BUDGET_SLOTS = {
 }
 
 /**
+ * The walks a cut decodes: the reference's and those `prefixes` names. A pggb
+ * P-line names a reference with no haplotype field (`chm13#chr1`), so the
+ * filter matches the reference by its whole name.
+ */
+export function walksKept(prefixes: string[] | undefined, refName: string) {
+  return walkNameFilter(prefixes, panSNHaplotype(refName) ?? refName)
+}
+
+/**
  * The graph display's cut of a walk-indexed window: the reference walk, the
  * walks of `prefixes` (every walk when undefined), and the nodes and links
  * they visit. Walk rows draw runs, so the step budget spares them.
@@ -31,7 +40,7 @@ export async function walkSubgraph(
 ) {
   const { graph, kept, fragments } = await reader.cut(refName, region, {
     signal: opts.signal,
-    keep: walkNameFilter(opts.prefixes, panSNHaplotype(refName)),
+    keep: walksKept(opts.prefixes, refName),
     stepBudget: opts.walkRows ? Infinity : opts.stepBudget,
     byteBudget: opts.byteBudget,
     budgetNames: BUDGET_SLOTS,

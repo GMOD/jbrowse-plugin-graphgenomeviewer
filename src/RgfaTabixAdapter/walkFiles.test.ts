@@ -33,6 +33,9 @@ const fixture = (name: string) =>
 //   W HG00097 1 chr1 >1>2>3>4>5>6
 const headerPrefix = fixture('walks2_header')
 
+// The same walks with the reference named as pggb names a P-line, GRCh38#chr1
+const twoPartPrefix = fixture('walks2_twopart')
+
 // An unchopped graph, node 1 spanning 0-2600 and filed under chunk 0 alone:
 //   W GRCh38 0 chr1 >1>2>4
 //   W HG002  1 chr1 >1>3>4   3 replaces 2
@@ -191,6 +194,13 @@ test("the haplotypes a walk file's header names", async () => {
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
   expect(gfa).toMatch(/^S\t7\t/m)
   expect(gfa).not.toMatch(/^S\t8\t/m)
+})
+
+test('a cut for some haplotypes keeps a reference walk named without a haplotype', async () => {
+  const cut = (await makeAdapter(twoPartPrefix).getSubgraph(chr1(1000, 2600), {
+    haplotypes: ['HG002#1'],
+  })) as GraphTables
+  expect(cut.walks.names).toEqual(['GRCh38#chr1', 'HG002#1#chr1'])
 })
 
 test('a format 1 walk file is refused, with what to rebuild it with', async () => {
