@@ -336,7 +336,6 @@ export const withLoadActions = withEngineSettings.actions(self => {
     foldBelowBp = 0,
   ) {
     const signal = loadController?.signal
-    self.setStatusMessage('Parsing GFA')
     const walkCut =
       typeof source !== 'string' && source.walkRowRuns ? source : undefined
     const parsed = parseCut(source, name, region)
@@ -795,7 +794,6 @@ export const withLoadActions = withEngineSettings.actions(self => {
       yield* reloadAnnotation('repeats')
     }),
     reloadGenes: flow(function* () {
-      walkGeneCache.clear()
       yield* reloadAnnotation('genes')
     }),
     // The source track's samples TSV, read once per location, for walk
