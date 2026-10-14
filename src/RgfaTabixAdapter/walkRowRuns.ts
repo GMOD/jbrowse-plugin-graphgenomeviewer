@@ -97,9 +97,9 @@ class RunWriter {
 
 /**
  * `walkRows(graphFromTables(tables), region)` for a cut whose first walk is
- * the reference, which every walk-file and GBZ cut is; a step is a node
- * index. A gap between two pieces of one haplotype is a step of `-bp`. Two
- * differences: a walk reaching only one of the region's flanks measures from
+ * the reference, which every walk-file and GBZ cut is, in as many pieces as
+ * the cut breaks it into; a step is a node index. A gap between two pieces of
+ * one haplotype is a step of `-bp`. Two differences: a walk reaching only one of the region's flanks measures from
  * that flank, where walkRows takes the whole walk the cut holds, so its length
  * is a lower bound that no longer grows with the cut's context; and a row
  * keeps its walk's name whole, where graphFromTables reads a two-part name
@@ -122,7 +122,11 @@ export function walkRowRuns(
       })
     }
   }
-  const [first, ...others] = paths
+  const referencePieces = paths
+    .filter(p => p.name === paths[0]?.name)
+    .sort((a, b) => a.start - b.start)
+  const first = referencePieces[0]
+  const others = paths.filter(p => p.name !== first?.name)
   if (!first || others.length === 0) {
     return undefined
   }
@@ -141,9 +145,9 @@ export function walkRowRuns(
   let flankedBefore = false
   let flankedAfter = false
   const cut = region && region.end > region.start ? region : undefined
-  {
-    let pos = first.start
-    for (let s = first.from; s < first.to; s++) {
+  for (const piece of referencePieces) {
+    let pos = piece.start
+    for (let s = piece.from; s < piece.to; s++) {
       const node = w.steps[s]!
       const len = lengthOf(node)
       if (Number.isNaN(spanStart[node]!)) {
@@ -371,7 +375,7 @@ export function walkRowRuns(
     }
   }
 
-  const reference = rowOf([first])
+  const reference = rowOf(referencePieces)
   const rowList = [...walks.values()].map(pieces => ({
     meta: rowOf(pieces),
     row: out.offsets.length - 2,

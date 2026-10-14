@@ -124,3 +124,31 @@ test('walks named without a haplotype field are rows of their own, on their cont
     { name: 'A#b', label: 'A', haplotype: undefined, contig: 'b' },
   ])
 })
+
+test('a reference cut into pieces is one reference row, as walkRows reads it', () => {
+  const split: GraphTables = {
+    ...tables,
+    walks: {
+      names: ['GRCh38#0#chr1', 'GRCh38#0#chr1', 'A#1#a'],
+      starts: Float64Array.of(0, 3000, 0),
+      ends: Float64Array.of(2000, 5000, 5000),
+      offsets: Int32Array.of(0, 2, 4, 9),
+      steps: Int32Array.of(...[0, 1], ...[3, 4], ...[0, 1, 2, 3, 4]),
+      reversed: new Uint8Array(9),
+    },
+  }
+  const region = { start: 2200, end: 2800 }
+  const fields = ({ label, bp, offReferenceBp, complete }: WalkRow) => ({
+    label,
+    bp,
+    offReferenceBp,
+    complete,
+  })
+  const ours = walkRowsOf(walkRowRuns(split, region)!)
+  const graph = loadGraph(split, 'cut')
+  const theirs = walkRows({ ...graph, referencePath: 'GRCh38#0#chr1' }, region)!
+  expect(ours.rows.map(fields)).toEqual(theirs.rows.map(fields))
+  expect(fields(ours.reference)).toEqual(fields(theirs.reference))
+  expect(ours.rows.map(r => r.label)).toEqual(['A#1'])
+  expect(ours.rows[0]).toMatchObject({ bp: 1000, complete: true })
+})
