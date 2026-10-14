@@ -395,18 +395,23 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
     }))
     .actions(self => ({
       // A failed read leaves the picker taking typed names
-      async fetchHaplotypeNames(adapterConfig: Record<string, unknown>) {
+      async fetchHaplotypeNames(
+        adapterConfig: Record<string, unknown>,
+        signal?: AbortSignal,
+      ) {
         try {
           const names = await getSession(self).rpcManager.call(
             getRpcSessionId(self),
             'GetGraphHaplotypes',
-            { adapterConfig },
+            { adapterConfig, signal },
           )
           if (isAlive(self) && self.sourceAdapter === adapterConfig) {
             self.setHaplotypeNames(names)
           }
         } catch (e) {
-          console.warn('[LinearGraphDisplay] no haplotype names', e)
+          if (!signal?.aborted) {
+            console.warn('[LinearGraphDisplay] no haplotype names', e)
+          }
         }
       },
     }))
@@ -455,6 +460,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         if (self.cutRegion && !self.graph) {
           void self.cut()
         }
+        let namesRead: AbortController | undefined
+        addDisposer(self, () => {
+          namesRead?.abort()
+        })
         addDisposer(
           self,
           reaction(
@@ -463,9 +472,12 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               return adapter && walkIndexed(adapter) ? adapter : undefined
             },
             adapterConfig => {
+              namesRead?.abort()
+              namesRead = undefined
               self.setHaplotypeNames(undefined)
               if (adapterConfig) {
-                void self.fetchHaplotypeNames(adapterConfig)
+                namesRead = new AbortController()
+                void self.fetchHaplotypeNames(adapterConfig, namesRead.signal)
               }
             },
             { fireImmediately: true, name: 'GraphHaplotypeNames' },

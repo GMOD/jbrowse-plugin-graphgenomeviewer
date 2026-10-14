@@ -1190,6 +1190,17 @@ test('haplotype names read for an adapter config the track has since changed are
   expect(display.haplotypeNames).toEqual(['HG1#1', 'HG1#2', 'HG2#1'])
 })
 
+test('removing a walk-indexed track aborts its read of the haplotype names', () => {
+  const { view, rpcCall } = walkIndexedDisplay()
+  const read = rpcCall.mock.calls.find(
+    ([, method]) => method === 'GetGraphHaplotypes',
+  )
+  const signal = read?.[2].signal
+  expect(signal?.aborted).toBe(false)
+  view.hideTrack('walk-indexed')
+  expect(signal?.aborted).toBe(true)
+})
+
 test('a walk-indexed graph whose header names no haplotype counts none', async () => {
   const { display, menu } = walkIndexedDisplay(null)
   await wait(0)
