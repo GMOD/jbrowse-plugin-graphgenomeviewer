@@ -168,7 +168,6 @@ export function formatSpanBp(bp: number) {
 // escape hatch strangepg gives with `-T N`.
 export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
-// A url bandage-figure can read again, or undefined for a local file
 // the last segment of a file's path, its query dropped, or a blob's own name
 export function fileName(location: FileLocation) {
   const path =
@@ -182,6 +181,7 @@ export function fileName(location: FileLocation) {
   return path.split(/[\\/]/).at(-1) ?? ''
 }
 
+// A url bandage-figure can read again, or undefined for a local file
 export function uriOf(location: FileLocation | undefined) {
   return location && 'uri' in location && location.uri
     ? new URL(location.uri, location.baseUri ?? window.location.href).href
