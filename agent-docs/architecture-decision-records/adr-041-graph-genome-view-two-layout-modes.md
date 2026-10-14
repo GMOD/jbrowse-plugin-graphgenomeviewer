@@ -107,9 +107,8 @@ every node and is easy to "fix" back into; don't.
 
 ## Validation
 
-`Bandage image` on byte-identical GFA, via
-`plugins/comparative-adapters/scripts/dump-subgraph.ts`. Bandage draws these
-graphs the same sparse way we do; the sprawl is a property of a pangenome window
-(a few multi-kb backbone segments plus many sub-kb alleles), not of the
-renderer. The unit guard is the drawn-length _ratio_ in `model.test.ts`, not the
-constant, which is free to be retuned.
+`Bandage image` on byte-identical GFA, via `scripts/dump-subgraph.ts`. Bandage
+draws these graphs the same sparse way we do; the sprawl is a property of a
+pangenome window (a few multi-kb backbone segments plus many sub-kb alleles),
+not of the renderer. The unit guard is the drawn-length _ratio_ in
+`model.test.ts`, not the constant, which is free to be retuned.

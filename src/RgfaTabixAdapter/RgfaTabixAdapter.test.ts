@@ -1,4 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 
 import { TabixIndexedFile } from '@gmod/tabix'
@@ -117,6 +120,24 @@ test('getSubgraph reaches off-reference neighbours', async () => {
       'L\ts323\t+\ts324\t+\t0M',
     ].join('\n'),
   )
+})
+
+// node runs the script with type stripping, which refuses a parameter property
+// or an enum anywhere among the cut's imports
+test('scripts/dump-subgraph.ts writes the cut getSubgraph makes', async () => {
+  const out = join(mkdtempSync(join(tmpdir(), 'dump-subgraph-')), 'cut.gfa')
+  const window = { ...k12, start: 1_000_000, end: 1_100_000 }
+  execFileSync(process.execPath, [
+    require.resolve('../../scripts/dump-subgraph.ts'),
+    prefix,
+    'K12',
+    'chr',
+    String(window.start),
+    String(window.end),
+    out,
+  ])
+  const cut = gfaText(await makeAdapter().getSubgraph(window, { hops: 1 }))
+  expect(readFileSync(out, 'utf8')).toBe(`${cut}\n`)
 })
 
 test('getSubgraph is byte-identical across calls', async () => {

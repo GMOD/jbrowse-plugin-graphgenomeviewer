@@ -1,15 +1,15 @@
 import { TabixIndexedFile } from '@gmod/tabix'
 import {
   panSNContig,
-  panSNHaplotype,
   panSNMatchesPrefix,
-  panSNSample,
   resolvePanSNPrefix,
 } from '@jbrowse/bandage-core/pansn'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { cachedSetup } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { openLocation, openTabixIndexFilehandle } from '@jbrowse/core/util/io'
 import { types } from '@jbrowse/mobx-state-tree'
+
+import { buildRefNameLookup, resolveRefName } from './refNameLookup.ts'
 
 import type {
   BaseFeatureDataAdapter,
@@ -19,16 +19,13 @@ import type { Region } from '@jbrowse/core/util/types'
 
 // What a tabix-indexed graph track answers about its own reference names, for
 // the two adapters that read one: `RgfaTabixAdapter` over segments and links,
-// and `MinigraphBubbleAdapter` over bubbles.
+// and `MinigraphBubbleAdapter` over bubbles. The name lookup is in
+// refNameLookup.ts, which scripts/dump-subgraph.ts loads under node's type
+// stripping.
 //
-// The two carried this verbatim — the opener, the cached lookup, `getRefNames`,
-// `resolve` — and the bubble adapter reached across into
-// `RgfaTabixAdapter/rgfaBed.ts` for the lookup half, which is a BED row grammar
-// and not this. Same reason `ComparativeAdapterBase` exists: the answers that do
-// not depend on which config slot names the file belong in one place.
-//
-// A class rather than a base class, for the reason that file records: a base
-// generic over the config cannot prove a slot name to `getConf`, so the adapter
+// A class rather than a base class, for the reason ComparativeAdapterBase.ts
+// records: a base generic over the config cannot prove a slot name to
+// `getConf`, so the adapter
 // keeps the two lines that read its own slots and hands over the file. Reading
 // `assemblyNameToPanSN` IS hoistable, because every schema here declares it and
 // `resolvePanSNPrefix` is already generic over the base adapter type.
@@ -86,41 +83,6 @@ export function openTabixSlot(
     ),
     chunkCacheSize: CHUNK_CACHE_SIZE,
   })
-}
-
-// A tab can occur in neither half — both come out of BED columns.
-function qualifiedKey(assemblyName: string, refName: string) {
-  return `${assemblyName}\t${refName}`
-}
-
-// The stable sequences in these files are usually PanSN (`K12#1#chr`) while the
-// assembly asking for them uses the bare contig (`chr` in assembly `K12`). One
-// map answers both spellings: the raw tabix name, plus a sample+contig key for
-// PanSN names.
-export function buildRefNameLookup(tabixRefNames: string[]) {
-  const lookup = new Map<string, string>()
-  for (const name of tabixRefNames) {
-    lookup.set(name, name)
-    const sample = panSNSample(name)
-    if (sample !== name) {
-      const contig = panSNContig(name)
-      lookup.set(qualifiedKey(sample, contig), name)
-      const haplotype = panSNHaplotype(name)
-      if (haplotype !== undefined) {
-        lookup.set(qualifiedKey(haplotype, contig), name)
-      }
-    }
-  }
-  return lookup
-}
-
-export function resolveRefName(
-  lookup: Map<string, string>,
-  assemblyName: string,
-  refName: string,
-) {
-  const qualified = lookup.get(qualifiedKey(assemblyName, refName))
-  return qualified === undefined ? lookup.get(refName) : qualified
 }
 
 /**
