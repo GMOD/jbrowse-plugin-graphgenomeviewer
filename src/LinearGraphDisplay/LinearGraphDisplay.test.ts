@@ -1595,6 +1595,16 @@ test("the linear view's SVG export draws the graph through the screen's transfor
   ).toContain('data-testid="graph-pane-svg"')
 })
 
+test('the SVG export greys what lies outside an open bubble, as the screen does', async () => {
+  const { pane } = await shownGraph({ windowStart: 1_015_000, windowBp: 9000 })
+  const exported = async () =>
+    renderToStaticMarkup((await pane.renderSvg()) as React.ReactElement)
+  const grey = 'stroke="rgb(160,160,160)"'
+  expect(await exported()).not.toContain(grey)
+  pane.toggleBubble(pane.bubbles[0]!)
+  expect(await exported()).toContain(grey)
+})
+
 const offReference = (pane: LinearGraphDisplayModel) =>
   pane.graph!.nodes.filter(n => (n.stable?.rank ?? 0) > 0)
 

@@ -602,6 +602,11 @@ export const withGraphViews = paneBase
       })
       return { walks: [], nodeIds, edgeIndexes, names: new Set() }
     },
+    // What the drawing keeps in colour while the rest greys, on screen and
+    // in the SVG export alike
+    get drawnHighlight(): WalkLift | undefined {
+      return self.walkLift ?? this.openBubbleFocus
+    },
     bubbleIsOpen(bubble: MinigraphBubble) {
       return self.openBubbles.some(o => sameBubble(o, bubble))
     },
