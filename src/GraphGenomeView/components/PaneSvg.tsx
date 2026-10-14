@@ -1,5 +1,6 @@
 import { FACET_GAP_PX, FACET_TITLE_PX } from '@jbrowse/bandage-core/facetGrid'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
+import { LABEL_CHAR_PX } from '@jbrowse/bandage-core/overlayLabels'
 import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { svgCanvas } from '@jbrowse/bandage-core/renderer/svgCanvas'
 import { rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
@@ -25,7 +26,6 @@ import type { WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 import type { Ctx2D } from '@jbrowse/core/util/paintLayer'
 
 const FONT = { fontFamily: 'sans-serif', fontSize: 11 }
-const CHAR_PX = 6.2
 const ROW_PX = 16
 const RASTER_SCALE = 2
 
@@ -278,7 +278,7 @@ function svgRow(row: LegendRow, id: string): KeyRow {
   if (!row.swatch) {
     return {
       key: row.key,
-      width: row.label.length * CHAR_PX,
+      width: row.label.length * LABEL_CHAR_PX,
       height: ROW_PX,
       draw: left => (
         <text key={row.key} {...FONT} x={left} y={0} fill="#666">
@@ -293,8 +293,8 @@ function svgRow(row: LegendRow, id: string): KeyRow {
   return {
     key: row.key,
     width: Math.max(
-      sw + 5 + words.length * CHAR_PX,
-      (row.under?.length ?? 0) * CHAR_PX,
+      sw + 5 + words.length * LABEL_CHAR_PX,
+      (row.under?.length ?? 0) * LABEL_CHAR_PX,
     ),
     height: row.under ? ROW_PX * 2 : ROW_PX,
     draw: left => (
