@@ -41,7 +41,6 @@ import {
   walkIndexed,
 } from '../graphTrackConfig'
 import { pushLaunchItem } from '../launchFromGraph/pushLaunchItem'
-import { trackAdapterConfig } from '../panSNAliases/trackAdapterConfig'
 
 import type { LinearGraphDisplayConfigModel } from './configSchema'
 import type { DenseWindow } from './denseWindow'
@@ -128,9 +127,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       cutFoldBp: 0,
     }))
     .views(self => ({
-      get adapterConfig() {
-        return trackAdapterConfig(self, self.parentTrack.configuration)
-      },
       get grammar(): GraphGrammar {
         return {
           layoutMode: getConf(self, 'layoutMode'),
@@ -153,16 +149,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return self.cutRegion !== undefined
       },
       get cutHaplotypes() {
+        const adapter = self.sourceAdapter
+        const track = self.sourceTrack
         return (
           self.subgraphHaplotypes ??
-          configHaplotypes(this.adapterConfig) ??
-          trackLanes(self.parentTrack.configuration)
+          (adapter && configHaplotypes(adapter)) ??
+          (track && trackLanes(track))
         )
       },
       // the linear view's zoom past which the track's coarse pair is cut, or
       // undefined for a track with none
       get coarseAboveBpPerPx() {
-        return coarseHandover(self.adapterConfig.coarse)
+        return coarseHandover(self.sourceAdapter?.coarse)
       },
     }))
     .views(self => ({
@@ -289,11 +287,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       // a fine one does, since a tier is the same graph folded.
       cut() {
         const region = self.cutRegion
-        if (!region) {
+        const adapterConfig = self.sourceAdapter
+        const track = self.sourceTrack
+        if (!region || !adapterConfig || !track) {
           return
         }
         const problem = offReferenceProblem(
-          graphReferenceAssembly(self.parentTrack.configuration),
+          graphReferenceAssembly(track),
           region.assemblyName,
         )
         if (problem) {
@@ -306,7 +306,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0),
         )
         return self.cutSubgraph(
-          self.adapterConfig,
+          adapterConfig,
           region,
           {
             hops: self.subgraphContext,
@@ -419,7 +419,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             'GetGraphHaplotypes',
             { adapterConfig },
           )
-          if (isAlive(self) && self.adapterConfig === adapterConfig) {
+          if (isAlive(self) && self.sourceAdapter === adapterConfig) {
             self.setHaplotypeNames(names)
           }
         } catch (e) {
@@ -475,8 +475,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         addDisposer(
           self,
           reaction(
-            () =>
-              walkIndexed(self.adapterConfig) ? self.adapterConfig : undefined,
+            () => {
+              const adapter = self.sourceAdapter
+              return adapter && walkIndexed(adapter) ? adapter : undefined
+            },
             adapterConfig => {
               self.setHaplotypeNames(undefined)
               if (adapterConfig) {
@@ -632,11 +634,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       // graph, the config's default set or the assemblies the track names,
       // or a list chosen in Graph settings
       cutMenuItems(): MenuItem[] {
-        if (!cutsByHaplotype(self.adapterConfig)) {
+        const adapter = self.sourceAdapter
+        const track = self.sourceTrack
+        if (!adapter || !track || !cutsByHaplotype(adapter)) {
           return []
         }
-        const defaults = configHaplotypes(self.adapterConfig)
-        const lanes = trackLanes(self.parentTrack.configuration)
+        const defaults = configHaplotypes(adapter)
+        const lanes = trackLanes(track)
         const names = self.haplotypeNames
         const chosen = self.subgraphHaplotypes
         const recut = (haplotypes: string[] | undefined) => {

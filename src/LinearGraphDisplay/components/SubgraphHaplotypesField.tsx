@@ -127,7 +127,8 @@ const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
   const { classes } = useStyles()
   const names = model.haplotypeNames
   const key = model.cutHaplotypes?.join(',') ?? ''
-  return cutsByHaplotype(model.adapterConfig) ? (
+  const adapter = model.sourceAdapter
+  return adapter && cutsByHaplotype(adapter) ? (
     <div className={classes.section}>
       {names ? (
         <HaplotypePickField key={key} model={model} names={names} />

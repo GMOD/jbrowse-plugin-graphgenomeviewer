@@ -6,7 +6,7 @@ import type { LinearGraphCutModel } from '../model'
 
 function model(haplotypeNames?: string[]) {
   return {
-    adapterConfig: { type: 'RgfaTabixAdapter', walksUri: 'chr22' },
+    sourceAdapter: { type: 'RgfaTabixAdapter', walksUri: 'chr22' },
     cutHaplotypes: ['HG002'],
     haplotypeNames,
     setSubgraphHaplotypes: vi.fn(),

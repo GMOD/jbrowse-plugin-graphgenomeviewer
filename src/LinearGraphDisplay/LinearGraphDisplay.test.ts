@@ -1151,9 +1151,9 @@ test('haplotype names read for an adapter config the track has since changed are
   const { display } = walkIndexedDisplay()
   await wait(0)
   display.setHaplotypeNames(undefined)
-  await display.fetchHaplotypeNames({ ...display.adapterConfig })
+  await display.fetchHaplotypeNames({ ...display.sourceAdapter })
   expect(display.haplotypeNames).toBeUndefined()
-  await display.fetchHaplotypeNames(display.adapterConfig)
+  await display.fetchHaplotypeNames(display.sourceAdapter!)
   expect(display.haplotypeNames).toEqual(['HG1#1', 'HG1#2', 'HG2#1'])
 })
 
