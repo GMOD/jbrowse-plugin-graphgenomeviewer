@@ -10,7 +10,7 @@ import type { Browser, Page } from 'puppeteer'
 export { launchBrowser } from '../scripts/hostedBrowser.mjs'
 
 // JBROWSE_PORT lets two sessions run the suites at once
-export const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
+const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
 
 // The plugin targets the latest JBrowse beta, so the suites run on its build.
 // JBROWSE_TEST_DIR points at another, such as a jbrowse-web built from a
@@ -27,9 +27,9 @@ export const PLUGIN_ESM_URL = `${BASE_URL}/plugin/jbrowse-plugin-graphgenomeview
 
 // Where screenshots land. Gitignored: they are evidence a run produced, not
 // committed baselines — nothing here diffs against a golden image.
-export const SCREENSHOT_DIR = path.join(process.cwd(), 'test-screenshots')
+const SCREENSHOT_DIR = path.join(process.cwd(), 'test-screenshots')
 
-export async function waitForServer(port: number, timeout = 30_000) {
+async function waitForServer(port: number, timeout = 30_000) {
   const start = Date.now()
   let lastError: unknown
   while (Date.now() - start < timeout) {

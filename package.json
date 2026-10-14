@@ -38,7 +38,6 @@
     "lint": "eslint --report-unused-disable-directives --max-warnings 0 && eslint --no-config-lookup -c eslint.scripts.config.mjs --max-warnings 0 scripts esbuild.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "vitest bench --run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "prepack": "pnpm build",
     "preversion": "node scripts/ci-green.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm typecheck:tests && pnpm test && pnpm build && pnpm host-names && pnpm host-compat",

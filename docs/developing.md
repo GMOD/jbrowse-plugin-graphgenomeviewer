@@ -100,3 +100,7 @@ session, an optional action before the shot, and an optional config. The script
 refuses to run while `img/` holds an image without one. It serves `dist/` to
 jbrowse.org's hosted JBrowse on the HPRC demo's config, unless a figure names
 another (`tube_map_reads` uses `test_data/cactus/`).
+
+`node scripts/preview-candidate.mjs '?config=…&session=…' out.png` screenshots
+that hosted session with `dist/` served in place of the published bundle, to
+check a change before release.

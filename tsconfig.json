@@ -20,10 +20,5 @@
     "noEmit": true
   },
   "include": ["src"],
-  "exclude": [
-    "**/dist/",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/launchSubgraph/testEnv.ts"
-  ]
+  "exclude": ["**/dist/", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

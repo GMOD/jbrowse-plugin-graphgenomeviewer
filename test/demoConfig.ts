@@ -17,10 +17,10 @@ export const REF_NAME = 'chr'
 
 // A window with eight backbone segments and the alleles hanging off them: small
 // enough to draw instantly, big enough to have bubbles to hover.
-export const DEMO_START = 1
-export const DEMO_END = 20_000
+const DEMO_START = 1
+const DEMO_END = 20_000
 
-export const PLAIN_BED = 'rgfa/backbone_regions.bed'
+const PLAIN_BED = 'rgfa/backbone_regions.bed'
 
 // A plain feature track on the reference, standing in for any track that marks
 // where variation is but cannot cut a graph — the bubble track is the real case.
