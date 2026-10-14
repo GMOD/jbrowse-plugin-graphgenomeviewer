@@ -9,6 +9,7 @@ import { isAlive } from '@jbrowse/mobx-state-tree'
 
 import { chipReadoutAt } from './LabelLayer'
 
+import type { PaneContextAt } from './PaneContextMenu'
 import type { GraphPaneModel } from '../model'
 
 // wheel events need passive:false to call preventDefault — React registers
@@ -73,14 +74,9 @@ export function usePaneGestures(model: GraphPaneModel) {
     },
     [],
   )
-  const [contextNode, setContextNode] = useState<
-    { nodeId: string; top: number; left: number } | undefined
-  >(undefined)
+  const [contextMenu, setContextMenu] = useState<PaneContextAt>()
   const [hoveredChip, setHoveredChip] =
     useState<ReturnType<typeof chipReadoutAt>>(undefined)
-  const [contextRow, setContextRow] = useState<
-    { row: number; top: number; left: number } | undefined
-  >(undefined)
 
   function screenToGraph(screenX: number, screenY: number) {
     return {
@@ -293,9 +289,10 @@ export function usePaneGestures(model: GraphPaneModel) {
   function onContextMenu(e: React.MouseEvent) {
     const { x, y } = getMouseCoord(e)
     const node = nodeAt(x, y)
+    const { clientX, clientY } = e
     if (node) {
       e.preventDefault()
-      setContextNode({ nodeId: node, top: e.clientY, left: e.clientX })
+      setContextMenu({ clientX, clientY, nodeId: node })
       return
     }
     const row = model.walkRowAt(
@@ -304,7 +301,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     )
     if (row !== undefined) {
       e.preventDefault()
-      setContextRow({ row, top: e.clientY, left: e.clientX })
+      setContextMenu({ clientX, clientY, row })
     }
   }
 
@@ -332,12 +329,10 @@ export function usePaneGestures(model: GraphPaneModel) {
       onClick,
       onContextMenu,
     },
-    contextNode,
-    contextRow,
+    contextMenu,
     hoveredChip,
     closeContextMenu: () => {
-      setContextNode(undefined)
-      setContextRow(undefined)
+      setContextMenu(undefined)
     },
   }
 }

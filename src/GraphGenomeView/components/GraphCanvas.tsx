@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react'
 
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
-import { ErrorBanner, LoadingOverlay, Menu } from '@jbrowse/core/ui'
+import { ErrorBanner, LoadingOverlay } from '@jbrowse/core/ui'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
-import InfoIcon from '@mui/icons-material/Info'
 import { observer } from 'mobx-react'
 
 import BubbleHalos from './BubbleHalos'
@@ -15,15 +14,14 @@ import HoverLayer from './HoverLayer'
 import HoverTooltip from './HoverTooltip'
 import LabelLayer from './LabelLayer'
 import { LegendPanel } from './Legend'
+import PaneContextMenu from './PaneContextMenu'
 import { PaneSvgLayer } from './PaneLayer'
 import ReferenceStripOverlay from './ReferenceStripOverlay'
 import TubeMapOverlay from './TubeMapOverlay'
-import { WalkRowContextMenu } from './WalkRowContextMenu'
 import WalkRowsOverlay from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
-import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
 import { PAPER_CSS } from '../pane/paneBase'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
@@ -252,60 +250,6 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
   )
 })
 
-// Flat rather than under a "Launch view" submenu: this menu is two or three
-// items long and every one of them is contextual to the node just clicked. The
-// submenu grouping earns its keep in the long view and track menus.
-const NodeContextMenu = observer(function NodeContextMenu({
-  model,
-  nodeId,
-  top,
-  left,
-  onClose,
-}: {
-  model: GraphPaneModel
-  nodeId: string
-  top: number
-  left: number
-  onClose: () => void
-}) {
-  const { own, reference, highlight } = model.nodeLaunchTargets(nodeId)
-  return (
-    <Menu
-      open
-      anchorReference="anchorPosition"
-      anchorPosition={{ top, left }}
-      onClose={() => {
-        onClose()
-      }}
-      onMenuItemClick={callback => {
-        callback()
-      }}
-      menuItems={[
-        {
-          label: 'Node details',
-          icon: InfoIcon,
-          onClick: () => {
-            model.showNodeDetails(nodeId)
-          },
-        },
-        ...nodeLaunchMenuItems({
-          own,
-          reference,
-          highlight,
-          onShowLinear: target => {
-            model.showInLinearView(target)
-          },
-          onHighlight: model.canHighlightInLinearView
-            ? target => {
-                model.highlightInLinearView(target)
-              }
-            : undefined,
-        }),
-      ]}
-    />
-  )
-})
-
 // `ownChrome` false for a pane inside a track, whose controls, loading state
 // and errors are the track's. A hosted pane whose x the host places takes no pan or wheel of its
 // own: those are the linear view's, as on any other track. One drawing its
@@ -323,7 +267,7 @@ const GraphCanvas = observer(function GraphCanvas({
     error: renderError,
     retry: retryRender,
   } = useRenderingBackend(createGraphRenderer, model)
-  const { handlers, contextNode, contextRow, closeContextMenu, hoveredChip } =
+  const { handlers, contextMenu, closeContextMenu, hoveredChip } =
     usePaneGestures(model)
   useWheelZoom(canvas, model)
   const faceted = model.facetPanels !== undefined
@@ -409,25 +353,11 @@ const GraphCanvas = observer(function GraphCanvas({
 
       {model.walkStripShown ? <WalkStrip model={model} /> : null}
 
-      {contextNode ? (
-        <NodeContextMenu
-          model={model}
-          nodeId={contextNode.nodeId}
-          top={contextNode.top}
-          left={contextNode.left}
-          onClose={closeContextMenu}
-        />
-      ) : null}
-
-      {contextRow ? (
-        <WalkRowContextMenu
-          model={model}
-          row={contextRow.row}
-          top={contextRow.top}
-          left={contextRow.left}
-          onClose={closeContextMenu}
-        />
-      ) : null}
+      <PaneContextMenu
+        model={model}
+        at={contextMenu}
+        onClose={closeContextMenu}
+      />
 
       {renderError ? (
         <ErrorBanner error={renderError} onReset={retryRender} />

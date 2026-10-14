@@ -17,7 +17,7 @@ import { observer } from 'mobx-react'
 
 import ElTree from './ElTree'
 import { LegendSwatchView } from './Legend'
-import { WalkRowContextMenu } from './WalkRowContextMenu'
+import PaneContextMenu from './PaneContextMenu'
 import { legendRowStyle } from './legendStyles'
 import { walkRowSwatch } from '../legendSections'
 
@@ -115,9 +115,11 @@ const WalkStrip = observer(function WalkStrip({
 }) {
   const bars = model.walkStripRows
   const frame = model.walkStripFrame
-  const [menu, setMenu] = useState<
-    { row: number; top: number; left: number } | undefined
-  >(undefined)
+  const [menu, setMenu] = useState<{
+    clientX: number
+    clientY: number
+    row: number
+  }>()
   if (!bars || !frame) {
     return null
   }
@@ -165,7 +167,7 @@ const WalkStrip = observer(function WalkStrip({
           const at = hit(e)
           if (at) {
             e.preventDefault()
-            setMenu({ row: at.index, top: e.clientY, left: e.clientX })
+            setMenu({ clientX: e.clientX, clientY: e.clientY, row: at.index })
           }
         }}
       >
@@ -197,18 +199,13 @@ const WalkStrip = observer(function WalkStrip({
           </div>
         ))}
       </div>
-      {menu ? (
-        <WalkRowContextMenu
-          model={model}
-          row={menu.row}
-          bars={bars}
-          top={menu.top}
-          left={menu.left}
-          onClose={() => {
-            setMenu(undefined)
-          }}
-        />
-      ) : null}
+      <PaneContextMenu
+        model={model}
+        at={menu && { ...menu, bars }}
+        onClose={() => {
+          setMenu(undefined)
+        }}
+      />
     </div>
   )
 })
