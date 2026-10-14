@@ -114,7 +114,7 @@ Without `RUN_E2E=1` the suite skips and exits clean, so it never blocks a run.
 - `JBROWSE_TEST_DIR` — a jbrowse-web static dir to serve (default
   `.test-jbrowse-<version>`). Use this to target a build newer than the release.
 - `SKIP_BUILD=1` — reuse an existing `dist/` instead of rebuilding the plugin.
-- `TEST_JBROWSE_VERSION` — names the default dir (`nightly` if unset).
+- `TEST_JBROWSE_VERSION` — names the default dir (`beta13` if unset).
 
 Verified on 2026-08-06 against a build copied from
 `~/src/jbrowse-components/products/jbrowse-web/build`:
