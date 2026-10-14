@@ -626,7 +626,7 @@ describe('performance instrumentation', () => {
     consoleSpy.mockRestore()
   })
 
-  test('a stop before a new graph is laid out draws nothing of the last one', async () => {
+  test('a stop before a new graph is laid out draws nothing of the last one, and stops loading', async () => {
     const { answers, layouts, holdLayouts } = heldCuts()
     const model = createModel()
     const first = model.cutSubgraph({ type: 'RgfaTabixAdapter' }, TEST_REGION)
@@ -642,10 +642,13 @@ describe('performance instrumentation', () => {
     })
     model.stopLoad()
     expect(model.layoutResult).toBeUndefined()
+    expect(model.graph).toBeUndefined()
     expect(model.loadCanceled).toBe(true)
+    expect(model.showLoading).toBe(false)
     layouts[0]!()
     await second
     expect(model.layoutResult).toBeUndefined()
+    expect(model.showLoading).toBe(false)
   })
 })
 
