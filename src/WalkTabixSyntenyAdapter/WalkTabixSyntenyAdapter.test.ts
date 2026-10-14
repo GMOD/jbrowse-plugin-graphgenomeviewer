@@ -203,7 +203,6 @@ test('the header declares every haplotype but the anchor as a lane', async () =>
   expect(header).toMatchObject({
     hasCoarseTier: false,
     anchorAssemblyName: 'hg38',
-    referenceSamples: ['GRCh38'],
   })
   expect(header.lanes).toEqual([
     { name: 'HG00097#1', label: 'HG00097#1', group: 'HG00097' },

@@ -61,14 +61,13 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
    * before a fetch has placed any of them
    */
   async getHeader(opts: BaseOptions = {}) {
-    const { haplotypes, references } = await this.walks.reader.header(opts)
+    const { haplotypes } = await this.walks.reader.header(opts)
     const { anchor } = this
     const anchorPrefix = resolvePanSNPrefix(this, anchor)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     return {
       hasCoarseTier: false,
       anchorAssemblyName: anchor,
-      referenceSamples: references,
       lanes: haplotypes
         .filter(
           prefix =>

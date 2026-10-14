@@ -56,7 +56,7 @@ export class NoHaplotypeIndexError extends Error {
   }
 }
 
-export interface GbzHaplotype {
+interface GbzHaplotype {
   prefix: string
   sample: string
   haplotype: number
@@ -77,9 +77,8 @@ interface GbzHeaderLane {
 }
 
 export { PairTargetError } from '../synteny/lanePairs.ts'
-export type { LanePair } from '../synteny/lanePairs.ts'
 
-export class HaplotypeWindowError extends Error {
+class HaplotypeWindowError extends Error {
   override name = 'HaplotypeWindowError'
 
   constructor(assemblyName: string, anchor: string) {
@@ -101,7 +100,7 @@ function fragmentId(name: PathName, alignment: ResolvedAlignment) {
   return `${haplotypePrefix(name)}#${name.contig}@${alignment.start.node}.${alignment.start.offset}`
 }
 
-export function fragmentFeature({
+function fragmentFeature({
   alignment,
   assemblyName,
   refName,
@@ -145,7 +144,7 @@ export function fragmentFeature({
  * target bases the query lacks, which is the side a JBrowse feature is, so it
  * passes through unchanged.
  */
-export function pairFeature({
+function pairFeature({
   pair,
   lane,
   mateLane,
@@ -315,7 +314,7 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
    * whole graph's haplotypes before a fetch has placed any of them.
    */
   async getHeader(opts: BaseOptions = {}) {
-    const { anchor, referenceSample, referenceSamples } = await this.graph(opts)
+    const { anchor, referenceSample } = await this.graph(opts)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const lanes: GbzHeaderLane[] = []
     for (const haplotype of await this.getHaplotypes(opts)) {
@@ -330,8 +329,6 @@ export default class GbzBaseSyntenyAdapter extends ComparativeAdapterBase<GbzBas
     return {
       hasCoarseTier: false,
       anchorAssemblyName: anchor,
-      referenceSample,
-      referenceSamples,
       lanes,
     }
   }
