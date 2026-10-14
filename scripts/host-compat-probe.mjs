@@ -22,7 +22,7 @@ import { parseArgs } from 'node:util'
 
 import puppeteer from 'puppeteer'
 
-import { candidateServer } from './serveCandidate.mjs'
+import { ENTRY, candidateServer } from './serveCandidate.mjs'
 
 const DEFAULT_VERSIONS = ['v5.0.0-beta.11', 'v5.0.0-beta.13', 'main']
 // A real shipped config that names this plugin, and the window part 1 of the
@@ -58,9 +58,7 @@ const serveCandidate = candidateServer(values.dist)
 
 async function probeOne(browser, version) {
   const page = await browser.newPage()
-  if (!values.published) {
-    await serveCandidate(page)
-  }
+  const served = values.published ? undefined : await serveCandidate(page)
   const consoleErrors = []
   page.on('console', m => {
     if (m.type() === 'error') {
@@ -244,6 +242,7 @@ async function probeOne(browser, version) {
   } catch (e) {
     result.threw = String(e).slice(0, 300)
   }
+  result.unserved = served && !served.some(s => s.file === ENTRY)
   await page.close()
   return result
 }
@@ -254,6 +253,9 @@ function failure(r) {
   }
   if (r.threw) {
     return `probe threw: ${r.threw}`
+  }
+  if (r.unserved) {
+    return `${ENTRY} was never served, so the host loaded the plugin from a url the probe does not intercept`
   }
   if (!r.viewRegistered) {
     return 'GraphGenomeView never registered (the bundle threw while loading)'

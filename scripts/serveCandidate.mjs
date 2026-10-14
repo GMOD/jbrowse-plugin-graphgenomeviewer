@@ -3,6 +3,10 @@
 // candidate instead of what jbrowse.org serves. Shared by host-compat-probe.mjs.
 // `fixtures` maps a path on the host to a local directory, served the same
 // way, so a figure can draw local data on a hosted JBrowse.
+//
+// serveCandidate(page) returns the candidate files it has fulfilled, so a
+// caller can tell a host that loaded the candidate from one that fetched the
+// plugin from a url this never intercepted.
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -11,6 +15,8 @@ import path from 'node:path'
 const DEMOS_PATH = '/demos/graphgenomeviewer/'
 const STORE_PATH =
   /\/plugins\/jbrowse-plugin-graphgenomeviewer\/[^/]+\/dist\/(.*)$/
+
+export const ENTRY = 'jbrowse-plugin-graphgenomeviewer.esm.js'
 
 function distRelative(pathname) {
   const demos = pathname.indexOf(DEMOS_PATH)
@@ -56,14 +62,13 @@ export function candidateServer(distDir, fixtures = {}) {
   // The whole dist, by the path under the plugin's url: the entry imports its
   // code-split chunks by their own hashed names, and answering those with the
   // entry would fail in a way that reads as a host incompatibility.
-  function candidateBody(url) {
+  function candidateFile(url) {
     const { pathname } = new URL(url)
     const relative = distRelative(pathname)
     if (relative === undefined || !pathname.endsWith('.js')) {
       return undefined
     }
-    const file = path.join(distDir, relative)
-    return fs.existsSync(file) ? fs.readFileSync(file) : undefined
+    return fs.existsSync(path.join(distDir, relative)) ? relative : undefined
   }
 
   function fixtureFile(url) {
@@ -85,16 +90,17 @@ export function candidateServer(distDir, fixtures = {}) {
       )?.[1]
       return fixtureResponse(fixture, range)
     }
-    const body = candidateBody(request.url)
-    return body === undefined
+    const candidate = candidateFile(request.url)
+    return candidate === undefined
       ? undefined
       : {
+          candidate,
           responseCode: 200,
           responseHeaders: [
             { name: 'Content-Type', value: 'application/javascript' },
             { name: 'Access-Control-Allow-Origin', value: '*' },
           ],
-          body,
+          body: fs.readFileSync(path.join(distDir, candidate)),
         }
   }
 
@@ -102,20 +108,26 @@ export function candidateServer(distDir, fixtures = {}) {
   // page.setRequestInterception, which pauses every request including the RPC
   // worker's and never resumes those. The worker imports the plugin too, for
   // the RPC methods it serves, so it gets the same interception.
-  async function serveOn(client, where) {
+  async function serveOn(client, where, served) {
     client.on('Fetch.requestPaused', async ({ requestId, request }) => {
       try {
         const response = respond(request)
-        if (process.env.PROBE_DEBUG && response) {
+        if (response === undefined) {
+          await client.send('Fetch.continueRequest', { requestId })
+          return
+        }
+        const { candidate, body, ...fulfilled } = response
+        await client.send('Fetch.fulfillRequest', {
+          requestId,
+          ...fulfilled,
+          body: Buffer.from(body).toString('base64'),
+        })
+        if (candidate !== undefined) {
+          served.push({ file: candidate, where })
+        }
+        if (process.env.PROBE_DEBUG) {
           console.error(`served ${request.url} to ${where}`)
         }
-        await (response === undefined
-          ? client.send('Fetch.continueRequest', { requestId })
-          : client.send('Fetch.fulfillRequest', {
-              requestId,
-              ...response,
-              body: Buffer.from(response.body).toString('base64'),
-            }))
       } catch {
         await client
           .send('Fetch.continueRequest', { requestId })
@@ -132,9 +144,11 @@ export function candidateServer(distDir, fixtures = {}) {
   }
 
   return async function serveCandidate(page) {
+    const served = []
     page.on('workercreated', worker => {
-      serveOn(worker.client, `worker ${worker.url()}`).catch(() => {})
+      serveOn(worker.client, `worker ${worker.url()}`, served).catch(() => {})
     })
-    await serveOn(await page.createCDPSession(), 'page')
+    await serveOn(await page.createCDPSession(), 'page', served)
+    return served
   }
 }
