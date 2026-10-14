@@ -1279,6 +1279,30 @@ test('a cut refused while the window moved stands for the moved window too, and 
   expect(display.error).toMatchObject({ regionTooLarge: true })
 })
 
+test('an outrun cut that lands after the newer one was refused leaves the refused window as it was', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const env = createEnvironment()
+  env.setDenseAbove(1_000_000)
+  const answers = env.holdCuts()
+  const { view } = env
+  view.zoomTo(100_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack('walks')
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  view.zoomTo(1_000_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(env.cuts).toHaveLength(2)
+  answers[1]!()
+  await vi.waitFor(() => {
+    expect(display.dense).toBeDefined()
+  })
+  answers[0]!()
+  await wait(0)
+  expect(display.dense!.end - display.dense!.start).toBe(1_000_000)
+})
+
 test('editing the haplotypes forgets a refused cut, since the next cut is for other walks', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
   const { display } = await shownWalks(1_000_000, env => {

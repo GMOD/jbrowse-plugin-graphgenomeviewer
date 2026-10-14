@@ -353,10 +353,16 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         ) {
           return false
         }
-        // The error is the latest cut's, since a cut clears it as it
-        // starts and an outrun cut sets nothing
-        void Promise.resolve(self.recutAt(seen)).then(() => {
-          if (isAlive(self) && isNodeLimitError(self.error)) {
+        // An outrun cut resolves without touching the error, so the error
+        // is this cut's only while no later one has started
+        const cut = self.recutAt(seen)
+        const recut = self.recuts
+        void Promise.resolve(cut).then(() => {
+          if (
+            isAlive(self) &&
+            self.recuts === recut &&
+            isNodeLimitError(self.error)
+          ) {
             this.refuseDenseCut(seen)
           }
         })
