@@ -52,40 +52,30 @@ function Body({
   if (!built) {
     return null
   }
-  const transform = model.screenTransform
-  if (rasterize) {
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(width * RASTER_SCALE)
-    canvas.height = Math.round(height * RASTER_SCALE)
-    const renderer = new Canvas2DRenderer(canvas)
-    renderer.uploadGeometry(built.batch)
-    renderer.updateTransform({
-      scaleX: transform.scaleX * RASTER_SCALE,
-      scaleY: transform.scaleY * RASTER_SCALE,
-      translateX: transform.translateX * RASTER_SCALE,
-      translateY: transform.translateY * RASTER_SCALE,
-      dpr: RASTER_SCALE,
-    })
-    renderer.render([0, 0, 0, 0])
-    return (
-      <image
-        width={width}
-        height={height}
-        href={canvas.toDataURL('image/png')}
-      />
-    )
+  const k = rasterize ? RASTER_SCALE : 1
+  const vector = rasterize ? undefined : svgCanvas(width, height)
+  const canvas = vector?.canvas ?? document.createElement('canvas')
+  if (!vector) {
+    canvas.width = Math.round(width * k)
+    canvas.height = Math.round(height * k)
   }
-  const { canvas, markup } = svgCanvas(width, height)
-  const ctx = canvas.getContext('2d') as unknown as { clearRect?: () => void }
-  ctx.clearRect ??= () => {}
+  const { scaleX, scaleY, translateX, translateY } = model.screenTransform
   const renderer = new Canvas2DRenderer(canvas)
   renderer.uploadGeometry(built.batch)
-  renderer.updateTransform({ ...transform, dpr: 1 })
+  renderer.updateTransform({
+    scaleX: scaleX * k,
+    scaleY: scaleY * k,
+    translateX: translateX * k,
+    translateY: translateY * k,
+    dpr: k,
+  })
   renderer.render([0, 0, 0, 0])
-  return (
+  return vector ? (
     <svg width={width} height={height} overflow="hidden">
-      <g dangerouslySetInnerHTML={{ __html: markup() }} />
+      <g dangerouslySetInnerHTML={{ __html: vector.markup() }} />
     </svg>
+  ) : (
+    <image width={width} height={height} href={canvas.toDataURL('image/png')} />
   )
 }
 
