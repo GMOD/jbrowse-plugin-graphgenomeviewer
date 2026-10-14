@@ -138,7 +138,12 @@ export function withCalls<
   const paired = new Map<R, WalkCall>()
   const bySample = new Map<string, R[]>()
   for (const row of rows) {
-    bySample.set(row.sample, [...(bySample.get(row.sample) ?? []), row])
+    const group = bySample.get(row.sample)
+    if (group) {
+      group.push(row)
+    } else {
+      bySample.set(row.sample, [row])
+    }
   }
   for (const [sample, group] of bySample) {
     const called = calls[sample]
