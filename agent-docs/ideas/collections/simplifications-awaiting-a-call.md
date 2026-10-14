@@ -1,25 +1,15 @@
 ---
 name: simplifications-awaiting-a-call
 description:
-  Cleanups a review skipped on a judgement worth re-checking, such as a
-  duplicate HSL helper and the morph gate. Each entry lists the reason, the case
-  against it, and a first move.
+  Cleanups a review skipped on a judgement worth re-checking: the synteny
+  adapters' getFeatures dispatch and the morph gate. Each entry lists the
+  reason, the case against it, and a first move.
 ---
 
 # Simplifications awaiting a call
 
 A review skipped each of these on judgement alone, without measuring the cost.
 Each entry gives the case against the skip, so the decision can be made again.
-
-## A second HSL-to-RGB helper
-
-- `hslRgb` in `src/GraphGenomeView/walkRowSpans.ts` duplicates bandage-core's
-  `hslToRgb` (`renderer/GeometryBuilder`) scaled by 255.
-- Kept because the two round differently: over about 4.9M ramp hues, 801 land on
-  a different 0–255 channel value, and 374 interpolated gradient pieces change.
-- Against: a one-unit difference in one channel is invisible, so the trade is a
-  few changed pixels for eight fewer lines of colour maths.
-- First move: switch to `hslToRgb` and compare a walk-row screenshot by eye.
 
 ## The synteny adapters' getFeatures dispatch
 
