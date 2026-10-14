@@ -22,12 +22,8 @@ export default defineConfig({
     environmentOptions: { jsdom: { url: 'http://localhost' } },
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.mjs'],
     setupFiles: [
-      './config/vitest/textEncoder.js',
-      './config/vitest/structuredClone.js',
       './config/vitest/console.js',
-      './config/vitest/messagechannel.js',
       './config/vitest/resizeObserver.js',
-      './config/vitest/deterministicIds.js',
     ],
     testTimeout: 15000,
   },
