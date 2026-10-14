@@ -294,6 +294,33 @@ export const withLoadActions = withEngineSettings.actions(self => {
     return parsed
   }
 
+  // Replaces the graph on screen and the cut it came from, and drops the
+  // annotations read beside the last graph. It drops the hover and the
+  // selection too, because hoveredEdge is an index into graph.edges and
+  // hoveredNode/selectedNode are ids, which would point the tooltip and the
+  // highlight at whatever sits there in the new graph.
+  function resetCut(cut?: {
+    graph: Graph
+    walkCut: WalkCut | undefined
+    region: SubgraphRegion | undefined
+    loadedReferencePath: string | undefined
+    foldedBelowBp: number | undefined
+    readsShown: { shown: number; total: number } | undefined
+  }) {
+    self.graph = cut?.graph
+    self.walkCut = cut?.walkCut
+    self.graphRegion = cut?.region
+    self.loadedReferencePath = cut?.loadedReferencePath
+    self.foldedBelowBp = cut?.foldedBelowBp
+    self.readsShown = cut?.readsShown
+    self.indexBubbles = undefined
+    self.geneTrackFeatures = undefined
+    self.walkGeneFeatures = undefined
+    walkGeneCache.clear()
+    self.repeatArrays = undefined
+    self.clearInteractionState()
+  }
+
   // `keepSelection` for a re-cut of the same source: node ids survive one
   // where edge indexes do not, so the selection is found again by id.
   // `readsOf` fetches the reads over the parsed graph before its one
@@ -346,27 +373,19 @@ export const withLoadActions = withEngineSettings.actions(self => {
       }
     }
     const selected = keepSelection ? self.selectedNode : null
-    self.graph = graph
-    self.foldedBelowBp = folded === anchored ? undefined : foldBelowBp
-    self.readsShown = readsShown
-    self.walkCut = walkCut
-    self.graphRegion = region
-    self.loadedReferencePath = loaded
-    self.indexBubbles = undefined
-    self.geneTrackFeatures = undefined
-    self.walkGeneFeatures = undefined
-    walkGeneCache.clear()
-    self.repeatArrays = undefined
+    resetCut({
+      graph,
+      walkCut,
+      region,
+      loadedReferencePath: loaded,
+      foldedBelowBp: folded === anchored ? undefined : foldBelowBp,
+      readsShown,
+    })
     // a re-cut keeps the bubbles still in it open
     const names = new Set(graph.nodes.map(n => n.name))
     self.openBubbles = self.openBubbles.filter(b =>
       bubbleSegmentIds(b).some(id => names.has(id)),
     )
-    // hoveredEdge is an index into graph.edges and hoveredNode/selectedNode
-    // are ids, so all three address the graph being replaced here. Carrying
-    // them over points the tooltip and the highlight at whatever now happens
-    // to sit at that index.
-    self.clearInteractionState()
     // against the new graph's own nodes: nodeById reads through the layout,
     // which is still the last graph's
     if (selected !== null && graph.nodes.some(n => n.id === selected)) {
@@ -647,27 +666,18 @@ export const withLoadActions = withEngineSettings.actions(self => {
   // would otherwise land its graph afterwards
   function dropGraph() {
     abortLoad()
-    self.graph = undefined
-    self.walkCut = undefined
-    self.graphRegion = undefined
-    self.loadedReferencePath = undefined
+    resetCut()
+    laidOutGraph = undefined
+    layoutError = undefined
     self.layoutResult = undefined
     self.drawnLayoutMode = undefined
-    self.indexBubbles = undefined
-    self.foldedBelowBp = undefined
-    self.geneTrackFeatures = undefined
-    self.walkGeneFeatures = undefined
-    walkGeneCache.clear()
-    self.repeatArrays = undefined
     self.walkRowSampleTable = undefined
     sampleTableKey = undefined
-    self.readsShown = undefined
     self.openBubbles = []
     self.error = undefined
     self.isLoading = false
     self.loadCanceled = false
     self.statusMessage = ''
-    self.clearInteractionState()
     self.clearPerfMetrics()
     // the next graph has nothing to do with where the user left this one
     if (self.viewportOwner === 'user') {
