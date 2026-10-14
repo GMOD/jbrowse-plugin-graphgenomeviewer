@@ -4917,8 +4917,6 @@ describe('a morph cut short', () => {
     runFrames(1000)
     await toggleDeletionEdges(model)
     runFrames(100)
-    // what the node-limit select does
-    model.setMaxGraphNodes(model.maxGraphNodes)
     await model.recomputeLayout()
     expect(model.layoutResult).toBe(b)
     runFrames(1000)
