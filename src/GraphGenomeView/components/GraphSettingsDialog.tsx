@@ -209,7 +209,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 testId="graph-gene-track-select"
                 onChange={trackId => {
                   model.setGeneTrackId(trackId)
-                  void model.reloadGenes()
                 }}
               />
               <Caption>Where genes on the backbone come from</Caption>
@@ -225,7 +224,6 @@ const GraphSettingsDialog = observer(function GraphSettingsDialog(props: {
                 testId="graph-repeat-track-select"
                 onChange={trackId => {
                   model.setRepeatTrackId(trackId)
-                  void model.reloadRepeats()
                 }}
               />
               <Caption>

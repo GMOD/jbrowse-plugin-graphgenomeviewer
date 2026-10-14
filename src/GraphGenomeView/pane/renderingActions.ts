@@ -316,6 +316,29 @@ export const withRenderingActions = withLoadActions
       if (!self.isDefaultViewport) {
         self.viewportOwner = 'user'
       }
+      // A gene or repeat track change over the same cut re-reads that
+      // annotation alone, whatever made it: the settings dialog, a track
+      // added to the session, undo or a session delta. A new cut reads its
+      // own.
+      for (const [trackOf, reload] of [
+        [() => self.geneTrack?.trackId, () => self.reloadGenes()],
+        [() => self.repeatTrack?.trackId, () => self.reloadRepeats()],
+      ] as const) {
+        addDisposer(
+          self,
+          reaction(
+            () => ({ track: trackOf(), region: self.graphRegion }),
+            (now, was) => {
+              if (now.region && now.region === was.region) {
+                void reload()
+              }
+            },
+            {
+              equals: (a, b) => a.track === b.track && a.region === b.region,
+            },
+          ),
+        )
+      }
       // The layout set by anything but the menu: the config editor, Reset
       // track settings, undo, a session delta
       addDisposer(

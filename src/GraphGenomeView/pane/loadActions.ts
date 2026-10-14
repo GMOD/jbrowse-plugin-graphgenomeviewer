@@ -567,6 +567,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
   }
   type Annotation = keyof typeof annotations
 
+  // Lands only while the track it read is still the one chosen, so a slow
+  // read cannot land over the pick that followed it
   function* loadAnnotation(
     kind: Annotation,
     region: SubgraphRegion,
@@ -574,8 +576,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
     signal?: AbortSignal,
   ) {
     const { trackId, set } = annotations[kind]
-    const features = yield* trackFeatures(trackId(), region, kind, signal)
-    if (features && isLive()) {
+    const track = trackId()
+    const features = yield* trackFeatures(track, region, kind, signal)
+    if (features && isLive() && trackId() === track) {
       set(features)
     }
   }
@@ -591,20 +594,12 @@ export const withLoadActions = withEngineSettings.actions(self => {
     )
   }
 
-  // One annotation read again alone, for a track change. Live only while
-  // the track it read is still the one chosen, so a slow read cannot land
-  // over the pick that followed it.
+  // One annotation read again alone, for a track change
   function* reloadAnnotation(kind: Annotation) {
-    const { trackId, set } = annotations[kind]
     const region = self.graphRegion
-    const track = trackId()
     if (region) {
-      set(undefined)
-      yield* loadAnnotation(
-        kind,
-        region,
-        () => self.graphRegion === region && trackId() === track,
-      )
+      annotations[kind].set(undefined)
+      yield* loadAnnotation(kind, region, () => self.graphRegion === region)
     }
   }
 

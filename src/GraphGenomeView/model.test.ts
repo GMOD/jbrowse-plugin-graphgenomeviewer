@@ -3885,7 +3885,7 @@ describe('annotation reads beside a cut', () => {
   }
 
   test('the bubble, gene and repeat reads go out together', async () => {
-    const model = createModel()
+    const model = attachedModel()
     const loaded = cut(model)
     // in turn, only one would ever be outstanding
     await vi.waitFor(() => {
@@ -3909,16 +3909,18 @@ describe('annotation reads beside a cut', () => {
   })
 
   test('picking another gene track reads it and leaves the graph alone', async () => {
-    const model = createModel()
+    const model = attachedModel()
     await cutAndSettle(model)
     const { graph, layoutResult } = model
 
     model.setGeneTrackId('genes-b')
-    const reread = model.reloadGenes()
+    await vi.waitFor(() => {
+      expect(reads.map(r => r.tag)).toContain('genes-b')
+    })
     readOf('genes-b').settle([gene('XYZ2')])
-    await reread
-
-    expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
+    await vi.waitFor(() => {
+      expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
+    })
     expect(subgraphCuts()).toBe(1)
     expect(model.graph).toBe(graph)
     expect(model.layoutResult).toBe(layoutResult)
@@ -3928,7 +3930,7 @@ describe('annotation reads beside a cut', () => {
     mockSession.assemblyNames = ['hg38']
     mockSession.assemblyAliases = { GRCh38: 'hg38' }
     mockSession.tracks[1]!.assemblyNames = ['GRCh38']
-    const model = createModel()
+    const model = attachedModel()
     await cutAndSettle(model)
     expect(model.geneTrackChoices.map(t => t.trackId)).toContain('genes-a')
     mockSession.assemblyNames = []
@@ -3937,7 +3939,7 @@ describe('annotation reads beside a cut', () => {
 
   test('a file stated beside a region reads its annotations inside its load', async () => {
     mockReadFile.mockResolvedValue(SIMPLE_GFA)
-    const model = createModel()
+    const model = attachedModel()
     const loaded = model.loadGFAFromLocation(
       { uri: 'https://example.com/g.gfa', locationType: 'UriLocation' },
       TEST_REGION,
@@ -3962,17 +3964,39 @@ describe('annotation reads beside a cut', () => {
   })
 
   test('a slow gene read does not land over the pick that followed it', async () => {
-    const model = createModel()
+    const model = attachedModel()
     await cutAndSettle(model)
 
-    model.setGeneTrackId('genes-a')
-    const slow = model.reloadGenes()
     model.setGeneTrackId('genes-b')
-    const fast = model.reloadGenes()
-    readOf('genes-b').settle([gene('XYZ2')])
-    await fast
+    model.setGeneTrackId('genes-a')
+    await vi.waitFor(() => {
+      expect(reads.filter(r => r.tag === 'genes-a')).toHaveLength(2)
+    })
     readOf('genes-a').settle([gene('ABC1')])
-    await slow
+    await vi.waitFor(() => {
+      expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+    })
+    readOf('genes-b').settle([gene('XYZ2')])
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+  })
+
+  test("a cut's gene read does not land over a track picked during it", async () => {
+    const model = attachedModel()
+    const loaded = cut(model)
+    await vi.waitFor(() => {
+      expect(reads).toHaveLength(3)
+    })
+    model.setGeneTrackId('genes-b')
+    await vi.waitFor(() => {
+      expect(reads.map(r => r.tag)).toContain('genes-b')
+    })
+    readOf('genes-b').settle([gene('XYZ2')])
+    readOf('genes-a').settle([gene('ABC1')])
+    readOf('MinigraphBubbleAdapter').settle([])
+    readOf('trgt').settle([])
+    await loaded
 
     expect(model.geneFeatures?.map(g => g.name)).toEqual(['XYZ2'])
   })
