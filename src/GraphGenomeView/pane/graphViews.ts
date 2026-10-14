@@ -358,13 +358,21 @@ export const withGraphViews = paneBase
         ? { start: open.start, end: open.end }
         : (self.statedColorDomain ?? self.graphRegion)
     },
-    // The ramp a lane coloured by reference position reads, computed only
-    // when a layer asks for one: it is a neighbour walk per node
+    // Every node's midpoint on the reference plus the interval the hue ramps
+    // over, on the drawn graph, whose ids a folded tube map's boxes carry.
+    // Deriving it is a bounded neighbour walk per node (referenceMidpoints):
+    // 1.6 ms at 1.5k nodes, 45 ms at 30k. It depends on nothing the
+    // transform touches, so a pan or drag frame reuses it, and the nodes and
+    // the lanes share it. Read only behind walkRamp's and referenceRamp's
+    // gates, so a colouring that ignores it never runs the walk.
+    get drawnReferenceRamp() {
+      const graph = self.drawnGraph
+      return graph ? computeReferenceRamp(graph, this.rampDomain) : undefined
+    },
+    // the ramp a lane coloured by reference position reads
     get walkRamp() {
-      const { graph } = self
-      return graph &&
-        self.walkLayers.some(layer => layer.color?.field === 'reference')
-        ? computeReferenceRamp(graph, this.rampDomain)
+      return self.walkLayers.some(layer => layer.color?.field === 'reference')
+        ? this.drawnReferenceRamp
         : undefined
     },
     // Whether the chosen layout draws the graph's nodes, which a facet
@@ -940,23 +948,11 @@ export const withGraphViews = paneBase
       }
       return bubbleHalos(self.graph, self.bubbles, positions, self.repeatArrays)
     },
-    // Every node's midpoint on the reference plus the interval the hue ramps
-    // over — what `reference-position` paints from, and undefined under every
-    // other scheme so the walk is never run for a colouring that ignores it.
-    //
-    // Here for the same reason `deletions` is, only more so: deriving it is a
-    // bounded neighbour walk PER NODE (referenceMidpoints), it depends on
-    // nothing the transform touches, and it was being redone inside every
-    // geometry rebuild — 1.6 ms at 1.5k nodes, 45 ms at 30k, on a pass that
-    // reruns on each debounced pan and each drag frame. `reference-position`
-    // is also what `auto` resolves to on any anchored graph, so this was the
-    // default path rather than an opt-in one.
-    //
-    // On the drawn graph, whose ids a folded tube map's boxes carry
+    // What `reference-position` paints from, which is also what `auto`
+    // resolves to on any anchored graph
     get referenceRamp() {
-      return self.effectiveColorScheme === 'reference-position' &&
-        self.drawnGraph
-        ? computeReferenceRamp(self.drawnGraph, self.rampDomain)
+      return self.effectiveColorScheme === 'reference-position'
+        ? self.drawnReferenceRamp
         : undefined
     },
     // The assemblies this view is showing, which is the interface every

@@ -3563,6 +3563,22 @@ describe('walk rows', () => {
     expect(model.walkLift!.referenceDomain).toBeDefined()
   })
 
+  test("a lane coloured by reference position shares the nodes' ramp", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setColorScheme('reference-position')
+    model.liftWalks(['B#1#ctg'])
+    model.setWalkColor('B#1#ctg', { field: 'reference' })
+    const stop = autorun(() => [model.walkRamp, model.referenceRamp])
+    expect(model.referenceRamp).toBeDefined()
+    expect(model.walkRamp).toBe(model.referenceRamp)
+    stop()
+  })
+
   test('a session naming the one walk the old field lifted opens with none', () => {
     const model = stateModelFactory().create({
       type: 'GraphGenomeView',

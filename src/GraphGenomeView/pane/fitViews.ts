@@ -610,7 +610,7 @@ export const withFitViews = withHostViews
         linearLayout: self.linearLayout,
         viewportBounds,
         // Held against the graph rather than derived here, the same way the
-        // deletion drawing is and for the same reason — see `referenceRamp`.
+        // deletion drawing is and for the same reason — see `drawnReferenceRamp`.
         referenceRamp: self.referenceRamp,
         // passed so the shared edge-curve cache can tell a drag from a pan
         version: self.positionsVersion,
