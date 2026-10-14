@@ -10,7 +10,7 @@ function model(haplotypeNames?: string[]) {
     cutHaplotypes: ['HG002'],
     haplotypeNames,
     setSubgraphHaplotypes: vi.fn(),
-    cut: vi.fn(),
+    recut: vi.fn(),
   } as unknown as LinearGraphCutModel
 }
 
@@ -25,7 +25,7 @@ test("the field offers the haplotypes a walk file's header names", () => {
     key: 'Escape',
   })
   expect(m.setSubgraphHaplotypes).toHaveBeenCalledWith(['HG002', 'HG00097#1'])
-  expect(m.cut).toHaveBeenCalled()
+  expect(m.recut).toHaveBeenCalled()
 })
 
 test('without names the field takes typed ones', () => {

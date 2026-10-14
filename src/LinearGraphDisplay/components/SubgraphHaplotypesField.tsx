@@ -34,7 +34,7 @@ const HaplotypeListField = observer(function HaplotypeListField({
       parsed.join('\n') === (model.cutHaplotypes ?? []).join('\n')
     if (!unchanged) {
       model.setSubgraphHaplotypes(parsed)
-      void model.cut()
+      model.recut()
     }
   }
   return (
@@ -74,7 +74,7 @@ const HaplotypePickField = observer(function HaplotypePickField({
   const apply = (haplotypes: string[]) => {
     if (haplotypes.join('\n') !== (model.cutHaplotypes ?? []).join('\n')) {
       model.setSubgraphHaplotypes(haplotypes)
-      void model.cut()
+      model.recut()
     }
   }
   return (

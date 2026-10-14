@@ -53,7 +53,7 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
           data-testid="graph-context-select"
           onChange={e => {
             model.setSubgraphContext(e.target.value)
-            void model.cut()
+            model.recut()
           }}
         >
           {SUBGRAPH_CONTEXTS.map(({ value, label }) => (

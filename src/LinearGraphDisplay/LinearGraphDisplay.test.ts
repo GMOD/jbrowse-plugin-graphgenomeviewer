@@ -1068,20 +1068,23 @@ test('a GBZ track cuts for the lanes it names', async () => {
   expect(display.cutHaplotypes).toEqual(['HG1.1', 'HG2.1'])
 })
 
+function haplotypesMenu(display: LinearGraphDisplayModel) {
+  return (
+    display
+      .trackMenuItems()
+      .find(item => 'label' in item && item.label === 'Haplotypes') as {
+      subMenu: { label: string; checked?: boolean; onClick: () => void }[]
+    }
+  ).subMenu
+}
+
 test("a GBZ track's Haplotypes menu cuts for every haplotype, the track's lanes, or a list", () => {
   const { view } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
   view.showTrack('walks')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  const menu = () =>
-    (
-      display
-        .trackMenuItems()
-        .find(item => 'label' in item && item.label === 'Haplotypes') as {
-        subMenu: { label: string; checked?: boolean; onClick: () => void }[]
-      }
-    ).subMenu
+  const menu = () => haplotypesMenu(display)
   const checked = () => menu().find(item => item.checked)?.label
   expect(menu().map(item => item.label)).toEqual([
     'Load',
@@ -1109,14 +1112,7 @@ function walkIndexedDisplay(names?: string[] | null) {
   view.scrollTo(1_000_000 / view.bpPerPx)
   view.showTrack('walk-indexed')
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  const menu = () =>
-    (
-      display
-        .trackMenuItems()
-        .find(item => 'label' in item && item.label === 'Haplotypes') as {
-        subMenu: { label: string; checked?: boolean; onClick: () => void }[]
-      }
-    ).subMenu
+  const menu = () => haplotypesMenu(display)
   return { ...env, display, menu }
 }
 
@@ -1313,6 +1309,44 @@ test('editing the haplotypes forgets a refused cut, since the next cut is for ot
   })
   display.setSubgraphHaplotypes(['HG1.1'])
   expect(display.dense).toBeUndefined()
+})
+
+test('after a refused cut, a haplotype choice from the menu cuts the window again', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const env = await shownWalks(1_000_000, e => {
+    e.setDenseAbove(1_500_000)
+  })
+  const { display, cuts } = env
+  await vi.waitFor(() => {
+    expect(display.dense).toBeDefined()
+  })
+  env.setDenseAbove(Infinity)
+  haplotypesMenu(display)
+    .find(item => item.label === 'Every haplotype in the graph')!
+    .onClick()
+  expect(cuts).toHaveLength(2)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
+  expect(display.error).toBeUndefined()
+})
+
+test('after a refused cut, a context change cuts the window again', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const env = await shownWalks(1_000_000, e => {
+    e.setDenseAbove(1_500_000)
+  })
+  const { display, cuts } = env
+  await vi.waitFor(() => {
+    expect(display.dense).toBeDefined()
+  })
+  env.setDenseAbove(Infinity)
+  display.setSubgraphContext(0)
+  display.recut()
+  expect(cuts).toHaveLength(2)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
 })
 
 test('an rGFA track past the cap is too large, with no notice of a refused cut', async () => {

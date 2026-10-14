@@ -267,9 +267,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           setConf(self, slot as keyof GraphGrammar, value)
         }
       },
-      // The setters describe the next cut; the caller re-cuts.
+      // The setters describe the next cut, which recut makes
       setSubgraphContext(hops: number) {
         self.subgraphContext = hops
+        self.dense = undefined
       },
       setSubgraphHaplotypes(haplotypes: string[] | undefined) {
         self.subgraphHaplotypes = haplotypes
@@ -374,6 +375,15 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         self.setDense(seen)
         self.cutRegion = undefined
         this.settleOn(self.settledWindow ?? seen)
+      },
+      // Cut the region again with the current options, or the window on
+      // screen where a refused cut left no region
+      recut() {
+        if (self.cutRegion) {
+          void self.cut()
+        } else if (self.settledWindow) {
+          this.settleOn(self.settledWindow)
+        }
       },
       relayoutFrom(fromMode: LayoutModeValue) {
         const from = layoutModeByValue(fromMode)
@@ -631,7 +641,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         const chosen = self.subgraphHaplotypes
         const recut = (haplotypes: string[] | undefined) => {
           self.setSubgraphHaplotypes(haplotypes)
-          void self.cut()
+          self.recut()
         }
         return [
           { type: 'subHeader', label: 'Load' },
