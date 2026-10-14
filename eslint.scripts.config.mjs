@@ -3,7 +3,7 @@ import { defineConfig } from 'eslint/config'
 import globals from 'globals'
 
 // The release-gating scripts and the build file: plain JavaScript outside
-// tsconfig.eslint.json, so the typed config in eslint.config.mjs cannot parse
+// tsconfig.test.json, so the typed config in eslint.config.mjs cannot parse
 // them. `pnpm lint` runs both configs.
 export default defineConfig({
   files: ['scripts/**/*.mjs', 'esbuild.mjs'],

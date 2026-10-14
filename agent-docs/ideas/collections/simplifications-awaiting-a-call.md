@@ -88,16 +88,6 @@ Each entry gives the case against the skip, so the decision can be made again.
 - First move: drop both in the commit before a release, then watch that publish
   run.
 
-## tsconfig.eslint.json beside tsconfig.test.json
-
-- The two differ only in `noEmit`, `rootDir` and their include lists:
-  `vitest.e2e.config.ts` in one, `config/vitest` and `scripts/*.ts` in the
-  other. `config/vitest` now holds only JS files, which `checkJs: false` skips.
-- Skipped to avoid clashing with a parallel edit to `tsconfig.test.json`, and
-  nothing blocks it now.
-- First move: point `eslint.config.mjs` at `tsconfig.test.json` with
-  `vitest.e2e.config.ts` added, delete `tsconfig.eslint.json`, and check that
-  `pnpm lint` reports on the same files.
 
 ## Members only tests use
 

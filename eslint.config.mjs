@@ -14,7 +14,7 @@ export default defineConfig(
       'esbuild.mjs',
       'scripts/*',
       'dist/*',
-      // build/test config, outside tsconfig.eslint.json's `src` project so
+      // build/test config, outside tsconfig.test.json's `src` project so
       // typed linting cannot parse them
       'vitest.config.ts',
       'config/**',
@@ -30,7 +30,7 @@ export default defineConfig(
   {
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.eslint.json'],
+        project: ['./tsconfig.test.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
