@@ -2,8 +2,8 @@
 name: simplifications-awaiting-a-call
 description:
   Cleanups a review skipped on a judgement worth re-checking, such as a
-  duplicate HSL helper, the morph gate, and preversion repeating CI. Each entry
-  lists the reason, the case against it, and a first move.
+  duplicate HSL helper, the morph gate and test-only members. Each entry lists
+  the reason, the case against it, and a first move.
 ---
 
 # Simplifications awaiting a call
@@ -47,29 +47,6 @@ Each entry gives the case against the skip, so the decision can be made again.
   building a model.
 - First move: list the gate's conditions and count the tests that reach
   `morphFrom` today.
-
-## preversion repeats the checks CI already passed
-
-- `preversion` runs `scripts/ci-green.mjs`, then lint, format:check, both
-  typechecks, the unit tests, build, host-names and host-compat.
-- `ci-green.mjs` refuses unless the Push workflow passed on HEAD, and
-  `pnpm version` refuses a dirty tree, so HEAD is the commit CI tested. Only
-  host-names and host-compat read anything that can change after that CI run,
-  because both load main's host.
-- Trimming to `ci-green && build && host-names && host-compat` would save 2–3
-  minutes per release, about 75 s of it the unit tests.
-- The review kept these checks as a second line of defence, and whether the
-  minutes matter is the maintainer's call.
-
-## Two no-ops in the release workflow
-
-- `.github/workflows/publish.yml` runs `pnpm build` before
-  `scripts/publish-once.sh`, and `pnpm publish` builds again through `prepack`.
-- `publish.yml` passes `--access public` to `publish-once.sh`, and an unscoped
-  package publishes publicly without it.
-- Left alone because only a real release runs this workflow.
-- First move: drop both in the commit before a release, then watch that publish
-  run.
 
 ## Members only tests use
 
