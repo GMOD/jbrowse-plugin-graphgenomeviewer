@@ -216,7 +216,7 @@ function genotyped(
 ) {
   const phased = gt?.includes('|')
   return (gt ?? '').split(/[/|]/).flatMap((index, k): RepeatCall[] => {
-    const i = Number(index)
+    const i = index === '' ? NaN : Number(index)
     const bp = i > 0 ? alleleBp[i - 1] : referenceBp
     if (!Number.isInteger(i) || bp === undefined) {
       return []

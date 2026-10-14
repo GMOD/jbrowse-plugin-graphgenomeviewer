@@ -150,6 +150,17 @@ test("VCF 4.5 <CNV:TR>: each allele's length is its runs' RB", () => {
   })
 })
 
+// a haploid chrX genotype is written '.', and a sample may have no GT at all
+test('a missing genotype calls no allele', () => {
+  const [array] = repeatArraysFrom([
+    {
+      ...tandem,
+      samples: { HG00097: { GT: ['.'] }, HG00099: {}, HG00128: { GT: ['1'] } },
+    },
+  ])
+  expect(array!.calls).toEqual({ HG00128: [{ bp: 49 }] })
+})
+
 test('a run stating only RUL and RUC is their product, and a summary record states no calls', () => {
   const [array] = repeatArraysFrom([
     {
