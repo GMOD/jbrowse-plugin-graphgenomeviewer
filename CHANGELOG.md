@@ -1,3 +1,13 @@
+## [7.1.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.0...v7.1.1) (2026-10-14)
+
+### Other Changes
+
+- Organize see also ([0eb5fb5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0eb5fb541a094c1d5cf918b5d21815d2bb1fe263))
+- Bump deps ([da2837b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/da2837b9a50a8cbf7af3fb6df5f0e51c442c272e))
+- Triage agent-docs todos ([140feba](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/140feba4eba01f125e4483e3891910789c0c1d1b))
+- File ideas by what they now wait on ([dd86dce](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/dd86dce9210829bfc0ce57060e3cf696daa26f9e))
+- Bump @jbrowse/bandage-core to 10.2.5 ([be80de1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/be80de180bf4ffc5738040cf0b9ab19840f8e7a2))
+
 ## [7.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.0.0...v7.1.0) (2026-10-12)
 
 ### Other Changes
