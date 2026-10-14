@@ -7,7 +7,8 @@
 // live change to every reader's session, and the failures this catches pass
 // tsc, eslint and the unit tests: an RPC argument a released core cannot post
 // to its worker, a re-export the host no longer serves. They show only when
-// the bundle runs on the host. The oldest version listed is the support floor.
+// the bundle runs on the host. The hosts are every release in
+// scripts/host-names/ and main, and the oldest release is the support floor.
 //
 // Usage:
 //   node scripts/host-compat-probe.mjs
@@ -18,13 +19,20 @@
 // test is the one readers load. A host that moves with no commit here breaks
 // that bundle, and host-watch.yml runs this daily to see it.
 //
+import fs from 'node:fs'
 import { parseArgs } from 'node:util'
 
 import puppeteer from 'puppeteer'
 
 import { ENTRY, candidateServer } from './serveCandidate.mjs'
 
-const DEFAULT_VERSIONS = ['v5.0.0-beta.11', 'v5.0.0-beta.13', 'main']
+const DEFAULT_VERSIONS = [
+  ...fs
+    .readdirSync(new URL('host-names/', import.meta.url))
+    .map(file => file.replace(/\.json$/, ''))
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true })),
+  'main',
+]
 // A real shipped config that names this plugin, and the window part 1 of the
 // HPRC tutorial cuts from its segments track.
 const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'

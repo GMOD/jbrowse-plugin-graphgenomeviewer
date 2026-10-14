@@ -73,11 +73,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npx puppeteer browsers install chrome
-      # By url rather than --tag: the v5 releases on GitHub are drafts, which
-      # the CLI's unauthenticated release lookup cannot see. The zip beside the
-      # hosted build is the same artifact.
+      # The newest release in scripts/host-names/, by url rather than --tag:
+      # the v5 releases on GitHub are drafts, which the CLI's unauthenticated
+      # release lookup cannot see. The zip beside the hosted build is the same
+      # artifact. sort -V ranks v5.0.0-beta.13 above v5.0.0 unless the - reads
+      # as ~.
       - name: Create JBrowse test instance
-        run:
-          npx @jbrowse/cli create .test-jbrowse --url
-          https://s3.amazonaws.com/jbrowse.org/code/jb2/v5.0.0-beta.13/jbrowse-web-v5.0.0-beta.13.zip
+        run: |
+          host=$(ls scripts/host-names | sed 's/-/~/' | sort -V | tail -n 1 |
+            sed 's/~/-/; s/\.json$//')
+          npx @jbrowse/cli create .test-jbrowse --url \
+            "https://s3.amazonaws.com/jbrowse.org/code/jb2/$host/jbrowse-web-$host.zip"
       - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e
