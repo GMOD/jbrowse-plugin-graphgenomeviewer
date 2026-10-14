@@ -99,3 +99,28 @@ test('walkRows measures and stops the same walks', () => {
   ).rows.find(r => r.label === 'E#1')!
   expect(short.stop).toEqual({ contigEnds: true, shortBp: 500 })
 })
+
+test('walks named without a haplotype field are rows of their own, on their contigs', () => {
+  const twoPart: GraphTables = {
+    ...tables,
+    walks: {
+      ...tables.walks,
+      names: ['GRCh38#0#chr1', 'A#a', 'A#b', 'C#1#c', 'D#1#d', 'E#1#e'],
+    },
+  }
+  const rows = walkRowsOf(walkRowRuns(twoPart, repeat)!).rows
+  expect(
+    rows
+      .filter(r => r.sample === 'A')
+      .map(({ name, label, haplotype, axis }) => ({
+        name,
+        label,
+        haplotype,
+        contig: axis?.contig,
+      }))
+      .sort((x, y) => x.name.localeCompare(y.name)),
+  ).toEqual([
+    { name: 'A#a', label: 'A', haplotype: undefined, contig: 'a' },
+    { name: 'A#b', label: 'A', haplotype: undefined, contig: 'b' },
+  ])
+})

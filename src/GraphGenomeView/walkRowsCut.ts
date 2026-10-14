@@ -7,6 +7,8 @@ import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
 import { walkRowsExtent } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 
+import { walkPath } from '../RgfaTabixAdapter/walkRowRuns.ts'
+
 import type { WalkCut } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { WalkRows } from '@jbrowse/bandage-core/layout/walkRows'
@@ -49,17 +51,7 @@ export function walkRowsGraph(
     if (w.offsets[i + 2]! <= w.offsets[i + 1]!) {
       return []
     }
-    const [sample = '', haplotype = '', ...contig] = walk.split('#')
-    return [
-      {
-        name: `${sample}#${+haplotype}#${contig.join('#')}`,
-        nodeIds: [],
-        start: w.starts[i + 1]!,
-        sample,
-        haplotype: +haplotype,
-        contig: contig.join('#'),
-      },
-    ]
+    return [{ ...walkPath(walk), nodeIds: [], start: w.starts[i + 1]! }]
   })
   graph.paths = [...(graph.paths ?? []), ...stubs]
   return graph
