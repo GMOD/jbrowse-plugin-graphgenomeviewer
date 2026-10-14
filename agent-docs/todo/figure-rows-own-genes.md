@@ -7,7 +7,7 @@ metadata:
   category: ready
   area: walk strip
   first_move: 'Add a spec field mapping each sample to its gene file.'
-  order: 2
+  order: 1
 ---
 
 # Each row's own genes in bandage-figure

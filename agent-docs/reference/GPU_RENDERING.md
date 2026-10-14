@@ -1,9 +1,8 @@
 ---
-name: gpu-rendering-for-the-graph
+name: gpu-rendering
 description:
-  GPU drawing for the graph view is priced and not worth it below ~50k nodes;
-  the trigger is a geometry builder off the main thread, so read this before
-  reviving a triangle mesh.
+  GPU drawing for the graph view is priced and not worth it below ~50k nodes,
+  above the 20k default node cap; read this before reviving a triangle mesh.
 ---
 
 # GPU rendering: priced, and not worth it at this view's node cap

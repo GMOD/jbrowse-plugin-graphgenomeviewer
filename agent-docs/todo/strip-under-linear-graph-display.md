@@ -9,7 +9,7 @@ metadata:
   first_move:
     'Pass `host: false` to walkStripApplies from a track and see what the track
     needs.'
-  order: 3
+  order: 2
 ---
 
 # Strip under LinearGraphDisplay

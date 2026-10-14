@@ -89,8 +89,7 @@ Which wall you hit first depends on the layout mode:
 
 - **Anchored / sample-rows** (O(n), local): geometry build is the wall, and it
   is a main-thread pass that no GPU backend would take —
-  `ideas/waiting-on-a-number/gpu-rendering-for-the-graph.md` prices the port
-  against these numbers.
+  `reference/GPU_RENDERING.md` prices the port against these numbers.
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
   Fruchterman-Reingold is "still slow for 10k+ nodes". Ours is single-threaded
