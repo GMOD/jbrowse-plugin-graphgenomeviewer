@@ -52,6 +52,10 @@ import { computed } from 'mobx'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
 import { walkRowRuns, walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
+import {
+  canonicalAssemblyName,
+  trackAssemblies,
+} from '../../launchFromGraph/launchFromGraph'
 import { locationIsSet } from '../../locationName.ts'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
 import {
@@ -649,22 +653,26 @@ export const withGraphViews = paneBase
       const track = self.sourceTrack
       return track ? (readConfObject(track, 'trackId') as string) : undefined
     },
+    // The session's tracks, each with the assemblies it covers by canonical
+    // name, since a track may name one by an alias
+    get sessionTracks() {
+      const session = getSession(self)
+      return session.tracks.map(t => ({
+        trackId: t.trackId as string,
+        name: readConfObject(t, 'name') as string,
+        adapterType: (readConfObject(t, 'adapter') as { type: string }).type,
+        assemblies: trackAssemblies(session, t),
+      }))
+    },
+  }))
+  .views(self => ({
     get assemblyTrackChoices() {
       const region = self.graphRegion
-      if (!region) {
-        return []
-      }
-      return getSession(self)
-        .tracks.filter(t =>
-          (readConfObject(t, 'assemblyNames') as string[]).includes(
-            region.assemblyName,
-          ),
-        )
-        .map(t => ({
-          trackId: t.trackId as string,
-          name: readConfObject(t, 'name') as string,
-          adapterType: (readConfObject(t, 'adapter') as { type: string }).type,
-        }))
+      const assembly =
+        region && canonicalAssemblyName(getSession(self), region.assemblyName)
+      return assembly
+        ? self.sessionTracks.filter(t => t.assemblies.includes(assembly))
+        : []
     },
   }))
   .views(self => ({

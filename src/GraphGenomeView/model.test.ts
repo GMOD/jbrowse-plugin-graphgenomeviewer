@@ -3738,6 +3738,17 @@ describe('annotation reads beside a cut', () => {
     expect(model.layoutResult).toBe(layoutResult)
   })
 
+  test("a track configured on an alias of the cut's assembly is offered", async () => {
+    mockSession.assemblyNames = ['hg38']
+    mockSession.assemblyAliases = { GRCh38: 'hg38' }
+    mockSession.tracks[1]!.assemblyNames = ['GRCh38']
+    const model = createModel()
+    await cutAndSettle(model)
+    expect(model.geneTrackChoices.map(t => t.trackId)).toContain('genes-a')
+    mockSession.assemblyNames = []
+    mockSession.assemblyAliases = {}
+  })
+
   test('a slow gene read does not land over the pick that followed it', async () => {
     const model = createModel()
     await cutAndSettle(model)
