@@ -19,11 +19,14 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-import puppeteer from 'puppeteer'
-
+import {
+  HPRC_CONFIG,
+  gotoHosted,
+  launchBrowser,
+  waitGraphPainted,
+} from './hostedBrowser.mjs'
 import { candidateServer } from './serveCandidate.mjs'
 
-const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
 const FIXTURES = '/__figure_fixtures__/'
 const FIXTURES_URL = `https://jbrowse.org${FIXTURES}`
 const GENES = 'hg38_ncbiRefSeq_ucsc'
@@ -689,40 +692,6 @@ function hoverCallsetCell(row) {
   }
 }
 
-// Painted, not merely loaded: a 15,808-node cut reports its node count seconds
-// before FMMM finishes, and a screenshot then catches an empty pane.
-async function waitPainted(page) {
-  await page.waitForFunction(
-    () => {
-      const text = document.body.innerText
-      const tracks = [
-        ...document.querySelectorAll(
-          '[data-testid="linear-graph-display"]:not([data-display-phase="tooLarge"])',
-        ),
-      ]
-      const drawn =
-        tracks.length > 0
-          ? tracks.every(t => Number(t.getAttribute('data-node-count')) > 0)
-          : /\d nodes/.test(text)
-      return drawn && !/Computing layout|Laying out|Loading/.test(text)
-    },
-    { timeout: 180_000, polling: 500 },
-  )
-  await page.waitForFunction(
-    () =>
-      document
-        .querySelector('[data-testid="app-ready-marker"]')
-        ?.getAttribute('data-app-phase') === 'ready',
-    { timeout: 180_000, polling: 250 },
-  )
-  await page.evaluate(
-    () =>
-      new Promise(r => {
-        requestAnimationFrame(() => requestAnimationFrame(r))
-      }),
-  )
-}
-
 // The pixels two shots of a figure differ by, and a strip of old, new and the
 // differing pixels in red, drawn on a blank page of the browser at hand
 async function compareShots(browser, before, after) {
@@ -833,7 +802,7 @@ if (unknown.length > 0) {
 }
 
 async function shoot(browser, name) {
-  const { session, act, config = CONFIG } = FIGURES[name]
+  const { session, act, config = HPRC_CONFIG } = FIGURES[name]
   const file = path.join(values.out, `${name}.png`)
   const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
   const context = await browser.createBrowserContext()
@@ -842,17 +811,18 @@ async function shoot(browser, name) {
     const page = await context.newPage()
     await page.setViewport({ width: 1400, height: 1600 })
     await candidateServer(values.dist, { [FIXTURES]: 'test_data' })(page)
-    await page.goto(
-      `https://jbrowse.org/code/jb2/${values.version}/?config=${encodeURIComponent(config)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
-      { waitUntil: 'domcontentloaded', timeout: 60_000 },
+    await gotoHosted(
+      page,
+      values.version,
+      `config=${encodeURIComponent(config)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
     )
-    await waitPainted(page)
+    await waitGraphPainted(page, 180_000)
     await recolorAnnotations(page)
     await orderLaneRowsByKey(page)
     if (act) {
       await act(page)
       await sleep(1000)
-      await waitPainted(page)
+      await waitGraphPainted(page, 180_000)
     }
     await page
       .waitForNetworkIdle({ idleTime: 1500, timeout: 90_000 })
@@ -907,9 +877,7 @@ async function shoot(browser, name) {
   console.log(`wrote ${file}, ${changed} px changed${size ? `, ${size}` : ''}`)
 }
 
-const browser = await puppeteer.launch({
-  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
-})
+const browser = await launchBrowser()
 const failed = []
 try {
   for (const name of names) {

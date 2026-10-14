@@ -3,9 +3,11 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 
-import { launch } from 'puppeteer'
+import { waitAppReady } from '../scripts/hostedBrowser.mjs'
 
 import type { Browser, Page } from 'puppeteer'
+
+export { launchBrowser } from '../scripts/hostedBrowser.mjs'
 
 // JBROWSE_PORT lets two sessions run the suites at once
 export const JBROWSE_PORT = Number(process.env.JBROWSE_PORT ?? 9876)
@@ -243,13 +245,6 @@ export async function cleanupJBrowse() {
   }
 }
 
-export async function launchBrowser() {
-  return launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  })
-}
-
 export async function createJBrowsePage(browser: Browser): Promise<Page> {
   const page = await browser.newPage()
   await page.setViewport({ width: 1280, height: 900 })
@@ -280,29 +275,16 @@ export async function waitForReactMount(page: Page) {
   )
 }
 
-// Resolves once `ready` holds and core's AppReadyMarker then reads "ready",
-// which covers every view's showLoading and every display's displayPhase —
-// the graph pane's included. Waiting on `ready` first keeps a marker that was
-// already "ready" before the action from passing too early.
+// Resolves once `ready` holds and then core's AppReadyMarker reads "ready".
+// Waiting on `ready` first keeps a marker that was already "ready" before the
+// action from passing too early.
 export async function waitForAppReady(
   page: Page,
   ready: () => boolean = () => true,
   timeout = 120_000,
 ) {
   await page.waitForFunction(ready, { timeout })
-  await page.waitForFunction(
-    () =>
-      document
-        .querySelector('[data-testid="app-ready-marker"]')
-        ?.getAttribute('data-app-phase') === 'ready',
-    { timeout },
-  )
-  await page.evaluate(
-    () =>
-      new Promise(r => {
-        requestAnimationFrame(() => requestAnimationFrame(r))
-      }),
-  )
+  await waitAppReady(page, timeout)
 }
 
 async function clickText(page: Page, selector: string, text: string) {

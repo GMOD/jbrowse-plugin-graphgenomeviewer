@@ -9,8 +9,11 @@
 //
 import { parseArgs } from 'node:util'
 
-import puppeteer from 'puppeteer'
-
+import {
+  gotoHosted,
+  launchBrowser,
+  waitGraphPainted,
+} from './hostedBrowser.mjs'
 import { candidateServer } from './serveCandidate.mjs'
 
 const { values, positionals } = parseArgs({
@@ -29,41 +32,20 @@ if (!query || !out) {
   process.exit(2)
 }
 
-const browser = await puppeteer.launch({
-  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
+const browser = await launchBrowser({
+  defaultViewport: {
+    width: Number(values.width),
+    height: Number(values.height),
+  },
 })
 try {
   const page = await browser.newPage()
-  await page.setViewport({
-    width: Number(values.width),
-    height: Number(values.height),
-  })
   await candidateServer(values.dist)(page)
-  const url = `https://jbrowse.org/code/jb2/${values.version}/${query.startsWith('?') ? query : `?${query}`}`
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-  const ready = await page
-    .waitForFunction(
-      () => {
-        const roots = [
-          ...document.querySelectorAll(
-            '[data-testid="linear-graph-display"]:not([data-display-phase="tooLarge"])',
-          ),
-        ]
-        return (
-          roots.length > 0 &&
-          roots.every(
-            r =>
-              Number(r.getAttribute('data-node-count')) > 0 &&
-              !r.textContent?.includes('Loading'),
-          )
-        )
-      },
-      { timeout: Number(values.timeout), polling: 500 },
-    )
-    .then(
-      () => true,
-      () => false,
-    )
+  await gotoHosted(page, values.version, query)
+  const ready = await waitGraphPainted(page, Number(values.timeout)).then(
+    () => true,
+    () => false,
+  )
   if (ready) {
     await page.waitForNetworkIdle({ idleTime: 1500, timeout: 60_000 })
   }

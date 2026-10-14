@@ -3,12 +3,13 @@
 // Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each,
 // shows the graph track in a linear view and reads a gbz-base track into a
 // synteny view, failing if a host error-pages, never registers the view,
-// cannot cut, or cannot draw either. The tutorials name the plugin by its jbrowse.org url, so a publish is a
-// live change to every reader's session, and the failures this catches pass
-// tsc, eslint and the unit tests: an RPC argument a released core cannot post
-// to its worker, a re-export the host no longer serves. They show only when
-// the bundle runs on the host. The hosts are every release in
-// scripts/host-names/ and main, and the oldest release is the support floor.
+// cannot cut, or cannot draw either. The tutorials name the plugin by its
+// jbrowse.org url, so a publish is a live change to every reader's session,
+// and the failures this catches pass tsc, eslint and the unit tests: an RPC
+// argument a released core cannot post to its worker, a re-export the host no
+// longer serves. They show only when the bundle runs on the host. The hosts
+// are every release in scripts/host-names/ and main, and the oldest release
+// is the support floor.
 //
 // Usage:
 //   node scripts/host-compat-probe.mjs
@@ -22,8 +23,7 @@
 import fs from 'node:fs'
 import { parseArgs } from 'node:util'
 
-import puppeteer from 'puppeteer'
-
+import { HPRC_CONFIG, gotoHosted, launchBrowser } from './hostedBrowser.mjs'
 import { ENTRY, candidateServer } from './serveCandidate.mjs'
 
 const DEFAULT_VERSIONS = [
@@ -33,9 +33,7 @@ const DEFAULT_VERSIONS = [
     .sort((a, b) => a.localeCompare(b, 'en', { numeric: true })),
   'main',
 ]
-// A real shipped config that names this plugin, and the window part 1 of the
-// HPRC tutorial cuts from its segments track.
-const CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
+// The window part 1 of the HPRC tutorial cuts from its segments track
 const TRACK_ID = 'hprc_minigraph_segments'
 const REGION = {
   refName: 'chr6',
@@ -79,8 +77,7 @@ async function probeOne(browser, version) {
 
   const result = { version, consoleErrors }
   try {
-    const url = `https://jbrowse.org/code/jb2/${version}/?config=${encodeURIComponent(CONFIG)}`
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    await gotoHosted(page, version, `config=${encodeURIComponent(HPRC_CONFIG)}`)
     // Readiness is the session global or the error page, not markup: the
     // loading spinner is an svg, so an element wait returns before plugins load.
     await page.waitForFunction(
@@ -295,14 +292,12 @@ function failure(r) {
   return undefined
 }
 
-const browser = await puppeteer.launch({
-  headless: true,
-  args: ['--no-sandbox', '--use-gl=swiftshader'],
+const browser = await launchBrowser({
   defaultViewport: { width: 1400, height: 900 },
 })
 
 console.log(
-  `${values.published ? 'the published bundle on' : `serving ${values.dist} to`} ${CONFIG}\nhosts: ${versions.join(', ')}\n`,
+  `${values.published ? 'the published bundle on' : `serving ${values.dist} to`} ${HPRC_CONFIG}\nhosts: ${versions.join(', ')}\n`,
 )
 
 const results = []
