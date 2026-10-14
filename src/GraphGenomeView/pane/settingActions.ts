@@ -347,18 +347,22 @@ export const withSettingActions = withFitViews
       self.draggingNode = null
       self.isPanning = false
     },
-    // Everything that names a part of the current graph. Reset when the graph
-    // is replaced, and by clearGraph.
-    clearInteractionState() {
+    // whatever the pointer was over in the pane
+    clearHover() {
       self.hoveredNode = null
       self.hoveredAt = null
       self.hoveredTube = null
-      self.hoveredRowWalks = []
-      self.stripHover = null
       self.hoveredPanel = null
       self.hoveredWalkRow = null
       self.hoveredBubble = null
       self.hoveredEdge = null
+    },
+    // Everything that names a part of the current graph. Reset when the graph
+    // is replaced, and by clearGraph.
+    clearInteractionState() {
+      this.clearHover()
+      self.hoveredRowWalks = []
+      self.stripHover = null
       self.selectedNode = null
       self.draggingNode = null
       self.isPanning = false

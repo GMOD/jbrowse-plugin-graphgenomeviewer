@@ -283,11 +283,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       return
     }
     model.stopDragging()
-    model.setHoveredNode(null)
-    model.setHoveredPanel(null)
-    model.setHoveredTube(null)
-    model.setHoveredEdge(null)
-    model.setHoveredWalkRow(null)
+    model.clearHover()
   }
 
   // Right-clicking a node is the gesture that asks "where is this?", and until
