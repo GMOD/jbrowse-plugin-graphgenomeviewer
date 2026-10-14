@@ -328,6 +328,19 @@ export const paneBase = types
       maxGraphNodes: types.optional(types.number, DEFAULT_MAX_GRAPH_NODES),
       // the linear view a graph of its own is paired with for the hover sync
       connectedViewId: types.maybe(types.string),
+      // The bp ceiling on a fine cut, a proxy for node count that only
+      // holds at fine granularity; `maxGraphNodes` counts what came back.
+      maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
+      // How far the cut follows links past the region's own segments. At
+      // 0 a detour that leaves the backbone before the window and rejoins
+      // after it arrives as a fragment, since its interior is indexed only
+      // under its own sequence, so one bubble draws as two unrelated
+      // insertions. A hop follows alleles only, so it never walks the
+      // backbone out of the window.
+      subgraphContext: types.optional(types.number, 1),
+      // the haplotypes a GBZ or walk-indexed cut is for; unset is
+      // trackHaplotypes
+      subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
     }),
   )
   .volatile(() => ({

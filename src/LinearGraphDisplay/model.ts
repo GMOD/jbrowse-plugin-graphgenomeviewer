@@ -26,17 +26,11 @@ import { reaction } from 'mobx'
 import { denseCovers, isNodeLimitError } from './denseWindow'
 import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
 import { lenientOptionalEnum } from '../GraphGenomeView/lenientEnum'
-import {
-  GraphPane,
-  MAX_GRAPH_REGION_BP,
-  formatSpanBp,
-} from '../GraphGenomeView/model'
+import { GraphPane, formatSpanBp } from '../GraphGenomeView/model'
 import { FACET_KEY_PX } from '../GraphGenomeView/pane/fitViews'
 import {
   configHaplotypes,
   cutsByHaplotype,
-  graphReferenceAssembly,
-  offReferenceProblem,
   trackLanes,
   walkIndexed,
 } from '../graphTrackConfig'
@@ -101,19 +95,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // whether that cut came from the track's coarse pair
         // (RgfaTabixAdapter), on which no bp cap applies
         coarseCut: types.optional(types.boolean, false),
-        // The bp ceiling on a fine cut, a proxy for node count that only
-        // holds at fine granularity; `maxGraphNodes` counts what came back.
-        maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
-        // How far the cut follows links past the region's own segments. At
-        // 0 a detour that leaves the backbone before the window and rejoins
-        // after it arrives as a fragment, since its interior is indexed only
-        // under its own sequence, so one bubble draws as two unrelated
-        // insertions. A hop follows alleles only, so it never walks the
-        // backbone out of the window.
-        subgraphContext: types.optional(types.number, 1),
-        // the haplotypes a GBZ or walk-indexed cut is for; unset is the
-        // config's defaultHaplotypes, else the lanes the track names
-        subgraphHaplotypes: types.maybe(types.frozen<string[]>()),
       }),
     )
     .volatile(() => ({
@@ -148,13 +129,12 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       get canRetryLoad() {
         return self.cutRegion !== undefined
       },
-      get cutHaplotypes() {
+      // the config's defaultHaplotypes, else the lanes the track names
+      get trackHaplotypes() {
         const adapter = self.sourceAdapter
         const track = self.sourceTrack
         return (
-          self.subgraphHaplotypes ??
-          (adapter && configHaplotypes(adapter)) ??
-          (track && trackLanes(track))
+          (adapter && configHaplotypes(adapter)) ?? (track && trackLanes(track))
         )
       },
       // the linear view's zoom past which the track's coarse pair is cut, or
@@ -288,14 +268,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       cut() {
         const region = self.cutRegion
         const adapterConfig = self.sourceAdapter
-        const track = self.sourceTrack
-        if (!region || !adapterConfig || !track) {
+        if (!region || !adapterConfig) {
           return
         }
-        const problem = offReferenceProblem(
-          graphReferenceAssembly(track),
-          region.assemblyName,
-        )
+        const problem = self.offReference(region)
         if (problem) {
           self.clearGraph()
           self.setError(new Error(problem))
@@ -308,15 +284,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return self.cutSubgraph(
           adapterConfig,
           region,
-          {
-            hops: self.subgraphContext,
-            haplotypes: self.cutHaplotypes,
-            tier: coarse ? 'coarse' : undefined,
-            ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
-            ...(layoutModeByValue(self.chosenLayoutMode).wholeWalks
-              ? { snarls: 'overlapping' as const }
-              : {}),
-          },
+          { ...self.cutOptions, tier: coarse ? 'coarse' : undefined },
           self.cutFoldBp,
         )
       },
@@ -385,16 +353,14 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           this.settleOn(self.settledWindow)
         }
       },
-      relayoutFrom(fromMode: LayoutModeValue) {
-        const from = layoutModeByValue(fromMode)
-        const to = layoutModeByValue(self.chosenLayoutMode)
+      relayoutFrom(from: LayoutModeValue) {
         const seen = self.host ? hostWindow(self.host) : undefined
         if (
           seen &&
           !self.regionTooLarge &&
-          (to.cutMargins !== from.cutMargins ||
-            to.wholeWalks !== from.wholeWalks ||
-            (from.value === 'walkrows') !== (to.value === 'walkrows'))
+          (self.cutChangedFrom(from) ||
+            layoutModeByValue(from).cutMargins !==
+              layoutModeByValue(self.chosenLayoutMode).cutMargins)
         ) {
           return self.recutAt(seen)
         }
