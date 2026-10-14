@@ -375,7 +375,7 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
             (t: { configuration: { trackId: string } }) =>
               t.configuration.trackId === trackId,
           )
-          .displays[0].setShowBubbles(true)
+          .displays[0].setLayer('bubbles', true)
       },
       [LGV_ID, RGFA_TRACK_ID],
     )
@@ -429,7 +429,7 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
             (t: { configuration: { trackId: string } }) =>
               t.configuration.trackId === trackId,
           )
-          .displays[0].setShowReferenceStrip(false)
+          .displays[0].setLayer('referenceStrip', false)
       },
       [LGV_ID, RGFA_TRACK_ID],
     )
