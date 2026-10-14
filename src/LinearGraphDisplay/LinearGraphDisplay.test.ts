@@ -24,6 +24,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
+import { paneBase } from '../GraphGenomeView/pane/paneBase'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
@@ -1459,6 +1460,35 @@ test('the track menu opens the window on screen in a graph genome view, drawn as
       ...(spec as object),
     }),
   ).not.toThrow()
+})
+
+test('the graph genome view a track opens takes every pane setting but where its viewport sits', async () => {
+  const { display } = await shownGraph()
+  display.setTubeMapFold(50)
+  display.setTubeMapRoutes('bundled')
+  display.setTubeMapColorBy('population')
+  display.setRepeatTrackId('repeats')
+  display.setRepeatKey('chr1:1-10')
+  display.setPaneHeight(300)
+  const spec = display.graphViewSpec!
+  expect(spec).toMatchObject({
+    tubeMapFold: 50,
+    tubeMapRoutes: 'bundled',
+    tubeMapColorBy: 'population',
+    repeatTrackId: 'repeats',
+    repeatKey: 'chr1:1-10',
+    paneHeight: 300,
+    connectorThickness: display.connectorThickness,
+  })
+  const viewport = ['scale', 'translateX', 'translateY']
+  expect(Object.keys(spec)).toEqual(
+    expect.arrayContaining(
+      Object.keys(paneBase.properties).filter(key => !viewport.includes(key)),
+    ),
+  )
+  for (const key of viewport) {
+    expect(spec).not.toHaveProperty(key)
+  }
 })
 
 test('after a cut refused over its node limit, the graph genome view launch is disabled', async () => {

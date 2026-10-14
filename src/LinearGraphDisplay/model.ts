@@ -28,6 +28,7 @@ import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
 import { lenientOptionalEnum } from '../GraphGenomeView/lenientEnum'
 import { GraphPane, formatSpanBp } from '../GraphGenomeView/model'
 import { FACET_KEY_PX } from '../GraphGenomeView/pane/fitViews'
+import { paneBase } from '../GraphGenomeView/pane/paneBase'
 import {
   configHaplotypes,
   cutsByHaplotype,
@@ -46,10 +47,26 @@ import type { LaunchGraphGenomeViewArgs } from '../LaunchGraphGenomeView'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { ExportSvgDisplayOptions } from '@jbrowse/display-kit/types'
-import type { Instance } from '@jbrowse/mobx-state-tree'
+import type { Instance, SnapshotOut } from '@jbrowse/mobx-state-tree'
 import type { DisplayStatusPhase } from '@jbrowse/render-core/displayPhase'
 
 type GraphViewSpec = Omit<LaunchGraphGenomeViewArgs, 'session'>
+
+// the pane's viewport, which a new graph view fits to its drawing
+const VIEWPORT_PROPS = new Set(['scale', 'translateX', 'translateY'])
+
+type PaneSettings = Omit<
+  SnapshotOut<typeof paneBase>,
+  'scale' | 'translateX' | 'translateY'
+>
+
+function paneSettings(pane: Instance<typeof paneBase>) {
+  return Object.fromEntries(
+    Object.keys(paneBase.properties)
+      .filter(key => !VIEWPORT_PROPS.has(key))
+      .map(key => [key, pane[key as keyof typeof pane]]),
+  ) as PaneSettings
+}
 
 // A variant under this many of the linear view's pixels folds into the
 // reference before layout, so the drawing gains detail as the view zooms in.
@@ -563,6 +580,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         const start = Math.floor(seen.start)
         const end = Math.ceil(seen.end)
         return {
+          ...paneSettings(self),
           loadedTrackId: trackId,
           loadedRegion: {
             refName: seen.refName,
@@ -570,19 +588,10 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             start,
             end,
           },
-          subgraphContext: self.subgraphContext,
           subgraphHaplotypes: self.cutHaplotypes,
           maxRegionBp: Math.max(self.maxRegionBp, end - start),
           ...self.grammar,
           layoutMode: self.chosenLayoutMode,
-          referencePath: self.referencePath,
-          geneTrackId: self.geneTrackId,
-          walkLayers: self.walkLayers,
-          layoutEngine: self.layoutEngine,
-          layoutQuality: self.layoutQuality,
-          bubbleSpread: self.bubbleSpread,
-          linearLayout: self.linearLayout,
-          maxGraphNodes: self.maxGraphNodes,
           connectedViewId: self.host?.id,
         } satisfies GraphViewSpec
       },
