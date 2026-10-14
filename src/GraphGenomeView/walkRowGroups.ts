@@ -71,46 +71,71 @@ export function groupByOf(value: unknown): WalkRowGroupBy | undefined {
     : { field }
 }
 
-function haplotypes(rows: { label: string }[]) {
-  const n = new Set(rows.map(r => r.label)).size
-  return `${n} haplotype${n === 1 ? '' : 's'}`
+export function plural(n: number, noun: string) {
+  return `${n} ${noun}${n === 1 ? '' : 's'}`
 }
 
-// The rows reordered section by section, each keeping the order it came in.
-// A row's value is its table row's, looked up by haplotype (`HG00097#1`)
-// and then by sample (`HG00097`); rows with none stack last.
+// A walk's value in a column: its haplotype's row (`HG00097#1`), else its
+// sample's (`HG00097`), else ''
+export function columnValueOf(field: string, table: SampleRow[]) {
+  const valueOf = new Map(table.map(row => [row.name, row[field] ?? '']))
+  return (haplotype: string, sample: string) =>
+    valueOf.get(haplotype) || valueOf.get(sample) || ''
+}
+
+// Items grouped by their value in a column, each group in the order its items
+// came in, the groups in the order a JBrowse Group by sorts them, and each
+// titled with its value and how many distinct `noun`s its items are
+export function groupsByColumn<T>(
+  items: readonly T[],
+  valueOf: (item: T) => string,
+  { field, domain }: { field: string; domain?: readonly string[] },
+  noun: string,
+  nounOf: (item: T) => string,
+) {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const key = valueOf(item)
+    const group = groups.get(key)
+    if (group) {
+      group.push(item)
+    } else {
+      groups.set(key, [item])
+    }
+  }
+  return [...groups.keys()].sort(groupKeyComparator(domain)).map(key => {
+    const members = groups.get(key)!
+    const n = new Set(members.map(nounOf)).size
+    return {
+      key,
+      members,
+      title: `${key || `${field}: none`} · ${plural(n, noun)}`,
+    }
+  })
+}
+
+// The rows reordered section by section; rows with no value stack last
 export function groupWalkRows<R extends { sample: string; label: string }>(
   rows: R[],
   table: SampleRow[],
-  { field, domain }: WalkRowGroupBy,
+  groupBy: WalkRowGroupBy,
 ) {
-  const valueOf = new Map(table.map(row => [row.name, row[field] ?? '']))
-  const groups = new Map<string, R[]>()
-  for (const row of rows) {
-    const key = valueOf.get(row.label) || valueOf.get(row.sample) || ''
-    const group = groups.get(key)
-    if (group) {
-      group.push(row)
-    } else {
-      groups.set(key, [row])
-    }
-  }
+  const valueOf = columnValueOf(groupBy.field, table)
+  const groups = groupsByColumn(
+    rows,
+    row => valueOf(row.label, row.sample),
+    groupBy,
+    'haplotype',
+    row => row.label,
+  )
   let first = 1
-  const sections: WalkRowSection[] = [...groups.keys()]
-    .sort(groupKeyComparator(domain))
-    .map(key => {
-      const members = groups.get(key)!
-      const section = {
-        key,
-        title: `${key || `${field}: none`} · ${haplotypes(members)}`,
-        first,
-        count: members.length,
-      }
-      first += members.length
-      return section
-    })
+  const sections: WalkRowSection[] = groups.map(({ key, members, title }) => {
+    const section = { key, title, first, count: members.length }
+    first += members.length
+    return section
+  })
   return {
-    rows: sections.flatMap(s => groups.get(s.key)!),
+    rows: groups.flatMap(g => g.members),
     sections,
   }
 }
