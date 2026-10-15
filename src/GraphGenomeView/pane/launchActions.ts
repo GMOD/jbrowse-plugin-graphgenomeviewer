@@ -275,13 +275,7 @@ export const withLaunchActions = withRenderingActions
               {
                 label: 'Repeat',
                 subMenu: radioItems(
-                  [
-                    { value: '', label: 'Whole window' },
-                    ...self.repeatChoices.map(({ key, name, unit }) => ({
-                      value: key,
-                      label: `${name} · ${unit.toLocaleString()} bp unit`,
-                    })),
-                  ],
+                  self.repeatOptions,
                   self.selectedRepeat?.key ?? '',
                   self.setRepeatKey,
                 ),
