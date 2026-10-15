@@ -1,3 +1,21 @@
+## [7.1.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.7...v7.1.8) (2026-10-15)
+
+### Other Changes
+
+- Show loading while a restored view waits on its assembly; let a lone track be picked ([e3b41e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e3b41e15c26ead575df331712353ffe993c35c25))
+- Keep a typed haplotype on blur; keep haplotype names across assembly changes ([b7b1be6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b7b1be654735982e03180158cffc08e6f549c7a7))
+- Leave a linear view of its own reference out of a graph track's launches ([2dbdeeb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2dbdeebc2fc7a56247917af3d572e5d8fd942098))
+- Keep highlighted walks a picker can't list when it sets the highlight ([01be3f2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/01be3f217e8693c594816f1fb2ac5db02789abe9))
+- Format GraphSettingsDialog and WalkSelect ([edc3eae](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/edc3eae3c44fafd3e7bd7bfbe639d58113a9e6ab))
+- Repaint the pane when the device pixel ratio changes ([b2b686f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b2b686fad7611724635682f32e9437bcd568673f))
+- Type the launch test's labels as strings, for tsconfig.test.json ([fa2ad9c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fa2ad9c5ba6d941652c4e8dbe740b064d479e47a))
+- Say why the track's Graph genome view launch is disabled ([57f97a6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/57f97a6b22e9cfcaf874f4bfe54442142563ab8f))
+- Label the toolbar's colours as the menu does; build repeat options once ([a108504](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a108504cfedab1e308153b87992a4cfa0fd61e61))
+- Launch synteny views through launchView alone ([5b83d9c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5b83d9ca91d4a2e0a65a190e93eed2c23f853e1d))
+- Keep pan frames and row hovers from rebuilding overlays that didn't change ([2031c65](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2031c65493ef5cc210cc6cea56513a5a5e46e42a))
+- Ease wheel zoom, drag from bubble labels, and scroll the view from the strip ([a4e7af9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a4e7af99069851d4d86c617b09a33444cb4b8c75))
+- Let the linear view drive a force-layout track's drag and zoom ([484088a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/484088a7d86fc1fcab06b3ae91fb2ecc5a678cde))
+
 ## [7.1.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.6...v7.1.7) (2026-10-15)
 
 ### Other Changes
