@@ -51,6 +51,25 @@ export const PaneSvgLayer = observer(function PaneSvgLayer({
   )
 })
 
+// Layout units onto the screen. Its own observer, so a pan frame re-renders
+// this group's transform and not the children a parent built.
+export const PaneTransformGroup = observer(function PaneTransformGroup({
+  model,
+  children,
+}: {
+  model: GraphPaneModel
+  children: ReactNode
+}) {
+  const { scaleX, scaleY, translateX, translateY } = model
+  return (
+    <g
+      transform={`translate(${translateX} ${translateY}) scale(${scaleX} ${scaleY})`}
+    >
+      {children}
+    </g>
+  )
+})
+
 // A canvas the pane's size that an autorun repaints, so a pan moves its ink in
 // the same frame as the drawing. `paint` draws in css px.
 export function PaneOverlayCanvas({
