@@ -1,3 +1,10 @@
+## [7.1.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.6...v7.1.7) (2026-10-15)
+
+### Other Changes
+
+- Follow the linear view's wheel rules on a graph track, and pinch to zoom ([ca96562](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ca9656266418fe0af010863e4a9f7e087c9cc93e))
+- Show a move cursor over a node a press would drag ([0aea6ba](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0aea6ba1da981983473a812e774ff163e31e478c))
+
 ## [7.1.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.5...v7.1.6) (2026-10-15)
 
 ### Other Changes
