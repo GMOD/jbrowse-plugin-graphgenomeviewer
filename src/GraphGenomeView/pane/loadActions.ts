@@ -22,7 +22,7 @@ import {
   statusMessageText,
 } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
-import { flow, isAlive } from '@jbrowse/mobx-state-tree'
+import { flow, getEnv, isAlive } from '@jbrowse/mobx-state-tree'
 
 import {
   TUBE_MAP_MODES,
@@ -712,7 +712,11 @@ export const withLoadActions = withEngineSettings.actions(self => {
       self.setStatusMessage('Fetching GFA')
       yield* loadWholeGFA(
         fileName(location) || 'GFA',
-        signal => openLocation(location).readFile({ encoding: 'utf8', signal }),
+        signal =>
+          openLocation(location, getEnv(self).pluginManager).readFile({
+            encoding: 'utf8',
+            signal,
+          }),
         region,
       )
     }),
@@ -805,7 +809,10 @@ export const withLoadActions = withEngineSettings.actions(self => {
         return
       }
       try {
-        const text = (yield openLocation(location).readFile('utf8')) as string
+        const text = (yield openLocation(
+          location,
+          getEnv(self).pluginManager,
+        ).readFile('utf8')) as string
         if (isAlive(self) && key === sampleTableKey) {
           self.walkRowSampleTable = parseSamplesTsv(text)
         }
