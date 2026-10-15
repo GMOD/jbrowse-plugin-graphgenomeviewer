@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 
-import { usePaneGestures } from './usePaneGestures'
+import { usePaneGestures, wheelAction } from './usePaneGestures'
 
 import type { GraphPaneModel } from '../model'
 
@@ -129,19 +129,18 @@ test('a hosted pane that pans itself claims presses from the linear view; one th
   expect(result.current.surfaceProps).toEqual({})
 })
 
-test('a second finger neither restarts nor ends the pan', () => {
-  const frames: FrameRequestCallback[] = []
-  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
-    frames.push(cb),
-  )
-  const setTransform = vi.fn()
+// A pane mid-drag, whose transform moves as the model's would
+function panModel() {
   const model: Record<string, unknown> = fakeModel({
     isPanning: false,
     draggingNode: null,
     hostPlacesX: false,
     referenceStripZonePx: 0,
     scale: 1,
-    setTransform,
+    setTransform: vi.fn((scale: number, tx: number, ty: number) => {
+      Object.assign(model, { scale, translateX: tx, translateY: ty })
+    }),
+    zoom: vi.fn(),
     setDraggingNode: vi.fn(),
     setPanning: (on: boolean) => {
       model.isPanning = on
@@ -149,32 +148,132 @@ test('a second finger neither restarts nor ends the pan', () => {
     stopDragging: () => {
       model.isPanning = false
     },
+    clearHover: vi.fn(),
   })
+  return model
+}
+
+function finger(
+  pointerId: number,
+  x: number,
+  pointerType = 'touch',
+): React.PointerEvent {
+  return {
+    clientX: x,
+    clientY: 20,
+    button: 0,
+    pointerId,
+    pointerType,
+    nativeEvent: { offsetY: 20 },
+    currentTarget: {
+      getBoundingClientRect: () => ({ left: 0, top: 0 }),
+      setPointerCapture: vi.fn(),
+    },
+  } as unknown as React.PointerEvent
+}
+
+function renderGestures(model: Record<string, unknown>) {
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    frames.push(cb),
+  )
   const { result } = renderHook(() =>
     usePaneGestures(model as unknown as GraphPaneModel),
   )
-  const finger = (pointerId: number, x: number) =>
-    ({
-      clientX: x,
-      clientY: 20,
-      button: 0,
-      pointerId,
-      nativeEvent: { offsetY: 20 },
-      currentTarget: {
-        getBoundingClientRect: () => ({ left: 0, top: 0 }),
-        setPointerCapture: vi.fn(),
-      },
-    }) as unknown as React.PointerEvent
-  const { onPointerDown, onPointerMove, onPointerUp } = result.current.handlers
-  act(() => {
-    onPointerDown(finger(1, 10))
-    onPointerDown(finger(2, 200))
-    onPointerMove(finger(2, 260))
-    onPointerUp(finger(2, 260))
-    onPointerMove(finger(1, 30))
-    frames.shift()?.(0)
+  return {
+    handlers: result.current.handlers,
+    flush: () => {
+      frames.shift()?.(0)
+    },
+  }
+}
+
+describe('more than one pointer', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
-  expect(model.isPanning).toBe(true)
-  expect(setTransform).toHaveBeenCalledWith(1, 20, 0)
-  vi.unstubAllGlobals()
+
+  test('a second mouse or pen pointer neither restarts nor ends the pan', () => {
+    const model = panModel()
+    const { handlers, flush } = renderGestures(model)
+    const { onPointerDown, onPointerMove, onPointerUp } = handlers
+    act(() => {
+      onPointerDown(finger(1, 10, 'mouse'))
+      onPointerDown(finger(2, 200, 'pen'))
+      onPointerMove(finger(2, 260, 'pen'))
+      onPointerUp(finger(2, 260, 'pen'))
+      onPointerMove(finger(1, 30, 'mouse'))
+      flush()
+    })
+    expect(model.isPanning).toBe(true)
+    expect(model.setTransform).toHaveBeenCalledWith(1, 20, 0)
+  })
+
+  test('two fingers pinch about their midpoint, and lifting one pans with the other', () => {
+    const model = panModel()
+    const { handlers, flush } = renderGestures(model)
+    const { onPointerDown, onPointerMove, onPointerUp, onPointerLeave } =
+      handlers
+    act(() => {
+      onPointerDown(finger(1, 100))
+      onPointerDown(finger(2, 200))
+      onPointerMove(finger(2, 300))
+      flush()
+    })
+    expect(model.zoom).toHaveBeenCalledWith(2, 150, 20)
+    expect(model.translateX).toBe(50)
+
+    // a lifted finger leaves the canvas too
+    act(() => {
+      onPointerUp(finger(2, 300))
+      onPointerLeave(finger(2, 300))
+      onPointerMove(finger(1, 130))
+      flush()
+    })
+    expect(model.isPanning).toBe(true)
+    expect(model.translateX).toBe(80)
+  })
+
+  test('a second finger on a node drag does not pinch', () => {
+    const model = panModel()
+    model.setPanning = vi.fn()
+    model.draggingNode = 's1'
+    const { handlers } = renderGestures(model)
+    act(() => {
+      handlers.onPointerDown(finger(1, 100))
+      handlers.onPointerDown(finger(2, 200))
+    })
+    expect(model.zoom).not.toHaveBeenCalled()
+  })
+})
+
+describe('wheelAction', () => {
+  const wheel = (deltaX: number, deltaY: number, mods = {}) => ({
+    deltaX,
+    deltaY,
+    ctrlKey: false,
+    metaKey: false,
+    ...mods,
+  })
+
+  test('a graph view of its own zooms on a plain wheel and pans on a swipe', () => {
+    expect(wheelAction(wheel(0, 100), undefined)).toBe('zoom')
+    expect(wheelAction(wheel(40, 5), undefined)).toBe('pan')
+  })
+
+  test('a track leaves a plain wheel to the page unless scroll-to-zoom is on', () => {
+    expect(wheelAction(wheel(0, 100), { scrollZoom: false })).toBe('page')
+    expect(wheelAction(wheel(0, 100), {})).toBe('page')
+    expect(wheelAction(wheel(0, 100), { scrollZoom: true })).toBe('zoom')
+  })
+
+  test('ctrl or ⌘, which is how a trackpad reports a pinch, always zooms', () => {
+    expect(wheelAction(wheel(0, 3, { ctrlKey: true }), {})).toBe('zoom')
+    expect(wheelAction(wheel(0, 3, { metaKey: true }), {})).toBe('zoom')
+  })
+
+  test('a sideways swipe pans a track', () => {
+    expect(wheelAction(wheel(40, 5), { scrollZoom: false })).toBe('pan')
+    expect(wheelAction(wheel(40, 5), { scrollZoom: true })).toBe('pan')
+  })
 })

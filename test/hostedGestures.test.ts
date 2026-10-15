@@ -128,11 +128,31 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     expect(after.pane).not.toBe(before.pane)
   }, 60_000)
 
-  it('a wheel zooms the graph and leaves the linear view', async () => {
+  it('a plain wheel scrolls the page, as over any other track', async () => {
+    await page.evaluate(() => {
+      window.addEventListener('wheel', e => {
+        ;(window as unknown as { pageWheel: boolean }).pageWheel =
+          !e.defaultPrevented
+      })
+    })
     const before = await state()
     const box = await boxOf(GRAPH_CANVAS)
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
     await page.mouse.wheel({ deltaY: -200 })
+    await page.waitForFunction(
+      () => (window as unknown as { pageWheel?: boolean }).pageWheel,
+      { timeout: 10_000 },
+    )
+    expect(await state()).toEqual(before)
+  }, 60_000)
+
+  it('a ctrl+wheel zooms the graph and leaves the linear view', async () => {
+    const before = await state()
+    const box = await boxOf(GRAPH_CANVAS)
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.keyboard.down('Control')
+    await page.mouse.wheel({ deltaY: -20 })
+    await page.keyboard.up('Control')
     await page.waitForFunction(
       ([viewId, trackId, was]: string[]) => {
         const view = window.JBrowseSession.views.find(v => v.id === viewId)
@@ -151,6 +171,60 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     const after = await state()
     expect(after.bpPerPx).toBe(before.bpPerPx)
     expect(after.offsetPx).toBe(before.offsetPx)
+  }, 60_000)
+
+  it('two fingers spreading zoom the graph in and leave the linear view', async () => {
+    const before = await page.evaluate(
+      ([viewId, trackId]: string[]) =>
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0].scale as number,
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    const lgv = await state()
+    const box = await boxOf(GRAPH_CANVAS)
+    const cx = box.x + box.width / 2
+    const cy = box.y + box.height / 2
+    const cdp = await page.createCDPSession()
+    await cdp.send('Emulation.setTouchEmulationEnabled', {
+      enabled: true,
+      maxTouchPoints: 2,
+    })
+    const touch = (type: string, spread: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints:
+          type === 'touchEnd'
+            ? []
+            : [
+                { x: cx - spread, y: cy, id: 1 },
+                { x: cx + spread, y: cy, id: 2 },
+              ],
+      })
+    await touch('touchStart', 20)
+    for (let s = 25; s <= 80; s += 5) {
+      await touch('touchMove', s)
+    }
+    await touch('touchEnd', 0)
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false })
+    await cdp.detach()
+    const after = await page.evaluate(
+      ([viewId, trackId]: string[]) =>
+        window.JBrowseSession.views
+          .find(v => v.id === viewId)
+          .tracks.find(
+            (t: { configuration: { trackId: string } }) =>
+              t.configuration.trackId === trackId,
+          ).displays[0].scale as number,
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+    expect(after).toBeGreaterThan(before * 1.5)
+    const now = await state()
+    expect(now.offsetPx).toBe(lgv.offsetPx)
+    expect(now.bpPerPx).toBe(lgv.bpPerPx)
   }, 60_000)
 
   it('a drag on a plain track still pans the linear view', async () => {
