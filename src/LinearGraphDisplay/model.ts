@@ -674,7 +674,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       openSettings() {
         getSession(self).queueDialog(onClose => [
           GraphTrackSettingsDialog,
-          { model: self, open: true, onClose },
+          { model: self, onClose },
         ])
       },
       async renderSvg(opts?: ExportSvgDisplayOptions): Promise<ReactNode> {
