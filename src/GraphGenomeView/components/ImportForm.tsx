@@ -47,12 +47,7 @@ const ImportForm = observer(function ImportForm({
     // or picking the same file again fires no change
     event.target.value = ''
     if (file) {
-      file
-        .text()
-        .then(text => model.loadGFA(text, file.name))
-        .catch((err: unknown) => {
-          model.setError(err)
-        })
+      void model.loadGFAFile(file, file.name)
     }
   }
 
@@ -68,7 +63,7 @@ const ImportForm = observer(function ImportForm({
             Choose file
             <input
               type="file"
-              accept=".gfa,.gfa1,.gfa2"
+              accept=".gfa,.gfa1,.gfa2,.gz"
               hidden
               onChange={event => {
                 handleFileUpload(event)

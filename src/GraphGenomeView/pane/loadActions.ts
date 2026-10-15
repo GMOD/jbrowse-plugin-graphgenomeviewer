@@ -35,6 +35,7 @@ import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
 import { walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import { geneModelsFrom } from '../genes/geneFeatures'
+import { gfaText } from '../gfaText'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
 import {
   graphOfPaths,
@@ -710,6 +711,14 @@ export const withLoadActions = withEngineSettings.actions(self => {
     loadGFA: flow(function* (text: string, name = 'Imported GFA') {
       yield* loadWholeGFA(name, text)
     }),
+    // A file the user picked, read inside the load so the form shows its
+    // progress rather than sitting idle through a large read
+    loadGFAFile: flow(function* (file: Blob, name: string) {
+      self.setStatusMessage('Reading file')
+      yield* loadWholeGFA(name, () =>
+        file.arrayBuffer().then(buf => gfaText(new Uint8Array(buf))),
+      )
+    }),
     loadGFAFromLocation: flow(function* (
       location: FileLocation,
       region?: SubgraphRegion,
@@ -718,10 +727,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
       yield* loadWholeGFA(
         fileName(location) || 'GFA',
         signal =>
-          openLocation(location, getEnv(self).pluginManager).readFile({
-            encoding: 'utf8',
-            signal,
-          }),
+          openLocation(location, getEnv(self).pluginManager)
+            .readFile({ signal })
+            .then(gfaText),
         region,
       )
     }),

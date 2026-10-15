@@ -138,8 +138,18 @@ vi.mock(import('@jbrowse/core/configuration'), async importOriginal => ({
 }))
 
 const mockReadFile = vi.hoisted(() => vi.fn())
+// A read with no encoding gets bytes, as generic-filehandle2 returns them
 vi.mock('@jbrowse/core/util/io', () => ({
-  openLocation: () => ({ readFile: mockReadFile }),
+  openLocation: () => ({
+    readFile: async (opts?: string | { encoding?: string }) => {
+      const read: unknown = await mockReadFile(opts)
+      return typeof read === 'string' &&
+        typeof opts !== 'string' &&
+        !opts?.encoding
+        ? new TextEncoder().encode(read)
+        : read
+    },
+  }),
 }))
 
 const SIMPLE_GFA = 'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nL\t1\t+\t2\t+\t0M\n'
@@ -791,6 +801,16 @@ describe('loadGFAFromLocation', () => {
 
     expect(model.isLoading).toBe(false)
     expect(String(model.error)).toMatch(/404/)
+  })
+
+  test('a picked file loads with the view loading while it is read', async () => {
+    rpcRespond()
+    const model = createModel()
+    const load = model.loadGFAFile(new Blob([SIMPLE_GFA]), 'picked.gfa')
+    expect(model.isLoading).toBe(true)
+    expect(model.statusMessage).toBe('Reading file')
+    await load
+    expect(model.nodeCount).toBe(2)
   })
 
   test('a url opened from the import form is the source a saved session reopens', async () => {
