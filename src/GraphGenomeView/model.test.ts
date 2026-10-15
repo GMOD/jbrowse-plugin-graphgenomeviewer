@@ -462,6 +462,26 @@ describe('performance instrumentation', () => {
     expect(model.lastGeometryStrokeCount).toBeUndefined()
   })
 
+  test('clearGraph lets go of the drawn geometry and a morph in progress', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'imported')
+    const batch = { ...model.drawnBatch, nodeStrokes: [] }
+    model.setGeometryMetrics(1, batch, {
+      scale: 1,
+      bounds: { minX: 0, minY: 0, maxX: 1, maxY: 1 },
+    })
+    model.setMorphFrame({
+      layout: model.layoutResult!,
+      ids: new Set(['1']),
+      alpha: 0.5,
+    })
+    model.clearGraph()
+    expect(model.drawnBatch).not.toBe(batch)
+    expect(model.drawnBatch.nodeStrokes).toHaveLength(0)
+    expect(model.morphEntering).toBeUndefined()
+  })
+
   test('only the force run the live layout waits on writes the status line', async () => {
     rpcRespond()
     const model = createModel()

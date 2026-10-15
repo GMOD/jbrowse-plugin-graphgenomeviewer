@@ -25,6 +25,7 @@ import { openLocation } from '@jbrowse/core/util/io'
 import { flow, getEnv, isAlive } from '@jbrowse/mobx-state-tree'
 
 import {
+  EMPTY_BATCH,
   TUBE_MAP_MODES,
   bubblePrefix,
   fileName,
@@ -655,6 +656,10 @@ export const withLoadActions = withEngineSettings.actions(self => {
   // would otherwise land its graph afterwards
   function dropGraph() {
     abortLoad()
+    self.finishMorph()
+    self.morphEntering = undefined
+    self.drawnBatch = EMPTY_BATCH
+    self.paintedViewport = undefined
     resetCut()
     laidOutGraph = undefined
     layoutError = undefined
