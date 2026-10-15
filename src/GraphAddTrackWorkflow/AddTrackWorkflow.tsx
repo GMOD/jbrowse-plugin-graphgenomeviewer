@@ -173,7 +173,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
       <TextField
         className={classes.field}
         value={trackName}
-        helperText="Track name"
+        label="Track name"
         slotProps={{ htmlInput: { 'data-testid': 'graph-track-name-input' } }}
         onChange={event => {
           setTrackName(event.target.value)
@@ -196,7 +196,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
           void handleSubmit()
         }}
       >
-        Submit
+        {submitting ? 'Reading graph.json…' : 'Submit'}
       </Button>
     </Paper>
   )
