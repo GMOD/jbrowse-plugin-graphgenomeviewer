@@ -26,12 +26,15 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 
 ## Opening tracks
 
-- **File → Open track** opens an rGFA index (`.segs.bed.gz`) or a gbz-base
-  database (`.gbz.db`) as a `GraphTrack`. It finds the links and indexes beside
-  the url, which a presigned url's signature does not cover, so spell out each
-  location in a config for those
+- **File → Open track** opens an rGFA index (`.segs.bed.gz`), a walk file
+  (`.walks.bed.gz`) or a gbz-base database (`.gbz.db`) as a `GraphTrack`. It
+  finds the links and indexes beside the url, which a presigned url's signature
+  does not cover, so spell out each location in a config for those
 - **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
   tier and the reference's PanSN sample. Without it the track has no coarse tier
+- A walk file's name gives its reference sample: `chr22.GRCh38.walks.bed.gz`
+  opened on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also
+  takes the haplotypes the track cuts for until you pick others
 
 ## Track config
 
