@@ -1188,11 +1188,14 @@ test("a walk-indexed track's cut and the graph view it opens carry the default s
   expect(display.graphViewSpec?.subgraphHaplotypes).toEqual(['HG1', 'HG2#1'])
 })
 
-test('haplotype names read for an adapter config the track has since changed are dropped', async () => {
+test('haplotype names from a read since aborted are dropped', async () => {
   const { display } = walkIndexedDisplay()
   await wait(0)
   display.setHaplotypeNames(undefined)
-  await display.fetchHaplotypeNames({ ...display.sourceAdapter })
+  const stale = new AbortController()
+  const read = display.fetchHaplotypeNames(display.sourceAdapter!, stale.signal)
+  stale.abort()
+  await read
   expect(display.haplotypeNames).toBeUndefined()
   await display.fetchHaplotypeNames(display.sourceAdapter!)
   expect(display.haplotypeNames).toEqual(['HG1#1', 'HG1#2', 'HG2#1'])

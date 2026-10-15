@@ -406,7 +406,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             'GetGraphHaplotypes',
             { adapterConfig, signal },
           )
-          if (isAlive(self) && self.sourceAdapter === adapterConfig) {
+          if (isAlive(self) && !signal?.aborted) {
             self.setHaplotypeNames(names)
           }
         } catch (e) {
@@ -481,7 +481,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                 void self.fetchHaplotypeNames(adapterConfig, namesRead.signal)
               }
             },
-            { fireImmediately: true, name: 'GraphHaplotypeNames' },
+            {
+              fireImmediately: true,
+              // a lane adapter's config is rebuilt whenever an assembly is
+              // added, which would drop and re-read the names
+              equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+              name: 'GraphHaplotypeNames',
+            },
           ),
         )
         addDisposer(
