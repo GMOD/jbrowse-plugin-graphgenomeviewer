@@ -524,8 +524,13 @@ export const withLaunchActions = withRenderingActions
     // the graph's way out, in the "Launch view" submenu every view shares
     launchMenuItems(): MenuItem[] {
       const items: MenuItem[] = []
+      const contributors = self.launchableAssemblies
+      const reference = self.graphRegion?.assemblyName
       for (const item of graphLaunchMenuItems({
-        contributors: self.launchableAssemblies,
+        contributors,
+        linearContributors: self.host
+          ? contributors.filter(c => c.sample !== reference)
+          : contributors,
         syntenyTracks: self.syntenyLaunchTracks,
         onShowLinear: target => {
           self.showInLinearView(target)

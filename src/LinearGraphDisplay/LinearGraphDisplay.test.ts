@@ -1435,6 +1435,21 @@ test('the track menu marks its launch submenu with a rocket', async () => {
   expect(launch && 'icon' in launch && launch.icon).toBe(RocketLaunchIcon)
 })
 
+test("the track's launches leave out a linear view of the view it sits in", async () => {
+  const { display } = await shownGraph()
+  expect(display.launchableAssemblies.map(c => c.sample)).toContain(ASM)
+  const launch = display
+    .trackMenuItems()
+    .find(item => 'label' in item && item.label === LAUNCH_LABEL) as
+    { subMenu: MenuItem[] } | undefined
+  const labels = launch?.subMenu.map(item =>
+    'label' in item ? item.label : '',
+  )
+  expect(labels?.some(label => label.startsWith('Linear genome view'))).toBe(
+    false,
+  )
+})
+
 function graphViewItem(display: LinearGraphDisplayModel) {
   const launch = display
     .trackMenuItems()
