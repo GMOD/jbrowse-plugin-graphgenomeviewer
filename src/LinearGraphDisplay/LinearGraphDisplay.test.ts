@@ -1443,9 +1443,10 @@ test("the track's launches leave out a linear view of the view it sits in", asyn
     .find(item => 'label' in item && item.label === LAUNCH_LABEL) as
     { subMenu: MenuItem[] } | undefined
   const labels = launch?.subMenu.map(item =>
-    'label' in item ? item.label : '',
+    'label' in item ? String(item.label) : '',
   )
-  expect(labels?.some(label => label.startsWith('Linear genome view'))).toBe(
+  expect(labels).toBeDefined()
+  expect(labels!.some(label => label.startsWith('Linear genome view'))).toBe(
     false,
   )
 })
