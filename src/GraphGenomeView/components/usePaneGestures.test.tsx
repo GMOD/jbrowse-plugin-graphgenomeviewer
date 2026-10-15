@@ -171,12 +171,13 @@ function finger(
     pointerId,
     pointerType,
     nativeEvent: { offsetY: 20 },
-    currentTarget: {
-      getBoundingClientRect: () => ({ left: 0, top: 0 }),
-      setPointerCapture: vi.fn(),
-    },
+    currentTarget: canvas,
   } as unknown as React.PointerEvent
 }
+
+const canvas = Object.assign(document.createElement('canvas'), {
+  setPointerCapture: vi.fn(),
+})
 
 function renderGestures(model: Record<string, unknown>) {
   const frames: FrameRequestCallback[] = []
@@ -193,6 +194,56 @@ function renderGestures(model: Record<string, unknown>) {
     },
   }
 }
+
+describe('a drawing the linear view drives', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function drivenModel(node: string | null) {
+    const model = panModel()
+    Object.assign(model, {
+      host: {},
+      followsHostView: true,
+      translateX: 7,
+      referenceStripNodeAt: () => node,
+    })
+    return model
+  }
+
+  test('leaves a press to the view, and pans only the vertical', () => {
+    const model = drivenModel(null)
+    const { handlers, flush } = renderGestures(model)
+    act(() => {
+      handlers.onPointerDown(finger(1, 100))
+      handlers.onPointerMove({
+        ...finger(1, 140),
+        clientY: 50,
+      })
+      flush()
+    })
+    expect(canvas.hasAttribute('data-gesture-owner')).toBe(false)
+    expect(model.setTransform).toHaveBeenCalledWith(1, 7, 30)
+  })
+
+  test('keeps a press on a node from the view', () => {
+    const model = drivenModel('s1')
+    model.setDraggingNode = vi.fn()
+    const { handlers } = renderGestures(model)
+    act(() => {
+      handlers.onPointerDown(finger(1, 100))
+    })
+    expect(canvas.hasAttribute('data-gesture-owner')).toBe(true)
+    expect(model.setDraggingNode).toHaveBeenCalledWith('s1')
+  })
+
+  test('claims nothing for the surface, so shift-drag range-selects', () => {
+    const { result } = renderHook(() =>
+      usePaneGestures(drivenModel(null) as unknown as GraphPaneModel),
+    )
+    expect(result.current.surfaceProps).toEqual({})
+  })
+})
 
 describe('more than one pointer', () => {
   afterEach(() => {

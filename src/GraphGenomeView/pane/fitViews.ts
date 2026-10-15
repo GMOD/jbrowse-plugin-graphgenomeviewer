@@ -703,3 +703,20 @@ export const withFitViews = withHostViews
         : undefined
     },
   }))
+  .views(self => ({
+    // A drawing in its own coordinates that still follows the linear view's
+    // pan and zoom as a stretched picture until the re-cut lands. The view
+    // drives it, so a horizontal drag or a zoom over it is the view's.
+    get followsHostView() {
+      const layout = self.layoutResult
+      return (
+        !!self.host &&
+        !self.hostPlacesX &&
+        !!layout &&
+        !layout.referenceAxis &&
+        !layout.pixelRows &&
+        !layout.tubeMap &&
+        !self.facetGrid
+      )
+    },
+  }))

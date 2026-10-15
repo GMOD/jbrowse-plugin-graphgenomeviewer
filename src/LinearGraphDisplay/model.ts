@@ -421,16 +421,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         before: { bpPerPx: number; offsetPx: number },
         now: { bpPerPx: number; offsetPx: number },
       ) {
-        const layout = self.layoutResult
         const bounds = self.layoutBounds
-        if (
-          !layout ||
-          !bounds ||
-          layout.referenceAxis ||
-          layout.pixelRows ||
-          layout.tubeMap ||
-          self.facetGrid
-        ) {
+        if (!bounds || !self.followsHostView) {
           return
         }
         // no longer the fit, so the fit autorun cannot undo it before the

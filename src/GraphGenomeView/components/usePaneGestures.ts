@@ -72,8 +72,9 @@ export function useWheelZoom(
         model.zoom(Math.exp(owed), ease.x, ease.y)
       }
     }
+    // a drawing the view places or drives leaves the wheel to the view
     const handleWheel = (e: WheelEvent) => {
-      if (model.hostPlacesX) {
+      if (model.hostPlacesX || model.followsHostView) {
         return
       }
       const under =
@@ -128,6 +129,9 @@ export function useWheelZoom(
 
 const CLICK_SLOP_PX = 3
 
+// core's marker on an element whose presses the linear view's pan leaves alone
+const GESTURE_OWNER = 'data-gesture-owner'
+
 interface Point {
   x: number
   y: number
@@ -169,6 +173,7 @@ export function usePaneGestures(model: GraphPaneModel) {
   const dragCanvasRef = useRef<Element | null>(null)
   const pinchRef = useRef<ReturnType<typeof pinchOf> | null>(null)
   const stripPanRef = useRef(false)
+  const verticalPanRef = useRef(false)
   // A pan and a hover are applied once per frame, not once per mousemove:
   // mousemove fires in bursts well above the frame rate, and each pan step
   // repainted the canvas and re-placed every overlay label, while each hover
@@ -262,7 +267,12 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
     const points = pointsRef.current
     if (isOtherPointer(e)) {
-      if (model.isPanning && e.pointerType === 'touch' && points.size === 1) {
+      if (
+        model.isPanning &&
+        !verticalPanRef.current &&
+        e.pointerType === 'touch' &&
+        points.size === 1
+      ) {
         e.currentTarget.setPointerCapture(e.pointerId)
         points.set(e.pointerId, pointOf(e))
         pinchRef.current = pinchOf(points)
@@ -272,7 +282,10 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
     hasMovedRef.current = false
     downRef.current = { x: e.clientX, y: e.clientY }
-    if (model.hostPlacesX) {
+    e.currentTarget.removeAttribute(GESTURE_OWNER)
+    const follows = model.followsHostView
+    // shift-drag is the view's range select
+    if (model.hostPlacesX || (follows && e.shiftKey)) {
       return
     }
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -282,12 +295,19 @@ export function usePaneGestures(model: GraphPaneModel) {
     points.set(e.pointerId, pointOf(e))
     const { x, y } = pointerAt(e)
     const onStrip = y < model.referenceStripZonePx
-    // the strip is the linear view's bp, so dragging it scrolls the view as
-    // dragging any track there does
-    stripPanRef.current = onStrip
     // a tube map's boxes are the layout's, and the strip's are bp, not
     // positions to drag
     const node = model.layoutResult?.tubeMap || onStrip ? null : nodeAt(x, y)
+    // A drawing the view drives leaves the press to the view's own pan,
+    // which carries the drawing sideways, and takes only the vertical. A
+    // press on a node is the node's: the marker keeps the view's pan off it,
+    // since this handler runs before the view's. The strip is the view's bp,
+    // so dragging it scrolls the view in either case.
+    if (follows && node) {
+      e.currentTarget.setAttribute(GESTURE_OWNER, '')
+    }
+    verticalPanRef.current = follows
+    stripPanRef.current = onStrip && !follows
     if (node) {
       model.setDraggingNode(node)
     } else {
@@ -332,6 +352,12 @@ export function usePaneGestures(model: GraphPaneModel) {
     }
     if (pan && stripPanRef.current) {
       model.host?.horizontalScroll(-pan.dx)
+    } else if (pan && verticalPanRef.current) {
+      model.setTransform(
+        model.scale,
+        model.translateX,
+        model.translateY + pan.dy,
+      )
     } else if (pan) {
       model.setTransform(
         model.scale,
@@ -527,6 +553,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     if (
       e.button !== 0 ||
       model.hostPlacesX ||
+      model.followsHostView ||
       !(e.target instanceof Element) ||
       !e.target.closest(`[${PANS_WITH_DRAWING}]`)
     ) {
@@ -608,10 +635,11 @@ export function usePaneGestures(model: GraphPaneModel) {
   // and strip included: the linear view's pan starts on pointerdown and skips
   // `[data-gesture-owner]`, and its shift-drag range select starts on
   // mousedown.
-  const claimsPress = model.host !== undefined && !model.hostPlacesX
+  const claimsPress =
+    model.host !== undefined && !model.hostPlacesX && !model.followsHostView
   const surfaceProps = claimsPress
     ? {
-        'data-gesture-owner': '',
+        [GESTURE_OWNER]: '',
         onMouseDown: (e: React.MouseEvent) => {
           e.stopPropagation()
         },

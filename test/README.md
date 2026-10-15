@@ -2,22 +2,22 @@
 
 Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 
-| suite                        | what only it can prove                                                                                          |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `forceLayout.test.ts`        | the Bandage WASM engine is fetched at runtime as the hashed sibling chunk, and draws                            |
-| `interaction.test.ts`        | the mouse is wired to hit detection, and a node drag repaints                                                   |
-| `addTrack.test.ts`           | a `.segs.bed.gz` url through File → Open track opens as a drawn `GraphTrack`                                    |
-| `addGbzTrack.test.ts`        | a `.gbz.db` url does the same, finding GRCh38 from `hg38` with no PanSN map                                     |
-| `launchAndHover.test.ts`     | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints                        |
-| `tubeMap.test.ts`            | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view                           |
-| `tubeMapReads.test.ts`       | a GBZ track's GAF reads load through the worker and lay out under its tube map                                  |
-| `walkHover.test.ts`          | hovering a node with walks lifted keeps the view still, since only a browser sizes a key                        |
-| `launchOut.test.ts`          | the view menu and a node's context menu open the linear view beside the graph, not on top                       |
-| `pathAnchoredLayout.test.ts` | a graph with no SN/SO/SR tags draws path-anchored, rows by strain, and paints both canvases                     |
-| `walkRows.test.ts`           | the KIV-2 cut draws a bar per haplotype, tiles by a repeat annotation's unit, and reads `<CNV:TR>`              |
-| `walkRowsGap.test.ts`        | a haplotype the cut returns in two pieces draws as one row whose readout names the gap                          |
-| `walkStrip.test.ts`          | walk rows under a force layout, with bars and nodes linked both ways                                            |
-| `hostedGestures.test.ts`     | a force-layout track's drag, pinch and ctrl+wheel move the graph; its strip and plain wheel act as on any track |
+| suite                        | what only it can prove                                                                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `forceLayout.test.ts`        | the Bandage WASM engine is fetched at runtime as the hashed sibling chunk, and draws                                  |
+| `interaction.test.ts`        | the mouse is wired to hit detection, and a node drag repaints                                                         |
+| `addTrack.test.ts`           | a `.segs.bed.gz` url through File → Open track opens as a drawn `GraphTrack`                                          |
+| `addGbzTrack.test.ts`        | a `.gbz.db` url does the same, finding GRCh38 from `hg38` with no PanSN map                                           |
+| `launchAndHover.test.ts`     | the graph track cuts the window, re-cuts past it, and the graph/linear hover sync paints                              |
+| `tubeMap.test.ts`            | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view                                 |
+| `tubeMapReads.test.ts`       | a GBZ track's GAF reads load through the worker and lay out under its tube map                                        |
+| `walkHover.test.ts`          | hovering a node with walks lifted keeps the view still, since only a browser sizes a key                              |
+| `launchOut.test.ts`          | the view menu and a node's context menu open the linear view beside the graph, not on top                             |
+| `pathAnchoredLayout.test.ts` | a graph with no SN/SO/SR tags draws path-anchored, rows by strain, and paints both canvases                           |
+| `walkRows.test.ts`           | the KIV-2 cut draws a bar per haplotype, tiles by a repeat annotation's unit, and reads `<CNV:TR>`                    |
+| `walkRowsGap.test.ts`        | a haplotype the cut returns in two pieces draws as one row whose readout names the gap                                |
+| `walkStrip.test.ts`          | walk rows under a force layout, with bars and nodes linked both ways                                                  |
+| `hostedGestures.test.ts`     | a force-layout track's drag and ctrl+wheel drive the linear view and the graph follows; a node drag stays the graph's |
 
 ## What `launchAndHover` demonstrates
 
