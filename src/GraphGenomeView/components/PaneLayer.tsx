@@ -5,6 +5,9 @@ import { syncCanvasSize } from '@jbrowse/bandage-core/renderer/canvas'
 import { autorun } from 'mobx'
 import { observer } from 'mobx-react'
 
+import { dependOn } from '../pane/paneBase'
+import { trackedDpr } from '../trackedDpr'
+
 import type { GraphPaneModel } from '../model'
 
 // A layer over the pane's canvas that leaves the pointer to it
@@ -74,6 +77,7 @@ export function PaneOverlayCanvas({
       if (canvas && ctx) {
         const width = model.paneWidth
         const height = model.canvasHeight
+        dependOn(trackedDpr())
         const dpr = syncCanvasSize(canvas, width, height)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
         ctx.clearRect(0, 0, width, height)
