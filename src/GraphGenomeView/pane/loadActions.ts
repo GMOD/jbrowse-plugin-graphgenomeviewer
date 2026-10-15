@@ -394,7 +394,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
     const reads = alongside?.()
     reads?.catch(() => undefined)
     yield* layoutInto(graph)
-    if (reads) {
+    // a load superseded mid-layout leaves the status to the one replacing it
+    if (reads && !signal?.aborted) {
       self.setStatusMessage('Reading annotations')
       yield reads
     }
