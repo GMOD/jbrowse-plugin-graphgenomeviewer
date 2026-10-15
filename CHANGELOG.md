@@ -1,3 +1,28 @@
+## [7.1.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.8...v7.1.9) (2026-10-15)
+
+### Other Changes
+
+- Keep a GFA opened by URL in the saved session ([7c5c60c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7c5c60ce3a720cdf14ce464f6e3b26643f22f34d))
+- Read a GFA and a samples TSV through the session's internet accounts ([c91690f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c91690fc70c62dff4dabb5bc95532e23c8926cbd))
+- Let go of the drawn geometry and any morph when a graph is dropped ([b263885](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b26388591fd6ec8f64626e8a86252f4863d8911e))
+- Give a walk-indexed rGFA track's cut the session's PanSN aliases ([21576c1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/21576c1a6901051bdb9e3d30f668544c7b5a43cf))
+- Use tabix's own chunk cache size for graph files ([5ffaa3b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5ffaa3b0c672f733bbfef140954234c5bc3e2d79))
+- Name the Graph context select for screen readers; wrap a narrow toolbar ([810ee35](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/810ee35eda66e122843f1196b2c3f0bd965536b4))
+- Keep the walk strip's tip in the pane and its hover off the whole strip ([b47563e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b47563ebdbfd7f4e362b842810a7daaac0026e6c))
+- Read gzipped GFAs, and show a picked file's read as part of the load ([0dd3498](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0dd349828d9bf5cdbbd5700f753505911148dbd1))
+- Read a cut's annotations alongside its layout, not after it ([77f4280](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/77f428031748e33cc642d7c93611ca576a31e1f9))
+- Report an unmapped PanSN prefix on the segments and bubbles tracks ([ebc586f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ebc586fa41fdf450de806cfc4bb65ff62bdf618f))
+- Label the add-track name field, and show the manifest read on Submit ([90b2d96](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/90b2d96d093cfe5e37d3a5109d4d05fdff58b2b3))
+- Keep the tube map key's transform-free parts cached through a pan ([e2928a3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e2928a34b646a53aa183a22b4076130aac84c123))
+- Look up a session track in one place; correct comments that drifted ([abe3c68](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/abe3c680157c0e89fca969c9de34aa909b7a4653))
+- Let the keyboard open and close bubbles ([bfced0d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bfced0dfc429a9c8ef19256601da79c2a71ac4b8))
+- Add a gfa-to-tabix walk file as a graph track ([9a36f6c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9a36f6ca96e8d4ad6fb6fdd5ce286e367a745f26))
+- Commit a typed haplotype on blur without MUI's autoSelect ([cc62605](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cc6260525945f2b3953835e9ea49a211e69088b1))
+- Raise the unmapped-prefix error only where every name is PanSN ([e08de46](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e08de46f3e400d1ccd40aabbe399bdba05201390))
+- Fall back to the automatic track pick when the saved one is gone ([5f69e48](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5f69e488c32dbedc13990b52c2249de02793fe99))
+- Leave the status line to the load that replaced a superseded one ([373b6c1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/373b6c1477c19ce37e2a6c79bcadbd7b96ae7162))
+- Drop a name taken from a cleared GFA with the GFA ([b806694](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b806694424c209a891182eb3bb4b6b1a0c7b1230))
+
 ## [7.1.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.7...v7.1.8) (2026-10-15)
 
 ### Other Changes
