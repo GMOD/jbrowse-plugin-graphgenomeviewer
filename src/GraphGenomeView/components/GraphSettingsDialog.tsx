@@ -149,7 +149,10 @@ function TrackPickSetting({
       value={choices.some(t => t.trackId === stored) ? stored : ''}
       options={[
         { value: '', label: `Automatic (${auto?.name ?? 'none'})` },
-        ...choices.map(({ trackId, name }) => ({ value: trackId, label: name })),
+        ...choices.map(({ trackId, name }) => ({
+          value: trackId,
+          label: name,
+        })),
       ]}
       testId={testId}
       onChange={onChange}
