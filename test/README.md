@@ -17,6 +17,7 @@ Puppeteer boots a real JBrowse Web and loads the built plugin. The suites:
 | `walkRows.test.ts`           | the KIV-2 cut draws a bar per haplotype, tiles by a repeat annotation's unit, and reads `<CNV:TR>` |
 | `walkRowsGap.test.ts`        | a haplotype the cut returns in two pieces draws as one row whose readout names the gap             |
 | `walkStrip.test.ts`          | walk rows under a force layout, with bars and nodes linked both ways                               |
+| `hostedGestures.test.ts`     | a force-layout track's drag and wheel move the graph and leave the linear view where it is         |
 
 ## What `launchAndHover` demonstrates
 
@@ -58,8 +59,8 @@ subgraph".
 RUN_E2E=1 pnpm test:e2e
 ```
 
-Opt-in only because it needs a jbrowse-web static build to serve. **All 40 tests
-pass on 5.0.0-beta.13, the latest release, as of 2026-10-10.**
+Opt-in only because it needs a jbrowse-web static build to serve. **All 45 tests
+pass on 5.0.0-beta.13, the latest release, as of 2026-10-15.**
 
 Point `JBROWSE_TEST_DIR` at a jbrowse-web build and go:
 

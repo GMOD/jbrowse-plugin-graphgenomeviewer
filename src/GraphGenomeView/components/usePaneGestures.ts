@@ -13,14 +13,16 @@ import { chipReadoutAt } from './LabelLayer'
 import type { PaneContextAt } from './PaneContextMenu'
 import type { GraphPaneModel } from '../model'
 
-// wheel events need passive:false to call preventDefault — React registers
-// wheel listeners as passive, so we must add this imperatively
+// Bound on the whole canvas area, so a wheel over a label, pin or legend zooms
+// the graph rather than the linear view under it. Imperative, because React
+// registers wheel listeners as passive and this one has to preventDefault.
 export function useWheelZoom(
+  area: HTMLElement | null,
   canvas: HTMLCanvasElement | null | undefined,
   model: GraphPaneModel,
 ) {
   useEffect(() => {
-    if (!canvas) {
+    if (!area) {
       return undefined
     }
     const handleWheel = (e: WheelEvent) => {
@@ -31,18 +33,24 @@ export function useWheelZoom(
         e.stopPropagation()
       }
       e.preventDefault()
-      const rect = canvas.getBoundingClientRect()
+      const under =
+        e.target instanceof Element ? e.target.closest('canvas') : null
+      const origin = under ?? (model.facetPanels ? null : canvas)
+      if (!origin) {
+        return
+      }
+      const rect = origin.getBoundingClientRect()
       model.zoom(
         wheelZoomFactor(e),
         e.clientX - rect.left,
         e.clientY - rect.top,
       )
     }
-    canvas.addEventListener('wheel', handleWheel, { passive: false })
+    area.addEventListener('wheel', handleWheel, { passive: false })
     return () => {
-      canvas.removeEventListener('wheel', handleWheel)
+      area.removeEventListener('wheel', handleWheel)
     }
-  }, [canvas, model])
+  }, [area, canvas, model])
 }
 
 const CLICK_SLOP_PX = 3
@@ -58,6 +66,11 @@ export function usePaneGestures(model: GraphPaneModel) {
   const lastMouseRef = useRef({ x: 0, y: 0 })
   const downRef = useRef({ x: 0, y: 0 })
   const hasMovedRef = useRef(false)
+  // the pointer driving a drag, so a second finger neither restarts nor ends it
+  const dragPointerRef = useRef<number | undefined>(undefined)
+  const isOtherPointer = (e: React.PointerEvent) =>
+    dragPointerRef.current !== undefined &&
+    e.pointerId !== dragPointerRef.current
   // A pan and a hover are applied once per frame, not once per mousemove:
   // mousemove fires in bursts well above the frame rate, and each pan step
   // repainted the canvas and re-placed every overlay label, while each hover
@@ -133,27 +146,23 @@ export function usePaneGestures(model: GraphPaneModel) {
     )
   }
 
-  // The linear view drags by mouse events, so a hosted pane that pans itself
-  // keeps the mousedown from it; the gesture itself is the pointer's
   function onMouseDown(e: React.MouseEvent) {
     if (e.button === 0) {
       e.preventDefault()
-      if (model.host && !model.hostPlacesX) {
-        e.stopPropagation()
-      }
     }
   }
 
   // Captured, so a drag keeps going over a bubble chip or the gap between
   // facet panels, and a finger drags as a mouse does
   function onPointerDown(e: React.PointerEvent) {
-    if (e.button === 0) {
+    if (e.button === 0 && !isOtherPointer(e)) {
       hasMovedRef.current = false
       downRef.current = { x: e.clientX, y: e.clientY }
       if (model.hostPlacesX) {
         return
       }
       e.currentTarget.setPointerCapture(e.pointerId)
+      dragPointerRef.current = e.pointerId
       const { x, y } = pointerAt(e)
       // a tube map's boxes are the layout's, and the strip's are bp, not
       // positions to drag
@@ -233,6 +242,9 @@ export function usePaneGestures(model: GraphPaneModel) {
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    if (isOtherPointer(e)) {
+      return
+    }
     const dx = e.clientX - lastMouseRef.current.x
     const dy = e.clientY - lastMouseRef.current.y
     lastMouseRef.current = { x: e.clientX, y: e.clientY }
@@ -265,7 +277,11 @@ export function usePaneGestures(model: GraphPaneModel) {
   }
 
   // also the end of a capture the browser took back
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    if (isOtherPointer(e)) {
+      return
+    }
+    dragPointerRef.current = undefined
     if (isAlive(model)) {
       model.stopDragging()
     }
@@ -274,6 +290,7 @@ export function usePaneGestures(model: GraphPaneModel) {
   // also fired by the canvas unmounting under a resting pointer, after the
   // view closing it has destroyed the model
   function onPointerLeave() {
+    dragPointerRef.current = undefined
     dropPending()
     setHoveredChip(undefined)
     if (!isAlive(model)) {
@@ -322,8 +339,23 @@ export function usePaneGestures(model: GraphPaneModel) {
     overscrollBehavior: 'contain',
   }
 
+  // A hosted pane that pans itself claims every press on its surface, labels
+  // and strip included: the linear view's pan starts on pointerdown and skips
+  // `[data-gesture-owner]`, and its shift-drag range select starts on
+  // mousedown.
+  const claimsPress = model.host !== undefined && !model.hostPlacesX
+  const surfaceProps = claimsPress
+    ? {
+        'data-gesture-owner': '',
+        onMouseDown: (e: React.MouseEvent) => {
+          e.stopPropagation()
+        },
+      }
+    : {}
+
   return {
     canvasStyle,
+    surfaceProps,
     handlers: {
       onMouseDown,
       onPointerDown,

@@ -111,3 +111,70 @@ test('a pan frame before any layout does not replay the last hover', () => {
   expect(walkRowAt).toHaveBeenCalledTimes(1)
   vi.unstubAllGlobals()
 })
+
+test('a hosted pane that pans itself claims presses from the linear view; one the view places does not', () => {
+  const model = fakeModel({ host: {}, hostPlacesX: false })
+  const { result, rerender } = renderHook(() =>
+    usePaneGestures(model as unknown as GraphPaneModel),
+  )
+  expect(result.current.surfaceProps).toHaveProperty('data-gesture-owner', '')
+  const stopPropagation = vi.fn()
+  ;(
+    result.current.surfaceProps as { onMouseDown: (e: unknown) => void }
+  ).onMouseDown({ stopPropagation })
+  expect(stopPropagation).toHaveBeenCalled()
+
+  Object.assign(model, { hostPlacesX: true })
+  rerender()
+  expect(result.current.surfaceProps).toEqual({})
+})
+
+test('a second finger neither restarts nor ends the pan', () => {
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    frames.push(cb),
+  )
+  const setTransform = vi.fn()
+  const model = fakeModel({
+    isPanning: false,
+    draggingNode: null,
+    hostPlacesX: false,
+    referenceStripZonePx: 0,
+    scale: 1,
+    setTransform,
+    setDraggingNode: vi.fn(),
+    setPanning: (on: boolean) => {
+      model.isPanning = on
+    },
+    stopDragging: () => {
+      model.isPanning = false
+    },
+  })
+  const { result } = renderHook(() =>
+    usePaneGestures(model as unknown as GraphPaneModel),
+  )
+  const finger = (pointerId: number, x: number) =>
+    ({
+      clientX: x,
+      clientY: 20,
+      button: 0,
+      pointerId,
+      nativeEvent: { offsetY: 20 },
+      currentTarget: {
+        getBoundingClientRect: () => ({ left: 0, top: 0 }),
+        setPointerCapture: vi.fn(),
+      },
+    }) as unknown as React.PointerEvent
+  const { onPointerDown, onPointerMove, onPointerUp } = result.current.handlers
+  act(() => {
+    onPointerDown(finger(1, 10))
+    onPointerDown(finger(2, 200))
+    onPointerMove(finger(2, 260))
+    onPointerUp(finger(2, 260))
+    onPointerMove(finger(1, 30))
+    frames.shift()?.(0)
+  })
+  expect(model.isPanning).toBe(true)
+  expect(setTransform).toHaveBeenCalledWith(1, 20, 0)
+  vi.unstubAllGlobals()
+})
