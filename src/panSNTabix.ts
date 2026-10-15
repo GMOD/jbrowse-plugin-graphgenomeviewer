@@ -158,10 +158,11 @@ export class PanSNRefNames {
   }
 
   /**
-   * `resolve`, throwing where the file's names are PanSN and none carries the
-   * region's prefix: the assembly is unmapped, which would otherwise read as
-   * an empty track. A contig the file simply lacks, such as chrM, still
-   * resolves to undefined.
+   * `resolve`, throwing where every name in the file is PanSN and none carries
+   * the region's prefix: the assembly is unmapped, which would otherwise read
+   * as an empty track. A contig the file simply lacks, such as chrM, still
+   * resolves to undefined, as it does in a graph whose reference is bare
+   * (`chr1`) beside PanSN haplotypes.
    */
   async resolveMapped(region: Region, opts?: BaseOptions) {
     const refName = await this.resolve(region, opts)
@@ -169,7 +170,7 @@ export class PanSNRefNames {
       const names = await this.file.getReferenceSequenceNames(opts)
       const prefix = resolvePanSNPrefix(this.adapter, region.assemblyName)
       if (
-        names.some(n => n.includes('#')) &&
+        names.every(n => n.includes('#')) &&
         !names.some(n => panSNMatchesPrefix(n, prefix))
       ) {
         throw new Error(unmappedRegionMessage(region))
