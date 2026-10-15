@@ -30,11 +30,6 @@ import type { Region } from '@jbrowse/core/util/types'
 // `assemblyNameToPanSN` IS hoistable, because every schema here declares it and
 // `resolvePanSNPrefix` is already generic over the base adapter type.
 
-// Tabix's own cache, per file. Large because a graph query is a scattered read
-// over a small index: the segment and link files for a 5 Mb window are tens of
-// kB of compressed blocks, and re-fetching them per pan is the cost this avoids.
-const CHUNK_CACHE_SIZE = 50 * 2 ** 20
-
 // A file slot whose default is a url, '' for none
 export const fileLocationSlot = (uri: string) => ({
   type: 'fileLocation' as const,
@@ -98,7 +93,6 @@ export function openTabixSlot(
       adapter.getConf([...index, 'indexType']),
       pm,
     ),
-    chunkCacheSize: CHUNK_CACHE_SIZE,
   })
 }
 
