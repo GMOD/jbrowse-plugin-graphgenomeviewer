@@ -98,7 +98,7 @@ export default function stateModelFactory() {
       },
       get sourceTrack(): AnyConfigurationModel | undefined {
         return self.loadedTrackId
-          ? getSession(self).tracks.find(t => t.trackId === self.loadedTrackId)
+          ? self.sessionTrack(self.loadedTrackId)
           : undefined
       },
       get canRetryLoad() {

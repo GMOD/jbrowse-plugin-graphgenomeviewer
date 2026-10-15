@@ -545,9 +545,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     what: string,
     signal?: AbortSignal,
   ) {
-    const config = trackId
-      ? getSession(self).tracks.find(t => t.trackId === trackId)
-      : undefined
+    const config = trackId ? self.sessionTrack(trackId) : undefined
     if (!config) {
       return undefined
     }
