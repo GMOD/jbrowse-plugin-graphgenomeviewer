@@ -135,7 +135,7 @@ test('a second finger neither restarts nor ends the pan', () => {
     frames.push(cb),
   )
   const setTransform = vi.fn()
-  const model = fakeModel({
+  const model: Record<string, unknown> = fakeModel({
     isPanning: false,
     draggingNode: null,
     hostPlacesX: false,
