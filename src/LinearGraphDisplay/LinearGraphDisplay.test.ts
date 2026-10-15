@@ -1458,7 +1458,9 @@ function graphViewItem(display: LinearGraphDisplayModel) {
     { subMenu: MenuItem[] } | undefined
   return launch?.subMenu.find(
     item => 'label' in item && item.label === 'Graph genome view',
-  ) as { disabled?: boolean; onClick: () => void } | undefined
+  ) as
+    | { disabled?: boolean; disabledHelpText?: string; onClick: () => void }
+    | undefined
 }
 
 test('the track menu opens the window on screen in a graph genome view, drawn as the track draws it', async () => {
@@ -1540,7 +1542,10 @@ test('after a cut refused over its node limit, the graph genome view launch is d
     expect(display.dense).toBeDefined()
   })
   expect(display.hasGraph).toBe(true)
-  expect(graphViewItem(display)!.disabled).toBe(true)
+  expect(graphViewItem(display)).toMatchObject({
+    disabled: true,
+    disabledHelpText: 'Zoom in until the track cuts a graph',
+  })
 })
 
 test('with two linear views on its assembly, a node shows and highlights in the one hosting the track', async () => {

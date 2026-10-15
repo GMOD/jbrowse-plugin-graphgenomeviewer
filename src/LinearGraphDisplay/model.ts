@@ -696,7 +696,12 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           label: 'Graph genome view',
           icon: BubbleChartIcon,
           disabled: !self.graphViewSpec,
-          disabledHelpText: 'Zoom in until the track cuts a graph',
+          disabledHelpText:
+            self.error && !isNodeLimitError(self.error)
+              ? 'The track could not cut a graph here'
+              : self.isLoading && !self.hasGraph
+                ? 'The track is still cutting its graph'
+                : 'Zoom in until the track cuts a graph',
           onClick: () => {
             self.openGraphView()
           },
