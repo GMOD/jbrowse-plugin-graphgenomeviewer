@@ -331,6 +331,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
     keepSelection = false,
     readsOf?: (graph: Graph) => Promise<GafReads>,
     foldBelowBp = 0,
+    // reads over the cut that need no layout, started with it so a layout
+    // that fails or runs long neither drops nor delays them
+    alongside?: () => Promise<unknown>,
   ) {
     const signal = loadController?.signal
     const walkCut =
@@ -388,7 +391,13 @@ export const withLoadActions = withEngineSettings.actions(self => {
       self.selectedNode = selected
     }
     self.setStatusMessage('Computing layout')
+    const reads = alongside?.()
+    reads?.catch(() => undefined)
     yield* layoutInto(graph)
+    if (reads) {
+      self.setStatusMessage('Reading annotations')
+      yield reads
+    }
   }
 
   // Which load is the live one, for the reason liveRequest orders layouts:
@@ -621,11 +630,15 @@ export const withLoadActions = withEngineSettings.actions(self => {
       if (!isLive()) {
         return
       }
-      yield* parseAndLayout(text, name, region)
-      if (region && isLive()) {
-        self.setStatusMessage('Reading annotations')
-        yield Promise.all(annotationReads(region, isLive, signal))
-      }
+      yield* parseAndLayout(
+        text,
+        name,
+        region,
+        false,
+        undefined,
+        0,
+        region && (() => Promise.all(annotationReads(region, isLive, signal))),
+      )
     })
   }
 
@@ -777,26 +790,23 @@ export const withLoadActions = withEngineSettings.actions(self => {
                 )
             : undefined,
           foldBelowBp,
+          // Independent remote reads, each landing as it arrives. A coarse
+          // cut reads no bubble index: its nodes are the bubbles, and the
+          // index over its window can run to a chromosome's rows.
+          () =>
+            Promise.all([
+              opts.tier === 'coarse'
+                ? undefined
+                : flow(loadBubbles)(
+                    adapterConfig,
+                    region,
+                    isLive,
+                    signal,
+                    self.foldedBelowBp,
+                  ),
+              ...annotationReads(region, isLive, signal),
+            ]),
         )
-        if (!isLive()) {
-          return
-        }
-        // Independent remote reads, each landing as it arrives. A coarse
-        // cut reads no bubble index: its nodes are the bubbles, and the
-        // index over its window can run to a chromosome's rows.
-        self.setStatusMessage('Reading annotations')
-        yield Promise.all([
-          opts.tier === 'coarse'
-            ? undefined
-            : flow(loadBubbles)(
-                adapterConfig,
-                region,
-                isLive,
-                signal,
-                self.foldedBelowBp,
-              ),
-          ...annotationReads(region, isLive, signal),
-        ])
       })
     }),
     // A track change re-reads that annotation alone. The graph, its layout

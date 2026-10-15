@@ -3993,6 +3993,22 @@ describe('annotation reads beside a cut', () => {
     expect(model.error).toBeUndefined()
   })
 
+  test('a cut too large to draw still reads its genes, for when the limit is raised', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const model = attachedModel()
+    model.setMaxGraphNodes(1)
+    const loaded = cut(model)
+    await vi.waitFor(() => {
+      expect(reads.map(r => r.tag)).toContain('genes-a')
+    })
+    readOf('genes-a').settle([gene('ABC1')])
+    await loaded
+    expect(String(model.error)).toMatch(/too large to draw/i)
+    await vi.waitFor(() => {
+      expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+    })
+  })
+
   test('picking another gene track reads it and leaves the graph alone', async () => {
     const model = attachedModel()
     await cutAndSettle(model)
