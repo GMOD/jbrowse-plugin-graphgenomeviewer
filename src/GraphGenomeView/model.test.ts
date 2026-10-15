@@ -773,6 +773,26 @@ describe('loadGFAFromLocation', () => {
     expect(String(model.error)).toMatch(/404/)
   })
 
+  test('a url opened from the import form is the source a saved session reopens', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    const model = stateModelFactory().create({ type: 'GraphGenomeView' })
+    await model.openGfaLocation(location)
+    expect(model.nodeCount).toBe(2)
+    expect(getSnapshot(model).gfaLocation).toEqual(location)
+    expect(model.displayName).toBe('small.gfa')
+  })
+
+  test('a url that fails to open stays out of the saved session', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockReadFile.mockRejectedValue(new Error('404'))
+    const model = stateModelFactory().create({ type: 'GraphGenomeView' })
+    await model.openGfaLocation(location)
+    expect(String(model.error)).toMatch(/404/)
+    expect(model.gfaLocation).toBeUndefined()
+    expect(model.canRetryLoad).toBe(false)
+  })
+
   test('the region a file was stated beside outlives a failed fetch, so a retry has it', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcRespond()
