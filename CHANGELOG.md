@@ -1,3 +1,10 @@
+## [7.1.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.5...v7.1.6) (2026-10-15)
+
+### Other Changes
+
+- Keep a self-panning graph track's drag and wheel from moving the linear view ([97b017f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/97b017fab5ee516c6dfb146d69cb566e80175910))
+- Type the second-finger test's model as a record, for tsconfig.test.json ([6ed71fa](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6ed71fa50b1599b4db5f2b6a4f9036b75e0dd6a7))
+
 ## [7.1.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.4...v7.1.5) (2026-10-14)
 
 ### Other Changes
