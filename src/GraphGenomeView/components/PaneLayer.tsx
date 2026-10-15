@@ -10,6 +10,9 @@ import { trackedDpr } from '../trackedDpr'
 
 import type { GraphPaneModel } from '../model'
 
+// marks an overlay whose labels move with the drawing, so a press on one pans
+export const PANS_WITH_DRAWING = 'data-pans-with-drawing'
+
 // A layer over the pane's canvas that leaves the pointer to it
 export function paneLayerStyle(
   zIndex: number,
@@ -31,20 +34,26 @@ export const PaneSvgLayer = observer(function PaneSvgLayer({
   zIndex,
   overflow = 'hidden',
   testId,
+  pansWithDrawing,
   children,
 }: {
   model: GraphPaneModel
   zIndex: number
   overflow?: 'hidden' | 'visible'
   testId?: string
+  pansWithDrawing?: boolean
   children: ReactNode
 }) {
   return (
     <svg
-      style={paneLayerStyle(zIndex, overflow)}
+      style={{
+        ...paneLayerStyle(zIndex, overflow),
+        userSelect: pansWithDrawing ? 'none' : undefined,
+      }}
       width={model.paneWidth}
       height={model.canvasHeight}
       data-testid={testId}
+      {...(pansWithDrawing ? { [PANS_WITH_DRAWING]: '' } : {})}
     >
       {children}
     </svg>

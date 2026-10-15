@@ -68,6 +68,7 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
           offsetPx: view.offsetPx as number,
           bpPerPx: view.bpPerPx as number,
           hostPlacesX: d.hostPlacesX as boolean,
+          translateX: d.translateX as number,
           pane: [
             d.scale,
             d.translateX,
@@ -228,6 +229,29 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     const now = await state()
     expect(now.offsetPx).toBe(lgv.offsetPx)
     expect(now.bpPerPx).toBe(lgv.bpPerPx)
+  }, 60_000)
+
+  // the drawing follows the view's scroll until the re-cut lands, as a linear
+  // track's blocks do
+  it('a drag on the reference strip scrolls the linear view, and the graph with it', async () => {
+    const before = await state()
+    const strip = await boxOf(
+      `${DISPLAY} [data-testid="graph-reference-strip"]`,
+    )
+    const box = await boxOf(GRAPH_CANVAS)
+    await drag(box.x + box.width / 2, strip.y + 4)
+    await page.waitForFunction(
+      ([viewId, was]: [string, number]) =>
+        window.JBrowseSession.views.find(v => v.id === viewId)?.offsetPx !==
+        was,
+      { timeout: 10_000 },
+      [LGV_ID, before.offsetPx] as [string, number],
+    )
+    const after = await state()
+    expect(after.translateX - before.translateX).toBeCloseTo(
+      before.offsetPx - after.offsetPx,
+      6,
+    )
   }, 60_000)
 
   it('a drag on a plain track still pans the linear view', async () => {

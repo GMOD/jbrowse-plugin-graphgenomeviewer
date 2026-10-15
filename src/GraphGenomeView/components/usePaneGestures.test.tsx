@@ -1,8 +1,14 @@
 import { act, renderHook } from '@testing-library/react'
 
-import { usePaneGestures, wheelAction } from './usePaneGestures'
+import { PANS_WITH_DRAWING } from './PaneLayer'
+import { easeZoom, usePaneGestures, wheelAction } from './usePaneGestures'
 
 import type { GraphPaneModel } from '../model'
+
+vi.mock('@jbrowse/mobx-state-tree', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  isAlive: () => true,
+}))
 
 function fakeModel(state: Record<string, unknown> = {}) {
   return {
@@ -312,4 +318,87 @@ test('the cursor offers a move over a node a press would drag, and not over the 
   expect(hoverAt(60)).toBe('move')
   expect(hoverAt(10)).toBe('grab')
   vi.unstubAllGlobals()
+})
+
+describe('a press on a bubble label', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function pointer(type: string, x: number) {
+    const e = new MouseEvent(type, { clientX: x, clientY: 20 })
+    Object.defineProperty(e, 'pointerId', { value: 1 })
+    window.dispatchEvent(e)
+  }
+
+  function pressLabel() {
+    const model = panModel()
+    const { result } = renderHook(() =>
+      usePaneGestures(model as unknown as GraphPaneModel),
+    )
+    const layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    layer.setAttribute(PANS_WITH_DRAWING, '')
+    const chip = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    layer.append(chip)
+    const { onPointerDown, onClickCapture } = result.current.labelHandlers
+    onPointerDown({
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 20,
+      target: chip,
+    } as unknown as React.PointerEvent)
+    const click = { stopPropagation: vi.fn() }
+    return {
+      model,
+      click: () => {
+        onClickCapture(click as unknown as React.MouseEvent)
+        return click.stopPropagation.mock.calls.length === 0
+      },
+    }
+  }
+
+  test('pans the graph once it travels, and its click does not reach the label', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+      frames.push(cb),
+    )
+    const { model, click } = pressLabel()
+    act(() => {
+      pointer('pointermove', 102)
+      pointer('pointermove', 140)
+      frames.shift()?.(0)
+    })
+    expect(model.setTransform).toHaveBeenCalledWith(1, 40, 0)
+    act(() => {
+      pointer('pointerup', 140)
+    })
+    expect(model.isPanning).toBe(false)
+    expect(click()).toBe(false)
+  })
+
+  test('that stays put is a click on the label', () => {
+    const { model, click } = pressLabel()
+    act(() => {
+      pointer('pointermove', 102)
+      pointer('pointerup', 102)
+    })
+    expect(model.setTransform).not.toHaveBeenCalled()
+    expect(click()).toBe(true)
+  })
+})
+
+test('a wheel notch eases in over a few frames and lands the whole zoom', () => {
+  const owed = Math.log(1.21)
+  let left = owed
+  const steps: number[] = []
+  while (left !== 0 && steps.length < 50) {
+    const step = easeZoom(left, 16.7)
+    steps.push(step)
+    left -= step
+  }
+  expect(steps.length).toBeGreaterThan(2)
+  expect(steps.length).toBeLessThan(10)
+  expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(owed, 12)
+  expect(steps[0]).toBeGreaterThan(steps[1]!)
 })
