@@ -153,9 +153,15 @@ export default function stateModelFactory() {
       }
       return {
         // the stated source goes too, or a reloaded session would load the
-        // dismissed graph again
+        // dismissed graph again, and so does a name taken from its file
         clearGraph() {
           clearPane()
+          if (
+            self.gfaLocation &&
+            self.displayName === fileName(self.gfaLocation)
+          ) {
+            self.displayName = undefined
+          }
           self.gfaLocation = undefined
           self.loadedRegion = undefined
           self.loadedTrackId = ''

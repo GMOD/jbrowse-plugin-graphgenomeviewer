@@ -823,6 +823,23 @@ describe('loadGFAFromLocation', () => {
     expect(model.displayName).toBe('small.gfa')
   })
 
+  test('a url opened after clearing names the view by its own file', async () => {
+    rpcRespond()
+    mockReadFile.mockResolvedValue(SIMPLE_GFA)
+    const model = stateModelFactory().create({ type: 'GraphGenomeView' })
+    await model.openGfaLocation(location)
+    model.clearGraph()
+    await model.openGfaLocation({
+      ...location,
+      uri: 'https://example.com/b.gfa',
+    })
+    expect(model.displayName).toBe('b.gfa')
+
+    model.setDisplayName('my graph')
+    model.clearGraph()
+    expect(model.displayName).toBe('my graph')
+  })
+
   test('a url that fails to open stays out of the saved session', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     mockReadFile.mockRejectedValue(new Error('404'))
