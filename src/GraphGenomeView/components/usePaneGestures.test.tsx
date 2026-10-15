@@ -277,3 +277,39 @@ describe('wheelAction', () => {
     expect(wheelAction(wheel(40, 5), { scrollZoom: true })).toBe('pan')
   })
 })
+
+test('the cursor offers a move over a node a press would drag, and not over the strip', () => {
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    frames.push(cb),
+  )
+  const model = fakeModel({
+    isPanning: false,
+    draggingNode: null,
+    hostPlacesX: false,
+    referenceStripZonePx: 30,
+    referenceStripNodeAt: () => 's1',
+    nodePositions: {},
+    graph: {},
+    overlayLabels: { genes: [] },
+    walkRowBars: undefined,
+    setHoveredPanel: vi.fn(),
+    setHoveredNode: vi.fn(),
+    setHoveredTube: vi.fn(),
+    setHoveredEdge: vi.fn(),
+    tubeMapPanelAt: () => null,
+  })
+  const { result } = renderHook(() =>
+    usePaneGestures(model as unknown as GraphPaneModel),
+  )
+  const hoverAt = (y: number) => {
+    act(() => {
+      result.current.handlers.onPointerMove(at(50, y))
+      frames.shift()?.(0)
+    })
+    return result.current.canvasStyle.cursor
+  }
+  expect(hoverAt(60)).toBe('move')
+  expect(hoverAt(10)).toBe('grab')
+  vi.unstubAllGlobals()
+})

@@ -193,7 +193,10 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
       enabled: true,
       maxTouchPoints: 2,
     })
-    const touch = (type: string, spread: number) =>
+    const touch = (
+      type: 'touchStart' | 'touchMove' | 'touchEnd',
+      spread: number,
+    ) =>
       cdp.send('Input.dispatchTouchEvent', {
         type,
         touchPoints:

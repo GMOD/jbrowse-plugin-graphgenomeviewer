@@ -152,6 +152,9 @@ export function usePaneGestures(model: GraphPaneModel) {
     [],
   )
   const [contextMenu, setContextMenu] = useState<PaneContextAt>()
+  // whether a press here would drag a node, for the cursor; state rather than
+  // a read of `hoveredAt`, which changes on every move over a node
+  const [overDraggable, setOverDraggable] = useState(false)
   const [hoveredChip, setHoveredChip] =
     useState<ReturnType<typeof chipReadoutAt>>(undefined)
 
@@ -320,6 +323,12 @@ export function usePaneGestures(model: GraphPaneModel) {
       const node = nodeAt(sx, sy)
       model.setHoveredPanel(model.tubeMapPanelAt(sy))
       model.setHoveredNode(node, { x: sx, y: sy })
+      setOverDraggable(
+        node !== null &&
+          !model.hostPlacesX &&
+          !model.layoutResult?.tubeMap &&
+          sy >= model.referenceStripZonePx,
+      )
       model.setHoveredTube(
         node === null && model.layoutResult?.tubeMap
           ? model.tubeAt(sx, sy)
@@ -426,6 +435,7 @@ export function usePaneGestures(model: GraphPaneModel) {
     pinchRef.current = null
     dropPending()
     setHoveredChip(undefined)
+    setOverDraggable(false)
     if (!isAlive(model)) {
       return
     }
@@ -466,7 +476,12 @@ export function usePaneGestures(model: GraphPaneModel) {
   }
 
   const canvasStyle: React.CSSProperties = {
-    cursor: model.isPanning || model.draggingNode ? 'grabbing' : 'grab',
+    cursor:
+      model.isPanning || model.draggingNode
+        ? 'grabbing'
+        : overDraggable
+          ? 'move'
+          : 'grab',
     // a pane the linear view drags leaves a finger its scroll
     touchAction: model.hostPlacesX ? 'auto' : 'none',
     overscrollBehavior: 'contain',
