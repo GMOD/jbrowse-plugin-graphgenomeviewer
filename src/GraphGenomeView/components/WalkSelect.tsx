@@ -75,7 +75,7 @@ const WalkSelect = observer(function WalkSelect({
         renderValue={selected => selected.map(n => labels.get(n)).join(', ')}
         onChange={e => {
           const { value } = e.target
-          model.liftWalks(typeof value === 'string' ? value.split(',') : value)
+          model.liftAmongChoices(typeof value === 'string' ? value.split(',') : value)
         }}
       >
         {walkChoices.map(({ name, label }) => (
