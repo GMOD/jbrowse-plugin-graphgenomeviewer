@@ -1,3 +1,10 @@
+## [7.1.10](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.9...v7.1.10) (2026-10-16)
+
+### Other Changes
+
+- Name what each walk-row gap leaves out, and read walk format 3 ([a6c0ae4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a6c0ae4a9505bdb08701cd0964683829c5482a02))
+- Depend on graph-walks 2.0.0 and bandage-core 11.0.0 ([3aaa2a6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3aaa2a6ea82e553c1bf7dfff4c291420982dca53))
+
 ## [7.1.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.8...v7.1.9) (2026-10-15)
 
 ### Other Changes
