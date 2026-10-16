@@ -28,7 +28,7 @@ const fixture = (name: string) =>
 
 function makeAdapter(
   slots: Record<string, unknown> = {},
-  name = 'walks2_header',
+  name = 'walks3_header',
 ) {
   const local = (path: string) => ({
     localPath: path,
@@ -105,7 +105,7 @@ test('a fetch for some haplotypes answers those lanes in the order asked, named 
 })
 
 test('a fetch for some haplotypes reads them against a reference walk named without a haplotype', async () => {
-  const found = await feats(makeAdapter({}, 'walks2_twopart'), {
+  const found = await feats(makeAdapter({}, 'walks3_twopart'), {
     haplotypes: ['HG002#1'],
   })
   expect(found.map(summary)).toEqual([

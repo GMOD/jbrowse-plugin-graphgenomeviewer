@@ -223,11 +223,13 @@ assembly's reference:
 
 [@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) reads and cuts the
 file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
-format 2 (`format:i:2` on the header's first line; the converter's
-`docs/walks-format.md`) and refuses a format 1 file from gfa-to-tabix 0.12 or
-earlier. A chunk lists the reference's path through it once, each distinct route
-a haplotype takes off that path once, the lengths of the nodes those routes
-visit, and each path piece as the routes it takes.
+format 3 (`format:i:3` on the header's first line; the converter's
+`docs/walks-format.md`) and asks for a rebuild of any older file. A chunk lists
+the reference's path through it once, each distinct route a haplotype takes off
+that path once, the lengths of the nodes those routes visit, and each path piece
+as the routes it takes. A record's first and last pieces also give the bp to the
+contig's record before and after, which the graph lacks, so a walk row can say
+which of a gap's bases are not in the graph.
 
 - A cut reads whole chunks, from the chunk before the window to the window's
   end. A node is filed under the chunk holding its start, so the cut starts
