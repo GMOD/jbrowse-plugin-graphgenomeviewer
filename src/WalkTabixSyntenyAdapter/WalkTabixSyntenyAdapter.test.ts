@@ -322,10 +322,13 @@ const repeatNodes = new Map(
 )
 const fragment = (name: string, steps: [number, number][]) => ({
   name,
+  fragStart: 0,
   hapStart: 0,
   hapEnd: 0,
   ids: Int32Array.from(steps, ([id]) => id),
   rev: Uint8Array.from(steps, ([, rev]) => rev),
+  before: { kind: 'end' as const },
+  after: { kind: 'end' as const },
 })
 const cigar = (edits: [string, number][]) =>
   edits.map(([op, len]) => `${len}${op}`).join('')

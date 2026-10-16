@@ -425,7 +425,7 @@ track carries both displays with no gbz-base database:
   assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
   adapter: {
     type: 'WalkTabixSyntenyAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f2.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f3.GRCh38',
     assemblyNames: ['hg38'],
     assemblyNameToPanSN: {
       hg38: 'GRCh38#0',
