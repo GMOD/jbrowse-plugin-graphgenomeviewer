@@ -1,3 +1,10 @@
+## [7.1.11](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.10...v7.1.11) (2026-10-16)
+
+### Other Changes
+
+- Bump deps ([536b843](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/536b84396f0cdcb229a08e51b8a75342392c42ad))
+- Status chrome hands each overlay model props and plain props ([8d5f951](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8d5f951dfde7c7d458967e1619fd16a9ad18cd2b))
+
 ## [7.1.10](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.9...v7.1.10) (2026-10-16)
 
 ### Other Changes
