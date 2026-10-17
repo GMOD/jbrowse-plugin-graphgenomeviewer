@@ -1,3 +1,9 @@
+## [7.1.12](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.11...v7.1.12) (2026-10-17)
+
+### Other Changes
+
+- Clipped synteny pieces carry the recordId of the record they were cut from ([a84486a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a84486afe1c9d7724615e5aac2016bdb8abeb1c7))
+
 ## [7.1.11](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.10...v7.1.11) (2026-10-16)
 
 ### Other Changes
