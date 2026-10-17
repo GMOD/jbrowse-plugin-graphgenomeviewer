@@ -64,6 +64,11 @@ haplotypes through it for the carriers and 0 of 2 for the rest:
 
 ![The CFHR3–CFHR1 box hovered in HG01960's panel](../img/tube_map_cfhr_samples_hover.png)
 
+Split by `superpopulation`, a panel per group of six samples. Hovering CFHR1's
+box in AFR counts 5 of 12 haplotypes through it there, against 12 of 12 in EAS:
+
+![CFHR3 and CFHR1 split by superpopulation, a panel each for AFR, AMR, EAS, EUR and SAS, each title counting its haplotypes through the hovered box](../img/tube_map_cfhr_populations_hover.png)
+
 ## Routes and tube colour
 
 **Layout → Routes** (or `"tubeMapRoutes"`):
