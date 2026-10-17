@@ -12,7 +12,6 @@ import { walksKept } from '@jbrowse/graph-walks'
 
 import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
 import { WalkIndex } from '../RgfaTabixAdapter/walkReader.ts'
-import { isNodeLimitError } from '../nodeLimitError.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import {
@@ -20,6 +19,7 @@ import {
   lanePairsStatus,
   requestedPairs,
 } from '../synteny/lanePairs.ts'
+import { laneZoomNotice } from '../synteny/laneZoomNotice.ts'
 
 import type { WalkTabixSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -128,13 +128,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
           links: false,
         })
         .catch((error: unknown) => {
-          if (isNodeLimitError(error) && error instanceof Error) {
-            error.message = error.message.replace(
-              'to see the graph',
-              'to see lanes',
-            )
-          }
-          throw error
+          throw laneZoomNotice(error, region.end - region.start)
         }),
     )
   }

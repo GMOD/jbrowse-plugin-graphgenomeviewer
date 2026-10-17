@@ -228,12 +228,12 @@ test('getSubgraph cuts the window with the reference walk first', async () => {
   expect(walks).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
 })
 
-test('a window past the step budget fails as a zoom-in notice for lanes', async () => {
+test('a window past the step budget fails as a zoom-in notice for lanes naming how far to zoom', async () => {
   await expect(
     feats(makeAdapter({ walkStepBudget: 20 })),
   ).rejects.toMatchObject({
     name: 'NodeLimitError',
-    message: expect.stringMatching(/to see lanes$/),
+    message: expect.stringMatching(/^Zoom in about [\d.]+×.* to see lanes$/),
   })
 })
 
