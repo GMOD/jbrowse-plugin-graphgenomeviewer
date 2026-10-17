@@ -111,7 +111,7 @@ function phasedRow(haplotype) {
 }
 const CALLSET_ROW_PX = 18
 const CALLSET_TRACK = {
-  trackId: 'hprc2_wave_grch38',
+  trackId: 'hprc2_pgbi_grch38',
   type: 'LinearMultiSampleVariantDisplay',
   rows: {
     domain: HAPLOTYPES.map(phasedRow),
