@@ -457,7 +457,7 @@ const FIGURES = {
       {
         ...kiv2Gbz,
         layoutMode: 'walkrows',
-        color: 'uniform',
+        color: { field: 'position' },
         repeatTrackId: 'hprc_curated_vntrs',
         height: 300,
       },
