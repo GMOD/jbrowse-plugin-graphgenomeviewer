@@ -1,3 +1,13 @@
+## [7.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.13...v7.2.0) (2026-10-17)
+
+### Other Changes
+
+- Reshoot figures on bandage-core 11 and the hosted config's phased callset track ([4ed0ebb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4ed0ebb9a065965c12c0f1cb005ad5a0f4839415))
+- Shoot the KIV-2 walk rows on the position ramp, not uniform blue and purple ([1d9ec33](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1d9ec33fcbf9f129c7985d14ffc0555b381cd61f))
+- Show GSTM1's three routes a panel each, and use the MICB view and C4 grouped figures ([a7a04a7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a7a04a7ae4354e95b8b7eae54fa87475f2091ba3))
+- Refit a hosted drawing when its height changes, so split tube maps start at the top ([332fc1a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/332fc1a355a1436e7f0b0de2904f11f756b65b9d))
+- Flag the graph display's color, size, layers, facet and rows as plot settings ([5cfd693](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5cfd6934ae44091d82d16d6213f8400bf347ae20))
+
 ## [7.1.13](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.12...v7.1.13) (2026-10-17)
 
 ### Other Changes
