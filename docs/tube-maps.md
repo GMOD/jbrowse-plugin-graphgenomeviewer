@@ -23,6 +23,11 @@ Pick **Tube map** or **Tube map on reference** from the layout menu
 - In a view of its own, the session's genes draw in up to four rows above the
   tubes. A linear view shows them in their own track
 
+MICB's exons 2–4 opened as a view under the linear view they came from. Hovering
+a variant's box bands its bp in the linear view:
+
+![MICB's exons 2–4 as a view of its own, a variant's box hovered and its bp banded in the linear view above](../img/tube_map_micb.png)
+
 ## Fold variants
 
 **Fold variants** folds every variant under a size into the reference, as in
@@ -80,6 +85,11 @@ C4B, and thin tubes skip or add a whole 33 kb module:
 Hovering a tube lists its haplotypes:
 
 ![C4 as a tube per route, the route skipping GRCh38's second module hovered](../img/tube_map_c4_bundled_hover.png)
+
+C4 with the thirty samples grouped by route: each haplotype keeps its own tube,
+identical routes stack, and superpopulation colours them:
+
+![C4 with a tube per haplotype, identical routes stacked and coloured by superpopulation](../img/tube_map_c4_grouped_by_population.png)
 
 ## Reads
 

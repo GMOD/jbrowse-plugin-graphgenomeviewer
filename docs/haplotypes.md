@@ -36,9 +36,10 @@ Lifting three haplotypes together shows three routes:
   alignment runs HG03041 straight through, so the loop reflects how the graph
   was built. 84 of 463 haplotypes have it
 
-Synteny drawn from the graph shows both skips as a gap:
+A panel per haplotype draws each route alone. HG00133's dashed arc is the 18.4
+kb it skips, and HG03041's loop is its own copy:
 
-![HG01960, HG00133 and HG03041 lifted at GSTM1](../img/force_gstm1_three_ways.png)
+![HG01960, HG00133 and HG03041 lifted at GSTM1, a panel each](../img/force_gstm1_three_ways.png)
 
 ## Facets
 
