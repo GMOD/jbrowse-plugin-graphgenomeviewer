@@ -11,14 +11,12 @@
 // an hg38 region of a Minigraph-Cactus graph), and [hops] defaults to the one
 // hop the view asks for.
 //
-// The script runs the adapter's cut, rgfaCut, rather than the adapter, which
-// node's type stripping cannot load.
+// The script runs the adapter's cut, @jbrowse/graph-walks' rgfaCut, rather than
+// the adapter, which node's type stripping cannot load.
 import fs from 'node:fs'
 
 import { TabixIndexedFile } from '@gmod/tabix'
-import { refNameLookup, resolveRefName } from '@jbrowse/graph-walks'
-
-import { rgfaCut } from '../src/RgfaTabixAdapter/rgfaCut.ts'
+import { refNameLookup, resolveRefName, rgfaCut } from '@jbrowse/graph-walks'
 
 const [prefix, sample, refName, start, end, out, hops = '1'] =
   process.argv.slice(2)
