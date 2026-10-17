@@ -1,3 +1,12 @@
+## [7.1.13](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.12...v7.1.13) (2026-10-17)
+
+### Other Changes
+
+- Lane zoom-in notices name how far to zoom, not a span wider than the view ([af51c8a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/af51c8a3aa68e6d225da2aab3d11db8aadf6065d))
+- Pin how an inversion between two lanes draws under each aligner ([1d421ed](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1d421ed4fa0f418401dc3222d9d94db567a01d1d))
+- Lane pairs align by weighted subsequence unless an inversion lies between them ([4e553be](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4e553be50ec0e0f163ced9ca0d803949df9e0ec9))
+- Lane pairs' aligner and its measured cost, and lane zoom notices ([1b4df45](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1b4df450fc76afab02fe3ce767d7bbe16888b2cd))
+
 ## [7.1.12](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.11...v7.1.12) (2026-10-17)
 
 ### Other Changes
