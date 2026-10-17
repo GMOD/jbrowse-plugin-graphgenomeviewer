@@ -171,6 +171,66 @@ test('a batch of lane pairs answers each pair what it answers alone', async () =
   expect(batch).toHaveLength(2)
 })
 
+// walks3_lanepairs, a 5.5 kb reference of 2 kb flanks around three 500 bp
+// nodes, in 1 kb chunks:
+//   W GRCh38  0 chr1 >1>2>3>4>5
+//   W HG002   1 chr1 >1>2>3>4>5
+//   W HG002   2 chr1 >1<4<3<2>5           the middle three inverted
+//   W HG00097 1 chr1 >1>2>6>2>6>2>3>4>5   2 three times, 6 a 30 bp spacer
+test('a lane pair matches through a copy-number array, and draws an inversion between the lanes as a reverse-strand record', async () => {
+  const found = await firstValueFrom(
+    makeAdapter({}, 'walks3_lanepairs')
+      .getFeatures(
+        { ...window, end: 5500 },
+        {
+          lanePairs: [
+            { queryAssemblyName: 'HG002#1', targetAssemblyName: 'HG002#2' },
+            { queryAssemblyName: 'HG002#1', targetAssemblyName: 'HG00097#1' },
+          ],
+        },
+      )
+      .pipe(toArray()),
+  )
+  expect(
+    found.map(f => ({
+      ...summary(f),
+      strand: f.get('strand'),
+      matches: f.get('numMatches'),
+    })),
+  ).toEqual([
+    {
+      lane: 'HG002#2',
+      refName: 'chr1',
+      start: 0,
+      end: 5500,
+      mate: 'chr1:0-5500',
+      cigar: '2000=1500I1500D2000=',
+      strand: 1,
+      matches: 4000,
+    },
+    {
+      lane: 'HG002#2',
+      refName: 'chr1',
+      start: 2000,
+      end: 3500,
+      mate: 'chr1:2000-3500',
+      cigar: '1500=',
+      strand: -1,
+      matches: 1500,
+    },
+    {
+      lane: 'HG00097#1',
+      refName: 'chr1',
+      start: 0,
+      end: 5500,
+      mate: 'chr1:0-6560',
+      cigar: '2500=1060I3000=',
+      strand: 1,
+      matches: 5500,
+    },
+  ])
+})
+
 test('a lane pair without its target lane is refused', async () => {
   await expect(
     feats(makeAdapter(), { queryAssemblyName: 'HG002#1' }),

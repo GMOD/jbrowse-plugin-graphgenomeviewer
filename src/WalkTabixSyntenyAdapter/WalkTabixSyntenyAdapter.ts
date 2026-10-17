@@ -10,7 +10,7 @@ import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import { walksKept } from '@jbrowse/graph-walks'
 
-import { chainFeature, referenceAligner, walkAligner } from './walkLanes.ts'
+import { chainFeature, lanePairAligner, referenceAligner } from './walkLanes.ts'
 import { WalkIndex } from '../RgfaTabixAdapter/walkReader.ts'
 import { PanSNRefNames, openTabixSlot } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
@@ -222,7 +222,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       opts,
       lanePairsStatus(pairs),
     )
-    const align = walkAligner(graph.nodes)
+    const align = lanePairAligner(graph.nodes)
     const walksOf = (prefix: string) =>
       fragments.filter(f => panSNMatchesPrefix(f.name, prefix))
     return sides.flatMap(({ pair, featurePrefix, matePrefix }) =>
