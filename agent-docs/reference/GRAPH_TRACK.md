@@ -187,8 +187,13 @@ adapter throws `NodeLimitError` marked `regionTooLarge`, which core's error bar
 the graph" with no Retry; older hosts show it as a plain error. `dense` records
 the refused window, and windows as wide or wider on that contig within one
 window-width of it keep the notice without cutting again, so where the track
-stops follows how dense the graph is. A narrower window cuts again. The lanes
-display reads the same error and says "to see lanes".
+stops follows how dense the graph is. A narrower window cuts again.
+
+For lanes, `laneZoomNotice` rewrites the notice from either lane adapter to name
+a fold of the view, "Zoom in about 1.7× to see lanes". The lanes display fetches
+the static blocks the view touches, up to a block past each edge, and never
+tells the adapter the view, so a span that fits the fetch read wider than the
+view itself: "Zoom in to about 7.29Mbp" while viewing 5 Mb.
 
 Retired 2026-10-04: 5.0 drew the haplotype index's overview here, a row per
 haplotype classed per bin. It was a coarse copy of core's multi-sample variant
@@ -451,11 +456,15 @@ lengths alone:
   own reference alignment. It matches one pass over a node the haplotype passes
   several times, so at a collapsed copy-number array a lane aligns one copy and
   the others are insertions, as gbz-base's lanes have it.
-- **A lane pair** (`walkAligner`) is gbz-base's `pairAlignments` with
-  `bases: false`: runs of nodes both walks visit, chained, leaving out every
-  node either walk passes twice. Lanes were first aligned to the reference this
-  way too, and at amylase a 3-copy haplotype matched its flanks alone (39 kb of
-  340 kb, against 86 kb by subsequence).
+- **A lane pair** (`lanePairAligner`) takes the same subsequence, unless the two
+  walks share 100 bp or more of singly visited nodes in each direction: an
+  inversion between them, which a subsequence read in one direction draws as an
+  insertion beside a deletion. Such a pair goes to gbz-base's `pairAlignments`
+  with `bases: false` (`walkAligner`): runs of nodes both walks visit, chained,
+  leaving out every node either walk passes twice. It returns an inverted run as
+  a reverse-strand record of its own. Lanes were first aligned to the reference
+  by chaining too, and at amylase a 3-copy haplotype matched its flanks alone
+  (39 kb of 340 kb, against 86 kb by subsequence).
 
 Between two shared runs the CIGAR is an insertion and a deletion, and
 `bubblesAsMismatches` rewrites one of equal length up to 50 bp as `X`, which
@@ -493,9 +502,49 @@ three (jb2bench `results/graph-track/lanes-figure5-window.jsonl`):
 
 The five are two indexes, the walk header, and one range of each file; the pair
 fetch reads nothing more, from tabix-js's chunk cache. In Node on local files a
-300 kb window's eight lanes take 0.4–0.6 s and its seven pairs 0.4–0.5 s, most
-of it the chaining; gbz-base takes 0.3–0.9 s and 0.7–1.0 s there, and 9 s for
-the pairs at the immunoglobulin lambda locus.
+300 kb window's eight lanes take 0.4–0.6 s; gbz-base takes 0.3–0.9 s for the
+lanes and 0.7–1.0 s for the pairs there, and 9 s for the pairs at the
+immunoglobulin lambda locus.
+
+The pair step, measured 2026-10-16 in Node on ada from the hosted HPRC v2.1 walk
+file built that day, chaining every pair against `lanePairAligner`:
+
+- eight lanes and their seven pairs, median of three processes of three rounds,
+  range over all nine
+- ada at load 13 on 24 cores; in one run at load 2, chaining at 1 Mb took 8.5 s,
+  0.5 to 1.9 s a pair
+
+| window                      | chaining           | `lanePairAligner` | bases matched, chaining → subsequence |
+| --------------------------- | ------------------ | ----------------- | ------------------------------------- |
+| AMY1, chr1:103.61–103.76 Mb | 126 ms (77–142)    | 92 ms (56–154)    | 294,492 → 889,399                     |
+| MHC II, chr6:32.51–32.60 Mb | 1.52 s (1.41–1.96) | 141 ms (105–177)  | 508,817 → 516,093                     |
+| MHC, chr6:32.0–33.0 Mb      | 15.7 s (14.1–18.2) | 563 ms (506–743)  | 6,553,504 → 6,570,125                 |
+
+- At MHC chr6:30–35 Mb, one round each, chaining took 103 s and
+  `lanePairAligner` 1.02 s, matching 34,358,335 and 34,384,452 bases.
+- Chaining builds a stand-in string of every base and claims its columns base by
+  base, so its cost follows bases; the subsequence's follows steps.
+- At AMY1 the subsequence matches through the copy-number array chaining leaves
+  out, so the pair gutters draw ribbons through the amylase copies, which
+  chaining left empty.
+- No pair of these eight lanes routes to chaining. Among the first sixteen lanes
+  at AMY1 one pair does, HG00621#2 against NA20805#2, and its 846 bp inversion
+  still draws as a reverse-strand record.
+- At the FLNA/EMD inversion, chrX:154.34–154.44 Mb, the genomes portal's pair of
+  HG00099#2 against HG00097#1 routes to chaining and draws the same 37,580 bp
+  reverse-strand record as before.
+
+End to end, measured 2026-10-16 in headless Chrome on ada: the genomes portal's
+walk-lanes launch on jbrowse-web `main` with the hosted config, the plugin's
+`dist/` served from a local build of 7.1.12 or of 7.1.12 with `lanePairAligner`,
+cold cache, interleaved, median of three, from navigation to the seventh pair
+answered:
+
+| window   | chaining | `lanePairAligner` |
+| -------- | -------- | ----------------- |
+| AMY1     | 1.72 s   | 1.65 s            |
+| MHC II   | 2.94 s   | 1.95 s            |
+| MHC 1 Mb | 10.4 s   | 3.43 s            |
 
 Compared 2026-10-08 in Chrome against the gbz-base track on the genomes portal's
 config, at the loci the tutorial figures draw, one cold run each, time from

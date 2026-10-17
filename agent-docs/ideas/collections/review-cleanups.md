@@ -45,9 +45,9 @@ The synteny adapters' shared dispatch waits on a call, in
 - `recordsAreAlignments` (`synteny/ComparativeAdapterBase.ts` 37) is overridden
   only by a test
 - The adapters build the zoom-in notice two ways: `zoomInNotice` in
-  `GbzBaseSyntenyAdapter.ts` 219, a string replace in
-  `WalkTabixSyntenyAdapter.ts` 130-137; graph-walks' `RegionTooLargeError` could
-  carry both
+  `GbzBaseSyntenyAdapter.ts` writes a span, and `laneZoomNotice`
+  (`synteny/laneZoomNotice.ts`) rewrites graph-walks' message as a fold for
+  lanes; graph-walks' `RegionTooLargeError` could carry both
 - `wholeBp` (`GbzBaseSyntenyAdapter.ts` 227) floors and ceils a region; the walk
   adapter passes fractional coordinates into its cut and status text
 
