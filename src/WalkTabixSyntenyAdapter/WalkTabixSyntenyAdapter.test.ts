@@ -9,10 +9,15 @@ import { toArray } from 'rxjs/operators'
 import Adapter from './WalkTabixSyntenyAdapter.ts'
 import configSchema from './configSchema.ts'
 import WalkTabixSyntenyAdapterF from './index.ts'
-import { bubblesAsMismatches, referenceAligner } from './walkLanes.ts'
+import {
+  bubblesAsMismatches,
+  referenceAligner,
+  walkAligner,
+} from './walkLanes.ts'
 import { walkRowsOf } from '../RgfaTabixAdapter/walkRowRuns.ts'
 import { PairTargetError } from '../synteny/lanePairs.ts'
 
+import type { PairChain } from '@gmod/gbz-base/pairAlignment'
 import type { SyntenyMate } from '@jbrowse/synteny-core'
 
 // Four walks over a 3.6 kb reference of six 600 bp nodes, in 1 kb chunks
@@ -385,6 +390,66 @@ test('a haplotype running against the reference is a reverse-strand record', () 
     strand: '-',
   })
   expect(cigar(chain!.edits)).toBe('1000=30I500=')
+})
+
+// Two lanes over 2 kb flanks and three 500 bp nodes, the second lane running
+// the middle three backwards: >1>2>3>4>5 against >1<4<3<2>5
+const inversionNodes = new Map(
+  [1, 2, 3, 4, 5].map(id => [
+    id,
+    {
+      refName: 'ref',
+      start: id * 10_000,
+      end: id * 10_000 + (id === 1 || id === 5 ? 2000 : 500),
+      rank: 0,
+      onWindow: true,
+    },
+  ]),
+)
+const upperLane = fragment('HG002#1#chr1', [
+  [1, 0],
+  [2, 0],
+  [3, 0],
+  [4, 0],
+  [5, 0],
+])
+const invertedLane = fragment('HG002#2#chr1', [
+  [1, 0],
+  [4, 1],
+  [3, 1],
+  [2, 1],
+  [5, 0],
+])
+const drawn = (chains: PairChain[]) =>
+  chains.map(
+    ({ queryStart, queryEnd, targetStart, targetEnd, strand, edits }) => ({
+      query: `${queryStart}-${queryEnd}`,
+      target: `${targetStart}-${targetEnd}`,
+      strand,
+      cigar: cigar(edits),
+    }),
+  )
+
+test('an inversion between two lanes is a reverse-strand record of its own when chained, and an insertion beside a deletion in the subsequence', () => {
+  expect(drawn(walkAligner(inversionNodes)(invertedLane, upperLane))).toEqual([
+    {
+      query: '0-5500',
+      target: '0-5500',
+      strand: '+',
+      cigar: '2000=1500I1500D2000=',
+    },
+    { query: '2000-3500', target: '2000-3500', strand: '-', cigar: '1500=' },
+  ])
+  expect(
+    drawn(referenceAligner(inversionNodes)(invertedLane, upperLane)),
+  ).toEqual([
+    {
+      query: '0-5500',
+      target: '0-5500',
+      strand: '+',
+      cigar: '2000=1500I1500D2000=',
+    },
+  ])
 })
 
 test.each([
