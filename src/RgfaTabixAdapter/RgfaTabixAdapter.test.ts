@@ -22,7 +22,7 @@ import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
 import RgfaTabixAdapterF from './index.ts'
 
-import type { WalkCut } from './walkRowRuns.ts'
+import type { WalkCut } from './walkCut.ts'
 
 // Built by `gfa-to-tabix --layout contig` from the minigraph rGFA of four E. coli
 // strains at jbrowse.org/demos/ecoli_pangenome/ecoli_rgfa_slice.gfa (the

@@ -22,8 +22,8 @@ chr22:20.0-20.1 Mb's 84k. The gbz-base route, which caps nodes, drew KIV-2.
 ## Decision
 
 - A walk-rows cut computes each row's on- and off-reference runs from the cut's
-  typed arrays in the worker (`walkRowRuns`, the same rows as bandage-core's
-  `walkRows` over the parsed cut) and ships them beside the tables.
+  typed arrays in the worker (bandage-core's `walkRowRuns`, whose columns
+  `walkRows` decodes) and ships them beside the tables.
 - The pane parses only the reference walk; every other walk is named and
   stepless. A layout that draws nodes parses the cut whole first.
 - The bars paint through render-core's `spanMark` on a canvas, coalesced as

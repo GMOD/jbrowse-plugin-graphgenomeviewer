@@ -11,6 +11,10 @@ import {
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import {
+  walkRowRuns,
+  walkRowsOf,
+} from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { filterSamples, walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import {
   layoutModeByValue,
@@ -51,7 +55,6 @@ import {
 import { computed } from 'mobx'
 
 import { TUBE_MAP_MODES, dependOn, geometryPainted, paneBase } from './paneBase'
-import { walkRowRuns, walkRowsOf } from '../../RgfaTabixAdapter/walkRowRuns.ts'
 import {
   canonicalAssemblyName,
   trackAssemblies,
@@ -82,7 +85,7 @@ import {
 import { groupByOf, groupWalkRows, metadataColumns } from '../walkRowGroups'
 
 import type { ScreenTransform } from './keepInView'
-import type { WalkCut } from '../../RgfaTabixAdapter/walkRowRuns.ts'
+import type { WalkCut } from '../../RgfaTabixAdapter/walkCut.ts'
 import type { GraphLayers } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { NodeColor } from '../nodeColor'

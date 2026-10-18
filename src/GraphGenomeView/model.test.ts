@@ -40,7 +40,7 @@ import { EMPTY_BATCH, SELECT_BRIGHTEN } from './pane/paneBase'
 import { PANEL_REFERENCE_TUBE, PANEL_TUBES } from './tubeMapPanels'
 import stateModelFactory from './viewModel'
 import { SECTION_HEADER_PX, walkRowTrees } from './walkRowGroups'
-import { walkCutFor } from '../RgfaTabixAdapter/walkRowRuns.ts'
+import { walkCutFor } from '../RgfaTabixAdapter/walkCut.ts'
 
 import type { GraphLayers } from './graphLayers'
 import type { SubgraphCutOptions } from '../GetSubgraph'

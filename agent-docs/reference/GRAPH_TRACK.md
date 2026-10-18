@@ -354,11 +354,11 @@ beside the zoom.
 
 Walk rows skip the step budget. Their cut (`walkRows` in the cut options)
 computes each row's on- and off-reference runs from the tables in the worker
-(`walkRowRuns`) and ships them beside the tables. The pane parses only the
-reference walk into its Graph, with every other walk named and stepless, takes
-the rows from the runs, and paints the bars through render-core's `spanMark`
-(`walkRowSpans.ts`). A layout that draws nodes parses the cut whole
-(`wholeGraph`). ADR-043 records the decision.
+(bandage-core's `walkRowRuns`) and ships them beside the tables. The pane parses
+only the reference walk into its Graph, with every other walk named and
+stepless, takes the rows from the runs, and paints the bars through
+render-core's `spanMark` (`walkRowSpans.ts`). A layout that draws nodes parses
+the cut whole (`wholeGraph`). ADR-043 records the decision.
 
 The cut crosses to the main thread as bandage-core's `GraphTables`, not GFA
 text: node, link and step arrays, every link end and step an index into the node

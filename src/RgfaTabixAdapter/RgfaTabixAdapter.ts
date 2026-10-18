@@ -14,7 +14,7 @@ import { WalkIndex } from './walkReader.ts'
 
 import type { RgfaTabixAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions, SubgraphTier } from '../GetSubgraph.ts'
-import type { WalkCut } from './walkRowRuns.ts'
+import type { WalkCut } from './walkCut.ts'
 import type { TabixIndexedFile } from '@gmod/tabix'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature } from '@jbrowse/core/util'
