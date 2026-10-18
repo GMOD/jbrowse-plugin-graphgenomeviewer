@@ -475,16 +475,11 @@ export const withGraphViews = paneBase
     // Whether a lifted lane paints a node charcoal, the colour a lane coloured
     // by reference position gives what is off the reference
     get liftPaintsOffReference() {
-      for (const w of this.walkLift?.walks ?? []) {
-        if (w.encoding.field !== 'walk') {
-          for (const color of w.colors.values()) {
-            if (color === NO_VALUE_COLOR) {
-              return true
-            }
-          }
-        }
-      }
-      return false
+      return !!this.walkLift?.walks.some(
+        w =>
+          w.encoding.field !== 'walk' &&
+          [...w.colors.values()].includes(NO_VALUE_COLOR),
+      )
     },
     // what the faded rest of the drawing is not on
     get liftedWalksLabel() {
@@ -1090,17 +1085,18 @@ export const withGraphViews = paneBase
         ? { start: ramp.start, end: ramp.start + ramp.span }
         : undefined
     },
-    // Whether the ramp paints any drawn node charcoal, which getNodeColor
-    // does to every node off the backbone. A tube map draws the window alone
-    // (trimToWindow), so there only the boxes it drew count.
+    // Whether nodes take their scheme's colour: the drawing's own, or a tube
+    // map's boxes. Walk rows draw bars with a key of their own.
+    get paintsNodeColors() {
+      return self.drawsNodes || !!self.layoutResult?.tubeMap
+    },
+    // Whether the ramp paints a drawn node charcoal, as getNodeColor does
+    // every node off the backbone
     get referenceRampDrawsOffReference() {
-      const layout = self.layoutResult
-      const drawn = layout?.tubeMap ? layout.nodePositions : undefined
       return (
         !!self.referenceRamp &&
-        !!self.drawnGraph?.nodes.some(
-          node => (!drawn || drawn[node.id]) && !isBackbone(node),
-        )
+        this.paintsNodeColors &&
+        !!self.drawnGraph?.nodes.some(node => !isBackbone(node))
       )
     },
     // Each tube map box in its node's colour, where the scheme paints one
