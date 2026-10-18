@@ -1903,7 +1903,6 @@ describe('zoomToFit on a tube map', () => {
     const { nodes } = model.tubeMapPicture!
     expect(nodes.length).toBeGreaterThan(0)
     expect(nodes.every(n => model.tubeMapNodeColors!.has(n.name))).toBe(true)
-    expect(model.referenceRampOffKeys.unplaced).toBe(false)
   })
 
   test('a fold change lays the tube map out again', async () => {

@@ -494,7 +494,7 @@ describe('reads', () => {
     const drawn = model.tubeMapPicture!.nodes.map(n => n.name)
     const h0 = model.graph!.nodes.find(n => n.name === 'h0')!
     expect(drawn).not.toContain(h0.id)
-    expect(model.referenceRampOffKeys.offReference).toBe(false)
+    expect(model.referenceRampDrawsOffReference).toBe(false)
   })
 
   // `flank` walks only s0, before the window, so the tube map draws no tube

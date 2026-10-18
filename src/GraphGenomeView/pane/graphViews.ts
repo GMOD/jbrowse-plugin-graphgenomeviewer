@@ -1,3 +1,4 @@
+import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
@@ -1089,29 +1090,18 @@ export const withGraphViews = paneBase
         ? { start: ramp.start, end: ramp.start + ramp.span }
         : undefined
     },
-    // The ramp's two colours for nodes off it, as getNodeColor paints them:
-    // charcoal where an rGFA rank puts a node off the reference, grey where
-    // a node has no reference position at all. A tube map draws the window
-    // alone (trimToWindow), so there only the boxes it drew count.
-    get referenceRampOffKeys() {
-      const ramp = self.referenceRamp
+    // Whether the ramp paints any drawn node charcoal, which getNodeColor
+    // does to every node off the backbone. A tube map draws the window alone
+    // (trimToWindow), so there only the boxes it drew count.
+    get referenceRampDrawsOffReference() {
       const layout = self.layoutResult
       const drawn = layout?.tubeMap ? layout.nodePositions : undefined
-      let offReference = false
-      let unplaced = false
-      if (ramp && self.drawnGraph) {
-        for (const node of self.drawnGraph.nodes) {
-          if (drawn && !drawn[node.id]) {
-            continue
-          }
-          if (!ramp.midpoints.has(node.id)) {
-            unplaced = true
-          } else if (node.stable && node.stable.rank > 0) {
-            offReference = true
-          }
-        }
-      }
-      return { offReference, unplaced }
+      return (
+        !!self.referenceRamp &&
+        !!self.drawnGraph?.nodes.some(
+          node => (!drawn || drawn[node.id]) && !isBackbone(node),
+        )
+      )
     },
     // Each tube map box in its node's colour, where the scheme paints one
     get tubeMapNodeColors() {
