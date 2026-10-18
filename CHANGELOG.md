@@ -1,3 +1,15 @@
+## [7.2.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.2.0...v7.2.1) (2026-10-18)
+
+### Other Changes
+
+- Move to bandage-core 11.2.0, whose gene pins also give each exon stretch as points ([49a16d0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/49a16d059f6a8e41ad97eb452d644aab54cc7324))
+- Cut segment indexes with graph-walks' rgfaCut, which moved there from here ([5f1e898](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5f1e8987cc2e6864d3c78ffeba784ec828a0be73))
+- Take walk-row runs from bandage-core's walkRowRuns, and drop the port ([72622fd](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/72622fd1e43ce4666cec7f87345089429518ee94))
+- Key the reference ramp with one off-reference row, as bandage-core 11.4.0 paints it ([4273473](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/42734735cae9323da77e17611182d0c355bae5cb))
+- Key the ramp's charcoal only where nodes take scheme colours ([d5599e5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d5599e5a26e2d78ad2af87c45ec8930d73454b3e))
+- Move to bandage-core 11.4.0, which paints every node off the backbone charcoal ([7a325f3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7a325f303a9509ba3457b097c4b840445879e674))
+- Reshoot walk_rows_kiv2, whose key names the charcoal once, and tube_map_micb without a stray tooltip ([c9832ef](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c9832efab521ff0b7c40df94b2c74c0ce60eac11))
+
 ## [7.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.1.13...v7.2.0) (2026-10-17)
 
 ### Other Changes
