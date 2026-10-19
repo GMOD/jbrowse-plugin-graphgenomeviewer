@@ -450,19 +450,19 @@ file and its index unread. The walk files hold no bases (`--sequences` adds
 them, and nothing reads them), so both alignments work on shared nodes and node
 lengths alone:
 
-- **A haplotype against the reference** (`anchorAligner`) is the heaviest
-  common subsequence of the two walks' steps, each node weighing its length, in
+- **A haplotype against the reference** (`anchorAligner`) is the heaviest common
+  subsequence of the two walks' steps, each node weighing its length, in
   whichever direction shares more (`referenceAligner`): gbz-base's
-  `weightedLcs`, the step under its own reference alignment. It matches one
-  pass over a node the haplotype passes several times, so at a collapsed
-  copy-number array a lane aligns one copy and the others are insertions, as
-  gbz-base's lanes have it. A walk sharing 10 kb or more of singly visited
-  nodes in each direction is chained too (`walkAligner`, below), and the
-  chained records on the strand the subsequence did not take are added beside
-  its record, so an inversion against the reference draws as a reverse-strand
-  record the multi-way display names. Taking only those keeps an array
-  matching one pass alike in every lane. 10 kb is the display's
-  `SPLIT_AT_GAP_BP`, under which it names no inversion.
+  `weightedLcs`, the step under its own reference alignment. It matches one pass
+  over a node the haplotype passes several times, so at a collapsed copy-number
+  array a lane aligns one copy and the others are insertions, as gbz-base's
+  lanes have it. A walk sharing 10 kb or more of singly visited nodes in each
+  direction is chained too (`walkAligner`, below), and the chained records on
+  the strand the subsequence did not take are added beside its record, so an
+  inversion against the reference draws as a reverse-strand record the multi-way
+  display names. Taking only those keeps an array matching one pass alike in
+  every lane. 10 kb is the display's `SPLIT_AT_GAP_BP`, under which it names no
+  inversion.
 - **A lane pair** (`lanePairAligner`) takes the same subsequence, unless the two
   walks share 100 bp or more of singly visited nodes in each direction: an
   inversion between them, which a subsequence read in one direction draws as an
