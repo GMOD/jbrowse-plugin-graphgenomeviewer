@@ -1,3 +1,10 @@
+## [7.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.2.1...v7.3.0) (2026-10-19)
+
+### Other Changes
+
+- A walk turned against the reference gains a reverse-strand record ([1a19e45](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1a19e45ddd411707b14d5eeb21049d0cfd66d809))
+- Prettier ([89da663](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/89da663c947f02ae11ac571d4e5190231ed89f93))
+
 ## [7.2.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.2.0...v7.2.1) (2026-10-18)
 
 ### Other Changes
