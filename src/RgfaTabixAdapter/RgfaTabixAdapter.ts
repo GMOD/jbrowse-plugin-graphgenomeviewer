@@ -144,6 +144,9 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
   }
 
+  // The linear track reads the segment file alone. That is why gfa-to-tabix
+  // keeps nodes and links in two files (its docs/adr/0002-two-index-files.md):
+  // in one file, every link row under the region would download here unused.
   private async segmentFeatures(
     tabixRefName: string,
     query: Region,
