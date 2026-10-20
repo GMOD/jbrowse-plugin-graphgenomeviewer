@@ -206,7 +206,7 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 ## Walk-indexed cuts
 
 A walk-indexed `RgfaTabixAdapter` names a walk file, `walksLocation`, which
-`gfa-to-tabix --walks` (1.0 or later) writes one per reference sample as
+`gfa-to-tabix --walks` (1.2 or later) writes one per reference sample as
 `<prefix>.<sample>.walks.bed.gz`. `walksUri` names it and its `.tbi` by
 `<prefix>.<sample>`, in place of `uri`, and the track names the file for its
 assembly's reference:
@@ -219,7 +219,7 @@ assembly's reference:
   assemblyNames: ['hg38'],
   adapter: {
     type: 'RgfaTabixAdapter',
-    walksUri: 'https://example.org/hprc-v2.1-mc-grch38.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f4.GRCh38',
     assemblyNameToPanSN: { hg38: 'GRCh38' },
     defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
   },
@@ -228,7 +228,7 @@ assembly's reference:
 
 [@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) reads and cuts the
 file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
-format 3 (`format:i:3` on the header's first line; the converter's
+format 4 (`format:i:4` on the header's first line; the converter's
 `docs/walks-format.md`) and asks for a rebuild of any older file. A chunk lists
 the reference's path through it once, each distinct route a haplotype takes off
 that path once, the lengths of the nodes those routes visit, and each path piece
@@ -430,7 +430,7 @@ track carries both displays with no gbz-base database:
   assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
   adapter: {
     type: 'WalkTabixSyntenyAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f3.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f4.GRCh38',
     assemblyNames: ['hg38'],
     assemblyNameToPanSN: {
       hg38: 'GRCh38#0',

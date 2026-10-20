@@ -24,7 +24,7 @@ import type { Browser, Page } from 'puppeteer'
 // PanSN sample its file name gives
 const runE2E = process.env.RUN_E2E === '1'
 const VIEW = 'walks_lgv'
-const WALKS = 'src/RgfaTabixAdapter/test_data/walks3_follow.GRCh38.walks.bed.gz'
+const WALKS = 'src/RgfaTabixAdapter/test_data/walks4_follow.GRCh38.walks.bed.gz'
 
 function config() {
   return {
