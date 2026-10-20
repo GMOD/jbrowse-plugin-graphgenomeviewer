@@ -144,9 +144,6 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
     }
   }
 
-  // LinearBasicDisplay reads the segment file alone through here; every graph
-  // drawing reads both files. This is the one node-only reader behind
-  // gfa-to-tabix keeping two files (its docs/adr/0002-two-index-files.md).
   private async segmentFeatures(
     tabixRefName: string,
     query: Region,
