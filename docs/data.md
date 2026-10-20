@@ -45,9 +45,21 @@ Three quirks of impg 0.5.0's output, which the script works around:
 - Path names nest a range in a range (`chr6:31972046-32055647:0-83601`), and the
   walk keys read only the last one
 
-The dashed loops off the backbone are variants. A syng branch repeats the
-reference's sequence on both sides of a variant, so a SNP draws as a loop of
-about 80 bp, where in a pggb graph it would be a 1 bp bubble.
+GRCh38 has C4A and C4B, two copies of a 32.7 kb module, and syng folds both onto
+one copy's nodes. GRCh38 walks the ring twice, and a haplotype's copy count is
+how often it goes round:
+
+- A node takes the colour of GRCh38's first visit, so the ring shows C4A's hues.
+  The blue specks are nodes GRCh38 walks only in C4B, where C4B differs from C4A
+- A walk row follows each copy to the GRCh38 copy it continues, and switches
+  where it walks a node only C4A or only C4B holds. GRCh38's own row stays a
+  smooth gradient
+- A syng branch repeats the reference's sequence on both sides of a variant, so
+  a SNP draws as an off-path run of tens of bp, the charcoal specks on the ring,
+  where a pggb graph draws a 1 bp bubble
+
+bandage-core before 11.6.1 painted every revisit in the first copy's colours and
+drew each link between the copies' own nodes as a dashed 32.7 kb deletion.
 
 ## Opening tracks
 
