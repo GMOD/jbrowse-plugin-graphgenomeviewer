@@ -305,6 +305,20 @@ describe('canceling and retrying', () => {
     })
   })
 
+  test('expanding a walk cuts again with its name', async () => {
+    const model = await cut(ON_HG38)
+    mockRpcCall.mockClear()
+    model.expandWalk('HG002#1#chr1')
+    model.expandWalk('HG002#1#chr1')
+    expect(model.expandedWalks).toEqual(['HG002#1#chr1'])
+    await vi.waitFor(() => {
+      expect(mockRpcCall).toHaveBeenCalledTimes(1)
+    })
+    expect(mockRpcCall.mock.calls[0]?.[2]).toMatchObject({
+      opts: { expand: ['HG002#1#chr1'] },
+    })
+  })
+
   test('a newer cut aborts the one it replaces', () => {
     pendingCuts()
     const model = launchedView()

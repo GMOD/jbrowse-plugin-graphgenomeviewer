@@ -30,8 +30,8 @@ importers:
         specifier: 5.0.0-beta.11
         version: 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/graph-walks':
-        specifier: ^3.1.0
-        version: 3.1.0
+        specifier: ^4.0.0
+        version: 4.0.0
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.11
         version: 5.0.0-beta.11(react@19.3.1)
@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^11.6.1
-        version: 11.6.1
+        specifier: ^11.7.0
+        version: 11.7.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -636,8 +636,8 @@ packages:
   '@jbrowse/add-track-core@5.0.0-beta.13':
     resolution: {integrity: sha512-JKKXQPVkY/1unPiWh7p7P5t/jhi+hEqBcaT+X9Ste5gUS9tKjvUi2SsQQP8Mk0fmEApRq/iX8wF4gNwNGwx8WA==}
 
-  '@jbrowse/bandage-core@11.6.1':
-    resolution: {integrity: sha512-f5hFIEzBtu8LUtlwAtUJxd5RrQGKTq1fn/htxDRyxW42IViJhVJOHYTIiAVY+76xl3Ka12qzZR8ys06Vk25wEg==}
+  '@jbrowse/bandage-core@11.7.0':
+    resolution: {integrity: sha512-HbFt3nzfhaBE7EdUytbfdUFFxzV7muWS4CYYq4dT3DZhmxNniP12YJndP0Iyp4o+3cbpO8Ho2EZ/5CQN/hWkVQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -675,8 +675,8 @@ packages:
     resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-walks@3.1.0':
-    resolution: {integrity: sha512-pQIZns3TmhaSXc+3jdRPfgqCVnGRJ5wUxa5fTvqyN3eQjMVdZZk9S5rxuj4CsVRLUTE6gh3vmxnKMBzpNoj05Q==}
+  '@jbrowse/graph-walks@4.0.0':
+    resolution: {integrity: sha512-bIK8xIRnUxTASNJN/jyYTkhHpwEwv9Dw2SzyVnGVlELYh4Pswf5JAl0gfMVvbkpBeadgNqmq6HIivlk6UjtGXQ==}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@6.0.0':
@@ -4069,7 +4069,7 @@ snapshots:
 
   '@jbrowse/add-track-core@5.0.0-beta.13': {}
 
-  '@jbrowse/bandage-core@11.6.1':
+  '@jbrowse/bandage-core@11.7.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.11.0
@@ -4168,7 +4168,7 @@ snapshots:
 
   '@jbrowse/graph-stress-layout@1.0.0': {}
 
-  '@jbrowse/graph-walks@3.1.0': {}
+  '@jbrowse/graph-walks@4.0.0': {}
 
   '@jbrowse/jexl@6.0.0': {}
 
