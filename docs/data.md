@@ -45,6 +45,10 @@ Three quirks of impg 0.5.0's output, which the script works around:
 - Path names nest a range in a range (`chr6:31972046-32055647:0-83601`), and the
   walk keys read only the last one
 
+The dashed loops off the backbone are variants. A syng branch repeats the
+reference's sequence on both sides of a variant, so a SNP draws as a loop of
+about 80 bp, where in a pggb graph it would be a 1 bp bubble.
+
 ## Opening tracks
 
 - **File → Open track** opens an rGFA index (`.segs.bed.gz`), a walk file
