@@ -1,0 +1,8 @@
+{
+  "gfa": "c4.syng.gfa.gz",
+  "layout": "force",
+  "referencePath": "grch38#chr6:31972046-32055647",
+  "walkStrip": true,
+  "walkRowSamples": ["grch38", "HG02080", "HG00735", "HG01978"],
+  "width": 1000
+}

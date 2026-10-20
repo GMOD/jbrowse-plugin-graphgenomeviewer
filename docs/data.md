@@ -24,6 +24,27 @@ bubbles and writes `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`,
 `.alleles.bed.gz`, a coarse tier, a `.graph.json` manifest and a track config.
 For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 
+## syng graphs from impg
+
+[impg](https://github.com/pangenome/impg) builds a
+[syng](https://github.com/richarddurbin/syng) syncmer index with no alignment
+step, and `impg query -o gfa:syng` cuts a region from it as a blunt GFA that
+opens like any other.
+
+![C4 as a syng graph, with walk rows: HG02080's 51 kb haplotype goes round the loop once, GRCh38 twice and HG01978's 116 kb haplotype three times](../img/syng_c4.png)
+
+[test_data/syng/build.sh](../test_data/syng/build.sh) builds this graph from
+odgi's 90 C4 haplotypes, and
+`npx -p @jbrowse/bandage-core bandage-figure test_data/syng/c4.json` draws it.
+Three quirks of impg 0.5.0's output, which the script works around:
+
+- impg puts a reverse-complemented haplotype on nodes of its own, splitting the
+  graph in two, so orient the input to one strand
+- impg leaves the query path out of the output, so query from a path you can
+  spare
+- Path names nest a range in a range (`chr6:31972046-32055647:0-83601`), and the
+  walk keys read only the last one
+
 ## Opening tracks
 
 - **File → Open track** opens an rGFA index (`.segs.bed.gz`), a walk file
