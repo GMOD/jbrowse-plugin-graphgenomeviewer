@@ -57,6 +57,14 @@ export default defineConfig(
   {
     rules: {
       'no-restricted-globals': ['error', 'Buffer'],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: ':matches(CallExpression, NewExpression) > SpreadElement',
+          message:
+            'Spread arguments overflow the stack on big arrays; use a loop',
+        },
+      ],
       'no-empty': 'off',
       'no-console': [
         'warn',

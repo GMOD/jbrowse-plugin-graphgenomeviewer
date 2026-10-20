@@ -621,7 +621,8 @@ describe('reads', () => {
       [x((r.x0 + r.x1) / 2), y((r.y0 + r.y1) / 2)] as const
     const [haplotypes, reads] = picture.layers
 
-    model.setHoveredTube(model.tubeAt(...onScreen(reads!.rects[0]!)))
+    const [readX, readY] = onScreen(reads!.rects[0]!)
+    model.setHoveredTube(model.tubeAt(readX, readY))
     expect(model.hoveredTubeText).toEqual({
       label: 'r1',
       readout: 'MAPQ 60, forward strand',
@@ -636,7 +637,8 @@ describe('reads', () => {
     )
 
     const alt = haplotypes!.rects.find(r => r.id === 1)!
-    model.setHoveredTube(model.tubeAt(...onScreen(alt)))
+    const [altX, altY] = onScreen(alt)
+    model.setHoveredTube(model.tubeAt(altX, altY))
     expect(model.hoveredTubeText).toEqual({
       label: 'alt',
       readout: 'haplotype',
