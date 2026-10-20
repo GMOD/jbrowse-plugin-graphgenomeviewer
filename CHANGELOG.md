@@ -1,3 +1,12 @@
+## [7.3.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.0...v7.3.1) (2026-10-20)
+
+### Other Changes
+
+- Demo a syng graph from impg at C4 ([19bd5df](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/19bd5df51fd179a36c5897d2302240bb6938415e))
+- Explain the dashed loops in the syng C4 figure ([a996658](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a996658ab3e62943b02757c32a0d1758cf048f81))
+- Read walk format 4 with graph-walks 3.0.0 ([d742401](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d7424016858c745bf87936bc3a5afe6d7b889369))
+- Host probe reads synteny from the walk lane track ([6e78cc0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6e78cc0a840018c2d5ddd2690a5e639c57a3c92b))
+
 ## [7.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.2.1...v7.3.0) (2026-10-19)
 
 ### Other Changes
