@@ -1,3 +1,13 @@
+## [7.3.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.1...v7.3.2) (2026-10-20)
+
+### Other Changes
+
+- Note why the linear track's segment-only read keeps the index two files ([60846f7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/60846f7ec9970d2edf9d20c422d763e96a888b23))
+- Name the node-only reader exactly: LinearBasicDisplay, not the linear track ([ea1b42f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ea1b42f7f42c94458a111b2dc4b63f72708d2ac8))
+- Drop the comment that blamed LinearBasicDisplay for the two index files ([873678f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/873678ffb446cea0cd34d07e5af8367f077863f8))
+- Take bandage-core 11.6.1, and explain the syng C4 figure's colours ([5288d40](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5288d403e9e980fc3020acf44b1b409b9b33ab2e))
+- Take graph-walks 3.1, and give queryStart the window's refName and end ([86d6e5b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/86d6e5b3502f5206ade1b98f6052cf488f94f112))
+
 ## [7.3.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.0...v7.3.1) (2026-10-20)
 
 ### Other Changes
