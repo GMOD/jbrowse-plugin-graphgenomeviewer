@@ -88,7 +88,7 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 `WalkFormsAdapter` groups a walk file's haplotypes by the structural changes
 their walks make over one pinned window. Core's
 `LinearMultiSampleVariantDisplay` draws a row per group, or form, labelled with
-its share of the haplotypes and its largest change ("66% · 18 kb del"):
+its share of the haplotypes and its largest change ("66% · del 18.4kb"):
 
 ```json
 {
@@ -134,26 +134,33 @@ its share of the haplotypes and its largest change ("66% · 18 kb del"):
 - `exclude` leaves samples out of every form. HPRC's GRCh38 walk file lists
   CHM13 as a haplotype
 - `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
-  the rest share an empty "other forms" row. A label's "+N" counts the form's
-  other changes, which the variants under it name
+  the rest share an empty "other forms" row
+- A row label names the form's largest change in graph-walks' tokens, such as
+  `del 18.4kb`, `del 6.46kb->94bp`, `repl 32.7kb->58.7kb`, `shift 94.2kb` or
+  `ref`, and "+N" counts its other changes, which the variants under it name.
+  Changes every form shares stay out of the label
 - `walkByteBudget`, 1 MB by default, caps what the cut fetches. A pinned window
   over it shows an error naming how much of the window fits
+- The adapter reads every abridged walk in full. A window whose walks would take
+  more than graph-walks' 16 M step budget shows an error naming how much of it
+  fits; the MHC's 90 kb take 9.4 M steps
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
-  `inversion` or `net`, which `color` paints with a key. The adapter sets a
-  form's genotype to `1` at its own changes and `.` where its walks do not span
-  a site
-- The display's notifications name the haplotypes whose walks the cut left
-  abridged, those with no walk over the window, and the forms in the "other
-  forms" row
+  `inversion` or `net`, which `color` paints with a key. A replacement counts as
+  a loss or gain by its net change. graph-walks labels one whose smaller side is
+  under 5% of the other as a deletion or insertion, so C4's 6,460 bp to 94 bp
+  reads `del 6.46kb->94bp`
+- The adapter sets a form's genotype to `1` at its own changes and `.` where its
+  walks do not span a site
+- The display's notifications name the haplotypes with no walk over the window
+  and the forms in the "other forms" row. Each starts with the pinned window,
+  and a re-pin or floor change takes the old ones down
 - The track menu shows the pinned window and its form count, "Re-pin to visible
   region" and "Hide changes under: Auto / 50 bp / 1 kb / 10 kb". Panning and
   zooming never change the forms; only a re-pin does
 - The display stores a re-pin or a floor in the session and sends it in place of
   the config's `pinned` and `floorBp`. A new floor regroups the cut without
   reading the walk file again
-- A re-pin over `walkByteBudget` shows the error in place of the rows. Before
-  JBrowse 5.0.0-beta.14, a view with no change in it, such as one outside the
-  pinned window, shows "Loading" indefinitely
+- A re-pin over `walkByteBudget` shows the error in place of the rows
 - The adapter cuts GSTM1 in about 0.5 s and LPA in 5 s, abridged walks included.
   graph-walks'
   [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
