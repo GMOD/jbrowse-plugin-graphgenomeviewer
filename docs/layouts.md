@@ -53,8 +53,6 @@ view bands the same bp across the curated KIV-2 array:
 
 - **Export SVG** in the graph genome view saves the drawing, keys and panels
 - In a linear view, the view's **Export SVG** draws the track as shown
-- A JSON spec renders with no browser. See
-  [bandage-core's figures.md](https://github.com/GMOD/bandage-core/blob/main/docs/figures.md)
 
 ## Next
 

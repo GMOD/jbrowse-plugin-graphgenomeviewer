@@ -17,7 +17,7 @@ metadata:
 
 - `setReferencePath` (`pane/settingActions.ts` 147-155) re-anchors itself; only
   `GraphSettingsDialog.tsx` 167-168 calls `recomputeLayout` after it
-- After undo, `activeReferencePath` (read off the graph) and the figure spec
-  (read off the property) name different paths
+- After undo, `activeReferencePath` (read off the graph) and the `referencePath`
+  property name different paths
 - The gene and repeat tracks moved to reactions the same way
   (`pane/renderingActions.ts`)

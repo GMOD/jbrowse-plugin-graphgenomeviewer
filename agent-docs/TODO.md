@@ -19,7 +19,6 @@ Commitment, not size, separates an item here from a proposal in
 
 | Item                                                                                                   | Area                 | First move                                                                                      |
 | ------------------------------------------------------------------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
-| [Each row's own genes in bandage-figure](todo/figure-rows-own-genes.md)                                | walk strip           | Add a spec field mapping each sample to its gene file.                                          |
 | [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md)                             | walk strip           | Pass `host: false` to walkStripApplies from a track and see what the track needs.               |
 | [Undoing the reference path does not re-anchor](todo/reference-path-undo.md)                           | layout               | Move re-anchoring into a reaction on referencePath, and drop the dialog's recomputeLayout call. |
 | [Two repeat arrays over one span share a key](todo/repeat-key-collision.md)                            | repeats              | Add the motif, unit or record index to the key in repeatFeatures.ts.                            |
