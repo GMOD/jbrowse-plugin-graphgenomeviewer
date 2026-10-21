@@ -137,6 +137,7 @@ test('sources are the forms, labelled by share and largest change', () => {
     name: 'F1',
     label: '14% · 2 kb del +1',
     haplotypes: 2,
+    forms: 1,
   })
   expect(sources.find(s => s.name === formOf('G#1'))?.label).toBe(
     '7% · reference',
@@ -151,6 +152,7 @@ test('past maxForms the smaller forms share one empty row', () => {
     name: OTHER_FORMS,
     label: 'other forms · 57%',
     haplotypes: 8,
+    forms: 8,
   })
   expect(formWarnings(result, 4)[0]).toBe(
     '8 smaller forms, 8 haplotypes, share the empty "other forms" row; maxForms sets how many forms get a row of their own',

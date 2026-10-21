@@ -77,7 +77,8 @@ const sum = (forms: StructuralForms['forms']) =>
 
 /**
  * One row per form, largest first, labelled "66% · 18 kb del". Past
- * `maxForms` the rest share one empty "other forms" row.
+ * `maxForms` the rest share one empty "other forms" row. A row's `forms`
+ * counts the forms it holds, so the rows sum to the window's forms.
  */
 export function formSources(
   result: StructuralForms,
@@ -90,6 +91,7 @@ export function formSources(
       name: formName(i),
       label: `${percent(f.members.length, result.placed)} · ${formTag(f)}`,
       haplotypes: f.members.length,
+      forms: 1,
     })),
     ...(rest.length > 0
       ? [
@@ -97,6 +99,7 @@ export function formSources(
             name: OTHER_FORMS,
             label: `other forms · ${percent(sum(rest), result.placed)}`,
             haplotypes: sum(rest),
+            forms: rest.length,
           },
         ]
       : []),

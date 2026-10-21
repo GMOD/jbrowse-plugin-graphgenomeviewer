@@ -68,9 +68,9 @@ test('one source per form, labelled by share and change', async () => {
   const adapter = makeAdapter({ pinned: pinned(1) })
   expect(await adapter.getSourcesAndWarnings()).toEqual({
     sources: [
-      { name: 'F1', label: '33% · reference', haplotypes: 1 },
-      { name: 'F2', label: '33% · 600 bp repl', haplotypes: 1 },
-      { name: 'F3', label: '33% · 580 bp del', haplotypes: 1 },
+      { name: 'F1', label: '33% · reference', haplotypes: 1, forms: 1 },
+      { name: 'F2', label: '33% · 600 bp repl', haplotypes: 1, forms: 1 },
+      { name: 'F3', label: '33% · 580 bp del', haplotypes: 1, forms: 1 },
     ],
     warnings: [],
   })
@@ -120,7 +120,7 @@ test('a floor change regroups the cut without cutting again', async () => {
   const coarse = makeAdapter({ pinned: pinned(4), floorBp: 1000 })
   expect((await fine.getSourcesAndWarnings()).sources).toHaveLength(3)
   expect((await coarse.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · reference', haplotypes: 3 },
+    { name: 'F1', label: '100% · reference', haplotypes: 3, forms: 1 },
   ])
   expect(await featuresOf(coarse)).toEqual([])
   expect(formsCut).toHaveBeenCalledTimes(1)
@@ -129,7 +129,7 @@ test('a floor change regroups the cut without cutting again', async () => {
 test('exclude leaves samples out of every form', async () => {
   const adapter = makeAdapter({ pinned: pinned(5), exclude: ['HG002'] })
   expect((await adapter.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · reference', haplotypes: 1 },
+    { name: 'F1', label: '100% · reference', haplotypes: 1, forms: 1 },
   ])
 })
 

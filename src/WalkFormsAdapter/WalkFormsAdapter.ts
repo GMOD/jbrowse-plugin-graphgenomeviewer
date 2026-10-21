@@ -12,29 +12,15 @@ import {
 } from '@jbrowse/graph-walks'
 
 import { formSources, formVariants, formWarnings } from './formRows.ts'
+import { floorOf, pinnedLocus, pinnedOf } from './pinned.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 
 import type { WalkFormsAdapterConfig } from './configSchema.ts'
+import type { Pinned } from './pinned.ts'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
 import type { HaplotypeDepartures, StructuralForms } from '@jbrowse/graph-walks'
-
-interface Pinned {
-  refName: string
-  start: number
-  end: number
-}
-
-function pinnedOf(value: unknown): Pinned | undefined {
-  const { refName, start, end } = (value ?? {}) as Partial<Pinned>
-  return typeof refName === 'string' &&
-    Number.isFinite(start) &&
-    Number.isFinite(end) &&
-    start! < end!
-    ? { refName, start: start!, end: end! }
-    : undefined
-}
 
 const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
 
@@ -44,8 +30,7 @@ function pinnedTooLarge(error: unknown, pinned: Pinned) {
   if (!(error instanceof RegionTooLargeError)) {
     return error
   }
-  const n = (x: number) => x.toLocaleString('en-US')
-  const window = `${pinned.refName}:${n(pinned.start + 1)}-${n(pinned.end)}`
+  const window = pinnedLocus(pinned)
   const budget = `walkByteBudget, ${megabytes(error.limit)}`
   return new Error(
     `The pinned window ${window} is too large to cut for structural forms: ${
@@ -54,11 +39,6 @@ function pinnedTooLarge(error: unknown, pinned: Pinned) {
         : `its cut fetches ${megabytes(error.bytes ?? 0)}, over ${budget}. Raise walkByteBudget`
     }`,
   )
-}
-
-function floorOf(value: unknown) {
-  const n = Number(value)
-  return value !== 'auto' && Number.isFinite(n) ? n : 'auto'
 }
 
 // The departures of each pinned window, shared across adapter instances:
