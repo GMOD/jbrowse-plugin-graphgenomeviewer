@@ -1,3 +1,9 @@
+## [7.4.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.0...v7.4.1) (2026-10-21)
+
+### Other Changes
+
+- Lanes load the walks they name in full where format 5 abridged them ([f56c3c1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f56c3c14bd22205bb2b5440dd1ead58c12df2ab1))
+
 ## [7.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.2...v7.4.0) (2026-10-21)
 
 ### Other Changes
