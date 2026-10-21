@@ -82,13 +82,13 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
   `@jbrowse/*` dependencies are pinned to. On an older host the plugin throws
   while installing, so every suite dies in setup with a minified
   `e.<something> is not a function`, which looks like a plugin bug
-- Nothing refreshes a host dir copy, and `.test-jbrowse-demos` once sat at
-  2026-07-24 for two weeks of runs. `setup.ts` greps the served bundles for the
-  API names in `HOST_REQUIRES` and throws with the `cp -r` line if one is
-  missing. Add to `HOST_REQUIRES` when the plugin picks up another new API
-- A stock `jbrowse create .test-jbrowse-nightly --nightly` should also work, but
-  nobody has verified that it carries the merge, so the `e2e-tests` CI job stays
-  disabled
+- `setup.ts` greps the served bundles for the API names in `HOST_REQUIRES` and
+  throws with the `cp -r` line if one is missing, because a host dir is a copy
+  that nothing refreshes (`.test-jbrowse-demos` once sat at 2026-07-24 for two
+  weeks). Add to `HOST_REQUIRES` when the plugin picks up another new API
+- A stock `jbrowse create .test-jbrowse-nightly --nightly` should also work. The
+  `e2e-tests` CI job stays disabled until someone verifies that the nightly
+  carries the merge
 - The suites share one server and one machine, and a full run has flaked under
   load, a different test each time. Treat a single failure as load until a
   second run agrees, and re-run the file alone before believing it
@@ -98,13 +98,12 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 - `RUN_E2E=1`: required to un-skip the suite
 - `JBROWSE_TEST_DIR`: a jbrowse-web static dir to serve (default
   `.test-jbrowse-<version>`), such as a build newer than the release. The
-  harness writes `config.json`, `test.gfa` and `plugin/` into it, so give it a
-  copy, not a build you care about
+  harness writes `config.json`, `test.gfa` and `plugin/` into it, so point it at
+  a copy
 - `TEST_JBROWSE_VERSION`: names the default dir (`beta13` if unset)
 - `JBROWSE_PORT` (9876): moves the server, so two sessions can run at once
-- `SKIP_BUILD=1`: reuses an existing `dist/` instead of rebuilding the plugin. A
-  run with it tests whatever `dist/` holds, which once made a fixed import look
-  broken
+- `SKIP_BUILD=1`: skips the plugin build and tests whatever `dist/` holds, which
+  once made a fixed import look broken
 
 ### Host builds
 
@@ -118,8 +117,8 @@ JBROWSE_TEST_DIR=$PWD/.test-jbrowse-local RUN_E2E=1 pnpm test:e2e
 - Copying a build while something rebuilds it yields a tree with no
   `index.html`, so `serve` shows a directory listing and React never mounts.
   Check that `index.html` and `static/js` exist in the copy
-- A git worktree has no `.test-jbrowse-beta13` of its own: the served JBrowse
-  and its fixtures live in the primary checkout. From a worktree, set
+- The served JBrowse and its fixtures live in the primary checkout's
+  `.test-jbrowse-beta13`. From a git worktree, set
   `JBROWSE_TEST_DIR=<primary checkout>/.test-jbrowse-beta13`, or the fixture
   suites (`walkRows`, `walkStrip`) skip without a word
 
@@ -172,11 +171,11 @@ screenshot it writes to `test-screenshots/` is a real browser frame:
 | `demo-04-reference-strip-hover`              | an ordered track's strip block lights the node it draws        |
 | `demo-05-bubble-label-hover`                 | a bubble's name lights its span on the strip and the view      |
 
-Hover targets come from the model. Sweeping painted pixels flakes, because the
-first painted rows are the top edge of the drawn tube, about 4.6 screen px above
-the centreline, against a 5 px hover threshold. Projecting a node's own
-mid-point through the view's scale/translate is exact, and lets the assertion
-check that the highlight equals that node's declared span.
+The test takes hover targets from the model: it projects a node's own mid-point
+through the view's scale/translate, which is exact, and checks that the
+highlight equals that node's declared span. Sweeping painted pixels flakes,
+because the first painted rows are the top edge of the drawn tube, about 4.6
+screen px above the centreline, against a 5 px hover threshold.
 
 ## Releasing
 
