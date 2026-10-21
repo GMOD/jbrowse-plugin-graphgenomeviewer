@@ -12,7 +12,7 @@ division. What is left at q=4 is the near-field direct force: `f_rep_u_on_v`
 27.8%, `add_local_expansion` 13.3%, `calculate_neighbourcell_forces` 12.3%.
 
 **Nothing here is a build flag.** Every remaining candidate means editing
-vendored OGDF, which buys merge debt at every version bump — `vendor/README.md`
+vendored OGDF, which buys merge debt at every version bump — graph-fmmm-layout's `native/README.md`
 keeps the delta to two hunks precisely so a bump stays mechanical — and moves
 every committed force-directed figure. SIMD was measured and does not reach this
 code: the loops walk `NodeArray`/`EdgeArray` through pointers, not over
