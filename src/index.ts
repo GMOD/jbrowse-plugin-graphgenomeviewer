@@ -14,6 +14,7 @@ import LaunchGraphGenomeViewF from './LaunchGraphGenomeView'
 import LinearGraphDisplayF from './LinearGraphDisplay/index'
 import MinigraphBubbleAdapterF from './MinigraphBubbleAdapter/index'
 import RgfaTabixAdapterF from './RgfaTabixAdapter/index'
+import WalkFormsAdapterF from './WalkFormsAdapter/index'
 import WalkTabixSyntenyAdapterF from './WalkTabixSyntenyAdapter/index'
 import GraphTrackDefaultsF from './graphTrackDefaults/index'
 import GraphHoverSyncF from './hoverSync/index'
@@ -38,6 +39,7 @@ export default class GraphGenomeViewPlugin extends Plugin {
     MinigraphBubbleAdapterF(pluginManager)
     GbzBaseSyntenyAdapterF(pluginManager)
     WalkTabixSyntenyAdapterF(pluginManager)
+    WalkFormsAdapterF(pluginManager)
     GraphAddTrackWorkflowF(pluginManager)
     GraphTrackDefaultsF(pluginManager)
     PanSNAliasesF(pluginManager)
