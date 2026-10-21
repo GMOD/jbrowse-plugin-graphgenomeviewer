@@ -1,3 +1,34 @@
+## [7.4.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.3...v7.4.4) (2026-10-21)
+
+### Other Changes
+
+- Remove Copy figure spec and the spec embedded in exported SVGs ([421e825](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/421e825ce3f43f3b1928558f26b4b6d20420b76f))
+- Drop the README tagline ([4afcee8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4afcee8cf3e3208741074c9281468f951817dfc1))
+- Say the walk adapters read walk format 5, from gfa-to-tabix 1.4 ([ac17546](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ac17546a037d7fe776d48927bbc3344ad2930610))
+- Rename the walks4_ test fixtures walks5_, the format they hold ([e3b3f2b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e3b3f2b610c146e3f5c43a76eaba69ac3738fbe1))
+- Give the syng example its own page and keep data.md to data setup ([cf5593b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cf5593b2a6c93aa5e86f9da4ac85301e9db2256b))
+- Fold bubbles.md and genes.md into layouts.md ([86af8ef](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/86af8ef08836c863e77b3253c16479c4adf9b981))
+- Fold test/README.md into developing.md's end-to-end section ([9ffa8ae](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9ffa8aef816bb72b2145dab03c115f3eb1329fae))
+- Reword the merged e2e notes around who does each thing ([0e97840](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0e9784024eb3c22eccb8111e9c485b72d890f526))
+- Keep the graph genome view qualifier on tube map genes ([08e62ab](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/08e62ab4074f038194cd9355401fdbb34aa0e1a2))
+- Point two agent notes at the docs' new homes ([2747db5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2747db5f28dcab45a4ed08121d7607564a213cbb))
+- Rewrap the two agent notes the link fixes lengthened ([3e0a288](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3e0a2887f8ac87b4a2ed69531f820c0284c324cf))
+- Require @jbrowse/graph-walks 4.1.0 for structural forms ([d130889](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d130889c20de3521d1012616b2687510e346637a))
+- Add WalkFormsAdapter: a walk file's structural forms as variant rows ([e67bd98](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e67bd984a5246d58839ff679c100db895a4e6232))
+- Document a structural forms track in data.md ([27f5988](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/27f5988cf0c0ad99a50a2b166b4498c51cbeb2d7))
+- Cap forms at maxForms rows, label them short, bound the cut by bytes ([28f628c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/28f628ca3c8dbd55ab7f116cfaf0f9e2cce99bc0))
+- Document maxForms, walkByteBudget and the short labels in data.md ([ff59a6d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ff59a6dc17ba2b0190a5f70cb79ce5a190ae01cb))
+- Install @jbrowse/graph-walks 4.1.0, and keep a test's marks in a site too wide to sum ([a828ae8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a828ae8523e20449613e0c1482a494f52615ac2a))
+- Add a forms track menu: the pinned window, re-pin, and the floor ([8e93657](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8e9365706565f0f04bc2584e26b9d02e5e3899b0))
+- Pan, re-pin, floor and an over-budget re-pin on the LPA forms track ([d940690](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d940690f916437d56d08c89bfdcee5bfb0385339))
+- Draw a structural forms track at GSTM1 and find its menu ([512f9e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/512f9e1af739e14844f1de6200c2f4e51cb29503))
+- Document the forms track menu and where a re-pin is kept ([461323d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/461323d2979af14b1bc81e44d0ffc833f1e24336))
+- Take bandage-core 11.9.0 ([a46e014](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a46e014effaab39ef431fc62ee388a7d4dacde1a))
+- Install @jbrowse/graph-walks 4.2.0: token labels, lopsided colours, whole expansion ([cfe0015](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cfe001542746aaf43b32955de1d39b76ceedb051))
+- Give a forms query with no change a reference placeholder, for core before beta.14 ([d83c51d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d83c51dbf120058c2ed929067bc9fc8a280ebbdc))
+- Take a forms track's old warning toasts down when its forms change ([c7f5a45](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c7f5a4535269e6424b718e98117a5d897d98756a))
+- Document the forms track's token labels, whole expansion and window-named warnings ([2a4b787](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2a4b787bddac9fc7aa127d8e0d3177dbadb3c86d))
+
 ## [7.4.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.2...v7.4.3) (2026-10-21)
 
 ### Other Changes
