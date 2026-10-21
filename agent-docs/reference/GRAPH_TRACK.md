@@ -206,7 +206,7 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 ## Walk-indexed cuts
 
 A walk-indexed `RgfaTabixAdapter` names a walk file, `walksLocation`, which
-`gfa-to-tabix --walks` (1.2 or later) writes one per reference sample as
+`gfa-to-tabix --walks` (1.4 or later) writes one per reference sample as
 `<prefix>.<sample>.walks.bed.gz`. `walksUri` names it and its `.tbi` by
 `<prefix>.<sample>`, in place of `uri`, and the track names the file for its
 assembly's reference:
@@ -228,20 +228,20 @@ assembly's reference:
 
 [@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) reads and cuts the
 file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
-format 4 (`format:i:4` on the header's first line; the converter's
-`docs/walks-format.md`) and asks for a rebuild of any older file. A chunk lists
-the reference's path through it once, each distinct route a haplotype takes off
-that path once, the lengths of the nodes those routes visit, and each path piece
-as the routes it takes. A record's first and last pieces also give the bp to the
-contig's record before and after, which the graph lacks, so a walk row can say
-which of a gap's bases are not in the graph.
+format 5 (`format:i:5` on the header's `#walks` line; the converter's
+`docs/walks-format.md`) and asks for a rebuild of a file in any other format. A
+chunk lists the reference's path through it once, each distinct route a
+haplotype takes off that path once, the lengths of the nodes those routes visit,
+and each path piece as the routes it takes. A record's first and last pieces
+also give the bp to the contig's record before and after, which the graph lacks,
+so a walk row can say which of a gap's bases are not in the graph.
 
-- A cut reads whole chunks, from the chunk before the window to the window's
-  end. A node is filed under the chunk holding its start, so the cut starts
-  ceil(maxnode / chunk) chunks before the window's own, at least one, from the
-  header's `maxnode:i:`. `getFeatures` reads from the same start, and reads the
-  reference rows. `anchoredCut`, the coarse tier and the bubble halos read no
-  anchor interval of a walk-indexed file
+- A cut reads whole chunks to the window's end. A node is filed under the chunk
+  holding its start, so the cut starts at the chunk before the window's own, or
+  at the chunk before a `#long` pass (a reference node longer than a chunk) that
+  overlaps the window, whichever is earlier. `getFeatures` reads from the same
+  start, and reads the reference rows. `anchoredCut`, the coarse tier and the
+  bubble halos read no anchor interval of a walk-indexed file
 - graph-walks decodes each chunk once: the reference's nodes with their
   positions, and the kept walks' steps. The cut's tables then place its nodes
   off the reference and list the links among its nodes, from the reference rows
