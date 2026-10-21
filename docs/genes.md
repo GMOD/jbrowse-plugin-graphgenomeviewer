@@ -1,14 +1,16 @@
 # Genes
 
-The session's gene track draws each exon as a goldenrod outline around the
-stretch of node that carries it, and pins the gene's name under its midpoint.
+The view draws each of the session's exons as a goldenrod outline around the
+stretch of node it sits on, and pins the gene's name under its midpoint.
 
-- Carrying nodes are the backbone and a coarse tier's bubble nodes
+- The view draws exons on the backbone's nodes and on a coarse tier's bubble
+  nodes
 - A name never covers a node its gene is not on, so it moves a row or is left
   off
-- A gene partly in the cut says how much: `LPA · 35 of 132.8 kb`
-- A tube map in its own view draws genes in rows above the tubes. In a linear
-  view the gene track shows them
+- The label of a gene partly in the cut gives how much of it the cut holds:
+  `LPA · 35 of 132.8 kb`
+- A tube map in a graph genome view draws genes in rows above the tubes. In a
+  linear view the gene track shows them
 - Where the linear view shows genes as a lane, the graph names only what the
   lane draws
 - Records spanning a whole sequence (RefSeq's `region`) and records with no

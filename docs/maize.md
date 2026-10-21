@@ -1,6 +1,7 @@
 # Maize NAM founders
 
-B73 and the 25 NAM founders, from MaizeGDB's pangenome
+The graphs on this page hold B73 and the 25 NAM founders, from MaizeGDB's
+pangenome
 ([bioRxiv 2026.08.31.748368](https://doi.org/10.64898/2026.08.31.748368)).
 
 ## MaizeGDB's graph of one gene

@@ -20,13 +20,13 @@ Pick **Tube map** or **Tube map on reference** from the layout menu
 - In a linear view's track, tubes squeeze to the track's height, so drag it
   taller for wider tubes. On the own axis, a band joins each reference node's bp
   on the ruler to its box. Hovering a band picks out the node
-- In a view of its own, the session's genes draw in up to four rows above the
-  tubes. A linear view shows them in their own track
+- In a graph genome view, the session's genes draw in up to four rows above the
+  tubes. In a linear view, the gene track shows them
 
-MICB's exons 2–4 opened as a view under the linear view they came from. Hovering
-a variant's box bands its bp in the linear view:
+MICB's exons 2–4 open as a graph genome view under the linear view they came
+from. Hovering a variant's box bands its bp in the linear view:
 
-![MICB's exons 2–4 as a view of its own, a variant's box hovered and its bp banded in the linear view above](../img/tube_map_micb.png)
+![MICB's exons 2–4 as a graph genome view, a variant's box hovered and its bp banded in the linear view above](../img/tube_map_micb.png)
 
 ## Fold variants
 
@@ -54,8 +54,8 @@ walks.
   Each title then counts its haplotypes through the box
 - Reads are not drawn while split
 
-An 85 kb deletion removes CFHR3 and CFHR1 on 139 of HPRC's 464 haplotypes. Eight
-samples, a panel each:
+An 85 kb deletion removes CFHR3 and CFHR1 on 139 of HPRC's 464 haplotypes. Here
+eight samples get a panel each:
 
 ![CFHR3 and CFHR1 as a tube map track split by sample, eight panels under the RefSeq genes](../img/tube_map_cfhr_samples.png)
 
@@ -64,8 +64,9 @@ haplotypes through it for the carriers and 0 of 2 for the rest:
 
 ![The CFHR3–CFHR1 box hovered in HG01960's panel](../img/tube_map_cfhr_samples_hover.png)
 
-Split by `superpopulation`, a panel per group of six samples. Hovering CFHR1's
-box in AFR counts 5 of 12 haplotypes through it there, against 12 of 12 in EAS:
+Split by `superpopulation`, the map draws a panel per group of six samples.
+Hovering CFHR1's box in AFR counts 5 of 12 haplotypes through it there, against
+12 of 12 in EAS:
 
 ![CFHR3 and CFHR1 split by superpopulation, a panel each for AFR, AMR, EAS, EUR and SAS, each title counting its haplotypes through the hovered box](../img/tube_map_cfhr_populations_hover.png)
 
@@ -81,9 +82,9 @@ box in AFR counts 5 of 12 haplotypes through it there, against 12 of 12 in EAS:
 **Layout → Tube color** (or `"tubeMapColorBy"`) paints tubes by a sample table
 column, with the reference charcoal and a key per value.
 
-Thirty HPRC samples over C4A and C4B, a tube per route coloured by
-superpopulation. The main route, five strands wide, skips the 6.4 kb HERV-K in
-C4B, and thin tubes skip or add a whole 33 kb module:
+The map draws thirty HPRC samples over C4A and C4B as a tube per route coloured
+by superpopulation. The main route, five strands wide, skips the 6.4 kb HERV-K
+in C4B, and thin tubes skip or add a whole 33 kb module:
 
 ![C4A and C4B as a tube per route coloured by superpopulation](../img/tube_map_c4_routes_by_population.png)
 
@@ -91,8 +92,8 @@ Hovering a tube lists its haplotypes:
 
 ![C4 as a tube per route, the route skipping GRCh38's second module hovered](../img/tube_map_c4_bundled_hover.png)
 
-C4 with the thirty samples grouped by route: each haplotype keeps its own tube,
-identical routes stack, and superpopulation colours them:
+Grouped by route, the thirty C4 samples keep a tube per haplotype, identical
+routes stack, and superpopulation sets the colour:
 
 ![C4 with a tube per haplotype, identical routes stacked and coloured by superpopulation](../img/tube_map_c4_grouped_by_population.png)
 
@@ -120,17 +121,17 @@ tabix -p gaf reads.gaf.gz
 - A tabix index needs numeric ids. Without one the plugin reads the whole file,
   up to 50 MB
 - Only gbz-base tracks take reads
-- Up to 5000 reads a cut. Forward reads are blue and reverse red. Haplotype
-  tubes turn grey beside reads
+- The track draws up to 5000 reads a cut. Forward reads are blue and reverse
+  red. Haplotype tubes turn grey beside reads
 - The cs tag's edits draw on the reads: substituted bases, `*` for an insertion,
   grey for a deletion
 
-Eight HPRC haplotypes over MICB's exons 2–4, on the reference axis under the
+Eight HPRC haplotypes over MICB's exons 2–4 draw on the reference axis under the
 RefSeq genes, with HPRC's multiple alignment between:
 
 ![MICB's exons 2–4 as a tube map on the reference axis](../img/tube_map_micb_ref.png)
 
-The MICB cut on the own axis:
+On the own axis, the MICB cut draws as:
 
 ![MICB's exons 2–4 as a tube map track on its own axis](../img/tube_map_micb_track.png)
 
@@ -139,8 +140,8 @@ Hovering a genotype cell of a callset or MAF row lifts that haplotype's walk
 
 ![HG00133's genotype cell hovered: its tube keeps its colour and the other walks go grey](../img/tube_map_micb_row_hover.png)
 
-Reads under sequenceTubeMap's cactus test graph, with mismatches lettered. A
-haplotype index
+The track draws reads under sequenceTubeMap's cactus test graph, with mismatches
+lettered. A haplotype index
 (`gbz-haplotype-index --from-db cactus.gbz.db cactus.haplotype-index.db`) names
 the non-reference paths:
 

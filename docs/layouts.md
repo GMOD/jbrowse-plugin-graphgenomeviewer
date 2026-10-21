@@ -41,7 +41,7 @@ colour.
   a leader to the node. An allele's span runs between its flanks
 - While haplotypes are lifted, the strip gives each walk a row, pale where the
   walk skips a segment. A deletion is a pale gap
-- A triangle at either end says the graph draws reference past that edge
+- A triangle at either end marks where the graph draws reference past that edge
 - **Show... › Show reference strip** turns it off
 
 Hovering HG02391's 68 kb segment boxes its span on the strip, and the linear

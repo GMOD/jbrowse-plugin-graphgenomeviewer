@@ -1,8 +1,8 @@
 # Developing
 
-Needs [pnpm](https://pnpm.io/installation) and builds against `@jbrowse/*`
-5.0.0-beta.11. Earlier hosts fail because the plugin passes RPC calls an
-AbortSignal that older betas cannot post to a worker.
+The plugin needs [pnpm](https://pnpm.io/installation) and builds against
+`@jbrowse/*` 5.0.0-beta.11. Earlier hosts fail because the plugin passes RPC
+calls an AbortSignal that older betas cannot post to a worker.
 
 ```console
 pnpm install
