@@ -88,7 +88,7 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 `WalkFormsAdapter` groups a walk file's haplotypes by the structural changes
 their walks make over one pinned window. Core's
 `LinearMultiSampleVariantDisplay` draws a row per group, or form, labelled with
-its share of the haplotypes and its changes ("66% · 18 kb deletion"):
+its share of the haplotypes and its largest change ("66% · 18 kb del"):
 
 ```json
 {
@@ -133,12 +133,18 @@ its share of the haplotypes and its changes ("66% · 18 kb deletion"):
   and 10000 fix it. A new floor regroups the cut the adapter already read
 - `exclude` leaves samples out of every form. HPRC's GRCh38 walk file lists
   CHM13 as a haplotype
+- `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
+  the rest share an empty "other forms" row. A label's "+N" counts the form's
+  other changes, which the variants under it name
+- `walkByteBudget`, 1 MB by default, caps what the cut fetches. A pinned window
+  over it shows an error naming how much of the window fits
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
   `inversion` or `net`, which `color` paints with a key. The adapter sets a
   form's genotype to `1` at its own changes and `.` where its walks do not span
   a site
 - The display's notifications name the haplotypes whose walks the cut left
-  abridged, and those with no walk over the window
+  abridged, those with no walk over the window, and the forms in the "other
+  forms" row
 - The adapter cuts GSTM1 in about 0.5 s and LPA in 5 s, abridged walks included.
   graph-walks'
   [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
