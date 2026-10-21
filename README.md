@@ -1,7 +1,5 @@
 # jbrowse-plugin-graphgenomeviewer
 
-Pangenome graphs in JBrowse 2.
-
 - **In:** one of
   - a [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) walk file
     (`<prefix>.<sample>.walks.bed.gz` beside its `.tbi`), opened with File →
