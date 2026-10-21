@@ -23,6 +23,9 @@ const FakeDisplay = types
     setRows(rows: Record<string, unknown>[]) {
       self.sourcesBase = rows
     },
+    setSources(rows: Record<string, unknown>[]) {
+      self.sourcesBase = rows
+    },
   }))
 
 const block = (start: number, end: number) => ({
@@ -62,13 +65,31 @@ const FakeView = types
     },
   }))
 
-function makeView(adapter: Record<string, unknown>) {
-  return FakeView.create({
-    display: { adapter },
-    start: 160_600_000.4,
-    end: 160_700_000.6,
+const FakeSession = types
+  .model('FakeSession', { view: FakeView })
+  .volatile(() => ({
+    rpcManager: {},
+    configuration: {},
+    snackbarMessages: [] as { message: string }[],
+  }))
+  .actions(self => ({
+    notify(message: string) {
+      self.snackbarMessages.push({ message })
+    },
+    removeSnackbarMessage(message: string) {
+      self.snackbarMessages = self.snackbarMessages.filter(
+        m => m.message !== message,
+      )
+    },
+  }))
+
+function makeSession(adapter: Record<string, unknown>) {
+  return FakeSession.create({
+    view: { display: { adapter }, start: 160_600_000.4, end: 160_700_000.6 },
   })
 }
+
+const makeView = (adapter: Record<string, unknown>) => makeSession(adapter).view
 
 const formsAdapter = {
   type: 'WalkFormsAdapter',
@@ -183,4 +204,34 @@ test('the floor defaults to auto when the config leaves it unset', () => {
   const { display } = makeView(formsAdapter)
   expect(display.formsFloor).toBe('auto')
   expect(display.adapterConfig).toEqual(formsAdapter)
+})
+
+test("a floor change or new rows take down the old window's warnings", () => {
+  const session = makeSession(formsAdapter)
+  const { display } = session.view
+  const lpa = 'Forms of chr6:160,525,001-160,655,000: 3 smaller forms'
+  session.notify(lpa)
+  session.notify('Another track: a warning of its own')
+  item(display.trackMenuItems(), 'Hide changes under')
+    .subMenu!.find(i => i.label === '10 kb')!
+    .onClick()
+  expect(session.snackbarMessages.map(m => m.message)).toEqual([
+    'Another track: a warning of its own',
+  ])
+
+  session.notify(lpa)
+  display.setSources([{ name: 'F1' }])
+  expect(display.sourcesBase).toEqual([{ name: 'F1' }])
+  expect(session.snackbarMessages).toHaveLength(1)
+})
+
+test("a re-pin takes down the old window's warnings", () => {
+  const session = makeSession(formsAdapter)
+  const { display } = session.view
+  display.setSources([{ name: 'F1' }])
+  session.notify('Forms of chr6:160,525,001-160,655,000: 3 smaller forms')
+  item(display.trackMenuItems(), 'Re-pin to visible region').onClick()
+  session.notify('Forms of chr6:160,600,001-160,700,001: 2 smaller forms')
+  display.setSources([{ name: 'F1' }, { name: 'F2' }])
+  expect(session.snackbarMessages).toEqual([])
 })

@@ -159,7 +159,9 @@ test('maxForms gives the smaller forms one empty row', async () => {
   const adapter = makeAdapter({ pinned: pinned(6), maxForms: 1 })
   const { sources, warnings } = await adapter.getSourcesAndWarnings()
   expect(sources.map(s => s.label)).toEqual(['33% · ref', 'other forms · 67%'])
-  expect(warnings).toHaveLength(1)
+  expect(warnings).toEqual([
+    expect.stringMatching(/^Forms of chr1:7-3,600: 2 smaller forms/),
+  ])
   expect(placeholders(await featuresOf(adapter))).toEqual([
     { start: 0, end: 1, genotypes: { F1: '0' } },
   ])

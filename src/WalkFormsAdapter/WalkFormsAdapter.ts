@@ -18,7 +18,7 @@ import {
   formWarnings,
   referenceGenotypes,
 } from './formRows.ts'
-import { floorOf, pinnedLocus, pinnedOf } from './pinned.ts'
+import { floorOf, pinnedLocus, pinnedOf, warningPrefix } from './pinned.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 
 import type { WalkFormsAdapterConfig } from './configSchema.ts'
@@ -161,9 +161,10 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
    */
   async getSourcesAndWarnings(opts: BaseOptions = {}) {
     const result = await this.forms(opts)
+    const prefix = warningPrefix(this.pinned())
     return {
       sources: formSources(result, this.maxForms()),
-      warnings: formWarnings(result, this.maxForms()),
+      warnings: formWarnings(result, this.maxForms()).map(w => prefix + w),
     }
   }
 

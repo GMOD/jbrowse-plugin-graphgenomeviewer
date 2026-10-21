@@ -1,16 +1,16 @@
 import { readConfObject } from '@jbrowse/core/configuration'
 import { DisplayType } from '@jbrowse/core/pluggableElementTypes'
-import { getContainingView } from '@jbrowse/core/util'
+import { getContainingView, getSession } from '@jbrowse/core/util'
 import { types } from '@jbrowse/mobx-state-tree'
 
-import { floorOf, pinnedLocus, pinnedOf } from './pinned.ts'
+import { floorOf, pinnedLocus, pinnedOf, warningPrefix } from './pinned.ts'
 import { hostWindow, isLinearHost } from '../GraphGenomeView/host.ts'
 
 import type { FloorBp, Pinned } from './pinned.ts'
 import type PluginManager from '@jbrowse/core/PluginManager'
 import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { MenuItem } from '@jbrowse/core/ui'
-import type { IAnyModelType } from '@jbrowse/mobx-state-tree'
+import type { IAnyModelType, IAnyStateTreeNode } from '@jbrowse/mobx-state-tree'
 
 export const FORMS_DISPLAYS = ['LinearMultiSampleVariantDisplay']
 
@@ -31,6 +31,25 @@ interface FormsHost {
   parentTrack: { configuration: AnyConfigurationModel }
   sourcesBase?: Record<string, unknown>[]
   trackMenuItems: () => MenuItem[]
+  setSources?: (sources: unknown, adapterConfig?: unknown) => void
+}
+
+interface Snackbar {
+  snackbarMessages?: { message: string }[]
+  removeSnackbarMessage?: (message: string) => void
+}
+
+function clearWarnings(
+  node: IAnyStateTreeNode,
+  windows: (Pinned | undefined)[],
+) {
+  const session = getSession(node) as unknown as Snackbar
+  const prefixes = windows.flatMap(w => (w ? [warningPrefix(w)] : []))
+  for (const { message } of [...(session.snackbarMessages ?? [])]) {
+    if (prefixes.some(p => message.startsWith(p))) {
+      session.removeSnackbarMessage?.(message)
+    }
+  }
 }
 
 /**
@@ -93,14 +112,34 @@ export function withFormsMenu(model: IAnyModelType) {
           : undefined
       },
     }))
-    .actions(self => ({
-      setFormsPinned(pinned: Pinned) {
-        self.formsPinned = pinned
-      },
-      setFormsFloorBp(floorBp: FloorBp) {
-        self.formsFloorBp = floorBp
-      },
+    .volatile(() => ({
+      warnedWindow: undefined as Pinned | undefined,
     }))
+    .actions(self => {
+      const { setSources: superSetSources } = self as unknown as FormsHost
+      const clearFormsWarnings = () => {
+        clearWarnings(self, [self.warnedWindow, self.formsWindow])
+      }
+      return {
+        setFormsPinned(pinned: Pinned) {
+          clearFormsWarnings()
+          self.formsPinned = pinned
+        },
+        setFormsFloorBp(floorBp: FloorBp) {
+          clearFormsWarnings()
+          self.formsFloorBp = floorBp
+        },
+        // Core posts the new forms' warnings right after this, so the old
+        // ones come down first
+        setSources(sources: unknown, adapterConfig?: unknown) {
+          if (self.walkForms) {
+            clearFormsWarnings()
+            self.warnedWindow = self.formsWindow
+          }
+          superSetSources?.(sources, adapterConfig)
+        },
+      }
+    })
     .views(self => {
       const { trackMenuItems: superTrackMenuItems } =
         self as unknown as FormsHost

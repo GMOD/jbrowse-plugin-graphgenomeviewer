@@ -26,3 +26,8 @@ const n = (x: number) => x.toLocaleString('en-US')
 // 1-based and closed, as a locus box reads
 export const pinnedLocus = ({ refName, start, end }: Pinned) =>
   `${refName}:${n(start + 1)}-${n(end)}`
+
+// Names the window in each warning toast, so a re-pin or floor change can take
+// the old ones down
+export const warningPrefix = (pinned: Pinned) =>
+  `Forms of ${pinnedLocus(pinned)}: `
