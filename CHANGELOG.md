@@ -1,3 +1,14 @@
+## [7.4.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.2...v7.4.3) (2026-10-21)
+
+### Other Changes
+
+- Name each input file in the README and lead Quick start with a walk file ([ee5ec17](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ee5ec1735e20a1f0c6fb3f066a7fc0791864b8fc))
+- Swap the README's full-size screenshots for a card gallery and list maize.md ([7238103](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7238103bc0f8b43a0a6d5c4530140bee720d4779))
+- Lead data.md with walk files and drop the bandage-core 11.6.1 history ([8a12e9f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8a12e9f43e4b4463370a3604daf516fd4ae356f3))
+- Open haplotypes.md on where walks come from, walk files first ([e3be369](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e3be3690a60594900ab36771851aa0fe33bedd16))
+- Give drawn things literal verbs and fragment captions a subject in the docs ([4ba3794](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4ba3794183d8c21d7d5c85bd23fca6cf0b57aa7c))
+- Take bandage-core 11.7.3 and fold a cut as a cut ([f6decc7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f6decc73eff5476dbece8a30ba46d6cd34cf0535))
+
 ## [7.4.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.1...v7.4.2) (2026-10-21)
 
 ### Other Changes
