@@ -28,6 +28,29 @@ from. Hovering a variant's box bands its bp in the linear view:
 
 ![MICB's exons 2–4 as a graph genome view, a variant's box hovered and its bp banded in the linear view above](../img/tube_map_micb.png)
 
+Eight HPRC haplotypes over MICB's exons 2–4 draw on the reference axis under the
+RefSeq genes, with HPRC's multiple alignment between:
+
+![MICB's exons 2–4 as a tube map on the reference axis](../img/tube_map_micb_ref.png)
+
+On the own axis, the MICB cut draws as:
+
+![MICB's exons 2–4 as a tube map track on its own axis](../img/tube_map_micb_track.png)
+
+Hovering a genotype cell of a callset or MAF row lifts that haplotype's walk
+(MAF needs a JBrowse release after 5.0.0-beta.10):
+
+![HG00133's genotype cell hovered: its tube keeps its colour and the other walks go grey](../img/tube_map_micb_row_hover.png)
+
+## Box colour
+
+- A tube map's boxes are clear under Auto, because the tubes' hues tell paths
+  apart
+- Pick a scheme under **Color** and each box takes the colour the other layouts
+  give its node. Under **Reference position** that is its hue on the ramp the
+  linear view's segments share, charcoal off the reference, and the tubes turn
+  grey
+
 ## Fold variants
 
 **Fold variants** folds every variant under a size into the reference, as in
@@ -106,20 +129,6 @@ A gbz-base track draws GAF reads under the haplotypes in both tube map layouts.
   red. Haplotype tubes turn grey beside reads
 - The cs tag's edits draw on the reads: substituted bases, `*` for an insertion,
   grey for a deletion
-
-Eight HPRC haplotypes over MICB's exons 2–4 draw on the reference axis under the
-RefSeq genes, with HPRC's multiple alignment between:
-
-![MICB's exons 2–4 as a tube map on the reference axis](../img/tube_map_micb_ref.png)
-
-On the own axis, the MICB cut draws as:
-
-![MICB's exons 2–4 as a tube map track on its own axis](../img/tube_map_micb_track.png)
-
-Hovering a genotype cell of a callset or MAF row lifts that haplotype's walk
-(MAF needs a JBrowse release after 5.0.0-beta.10):
-
-![HG00133's genotype cell hovered: its tube keeps its colour and the other walks go grey](../img/tube_map_micb_row_hover.png)
 
 The track draws reads under sequenceTubeMap's cactus test graph, with mismatches
 lettered. A haplotype index
