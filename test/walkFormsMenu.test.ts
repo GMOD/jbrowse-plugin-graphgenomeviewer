@@ -157,14 +157,14 @@ function menuLabels(page: Page) {
   )
 }
 
-// No test waits for the app to settle away from the pinned window: core
+// No test waits for the app to settle away from the pinned window, since core
 // before 5.0.0-beta.14 never finishes loading a window with no records
 describe.skipIf(!runE2E)('the forms track menu at LPA', () => {
   let browser: Browser
   let page: Page
   // The adapter reports "Cutting walks" only while it cuts, so the statuses
-  // count cuts. The walk file's requests can't: core's range cache answers a
-  // re-read without the network.
+  // count cuts. Core's range cache answers a re-read of the walk file without
+  // the network, so its requests undercount them.
   const statuses = new Set<string>()
 
   beforeAll(async () => {

@@ -34,10 +34,10 @@ interface FormsHost {
 }
 
 /**
- * Pins a WalkFormsAdapter track's display to a window and floor of its own,
- * held in display state and sent in the adapter config with each request. The
- * session keeps them, and the track's RPC session id, which a config edit
- * would change, keeps every request on the worker that holds the cut.
+ * Gives a WalkFormsAdapter track's display a pinned window and floor of its
+ * own, which the display stores in the session and sends in the adapter config
+ * with each request. A config edit would change the track's RPC session id
+ * and move the requests to a worker without the cut; display state leaves it.
  */
 export function withFormsMenu(model: IAnyModelType) {
   return model

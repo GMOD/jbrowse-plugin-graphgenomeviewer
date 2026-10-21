@@ -145,6 +145,15 @@ its share of the haplotypes and its largest change ("66% · 18 kb del"):
 - The display's notifications name the haplotypes whose walks the cut left
   abridged, those with no walk over the window, and the forms in the "other
   forms" row
+- The track menu shows the pinned window and its form count, "Re-pin to visible
+  region" and "Hide changes under: Auto / 50 bp / 1 kb / 10 kb". Panning and
+  zooming never change the forms; only a re-pin does
+- The display stores a re-pin or a floor in the session and sends it in place of
+  the config's `pinned` and `floorBp`. A new floor regroups the cut without
+  reading the walk file again
+- A re-pin over `walkByteBudget` shows the error in place of the rows. Before
+  JBrowse 5.0.0-beta.14, a view with no change in it, such as one outside the
+  pinned window, shows "Loading" indefinitely
 - The adapter cuts GSTM1 in about 0.5 s and LPA in 5 s, abridged walks included.
   graph-walks'
   [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
