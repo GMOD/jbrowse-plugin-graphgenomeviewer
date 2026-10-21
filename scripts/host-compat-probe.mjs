@@ -2,8 +2,9 @@
 //
 // Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each,
 // shows the graph track in a linear view and reads the walk lane track into
-// a synteny view, failing if a host error-pages, never registers the view,
-// cannot cut, or cannot draw either. The tutorials name the plugin by its
+// a synteny view, and draws a structural forms track, failing if a host
+// error-pages, never registers the view, cannot cut, or cannot draw any of
+// them. The tutorials name the plugin by its
 // jbrowse.org url, so a publish is a live change to every reader's session,
 // and the failures this catches pass tsc, eslint and the unit tests: an RPC
 // argument a released core cannot post to its worker, a re-export the host no
@@ -49,6 +50,27 @@ const SYNTENY_VIEWS = [
   { assembly: 'hg38', loc: 'chr1:109,670,000-109,705,000' },
   { assembly: 'HG00133.1', loc: 'CM090045.1:109,741,100-109,757,750' },
 ]
+// A structural forms track at GSTM1, the docs' example, whose cut takes about
+// half a second
+const FORMS_TRACK = {
+  type: 'VariantTrack',
+  trackId: 'probe_walk_forms',
+  name: 'Structural forms at GSTM1',
+  assemblyNames: ['hg38'],
+  adapter: {
+    type: 'WalkFormsAdapter',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5.GRCh38',
+    pinned: { refName: 'chr1', start: 109_680_000, end: 109_715_000 },
+    exclude: ['CHM13'],
+  },
+  displays: [
+    {
+      type: 'LinearMultiSampleVariantDisplay',
+      displayId: 'probe_walk_forms-display',
+    },
+  ],
+}
+const FORMS_LOCUS = 'chr1:109,680,001-109,715,000'
 
 const { values } = parseArgs({
   options: {
@@ -244,6 +266,39 @@ async function probeOne(browser, version) {
         timeout,
       )
     }
+    // The forms track draws through core's multi-sample variant display, which
+    // none of the steps above touch, and its menu comes from this plugin's
+    // extension of that display type
+    if (result.viewRegistered) {
+      result.forms = await page.evaluate(
+        async ({ track, locus }, ms) => {
+          const session = window.JBrowseSession
+          session.addTrackConf(track)
+          const view = session.addView('LinearGenomeView', {
+            init: { assembly: 'hg38', loc: locus, tracks: [track.trackId] },
+          })
+          const deadline = Date.now() + ms
+          const display = () => view.tracks[0]?.displays[0]
+          while (Date.now() < deadline) {
+            const d = display()
+            if (d?.error || (d?.sourcesBase?.length && d.cellData)) {
+              break
+            }
+            await new Promise(r => setTimeout(r, 250))
+          }
+          const d = display()
+          const labels = d?.trackMenuItems?.().map(i => i.label) ?? []
+          return {
+            rows: d?.sourcesBase?.length ?? 0,
+            cells: !!d?.cellData,
+            menu: labels.includes('Re-pin to visible region'),
+            error: d?.error ? String(d.error).slice(0, 300) : undefined,
+          }
+        },
+        { track: FORMS_TRACK, locus: FORMS_LOCUS },
+        timeout,
+      )
+    }
   } catch (e) {
     result.threw = String(e).slice(0, 300)
   }
@@ -289,6 +344,15 @@ function failure(r) {
   if (!r.synteny?.features) {
     return 'the synteny view on the walk lane track read no features'
   }
+  if (r.forms?.error !== undefined) {
+    return `the structural forms track failed: ${r.forms.error}`
+  }
+  if (!r.forms?.rows || !r.forms.cells) {
+    return 'the structural forms track drew no rows'
+  }
+  if (!r.forms.menu) {
+    return "the structural forms track's menu has no re-pin item, so the display extension did not attach"
+  }
   return undefined
 }
 
@@ -308,7 +372,7 @@ for (const version of versions) {
   console.log(
     `${version.padEnd(14)} ${
       bad ??
-      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}, synteny read ${r.synteny.features}`
+      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}, synteny read ${r.synteny.features}, ${r.forms.rows} form rows`
     }`,
   )
   if (bad) {
@@ -325,5 +389,5 @@ if (broken.length > 0) {
   process.exit(1)
 }
 console.log(
-  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage, drew the track in a linear view and read walk lane synteny.',
+  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage, drew the track in a linear view, read walk lane synteny and drew structural forms.',
 )
