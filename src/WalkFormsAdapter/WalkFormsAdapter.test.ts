@@ -1,5 +1,5 @@
 import PluginManager from '@jbrowse/core/PluginManager'
-import { formsCut } from '@jbrowse/graph-walks'
+import { ExpansionTooLargeError, formsCut } from '@jbrowse/graph-walks'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -68,9 +68,14 @@ test('one source per form, labelled by share and change', async () => {
   const adapter = makeAdapter({ pinned: pinned(1) })
   expect(await adapter.getSourcesAndWarnings()).toEqual({
     sources: [
-      { name: 'F1', label: '33% · reference', haplotypes: 1, forms: 1 },
-      { name: 'F2', label: '33% · 600 bp repl', haplotypes: 1, forms: 1 },
-      { name: 'F3', label: '33% · 580 bp del', haplotypes: 1, forms: 1 },
+      { name: 'F1', label: '33% · ref', haplotypes: 1, forms: 1 },
+      {
+        name: 'F2',
+        label: '33% · repl 600bp->550bp',
+        haplotypes: 1,
+        forms: 1,
+      },
+      { name: 'F3', label: '33% · del 580bp', haplotypes: 1, forms: 1 },
     ],
     warnings: [],
   })
@@ -120,7 +125,7 @@ test('a floor change regroups the cut without cutting again', async () => {
   const coarse = makeAdapter({ pinned: pinned(4), floorBp: 1000 })
   expect((await fine.getSourcesAndWarnings()).sources).toHaveLength(3)
   expect((await coarse.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · reference', haplotypes: 3, forms: 1 },
+    { name: 'F1', label: '100% · ref', haplotypes: 3, forms: 1 },
   ])
   expect(await featuresOf(coarse)).toEqual([])
   expect(formsCut).toHaveBeenCalledTimes(1)
@@ -129,7 +134,7 @@ test('a floor change regroups the cut without cutting again', async () => {
 test('exclude leaves samples out of every form', async () => {
   const adapter = makeAdapter({ pinned: pinned(5), exclude: ['HG002'] })
   expect((await adapter.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · reference', haplotypes: 1, forms: 1 },
+    { name: 'F1', label: '100% · ref', haplotypes: 1, forms: 1 },
   ])
 })
 
@@ -137,7 +142,7 @@ test('maxForms gives the smaller forms one empty row', async () => {
   const adapter = makeAdapter({ pinned: pinned(6), maxForms: 1 })
   const { sources, warnings } = await adapter.getSourcesAndWarnings()
   expect(sources.map(s => s.label)).toEqual([
-    '33% · reference',
+    '33% · ref',
     'other forms · 67%',
   ])
   expect(warnings).toHaveLength(1)
@@ -152,6 +157,25 @@ test('a pinned window past walkByteBudget says so, without a zoom-in notice', as
   expect(error).not.toHaveProperty('regionTooLarge')
   expect(`${error}`).toMatch(
     /^Error: The pinned window chr1:8-3,600 is too large to cut for structural forms: .*walkByteBudget, 0\.0 MB\. .*Raise walkByteBudget$/,
+  )
+})
+
+test('a window whose walks are too many to read in full says so', async () => {
+  vi.mocked(formsCut).mockClear()
+  vi.mocked(formsCut).mockRejectedValueOnce(
+    new ExpansionTooLargeError(24_000_000, 16_000_000, 3592),
+  )
+  const error = await makeAdapter({ pinned: pinned(9) })
+    .getSourcesAndWarnings()
+    .catch((e: unknown) => e)
+  expect(formsCut).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.anything(),
+    expect.objectContaining({ partial: false }),
+  )
+  expect(error).not.toHaveProperty('regionTooLarge')
+  expect(`${error}`).toBe(
+    'Error: The pinned window chr1:10-3,600 is too large to read every walk in full for structural forms: its walks take 24.0 M steps, over the 16.0 M step budget, and about 2.39Kbp of it fits. Pin a narrower window',
   )
 })
 

@@ -2,9 +2,9 @@ import {
   NO_CALL_STATE,
   RARER_STATE,
   REFERENCE_STATE,
-  changeName,
   formStateAt,
   formTag,
+  markTag,
 } from '@jbrowse/graph-walks'
 
 import type { Mark, MarkKind, StructuralForms } from '@jbrowse/graph-walks'
@@ -53,8 +53,13 @@ const KINDS: Record<
   },
 }
 
+// A lopsided replacement colours by the side graph-walks names, which its net
+// sign agrees with; any other change by its net sign
+const sideOf = (m: Mark) =>
+  m.lopsided ?? (m.delta < 0 ? 'deletion' : 'insertion')
+
 const consequenceOf = (m: Mark): Consequence =>
-  KINDS[m.kind].consequence ?? (m.delta < 0 ? 'loss' : 'gain')
+  KINDS[m.kind].consequence ?? (sideOf(m) === 'deletion' ? 'loss' : 'gain')
 
 export const formName = (i: number) => `F${i + 1}`
 
@@ -76,7 +81,7 @@ const sum = (forms: StructuralForms['forms']) =>
   forms.reduce((n, f) => n + f.members.length, 0)
 
 /**
- * One row per form, largest first, labelled "66% · 18 kb del". Past
+ * One row per form, largest first, labelled "66% · del 18.4kb". Past
  * `maxForms` the rest share one empty "other forms" row. A row's `forms`
  * counts the forms it holds, so the rows sum to the window's forms.
  */
@@ -89,7 +94,7 @@ export function formSources(
   return [
     ...result.forms.slice(0, shown).map((f, i) => ({
       name: formName(i),
-      label: `${percent(f.members.length, result.placed)} · ${formTag(f)}`,
+      label: `${percent(f.members.length, result.placed)} · ${formTag(f, result)}`,
       haplotypes: f.members.length,
       forms: 1,
     })),
@@ -201,7 +206,7 @@ export function formVariants(
             ? state.marks.map((mark, k) => ({
                 id: `${s}:${state.key}:${k}`,
                 ...drawnSpan(mark),
-                name: changeName(mark),
+                name: markTag(mark),
                 description: `${carriers} of ${haplotypeCount(placed)}`,
                 ...KINDS[mark.kind],
                 consequence: consequenceOf(mark),

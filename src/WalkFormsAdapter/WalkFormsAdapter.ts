@@ -2,6 +2,7 @@ import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import {
+  ExpansionTooLargeError,
   RegionTooLargeError,
   WalkReader,
   bpString,
@@ -24,6 +25,8 @@ import type { HaplotypeDepartures, StructuralForms } from '@jbrowse/graph-walks'
 
 const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
 
+const millions = (n: number) => `${(n / 1_000_000).toFixed(1)} M`
+
 // A zoom-in notice would mislead, since the view's zoom does not move the
 // pinned window
 function pinnedTooLarge(error: unknown, pinned: Pinned) {
@@ -31,6 +34,11 @@ function pinnedTooLarge(error: unknown, pinned: Pinned) {
     return error
   }
   const window = pinnedLocus(pinned)
+  if (error instanceof ExpansionTooLargeError) {
+    return new Error(
+      `The pinned window ${window} is too large to read every walk in full for structural forms: its walks take ${millions(error.steps)} steps, over the ${millions(error.limit)} step budget, and about ${bpString(error.fitsBp)} of it fits. Pin a narrower window`,
+    )
+  }
   const budget = `walkByteBudget, ${megabytes(error.limit)}`
   return new Error(
     `The pinned window ${window} is too large to cut for structural forms: ${
@@ -104,7 +112,9 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
   }
 
   // Read once per adapter, and so once per floor and exclude list. The cut
-  // takes no caller's signal, since every later caller shares it.
+  // takes no caller's signal, since every later caller shares it. A partial
+  // expansion would leave some walks as net changes over a whole chunk, so a
+  // window too large to read them all errors instead.
   private forms(opts: BaseOptions) {
     if (!this.formsRead) {
       const pinned = this.pinned()
@@ -112,7 +122,7 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
       const byteBudget = this.getConf('walkByteBudget')
       const read = cachedCut(`${key}\t${byteBudget}`, () =>
         updateStatus('Cutting walks', opts.statusCallback, () =>
-          formsCut(this.reader, pinned, { byteBudget }).catch(
+          formsCut(this.reader, pinned, { byteBudget, partial: false }).catch(
             (error: unknown) => {
               throw pinnedTooLarge(error, pinned)
             },

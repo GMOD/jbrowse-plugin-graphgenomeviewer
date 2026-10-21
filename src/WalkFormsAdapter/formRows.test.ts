@@ -109,7 +109,31 @@ test('a replacement is one variant over its REF span', () => {
       delta: 1400,
     }),
   )
-  expect(v.name).toBe('600 bp replaced by 2 kb')
+  expect(v.name).toBe('repl 600bp->2kb')
+})
+
+test('a lopsided replacement colours as the side it nearly is', () => {
+  const forms = structuralForms(
+    [
+      haplotype('A#1', [departure(2000, 8460, 94)]),
+      haplotype('B#1', [departure(12_000, 12_178, 13_900)]),
+      haplotype('C#1', [departure(16_000, 16_600, 500)]),
+      haplotype('D#1', []),
+    ],
+    { window },
+  )
+  expect(
+    formVariants(forms).map(v => [
+      v.name,
+      v.mark.kind,
+      v.mark.lopsided,
+      v.consequence,
+    ]),
+  ).toEqual([
+    ['del 6.46kb->94bp', 'replacement', 'deletion', 'loss'],
+    ['ins 178bp->13.9kb', 'replacement', 'insertion', 'gain'],
+    ['repl 600bp->500bp', 'replacement', undefined, 'loss'],
+  ])
 })
 
 test('genotypes are 1 in the forms carrying a state, 0 in the rest', () => {
@@ -135,13 +159,11 @@ test('sources are the forms, labelled by share and largest change', () => {
   expect(sources).toHaveLength(result.forms.length)
   expect(sources[0]).toEqual({
     name: 'F1',
-    label: '14% · 2 kb del +1',
+    label: '14% · del 2kb +1',
     haplotypes: 2,
     forms: 1,
   })
-  expect(sources.find(s => s.name === formOf('G#1'))?.label).toBe(
-    '7% · reference',
-  )
+  expect(sources.find(s => s.name === formOf('G#1'))?.label).toBe('7% · ref')
 })
 
 test('past maxForms the smaller forms share one empty row', () => {
@@ -189,8 +211,8 @@ test('a change every form shares is a variant carried by all of them', () => {
     { window },
   )
   expect(formSources(forms).map(s => s.label)).toEqual([
-    '67% · +800 bp +1',
-    '33% · 500 bp del',
+    '67% · ins 800bp',
+    '33% · shared',
   ])
   expect(
     formVariants(forms).map(v => [v.start, v.consequence, v.genotypes]),
@@ -223,8 +245,8 @@ test('a state of several marks is a variant per mark, carried alike', () => {
       .map(v => [v.start, v.end, v.name, v.genotypes])
       .sort((a, b) => Number(a[0]) - Number(b[0])),
   ).toEqual([
-    [1900, 3200, '1.3 kb deletion', carriedBy('B#1')],
-    [2000, 2600, '600 bp deletion', carriedBy('A#1')],
-    [2660, 2661, '900 bp insertion', carriedBy('A#1')],
+    [1900, 3200, 'del 1.3kb', carriedBy('B#1')],
+    [2000, 2600, 'del 600bp', carriedBy('A#1')],
+    [2660, 2661, 'ins 900bp', carriedBy('A#1')],
   ])
 })
