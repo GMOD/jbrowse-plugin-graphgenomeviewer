@@ -99,28 +99,9 @@ routes stack, and superpopulation sets the colour:
 
 ## Reads
 
-A gbz-base track draws GAF reads under the haplotypes in both tube map layouts:
+A gbz-base track draws GAF reads under the haplotypes in both tube map layouts.
+[data.md](data.md#reads) sets up the reads file.
 
-```json
-{
-  "type": "GbzBaseSyntenyAdapter",
-  "uri": "graph.gbz.db",
-  "reads": "reads.gaf.gz",
-  "assemblyNames": ["hg38"]
-}
-```
-
-```console
-vg giraffe -Z graph.gbz -f reads.fq -o gaf > reads.gaf
-vg gamsort -G reads.gaf | bgzip > reads.gaf.gz
-tabix -p gaf reads.gaf.gz
-```
-
-- Minigraph and GraphAligner GAF work if step names are the cut's segment names
-  (numeric ids, or `vg giraffe --named-coordinates`)
-- A tabix index needs numeric ids. Without one the plugin reads the whole file,
-  up to 50 MB
-- Only gbz-base tracks take reads
 - The track draws up to 5000 reads a cut. Forward reads are blue and reverse
   red. Haplotype tubes turn grey beside reads
 - The cs tag's edits draw on the reads: substituted bases, `*` for an insertion,

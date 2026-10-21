@@ -1,64 +1,37 @@
 # Data and track config
 
-A graph track reads one window of a graph at a time from a gfa-to-tabix walk
-file (`.walks.bed.gz`), a gfa-to-tabix segments index (`.segs.bed.gz`) or a
-gbz-base database (`.gbz.db`). A GFA small enough to load whole opens with **Add
-→ Graph genome view**.
+A graph track reads one window of a graph at a time. Use a walk file where you
+can:
+
+- **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
+  format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
+  from 1.4
+- **Segments index** (`.segs.bed.gz`): gfa-to-tabix's index of an rGFA or plain
+  GFA
+- **gbz-base database** (`.gbz.db`): the one source that takes GAF
+  [reads](#reads)
+- **GFA** small enough to load whole: opens with **Add → Graph genome view**
 
 Build the graph with [minigraph](https://github.com/lh3/minigraph) (rGFA),
 [pggb](https://github.com/pangenome/pggb) or
 [Minigraph-Cactus](https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/pangenome.md)
 (GFA and GBZ), then index it. [vg](https://github.com/vgteam/vg) 1.69.0 or later
-covers the GBZ steps.
+covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 
-| Data                         | Commands                                                                                          | Adapter                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
-| rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                               | `RgfaTabixAdapter`                                               |
-| Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                            | `RgfaTabixAdapter`                                               |
-| Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index  | alignments track                                                 |
-| gbz-base database            | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`                                          | `GbzBaseSyntenyAdapter`                                          |
-| Reads                        | `vg giraffe -o gaf`, `vg gamsort -G`, `bgzip`, `tabix`                                            | `reads` on a gbz-base adapter                                    |
-| Minigraph paths per assembly | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)                                     | one row per bubble and sample                                    |
+| Data                         | Commands                                                                                                 | Adapter                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (1.4+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
+| rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                                      | `RgfaTabixAdapter`                                               |
+| Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                                   | `RgfaTabixAdapter`                                               |
+| Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index         | alignments track                                                 |
+| gbz-base database            | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`                                                 | `GbzBaseSyntenyAdapter`                                          |
+| Reads                        | see [Reads](#reads)                                                                                      | `reads` on a gbz-base adapter                                    |
+| Minigraph paths per assembly | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)                                            | one row per bubble and sample                                    |
 
 `gfa-to-tabix build` calls [gfatools](https://github.com/lh3/gfatools) for
 bubbles and writes `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`,
 `.alleles.bed.gz`, a coarse tier, a `.graph.json` manifest and a track config.
 For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
-
-## syng graphs from impg
-
-[impg](https://github.com/pangenome/impg) builds a
-[syng](https://github.com/richarddurbin/syng) syncmer index with no alignment
-step, and `impg query -o gfa:syng` cuts a region from it as a blunt GFA that
-opens like any other.
-
-![C4 as a syng graph, with walk rows: HG02080's 51 kb haplotype goes round the loop once, GRCh38 twice and HG01978's 116 kb haplotype three times](../img/syng_c4.png)
-
-[test_data/syng/build.sh](../test_data/syng/build.sh) builds this graph from
-odgi's 90 C4 haplotypes, and
-`npx -p @jbrowse/bandage-core bandage-figure test_data/syng/c4.json` draws it.
-Three quirks of impg 0.5.0's output, which the script works around:
-
-- impg puts a reverse-complemented haplotype on nodes of its own, splitting the
-  graph in two, so orient the input to one strand
-- impg leaves the query path out of the output, so query from a path you can
-  spare
-- Path names nest a range in a range (`chr6:31972046-32055647:0-83601`), and the
-  walk keys read only the last one
-
-GRCh38 has C4A and C4B, two copies of a 32.7 kb module, and syng folds both onto
-one copy's nodes. GRCh38 walks the ring twice, and a haplotype's copy count is
-how often it goes round:
-
-- A node takes the colour of GRCh38's first visit, so the ring shows C4A's hues.
-  The blue specks are nodes GRCh38 walks only in C4B, where C4B differs from C4A
-- A walk row follows each copy to the GRCh38 copy it continues, and switches
-  where it walks a node only C4A or only C4B holds. GRCh38's own row stays a
-  smooth gradient
-- A syng branch repeats the reference's sequence on both sides of a variant, so
-  a SNP draws as an off-path run of tens of bp, the charcoal specks on the ring,
-  where a pggb graph draws a 1 bp bubble
 
 ## Opening tracks
 
@@ -108,3 +81,29 @@ how often it goes round:
 - The track menu picks layout, colour and highlighted haplotypes, and switches
   to the segments lane or, for `GbzBaseSyntenyAdapter` and
   `WalkTabixSyntenyAdapter`, the haplotype lanes
+
+## Reads
+
+A gbz-base adapter's `reads` names a GAF file, which both tube map layouts draw
+under the haplotypes ([tube-maps.md](tube-maps.md#reads)):
+
+```json
+{
+  "type": "GbzBaseSyntenyAdapter",
+  "uri": "graph.gbz.db",
+  "reads": "reads.gaf.gz",
+  "assemblyNames": ["hg38"]
+}
+```
+
+```console
+vg giraffe -Z graph.gbz -f reads.fq -o gaf > reads.gaf
+vg gamsort -G reads.gaf | bgzip > reads.gaf.gz
+tabix -p gaf reads.gaf.gz
+```
+
+- Only gbz-base tracks take reads
+- Minigraph and GraphAligner GAF work if step names are the cut's segment names
+  (numeric ids, or `vg giraffe --named-coordinates`)
+- A tabix index needs numeric ids. Without one the plugin reads the whole file,
+  up to 50 MB
