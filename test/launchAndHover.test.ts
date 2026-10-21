@@ -27,7 +27,7 @@ import type { Browser, Page } from 'puppeteer'
 // view leaves the cut, and the hover sync paints in both directions. Unit tests
 // cannot say that a mouse over one paints in the other.
 //
-// Same opt-in as the other e2e suites; see test/README.md.
+// Same opt-in as the other e2e suites; see docs/developing.md.
 const runE2E = process.env.RUN_E2E === '1'
 
 const DISPLAY = '[data-testid="linear-graph-display"]'

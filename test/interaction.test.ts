@@ -17,7 +17,7 @@ import type { Browser, Page } from 'puppeteer'
 // the renderer's colour override against a fake 2D context. Neither says the mouse
 // is wired to any of it.
 //
-// Same opt-in as forceLayout.test.ts; see test/README.md.
+// Same opt-in as forceLayout.test.ts; see docs/developing.md.
 const runE2E = process.env.RUN_E2E === '1'
 
 // Deliberately not asserting on specific coordinates or node ids: the layout is
