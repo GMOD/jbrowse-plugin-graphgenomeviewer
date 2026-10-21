@@ -1,6 +1,7 @@
 import { structuralForms } from '@jbrowse/graph-walks'
 
 import {
+  OTHER_FORMS,
   formName,
   formSources,
   formVariants,
@@ -70,7 +71,7 @@ const departures = [
 ]
 
 const result = structuralForms(departures, { window })
-const variants = formVariants(result)
+const variants = formVariants(result, Infinity)
 
 // The form a haplotype fell into
 const formOf = (name: string) =>
@@ -129,21 +130,47 @@ test('a form whose walks do not span a site has no call there', () => {
   expect(variantAt(13_000).genotypes[formOf('E#1')]).toBe('1')
 })
 
-test('sources are the forms, labelled by share and change', () => {
-  const sources = formSources(result)
+test('sources are the forms, labelled by share and largest change', () => {
+  const sources = formSources(result, Infinity)
   expect(sources).toHaveLength(result.forms.length)
   expect(sources[0]).toEqual({
     name: 'F1',
-    label: expect.stringMatching(/^14% · /),
+    label: '14% · 2 kb del +1',
     haplotypes: 2,
   })
   expect(sources.find(s => s.name === formOf('G#1'))?.label).toBe(
-    '7% · as the reference',
+    '7% · reference',
   )
 })
 
+test('past maxForms the smaller forms share one empty row', () => {
+  expect(result.forms).toHaveLength(12)
+  const sources = formSources(result, 4)
+  expect(sources.map(s => s.name)).toEqual(['F1', 'F2', 'F3', 'F4', 'other'])
+  expect(sources.at(-1)).toEqual({
+    name: OTHER_FORMS,
+    label: 'other forms · 57%',
+    haplotypes: 8,
+  })
+  expect(formWarnings(result, 4)[0]).toBe(
+    '8 smaller forms, 8 haplotypes, share the empty "other forms" row; maxForms sets how many forms get a row of their own',
+  )
+  const capped = formVariants(result, 4)
+  expect(capped.every(v => Object.keys(v.genotypes).length === 4)).toBe(true)
+  expect(capped.every(v => Object.values(v.genotypes).includes('1'))).toBe(true)
+  expect(capped.length).toBeLessThan(variants.length)
+  expect(variantAt(1000).description).toBe(
+    capped.find(v => v.start === 1000)?.description,
+  )
+})
+
+test('one form past maxForms keeps its own row', () => {
+  expect(formSources(result, 11).map(s => s.name)).not.toContain(OTHER_FORMS)
+  expect(formSources(result, 10).at(-1)?.name).toBe(OTHER_FORMS)
+})
+
 test('warnings name the abridged and unplaced haplotypes', () => {
-  expect(formWarnings(result)).toEqual([
+  expect(formWarnings(result, Infinity)).toEqual([
     "1 haplotype kept an abridged walk past the forms cut's step budget, which shows as a net change over its span: F#2",
     '1 haplotype has no walk over the pinned window, so no form: H#1',
   ])
@@ -160,8 +187,8 @@ test('a change every form shares is a variant carried by all of them', () => {
     { window },
   )
   expect(formSources(forms).map(s => s.label)).toEqual([
-    '67% · 800 bp insertion, 500 bp deletion',
-    '33% · 500 bp deletion',
+    '67% · +800 bp +1',
+    '33% · 500 bp del',
   ])
   expect(
     formVariants(forms).map(v => [v.start, v.consequence, v.genotypes]),

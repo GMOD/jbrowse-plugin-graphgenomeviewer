@@ -68,9 +68,9 @@ test('one source per form, labelled by share and change', async () => {
   const adapter = makeAdapter({ pinned: pinned(1) })
   expect(await adapter.getSourcesAndWarnings()).toEqual({
     sources: [
-      { name: 'F1', label: '33% · as the reference', haplotypes: 1 },
-      { name: 'F2', label: '33% · 600 bp replaced by 550 bp', haplotypes: 1 },
-      { name: 'F3', label: '33% · 580 bp deletion', haplotypes: 1 },
+      { name: 'F1', label: '33% · reference', haplotypes: 1 },
+      { name: 'F2', label: '33% · 600 bp repl', haplotypes: 1 },
+      { name: 'F3', label: '33% · 580 bp del', haplotypes: 1 },
     ],
     warnings: [],
   })
@@ -120,7 +120,7 @@ test('a floor change regroups the cut without cutting again', async () => {
   const coarse = makeAdapter({ pinned: pinned(4), floorBp: 1000 })
   expect((await fine.getSourcesAndWarnings()).sources).toHaveLength(3)
   expect((await coarse.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · as the reference', haplotypes: 3 },
+    { name: 'F1', label: '100% · reference', haplotypes: 3 },
   ])
   expect(await featuresOf(coarse)).toEqual([])
   expect(formsCut).toHaveBeenCalledTimes(1)
@@ -129,8 +129,30 @@ test('a floor change regroups the cut without cutting again', async () => {
 test('exclude leaves samples out of every form', async () => {
   const adapter = makeAdapter({ pinned: pinned(5), exclude: ['HG002'] })
   expect((await adapter.getSourcesAndWarnings()).sources).toEqual([
-    { name: 'F1', label: '100% · as the reference', haplotypes: 1 },
+    { name: 'F1', label: '100% · reference', haplotypes: 1 },
   ])
+})
+
+test('maxForms gives the smaller forms one empty row', async () => {
+  const adapter = makeAdapter({ pinned: pinned(6), maxForms: 1 })
+  const { sources, warnings } = await adapter.getSourcesAndWarnings()
+  expect(sources.map(s => s.label)).toEqual([
+    '33% · reference',
+    'other forms · 67%',
+  ])
+  expect(warnings).toHaveLength(1)
+  expect(await featuresOf(adapter)).toEqual([])
+})
+
+test('a pinned window past walkByteBudget says so, without a zoom-in notice', async () => {
+  const error = await makeAdapter({ pinned: pinned(7), walkByteBudget: 1 })
+    .getSourcesAndWarnings()
+    .catch((e: unknown) => e)
+  expect(error).toBeInstanceOf(Error)
+  expect(error).not.toHaveProperty('regionTooLarge')
+  expect(`${error}`).toMatch(
+    /^Error: The pinned window chr1:8-3,600 is too large to cut for structural forms: .*walkByteBudget, 0\.0 MB\. .*Raise walkByteBudget$/,
+  )
 })
 
 test('an adapter with no pinned window says so', async () => {

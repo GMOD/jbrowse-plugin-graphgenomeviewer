@@ -2,7 +2,9 @@ import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature, updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import {
+  RegionTooLargeError,
   WalkReader,
+  bpString,
   formsCut,
   panSNContig,
   panSNMatchesPrefix,
@@ -32,6 +34,26 @@ function pinnedOf(value: unknown): Pinned | undefined {
     start! < end!
     ? { refName, start: start!, end: end! }
     : undefined
+}
+
+const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
+
+// A zoom-in notice would mislead, since the view's zoom does not move the
+// pinned window
+function pinnedTooLarge(error: unknown, pinned: Pinned) {
+  if (!(error instanceof RegionTooLargeError)) {
+    return error
+  }
+  const n = (x: number) => x.toLocaleString('en-US')
+  const window = `${pinned.refName}:${n(pinned.start + 1)}-${n(pinned.end)}`
+  const budget = `walkByteBudget, ${megabytes(error.limit)}`
+  return new Error(
+    `The pinned window ${window} is too large to cut for structural forms: ${
+      error.zoomHelps
+        ? `about ${bpString(error.fitsBp)} of it fits in ${budget}. Pin a narrower window or raise walkByteBudget`
+        : `its cut fetches ${megabytes(error.bytes ?? 0)}, over ${budget}. Raise walkByteBudget`
+    }`,
+  )
 }
 
 function floorOf(value: unknown) {
@@ -107,9 +129,14 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
     if (!this.formsRead) {
       const pinned = this.pinned()
       const key = `${JSON.stringify(this.getConf('walksLocation'))}\t${pinned.refName}:${pinned.start}-${pinned.end}`
-      const read = cachedCut(key, () =>
+      const byteBudget = this.getConf('walkByteBudget')
+      const read = cachedCut(`${key}\t${byteBudget}`, () =>
         updateStatus('Cutting walks', opts.statusCallback, () =>
-          formsCut(this.reader, pinned),
+          formsCut(this.reader, pinned, { byteBudget }).catch(
+            (error: unknown) => {
+              throw pinnedTooLarge(error, pinned)
+            },
+          ),
         ),
       ).then(departures =>
         structuralForms(departures, {
@@ -128,17 +155,25 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
     return this.formsRead
   }
 
+  private maxForms() {
+    return this.getConf('maxForms')
+  }
+
   /**
-   * One source per form, which core's multi-sample variant display draws as
-   * a row, and warnings naming the haplotypes left abridged or unplaced
+   * One source per form up to maxForms, which core's multi-sample variant
+   * display draws as a row, and warnings naming the haplotypes left
+   * abridged, unplaced or in the "other forms" row
    */
   async getSourcesAndWarnings(opts: BaseOptions = {}) {
     const result = await this.forms(opts)
-    return { sources: formSources(result), warnings: formWarnings(result) }
+    return {
+      sources: formSources(result, this.maxForms()),
+      warnings: formWarnings(result, this.maxForms()),
+    }
   }
 
   async getSources(_regions: Region[], opts: BaseOptions = {}) {
-    return formSources(await this.forms(opts))
+    return formSources(await this.forms(opts), this.maxForms())
   }
 
   private async onPinnedSequence(refName: string, opts: BaseOptions) {
@@ -154,7 +189,7 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
     return ObservableCreate<Feature>(async observer => {
       if (await this.onPinnedSequence(query.refName, opts)) {
         const result = await this.forms(opts)
-        for (const v of formVariants(result)) {
+        for (const v of formVariants(result, this.maxForms())) {
           if (v.start < query.end && v.end > query.start) {
             observer.next(
               new SimpleFeature({

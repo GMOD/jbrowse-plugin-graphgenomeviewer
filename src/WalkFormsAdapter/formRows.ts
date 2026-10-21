@@ -1,17 +1,13 @@
-import { changeName, describeForm } from '@jbrowse/graph-walks'
-
-import type {
-  Form,
-  Mark,
-  MarkKind,
-  StructuralForms,
+import {
+  NO_CALL_STATE,
+  RARER_STATE,
+  REFERENCE_STATE,
+  changeName,
+  formStateAt,
+  formTag,
 } from '@jbrowse/graph-walks'
 
-// A form's state at a site: R's structure, no call, or a rare change where
-// most haplotypes have no call (structuralForms' REFERENCE, NO_CALL, RARER)
-const REFERENCE = '0'
-const NO_CALL = '.'
-const RARER = '~'
+import type { Mark, MarkKind, StructuralForms } from '@jbrowse/graph-walks'
 
 export const CONSEQUENCES = [
   'loss',
@@ -62,24 +58,49 @@ const consequenceOf = (m: Mark): Consequence =>
 
 export const formName = (i: number) => `F${i + 1}`
 
-const placedCount = ({ forms }: StructuralForms) =>
-  forms.reduce((n, f) => n + f.members.length, 0)
+export const OTHER_FORMS = 'other'
+
+export const DEFAULT_MAX_FORMS = 8
 
 function percent(n: number, of: number) {
   const p = (100 * n) / of
   return p > 0 && p < 1 ? '<1%' : `${Math.round(p)}%`
 }
 
+// The forms drawn as rows of their own, largest first; one more than
+// `maxForms` gets its own row rather than an "other forms" row
+const shownCount = ({ forms }: StructuralForms, maxForms: number) =>
+  forms.length > maxForms + 1 ? Math.max(0, maxForms) : forms.length
+
+const sum = (forms: StructuralForms['forms']) =>
+  forms.reduce((n, f) => n + f.members.length, 0)
+
 /**
- * One row per form, largest first: "67% · 18 kb deletion"
+ * One row per form, largest first, labelled "66% · 18 kb del". Past
+ * `maxForms` the rest share one empty "other forms" row.
  */
-export function formSources(result: StructuralForms) {
-  const placed = placedCount(result)
-  return result.forms.map((f, i) => ({
-    name: formName(i),
-    label: `${percent(f.members.length, placed)} · ${describeForm(f)}`,
-    haplotypes: f.members.length,
-  }))
+export function formSources(
+  result: StructuralForms,
+  maxForms = DEFAULT_MAX_FORMS,
+) {
+  const shown = shownCount(result, maxForms)
+  const rest = result.forms.slice(shown)
+  return [
+    ...result.forms.slice(0, shown).map((f, i) => ({
+      name: formName(i),
+      label: `${percent(f.members.length, result.placed)} · ${formTag(f)}`,
+      haplotypes: f.members.length,
+    })),
+    ...(rest.length > 0
+      ? [
+          {
+            name: OTHER_FORMS,
+            label: `other forms · ${percent(sum(rest), result.placed)}`,
+            haplotypes: sum(rest),
+          },
+        ]
+      : []),
+  ]
 }
 
 const LISTED_NAMES = 5
@@ -92,8 +113,19 @@ function names(haplotypes: string[]) {
 
 const haplotypeCount = (n: number) => `${n} haplotype${n === 1 ? '' : 's'}`
 
-export function formWarnings({ abridged, unplaced }: StructuralForms) {
+export function formWarnings(
+  result: StructuralForms,
+  maxForms = DEFAULT_MAX_FORMS,
+) {
+  const { abridged, unplaced, forms } = result
+  const shown = shownCount(result, maxForms)
+  const rest = forms.slice(shown)
   return [
+    ...(rest.length > 0
+      ? [
+          `${rest.length} smaller forms, ${haplotypeCount(sum(rest))}, share the empty "other forms" row; maxForms sets how many forms get a row of their own`,
+        ]
+      : []),
     ...(abridged.length > 0
       ? [
           `${haplotypeCount(abridged.length)} kept an abridged walk past the forms cut's step budget, which shows as a net change over its span: ${names(abridged)}`,
@@ -106,12 +138,6 @@ export function formWarnings({ abridged, unplaced }: StructuralForms) {
       : []),
   ]
 }
-
-const sameMark = (a: Mark, b: Mark) =>
-  a.kind === b.kind &&
-  a.refStart === b.refStart &&
-  a.refEnd === b.refEnd &&
-  a.delta === b.delta
 
 export interface FormVariant {
   id: string
@@ -134,59 +160,52 @@ function drawnSpan({ copied, refStart, refEnd }: Mark) {
   return { start, end: Math.max(end, start + 1) }
 }
 
+const genotypeOf = (formState: string | undefined, state: string) =>
+  formState === state
+    ? '1'
+    : formState === NO_CALL_STATE || formState === RARER_STATE
+      ? '.'
+      : '0'
+
 /**
- * The marks of each changed state at a site that tells forms apart, one
- * variant each, with genotype `1` in the forms in that state, `0` in the
- * others and `.` where a form has no call or only a rarer change. A site
- * every form shares gives its marks to all of them. Edge sites, which no form
- * key holds, give none.
+ * The marks of each changed state at a site that is not an edge, one variant
+ * each, with genotype `1` in the forms in that state, `0` in the others and
+ * `.` where a form has no call or only a rarer change. Only the forms with a
+ * row of their own get a genotype, so the "other forms" row draws empty, and
+ * a state none of them carries gives no variant.
  */
-export function formVariants(result: StructuralForms): FormVariant[] {
-  const { sites, informative, forms } = result
-  const placed = placedCount(result)
-  const keyIndex = new Map(informative.map((site, i) => [site, i]))
-  return sites.flatMap((site, s) => {
-    if (site.edge) {
-      return []
-    }
-    const i = keyIndex.get(s)
-    return site.states.flatMap(state => {
-      const [first] = state.marks
-      if (state.key === REFERENCE || first === undefined) {
-        return []
-      }
-      const genotypeAt = (form: Form) => {
-        if (i === undefined) {
-          return form.marks.some(m => sameMark(m, first)) ? '1' : '0'
-        }
-        const key = form.states[i]!
-        return key === state.key
-          ? '1'
-          : key === NO_CALL || key === RARER
-            ? '.'
-            : '0'
-      }
-      const genotypes: Record<string, string> = {}
-      let carriers = 0
-      forms.forEach((form, j) => {
-        const genotype = genotypeAt(form)
-        genotypes[formName(j)] = genotype
-        if (genotype === '1') {
-          carriers += form.members.length
-        }
-      })
-      return carriers > 0
-        ? state.marks.map((mark, k) => ({
-            id: `${s}:${state.key}:${k}`,
-            ...drawnSpan(mark),
-            name: changeName(mark),
-            description: `${carriers} of ${haplotypeCount(placed)}`,
-            ...KINDS[mark.kind],
-            consequence: consequenceOf(mark),
-            mark,
-            genotypes,
-          }))
-        : []
-    })
-  })
+export function formVariants(
+  result: StructuralForms,
+  maxForms = DEFAULT_MAX_FORMS,
+): FormVariant[] {
+  const { sites, forms, placed } = result
+  const shown = shownCount(result, maxForms)
+  return sites.flatMap((site, s) =>
+    site.edge
+      ? []
+      : site.states.flatMap(state => {
+          if (state.key === REFERENCE_STATE) {
+            return []
+          }
+          const states = forms.map(f => formStateAt(result, f, s))
+          const genotypes = Object.fromEntries(
+            states
+              .slice(0, shown)
+              .map((f, j) => [formName(j), genotypeOf(f, state.key)]),
+          )
+          const carriers = sum(forms.filter((_, j) => states[j] === state.key))
+          return Object.values(genotypes).includes('1')
+            ? state.marks.map((mark, k) => ({
+                id: `${s}:${state.key}:${k}`,
+                ...drawnSpan(mark),
+                name: changeName(mark),
+                description: `${carriers} of ${haplotypeCount(placed)}`,
+                ...KINDS[mark.kind],
+                consequence: consequenceOf(mark),
+                mark,
+                genotypes,
+              }))
+            : []
+        }),
+  )
 }

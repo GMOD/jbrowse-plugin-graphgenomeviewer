@@ -1,5 +1,6 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 
+import { DEFAULT_MAX_FORMS } from './formRows.ts'
 import {
   fileLocationSlot,
   tabixIndexSchema,
@@ -21,6 +22,8 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  *
  * - The adapter cuts the pinned window once, whatever the view shows; outside
  *   it the rows stay and draw empty
+ * - The largest `maxForms` forms get a row each, labelled by share and largest
+ *   change ("66% · 18 kb del"); the rest share one empty "other forms" row
  * - A variant's `consequence` is `loss`, `gain`, `shift`, `inversion` or
  *   `net`, for colouring the cells; `svType` and `type` follow core's names
  * - `walksUri` takes the prefix of one reference's walk file and resolves
@@ -78,6 +81,26 @@ const WalkFormsAdapter = ConfigurationSchema(
     exclude: {
       type: 'stringArray',
       defaultValue: [],
+    },
+    /**
+     * #slot
+     * The most forms drawn as rows of their own, largest first. The rest
+     * share one empty "other forms" row, and a warning counts them.
+     */
+    maxForms: {
+      type: 'integer',
+      defaultValue: DEFAULT_MAX_FORMS,
+    },
+    /**
+     * #slot
+     * The most compressed bytes the forms cut fetches from the walk file, as
+     * its Tabix index estimates it before any row is read. A pinned window
+     * over it shows an error instead. 1 MB holds about 1 Mb of the MHC, whose
+     * cut takes 13 s and 0.8 GB.
+     */
+    walkByteBudget: {
+      type: 'integer',
+      defaultValue: 1_000_000,
     },
   },
   {
