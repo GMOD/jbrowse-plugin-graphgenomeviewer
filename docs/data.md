@@ -25,6 +25,7 @@ covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 | Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                                   | `RgfaTabixAdapter`                                               |
 | Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index         | alignments track                                                 |
 | gbz-base database            | `vg chains`, `gbz-base construct`, `gbz-haplotype-index`                                                 | `GbzBaseSyntenyAdapter`                                          |
+| Structural forms             | a walk file                                                                                              | `WalkFormsAdapter`, see [Structural forms](#structural-forms)    |
 | Reads                        | see [Reads](#reads)                                                                                      | `reads` on a gbz-base adapter                                    |
 | Minigraph paths per assembly | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)                                            | one row per bubble and sample                                    |
 
@@ -81,6 +82,67 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
 - The track menu picks layout, colour and highlighted haplotypes, and switches
   to the segments lane or, for `GbzBaseSyntenyAdapter` and
   `WalkTabixSyntenyAdapter`, the haplotype lanes
+
+## Structural forms
+
+`WalkFormsAdapter` groups a walk file's haplotypes by the structural changes
+their walks make over one pinned window. Core's
+`LinearMultiSampleVariantDisplay` draws a row per group, or form, labelled with
+its share of the haplotypes and its changes ("66% · 18 kb deletion"):
+
+```json
+{
+  "type": "VariantTrack",
+  "trackId": "forms_gstm1",
+  "name": "Structural forms at GSTM1",
+  "assemblyNames": ["hg38"],
+  "adapter": {
+    "type": "WalkFormsAdapter",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5.GRCh38",
+    "pinned": { "refName": "chr1", "start": 109680000, "end": 109715000 },
+    "exclude": ["CHM13"]
+  },
+  "displays": [
+    {
+      "type": "LinearMultiSampleVariantDisplay",
+      "showTree": false,
+      "shadeByDosage": false,
+      "color": {
+        "field": "consequence",
+        "scale": "categorical",
+        "domain": ["loss", "gain", "shift", "inversion", "net"],
+        "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00", "#7e6148"],
+        "labels": [
+          "Loss",
+          "Gain",
+          "Shifted, same length",
+          "Inversion",
+          "Net change, place unknown"
+        ],
+        "title": "Change"
+      }
+    }
+  ]
+}
+```
+
+- `pinned` names the window the forms come from, 0-based and half-open. The rows
+  keep the same forms wherever the view moves, and draw empty outside it
+- `floorBp` sets the smallest change that tells two forms apart: `auto`, the
+  default, picks 50 bp under 25 kb, 1 kb to 300 kb and 10 kb past it; 50, 1000
+  and 10000 fix it. A new floor regroups the cut the adapter already read
+- `exclude` leaves samples out of every form. HPRC's GRCh38 walk file lists
+  CHM13 as a haplotype
+- Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
+  `inversion` or `net`, which `color` paints with a key. The adapter sets a
+  form's genotype to `1` at its own changes and `.` where its walks do not span
+  a site
+- The display's notifications name the haplotypes whose walks the cut left
+  abridged, and those with no walk over the window
+- The adapter cuts GSTM1 in about 0.5 s and LPA in 5 s, abridged walks included.
+  graph-walks'
+  [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
+  gives the grouping rules and their measurements
 
 ## Reads
 
