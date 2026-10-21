@@ -1,7 +1,6 @@
 # Haplotypes
 
-This page covers walks: lifting them, comparing them in panels, colouring them,
-and reading them as walk rows. Walks need a gbz-base or walk-indexed graph
+Walks come from a walk file, a gbz-base database or a GFA's W or P lines
 ([data.md](data.md)).
 
 A node draws thicker the more walks visit it, and each route through a bubble is
@@ -99,12 +98,13 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   boxes instead
 - Each bar boxes genes from the assembly named by its PanSN name (`HG00097#1`).
   In the HPRC config every release 2 haplotype has one, with its CAT annotation
-- Right-click a bar to open its span in a linear view on its own assembly
+- Right-click a bar to open its span in a linear view on that haplotype's
+  assembly
 - Node lengths are not labelled while walks are lifted
 
 The **Repeat** picker tiles bars by a repeat annotation's unit and marks the
-allele a genotyper called. With the curated VNTR track, each KIV-2 bar is tiled
-by the 5,548 bp kringle: about 6 copies in GRCh38 and 27 in HG00133:
+allele a genotyper called. With the curated VNTR track, the picker tiles each
+KIV-2 bar by the 5,548 bp kringle, about 6 copies in GRCh38 and 27 in HG00133:
 
 ![KIV-2 walk rows under LPA and the curated KIV-2 annotation](../img/walk_rows_kiv2.png)
 
