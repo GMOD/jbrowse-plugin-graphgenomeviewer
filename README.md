@@ -56,14 +56,6 @@ Pangenome graphs in JBrowse 2.
 The [JBrowse tutorials](#tutorials) walk through the whole process with commands
 you can run.
 
-## What it draws
-
-![The KIV-2 array side by side: GRCh38, HG00097, HG01960 and HG00133 each followed start to end](img/force_kiv2_facet.png)
-
-![KIV-2 walk rows under LPA and the curated KIV-2 annotation](img/walk_rows_kiv2.png)
-
-![C4A and C4B as a tube per route coloured by superpopulation](img/tube_map_c4_routes_by_population.png)
-
 ## Tutorials
 
 In the [JBrowse 2 docs](https://jbrowse.org/jb2/docs/tutorials/):
@@ -89,7 +81,24 @@ In reading order:
 3. [Haplotypes](docs/haplotypes.md): lifting, panels, colouring, walk rows
 4. [Tube maps](docs/tube-maps.md): panels, routes, reads
 5. [Bubbles](docs/bubbles.md) and [genes](docs/genes.md)
-6. [Developing](docs/developing.md): build, test, release
+6. [Maize NAM founders](docs/maize.md): MaizeGDB's graph of one gene and a
+   Minigraph-Cactus graph of chr8, with links that open each view
+7. [Developing](docs/developing.md): build, test, release
+
+## Gallery
+
+<table>
+<tr>
+<td><a href="docs/haplotypes.md#facets"><img src="img/force_kiv2_facet.png" width="260" alt="KIV-2, a panel per haplotype"></a><br>KIV-2, a panel per haplotype</td>
+<td><a href="docs/haplotypes.md#walk-rows"><img src="img/walk_rows_kiv2.png" width="260" alt="KIV-2 walk rows tiled by kringle"></a><br>KIV-2 walk rows tiled by kringle</td>
+<td><a href="docs/tube-maps.md#routes-and-tube-colour"><img src="img/tube_map_c4_routes_by_population.png" width="260" alt="C4, a tube per route by superpopulation"></a><br>C4, a tube per route by superpopulation</td>
+</tr>
+<tr>
+<td><a href="docs/tube-maps.md#panels"><img src="img/tube_map_cfhr_samples.png" width="260" alt="The CFHR3–CFHR1 deletion, a panel per sample"></a><br>The CFHR3–CFHR1 deletion, a panel per sample</td>
+<td><a href="docs/bubbles.md"><img src="img/force_kiv2_bubbles.png" width="260" alt="KIV-2 bubbles under the HPRC bubbles track"></a><br>KIV-2 bubbles under the HPRC bubbles track</td>
+<td><a href="docs/maize.md"><img src="docs/maize/walk_rows_200kb.png" width="260" alt="Maize NAM founders as walk rows"></a><br>Maize NAM founders as walk rows</td>
+</tr>
+</table>
 
 ## See also
 
@@ -104,6 +113,8 @@ Supporting utility libraries
   layout and drawing engine
 - [@jbrowse/tubemap-core](https://github.com/GMOD/tubemap-core) (npm): tube map
   layout
+- [@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) (npm): walk file
+  reader
 - [@gmod/gbz-base](https://github.com/GMOD/gbz-base-js) (npm): `.gbz.db` reader
 
 Supporting graph layout libraries
@@ -113,7 +124,8 @@ Supporting graph layout libraries
 
 Supporting data preparation toolkits
 
-- [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix): indexes a GFA
+- [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix): writes walk files and
+  segment indexes from a GFA
 - [gbz-haplotype-index](https://github.com/GMOD/gbz-haplotype-index): names
   every walk in a gbz-base cut
 - [gfa-to-pairwise-paf](https://github.com/cmdcolin/gfa-to-pairwise-paf-rs):
