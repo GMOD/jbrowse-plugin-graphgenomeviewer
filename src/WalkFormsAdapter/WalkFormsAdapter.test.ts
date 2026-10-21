@@ -51,6 +51,15 @@ const region = (start: number, end: number, refName = 'chr1') => ({
 const featuresOf = (adapter: Adapter, query = region(0, 3600)) =>
   firstValueFrom(adapter.getFeatures(query).pipe(toArray()))
 
+const placeholders = (features: Awaited<ReturnType<typeof featuresOf>>) =>
+  features
+    .filter(f => f.id().startsWith('forms-reference-'))
+    .map(f => ({
+      start: f.get('start'),
+      end: f.get('end'),
+      genotypes: f.get('genotypes'),
+    }))
+
 test('registers the adapter type', () => {
   const pm = new PluginManager()
   WalkFormsAdapterF(pm)
@@ -112,11 +121,17 @@ test('features are the pinned window changes, with a genotype per form', async (
   ])
 })
 
-test('a query outside the pinned window draws nothing', async () => {
+test('a query with no change gives one reference placeholder', async () => {
   const adapter = makeAdapter({ pinned: pinned(3) })
-  expect(await featuresOf(adapter, region(1900, 2300))).toEqual([])
-  expect(await featuresOf(adapter, region(0, 3600, 'chr2'))).toEqual([])
-  expect(await featuresOf(adapter, region(2900, 3600))).toHaveLength(1)
+  expect(placeholders(await featuresOf(adapter, region(1900, 2300)))).toEqual([
+    { start: 1900, end: 1901, genotypes: { F1: '0', F2: '0', F3: '0' } },
+  ])
+  expect(
+    placeholders(await featuresOf(adapter, region(0, 3600, 'chr2'))),
+  ).toHaveLength(1)
+  expect(
+    placeholders(await featuresOf(adapter, region(2900, 3600))),
+  ).toHaveLength(0)
 })
 
 test('a floor change regroups the cut without cutting again', async () => {
@@ -127,7 +142,9 @@ test('a floor change regroups the cut without cutting again', async () => {
   expect((await coarse.getSourcesAndWarnings()).sources).toEqual([
     { name: 'F1', label: '100% · ref', haplotypes: 3, forms: 1 },
   ])
-  expect(await featuresOf(coarse)).toEqual([])
+  expect(placeholders(await featuresOf(coarse))).toEqual([
+    { start: 0, end: 1, genotypes: { F1: '0' } },
+  ])
   expect(formsCut).toHaveBeenCalledTimes(1)
 })
 
@@ -141,12 +158,11 @@ test('exclude leaves samples out of every form', async () => {
 test('maxForms gives the smaller forms one empty row', async () => {
   const adapter = makeAdapter({ pinned: pinned(6), maxForms: 1 })
   const { sources, warnings } = await adapter.getSourcesAndWarnings()
-  expect(sources.map(s => s.label)).toEqual([
-    '33% · ref',
-    'other forms · 67%',
-  ])
+  expect(sources.map(s => s.label)).toEqual(['33% · ref', 'other forms · 67%'])
   expect(warnings).toHaveLength(1)
-  expect(await featuresOf(adapter)).toEqual([])
+  expect(placeholders(await featuresOf(adapter))).toEqual([
+    { start: 0, end: 1, genotypes: { F1: '0' } },
+  ])
 })
 
 test('a pinned window past walkByteBudget says so, without a zoom-in notice', async () => {

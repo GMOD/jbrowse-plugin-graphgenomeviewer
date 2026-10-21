@@ -12,7 +12,12 @@ import {
   structuralForms,
 } from '@jbrowse/graph-walks'
 
-import { formSources, formVariants, formWarnings } from './formRows.ts'
+import {
+  formSources,
+  formVariants,
+  formWarnings,
+  referenceGenotypes,
+} from './formRows.ts'
 import { floorOf, pinnedLocus, pinnedOf } from './pinned.ts'
 import { openTabixSlot } from '../panSNTabix.ts'
 
@@ -177,30 +182,48 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
 
   getFeatures(query: Region, opts: BaseOptions = {}) {
     return ObservableCreate<Feature>(async observer => {
-      if (await this.onPinnedSequence(query.refName, opts)) {
-        const result = await this.forms(opts)
-        for (const v of formVariants(result, this.maxForms())) {
-          if (v.start < query.end && v.end > query.start) {
-            observer.next(
-              new SimpleFeature({
-                uniqueId: `forms-${result.floorBp}-${v.id}`,
-                refName: query.refName,
-                start: v.start,
-                end: v.end,
-                name: v.name,
-                description: v.description,
-                type: v.type,
-                svType: v.svType,
-                consequence: v.consequence,
-                REF: 'N',
-                ALT: [v.alt],
-                INFO: { SVTYPE: [v.svType], SVLEN: [v.mark.delta] },
-                mark: v.mark,
-                genotypes: v.genotypes,
-              }),
-            )
-          }
-        }
+      const result = await this.forms(opts)
+      const variants = (await this.onPinnedSequence(query.refName, opts))
+        ? formVariants(result, this.maxForms()).filter(
+            v => v.start < query.end && v.end > query.start,
+          )
+        : []
+      for (const v of variants) {
+        observer.next(
+          new SimpleFeature({
+            uniqueId: `forms-${result.floorBp}-${v.id}`,
+            refName: query.refName,
+            start: v.start,
+            end: v.end,
+            name: v.name,
+            description: v.description,
+            type: v.type,
+            svType: v.svType,
+            consequence: v.consequence,
+            REF: 'N',
+            ALT: [v.alt],
+            INFO: { SVTYPE: [v.svType], SVLEN: [v.mark.delta] },
+            mark: v.mark,
+            genotypes: v.genotypes,
+          }),
+        )
+      }
+      // Core before 5.0.0-beta.14 (1845c280a9) sends no payload for a block
+      // with no records, which leaves the display on "Loading". The reference
+      // placeholder draws nothing; drop it once the host floor reaches beta.14
+      if (variants.length === 0) {
+        const start = Math.floor(query.start)
+        observer.next(
+          new SimpleFeature({
+            uniqueId: `forms-reference-${query.refName}-${start}`,
+            refName: query.refName,
+            start,
+            end: start + 1,
+            REF: 'N',
+            ALT: ['.'],
+            genotypes: referenceGenotypes(result, this.maxForms()),
+          }),
+        )
       }
       observer.complete()
     }, opts.signal)

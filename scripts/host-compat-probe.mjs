@@ -2,9 +2,9 @@
 //
 // Boots the built plugin on hosted JBrowse releases, cuts a subgraph on each,
 // shows the graph track in a linear view and reads the walk lane track into
-// a synteny view, and draws a structural forms track, failing if a host
-// error-pages, never registers the view, cannot cut, or cannot draw any of
-// them. The tutorials name the plugin by its
+// a synteny view, and draws a structural forms track inside and outside its
+// pinned window, failing if a host error-pages, never registers the view,
+// cannot cut, or cannot draw any of them. The tutorials name the plugin by its
 // jbrowse.org url, so a publish is a live change to every reader's session,
 // and the failures this catches pass tsc, eslint and the unit tests: an RPC
 // argument a released core cannot post to its worker, a re-export the host no
@@ -71,6 +71,10 @@ const FORMS_TRACK = {
   ],
 }
 const FORMS_LOCUS = 'chr1:109,680,001-109,715,000'
+// 100 kb past the pin, where the track has no change to draw. Core before
+// 5.0.0-beta.14 left such a window on "Loading" for good, a hang the step
+// above cannot see.
+const OUTSIDE_PIN_LOCUS = 'chr1:109,815,001-109,850,000'
 
 const { values } = parseArgs({
   options: {
@@ -273,6 +277,11 @@ async function probeOne(browser, version) {
       result.forms = await page.evaluate(
         async ({ track, locus }, ms) => {
           const session = window.JBrowseSession
+          // A view below the fold never mounts its tracks, so the forms view
+          // takes the page alone
+          for (const v of [...session.views]) {
+            session.removeView(v)
+          }
           session.addTrackConf(track)
           const view = session.addView('LinearGenomeView', {
             init: { assembly: 'hg38', loc: locus, tracks: [track.trackId] },
@@ -289,6 +298,7 @@ async function probeOne(browser, version) {
           const d = display()
           const labels = d?.trackMenuItems?.().map(i => i.label) ?? []
           return {
+            viewId: view.id,
             rows: d?.sourcesBase?.length ?? 0,
             cells: !!d?.cellData,
             menu: labels.includes('Re-pin to visible region'),
@@ -297,6 +307,38 @@ async function probeOne(browser, version) {
         },
         { track: FORMS_TRACK, locus: FORMS_LOCUS },
         timeout,
+      )
+    }
+    if (result.forms?.cells && result.forms.menu) {
+      result.formsOutside = await page.evaluate(
+        async ({ viewId, locus, displayId }, ms) => {
+          const view = window.JBrowseSession.views.find(v => v.id === viewId)
+          await view.navToLocString(locus)
+          const chrome = () =>
+            document.querySelector(`[data-display-id="${displayId}"]`)
+          const finished = () =>
+            chrome()?.getAttribute('data-display-drawn') === 'true' &&
+            chrome()?.getAttribute('data-display-phase') !== 'loading'
+          const deadline = Date.now() + ms
+          let settledReads = 0
+          while (settledReads < 4 && Date.now() < deadline) {
+            settledReads = finished() ? settledReads + 1 : 0
+            await new Promise(r => setTimeout(r, 250))
+          }
+          const d = view.tracks[0]?.displays[0]
+          return {
+            finished: settledReads >= 4,
+            drawn: chrome()?.getAttribute('data-display-drawn'),
+            phase: chrome()?.getAttribute('data-display-phase'),
+            error: d?.error ? String(d.error).slice(0, 300) : undefined,
+          }
+        },
+        {
+          viewId: result.forms.viewId,
+          locus: OUTSIDE_PIN_LOCUS,
+          displayId: FORMS_TRACK.displays[0].displayId,
+        },
+        Math.min(timeout, 60_000),
       )
     }
   } catch (e) {
@@ -353,6 +395,12 @@ function failure(r) {
   if (!r.forms.menu) {
     return "the structural forms track's menu has no re-pin item, so the display extension did not attach"
   }
+  if (r.formsOutside?.error !== undefined) {
+    return `the structural forms track failed outside its pinned window: ${r.formsOutside.error}`
+  }
+  if (!r.formsOutside?.finished) {
+    return `the structural forms track never finished loading outside its pinned window (drawn ${r.formsOutside?.drawn}, phase ${r.formsOutside?.phase})`
+  }
   return undefined
 }
 
@@ -372,7 +420,7 @@ for (const version of versions) {
   console.log(
     `${version.padEnd(14)} ${
       bad ??
-      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}, synteny read ${r.synteny.features}, ${r.forms.rows} form rows`
+      `ok, cut ${r.cut.nodes} nodes, laid out ${r.layout.placed}, track drew ${r.linear.nodes}, synteny read ${r.synteny.features}, ${r.forms.rows} form rows, finished outside the pin`
     }`,
   )
   if (bad) {
@@ -389,5 +437,5 @@ if (broken.length > 0) {
   process.exit(1)
 }
 console.log(
-  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage, drew the track in a linear view, read walk lane synteny and drew structural forms.',
+  '\nEvery probed host loaded the bundle, cut a graph, drew it with Bandage, drew the track in a linear view, read walk lane synteny and drew structural forms, inside and outside the pin.',
 )

@@ -157,8 +157,6 @@ function menuLabels(page: Page) {
   )
 }
 
-// No test waits for the app to settle away from the pinned window, since core
-// before 5.0.0-beta.14 never finishes loading a window with no records
 describe.skipIf(!runE2E)('the forms track menu at LPA', () => {
   let browser: Browser
   let page: Page
@@ -233,6 +231,13 @@ describe.skipIf(!runE2E)('the forms track menu at LPA', () => {
         'chr6:32,520,001-32,610,000',
       )
     })
+    await waitForAppReady(page)
+    expect(
+      await page.$eval('[data-display-id="forms_lpa-display"]', e => [
+        e.getAttribute('data-display-drawn'),
+        e.getAttribute('data-display-phase'),
+      ]),
+    ).toEqual(['true', 'ready'])
     await screenshot(page, 'forms-menu-outside-pin')
     statuses.clear()
     await clickMenu(page, ['Re-pin to visible region'])
