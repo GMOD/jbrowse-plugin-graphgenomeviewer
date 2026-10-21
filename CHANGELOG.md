@@ -1,3 +1,11 @@
+## [7.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.2...v7.4.0) (2026-10-21)
+
+### Other Changes
+
+- Forbid spread arguments ([e2f65a9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e2f65a9235ace329553c4728244f2bf2f9eef38c))
+- Load an abridged walk in full from its walk row's context menu ([02bf042](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/02bf04209f5fa1f00885b8c5e13a84041516de79))
+- Point examples at the format 5 HPRC walk files ([c035b4d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c035b4df1ff1e79cc44dfe12fa3a48b2af79e260))
+
 ## [7.3.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.3.1...v7.3.2) (2026-10-20)
 
 ### Other Changes
