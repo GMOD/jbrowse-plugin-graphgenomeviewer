@@ -1,3 +1,9 @@
+## [7.4.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.1...v7.4.2) (2026-10-21)
+
+### Other Changes
+
+- Take bandage-core 11.7.1, which stops calling a window edge a deletion ([c7f1217](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c7f1217fde7e22a169c8e760e1486b5eb1a58ad5))
+
 ## [7.4.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.0...v7.4.1) (2026-10-21)
 
 ### Other Changes
