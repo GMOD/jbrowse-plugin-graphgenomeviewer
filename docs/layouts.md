@@ -76,8 +76,8 @@ stretch of node it sits on, and pins the gene's name under its midpoint.
   off
 - The label of a gene partly in the cut gives how much of it the cut holds:
   `LPA · 35 of 132.8 kb`
-- A tube map draws genes in rows above the tubes
-  ([tube-maps.md](tube-maps.md#axes))
+- In a graph genome view, a tube map draws genes in rows above the tubes. In a
+  linear view the gene track shows them ([tube-maps.md](tube-maps.md#axes))
 - Where the linear view shows genes as a lane, the graph names only what the
   lane draws
 - Records spanning a whole sequence (RefSeq's `region`) and records with no
