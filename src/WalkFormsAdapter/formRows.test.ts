@@ -198,11 +198,13 @@ test('a change every form shares is a variant carried by all of them', () => {
   ])
 })
 
+// a site over 1 kb wide keeps each mark apart; graph-walks sums the marks of a
+// narrower one into a single change
 test('a state of several marks is a variant per mark, carried alike', () => {
   const forms = structuralForms(
     [
       haplotype('A#1', [departure(2000, 2600, 0), departure(2660, 2660, 900)]),
-      haplotype('B#1', [departure(1900, 2700, 0)]),
+      haplotype('B#1', [departure(1900, 3200, 0)]),
       haplotype('C#1', []),
     ],
     { window },
@@ -219,7 +221,7 @@ test('a state of several marks is a variant per mark, carried alike', () => {
       .map(v => [v.start, v.end, v.name, v.genotypes])
       .sort((a, b) => Number(a[0]) - Number(b[0])),
   ).toEqual([
-    [1900, 2700, '800 bp deletion', carriedBy('B#1')],
+    [1900, 3200, '1.3 kb deletion', carriedBy('B#1')],
     [2000, 2600, '600 bp deletion', carriedBy('A#1')],
     [2660, 2661, '900 bp insertion', carriedBy('A#1')],
   ])
