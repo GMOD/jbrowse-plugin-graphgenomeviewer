@@ -27,9 +27,11 @@ const ZOOM_ACTIVE_MS = 100
 const ZOOM_EASE_MS = 24
 const MAX_ZOOM_BACKLOG = Math.log(16)
 
-// how much of the owed zoom, in log(scale), to apply this frame
+// How much of the owed zoom, in log(scale), to apply this frame. A frame's
+// timestamp is when it began, so a wheel handled late in one leaves elapsedMs
+// negative, which would ease the zoom backwards.
 export function easeZoom(backlog: number, elapsedMs: number) {
-  const rest = backlog * Math.exp(-elapsedMs / ZOOM_EASE_MS)
+  const rest = backlog * Math.exp(-Math.max(0, elapsedMs) / ZOOM_EASE_MS)
   return Math.abs(rest) < 1e-3 ? backlog : backlog - rest
 }
 

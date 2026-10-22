@@ -511,6 +511,11 @@ describe('a press on a bubble label', () => {
   })
 })
 
+test('a frame that began before the wheel event never zooms backwards', () => {
+  expect(easeZoom(0.2, -5)).toBeGreaterThanOrEqual(0)
+  expect(easeZoom(-0.2, -5)).toBeLessThanOrEqual(0)
+})
+
 test('a wheel notch eases in over a few frames and lands the whole zoom', () => {
   const owed = Math.log(1.21)
   let left = owed
