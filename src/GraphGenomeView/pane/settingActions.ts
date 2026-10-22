@@ -44,6 +44,8 @@ import type {
   WalkLayer,
 } from '@jbrowse/bandage-core/walkEncoding'
 
+const ROW_HOVER_SETTLE_MS = 80
+
 export const withSettingActions = withTubeMapViews
   .actions(() => ({
     // each host overrides: a view assigns its props, a track display writes
@@ -276,7 +278,7 @@ export const withSettingActions = withTubeMapViews
         self.hoveredTube = tube
       }
     },
-    setHoveredRowWalks(walks: string[]) {
+    applyHoveredRowWalks(walks: string[]) {
       if (walks.join('\n') !== self.hoveredRowWalks.join('\n')) {
         self.hoveredRowWalks = walks
       }
@@ -469,6 +471,36 @@ export const withSettingActions = withTubeMapViews
       self.builtViewport = undefined
     },
   }))
+  .actions(self => {
+    let settle: ReturnType<typeof setTimeout> | undefined
+    let pending: string | undefined
+    return {
+      // A lane row's lift rebuilds the drawing (43 ms at 10k nodes), and a
+      // sweep down a lane crosses a row every few px, so a move from one row
+      // to the next lifts once the pointer has stayed on a row a moment.
+      // Entering and leaving the rows apply at once.
+      setHoveredRowWalks(walks: string[]) {
+        const key = walks.join('\n')
+        if (key === pending) {
+          return
+        }
+        clearTimeout(settle)
+        pending = undefined
+        if (walks.length > 0 && self.hoveredRowWalks.length > 0) {
+          pending = key
+          settle = setTimeout(() => {
+            pending = undefined
+            // a hover cleared meanwhile, by a pan, stays cleared
+            if (isAlive(self) && self.hoveredRowWalks.length > 0) {
+              self.applyHoveredRowWalks(walks)
+            }
+          }, ROW_HOVER_SETTLE_MS)
+        } else {
+          self.applyHoveredRowWalks(walks)
+        }
+      },
+    }
+  })
   .actions(self => ({
     // The frame clock. Unclamped, since clampZoom's floor is there to keep a
     // scale finite and 1 / bpPerPx already is; clamped, a whole-chromosome

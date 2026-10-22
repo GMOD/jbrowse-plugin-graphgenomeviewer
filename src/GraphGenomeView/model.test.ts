@@ -3872,6 +3872,33 @@ describe('walk rows', () => {
     model.setHoveredRowWalks([])
     expect(model.walkLift).toBeUndefined()
   })
+
+  // each lift rebuilds the drawing, and a sweep down a lane crosses many rows
+  test('moving between lane rows lifts the next once the pointer settles', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    vi.useFakeTimers()
+    try {
+      model.setHoveredRowWalks(['A#1#ctg'])
+      expect(model.hoveredRowWalks).toEqual(['A#1#ctg'])
+      model.setHoveredRowWalks(['A#2#ctg'])
+      model.setHoveredRowWalks(['B#1#ctg'])
+      vi.advanceTimersByTime(40)
+      // more moves within the row do not put the lift off
+      model.setHoveredRowWalks(['B#1#ctg'])
+      expect(model.hoveredRowWalks).toEqual(['A#1#ctg'])
+      vi.advanceTimersByTime(60)
+      expect(model.hoveredRowWalks).toEqual(['B#1#ctg'])
+      model.setHoveredRowWalks([])
+      expect(model.hoveredRowWalks).toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('annotation reads beside a cut', () => {
