@@ -487,10 +487,17 @@ export const withLoadActions = withEngineSettings.actions(self => {
         { adapterConfig, regions: [region], signal },
       )) as Feature[]
     } catch (e) {
-      console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
+      // a cut the next one replaced aborts its reads, which is not a failure
+      if (!signal?.aborted) {
+        console.warn(`[GraphGenomeView] no ${what} for this graph`, e)
+      }
       return undefined
     }
   }
+
+  // Bubble indexes a read failed on, so a graph without one, the ordinary
+  // case, is not asked again on every re-cut of a pan
+  const missingBubbleIndexes = new Set<string>()
 
   // The bubble index that the hosted HPRC build keeps beside its segments,
   // `<prefix>.bubbles.bed.gz`, read through the bubble adapter over the same
@@ -508,13 +515,18 @@ export const withLoadActions = withEngineSettings.actions(self => {
     // The track config arrives as written, so the prefix is either the
     // `uri` shorthand or the segments location it expands to.
     const prefix = bubblePrefix(adapterConfig)
-    if (adapterConfig.type !== 'RgfaTabixAdapter' || prefix === undefined) {
+    const uri = `${prefix}.bubbles.bed.gz`
+    if (
+      adapterConfig.type !== 'RgfaTabixAdapter' ||
+      prefix === undefined ||
+      missingBubbleIndexes.has(uri)
+    ) {
       return
     }
     const features = yield* readFeatures(
       {
         type: 'MinigraphBubbleAdapter',
-        uri: `${prefix}.bubbles.bed.gz`,
+        uri,
         baseUri: adapterConfig.baseUri,
         assemblyNameToPanSN: adapterConfig.assemblyNameToPanSN,
       },
@@ -522,6 +534,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
       'bubble index',
       signal,
     )
+    if (features === undefined && !signal?.aborted) {
+      missingBubbleIndexes.add(uri)
+    }
     if (features && isLive()) {
       self.indexBubbles = features.flatMap(f => {
         const start = f.get('start')

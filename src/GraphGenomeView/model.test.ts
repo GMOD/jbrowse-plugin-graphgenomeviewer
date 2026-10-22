@@ -3971,6 +3971,43 @@ describe('annotation reads beside a cut', () => {
     expect(model.error).toBeUndefined()
   })
 
+  // most graphs have no bubble index, and a pan re-cuts many times
+  test('a bubble index that failed to read is not asked for again', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const bubbleReads = () =>
+      mockRpcCall.mock.calls.filter(
+        c =>
+          (c[2] as { adapterConfig?: { type?: string } }).adapterConfig
+            ?.type === 'MinigraphBubbleAdapter',
+      ).length
+    const respond = mockRpcCall.getMockImplementation()!
+    mockRpcCall.mockImplementation(
+      (sid: unknown, method: string, args: Record<string, unknown>) =>
+        (args.adapterConfig as { type?: string } | undefined)?.type ===
+        'MinigraphBubbleAdapter'
+          ? Promise.reject(new Error('404'))
+          : respond(sid, method, args),
+    )
+    const model = attachedModel()
+    const settleAll = async () => {
+      await vi.waitFor(() => {
+        expect(reads.length).toBeGreaterThanOrEqual(2)
+      })
+      for (const read of reads.splice(0)) {
+        read.settle([])
+      }
+    }
+    let loaded = cut(model)
+    await settleAll()
+    await loaded
+    expect(bubbleReads()).toBe(1)
+    loaded = cut(model)
+    await settleAll()
+    await loaded
+    expect(bubbleReads()).toBe(1)
+    warn.mockRestore()
+  })
+
   test('a cut too large to draw still reads its genes, for when the limit is raised', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const model = attachedModel()
