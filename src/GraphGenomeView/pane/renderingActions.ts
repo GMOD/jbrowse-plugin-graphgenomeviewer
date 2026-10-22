@@ -1,3 +1,4 @@
+import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { contains } from '@jbrowse/bandage-core/viewport'
 import { getSession } from '@jbrowse/core/util'
 import { addDisposer } from '@jbrowse/mobx-state-tree'
@@ -11,9 +12,11 @@ import {
   paneViewportOf,
 } from './paneBase'
 import {
+  bubbleForLgvHover,
   hoverInRegion,
   nodeForLgvHover,
   readLgvHover,
+  readSelectedFeature,
 } from '../../hoverSync/lgvHover'
 import { walksForRow } from '../../hoverSync/rowWalks'
 import { trackedDpr } from '../trackedDpr'
@@ -155,9 +158,14 @@ export const withRenderingActions = withLoadActions
                 inRegion?.featureName && graph?.paths
                   ? walksForRow(inRegion.featureName, graph.paths)
                   : []
+              // a bubble track's feature, or a graph-derived VCF record,
+              // names a whole bubble, which lights whatever the setting
+              const bubble =
+                inRegion && bubbleForLgvHover(inRegion, self.bubbles)
               if (region && graph && !self.pointerInPane) {
+                self.setHoveredBubble(bubble ?? null)
                 self.setHoveredNode(
-                  inRegion && lightsNode && rowWalks.length === 0
+                  inRegion && lightsNode && rowWalks.length === 0 && !bubble
                     ? nodeForLgvHover({ hover: inRegion, nodes: graph.nodes })
                     : null,
                 )
@@ -165,6 +173,29 @@ export const withRenderingActions = withLoadActions
               self.setHoveredRowWalks(rowWalks)
             })
           }),
+        )
+
+        // A click on a bubble feature or graph-derived variant in a linear
+        // view opens its bubble here, as clicking its label would
+        addDisposer(
+          self,
+          reaction(
+            () => readSelectedFeature(getSession(self).selection),
+            selected => {
+              const region = self.graphRegion
+              const bubble =
+                selected &&
+                region &&
+                hoverInRegion(selected, region) &&
+                bubbleForLgvHover(selected, self.bubbles)
+              if (
+                bubble &&
+                !self.openBubbles.some(open => sameBubble(open, bubble))
+              ) {
+                self.toggleBubble(bubble)
+              }
+            },
+          ),
         )
 
         // Reaction: drop a hover the pointer cannot still be over.

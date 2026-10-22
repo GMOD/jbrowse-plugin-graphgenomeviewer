@@ -3,6 +3,7 @@ import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { isRecord } from '../isRecord'
 
 import type { SubgraphRegion } from '../GetSubgraph'
+import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GraphNode } from '@jbrowse/bandage-core/types'
 
 // What a LinearGenomeView writes to `session.hovered` on every mousemove (see
@@ -33,6 +34,8 @@ export interface LgvHover {
   // hover that states no assembly is taken at its word rather than dropped.
   assemblyName?: string
   featureName?: string
+  // a bubble feature's comma-separated segment names (MinigraphBubbleAdapter)
+  featureSegments?: string
 }
 
 interface FeatureLike {
@@ -46,13 +49,13 @@ function isFeatureLike(value: unknown): value is FeatureLike {
 // A display hovers either a Feature, read with `get`, or a plain hit item with
 // a `name` of its own, which is what the canvas feature display hands over.
 // Reading only the first left the exact segment match dead on that display.
-function hoveredName(feature: unknown) {
-  const name = isFeatureLike(feature)
-    ? feature.get('name')
+function hoveredField(feature: unknown, key: string) {
+  const value = isFeatureLike(feature)
+    ? feature.get(key)
     : isRecord(feature)
-      ? feature.name
+      ? feature[key]
       : undefined
-  return typeof name === 'string' ? name : undefined
+  return typeof value === 'string' ? value : undefined
 }
 
 // `hovered` is typed `unknown` on the session by design — it is a shared channel
@@ -71,11 +74,30 @@ export function readLgvHover(hovered: unknown): LgvHover | undefined {
         coord: typeof coord0 === 'number' ? coord0 : coord - 1,
         assemblyName:
           typeof assemblyName === 'string' ? assemblyName : undefined,
-        featureName: hoveredName(hovered.hoverFeature),
+        featureName: hoveredField(hovered.hoverFeature, 'name'),
+        featureSegments: hoveredField(hovered.hoverFeature, 'segments'),
       }
     }
   }
   return result
+}
+
+// The feature a click in a linear view selected (`session.selection`, which
+// core's feature widget sets), read as a hover at its start
+export function readSelectedFeature(selection: unknown): LgvHover | undefined {
+  if (!isFeatureLike(selection)) {
+    return undefined
+  }
+  const refName = selection.get('refName')
+  const start = selection.get('start')
+  return typeof refName === 'string' && typeof start === 'number'
+    ? {
+        refName,
+        coord: start,
+        featureName: hoveredField(selection, 'name'),
+        featureSegments: hoveredField(selection, 'segments'),
+      }
+    : undefined
 }
 
 // Whether a hover is one this graph can answer: the same assembly, the same
@@ -129,4 +151,33 @@ export function nodeForLgvHover({
   }
   // An exact segment match wins over the coordinate it happens to sit at.
   return byName ?? byCoord ?? null
+}
+
+// A bubble's two end segments, unordered: a derived bubble's key is
+// `source>sink`, and an indexed one lists its segments source first
+function bubbleEnds(b: Pick<MinigraphBubble, 'key' | 'segments'>) {
+  const ids = b.key?.split('>') ?? b.segments.split(',').filter(Boolean)
+  return ids.length >= 2 ? [ids[0]!, ids.at(-1)!].sort().join('\t') : undefined
+}
+
+// The ends a hovered feature names: a bubble feature's segments, or a vg
+// deconstruct record's ID, `>source>sink` (`<sink<source` on the reverse)
+function featureEnds(hover: LgvHover) {
+  if (hover.featureSegments) {
+    return bubbleEnds({ segments: hover.featureSegments })
+  }
+  const ids = /^([<>][^<>]+){2}$/.test(hover.featureName ?? '')
+    ? hover.featureName!.split(/[<>]/).filter(Boolean)
+    : []
+  return ids.length === 2 ? ids.sort().join('\t') : undefined
+}
+
+// The graph's bubble a linear-view feature names, so a bubble track or a
+// graph-derived VCF lights the whole bubble rather than the backbone node at
+// the pointer's bp
+export function bubbleForLgvHover(hover: LgvHover, bubbles: MinigraphBubble[]) {
+  const ends = featureEnds(hover)
+  return ends === undefined
+    ? undefined
+    : bubbles.find(b => bubbleEnds(b) === ends)
 }

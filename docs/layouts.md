@@ -55,6 +55,9 @@ repeat array. The node layouts can mark each one.
 - Clicking a label opens the bubble in place: its nodes get the full colour ramp
   and the rest greys. Bubbles inside get labels, so a superbubble opens level by
   level. Click the label or the legend's **close** to shut it
+- A linear view's bubbles track and a `vg deconstruct` VCF (IDs like
+  `>1234>1240`) name whole bubbles: hovering a record rings its bubble in the
+  graph, halos on or off, and clicking the record opens it
 
 The HPRC bubbles track draws the same records at their bp. The 3,018–174,966 bp
 record, 29 segments and up to 129 paths, is the KIV-2 halo:

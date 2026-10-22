@@ -980,10 +980,17 @@ export const withGraphViews = paneBase
     get bubbleHalos() {
       dependOn(self.positionsVersion)
       const positions = self.layoutResult?.nodePositions
-      if (!self.showBubbles || !this.drawsNodes || !self.graph || !positions) {
+      // with the layer off, a bubble hovered from a linear view's bubble or
+      // variant track still rings
+      const shown = self.showBubbles
+        ? self.bubbles
+        : self.hoveredBubble
+          ? [self.hoveredBubble]
+          : []
+      if (shown.length === 0 || !this.drawsNodes || !self.graph || !positions) {
         return []
       }
-      return bubbleHalos(self.graph, self.bubbles, positions, self.repeatArrays)
+      return bubbleHalos(self.graph, shown, positions, self.repeatArrays)
     },
     // What `reference-position` paints from, which is also what `auto`
     // resolves to on any anchored graph
