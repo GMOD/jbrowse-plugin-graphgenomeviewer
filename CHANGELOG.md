@@ -1,3 +1,31 @@
+## [7.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.4...v7.5.0) (2026-10-22)
+
+### Other Changes
+
+- Open a launched linear view with one gene track, not every FeatureTrack ([d5679d9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d5679d97a239177d0d5e8481731ebff6beff563a))
+- Pan a bubble-label drag once, and never through a stale strip flag ([e36b1d8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e36b1d872f4d80f94f7d66355a051ad48d8c2b2d))
+- Clamp the wheel zoom's frame gap at zero so a late wheel never zooms backwards ([54a86c7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/54a86c7eaa6b8d8f226cff9ac2a5bb36de1a54ce))
+- Cut again for whole walks only on a GBZ track, and never for a tube map ([4c722d9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4c722d9664749520311048110763b47c602909e7))
+- Keep the node cap when walk rows or a tube map fall back to force ([fef57e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fef57e1214782ff5b5b31b823180523fd80cc74a))
+- Name a contig the graph lacks as such, and drop walk-file detail names ([e75e422](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e75e4225861392b732f8d566775e4fa7c072aff5))
+- Stop asking for a bubble index a graph lacks on every re-cut ([6404a23](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6404a231e6dd4ee2f9a614a60b0c3d6de06c332f))
+- Keep the haplotype field's focus when it applies its own change ([cd60578](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cd6057884ed9dc65ed2411e2a6e29ba8c4d070c8))
+- Land an abandoned morph's last frame, since the layout cache keeps it ([b86b0bc](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b86b0bcb2abcec9c08b935b4b541677ffcad4731))
+- Show a graph track's render error once, in the canvas banner ([00f41d4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/00f41d4e499f0e4060b4174938f1daf0353e0e11))
+- Don't open two haplotypes sharing a contig name on one bare-sample assembly ([9bc087b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9bc087b6975be2327c7abe35bd77a0f2312bff42))
+- Ring and open a graph's bubble from a bubble or vg deconstruct record ([b8b9091](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b8b90911bf94342c1d5acf3880b46cc9902d05c7))
+- Band a hovered node on each haplotype's own assembly ([91e64a0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/91e64a0046c1acdd8ac1d96330964a50e986576a))
+- Drop a force layout aborted while it waited for the worker ([e88aed6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e88aed659420a736823273b5e134460b082ceb09))
+- Lift the next lane row once the pointer settles on it ([057759b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/057759b020189dec63d84fb25195bbcdc2c776ce))
+- Test a tube-map bundle's path for the hovered box once, not per member ([3402f6b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3402f6b3fc7df9e4d09b54ec7ac3f6759cad4435))
+- Draw each loaded haplotype's own genes on its nodes off the reference ([55c232e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/55c232eb7d9e523a66da1f87c9c35e04bd97ebb4))
+- Draw ribbons between neighbouring walk rows, as ggbandage does ([ff64d1c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ff64d1cb9e8f8696b8605acc57a3d2dcbb2d6b8d))
+- Open a strain with no gene-looking track on its first feature track ([e4d3007](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e4d3007f68e0c1efbdd247980b6cdf1c86e729da))
+- Export the haplotypes' own genes with the figure, as the screen draws them ([09d2067](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/09d206775dd8d381c46dea5f5defbb2ba39e4706))
+- Add a Link width setting that draws each link by the walks taking it ([c04533a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c04533afa41ad613da9510b30d3e4fc6cc9d8f7f))
+- Letter shared blocks on walk rows, and order rows by shared sequence ([252981e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/252981e53af864fdad5c5f94d4f181ab6c5521a7))
+- Ignore a hover from a linear view other than the one a graph is paired with ([9247510](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9247510f2cc9a5bda7d84f8ac5ef21834b517ed0))
+
 ## [7.4.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.3...v7.4.4) (2026-10-21)
 
 ### Other Changes
