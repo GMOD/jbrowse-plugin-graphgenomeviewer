@@ -1,5 +1,6 @@
 import {
   bubbleForLgvHover,
+  hoverFromPair,
   hoverInRegion,
   nodeForLgvHover,
   readLgvHover,
@@ -269,5 +270,32 @@ describe('the bubble a linear-view feature names', () => {
       readSelectedFeature({ get: (key: string) => fields[key] }),
     ).toMatchObject({ refName: 'chr1', coord: 5, featureName: '>s20>s22' })
     expect(readSelectedFeature(undefined)).toBeUndefined()
+  })
+})
+
+// Two linear views on one locus: the graph paired with A must not light for
+// a hover in B
+describe('a hover from another linear view', () => {
+  const at = (viewId?: string) => ({ refName: 'chr1', coord: 3, viewId })
+  const live = new Set(['lgvA', 'lgvB'])
+
+  test('is read off the hover payload', () => {
+    expect(
+      readLgvHover({
+        hoverPosition: { refName: 'chr1', coord: 4 },
+        viewId: 'lgvB',
+      })?.viewId,
+    ).toBe('lgvB')
+  })
+
+  test('is ignored by a graph paired with an open view', () => {
+    expect(hoverFromPair(at('lgvA'), 'lgvA', live)).toBe(true)
+    expect(hoverFromPair(at('lgvB'), 'lgvA', live)).toBe(false)
+  })
+
+  test('reaches an unpaired graph, one whose pair closed, or from an older host', () => {
+    expect(hoverFromPair(at('lgvB'), undefined, live)).toBe(true)
+    expect(hoverFromPair(at('lgvB'), 'gone', live)).toBe(true)
+    expect(hoverFromPair(at(), 'lgvA', live)).toBe(true)
   })
 })

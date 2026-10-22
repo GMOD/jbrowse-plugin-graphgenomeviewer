@@ -36,6 +36,9 @@ export interface LgvHover {
   featureName?: string
   // a bubble feature's comma-separated segment names (MinigraphBubbleAdapter)
   featureSegments?: string
+  // the linear view hovered, which hosts from jbrowse-components b49f05f438
+  // state
+  viewId?: string
 }
 
 interface FeatureLike {
@@ -76,10 +79,27 @@ export function readLgvHover(hovered: unknown): LgvHover | undefined {
           typeof assemblyName === 'string' ? assemblyName : undefined,
         featureName: hoveredField(hovered.hoverFeature, 'name'),
         featureSegments: hoveredField(hovered.hoverFeature, 'segments'),
+        viewId: typeof hovered.viewId === 'string' ? hovered.viewId : undefined,
       }
     }
   }
   return result
+}
+
+// Whether a hover may reach a graph paired with `paired`: one naming another
+// view does not, while the paired view is still open. A hover naming no view,
+// from an older host, and a graph whose pair has closed take any.
+export function hoverFromPair(
+  hover: LgvHover,
+  paired: string | undefined,
+  liveViewIds: ReadonlySet<string>,
+) {
+  return (
+    hover.viewId === undefined ||
+    paired === undefined ||
+    !liveViewIds.has(paired) ||
+    hover.viewId === paired
+  )
 }
 
 // The feature a click in a linear view selected (`session.selection`, which
