@@ -141,6 +141,27 @@ test('a contributor resolves through an assembly alias, under its own name', () 
   ).toMatchObject({ refName: 'chr17', start: 83899576, end: 84041803 })
 })
 
+test('two haplotypes on one contig name do not share a bare-sample assembly', () => {
+  const contributors = contributingAssemblies(
+    graph([
+      node('s1', 'GRCh38#0#chr6', 31000000, 5000, 0),
+      node('s2', 'HG002#1#chr6', 31100000, 300, 1),
+      node('s3', 'HG002#2#chr6', 31050000, 300, 1),
+    ]),
+  )
+  const bySample = (sample: string) =>
+    ({ HG002: 'HG002', 'HG002#2': 'HG002.2', GRCh38: 'hg38' })[sample]
+  expect(
+    resolveContributors(contributors, bySample).map(c => [
+      c.sample,
+      c.haplotype,
+    ]),
+  ).toEqual([
+    ['hg38', 'GRCh38#0'],
+    ['HG002.2', 'HG002#2'],
+  ])
+})
+
 test('a locstring is 1-based inclusive', () => {
   expect(
     locString({

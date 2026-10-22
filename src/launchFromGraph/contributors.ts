@@ -188,12 +188,28 @@ export function resolveLocationAssembly(
 // among its aliases; matching on names alone leaves that donor unopenable unless
 // the reader renames their assembly after the graph. The resolved (canonical)
 // name replaces the sample, so a launch opens the assembly the session knows.
+//
+// A bare sample stands in for a haplotype unless two haplotypes of it share a
+// contig name. HPRC's GenBank contigs differ per haplotype, so an `NA20809`
+// assembly can hold both; two haplotypes each on `chr6` cannot both be it, and
+// opening hap 2's coordinates on hap 1's sequence lands somewhere plausible
+// and wrong.
 export function resolveContributors(
   contributors: Contributor[],
   resolve: (sample: string) => string | undefined,
 ) {
+  const haplotypesOn = new Map<string, number>()
+  const contig = (c: Contributor) => `${c.sample}\t${c.refName}`
+  for (const c of contributors) {
+    if (c.haplotype !== undefined) {
+      haplotypesOn.set(contig(c), (haplotypesOn.get(contig(c)) ?? 0) + 1)
+    }
+  }
   return contributors.flatMap(c => {
-    const sample = resolveLocationAssembly(resolve, c)
+    const sample =
+      (haplotypesOn.get(contig(c)) ?? 0) > 1
+        ? resolve(c.haplotype!)
+        : resolveLocationAssembly(resolve, c)
     return sample === undefined ? [] : [{ ...c, sample }]
   })
 }
