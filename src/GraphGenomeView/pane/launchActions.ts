@@ -30,6 +30,7 @@ import {
 import { pushLaunchItem } from '../../launchFromGraph/pushLaunchItem'
 import { launchableSyntenyTracks } from '../../launchFromGraph/syntenyTracks'
 import { downloadText } from '../download'
+import { GENE_ADAPTER_TYPES } from '../genes/geneFeatures'
 import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 import { TUBE_MAP_PANELS, tubeMapPanelGroups } from '../tubeMapPanels'
 
@@ -79,11 +80,18 @@ export const withLaunchActions = withRenderingActions
     showInLinearView(target: { location: GraphLocation; assembly: string }) {
       const session = getSession(self)
       const onReference = target.assembly === self.graphRegion?.assemblyName
-      const geneTrack = onReference
-        ? self.geneTrack
-        : self.geneTracksByAssembly.get(
-            canonicalAssemblyName(session, target.assembly),
-          )
+      const assembly = canonicalAssemblyName(session, target.assembly)
+      // an assembly whose annotation nothing names as genes, a strain's BED,
+      // still opens on its first feature track rather than on none
+      const geneTrack =
+        (onReference
+          ? self.geneTrack
+          : self.geneTracksByAssembly.get(assembly)) ??
+        self.sessionTracks.find(
+          t =>
+            t.assemblies.includes(assembly) &&
+            GENE_ADAPTER_TYPES.has(t.adapterType),
+        )
       const viewId = showInLinearView({
         session,
         location: target.location,

@@ -2471,6 +2471,39 @@ describe('launching out of the graph', () => {
     ])
   })
 
+  // a BED named for no annotation is not picked as genes, but beats `No
+  // tracks active`
+  test('a strain with no gene-looking track opens on its first feature track', async () => {
+    mockSession.assemblyNames = ['K12', 'Sakai']
+    mockSession.tracks = [
+      {
+        trackId: 'Sakai_segments',
+        name: 'Sakai segments',
+        type: 'FeatureTrack',
+        assemblyNames: ['Sakai'],
+        adapter: { type: 'BedAdapter' },
+      },
+    ]
+    const model = await loadedGraph(ECOLI_RGFA, {
+      refName: 'chr',
+      assemblyName: 'K12',
+      start: 1000,
+      end: 1020,
+    })
+    model.showInLinearView(model.nodeLaunchTargets('3+').own!)
+    expect(mockSession.addedViews).toEqual([
+      [
+        'LinearGenomeView',
+        expect.objectContaining({
+          init: expect.objectContaining({
+            assembly: 'Sakai',
+            tracks: ['Sakai_segments'],
+          }),
+        }),
+      ],
+    ])
+  })
+
   // A pairing is not stolen from a view still on screen: a graph launched from
   // a linear view came in on that sync. One whose view has been closed is held
   // by nothing, and kept, the view the graph opens next never got its hover.
