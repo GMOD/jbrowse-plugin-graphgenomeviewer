@@ -173,6 +173,9 @@ export function usePaneGestures(model: GraphPaneModel) {
   const dragCanvasRef = useRef<Element | null>(null)
   const pinchRef = useRef<ReturnType<typeof pinchOf> | null>(null)
   const stripPanRef = useRef(false)
+  // a press on a bubble label pans through window listeners, so the canvas
+  // under the pointer leaves those moves alone
+  const labelPanRef = useRef<{ end: () => void; moved: boolean } | null>(null)
   const verticalPanRef = useRef(false)
   // A pan and a hover are applied once per frame, not once per mousemove:
   // mousemove fires in bursts well above the frame rate, and each pan step
@@ -428,7 +431,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       scheduleFrame()
       return
     }
-    if (isOtherPointer(e)) {
+    if (isOtherPointer(e) || labelPanRef.current) {
       return
     }
     const dx = e.clientX - lastMouseRef.current.x
@@ -542,7 +545,6 @@ export function usePaneGestures(model: GraphPaneModel) {
   // the drawing does, rather than leaving a patch of the graph that will not
   // drag; one that stays put is a click on the label. The click that ends a
   // pan is swallowed before the label sees it.
-  const labelPanRef = useRef<{ end: () => void; moved: boolean } | null>(null)
   useEffect(
     () => () => {
       labelPanRef.current?.end()
@@ -560,6 +562,8 @@ export function usePaneGestures(model: GraphPaneModel) {
       return
     }
     labelPanRef.current?.end()
+    stripPanRef.current = false
+    verticalPanRef.current = false
     const id = e.pointerId
     const start = pointOf(e)
     let last = start
