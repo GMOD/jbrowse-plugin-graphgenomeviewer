@@ -11,6 +11,8 @@ import { isRecord } from '../isRecord'
 // - `walkStrip`: walk rows under a node layout, linked to the drawing
 // - `walkRibbons`: between neighbouring walk rows, a ribbon joining the
 //   stretches both walk through the same nodes
+// - `walkBlocks`: on walk rows, a lettered box round each stretch of nodes off
+//   the reference's path that two or more rows walk
 export type GraphLayer =
   | 'paths'
   | 'bubbles'
@@ -19,6 +21,7 @@ export type GraphLayer =
   | 'referenceStrip'
   | 'walkStrip'
   | 'walkRibbons'
+  | 'walkBlocks'
 
 const DEFAULTS: Record<GraphLayer, boolean> = {
   paths: false,
@@ -28,6 +31,7 @@ const DEFAULTS: Record<GraphLayer, boolean> = {
   referenceStrip: true,
   walkStrip: false,
   walkRibbons: false,
+  walkBlocks: false,
 }
 
 // A config or session states only what differs from the defaults, as

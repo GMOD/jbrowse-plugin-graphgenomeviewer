@@ -308,6 +308,24 @@ export const withLaunchActions = withRenderingActions
                   self.setLayer('walkRibbons', !self.walkRibbons)
                 },
               },
+              {
+                type: 'checkbox' as const,
+                label: 'Letter shared blocks',
+                checked: self.layerSet.has('walkBlocks'),
+                onClick: () => {
+                  self.setLayer('walkBlocks', !self.layerSet.has('walkBlocks'))
+                },
+              },
+              {
+                type: 'checkbox' as const,
+                label: 'Order rows by shared sequence',
+                checked: self.walkRowOrder === 'shared',
+                onClick: () => {
+                  self.setWalkRowOrder(
+                    self.walkRowOrder === 'shared' ? undefined : 'shared',
+                  )
+                },
+              },
             ]
           : []),
         ...(self.chosenLayoutMode === 'walkrows' &&

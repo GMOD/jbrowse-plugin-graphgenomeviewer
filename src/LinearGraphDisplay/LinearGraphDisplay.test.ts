@@ -1040,6 +1040,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   display.setLayer('bubbles', true)
   display.setFacet('walk')
   display.setWalkRowSamples(['HG1'])
+  display.setWalkRowOrder('shared')
   display.setHover('off')
   const slots = [
     'layoutMode',
@@ -1062,7 +1063,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
     size: { value: 6, links: 'walks' },
     layers: { bubbles: true },
     facet: { field: 'walk', domain: [] },
-    rows: { kept: ['HG1'] },
+    rows: { kept: ['HG1'], order: 'shared' },
     hover: 'off',
   })
   expect([

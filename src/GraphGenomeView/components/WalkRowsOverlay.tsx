@@ -5,6 +5,7 @@ import { observer } from 'mobx-react'
 
 import ElTree, { useSvgId } from './ElTree'
 import { PaneOverlayCanvas, PaneSvgLayer } from './PaneLayer'
+import { paintWalkRowBlocks } from '../walkRowBlocks'
 import { SECTION_HEADER_PX, walkRowTrees } from '../walkRowGroups'
 import { paintWalkRowSpans, walkRowSpans } from '../walkRowSpans'
 
@@ -128,6 +129,37 @@ function WalkRowRibbonsCanvas({ model }: { model: GraphPaneModel }) {
   )
 }
 
+// Over the bars, the lettered blocks: copy A on two rows, and C where another
+// row has A, read at a glance
+function WalkRowBlocksCanvas({ model }: { model: GraphPaneModel }) {
+  const paint = useCallback(
+    (ctx: CanvasRenderingContext2D) => {
+      const blocks = model.sharedBlocks
+      const bars = model.walkRowBars
+      const place = model.walkRowPlacement
+      const pitch = model.walkRowPitch
+      if (!blocks || !bars || !place || !pitch) {
+        return
+      }
+      const { scaleX, scaleY, translateX, translateY } = model.screenTransform
+      paintWalkRowBlocks(ctx, blocks, {
+        x: offset => (bars.origin + offset) * scaleX + translateX,
+        rowCentre: row => place.rowY(row) * scaleY + translateY,
+        barPx: pitch.barPx,
+      })
+    },
+    [model],
+  )
+  return (
+    <PaneOverlayCanvas
+      model={model}
+      zIndex={3}
+      testId="graph-walk-rows-blocks"
+      paint={paint}
+    />
+  )
+}
+
 // Its own observer, so moving between rows redraws this rect and not every row
 const HoveredWalkRow = observer(function HoveredWalkRow({
   model,
@@ -191,6 +223,9 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         <WalkRowRibbonsCanvas model={model} />
       )}
       {vector ? null : <WalkRowSpansCanvas model={model} />}
+      {vector || !model.sharedBlocks ? null : (
+        <WalkRowBlocksCanvas model={model} />
+      )}
       <PaneSvgLayer
         model={model}
         zIndex={3}

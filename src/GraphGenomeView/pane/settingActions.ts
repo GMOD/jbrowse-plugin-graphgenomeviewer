@@ -253,7 +253,19 @@ export const withSettingActions = withTubeMapViews
       )
     },
     setWalkRowSamples(samples: string[] | undefined) {
-      self.writeGrammar({ rows: samples ? { kept: samples } : {} })
+      const order = self.walkRowOrder
+      self.writeGrammar({
+        rows: {
+          ...(samples ? { kept: samples } : {}),
+          ...(order ? { order } : {}),
+        },
+      })
+    },
+    setWalkRowOrder(order: 'shared' | undefined) {
+      const kept = self.walkRowSamples
+      self.writeGrammar({
+        rows: { ...(kept ? { kept } : {}), ...(order ? { order } : {}) },
+      })
     },
     setWalkRowGroupBy(groupBy: WalkRowGroupBy | undefined) {
       if (groupBy || self.walkRowGroupBy) {

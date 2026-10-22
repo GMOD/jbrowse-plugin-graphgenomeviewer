@@ -3403,6 +3403,50 @@ describe('walk rows', () => {
     expect(model.walkStripRows).toBeUndefined()
   })
 
+  // node 2 is off GRCh38's path and both A#1 and B#1 walk it
+  test('the block two rows walk off the reference is lettered on both', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    expect(model.sharedBlocks).toBeUndefined()
+    model.setLayer('walkBlocks', true)
+    const rows = [model.walkRowBars!.reference, ...model.walkRowBars!.rows]
+    const lettered = model.sharedBlocks!.map(b => ({
+      label: rows[b.row]!.label,
+      start: b.start,
+      bp: b.bp,
+      block: b.block,
+    }))
+    expect(lettered.sort((a, b) => a.label.localeCompare(b.label))).toEqual([
+      { label: 'A#1', start: 4, bp: 8, block: 0 },
+      { label: 'B#1', start: 4, bp: 8, block: 0 },
+    ])
+  })
+
+  test('the shared order stacks rows that walk the same nodes together', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWalkRowSamples(['A', 'B'])
+    const before = model.walkRowBars!.rows.map(r => r.label)
+    model.setWalkRowOrder('shared')
+    const labels = model.walkRowBars!.rows.map(r => r.label)
+    expect(labels).not.toEqual(before)
+    // A#1 and B#1 share node 2, so B#1 stacks under A#1 rather than after
+    // A#2, which walks GRCh38's own route
+    expect(labels).toEqual(['A#1', 'B#1', 'A#2'])
+    // the sample filter and the order sit side by side in the grammar
+    expect(model.walkRowSamples).toEqual(['A', 'B'])
+    model.setWalkRowSamples(undefined)
+    expect(model.walkRowOrder).toBe('shared')
+  })
+
   test('ribbons join neighbouring walk rows where they walk the same nodes', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

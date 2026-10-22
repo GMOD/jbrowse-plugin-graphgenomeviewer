@@ -106,6 +106,12 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
 - **Ribbons between rows** joins each stretch of a bar to where the bar below
   walks the same nodes, lavender where it walks them backwards. A duplicated
   copy fans out to both copies below it, and an inversion crosses over
+- **Letter shared blocks** boxes each stretch of nodes off the reference's path
+  that two or more rows walk: A for the block with the most bp, then B and C in
+  colour and the rest in grey. A row with A twice carries that copy twice
+- **Order rows by shared sequence** stacks each row under the one it shares the
+  most sequence with, so ribbons stay short and blocks line up. A grouping keeps
+  this order within each section
 
 The **Repeat** picker tiles bars by a repeat annotation's unit and marks the
 allele a genotyper called. With the curated VNTR track, the picker tiles each

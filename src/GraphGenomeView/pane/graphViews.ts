@@ -14,6 +14,8 @@ import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
   ribbonJoin,
+  sharedRowOrder,
+  walkRowBlocks,
   walkRowLinks,
 } from '@jbrowse/bandage-core/layout/walkRowLinks'
 import {
@@ -171,9 +173,12 @@ export interface GraphGrammar {
 type TubeColorKind = 'value' | 'tinted' | 'role' | 'path'
 
 // The rows walk rows draw: `kept` names the samples whose walks show, by the
-// name before the haplotype number; unset shows every walk the cut holds
+// name before the haplotype number; unset shows every walk the cut holds.
+// `order: 'shared'` stacks each row under the one it shares the most sequence
+// with, so ribbons stay short and shared blocks line up.
 export interface GraphRows {
   kept?: string[]
+  order?: 'shared'
 }
 
 export const withGraphViews = paneBase
@@ -280,6 +285,9 @@ export const withGraphViews = paneBase
       get walkRowSamples() {
         const kept = self.grammar.rows?.kept
         return Array.isArray(kept) ? kept : undefined
+      },
+      get walkRowOrder() {
+        return self.grammar.rows?.order === 'shared' ? 'shared' : undefined
       },
       get hoverLightsEverything() {
         return this.chosenHover === 'everything'
@@ -758,7 +766,7 @@ export const withGraphViews = paneBase
     get cutWalkRows() {
       const cut = self.walkCut
       const runs = cut?.walkRowRuns
-      const visits = this.ribbonsDrawn
+      const visits = this.rowVisitsNeeded
       return cut && runs && visits && self.graphRegion
         ? walkRowsFromCut(cut, self.graphRegion, undefined, true)
         : runs
@@ -767,9 +775,15 @@ export const withGraphViews = paneBase
             ? walkRows(self.graph, self.graphRegion, undefined, { visits })
             : undefined
     },
-    // Ribbons join neighbouring walk rows, so the rows carry their visits
-    get ribbonsDrawn() {
-      return self.walkRibbons && self.chosenLayoutMode === 'walkrows'
+    // Ribbons, shared blocks and the shared order compare the rows node by
+    // node, so the rows carry their visits
+    get rowVisitsNeeded() {
+      return (
+        self.chosenLayoutMode === 'walkrows' &&
+        (self.walkRibbons ||
+          self.layerSet.has('walkBlocks') ||
+          self.walkRowOrder === 'shared')
+      )
     },
     // An assembly by each name a backbone may spell it with: the session's
     // name and aliases, and the PanSN prefix the source track maps each of
@@ -876,7 +890,7 @@ export const withGraphViews = paneBase
       }
       const repeat = self.selectedRepeat
       const cut = self.walkCut
-      const visits = self.ribbonsDrawn
+      const visits = self.rowVisitsNeeded
       const bars = repeat
         ? cut
           ? walkRowsFromCut(cut, repeat, repeat.unit, visits)
@@ -954,10 +968,18 @@ export const withGraphViews = paneBase
           ? { by: 'column', ...grouped.groupBy, table: grouped.table }
           : undefined
     },
-    // the cohort's rows the sample filter keeps
+    // The cohort's rows the sample filter keeps, in the shared order where
+    // asked; a grouping then keeps that order within each section
     get keptCohortRows() {
       const bars = this.cohortWalkRows
-      return bars && filterSamples(bars.rows, self.walkRowSamples)
+      const rows = bars && filterSamples(bars.rows, self.walkRowSamples)
+      if (!bars || !rows || self.walkRowOrder !== 'shared') {
+        return rows
+      }
+      const all = [bars.reference, ...rows]
+      return sharedRowOrder(all)
+        .filter(i => i > 0)
+        .map(i => all[i]!)
     },
     // The kept rows in a section per value of the grouped column, or
     // undefined while ungrouped or the table lacks that column
@@ -981,11 +1003,22 @@ export const withGraphViews = paneBase
     // offsets on both, the reference row first
     get walkRowRibbons() {
       const bars = this.walkRowBars
-      if (!self.ribbonsDrawn || !bars) {
+      if (!self.walkRibbons || !self.rowVisitsNeeded || !bars) {
         return undefined
       }
       const rows = [bars.reference, ...bars.rows]
       return walkRowLinks(rows, ribbonJoin(rows))
+    },
+    // The stretches of each row through a block of nodes off the
+    // reference's path that two or more rows walk, block 0 the one with the
+    // most bp, which the bars letter A, B, C...
+    get sharedBlocks() {
+      const bars = this.walkRowBars
+      if (!self.layerSet.has('walkBlocks') || !self.rowVisitsNeeded || !bars) {
+        return undefined
+      }
+      const rows = [bars.reference, ...bars.rows]
+      return walkRowBlocks(rows, ribbonJoin(rows))
     },
     // Whether the canvas draws the graph's nodes. A tube map and walk rows
     // draw a picture of their own over it, so what sits on nodes (genes,
