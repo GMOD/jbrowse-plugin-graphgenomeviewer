@@ -579,7 +579,9 @@ export const withFitViews = withHostViews
             connectorThickness: self.connectorThickness,
             region: self.graphRegion,
             colorDomain: self.statedColorDomain,
-            genes: self.showGenes ? self.backboneGenes : undefined,
+            genes: self.showGenes
+              ? [...(self.backboneGenes ?? []), ...(self.ownGeneFeatures ?? [])]
+              : undefined,
             walkRows: self.walkRowBars,
             walkRowPitch: self.walkRowPitch,
             rowGenes: self.walkRowGenes,
