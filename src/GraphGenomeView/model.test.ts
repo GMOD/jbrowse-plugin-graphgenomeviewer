@@ -218,7 +218,9 @@ function createAnchoredModel(props: { layers?: GraphLayers } = {}) {
 
 // A view attached to a tree, so afterAttach installs its reactions. A root
 // model never attaches.
-function attachedModel(props: { layoutMode?: LayoutModeValue } = {}) {
+function attachedModel(
+  props: { layoutMode?: LayoutModeValue; [key: string]: unknown } = {},
+) {
   return types
     .model({ view: stateModelFactory() })
     .create({ view: { type: 'GraphGenomeView', ...props } }).view
@@ -364,6 +366,30 @@ describe('restoring a stated cut', () => {
         opts: { hops: 2, haplotypes: ['HG002#1', 'HG005#2'] },
       }),
     )
+  })
+
+  // Only a GBZ cut follows snarls past the window; a walk file cuts the same
+  // graph either way, so the strip's toggle has nothing to fetch.
+  test.each([
+    ['RgfaTabixAdapter', 0],
+    ['GbzBaseSyntenyAdapter', 1],
+  ])('the walk strip on a %s track cuts again %i times', async (type, n) => {
+    rpcRespond()
+    mockSession.tracks = [{ trackId: 'rgfa-track', adapter: { type } }]
+    const model = attachedModel({
+      layoutMode: 'force',
+      loadedTrackId: 'rgfa-track',
+      loadedRegion: TEST_REGION,
+    })
+    await vi.waitFor(() => {
+      expect(model.graph).toBeDefined()
+    })
+    const cuts = () =>
+      mockRpcCall.mock.calls.filter(c => c[1] === 'GetSubgraph').length
+    const before = cuts()
+    model.setWalkStrip(!model.walkStrip)
+    await layoutsSettled(model)
+    expect(cuts()).toBe(before + n)
   })
 
   test('a stated track the session lacks is reported without a fetch', async () => {
