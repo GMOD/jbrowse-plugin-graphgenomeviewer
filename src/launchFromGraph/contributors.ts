@@ -44,6 +44,51 @@ function anchoredNodeLocation(node: AnchoredNode): GraphLocation {
   }
 }
 
+export interface AssemblySpan {
+  assemblyName: string
+  refName: string
+  start: number
+  end: number
+}
+
+// Where a node's sequence sits on each loaded assembly: its own rGFA
+// location, and where every walk through it passes it on that walk's contig.
+// `except` is the assembly the reference band is already drawn on.
+export function nodeAssemblySpans(
+  graph: Graph,
+  node: GraphNode,
+  resolve: (sample: string) => string | undefined,
+  except?: string,
+) {
+  const spans = new Map<string, AssemblySpan>()
+  const add = (loc: GraphLocation) => {
+    const assemblyName = resolveLocationAssembly(resolve, loc)
+    const key = `${assemblyName}\t${loc.refName}\t${loc.start}`
+    if (assemblyName !== undefined && assemblyName !== except) {
+      spans.set(key, {
+        assemblyName,
+        refName: loc.refName,
+        start: loc.start,
+        end: loc.end,
+      })
+    }
+  }
+  const own = nodeOwnLocation(node)
+  if (own) {
+    add(own)
+  }
+  for (const visit of graph.pathVisits?.get(node.name) ?? []) {
+    add({
+      sample: panSNSample(visit.path),
+      haplotype: panSNHaplotype(visit.path),
+      refName: panSNContig(visit.path),
+      start: visit.start,
+      end: visit.start + node.length,
+    })
+  }
+  return [...spans.values()]
+}
+
 export interface Contributor extends GraphLocation {
   // lowest rank this assembly holds here: 0 means it is the reference backbone
   rank: number

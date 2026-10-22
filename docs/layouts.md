@@ -40,6 +40,11 @@ view bands the same bp across the curated KIV-2 array:
 
 ![KIV-2's 68 kb allele hovered: the strip boxes the span between its flanks, and the linear view bands it over the KIV-2 annotation](../img/force_kiv2_hover.png)
 
+A linear view of a haplotype's own assembly, such as a synteny row or one opened
+from the node menu, bands where that haplotype carries the hovered node on its
+own contig. Each walk through the node gives one band, so a node a haplotype
+walks twice bands twice.
+
 ## Bubbles
 
 A bubble is a place where paths split and rejoin, such as a SNP, an indel or a

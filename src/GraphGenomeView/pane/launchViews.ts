@@ -7,6 +7,7 @@ import { getSession } from '@jbrowse/core/util'
 import { withGraphViews } from './graphViews'
 import {
   contributingAssemblies,
+  nodeAssemblySpans,
   nodeOwnLocation,
   resolveContributors,
   resolveLocationAssembly,
@@ -169,5 +170,21 @@ export const withLaunchViews = withGraphViews
             ? { location: onReference, assembly: region.assemblyName }
             : undefined,
       }
+    },
+    // The hovered node's own sequence on every loaded assembly but the
+    // reference, for linear views of those assemblies to band: an allele off
+    // the reference is a few hundred bp "instead of" on GRCh38, and here it
+    // is where it actually lives on each haplotype
+    get assemblyHoverHighlights() {
+      const id = self.hoveredNode
+      const node = id === null ? undefined : self.nodeById?.get(id)
+      return node && self.graph && self.chosenHover !== 'off'
+        ? nodeAssemblySpans(
+            self.graph,
+            node,
+            self.assemblyResolver,
+            self.graphRegion?.assemblyName,
+          )
+        : []
     },
   }))
