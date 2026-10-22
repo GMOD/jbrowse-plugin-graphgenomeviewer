@@ -290,7 +290,17 @@ export const withLaunchActions = withRenderingActions
             ]
           : []),
         ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
-          ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
+          ? [
+              { label: 'Samples', subMenu: this.walkRowSampleMenuItems() },
+              {
+                type: 'checkbox' as const,
+                label: 'Ribbons between rows',
+                checked: self.walkRibbons,
+                onClick: () => {
+                  self.setLayer('walkRibbons', !self.walkRibbons)
+                },
+              },
+            ]
           : []),
         ...(self.chosenLayoutMode === 'walkrows' &&
         self.walkRowBars &&

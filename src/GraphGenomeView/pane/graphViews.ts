@@ -13,6 +13,10 @@ import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
+  ribbonJoin,
+  walkRowLinks,
+} from '@jbrowse/bandage-core/layout/walkRowLinks'
+import {
   walkRowRuns,
   walkRowsOf,
 } from '@jbrowse/bandage-core/layout/walkRowRuns'
@@ -110,12 +114,16 @@ import type { AnyConfigurationModel } from '@jbrowse/core/configuration'
 import type { FileLocation } from '@jbrowse/core/util/types'
 
 // A repeat pick slices the cut's walks again, by the repeat's own array
+// The rows again from the cut's tables: for a repeat pick, by the repeat's
+// own array, or with each row's visits, which ribbons need and the worker's
+// runs leave out
 function walkRowsFromCut(
   cut: WalkCut,
   region: { start: number; end: number },
   unit?: number,
+  visits?: boolean,
 ) {
-  const runs = walkRowRuns(cut, region)
+  const runs = walkRowRuns(cut, region, { visits })
   return runs ? walkRowsOf(runs, unit) : undefined
 }
 
@@ -247,6 +255,9 @@ export const withGraphViews = paneBase
       },
       get walkStrip() {
         return this.layerSet.has('walkStrip')
+      },
+      get walkRibbons() {
+        return this.layerSet.has('walkRibbons')
       },
       // One section per value of a field, as a grammar of graphics splits a
       // plot. A node layout draws a panel per `walk` (each lifted walk alone,
@@ -740,12 +751,20 @@ export const withGraphViews = paneBase
     // Each walk sliced to the window, for walk rows and the strip; a repeat
     // pick slices again by its own array
     get cutWalkRows() {
-      const runs = self.walkCut?.walkRowRuns
-      return runs
-        ? walkRowsOf(runs)
-        : self.graph
-          ? walkRows(self.graph, self.graphRegion)
-          : undefined
+      const cut = self.walkCut
+      const runs = cut?.walkRowRuns
+      const visits = this.ribbonsDrawn
+      return cut && runs && visits && self.graphRegion
+        ? walkRowsFromCut(cut, self.graphRegion, undefined, true)
+        : runs
+          ? walkRowsOf(runs)
+          : self.graph
+            ? walkRows(self.graph, self.graphRegion, undefined, { visits })
+            : undefined
+    },
+    // Ribbons join neighbouring walk rows, so the rows carry their visits
+    get ribbonsDrawn() {
+      return self.walkRibbons && self.chosenLayoutMode === 'walkrows'
     },
     // An assembly by each name a backbone may spell it with: the session's
     // name and aliases, and the PanSN prefix the source track maps each of
@@ -852,10 +871,11 @@ export const withGraphViews = paneBase
       }
       const repeat = self.selectedRepeat
       const cut = self.walkCut
+      const visits = self.ribbonsDrawn
       const bars = repeat
         ? cut
-          ? walkRowsFromCut(cut, repeat, repeat.unit)
-          : walkRows(self.graph, repeat, repeat.unit)
+          ? walkRowsFromCut(cut, repeat, repeat.unit, visits)
+          : walkRows(self.graph, repeat, repeat.unit, { visits })
         : self.cutWalkRows
       if (!bars) {
         return undefined
@@ -951,6 +971,16 @@ export const withGraphViews = paneBase
       return bars && rows
         ? { ...bars, rows: this.walkRowGroups?.rows ?? rows }
         : undefined
+    },
+    // Where each row walks the same nodes as the row below it, as bar
+    // offsets on both, the reference row first
+    get walkRowRibbons() {
+      const bars = this.walkRowBars
+      if (!self.ribbonsDrawn || !bars) {
+        return undefined
+      }
+      const rows = [bars.reference, ...bars.rows]
+      return walkRowLinks(rows, ribbonJoin(rows))
     },
     // Whether the canvas draws the graph's nodes. A tube map and walk rows
     // draw a picture of their own over it, so what sits on nodes (genes,

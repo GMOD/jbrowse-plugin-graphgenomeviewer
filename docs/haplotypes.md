@@ -101,6 +101,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
 - Node lengths are not labelled while walks are lifted
+- **Ribbons between rows** joins each stretch of a bar to where the bar below
+  walks the same nodes, lavender where it walks them backwards. A duplicated
+  copy fans out to both copies below it, and an inversion crosses over
 
 The **Repeat** picker tiles bars by a repeat annotation's unit and marks the
 allele a genotyper called. With the curated VNTR track, the picker tiles each

@@ -3370,6 +3370,27 @@ describe('walk rows', () => {
     expect(model.walkStripRows).toBeUndefined()
   })
 
+  test('ribbons join neighbouring walk rows where they walk the same nodes', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    expect(model.walkRowRibbons).toBeUndefined()
+    model.setLayer('walkRibbons', true)
+    const ribbons = model.walkRowRibbons!
+    expect(ribbons.length).toBeGreaterThan(0)
+    // every row passes nodes 1 and 3, so each pair of neighbours shares a
+    // stretch that starts at both bars' left ends
+    const rows = [model.walkRowBars!.reference, ...model.walkRowBars!.rows]
+    for (let row = 0; row < rows.length - 1; row++) {
+      expect(ribbons.some(r => r.row === row && r.a0 === 0 && r.b0 === 0)).toBe(
+        true,
+      )
+    }
+  })
+
   test('walk rows and tube maps take no strip', async () => {
     rpcRespond()
     const model = stateModelFactory().create({
