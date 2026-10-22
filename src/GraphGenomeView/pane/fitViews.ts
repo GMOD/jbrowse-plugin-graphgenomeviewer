@@ -520,6 +520,7 @@ export const withFitViews = withHostViews
         connectorThickness: self.connectorThickness,
         drawPaths,
         nodeWidth: self.nodeWidth,
+        edgeWidth: self.linkWidth,
         highlight,
         // Untracked, so a zoom does not eagerly rebuild geometry — the
         // debounced viewportDirty bump drives the scale-dependent rebuild
@@ -573,6 +574,7 @@ export const withFitViews = withHostViews
             facet: self.facetSpec,
             colorScheme: self.effectiveColorScheme,
             nodeWidth: self.nodeWidth,
+            edgeWidth: self.linkWidth,
             showDeletionEdges: self.showDeletionEdges,
             linearLayout: self.linearLayout,
             contigThickness: self.contigThickness,

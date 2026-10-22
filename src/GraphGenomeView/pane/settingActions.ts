@@ -20,7 +20,7 @@ import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { withRows } from '../../launchFromGraph/linearViewTarget'
 import { withLayer } from '../graphLayers'
 import { colorOfScheme } from '../nodeColor'
-import { sizeOfNodeWidth } from '../nodeSize'
+import { sizeOf } from '../nodeSize'
 
 import type { GraphGrammar } from './graphViews'
 import type { ScreenTransform } from './keepInView'
@@ -32,6 +32,7 @@ import type { WalkRowGroupBy } from '../walkRowGroups'
 import type { BubbleSpread } from '@jbrowse/bandage-core/bubbleSpreads'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { ColorScheme } from '@jbrowse/bandage-core/colorSchemes'
+import type { EdgeWidth } from '@jbrowse/bandage-core/edgeWidths'
 import type { FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -168,7 +169,20 @@ export const withSettingActions = withTubeMapViews
     },
     setNodeWidth(width: NodeWidth) {
       self.writeGrammar({
-        size: sizeOfNodeWidth(width, self.contigThickness),
+        size: sizeOf({
+          width,
+          px: self.contigThickness,
+          links: self.linkWidth,
+        }),
+      })
+    },
+    setLinkWidth(links: EdgeWidth) {
+      self.writeGrammar({
+        size: sizeOf({
+          width: self.nodeWidth,
+          px: self.contigThickness,
+          links,
+        }),
       })
     },
     setTubeMapFold(bp: number) {

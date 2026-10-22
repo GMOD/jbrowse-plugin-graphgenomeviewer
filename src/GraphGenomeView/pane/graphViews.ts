@@ -102,6 +102,7 @@ import type {
   ColorScheme,
   ResolvedColorScheme,
 } from '@jbrowse/bandage-core/colorSchemes'
+import type { EdgeWidth } from '@jbrowse/bandage-core/edgeWidths'
 import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
@@ -234,6 +235,10 @@ export const withGraphViews = paneBase
       },
       get contigThickness() {
         return nodeSizeOf(self.grammar.size).px
+      },
+      // Link thickness by the walks taking it; see EDGE_WIDTHS
+      get linkWidth(): EdgeWidth {
+        return nodeSizeOf(self.grammar.size).links
       },
       get layerSet() {
         return layersOf(self.grammar.layers)

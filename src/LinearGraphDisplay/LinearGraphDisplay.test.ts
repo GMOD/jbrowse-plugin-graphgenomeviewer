@@ -1036,6 +1036,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   display.setLayoutMode('ordered')
   display.setColorScheme('depth')
   display.setNodeWidth('uniform')
+  display.setLinkWidth('walks')
   display.setLayer('bubbles', true)
   display.setFacet('walk')
   display.setWalkRowSamples(['HG1'])
@@ -1058,7 +1059,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   ).toEqual({
     layoutMode: 'ordered',
     color: { field: 'depth' },
-    size: 6,
+    size: { value: 6, links: 'walks' },
     layers: { bubbles: true },
     facet: { field: 'walk', domain: [] },
     rows: { kept: ['HG1'] },
@@ -1068,11 +1069,21 @@ test('each grammar setter writes the track config, and the pane reads it back', 
     display.chosenLayoutMode,
     display.chosenColorScheme,
     display.nodeWidth,
+    display.linkWidth,
     display.showBubbles,
     display.facetSetting.field,
     display.walkRowSamples,
     display.chosenHover,
-  ]).toEqual(['ordered', 'depth', 'uniform', true, 'walk', ['HG1'], 'off'])
+  ]).toEqual([
+    'ordered',
+    'depth',
+    'uniform',
+    'walks',
+    true,
+    'walk',
+    ['HG1'],
+    'off',
+  ])
 })
 
 // Reset track settings, undo and the config editor write the slot without
