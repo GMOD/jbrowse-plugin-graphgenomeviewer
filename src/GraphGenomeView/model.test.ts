@@ -2345,6 +2345,35 @@ describe('launching out of the graph', () => {
     expect(model.connectedViewId).toBe('view-1')
   })
 
+  test('an opened view carries one gene track, not every feature track', async () => {
+    mockSession.assemblyNames = ['hg38']
+    const feature = (trackId: string, name: string, type: string) => ({
+      trackId,
+      name,
+      type: 'FeatureTrack',
+      assemblyNames: ['hg38'],
+      adapter: { type },
+    })
+    mockSession.tracks = [
+      feature('rgfa-track', 'graph', 'RgfaTabixAdapter'),
+      feature('clinvar', 'ClinVar', 'BigBedAdapter'),
+      feature('ncbi', 'NCBI RefSeq genes', 'Gff3TabixAdapter'),
+      feature('gwas', 'GWAS catalog', 'BedTabixAdapter'),
+    ]
+    const model = await loadedGraph(HPRC_RGFA)
+    const { reference } = model.nodeLaunchTargets('1+')
+    model.showInLinearView(reference!)
+
+    expect(mockSession.addedViews).toEqual([
+      [
+        'LinearGenomeView',
+        expect.objectContaining({
+          init: expect.objectContaining({ tracks: ['rgfa-track', 'ncbi'] }),
+        }),
+      ],
+    ])
+  })
+
   // A pairing is not stolen from a view still on screen: a graph launched from
   // a linear view came in on that sync. One whose view has been closed is held
   // by nothing, and kept, the view the graph opens next never got its hover.
