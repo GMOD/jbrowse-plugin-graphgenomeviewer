@@ -91,6 +91,23 @@ export const withRenderingActions = withLoadActions
             },
           ),
         )
+        // and the haplotypes' own genes on their nodes off the reference
+        addDisposer(
+          self,
+          reaction(
+            () => ({
+              graph: self.graph,
+              reads: JSON.stringify(self.ownGeneReads),
+            }),
+            () => {
+              void self.loadOwnGenes()
+            },
+            {
+              fireImmediately: true,
+              equals: (a, b) => a.graph === b.graph && a.reads === b.reads,
+            },
+          ),
+        )
         // Walk rows and tube map panels read the source track's samples
         // TSV, to group by its columns, again for a graph after a dropped one
         addDisposer(

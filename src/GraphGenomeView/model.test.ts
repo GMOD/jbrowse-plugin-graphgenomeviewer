@@ -2321,6 +2321,61 @@ describe('launching out of the graph', () => {
   // Where every contributor is a loaded assembly the graph offers one panel per
   // strain, and a synteny view of all of them — the item is disabled while no
   // synteny track aligns them, rather than absent.
+  // Sakai's allele is drawn bare unless Sakai's own annotation is read onto
+  // it: the reference's genes only reach the backbone
+  test("a loaded strain's own genes are read onto its nodes off the reference", async () => {
+    mockSession.assemblyNames = ['K12', 'Sakai']
+    mockSession.tracks = [
+      {
+        trackId: 'Sakai_genes',
+        name: 'Sakai genes',
+        assemblyNames: ['Sakai'],
+        adapter: { type: 'Gff3TabixAdapter' },
+      },
+    ]
+    const model = await loadedGraph(ECOLI_RGFA, {
+      refName: 'chr',
+      assemblyName: 'K12',
+      start: 1000,
+      end: 1020,
+    })
+    expect(model.ownGeneReads).toEqual([
+      {
+        stableRefName: 'Sakai#1#chr',
+        trackId: 'Sakai_genes',
+        region: {
+          assemblyName: 'Sakai',
+          refName: 'chr',
+          start: 90000,
+          end: 90004,
+        },
+      },
+    ])
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'CoreGetFeatures'
+        ? Promise.resolve([
+            {
+              name: 'stx2A',
+              refName: 'chr',
+              start: 90001,
+              end: 90003,
+              strand: 1,
+              subfeatures: [{ type: 'exon', start: 90001, end: 90003 }],
+            },
+          ])
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    await model.loadOwnGenes()
+    expect(model.ownGeneFeatures).toEqual([
+      expect.objectContaining({
+        name: 'stx2A · Sakai#1',
+        refName: 'Sakai#1#chr',
+        start: 90001,
+        end: 90003,
+      }),
+    ])
+  })
+
   test('loaded strains offer a per-strain linear view and a synteny item', async () => {
     mockSession.assemblyNames = ['K12', 'Sakai']
     const model = await loadedGraph(ECOLI_RGFA, {

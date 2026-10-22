@@ -89,6 +89,49 @@ export function nodeAssemblySpans(
   return [...spans.values()]
 }
 
+// Each stable sequence off the reference that the cut's nodes lie on, with
+// the loaded assembly holding it and the span its nodes cover there. A gene
+// read over that span, renamed to `stableRefName`, lands on those nodes the
+// way the reference's genes land on the backbone.
+export function offReferenceContigs(
+  graph: Graph,
+  resolve: (sample: string) => string | undefined,
+  except?: string,
+) {
+  const contigs = new Map<string, AssemblySpan & { stableRefName: string }>()
+  // an HPRC cut names hundreds of haplotypes no session loads
+  const unloaded = new Set<string>()
+  for (const node of graph.nodes) {
+    if (!isAnchored(node) || node.stable.rank === 0) {
+      continue
+    }
+    const stableRefName = node.stable.refName
+    if (unloaded.has(stableRefName)) {
+      continue
+    }
+    const loc = anchoredNodeLocation(node)
+    const seen = contigs.get(stableRefName)
+    if (seen) {
+      seen.start = Math.min(seen.start, loc.start)
+      seen.end = Math.max(seen.end, loc.end)
+      continue
+    }
+    const assemblyName = resolveLocationAssembly(resolve, loc)
+    if (assemblyName === undefined || assemblyName === except) {
+      unloaded.add(stableRefName)
+    } else {
+      contigs.set(stableRefName, {
+        stableRefName,
+        assemblyName,
+        refName: loc.refName,
+        start: loc.start,
+        end: loc.end,
+      })
+    }
+  }
+  return [...contigs.values()]
+}
+
 export interface Contributor extends GraphLocation {
   // lowest rank this assembly holds here: 0 means it is the reference backbone
   rank: number

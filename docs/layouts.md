@@ -80,6 +80,10 @@ stretch of node it sits on, and pins the gene's name under its midpoint.
 
 - The view draws exons on the backbone's nodes and on a coarse tier's bubble
   nodes
+- A node off the reference on an rGFA graph gets its own haplotype's genes when
+  the session loads that haplotype as an assembly with a gene track (a CAT
+  track, say). The name reads `LPA · HG02391#1`. The first 40 such contigs in
+  the cut are read
 - A name never covers a node its gene is not on, so it moves a row or is left
   off
 - The label of a gene partly in the cut gives how much of it the cut holds:

@@ -9,6 +9,7 @@ import {
 import { walkRowLayoutOf } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+import { panSNHaplotype, panSNSample } from '@jbrowse/bandage-core/pansn'
 import {
   anchorFromPaths,
   chooseReferencePath,
@@ -323,6 +324,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     self.indexBubbles = undefined
     self.geneTrackFeatures = undefined
     self.walkGeneFeatures = undefined
+    self.ownGeneFeatures = undefined
     walkGeneCache.clear()
     self.repeatArrays = undefined
     self.clearInteractionState()
@@ -581,6 +583,25 @@ export const withLoadActions = withEngineSettings.actions(self => {
       what,
       signal,
     )
+  }
+
+  // A haplotype assembly's genes over a span of its own contig, named for
+  // that contig whatever the track calls it, read once per cut
+  function* haplotypeGenes(trackId: string, region: SubgraphRegion) {
+    const cacheKey = `${trackId} ${region.refName}:${region.start}-${region.end}`
+    let genes = walkGeneCache.get(cacheKey)
+    if (!genes) {
+      const features = yield* trackFeatures(trackId, region, 'haplotype genes')
+      if (!features) {
+        return undefined
+      }
+      genes = geneModelsFrom(features).map(g => ({
+        ...g,
+        refName: region.refName,
+      }))
+      walkGeneCache.set(cacheKey, genes)
+    }
+    return genes
   }
 
   // The annotation tracks read over the cut: genes, which `geneFeatures`
@@ -884,24 +905,10 @@ export const withLoadActions = withEngineSettings.actions(self => {
       yield Promise.all(
         reads.map(({ row, trackId, region }) =>
           flow(function* () {
-            const cacheKey = `${trackId} ${region.refName}:${region.start}-${region.end}`
-            let genes = walkGeneCache.get(cacheKey)
-            if (!genes) {
-              const features = yield* trackFeatures(
-                trackId,
-                region,
-                'haplotype genes',
-              )
-              if (!features) {
-                return
-              }
-              genes = geneModelsFrom(features).map(g => ({
-                ...g,
-                refName: region.refName,
-              }))
-              walkGeneCache.set(cacheKey, genes)
+            const genes = yield* haplotypeGenes(trackId, region)
+            if (genes) {
+              fetched.set(row, genes)
             }
-            fetched.set(row, genes)
           })(),
         ),
       )
@@ -911,6 +918,35 @@ export const withLoadActions = withEngineSettings.actions(self => {
         JSON.stringify(self.walkGeneReads?.reads ?? []) === key
       ) {
         self.walkGeneFeatures = reads.length ? fetched : undefined
+      }
+    }),
+    // Each loaded haplotype's genes on its own off-reference nodes, renamed
+    // to those nodes' stable sequence so genePins lands them there
+    loadOwnGenes: flow(function* () {
+      const reads = self.ownGeneReads
+      const key = JSON.stringify(reads)
+      const graph = self.graph
+      const fetched = (yield Promise.all(
+        reads.map(({ stableRefName, trackId, region }) =>
+          flow(function* () {
+            const genes = yield* haplotypeGenes(trackId, region)
+            // a chip reading LPA twice would not say whose copy each is
+            const whose =
+              panSNHaplotype(stableRefName) ?? panSNSample(stableRefName)
+            return (genes ?? []).map(g => ({
+              ...g,
+              name: `${g.name} · ${whose}`,
+              refName: stableRefName,
+            }))
+          })(),
+        ),
+      )) as GeneModel[][]
+      if (
+        isAlive(self) &&
+        self.graph === graph &&
+        JSON.stringify(self.ownGeneReads) === key
+      ) {
+        self.ownGeneFeatures = reads.length ? fetched.flat() : undefined
       }
     }),
     // Open a bubble in place: it keeps its colour, the rest of the drawing

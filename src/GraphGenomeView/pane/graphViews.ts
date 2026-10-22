@@ -967,12 +967,17 @@ export const withGraphViews = paneBase
     get genePins() {
       dependOn(self.positionsVersion)
       const positions = self.layoutResult?.nodePositions
+      // each haplotype's own genes ride its nodes off the reference
+      const genes = [
+        ...(self.backboneGenes ?? []),
+        ...(self.ownGeneFeatures ?? []),
+      ]
       return self.showGenes &&
         this.drawsNodes &&
         self.graph &&
-        self.backboneGenes &&
+        genes.length > 0 &&
         positions
-        ? genePins(self.graph, self.backboneGenes, positions)
+        ? genePins(self.graph, genes, positions)
         : []
     },
     // The bubbles as halos along their nodes.
