@@ -156,6 +156,7 @@ vi.mock('@jbrowse/core/util/io', () => ({
 }))
 
 const SIMPLE_GFA = 'H\tVN:Z:1.0\nS\t1\tACGT\nS\t2\tGGCC\nL\t1\t+\t2\t+\t0M\n'
+const WALKED_GFA = `${SIMPLE_GFA}W\tGRCh38\t0\tchr1\t0\t8\t>1>2\nW\tA\t1\tctg\t0\t8\t>1>2\n`
 
 const MOCK_LAYOUT = {
   nodePositions: {
@@ -1162,7 +1163,7 @@ describe('layoutMode', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcRespond()
     const model = attachedModel()
-    await model.loadGFA(SIMPLE_GFA, 'plain')
+    await model.loadGFA(WALKED_GFA, 'plain')
 
     model.setMaxGraphNodes(1)
     await layoutsSettled(model)
@@ -1460,12 +1461,27 @@ describe('node budget', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcRespond()
     const model = withLimit(1)
-    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    await model.loadGFA(WALKED_GFA, 'two nodes')
     expect(String(model.error)).toMatch(/too large to draw/i)
 
     await model.switchLayout('walkrows')
 
     expect(model.error).toBeUndefined()
+    consoleSpy.mockRestore()
+  })
+
+  // walk rows hand a graph with no walks to the force engine, which draws
+  // every node
+  test('walk rows of a graph with no walks keep the budget', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const model = withLimit(1)
+    model.setLayoutMode('walkrows')
+    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    expect(String(model.error)).toMatch(/too large to draw/i)
+    expect(
+      mockRpcCall.mock.calls.filter(c => c[1] === 'GraphComputeLayout'),
+    ).toHaveLength(0)
     consoleSpy.mockRestore()
   })
 
@@ -1492,7 +1508,7 @@ describe('node budget', () => {
     rpcRespond()
     const model = withLimit(1)
     model.setLayoutMode('walkrows')
-    await model.loadGFA(SIMPLE_GFA, 'two nodes')
+    await model.loadGFA(WALKED_GFA, 'two nodes')
     expect(model.error).toBeUndefined()
     expect(model.layoutResult).toBeDefined()
   })

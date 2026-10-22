@@ -93,6 +93,15 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }) as Promise<{ result: LayoutResult; duration: number }>
   }
 
+  // the node cap is a drawing's cost
+  function assertDrawable(graph: Graph) {
+    if (graph.nodes.length > self.maxGraphNodes) {
+      throw new Error(
+        `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Pick Layout → Walk rows, zoom in to a smaller region, or raise the node limit in Graph settings.`,
+      )
+    }
+  }
+
   // Single dispatch point for every layout mode. A mode that returns a
   // result computed it locally; one that returns undefined can't draw this
   // graph and hands off to the remote FMMM engine, which is also how
@@ -150,6 +159,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
         mode: self.chosenLayoutMode,
       }
     }
+    // walk rows and tube maps fall back here for a graph with no walks
+    assertDrawable(graph)
     const settings = self.engineSettings
     const hit = forceLayouts.ready(graph, settings)
     if (hit) {
@@ -209,11 +220,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
     const signal = loadController?.signal
     let computed
     try {
-      // the node cap is a drawing's cost, and walk rows draw a bar per walk
-      if (self.modeDrawsNodes && graph.nodes.length > self.maxGraphNodes) {
-        throw new Error(
-          `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). Pick Layout → Walk rows, zoom in to a smaller region, or raise the node limit in Graph settings.`,
-        )
+      // walk rows draw a bar per walk, not a node each
+      if (self.modeDrawsNodes) {
+        assertDrawable(graph)
       }
       computed = yield* computeLayout(graph)
     } catch (e) {
