@@ -160,14 +160,14 @@ function trackView(loc, graphDisplay, above = [], below = []) {
 const kiv2Force = {
   trackId: RGFA,
   layoutMode: 'force',
-  color: { field: 'position' },
+  encoding: { color: { field: 'position' } },
   maxRegionBp: 143000,
   height: 400,
 }
 const kiv2Gbz = {
   trackId: GBZ,
   layoutMode: 'force',
-  color: { field: 'position' },
+  encoding: { color: { field: 'position' } },
   subgraphHaplotypes: HAPLOTYPES,
 }
 const forceKiv2Track = trackView(KIV2_LOC, kiv2Force, [VNTR_TRACK])
@@ -371,7 +371,7 @@ const FIGURES = {
       {
         trackId: GBZ,
         layoutMode: 'force',
-        color: { field: 'position' },
+        encoding: { color: { field: 'position' } },
         subgraphHaplotypes: HAPLOTYPES,
         walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
         height: 260,
@@ -458,7 +458,7 @@ const FIGURES = {
       {
         ...kiv2Gbz,
         layoutMode: 'walkrows',
-        color: { field: 'position' },
+        encoding: { color: { field: 'position' } },
         repeatTrackId: 'hprc_curated_vntrs',
         height: 300,
       },
@@ -611,7 +611,7 @@ const FIGURES = {
     session: trackView(MHC_LOC, {
       trackId: RGFA,
       layoutMode: 'force',
-      color: { field: 'position' },
+      encoding: { color: { field: 'position' } },
       height: 420,
     }),
     act: hoverLongestAllele,

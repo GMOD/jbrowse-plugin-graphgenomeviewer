@@ -107,19 +107,23 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
       "type": "LinearMultiSampleVariantDisplay",
       "showTree": false,
       "shadeByDosage": false,
-      "color": {
-        "field": "consequence",
-        "scale": "categorical",
-        "domain": ["loss", "gain", "shift", "inversion", "net"],
-        "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00", "#7e6148"],
-        "labels": [
-          "Loss",
-          "Gain",
-          "Shifted, same length",
-          "Inversion",
-          "Net change, place unknown"
-        ],
-        "title": "Change"
+      "encoding": {
+        "color": {
+          "field": "consequence",
+          "scale": {
+            "type": "ordinal",
+            "domain": ["loss", "gain", "shift", "inversion", "net"],
+            "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00", "#7e6148"],
+            "names": [
+              "Loss",
+              "Gain",
+              "Shifted, same length",
+              "Inversion",
+              "Net change, place unknown"
+            ]
+          },
+          "legend": { "title": "Change" }
+        }
       }
     }
   ]
@@ -145,10 +149,10 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   more than graph-walks' 16 M step budget shows an error naming how much of it
   fits; the MHC's 90 kb take 9.4 M steps
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
-  `inversion` or `net`, which `color` paints with a key. A replacement counts as
-  a loss or gain by its net change. graph-walks labels one whose smaller side is
-  under 5% of the other as a deletion or insertion, so C4's 6,460 bp to 94 bp
-  reads `del 6.46kb->94bp`
+  `inversion` or `net`, which `encoding.color` paints with a key. A replacement
+  counts as a loss or gain by its net change. graph-walks labels one whose
+  smaller side is under 5% of the other as a deletion or insertion, so C4's
+  6,460 bp to 94 bp reads `del 6.46kb->94bp`
 - The adapter sets a form's genotype to `1` at its own changes and `.` where its
   walks do not span a site
 - The display's notifications name the haplotypes with no walk over the window

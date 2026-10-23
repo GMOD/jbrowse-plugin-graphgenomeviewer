@@ -168,14 +168,22 @@ carry, is cut once on attach; following the linear view is the track's job.
 ## Snapshots
 
 What the drawing shows is the display config, in core's plot vocabulary where it
-has a word: `layoutMode`, `color`, `size`, `layers`, `facet`, `rows` and
+has a word: `layoutMode`, `encoding`, `size`, `layers`, `facet`, `rows` and
 `hover`. A share link and Reset track settings see them all; Edit plot shows the
-ones core's `PLOT_VOCABULARY` names (`color`, `facet`, `rows`, and `size` past
-v5.0.0-beta.11). A standalone view keeps the same keys as props. The pane reads
-them through `grammar` and writes through `writeGrammar`, which each host
-overrides. A layout change from anywhere but the menu (reset, undo, the config
-editor) reaches `relayoutFrom` through a reaction on `chosenLayoutMode`.
-`paneHeight` is inert in a track; use `height`.
+ones core's `PLOT_VOCABULARY` names (`facet`, `rows`, and `size` past
+v5.0.0-beta.11), plus every `plot: true` slot on a host that reads the flag.
+
+- The node color is `encoding.color`: `{ value: 'grey' | 'uniform' }` or
+  `{ field, scale }`. The schema's `retired` lifts a flat `color`
+  (`retiredNodeColor.ts`).
+- A standalone view keeps the other keys as props. Its `color` prop holds the
+  same channel object, since core's docs specs state `color`; the view lifts a
+  flat one on load.
+
+The pane reads them through `grammar` and writes through `writeGrammar`, which
+each host overrides. A layout change from anywhere but the menu (reset, undo,
+the config editor) reaches `relayoutFrom` through a reaction on
+`chosenLayoutMode`. `paneHeight` is inert in a track; use `height`.
 
 ## Past the cut: a zoom-in notice
 
