@@ -60,12 +60,22 @@ function config() {
             displayId: 'forms_lpa-display',
             showTree: false,
             shadeByDosage: false,
-            color: {
-              field: 'consequence',
-              scale: 'categorical',
-              domain: ['loss', 'gain', 'shift', 'inversion', 'net'],
-              range: ['#e41a1c', '#800080', '#8a94a3', '#ff7f00', '#7e6148'],
-              title: 'Change',
+            encoding: {
+              color: {
+                field: 'consequence',
+                scale: {
+                  type: 'ordinal',
+                  domain: ['loss', 'gain', 'shift', 'inversion', 'net'],
+                  range: [
+                    '#e41a1c',
+                    '#800080',
+                    '#8a94a3',
+                    '#ff7f00',
+                    '#7e6148',
+                  ],
+                },
+                legend: { title: 'Change' },
+              },
             },
           },
         ],

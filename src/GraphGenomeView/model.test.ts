@@ -295,12 +295,24 @@ describe('rampDomain', () => {
     expect(model.rampDomain).toBeUndefined()
   })
 
+  test('a saved flat color is read as the channel object', () => {
+    const model = restoredView({
+      color: { field: 'position', domainMin: 5, domainMax: 50 },
+    })
+    expect(model.color).toEqual({
+      field: 'position',
+      scale: { domainMin: 5, domainMax: 50 },
+    })
+    expect(model.statedColorDomain).toEqual({ start: 5, end: 50 })
+    expect(restoredView({ color: 'uniform' }).chosenColorScheme).toBe('uniform')
+  })
+
   test('a stated color domain survives loading a GFA file, and wins', async () => {
     rpcRespond()
     const model = createModel()
     applySnapshot(model, {
       ...getSnapshot(model),
-      color: { domainMin: 1445000, domainMax: 1474500 },
+      color: { scale: { domainMin: 1445000, domainMax: 1474500 } },
       loadedRegion: TEST_REGION,
     })
     await model.loadGFA(SIMPLE_GFA)
@@ -3137,7 +3149,7 @@ describe('the auto color scheme', () => {
     const model = createModel()
     applySnapshot(model, {
       ...getSnapshot(model),
-      color: { domainMin: 1000, domainMax: 5000 },
+      color: { scale: { domainMin: 1000, domainMax: 5000 } },
     })
     await model.loadGFA(RGFA, 'rgfa')
 

@@ -4,6 +4,7 @@ import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightC
 import { types } from '@jbrowse/mobx-state-tree'
 
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
+import { retiredGraphColor } from '../GraphGenomeView/retiredNodeColor'
 
 /**
  * #config LinearGraphDisplay
@@ -27,15 +28,17 @@ export function configSchemaFactory() {
       },
       /**
        * #slot
-       * the node color: `grey` or `uniform`, or the field nodes are colored
-       * by, `depth`, `length`, `rank`, `position` or `id` (`scale:
-       * 'categorical'` or `scheme: 'rainbow'`). `domainMin`/`domainMax` span
-       * the position ramp. `{}` colors an anchored graph by position.
+       * the channels the nodes are painted through, as core's `encoding`.
+       * `color` is `{ value: 'grey' }` or `{ value: 'uniform' }`, or the
+       * `field` nodes are colored by, `depth`, `length`, `rank`, `position` or
+       * `id` (`scale: { type: 'ordinal' }` or `scale: { scheme: 'rainbow' }`).
+       * `scale.domainMin` and `scale.domainMax` span the position ramp. `{}`
+       * colors an anchored graph by position.
        * ```js
-       * { color: { field: 'depth' } }
+       * { encoding: { color: { field: 'depth' } } }
        * ```
        */
-      color: {
+      encoding: {
         type: 'frozen',
         defaultValue: {},
         plot: true,
@@ -102,7 +105,11 @@ export function configSchemaFactory() {
         height: 'the height of the track the graph is drawn in',
       }),
     },
-    { explicitlyTyped: true, explicitIdentifier: 'displayId' },
+    {
+      explicitlyTyped: true,
+      explicitIdentifier: 'displayId',
+      retired: retiredGraphColor,
+    },
   )
 }
 

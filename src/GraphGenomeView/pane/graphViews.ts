@@ -95,7 +95,7 @@ import type { ScreenTransform } from './keepInView'
 import type { WalkCut } from '../../RgfaTabixAdapter/walkCut.ts'
 import type { GraphLayers } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
-import type { NodeColor } from '../nodeColor'
+import type { GraphEncoding } from '../nodeColor'
 import type { NodeSize } from '../nodeSize'
 import type { TubeMapPanelSplit } from '../tubeMapPanels'
 import type { WalkRowGroupBy } from '../walkRowGroups'
@@ -162,7 +162,7 @@ function spanIn(
 // as props, a track display in its config
 export interface GraphGrammar {
   layoutMode?: LayoutModeValue
-  color?: NodeColor
+  encoding?: GraphEncoding
   size?: NodeSize
   layers?: GraphLayers
   facet?: FacetInput
@@ -213,7 +213,9 @@ export const withGraphViews = paneBase
       computed(derive, {
         equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
       })
-    const colorDomain = byValue(() => domainOfColor(self.grammar.color))
+    const colorDomain = byValue(() =>
+      domainOfColor(self.grammar.encoding?.color),
+    )
     const facet = byValue(() => facetSettingOf(self.grammar.facet))
     const groupBy = byValue(() => {
       const g = groupByOf(self.grammar.facet)
@@ -224,7 +226,7 @@ export const withGraphViews = paneBase
         return self.grammar.layoutMode ?? 'force'
       },
       get chosenColorScheme(): ColorScheme {
-        return schemeOfColor(self.grammar.color)
+        return schemeOfColor(self.grammar.encoding?.color)
       },
       // the reference span the reference-position ramp runs over, for a graph
       // with no region of its own to span it

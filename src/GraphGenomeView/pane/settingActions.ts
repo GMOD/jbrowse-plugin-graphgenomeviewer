@@ -88,7 +88,9 @@ export const withSettingActions = withTubeMapViews
         ) {
           keptDomain = self.statedColorDomain
         }
-        self.writeGrammar({ color: colorOfScheme(scheme, keptDomain) })
+        self.writeGrammar({
+          encoding: { color: colorOfScheme(scheme, keptDomain) },
+        })
       },
     }
   })

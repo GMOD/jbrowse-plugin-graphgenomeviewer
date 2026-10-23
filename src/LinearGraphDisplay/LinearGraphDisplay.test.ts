@@ -16,7 +16,12 @@ import {
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
-import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
+import {
+  applyPatch,
+  getSnapshot,
+  getType,
+  types,
+} from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { reaction } from 'mobx'
@@ -985,7 +990,7 @@ test("a launch names the pane's props without its type, and opens in that layout
     {
       type: 'LinearGraphDisplay',
       layoutMode: 'force',
-      color: 'uniform',
+      encoding: { color: { value: 'uniform' } },
     },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
@@ -995,6 +1000,51 @@ test("a launch names the pane's props without its type, and opens in that layout
   expect(display.chosenLayoutMode).toBe('force')
   expect(display.chosenColorScheme).toBe('uniform')
   expect(display.hostPlacesX).toBe(false)
+})
+
+test.each([
+  ['uniform', 'uniform'],
+  [{ field: 'id', scale: 'categorical' }, 'random'],
+  [{ field: 'id', scheme: 'rainbow' }, 'rainbow'],
+  [{ field: 'depth' }, 'depth'],
+])('a flat color %j in a saved config is read as %s', async (color, scheme) => {
+  const { view } = createEnvironment()
+  view.showTrack('graph', {}, { type: 'LinearGraphDisplay', color })
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  expect(display.chosenColorScheme).toBe(scheme)
+  expect(getSnapshot(display.configuration)).not.toHaveProperty('color')
+})
+
+test('a flat color lifts to encoding.color', async () => {
+  const { view } = createEnvironment()
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      color: { field: 'position', domainMin: 5, domainMax: 50 },
+    },
+  )
+  const lifted = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  expect(readConfObject(lifted.configuration, 'encoding')).toEqual({
+    color: { field: 'position', scale: { domainMin: 5, domainMax: 50 } },
+  })
+  expect(lifted.statedColorDomain).toEqual({ start: 5, end: 50 })
+})
+
+test('an encoding beside a flat color wins', () => {
+  const { view } = createEnvironment()
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      color: { field: 'depth', domainMin: 1 },
+      encoding: { color: { field: 'length' } },
+    },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  expect(display.chosenColorScheme).toBe('node-length')
 })
 
 test.each([
@@ -1018,7 +1068,14 @@ test('a launch that states one choice takes the rest from the config', async () 
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
-  view.showTrack('graph', {}, { type: 'LinearGraphDisplay', color: 'uniform' })
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      encoding: { color: { value: 'uniform' } },
+    },
+  )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
@@ -1044,7 +1101,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
   display.setHover('off')
   const slots = [
     'layoutMode',
-    'color',
+    'encoding',
     'size',
     'layers',
     'facet',
@@ -1059,7 +1116,7 @@ test('each grammar setter writes the track config, and the pane reads it back', 
     ),
   ).toEqual({
     layoutMode: 'ordered',
-    color: { field: 'depth' },
+    encoding: { color: { field: 'depth' } },
     size: { value: 6, links: 'walks' },
     layers: { bubbles: true },
     facet: { field: 'walk', domain: [] },
