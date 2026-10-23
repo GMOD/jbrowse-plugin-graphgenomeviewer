@@ -3840,7 +3840,7 @@ describe('walk rows', () => {
     model.liftWalks(['B#1#ctg'])
     const svg = model.figure()!
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
-    expect(svg).toContain('not on B#1')
+    expect(svg).toContain('only in other haplotypes')
   })
 
   test('a tube map lifts no walk: its tubes are the walks', async () => {
