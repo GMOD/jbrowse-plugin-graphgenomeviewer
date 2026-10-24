@@ -1,3 +1,12 @@
+## [7.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.5.0...v7.6.0) (2026-10-24)
+
+### Other Changes
+
+- Spell the graph track's node color as encoding.color ([2f2b020](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2f2b0205be595d08d410c6cff51aa879cb26b88e))
+- Write the graph track's color and the forms track's key as encoding.color in docs and figure specs ([c5d60e4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c5d60e445aac72e4696057ee054200fb7ad92c0d))
+- Expect bandage-core 11.14.0's faded key in the exported SVG ([47c6613](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/47c661366dd130b5d19a61bf6806437698614261))
+- Move to bandage-core 11.14.0 ([919feb1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/919feb1fc4463a188e78c179dffff2bdb8f3096c))
+
 ## [7.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.4.4...v7.5.0) (2026-10-22)
 
 ### Other Changes
