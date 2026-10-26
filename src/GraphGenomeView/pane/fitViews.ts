@@ -588,6 +588,7 @@ export const withFitViews = withHostViews
             walkRowPitch: self.walkRowPitch,
             rowGenes: self.walkRowGenes,
             rowGeneGaps: self.walkRowGeneGaps,
+            rowAnnotation: self.walkRowAnnotation,
             walkStrip: self.walkStripRows && {
               rows: self.walkStripRows,
               rowGenes: self.walkRowGenes,

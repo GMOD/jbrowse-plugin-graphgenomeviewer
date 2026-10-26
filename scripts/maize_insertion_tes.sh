@@ -31,7 +31,8 @@ for ins in "$WORK"/*.ins.fa; do
   gff="$WORK/$g.te.gff3.gz"
   [ -s "$gff" ] || curl -sf -o "$gff" \
     "https://download.maizegdb.org/All_assembly_TE_GFF/Zm-$g-REFERENCE-NAM-1.0.TE.gff3.gz"
-  zcat "$gff" | awk -F'\t' -v chr="$CHR" '$1 == chr && $3 !~ /repeat_region|target_site|long_terminal|knob/' |
+  # Oh7B's annotation names its chromosomes Oh7b_chr1 and so on
+  zcat "$gff" | awk -F'\t' -v chr="$CHR" '($1 == chr || $1 ~ "_" chr "$") && $3 !~ /repeat_region|target_site|long_terminal|knob/' |
     cut -f3,4,5,9 > "$WORK/$g.te.tsv"
   minimap2 -c -x asm5 --secondary=no "$BUILD/fa/$g.fa" "$ins" 2>/dev/null |
     awk -v g="$g" '$10 > 0.9 * $2 { print $1 "\t" $8 "\t" $9 "\t" g }'

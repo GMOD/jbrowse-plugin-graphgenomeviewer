@@ -16,6 +16,281 @@
           "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/B73.fa.gz"
         }
       }
+    },
+    {
+      "name": "B97",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "B97-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/B97.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML103",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML103-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML103.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML228",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML228-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML228.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML247",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML247-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML247.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML277",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML277-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML277.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML322",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML322-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML322.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML333",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML333-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML333.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML52",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML52-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML52.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "CML69",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "CML69-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML69.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "HP301",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "HP301-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/HP301.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Il14H",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Il14H-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Il14H.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Ki11",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Ki11-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ki11.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Ki3",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Ki3-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ki3.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Ky21",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Ky21-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ky21.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "M162W",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "M162W-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/M162W.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "M37W",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "M37W-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/M37W.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Mo18W",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Mo18W-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Mo18W.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Ms71",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Ms71-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ms71.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "NC350",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "NC350-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/NC350.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "NC358",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "NC358-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/NC358.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Oh43",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Oh43-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Oh43.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Oh7B",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Oh7B-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Oh7B.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "P39",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "P39-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/P39.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Tx303",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Tx303-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Tx303.fa.gz"
+        }
+      }
+    },
+    {
+      "name": "Tzi8",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "Tzi8-refseq",
+        "adapter": {
+          "type": "BgzipFastaAdapter",
+          "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Tzi8.fa.gz"
+        }
+      }
     }
   ],
   "tracks": [
@@ -40,6 +315,256 @@
       }
     },
     {
+      "type": "FeatureTrack",
+      "trackId": "B97_founder_te",
+      "name": "B97 TEs",
+      "assemblyNames": ["B97"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/B97.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML103_founder_te",
+      "name": "CML103 TEs",
+      "assemblyNames": ["CML103"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML103.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML228_founder_te",
+      "name": "CML228 TEs",
+      "assemblyNames": ["CML228"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML228.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML247_founder_te",
+      "name": "CML247 TEs",
+      "assemblyNames": ["CML247"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML247.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML277_founder_te",
+      "name": "CML277 TEs",
+      "assemblyNames": ["CML277"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML277.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML322_founder_te",
+      "name": "CML322 TEs",
+      "assemblyNames": ["CML322"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML322.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML333_founder_te",
+      "name": "CML333 TEs",
+      "assemblyNames": ["CML333"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML333.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML52_founder_te",
+      "name": "CML52 TEs",
+      "assemblyNames": ["CML52"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML52.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "CML69_founder_te",
+      "name": "CML69 TEs",
+      "assemblyNames": ["CML69"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/CML69.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "HP301_founder_te",
+      "name": "HP301 TEs",
+      "assemblyNames": ["HP301"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/HP301.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Il14H_founder_te",
+      "name": "Il14H TEs",
+      "assemblyNames": ["Il14H"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Il14H.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Ki11_founder_te",
+      "name": "Ki11 TEs",
+      "assemblyNames": ["Ki11"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ki11.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Ki3_founder_te",
+      "name": "Ki3 TEs",
+      "assemblyNames": ["Ki3"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ki3.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Ky21_founder_te",
+      "name": "Ky21 TEs",
+      "assemblyNames": ["Ky21"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ky21.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "M162W_founder_te",
+      "name": "M162W TEs",
+      "assemblyNames": ["M162W"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/M162W.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "M37W_founder_te",
+      "name": "M37W TEs",
+      "assemblyNames": ["M37W"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/M37W.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Mo18W_founder_te",
+      "name": "Mo18W TEs",
+      "assemblyNames": ["Mo18W"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Mo18W.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Ms71_founder_te",
+      "name": "Ms71 TEs",
+      "assemblyNames": ["Ms71"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Ms71.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "NC350_founder_te",
+      "name": "NC350 TEs",
+      "assemblyNames": ["NC350"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/NC350.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "NC358_founder_te",
+      "name": "NC358 TEs",
+      "assemblyNames": ["NC358"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/NC358.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Oh43_founder_te",
+      "name": "Oh43 TEs",
+      "assemblyNames": ["Oh43"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Oh43.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Oh7B_founder_te",
+      "name": "Oh7B TEs",
+      "assemblyNames": ["Oh7B"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Oh7B.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "P39_founder_te",
+      "name": "P39 TEs",
+      "assemblyNames": ["P39"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/P39.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Tx303_founder_te",
+      "name": "Tx303 TEs",
+      "assemblyNames": ["Tx303"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Tx303.te.gff3.gz"
+      }
+    },
+    {
+      "type": "FeatureTrack",
+      "trackId": "Tzi8_founder_te",
+      "name": "Tzi8 TEs",
+      "assemblyNames": ["Tzi8"],
+      "adapter": {
+        "type": "Gff3TabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/founders/Tzi8.te.gff3.gz"
+      }
+    },
+    {
       "type": "VariantTrack",
       "trackId": "maize_nam_variants",
       "name": "NAM founders vs B73 (vg deconstruct)",
@@ -51,7 +576,9 @@
       "displays": [
         {
           "type": "LinearMultiSampleVariantDisplay",
-          "encoding": { "color": "svType" }
+          "encoding": {
+            "color": "svType"
+          }
         }
       ]
     },

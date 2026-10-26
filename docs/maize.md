@@ -51,18 +51,20 @@ beyond B73's end as one insertion in nearly every row.
 
 Over chr8:410-425 kb, HP301, Ky21 and Tx303 carry one insertion at 421 kb. Oh43
 and M162W carry a longer allele at 413 kb, and Mo18W and CML52 a shorter one
-there. NC350 carries neither:
+there. NC350 carries neither. Each walk row shows its founder's own TEs as
+boxes, from MaizeGDB's annotation of that founder's assembly, and B73's row
+shows B73's:
 
-![Three insertions over chr8:410-425 kb, each carried by two or three founders and absent from NC350](maize/shared_insertions.png)
+![Three insertions over chr8:410-425 kb, each carried by two or three founders and boxed with the TE in its carriers' own annotation](maize/shared_insertions.png)
 
-[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A410%2C000-425%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_variants%22%2C%22type%22%3A%22LinearMultiSampleVariantDisplay%22%2C%22filter%22%3A%5B%22jexl%3AsvType%28feature%29%20%3D%3D%20%27INS%27%20%7C%7C%20svType%28feature%29%20%3D%3D%20%27DEL%27%22%5D%2C%22rows%22%3A%7B%22kept%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%2C%22sort%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22height%22%3A180%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22rows%22%3A%7B%22kept%22%3A%5B%22B73%22%2C%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22height%22%3A250%7D%5D%7D%5D%7D)
+[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A410%2C000-425%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_variants%22%2C%22type%22%3A%22LinearMultiSampleVariantDisplay%22%2C%22filter%22%3A%5B%22jexl%3AsvType%28feature%29%20%3D%3D%20%27INS%27%20%7C%7C%20svType%28feature%29%20%3D%3D%20%27DEL%27%22%5D%2C%22rows%22%3A%7B%22kept%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%2C%22sort%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22height%22%3A180%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22rows%22%3A%7B%22kept%22%3A%5B%22B73%22%2C%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22geneTrackId%22%3A%22b73_te%22%2C%22height%22%3A360%7D%5D%7D%5D%7D)
 
-The carriers' own TE annotations from MaizeGDB mark the inserted sequence as
-transposons. Oh43 and M162W's allele at 413 kb contains an opie retrotransposon
-where Mo18W and CML52's contains a fourf, so the two alleles at that site come
-from separate insertions. `scripts/maize_insertion_tes.sh` prints the TEs over
-every insertion of 1 kb or more, read off the build's VCF and each carrier's
-annotation.
+The labels on the boxes over the insertions show that HP301, Ky21 and Tx303
+gained an opie at 421 kb, and that Oh43 and M162W gained an opie at 413 kb where
+Mo18W and CML52 gained a fourf. The two alleles at 413 kb contain different TEs,
+so they come from separate insertions. `scripts/maize_insertion_tes.sh` prints
+the TEs over every insertion of 1 kb or more, read off the build's VCF and each
+carrier's annotation.
 
 ## The graph force-directed
 

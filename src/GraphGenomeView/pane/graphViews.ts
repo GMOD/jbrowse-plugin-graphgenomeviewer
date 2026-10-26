@@ -70,6 +70,7 @@ import { locationIsSet } from '../../locationName.ts'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
 import {
   GENE_ADAPTER_TYPES,
+  annotationNoun,
   geneModelsFrom,
   laneFilters,
   pickGeneTrack,
@@ -746,6 +747,9 @@ export const withGraphViews = paneBase
     },
     get geneTrack() {
       return pickGeneTrack(self.geneTrackChoices, self.geneTrackId)
+    },
+    get walkRowAnnotation() {
+      return annotationNoun(this.geneTrack)
     },
     // the Repeat picker's entries, in the toolbar and the menu alike
     get repeatOptions() {

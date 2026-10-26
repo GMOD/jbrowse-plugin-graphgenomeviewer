@@ -4935,6 +4935,41 @@ describe('walk rows grouped by a sample column', () => {
     }
   })
 
+  test("beside a backbone of genes, a walk row reads its haplotype's genes, never its TEs", async () => {
+    const was = vi.mocked(readConfObject).getMockImplementation()
+    vi.mocked(readConfObject).mockImplementation(
+      (obj: Record<string, unknown>, key?: unknown) => obj[String(key)],
+    )
+    mockSession.assemblyNames = ['B.1']
+    mockSession.assemblyAliases = { 'B#1': 'B.1' }
+    const track = (trackId: string, name: string) => ({
+      trackId,
+      name,
+      assemblyNames: ['B#1'],
+      adapter: { type: 'Gff3TabixAdapter' },
+    })
+    try {
+      mockSession.tracks = [
+        { ...SAMPLES_TRACK, assemblyNames: [] },
+        track('b-tes', 'B TEs'),
+        track('b-genes', 'B genes'),
+      ]
+      const both = await groupedModel()
+      expect(both.walkRowAnnotation).toBe('gene')
+      expect(both.walkGeneReads!.reads.map(r => r.trackId)).toEqual(['b-genes'])
+      mockSession.tracks = [
+        { ...SAMPLES_TRACK, assemblyNames: [] },
+        track('b-tes', 'B TEs'),
+      ]
+      const tesOnly = await groupedModel()
+      expect(tesOnly.walkGeneReads!.reads).toEqual([])
+    } finally {
+      vi.mocked(readConfObject).mockImplementation(was!)
+      mockSession.assemblyNames = []
+      mockSession.assemblyAliases = {}
+    }
+  })
+
   test('no samples table, no Group by...', async () => {
     mockSession.tracks = []
     const model = await groupedModel()

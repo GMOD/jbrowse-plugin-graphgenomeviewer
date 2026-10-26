@@ -19,7 +19,11 @@ import {
   withReferenceRegion,
 } from '../../launchFromGraph/launchFromGraph'
 import { linearViewTarget } from '../../launchFromGraph/linearViewTarget'
-import { GENE_ADAPTER_TYPES, pickGeneTrack } from '../genes/geneFeatures'
+import {
+  GENE_ADAPTER_TYPES,
+  annotationNoun,
+  pickGeneTrack,
+} from '../genes/geneFeatures'
 import { isLinearHost } from '../host'
 
 import type { LinearHost } from '../host'
@@ -86,12 +90,16 @@ export const withLaunchViews = withGraphViews
       return (sample: string) => loaded(byPrefix.get(sample)) ?? loaded(sample)
     },
     // Each assembly's gene track among the session's tracks, picked as the
-    // backbone's is, so a walk row can read its haplotype's own annotation.
+    // backbone's is and of the backbone's kind, so a walk row reads its
+    // haplotype's own TEs beside a backbone of TEs and its genes beside genes.
     // One pass over the tracks, not one per row.
     get geneTracksByAssembly() {
       const byAssembly = new Map<string, typeof self.sessionTracks>()
       for (const track of self.sessionTracks) {
-        if (GENE_ADAPTER_TYPES.has(track.adapterType)) {
+        if (
+          GENE_ADAPTER_TYPES.has(track.adapterType) &&
+          annotationNoun(track) === self.walkRowAnnotation
+        ) {
           for (const asm of track.assemblies) {
             byAssembly.set(asm, [...(byAssembly.get(asm) ?? []), track])
           }

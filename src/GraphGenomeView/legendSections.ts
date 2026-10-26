@@ -468,6 +468,7 @@ function walkRowsRows(model: GraphPaneModel): LegendRow[] {
     ...walkRowsKey(bars, {
       ramp: model.referenceRampDomain,
       genes: model.walkRowGeneKey,
+      annotation: model.walkRowAnnotation,
     }).map(entry => ({
       key: `rows-${entry.label}`,
       label: entry.label,

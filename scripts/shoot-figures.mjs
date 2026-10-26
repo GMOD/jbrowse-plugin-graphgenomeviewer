@@ -740,7 +740,8 @@ const FIGURES = {
     ]),
   },
   // HP301, Ky21 and Tx303 carry one insertion at 421 kb, Oh43 and M162W one
-  // at 413 kb, Mo18W and CML52 another there; NC350 carries neither
+  // at 413 kb, Mo18W and CML52 another there; NC350 carries neither. Each row
+  // boxes its founder's own TEs, so the insertions read as opie and fourf
   shared_insertions: {
     dir: 'docs/maize',
     config: MAIZE_CONFIG,
@@ -751,7 +752,8 @@ const FIGURES = {
         type: 'LinearGraphDisplay',
         layoutMode: 'walkrows',
         rows: { kept: ['B73', ...MAIZE_SHARED_ROWS] },
-        height: 250,
+        geneTrackId: 'b73_te',
+        height: 360,
       },
     ]),
   },
