@@ -47,8 +47,9 @@ export function configSchemaFactory() {
        * #slot
        * the node thickness: a px number draws every node that thick;
        * `{ field: 'depth', value }` thickens a node the more paths carry it,
-       * around `value` px; `links: 'walks'` thickens a link the more walks
-       * take it
+       * around `value` px; `{ field: 'frequency', value }` draws it as wide as
+       * the share of haplotypes through it, `value` px at 100%; `links:
+       * 'walks'` thickens a link the more walks take it
        */
       size: {
         type: 'frozen',

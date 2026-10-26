@@ -24,6 +24,7 @@ test.each([
   ['uniform', 'uniform'],
   ['depth', 'walks'],
   ['uniform', 'walks'],
+  ['frequency', 'uniform'],
 ] as const)('nodes %s, links %s survive the trip', (width, links) => {
   const size = { width, px: 5, links }
   expect(nodeSizeOf(sizeOf(size))).toEqual(size)
