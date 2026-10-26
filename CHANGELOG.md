@@ -1,3 +1,20 @@
+## [7.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.6.0...v7.7.0) (2026-10-26)
+
+### Documentation
+
+- A variant track of the founders' insertions over the walk rows ([82a87d4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/82a87d473e586f3abdfe3711d9e5873508d79af9))
+
+### Other Changes
+
+- Move to bandage-core 11.17.0 ([05d66a8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/05d66a8728e83f7e0e5738e84bf13106f2faaa5f))
+- Key dashed deletion links and the faded drawing in core's words ([67e187c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/67e187c98117f09077eac610095cd6b4dd6457e7))
+- Keep a node width of frequency through the session's size ([09e81c9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/09e81c94f0530f1c8b759d2b67e78339823df642))
+- Draw the syng C4 figure as threads round the ring, as ggbandage does ([2cc4aff](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2cc4aff5773be16f9ae085a11511edb27f1cfa63))
+- Read a lifted walk in full where the walk file abridged it ([2decf1b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2decf1bbb2a1c5ba3ff8b05d0cd656d6f4dce1f4))
+- Shoot the figures from the walk-file track, and pair four with ggbandage ([bb4d513](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bb4d513c431eda0ca26f6c1f4ec05b98d01f30aa))
+- Show the KIV-2 overlay in the gallery and haplotype docs, and note abridged walk rows ([417286b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/417286b42b3eca72b23084a3d1309b96d16a053b))
+- Box each maize founder's own TEs in its walk row, and key them as TEs ([1d27145](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1d271450738afa2daf1a161dff803258007f1f2b))
+
 ## [7.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.5.0...v7.6.0) (2026-10-24)
 
 ### Other Changes
