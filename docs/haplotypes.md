@@ -87,6 +87,34 @@ then cyan to navy, yellow to red, pink to plum and lime to forest. The first two
 stay apart for red-green colour blindness. The rainbow ramp is for reference
 position only.
 
+### Example: KIV-2 overlaid
+
+With Progress along the walk on each lifted walk, the view shades each walk
+light to dark along its own length in its own hue. Where a walk passes a node
+more than once, the view draws a thread per pass:
+
+- GRCh38 runs in along 30 kb of flank from either side to the array's loops
+- HG00133 alone runs the loop at the lower left, and HG00133 and HG00097 run the
+  loop at the lower right together
+- **Bubble spread › Compress lengths** in Graph settings keeps HG00133's extra
+  copies from dwarfing the rest, so read lengths off the key
+
+![GRCh38, HG00133 and HG00097 lifted together at KIV-2, each shaded along its own length](../img/force_kiv2_overlay.png)
+
+The session lifts each walk with its field:
+
+```json
+"walkLayers": [
+  { "walk": "GRCh38#0#chr6", "color": { "field": "progress" } },
+  { "walk": "HG00133#2#CM090065.1", "color": { "field": "progress" } },
+  { "walk": "HG00097#1#JBIRDD010000043.1", "color": { "field": "progress" } }
+],
+"bubbleSpread": "compress"
+```
+
+A lifted walk the walk file abridged loads in full, so its key states its whole
+length. ggbandage's `kiv2_overlay` draws the same walks.
+
 ## Walk rows
 
 Walk rows draw one bar per haplotype. Under the reference-position ramp:
@@ -100,6 +128,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   boxes instead
 - Each bar boxes genes from the assembly named by its PanSN name (`HG00097#1`).
   In the HPRC config every release 2 haplotype has one, with its CAT annotation
+- A walk file abridges a long walk through a satellite array, and its bar ends
+  in gold dashes. **Load the abridged steps** in the bar's right-click menu
+  reads it in full
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
 - Node lengths are not labelled while walks are lifted

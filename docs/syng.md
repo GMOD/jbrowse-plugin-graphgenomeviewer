@@ -45,10 +45,10 @@ one copy's nodes. A haplotype's copy count is how often it goes round the ring:
 
 - Each lifted walk draws a thread per pass through a node, so grch38 runs two
   threads round the ring and HG01978#2 three, its extra copy
-- Each walk shades light to dark along its length, so a darker thread is a
-  later pass
+- Each walk shades light to dark along its length, so a darker thread is a later
+  pass
 - The loop at the left is the HERV-K in C4's intron 9, which makes a C4 long.
   Both of GRCh38's copies run round it, and both of HG01952#1's cut across
 - A syng branch repeats the reference's sequence on both sides of a variant, so
-  a SNP draws as an off-path run of tens of bp,
-  where a pggb graph draws a 1 bp bubble
+  a SNP draws as an off-path run of tens of bp, where a pggb graph draws a 1 bp
+  bubble

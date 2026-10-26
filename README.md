@@ -89,8 +89,8 @@ In reading order:
 
 <table>
 <tr>
-<td><a href="docs/haplotypes.md#facets"><img src="img/force_kiv2_facet.png" width="260" alt="KIV-2, a panel per haplotype"></a><br>KIV-2, a panel per haplotype</td>
-<td><a href="docs/haplotypes.md#walk-rows"><img src="img/walk_rows_kiv2.png" width="260" alt="KIV-2 walk rows tiled by kringle"></a><br>KIV-2 walk rows tiled by kringle</td>
+<td><a href="docs/haplotypes.md#facets"><img src="img/force_kiv2_facet.png" width="260" alt="KIV-2, each haplotype's own loops a panel each"></a><br>KIV-2 loops, a panel per haplotype</td>
+<td><a href="docs/haplotypes.md#walk-rows"><img src="img/walk_rows_kiv2.png" width="260" alt="KIV-2 copy number as walk rows tiled by kringle"></a><br>KIV-2 copy number as walk rows</td>
 <td><a href="docs/tube-maps.md#routes-and-tube-colour"><img src="img/tube_map_c4_routes_by_population.png" width="260" alt="C4, a tube per route by superpopulation"></a><br>C4, a tube per route by superpopulation</td>
 </tr>
 <tr>
@@ -100,6 +100,7 @@ In reading order:
 </tr>
 <tr>
 <td><a href="docs/syng.md"><img src="img/syng_c4.png" width="260" alt="C4 copies as threads round a syng graph from impg"></a><br>C4 copies as threads round a syng graph</td>
+<td><a href="docs/haplotypes.md#example-kiv-2-overlaid"><img src="img/force_kiv2_overlay.png" width="260" alt="KIV-2 expansions as extra loops, three walks overlaid"></a><br>KIV-2 expansions as extra loops</td>
 </tr>
 </table>
 
