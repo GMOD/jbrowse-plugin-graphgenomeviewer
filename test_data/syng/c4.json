@@ -2,7 +2,19 @@
   "gfa": "c4.syng.gfa.gz",
   "layout": "force",
   "referencePath": "grch38#chr6:31972046-32055647",
-  "walkStrip": true,
-  "walkRowSamples": ["grch38", "HG02080", "HG00735", "HG01978"],
+  "walks": [
+    {
+      "walk": "grch38#chr6:31972046-32055647",
+      "color": { "field": "progress", "scheme": "grey" }
+    },
+    {
+      "walk": "HG01978#2#JAGYVR010000046.1:2470802-2587140",
+      "color": { "field": "progress", "scheme": "blue" }
+    },
+    {
+      "walk": "HG01952#1#JAHAME010000044.1:28380191-28451052",
+      "color": { "field": "progress", "scheme": "orange" }
+    }
+  ],
   "width": 1000
 }

@@ -6,7 +6,7 @@
 - `impg query -o gfa:syng` cuts a region from the index as a blunt GFA
 - The plugin opens that GFA like any other, with Add → **Graph genome view**
 
-![C4 as a syng graph, with walk rows: HG02080's 51 kb haplotype goes round the loop once, GRCh38 twice and HG01978's 116 kb haplotype three times](../img/syng_c4.png)
+![The syng graph of C4 with three walks lifted together, each shaded light to dark along its own length: grch38 grey, HG01978#2 cyan to blue and HG01952#1 peach to rust. Each walk draws a thread per pass round the ring, grch38 two, HG01978#2 three and HG01952#1 two. Grey and blue threads run round the HERV-K loop at the left, and the orange ones cut across it](../img/syng_c4.png)
 
 ## Building the C4 example
 
@@ -22,8 +22,9 @@ npx -p @jbrowse/bandage-core bandage-figure test_data/syng/c4.json -o c4.svg
 - `build.sh` writes each haplotype as FASTA, runs `impg syng`, and queries the
   83.6 kb around C4 from CHM13
 - `bandage-figure` draws the figure above from
-  [c4.json](../test_data/syng/c4.json): force-directed along GRCh38, with walk
-  rows for GRCh38, HG02080, HG00735 and HG01978
+  [c4.json](../test_data/syng/c4.json): force-directed along GRCh38, with
+  GRCh38, HG01978#2 and HG01952#1 lifted together. ggbandage's `syng_overlay`
+  draws the same graph and walks
 
 ## impg 0.5.0 quirks
 
@@ -40,14 +41,14 @@ npx -p @jbrowse/bandage-core bandage-figure test_data/syng/c4.json -o c4.svg
 ## Reading the figure
 
 GRCh38 has C4A and C4B, two copies of a 32.7 kb module, and syng folds both onto
-one copy's nodes. GRCh38 walks the ring twice, and a haplotype's copy count is
-how often it goes round:
+one copy's nodes. A haplotype's copy count is how often it goes round the ring:
 
-- A node takes the colour of GRCh38's first visit, so the ring shows C4A's hues.
-  The blue specks are nodes GRCh38 walks only in C4B, where C4B differs from C4A
-- A walk row follows each copy to the GRCh38 copy it continues, and switches
-  where it walks a node only C4A or only C4B holds. GRCh38's own row stays a
-  smooth gradient
+- Each lifted walk draws a thread per pass through a node, so grch38 runs two
+  threads round the ring and HG01978#2 three, its extra copy
+- Each walk shades light to dark along its length, so a darker thread is a
+  later pass
+- The loop at the left is the HERV-K in C4's intron 9, which makes a C4 long.
+  Both of GRCh38's copies run round it, and both of HG01952#1's cut across
 - A syng branch repeats the reference's sequence on both sides of a variant, so
-  a SNP draws as an off-path run of tens of bp, the charcoal specks on the ring,
+  a SNP draws as an off-path run of tens of bp,
   where a pggb graph draws a 1 bp bubble

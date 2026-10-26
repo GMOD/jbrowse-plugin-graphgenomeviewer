@@ -99,7 +99,7 @@ In reading order:
 <td><a href="docs/maize.md"><img src="docs/maize/walk_rows_variants.png" width="260" alt="Maize NAM founders insertions and walk rows"></a><br>Maize NAM founders: insertions and walk rows</td>
 </tr>
 <tr>
-<td><a href="docs/syng.md"><img src="img/syng_c4.png" width="260" alt="C4 as a syng graph from impg"></a><br>C4 as a syng graph from impg</td>
+<td><a href="docs/syng.md"><img src="img/syng_c4.png" width="260" alt="C4 copies as threads round a syng graph from impg"></a><br>C4 copies as threads round a syng graph</td>
 </tr>
 </table>
 
