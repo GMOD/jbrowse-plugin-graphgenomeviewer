@@ -16,7 +16,10 @@
 // opened under it, so each reads against the genes and annotations at their
 // bp. A figure on local data names a config under FIXTURES, which serves
 // test_data/ from the same host, and DOCS serves docs/ the same way, so a
-// docs config's figures show its tracks before they land.
+// docs config's figures show its tracks before they land. A figure with no
+// host to read against names a bandage-figure `spec` instead, which core's CLI
+// draws as an SVG.
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
@@ -35,7 +38,7 @@ const DOCS = '/__figure_docs__/'
 const MAIZE_CONFIG = `https://jbrowse.org${DOCS}maize/config.json`
 const GENES = 'hg38_ncbiRefSeq_ucsc'
 const RGFA = 'hprc_minigraph_segments'
-const GBZ = 'hprc_v2_1_gbz_lanes'
+const LANES = 'hprc_v2_1_walk_lanes'
 const MICB_EXONS = {
   refName: 'chr6',
   assemblyName: 'hg38',
@@ -57,6 +60,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 const KIV2_LOC = 'chr6:160,525,000-160,655,000'
 const KIV2_ARRAY_LOC = 'chr6:160,614,798-160,647,758'
+// ggbandage's KIV-2 locus with its 30 kb of context either side
+const KIV2_FLANKED = {
+  refName: 'chr6',
+  assemblyName: 'hg38',
+  start: 160_586_003,
+  end: 160_676_753,
+}
 const MHC_LOC = 'chr6:32,510,000-32,600,000'
 const MICB_LOC = 'chr6:31,505,400-31,507,400'
 const GSTM1_LOC = 'chr1:109,670,000-109,705,000'
@@ -210,8 +220,8 @@ const kiv2Force = {
   maxRegionBp: 143000,
   height: 400,
 }
-const kiv2Gbz = {
-  trackId: GBZ,
+const kiv2Lanes = {
+  trackId: LANES,
   layoutMode: 'force',
   encoding: { color: { field: 'position' } },
   subgraphHaplotypes: HAPLOTYPES,
@@ -285,7 +295,7 @@ async function hoverExonVariant(page) {
 }
 
 const cfhrSamples = trackView(CFHR_LOC, {
-  trackId: GBZ,
+  trackId: LANES,
   layoutMode: 'tubemapref',
   subgraphHaplotypes: SAMPLES,
   tubeMapFold: 1000,
@@ -303,7 +313,7 @@ const POPULATION_SAMPLES = [
 ]
 
 const cfhrPopulations = trackView(CFHR_LOC, {
-  trackId: GBZ,
+  trackId: LANES,
   layoutMode: 'tubemapref',
   subgraphHaplotypes: POPULATION_SAMPLES,
   tubeMapFold: 1000,
@@ -312,7 +322,7 @@ const cfhrPopulations = trackView(CFHR_LOC, {
 })
 
 const c4Bundled = trackView(C4_LOC, {
-  trackId: GBZ,
+  trackId: LANES,
   layoutMode: 'tubemapref',
   subgraphHaplotypes: POPULATION_SAMPLES,
   tubeMapFold: 1000,
@@ -396,6 +406,9 @@ function hoverRoute(member, bp) {
 }
 
 const FIGURES = {
+  // ggbandage's syng_overlay, from the same GFA: HG01978#2 goes round the ring
+  // three times, a thread per copy
+  syng_c4: { spec: 'test_data/syng/c4.json' },
   force_kiv2: { session: forceKiv2Track },
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
   force_kiv2_bubbles: {
@@ -415,7 +428,7 @@ const FIGURES = {
     session: trackView(
       GSTM1_LOC,
       {
-        trackId: GBZ,
+        trackId: LANES,
         layoutMode: 'force',
         encoding: { color: { field: 'position' } },
         subgraphHaplotypes: HAPLOTYPES,
@@ -426,7 +439,7 @@ const FIGURES = {
       [
         {
           type: 'LinearSyntenyView',
-          tracks: [GBZ],
+          tracks: [LANES],
           collapseEmptyRows: true,
           views: [
             { assembly: 'hg38', loc: GSTM1_LOC, tracks: [GENE_TRACK] },
@@ -445,7 +458,7 @@ const FIGURES = {
     session: trackView(
       GSTM1_LOC,
       {
-        trackId: GBZ,
+        trackId: LANES,
         layoutMode: 'force',
         subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
         walkLayers: [
@@ -485,7 +498,7 @@ const FIGURES = {
     session: trackView(
       KIV2_ARRAY_LOC,
       {
-        ...kiv2Gbz,
+        ...kiv2Lanes,
         walkLayers: [
           { walk: 'GRCh38#0#chr6' },
           { walk: 'HG00097#1#JBIRDD010000043.1' },
@@ -498,11 +511,39 @@ const FIGURES = {
       [VNTR_TRACK],
     ),
   },
+  // ggbandage's kiv2_overlay: three walks lifted together, each shaded along
+  // itself, in a view of the array and 30 kb of flank either side, so the
+  // reference runs in straight before the loops. Compressed node lengths keep
+  // HG00133's extra copies from dwarfing the rest.
+  force_kiv2_overlay: {
+    session: linearView(
+      'chr6:160,586,004-160,676,753',
+      [GENE_TRACK, VNTR_TRACK],
+      [
+        graphView({
+          loadedTrackId: LANES,
+          loadedRegion: KIV2_FLANKED,
+          subgraphHaplotypes: ['HG00133#2', 'HG00097#1'],
+          layoutMode: 'force',
+          walkLayers: [
+            { walk: 'GRCh38#0#chr6', color: { field: 'progress' } },
+            { walk: 'HG00133#2#CM090065.1', color: { field: 'progress' } },
+            {
+              walk: 'HG00097#1#JBIRDD010000043.1',
+              color: { field: 'progress' },
+            },
+          ],
+          bubbleSpread: 'compress',
+          paneHeight: 560,
+        }),
+      ],
+    ),
+  },
   walk_rows_kiv2: {
     session: trackView(
       KIV2_ARRAY_LOC,
       {
-        ...kiv2Gbz,
+        ...kiv2Lanes,
         layoutMode: 'walkrows',
         encoding: { color: { field: 'position' } },
         repeatTrackId: 'hprc_curated_vntrs',
@@ -510,8 +551,28 @@ const FIGURES = {
       },
       [VNTR_TRACK],
     ),
-    // the Repeat picker lists the arrays the repeat track has over the cut
+    // Loads every walk the walk file abridged, as a row's Load the abridged
+    // steps does, then the Repeat picker lists the arrays the repeat track has
+    // over the cut
     act: async page => {
+      await page.evaluate(() => {
+        const display = window.JBrowseSession.views[0].tracks
+          .map(t => t.displays[0])
+          .find(d => d.type === 'LinearGraphDisplay')
+        display.expandWalks(
+          display.walkRowBars.rows
+            .filter(row => row.abridgedSteps)
+            .map(row => row.name),
+        )
+      })
+      await page.waitForFunction(
+        () =>
+          !window.JBrowseSession.views[0].tracks
+            .map(t => t.displays[0])
+            .find(d => d.type === 'LinearGraphDisplay')
+            .walkRowBars?.rows.some(row => row.abridgedSteps),
+        { timeout: 180_000 },
+      )
       await page.waitForFunction(
         () =>
           window.JBrowseSession.views[0].tracks
@@ -557,7 +618,7 @@ const FIGURES = {
   // one map, each route a stack of its superpopulations' strands
   tube_map_c4_routes_by_population: {
     session: trackView(C4_LOC, {
-      trackId: GBZ,
+      trackId: LANES,
       layoutMode: 'tubemapref',
       subgraphHaplotypes: POPULATION_SAMPLES,
       tubeMapFold: 1000,
@@ -569,7 +630,7 @@ const FIGURES = {
   // every haplotype its own tube, ordered route by route and by population
   tube_map_c4_grouped_by_population: {
     session: trackView(C4_LOC, {
-      trackId: GBZ,
+      trackId: LANES,
       layoutMode: 'tubemapref',
       subgraphHaplotypes: POPULATION_SAMPLES,
       tubeMapFold: 1000,
@@ -582,7 +643,7 @@ const FIGURES = {
     session: trackView(
       MICB_LOC,
       {
-        trackId: GBZ,
+        trackId: LANES,
         layoutMode: 'tubemap',
         subgraphHaplotypes: HAPLOTYPES,
         height: 360,
@@ -594,7 +655,7 @@ const FIGURES = {
     session: trackView(
       MICB_LOC,
       {
-        trackId: GBZ,
+        trackId: LANES,
         layoutMode: 'tubemapref',
         subgraphHaplotypes: HAPLOTYPES,
         height: 420,
@@ -607,7 +668,7 @@ const FIGURES = {
     session: trackView(
       MICB_LOC,
       {
-        trackId: GBZ,
+        trackId: LANES,
         layoutMode: 'tubemapref',
         subgraphHaplotypes: HAPLOTYPES,
         height: 420,
@@ -624,7 +685,7 @@ const FIGURES = {
       [GENE_TRACK],
       [
         graphView({
-          loadedTrackId: GBZ,
+          loadedTrackId: LANES,
           loadedRegion: MICB_EXONS,
           subgraphHaplotypes: HAPLOTYPES,
           layoutMode: 'tubemap',
@@ -899,61 +960,78 @@ if (unknown.length > 0) {
   )
 }
 
+// The spec's SVG on a white page, at the width core drew it
+async function specShot(context, spec) {
+  const svg = execFileSync('node_modules/.bin/bandage-figure', [spec], {
+    maxBuffer: 1 << 28,
+  }).toString()
+  const page = await context.newPage()
+  await page.setContent(`<body style="margin:0;background:#fff">${svg}</body>`)
+  const figure = await page.$('svg')
+  return Buffer.from(await figure.screenshot())
+}
+
+// The linear view and what opened under it, after `act`
+async function appShot(context, name) {
+  const { session, act, config = HPRC_CONFIG } = FIGURES[name]
+  const page = await context.newPage()
+  await page.setViewport({ width: 1400, height: 1600 })
+  await candidateServer(values.dist, {
+    [FIXTURES]: 'test_data',
+    [DOCS]: 'docs',
+  })(page)
+  await gotoHosted(
+    page,
+    values.version,
+    `config=${encodeURIComponent(config)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
+  )
+  await waitGraphPainted(page, 180_000)
+  await recolorAnnotations(page)
+  await orderLaneRowsByKey(page)
+  if (act) {
+    await act(page)
+    await sleep(1000)
+    await waitGraphPainted(page, 180_000)
+  }
+  await page
+    .waitForNetworkIdle({ idleTime: 1500, timeout: 90_000 })
+    .catch(() => {})
+  await sleep(2500)
+  const clip = await page.evaluate(() => {
+    const rects = [
+      ...document.querySelectorAll('[data-testid^="view-container"]'),
+    ].map(el => el.getBoundingClientRect())
+    const x = Math.min(...rects.map(r => r.x))
+    const y = Math.min(...rects.map(r => r.y))
+    return {
+      x,
+      y,
+      width: Math.max(...rects.map(r => r.right)) - x,
+      height: Math.max(...rects.map(r => r.bottom)) - y,
+    }
+  })
+  if (values.svg !== undefined) {
+    const svg = await page.evaluate(() =>
+      window.JBrowseSession.views[0].exportSvg({ save: false }),
+    )
+    fs.mkdirSync(values.svg, { recursive: true })
+    fs.writeFileSync(path.join(values.svg, `${name}.svg`), svg)
+  }
+  // captureBeyondViewport resizes the page for the capture, and the pane
+  // re-lays out into a blank frame
+  return Buffer.from(
+    await page.screenshot({ clip, captureBeyondViewport: false }),
+  )
+}
+
 async function shoot(browser, name) {
-  const { session, act, config = HPRC_CONFIG, dir = 'img' } = FIGURES[name]
+  const { spec, dir = 'img' } = FIGURES[name]
   const file = path.join(values.out ?? dir, `${name}.png`)
   const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
   const context = await browser.createBrowserContext()
   let after
   try {
-    const page = await context.newPage()
-    await page.setViewport({ width: 1400, height: 1600 })
-    await candidateServer(values.dist, {
-      [FIXTURES]: 'test_data',
-      [DOCS]: 'docs',
-    })(page)
-    await gotoHosted(
-      page,
-      values.version,
-      `config=${encodeURIComponent(config)}&session=spec-${encodeURIComponent(JSON.stringify(session))}`,
-    )
-    await waitGraphPainted(page, 180_000)
-    await recolorAnnotations(page)
-    await orderLaneRowsByKey(page)
-    if (act) {
-      await act(page)
-      await sleep(1000)
-      await waitGraphPainted(page, 180_000)
-    }
-    await page
-      .waitForNetworkIdle({ idleTime: 1500, timeout: 90_000 })
-      .catch(() => {})
-    await sleep(2500)
-    const clip = await page.evaluate(() => {
-      const rects = [
-        ...document.querySelectorAll('[data-testid^="view-container"]'),
-      ].map(el => el.getBoundingClientRect())
-      const x = Math.min(...rects.map(r => r.x))
-      const y = Math.min(...rects.map(r => r.y))
-      return {
-        x,
-        y,
-        width: Math.max(...rects.map(r => r.right)) - x,
-        height: Math.max(...rects.map(r => r.bottom)) - y,
-      }
-    })
-    if (values.svg !== undefined) {
-      const svg = await page.evaluate(() =>
-        window.JBrowseSession.views[0].exportSvg({ save: false }),
-      )
-      fs.mkdirSync(values.svg, { recursive: true })
-      fs.writeFileSync(path.join(values.svg, `${name}.svg`), svg)
-    }
-    // captureBeyondViewport resizes the page for the capture, and the pane
-    // re-lays out into a blank frame
-    after = Buffer.from(
-      await page.screenshot({ clip, captureBeyondViewport: false }),
-    )
+    after = spec ? await specShot(context, spec) : await appShot(context, name)
   } finally {
     await context.close()
   }

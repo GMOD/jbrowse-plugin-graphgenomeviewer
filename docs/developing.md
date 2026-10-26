@@ -207,7 +207,25 @@ Every figure in `img/` is a spec in `FIGURES` in `scripts/shoot-figures.mjs`: a
 session, an optional action before the shot, and an optional config. The script
 refuses to run while `img/` holds an image without one. It serves `dist/` to
 jbrowse.org's hosted JBrowse on the HPRC demo's config, unless a figure names
-another (`tube_map_reads` uses `test_data/cactus/`).
+another (`tube_map_reads` uses `test_data/cactus/`). A figure with no host to
+read against names a `bandage-figure` spec instead, which core's CLI draws
+(`syng_c4` from `test_data/syng/c4.json`).
+
+### Figures shared with ggbandage
+
+[ggbandage](https://github.com/GMOD/ggbandage) draws the same graphs from the
+same bandage-core, and its gallery reads the same files. These pairs show one
+locus and the same walks, so a change in either reads against the other:
+
+| Here                 | ggbandage gallery | What both show                                |
+| -------------------- | ----------------- | --------------------------------------------- |
+| `syng_c4`            | `syng_overlay`    | C4 copies as a thread per pass round the ring |
+| `force_kiv2_overlay` | `kiv2_overlay`    | KIV-2 expansions as extra loops, 30 kb flanks |
+| `force_kiv2_facet`   | `kiv2_walks`      | KIV-2 a panel per walk                        |
+| `walk_rows_kiv2`     | `kiv2_rows`       | KIV-2 copy number as walk rows                |
+
+When one of them changes, redraw its partner, or note in the commit why they now
+differ. Both read `hprc-v2.1-mc-grch38-f5` from jbrowse.org/demos/hprc.
 
 `node scripts/preview-candidate.mjs '?config=…&session=…' out.png` screenshots
 that hosted session with `dist/` served in place of the published bundle, to
