@@ -2,11 +2,12 @@
 //
 // Reshoots the figures in img/ on jbrowse.org's hosted JBrowse, with this
 // checkout's dist/ standing in for the published bundle. FIGURES holds every
-// one, each `{ session, act?, config? }`: the session spec, what to do before
-// the shot, and the config, the HPRC demo's unless it names another.
+// one, each `{ session, act?, config?, dir? }`: the session spec, what to do
+// before the shot, the config, the HPRC demo's unless it names another, and
+// the directory the figure lives in, img/ unless it names another.
 //
 // Usage:
-//   node scripts/shoot-figures.mjs                 # every figure, into img/
+//   node scripts/shoot-figures.mjs                 # every figure, into its dir
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //   node scripts/shoot-figures.mjs --compare /tmp/diffs   # old | new | diff
 //   node scripts/shoot-figures.mjs force_kiv2 --svg /tmp/svg   # + Export SVG
@@ -14,7 +15,8 @@
 // Every figure is a linear view, the graph as one of its tracks or as a view
 // opened under it, so each reads against the genes and annotations at their
 // bp. A figure on local data names a config under FIXTURES, which serves
-// test_data/ from the same host.
+// test_data/ from the same host, and DOCS serves docs/ the same way, so a
+// docs config's figures show its tracks before they land.
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
@@ -29,6 +31,8 @@ import { candidateServer } from './serveCandidate.mjs'
 
 const FIXTURES = '/__figure_fixtures__/'
 const FIXTURES_URL = `https://jbrowse.org${FIXTURES}`
+const DOCS = '/__figure_docs__/'
+const MAIZE_CONFIG = `https://jbrowse.org${DOCS}maize/config.json`
 const GENES = 'hg38_ncbiRefSeq_ucsc'
 const RGFA = 'hprc_minigraph_segments'
 const GBZ = 'hprc_v2_1_gbz_lanes'
@@ -155,6 +159,48 @@ function trackView(loc, graphDisplay, above = [], below = []) {
     [GENE_TRACK, ...above, { type: 'LinearGraphDisplay', ...graphDisplay }],
     below,
   )
+}
+
+const MAIZE_LOC = 'chr8:250,000-445,000'
+const MAIZE_ROW_PX = 14
+const MAIZE_FOUNDERS = 25
+const MAIZE_SV_FILTER =
+  "jexl:svType(feature) == 'INS' || svType(feature) == 'DEL'"
+const MAIZE_SHARED_ROWS = [
+  'HP301',
+  'Ky21',
+  'Tx303',
+  'Oh43',
+  'M162W',
+  'Mo18W',
+  'CML52',
+  'NC350',
+]
+// B73's genes and TEs, then the tracks given
+function maizeView(loc, tracks) {
+  return linearView(
+    loc,
+    [
+      { trackId: 'b73_genes', type: 'LinearBasicDisplay', height: 50 },
+      { trackId: 'b73_te', type: 'LinearBasicDisplay', height: 60 },
+      ...tracks,
+    ],
+    [],
+    'B73',
+  )
+}
+// The founders' insertions and deletions, a row each, kept to the rows given
+// under the chip that counts them
+function maizeVariants(rowPx, kept) {
+  return {
+    trackId: 'maize_nam_variants',
+    type: 'LinearMultiSampleVariantDisplay',
+    filter: [MAIZE_SV_FILTER],
+    ...(kept ? { rows: { kept, sort: kept } } : {}),
+    rowHeight: rowPx,
+    height: (kept?.length ?? MAIZE_FOUNDERS) * rowPx + (kept ? 20 : 0),
+    showTree: false,
+  }
 }
 
 const kiv2Force = {
@@ -616,6 +662,52 @@ const FIGURES = {
     }),
     act: hoverLongestAllele,
   },
+  // every founder's insertions and deletions at B73's bp above its walk, the
+  // window stopping short of the build's 450 kb end, where founder sequence
+  // past B73's slice reads as one insertion in nearly every row
+  walk_rows_variants: {
+    dir: 'docs/maize',
+    config: MAIZE_CONFIG,
+    session: maizeView(MAIZE_LOC, [
+      maizeVariants(MAIZE_ROW_PX),
+      {
+        trackId: 'maize_nam_clip',
+        type: 'LinearGraphDisplay',
+        layoutMode: 'walkrows',
+        height: 560,
+      },
+    ]),
+  },
+  // HP301, Ky21 and Tx303 carry one insertion at 421 kb, Oh43 and M162W one
+  // at 413 kb, Mo18W and CML52 another there; NC350 carries neither
+  shared_insertions: {
+    dir: 'docs/maize',
+    config: MAIZE_CONFIG,
+    session: maizeView('chr8:410,000-425,000', [
+      maizeVariants(20, MAIZE_SHARED_ROWS),
+      {
+        trackId: 'maize_nam_clip',
+        type: 'LinearGraphDisplay',
+        layoutMode: 'walkrows',
+        rows: { kept: ['B73', ...MAIZE_SHARED_ROWS] },
+        height: 250,
+      },
+    ]),
+  },
+  force_founders: {
+    dir: 'docs/maize',
+    config: MAIZE_CONFIG,
+    session: maizeView(MAIZE_LOC, [
+      maizeVariants(MAIZE_ROW_PX),
+      {
+        trackId: 'maize_nam_clip',
+        type: 'LinearGraphDisplay',
+        layoutMode: 'force',
+        layoutEngine: 'fmmm',
+        height: 600,
+      },
+    ]),
+  },
 }
 
 // The curated VNTR track paints its array goldenrod, the colour exons take
@@ -632,9 +724,10 @@ async function recolorAnnotations(page) {
   })
 }
 
-// A lane's rows in the order the graph's key lists the walks, so the two read
-// top to bottom alike: the MAF names a walk's row `HG00097.1`, the phased
-// callset `HG00097 HP0`. A drawing with no key keeps the lane's own order.
+// A lane's rows in the order the graph's walk rows or key list the walks, so
+// the two read top to bottom alike: the MAF names a walk's row `HG00097.1`,
+// the phased callset `HG00097 HP0`, a callset by sample `HG00097`. A drawing
+// with neither keeps the lane's own order.
 async function orderLaneRowsByKey(page) {
   await page.evaluate(() => {
     const displays = window.JBrowseSession.views[0].tracks.map(
@@ -642,21 +735,25 @@ async function orderLaneRowsByKey(page) {
     )
     const graph = displays.find(d => d.type === 'LinearGraphDisplay')
     const spellings = {
-      LinearMafDisplay: (sample, n) => `${sample}.${n}`,
-      LinearMultiSampleVariantDisplay: (sample, n) => `${sample} HP${n - 1}`,
+      LinearMafDisplay: (sample, n) => [`${sample}.${n}`],
+      LinearMultiSampleVariantDisplay: (sample, n) => [
+        `${sample} HP${n - 1}`,
+        sample,
+      ],
     }
     for (const lane of displays) {
       const spell = spellings[lane.type]
       if (graph && spell) {
         const rows = new Set(lane.sources.map(s => s.name))
-        lane.setRowOrder(
-          graph.pathLegend
-            .map(({ name }) => {
-              const [sample, n] = name.split('#')
-              return { name: spell(sample, Number(n)) }
-            })
-            .filter(r => rows.has(r.name)),
-        )
+        const walks = graph.walkRowBars?.rows ?? graph.pathLegend
+        const order = walks.flatMap(({ name }) => {
+          const [sample, n] = name.split('#')
+          const row = spell(sample, Number(n)).find(r => rows.has(r))
+          return row ? [{ name: row }] : []
+        })
+        if (order.length > 0) {
+          lane.setRowOrder(order)
+        }
       }
     }
   })
@@ -780,7 +877,7 @@ async function compareShots(browser, before, after) {
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    out: { type: 'string', default: 'img' },
+    out: { type: 'string' },
     dist: { type: 'string', default: 'dist' },
     version: { type: 'string', default: 'main' },
     compare: { type: 'string' },
@@ -791,7 +888,7 @@ const unspecified = fs
   .readdirSync('img')
   .map(file => path.parse(file).name)
   .filter(name => !FIGURES[name])
-if (unspecified.length > 0) {
+if (positionals.length === 0 && unspecified.length > 0) {
   throw new Error(`img/ holds figures with no spec: ${unspecified.join(', ')}`)
 }
 const names = positionals.length > 0 ? positionals : Object.keys(FIGURES)
@@ -803,15 +900,18 @@ if (unknown.length > 0) {
 }
 
 async function shoot(browser, name) {
-  const { session, act, config = HPRC_CONFIG } = FIGURES[name]
-  const file = path.join(values.out, `${name}.png`)
+  const { session, act, config = HPRC_CONFIG, dir = 'img' } = FIGURES[name]
+  const file = path.join(values.out ?? dir, `${name}.png`)
   const before = fs.existsSync(file) ? fs.readFileSync(file) : undefined
   const context = await browser.createBrowserContext()
   let after
   try {
     const page = await context.newPage()
     await page.setViewport({ width: 1400, height: 1600 })
-    await candidateServer(values.dist, { [FIXTURES]: 'test_data' })(page)
+    await candidateServer(values.dist, {
+      [FIXTURES]: 'test_data',
+      [DOCS]: 'docs',
+    })(page)
     await gotoHosted(
       page,
       values.version,

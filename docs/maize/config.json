@@ -40,6 +40,22 @@
       }
     },
     {
+      "type": "VariantTrack",
+      "trackId": "maize_nam_variants",
+      "name": "NAM founders vs B73 (vg deconstruct)",
+      "assemblyNames": ["B73"],
+      "adapter": {
+        "type": "VcfTabixAdapter",
+        "uri": "https://jbrowse.org/demos/maize_nam/chr8_450/maize_nam_chr8.nested.vcf.gz"
+      },
+      "displays": [
+        {
+          "type": "LinearMultiSampleVariantDisplay",
+          "encoding": { "color": "svType" }
+        }
+      ]
+    },
+    {
       "type": "GraphTrack",
       "trackId": "maize_nam_clip",
       "name": "NAM founders, Minigraph-Cactus (clip)",

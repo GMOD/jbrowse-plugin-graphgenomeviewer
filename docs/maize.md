@@ -25,26 +25,50 @@ https://jbrowse.org/demos/maize_nam/Zm00001eb332160.gfa.
 ## A Minigraph-Cactus graph of chr8:1-450 kb
 
 We built B73 and the founders over the first 450 kb of chr8 with
-`scripts/build_maize_nam_graph.sh`, the recipe the paper uses chromosome-wide,
-and drew it as a track under B73's genes and TEs.
+`scripts/build_maize_nam_graph.sh`, the recipe the paper uses chromosome-wide.
+The figures draw the graph as a track under B73's genes and TEs and a variant
+track:
 
-Over 200 kb, every founder's walk is longer than B73's, by 3 kb (CML247) to 87
-kb (P39), mostly through sequence off B73's path:
+- **The variant track** puts each founder's insertions and deletions at B73's
+  bp, one row per founder. `vg deconstruct` writes it from the graph, and the
+  build script splits each site into one record per allele.
+- **The walk rows** show each founder's walk at its own length, the sequence off
+  B73's path in charcoal. The variant track lists its rows in the same order.
 
-![Walk rows over chr8:250-450 kb, each founder's walk longer than B73's, the extra sequence in charcoal](maize/walk_rows_200kb.png)
+The variant track shows where in B73 a founder's walk leaves B73's path and
+which founders share each departure. The walk rows show how much sequence each
+departure adds:
 
-[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A250%2C000-450%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22height%22%3A560%7D%5D%7D%5D%7D)
+![The founders' insertions and deletions at B73's bp above their walk rows over chr8:250-445 kb](maize/walk_rows_variants.png)
 
-At _Zm00001eb332160_, B97's walk leaves the window for 12 kb in Cactus's clip
-graph and stays inside it in the full graph:
+[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A250%2C000-445%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_variants%22%2C%22type%22%3A%22LinearMultiSampleVariantDisplay%22%2C%22filter%22%3A%5B%22jexl%3AsvType%28feature%29%20%3D%3D%20%27INS%27%20%7C%7C%20svType%28feature%29%20%3D%3D%20%27DEL%27%22%5D%2C%22height%22%3A350%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22height%22%3A560%7D%5D%7D%5D%7D)
 
-![Walk rows for five founders in the clip and full graphs, B97's walk leaving the window in the clip graph only](maize/clip_vs_full.png)
+The figures' windows end before 450 kb, where B73's slice ends. Each founder's
+slice runs on past that point, so `vg deconstruct` reads the founder sequence
+beyond B73's end as one insertion in nearly every row.
 
-[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A355%2C000-372%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22height%22%3A170%2C%22rows%22%3A%7B%22kept%22%3A%5B%22B73%22%2C%22Tzi8%22%2C%22B97%22%2C%22Mo18W%22%2C%22CML69%22%5D%7D%7D%2C%7B%22trackId%22%3A%22maize_nam_full%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22height%22%3A170%2C%22rows%22%3A%7B%22kept%22%3A%5B%22B73%22%2C%22Tzi8%22%2C%22B97%22%2C%22Mo18W%22%2C%22CML69%22%5D%7D%7D%5D%7D%5D%7D)
+## Shared insertions
 
-A force-directed layout of chr8:250-450 kb draws the sequence with no B73
-position as grey loops:
+Over chr8:410-425 kb, HP301, Ky21 and Tx303 carry one insertion at 421 kb. Oh43
+and M162W carry a longer allele at 413 kb, and Mo18W and CML52 a shorter one
+there. NC350 carries neither:
 
-![The chr8:250-450 kb graph force-directed under B73's genes and TEs](maize/force_200kb.png)
+![Three insertions over chr8:410-425 kb, each carried by two or three founders and absent from NC350](maize/shared_insertions.png)
 
-[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A250%2C000-450%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22force%22%2C%22layoutEngine%22%3A%22fmmm%22%2C%22height%22%3A600%7D%5D%7D%5D%7D)
+[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A410%2C000-425%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_variants%22%2C%22type%22%3A%22LinearMultiSampleVariantDisplay%22%2C%22filter%22%3A%5B%22jexl%3AsvType%28feature%29%20%3D%3D%20%27INS%27%20%7C%7C%20svType%28feature%29%20%3D%3D%20%27DEL%27%22%5D%2C%22rows%22%3A%7B%22kept%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%2C%22sort%22%3A%5B%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22height%22%3A180%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22walkrows%22%2C%22rows%22%3A%7B%22kept%22%3A%5B%22B73%22%2C%22HP301%22%2C%22Ky21%22%2C%22Tx303%22%2C%22Oh43%22%2C%22M162W%22%2C%22Mo18W%22%2C%22CML52%22%2C%22NC350%22%5D%7D%2C%22height%22%3A250%7D%5D%7D%5D%7D)
+
+The carriers' own TE annotations from MaizeGDB mark the inserted sequence as
+transposons. Oh43 and M162W's allele at 413 kb contains an opie retrotransposon
+where Mo18W and CML52's contains a fourf, so the two alleles at that site come
+from separate insertions. `scripts/maize_insertion_tes.sh` prints the TEs over
+every insertion of 1 kb or more, read off the build's VCF and each carrier's
+annotation.
+
+## The graph force-directed
+
+A force-directed layout of the same window draws the sequence off B73's path as
+charcoal loops. The variant track above it shows which founders carry each loop:
+
+![The chr8:250-445 kb graph force-directed under the founders' insertions and deletions](maize/force_founders.png)
+
+[Open](https://jbrowse.org/code/jb2/main/?config=https://raw.githubusercontent.com/GMOD/jbrowse-plugin-graphgenomeviewer/main/docs/maize/config.json&session=spec-%7B%22views%22%3A%5B%7B%22type%22%3A%22LinearGenomeView%22%2C%22assembly%22%3A%22B73%22%2C%22loc%22%3A%22chr8%3A250%2C000-445%2C000%22%2C%22tracks%22%3A%5B%7B%22trackId%22%3A%22b73_genes%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A50%7D%2C%7B%22trackId%22%3A%22b73_te%22%2C%22type%22%3A%22LinearBasicDisplay%22%2C%22height%22%3A60%7D%2C%7B%22trackId%22%3A%22maize_nam_variants%22%2C%22type%22%3A%22LinearMultiSampleVariantDisplay%22%2C%22filter%22%3A%5B%22jexl%3AsvType%28feature%29%20%3D%3D%20%27INS%27%20%7C%7C%20svType%28feature%29%20%3D%3D%20%27DEL%27%22%5D%2C%22height%22%3A350%7D%2C%7B%22trackId%22%3A%22maize_nam_clip%22%2C%22type%22%3A%22LinearGraphDisplay%22%2C%22layoutMode%22%3A%22force%22%2C%22layoutEngine%22%3A%22fmmm%22%2C%22height%22%3A600%7D%5D%7D%5D%7D)

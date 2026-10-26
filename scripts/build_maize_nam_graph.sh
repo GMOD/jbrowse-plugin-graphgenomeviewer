@@ -11,7 +11,8 @@
 # window; Cactus clips whatever of the margin aligns to nothing.
 #
 # Requires: cactus-pangenome (else docker for its image), samtools built with
-#           libcurl, minimap2, vg, gbz-base, gbz-haplotype-index
+#           libcurl, minimap2, vg, gbz-base, gbz-haplotype-index, bgzip,
+#           tabix; vcfbub ships with Cactus
 # Usage:    bash scripts/build_maize_nam_graph.sh <outdir> <chr> [window end, bp]
 #           The gbz-base steps are skipped where gbz-haplotype-index is missing,
 #           so a remote host can build the GBZ and another index it.
@@ -82,11 +83,12 @@ for g in $FOUNDERS; do
   echo "$g fa/$g.fa" >> seqfile
 done
 
+run=()
+command -v cactus-pangenome >/dev/null ||
+  run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
+
 if [ ! -s "out/$NAME.full.gbz" ]; then
   rm -rf js
-  run=()
-  command -v cactus-pangenome >/dev/null ||
-    run=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/data -v "$PWD":/data -w /data "$CACTUS_IMAGE")
   # minigraph uses ~26 GB per job against Toil's ~17 GB request, so
   # --maxMemory alone let four per run thrash a 125 GB host. A systemd scope
   # makes the cap hard. Past it the kernel kills one job and Toil retries it;
@@ -99,6 +101,37 @@ if [ ! -s "out/$NAME.full.gbz" ]; then
   fi
   "${cap[@]}" "${run[@]}" cactus-pangenome ./js seqfile --outDir out --outName "$NAME" --reference B73 \
     --gbz clip full --gfa clip full --vcf --maxCores "${CORES:-$(nproc)}" ${MAX_MEMORY:+--maxMemory "$MAX_MEMORY"}
+fi
+
+# Cactus's VCF keeps only top-level sites, and one of those spans 52 kb of B73
+# with an allele per founder, which a variant display paints as one solid
+# block. vcfbub swaps every site over 2 kb of B73 for its nested sites, so each
+# insertion and deletion sits at its own position. A variant display colors a
+# site by one type for every carrier of any alt, so SPLIT gives each alt its
+# own record, a founder carrying another alt reading as reference there, and
+# tags each 50 bp or longer as INS or DEL.
+SPLIT='
+import sys
+for line in sys.stdin:
+    if line.startswith(("##INFO=<ID=AC,", "##INFO=<ID=AF,", "##INFO=<ID=AT,")):
+        continue
+    if line.startswith("#CHROM"):
+        print("##INFO=<ID=SVTYPE,Number=1,Type=String,Description=\"INS or DEL, for an allele 50 bp longer or shorter than the reference\">")
+    if line.startswith("#"):
+        sys.stdout.write(line)
+        continue
+    f = line.rstrip("\n").split("\t")
+    info = ";".join(x for x in f[7].split(";") if x.split("=")[0] not in ("AC", "AF", "AT"))
+    for i, alt in enumerate(f[4].split(","), 1):
+        change = len(alt) - len(f[3])
+        tag = ";SVTYPE=" + ("INS" if change > 0 else "DEL") if abs(change) >= 50 else ""
+        gts = [g if g == "." else str(int(g == str(i))) for g in f[9:]]
+        print("\t".join(f[:4] + [alt] + f[5:7] + [info + tag, f[8]] + gts))
+'
+if [ ! -s "$NAME.nested.vcf.gz" ]; then
+  "${run[@]}" vcfbub -l 0 -r 2000 -i "out/$NAME.raw.vcf.gz" |
+    python3 -c "$SPLIT" | bgzip > "$NAME.nested.vcf.gz"
+  tabix -p vcf "$NAME.nested.vcf.gz"
 fi
 
 command -v gbz-haplotype-index >/dev/null || exit 0
