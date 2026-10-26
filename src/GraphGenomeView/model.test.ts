@@ -33,7 +33,7 @@ import {
 } from '@jbrowse/mobx-state-tree'
 import { autorun } from 'mobx'
 
-import { facetKeyRows } from './legendSections'
+import { facetKeyRows, legendSections } from './legendSections'
 import { MAX_GRAPH_REGION_BP, formatSpanBp } from './model'
 import { walkRowGeneKey } from './pane/fitViews'
 import { EMPTY_BATCH, SELECT_BRIGHTEN } from './pane/paneBase'
@@ -3048,6 +3048,23 @@ describe('what the row axis draws, in pixels', () => {
     expect(hidden.hiddenEdgeIndexes!.size).toBe(0)
   })
 
+  test('the legend keys the dashed links only while they draw', async () => {
+    const deletionRows = (model: Awaited<ReturnType<typeof fitted>>) =>
+      legendSections(model)
+        .filter(s => s.testid === 'graph-deletion-legend')
+        .flatMap(s => s.rows)
+    const shown = await fitted()
+    expect(deletionRows(shown)).toMatchObject([
+      {
+        label: expect.stringMatching(/^skips .* sequence \(a deletion\)$/),
+        swatch: { kind: 'line', dashed: true },
+      },
+    ])
+    expect(
+      deletionRows(await fitted({ layers: { deletions: false } })),
+    ).toEqual([])
+  })
+
   // The panel-alignment half: the backbone is drawn across the pane rather than
   // squeezed into whatever the vertical fit left it. The recorded points are
   // the stroke's coordinates; the round caps the canvas adds past them are not
@@ -3776,7 +3793,7 @@ describe('walk rows', () => {
     // the grid, then the key line under it
     expect(model.canvasHeight).toBe(Math.max(160, grid.total + 8 + 19))
     expect(facetKeyRows(model).map(r => r.label)).toEqual([
-      "not on the panel's walk",
+      'only in other haplotypes',
     ])
     expect(model.scale).toBeCloseTo(grid.scale, 10)
     expect(model.scale).not.toBeCloseTo(whole, 10)
