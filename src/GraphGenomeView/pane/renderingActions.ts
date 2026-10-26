@@ -484,11 +484,43 @@ export const withRenderingActions = withLoadActions
     },
   }))
   .actions(self => ({
-    // reads the abridged walk `name` in full with the next cut
-    expandWalk(name: string) {
-      if (!self.expandedWalks.includes(name)) {
-        self.expandedWalks = self.expandedWalks.concat(name)
+    // reads the abridged walks `names` in full with the next cut
+    expandWalks(names: string[]) {
+      const more = names.filter(name => !self.expandedWalks.includes(name))
+      if (more.length > 0) {
+        self.expandedWalks = self.expandedWalks.concat(more)
         self.retryLoad()
       }
+    },
+  }))
+  .actions(self => ({
+    expandWalk(name: string) {
+      self.expandWalks([name])
+    },
+    // A lifted walk's key states its length, so the cut reads a lifted walk
+    // it abridged in full
+    afterAttach() {
+      addDisposer(
+        self,
+        reaction(
+          () => {
+            const lifted = new Set(self.walkLayers.map(l => l.walk))
+            return [
+              ...new Set(
+                (self.graph?.paths ?? [])
+                  .filter(p => p.abridged && lifted.has(p.name))
+                  .map(p => p.name),
+              ),
+            ]
+          },
+          names => {
+            self.expandWalks(names)
+          },
+          {
+            fireImmediately: true,
+            equals: (a, b) => a.join('\n') === b.join('\n'),
+          },
+        ),
+      )
     },
   }))
