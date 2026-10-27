@@ -18,26 +18,26 @@ importers:
         specifier: ^3.11.0
         version: 3.11.0
       '@jbrowse/cigar-utils':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18
       '@jbrowse/core':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/display-kit':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/display-ui':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/graph-walks':
         specifier: ^4.2.0
         version: 4.2.0
       '@jbrowse/render-core':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(react@19.3.1)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(react@19.3.1)
       '@jbrowse/synteny-core':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
     devDependencies:
       '@emotion/react':
         specifier: ^11.14.0
@@ -55,11 +55,11 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
       '@jbrowse/mobx-state-tree':
-        specifier: ^6.9.0
-        version: 6.9.0(mobx@7.0.6)
+        specifier: ^6.10.0
+        version: 6.10.0(mobx@7.1.1)
       '@jbrowse/plugin-linear-genome-view':
-        specifier: 5.0.0-beta.11
-        version: 5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+        specifier: 5.0.0-beta.18
+        version: 5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@mui/icons-material':
         specifier: ^9.5.0
         version: 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
@@ -109,11 +109,11 @@ importers:
         specifier: ^30.1.3
         version: 30.1.3
       mobx:
-        specifier: ^7.0.6
-        version: 7.0.6
+        specifier: ^7.1.1
+        version: 7.1.1
       mobx-react:
         specifier: ^10.0.2
-        version: 10.0.2(mobx@7.0.6)(react@19.3.1)
+        version: 10.0.2(mobx@7.1.1)(react@19.3.1)
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
@@ -238,8 +238,8 @@ packages:
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
 
-  '@base-ui/utils@0.4.0':
-    resolution: {integrity: sha512-bO9fz25kKtPf+aZVyfQrC0PDmJdmVni31W2hCS5/Owb+inwdIL3XU26pCPRPlt4LSxZrBgLwubXQXQlKaFEZzw==}
+  '@base-ui/utils@0.5.0':
+    resolution: {integrity: sha512-dYGGcEttjkYiMoa5nHm8vLaJ2UcuTWxo3BFAwOYXeRg/q7UVVvA6cacEIXEs3FgBfK1CGtW1ptElqs7wsx+t9A==}
     peerDependencies:
       '@types/react': ^17 || ^18 || ^19
       react: ^17 || ^18 || ^19
@@ -594,15 +594,15 @@ packages:
   '@gmod/bgzf-filehandle@6.8.0':
     resolution: {integrity: sha512-AZvtooJr9Pw3ARvypOhSmOb4tWPYwb1HrIxAXUHntRElZ3+dpuczpveD3ZcTrkKhyT9Ct8rVbMLWIdEv8lTdNA==}
 
+  '@gmod/bgzf-filehandle@6.8.2':
+    resolution: {integrity: sha512-idzdZgoGvgkCgshoibhmeH795wQAm7JXnEvETEMPPdrq4yBCDD6S+LkN1JC6V+wdaRc0LZSKP7A50LqNaJC6sg==}
+
   '@gmod/gbz-base@7.4.1':
     resolution: {integrity: sha512-Le+Rpj9Jp7GAOpo05XwYFhZbsakhC6TOfaslgW7F72xm2q6Z11dwDZwZFd0S93x2bgbasvO7S3Zr1oL+QBf2SA==}
     hasBin: true
 
-  '@gmod/range-cache-filehandle@1.5.2':
-    resolution: {integrity: sha512-NVmW3aLnZNlHZH8wWWU5yxlbTM9fjGtbRIKh8VDilYbU1r80Ud8WISKTiUOpBovd+vRkK3csmFikydqyzrFvdg==}
-
-  '@gmod/shared-read-cache@1.7.2':
-    resolution: {integrity: sha512-N71dzJHYYSEAZYQCl38QGZ8cx468lFZE9VdS29N2DhRbKMf/X7Qb+cJsuIt1MeVDmpvKui5wDiNILgkQREpwlw==}
+  '@gmod/range-cache-filehandle@2.0.0':
+    resolution: {integrity: sha512-7sa2T4yeI4JNAQfzwrZedmpFtd3hLlH1/3xsSOxRNJWULtdKC++u0I1WRv+GLNqgHMdSTF/qZjIfawXK1QBt4w==}
 
   '@gmod/shared-read-cache@2.1.0':
     resolution: {integrity: sha512-AyiUt0hiEGl7lWc1fuigbXR/RToIw3h72dalaRoSNau9WL9ux9rEfkcsXDYTgSDudehfAEQac1jTvn2zrfnELQ==}
@@ -633,36 +633,36 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@jbrowse/add-track-core@5.0.0-beta.13':
-    resolution: {integrity: sha512-JKKXQPVkY/1unPiWh7p7P5t/jhi+hEqBcaT+X9Ste5gUS9tKjvUi2SsQQP8Mk0fmEApRq/iX8wF4gNwNGwx8WA==}
+  '@jbrowse/add-track-core@5.0.0-beta.18':
+    resolution: {integrity: sha512-j+zFtg/bHJ6+rS0Ia6oFaNRVukPw77cxauuq+fWP3HHxiNHyupzjAFLgd7UNlKMv6AKmD0BOvZS0V63JJ9aGrQ==}
 
   '@jbrowse/bandage-core@12.0.0':
     resolution: {integrity: sha512-gQQlUgVLLq9LebbHtiaw95PJx70g0oaKrbharIRxVCsVaLRRGGpuwgB4WYmieYAUWD6brj2fmpwuDRvz3xJPxA==}
     engines: {node: '>=20'}
     hasBin: true
 
-  '@jbrowse/cigar-utils@5.0.0-beta.11':
-    resolution: {integrity: sha512-NXbmWqwTND9YaHI5wZMZNx+Xu4gScz4B72wKLTOENbfdLchg+G48ihEDhTw6jKBCZ3K5vHmlkN6XT7d5I+F3Sg==}
+  '@jbrowse/cigar-utils@5.0.0-beta.18':
+    resolution: {integrity: sha512-Xwhru+Jh/EyqU9mUWHjuZGwVTBvb7x5tpVDgE0wQHejOFN9eDImnz1orWYdqdbuDSoMREoXgHiGJQ3LPQiOpew==}
 
   '@jbrowse/cli@4.3.0':
     resolution: {integrity: sha512-oyjFrkcjPzmUqjvBQQoDrSssXAWADEFvKOVY1w9VoHYwEiIZlHYW3pXKRlwxswoMtiJv8TEGGJSWy7Dnf+vW/w==}
     engines: {node: '>=18.3.0'}
     hasBin: true
 
-  '@jbrowse/core@5.0.0-beta.11':
-    resolution: {integrity: sha512-enUWSjjohl0pxwFhrO3LnTfk5uD/e/ygF5QWqdNceGukomiVbG+KWn1G/gBHcFlY9aRGyYPpNBOoCr/w7S9aWQ==}
+  '@jbrowse/core@5.0.0-beta.18':
+    resolution: {integrity: sha512-WzHiVh3RIIMW6amSGZe8WkGEayXxfeMmzuUhC5PQbFQKK0EoqKZUzZM0rRVFla+HuorJhL3WgU6JE2eayWgVug==}
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/display-kit@5.0.0-beta.11':
-    resolution: {integrity: sha512-/o8zZNRKYsx/cjpVNqgQsdf6r35hsHSbQlNCePvypjXBRxm4xN7iAb6KgSgk1oqODGmz1mgAEemqtwLrjnW8nQ==}
+  '@jbrowse/display-kit@5.0.0-beta.18':
+    resolution: {integrity: sha512-ePOtIOWTuEmhZUOAvIhJMwNrgRm1P059NgRsVTmRfOCXj/0C6dWAhqRywwQDaU0FVE52a1go05DaSQkf4ko1Tw==}
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/display-ui@5.0.0-beta.11':
-    resolution: {integrity: sha512-FKk5DgW1XIiIRxZurM/WUkXOFrqjl6ULm81km2QT3EEwpV+YRtkJKdViKtIeBb8xCH7WofycPkmEnVZDNbFstw==}
+  '@jbrowse/display-ui@5.0.0-beta.18':
+    resolution: {integrity: sha512-AmQhy/IpF3aKDf3f6CCi6hOqt1xCVrXo8NYyz4+g/Zb7oY5qjI4NVdqG36pbBJvQcfEsUpz5lgQRr6BNNBiyWQ==}
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
@@ -679,17 +679,20 @@ packages:
     resolution: {integrity: sha512-7I3e7mpTuli/Lwvc65vbY7Il5teZVLQ505J+7tpfnb5ZlNxIu6tXPH8j3H5CwZbFMjI/JM0FyBo2Br5JpPBXrA==}
     engines: {node: '>=20'}
 
-  '@jbrowse/jexl@6.0.0':
-    resolution: {integrity: sha512-xa7FmaP6bKX6Ij5Umq8fRVIJaHAh+T7t1cGnrBkSjzcxLfL6RK1itPIpEFc8+scz/AoQ87Q7jDiTfffDsyXHxg==}
+  '@jbrowse/jexl@7.2.0':
+    resolution: {integrity: sha512-UL5YigMn2fMHklm2xw8Y2rtVSWpheINsIoYK6dlT5ZMuNWMeh4fKEBKPSUxIgvhnUO6JV7zOOv4SG8fgZrPw2A==}
 
-  '@jbrowse/mobx-state-tree@6.9.0':
-    resolution: {integrity: sha512-YvweQFTjUv7Uc8dO+bArOWX9uxheI/1mP9PPT+7oo5WNKwUsK+r0lssFFBdaRuYu0JZwKf00UI/M0h0nmskhVQ==}
+  '@jbrowse/launch-args@5.0.0-beta.18':
+    resolution: {integrity: sha512-nzIQeFXJdUnjqT7EDPpotnZBj/1d7s2mOk6FoX2PJQEB1jR97WjE8QIre5K6ILGOvg8vuPiV/bRIhoOeMhJDbA==}
+
+  '@jbrowse/mobx-state-tree@6.10.0':
+    resolution: {integrity: sha512-DpB98SkuouM6+aAmZ0qxRQV15n5+r+uIz2BlK6A0n493pYebpD06I6tMG4DIeEycw2KDW+S9bcv7at2aomDToQ==}
     engines: {node: '>=22', pnpm: '>=10'}
     peerDependencies:
       mobx: ^7.0.0
 
-  '@jbrowse/plugin-linear-genome-view@5.0.0-beta.11':
-    resolution: {integrity: sha512-oADuZQwRk3AIvYk9n9DoZrRr+2p2sZn/4c6sJptmeHaPTay5hSlIrX5kh6hFD07ZFIZrBhBRGZl2N1ZpddcwmA==}
+  '@jbrowse/plugin-linear-genome-view@5.0.0-beta.18':
+    resolution: {integrity: sha512-1JejsEJcIfuWPXSZTH/Z1fhcmF9hsBsKa21b7XAmmbgNU3h86dNLz+HWSFa/W4CS8mHow1OBaMVtewQcKJC84A==}
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
@@ -698,13 +701,13 @@ packages:
     resolution: {integrity: sha512-zToC0THd94TGr4cWMp9eOCRB8eeN004ncajZzVOoM8WEWV90YMTX5SX9zY6Nk1hhY7ASKWnfOmguXt7SoXaLzw==}
     engines: {node: '>=22'}
 
-  '@jbrowse/render-core@5.0.0-beta.11':
-    resolution: {integrity: sha512-PuUZfCG9Lz/faxuS7PEfzVz3wBLvRZ7bAPxK4gOEWAtota28svF1OXtVuUSkvGM3uhFgl30LO4/bOwUQ+S86UA==}
+  '@jbrowse/render-core@5.0.0-beta.18':
+    resolution: {integrity: sha512-H757YPWbVhnvGo2bh56ODgIlJZgPbOPj2KBG9nSM17lUeSJRf9oJVIhLGpMbzI8mhD5cGYL6bWIazk6Bp1pg+g==}
     peerDependencies:
       react: '>=19.0.0'
 
-  '@jbrowse/synteny-core@5.0.0-beta.11':
-    resolution: {integrity: sha512-UrDhXAw6PEzUA09fsvfwB3O8yzzWwGPjeBmviiYw7IWseisSJ8qedgGiOGl7dBiuNiLI6jKsg7P3W5PKtQWoyA==}
+  '@jbrowse/synteny-core@5.0.0-beta.18':
+    resolution: {integrity: sha512-rRLjo4Q9Ik9cFQesCbvRwBldAhzXhqGjOdoQYB81zhazldrfC1T7jLPzgq2itFDOZp63pm75UcPA+NAjtpBJQQ==}
     peerDependencies:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
@@ -834,9 +837,8 @@ packages:
       '@types/react':
         optional: true
 
-  '@mui/x-data-grid@9.15.0':
-    resolution: {integrity: sha512-PUTmrStDDdxfEkeQDs+A2pSn3yvNtqOf2Xf5Q10lsizuiP9jH2IMtA9H92tVSWCwcpqH+IjIB8ZiLaJw2enBJA==}
-    engines: {node: '>=14.0.0'}
+  '@mui/x-data-grid@9.16.0':
+    resolution: {integrity: sha512-xgTG4DZ8Y3LV0dx3zw4NmyJfi4qk6KqgaQNEBDwku9bpAsXsrob7Tcgg+LECPc3ldbtTfCDon/v1yyt9bfDNyQ==}
     peerDependencies:
       '@emotion/react': ^11.9.0
       '@emotion/styled': ^11.8.1
@@ -850,16 +852,14 @@ packages:
       '@emotion/styled':
         optional: true
 
-  '@mui/x-internals@9.15.0':
-    resolution: {integrity: sha512-1ELNplhYtGt+54f6o3CHcP7Oz7tyLSgYt20D7WItCyD8ssui3fah7gzZdPGGPggSE/it0UbNwQNOHlqJfLAVgQ==}
-    engines: {node: '>=14.0.0'}
+  '@mui/x-internals@9.16.0':
+    resolution: {integrity: sha512-ImvD4yi8J/Tip60OnPntw55xG1JlsqxABVlO1XEe1lypg4rUUyR9o7S29FHzOshBPeMVigd9izBtNIdioh1Djw==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@mui/x-virtualizer@0.7.3':
-    resolution: {integrity: sha512-62D40IiHAm288lypwAnwwyZIvxn20MDTbHvTZ+13a3l8Ugk6ok1I7qcFE3rwmtzwgtgeCthJmJ0Vp1eQFKvKBQ==}
-    engines: {node: '>=14.0.0'}
+  '@mui/x-virtualizer@0.7.4':
+    resolution: {integrity: sha512-bAvkhC6I4D+53Jjb+rWd1OgDq8SBC2WyChyWeMG02TugCIsR2LnSXio3OzE5GyXWi4e6Ay85SrV8kWckPXMxDw==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -2663,8 +2663,8 @@ packages:
       mobx: ^7.0.0
       react: ^18 || ^19
 
-  mobx@7.0.6:
-    resolution: {integrity: sha512-VJwjVS5K/rojqPSOoDYlXaYl38Lj+gDfLOFeJ/3Pbdh5ITbAO4ks9RgL0TeRI0bydRZ7b/7WrtPPb9Onuj/pcA==}
+  mobx@7.1.1:
+    resolution: {integrity: sha512-IBnj1k7aoSlpNcuI5tr3/nykyDIUzm0+7Zu9IKBJn0IhJgeIKp26KLAsCFvCPpDmcjiszfg5XOeTJTQi/JoEOw==}
 
   modern-tar@0.8.6:
     resolution: {integrity: sha512-LYSks0tNVqbtez/9OB0YFP6qLRSqkdAxJWOQpVaR67lNTbj2zNLyYpowkRMia5lXLCZKzxwoxkxH2MbbBR2aEg==}
@@ -3720,9 +3720,9 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@base-ui/utils@0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@base-ui/utils@0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@babel/runtime': 7.29.10
+      '@babel/runtime': 8.0.7
       '@floating-ui/utils': 0.2.12
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
@@ -4030,15 +4030,18 @@ snapshots:
       generic-filehandle2: 2.5.1
       pako-esm2: 2.0.2
 
+  '@gmod/bgzf-filehandle@6.8.2':
+    dependencies:
+      generic-filehandle2: 2.5.1
+      pako-esm2: 2.0.2
+
   '@gmod/gbz-base@7.4.1':
     dependencies:
       generic-filehandle2: 2.5.1
 
-  '@gmod/range-cache-filehandle@1.5.2':
+  '@gmod/range-cache-filehandle@2.0.0':
     dependencies:
       generic-filehandle2: 2.5.1
-
-  '@gmod/shared-read-cache@1.7.2': {}
 
   '@gmod/shared-read-cache@2.1.0': {}
 
@@ -4067,7 +4070,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@jbrowse/add-track-core@5.0.0-beta.13': {}
+  '@jbrowse/add-track-core@5.0.0-beta.18': {}
 
   '@jbrowse/bandage-core@12.0.0':
     dependencies:
@@ -4077,7 +4080,7 @@ snapshots:
       '@jbrowse/graph-stress-layout': 1.0.0
       '@jbrowse/tubemap-core': 2.0.1
 
-  '@jbrowse/cigar-utils@5.0.0-beta.11': {}
+  '@jbrowse/cigar-utils@5.0.0-beta.18': {}
 
   '@jbrowse/cli@4.3.0(supports-color@7.2.0)':
     dependencies:
@@ -4093,34 +4096,34 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jbrowse/core@5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+  '@jbrowse/core@5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
     dependencies:
       '@emotion/cache': 11.14.0
       '@emotion/react': 11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0)
       '@emotion/serialize': 1.3.3
       '@emotion/utils': 1.4.2
       '@floating-ui/react': 0.27.20(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@gmod/bgzf-filehandle': 6.8.0
-      '@gmod/range-cache-filehandle': 1.5.2
-      '@gmod/shared-read-cache': 1.7.2
+      '@gmod/bgzf-filehandle': 6.8.2
+      '@gmod/range-cache-filehandle': 2.0.0
+      '@gmod/shared-read-cache': 2.1.0
       '@gmod/vcf': 7.4.0
-      '@jbrowse/add-track-core': 5.0.0-beta.13
-      '@jbrowse/jexl': 6.0.0
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
+      '@jbrowse/add-track-core': 5.0.0-beta.18
+      '@jbrowse/jexl': 7.2.0
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
       '@jbrowse/quick-lru': 8.0.0
-      '@jbrowse/render-core': 5.0.0-beta.11(react@19.3.1)
+      '@jbrowse/render-core': 5.0.0-beta.18(react@19.3.1)
       '@leeoniya/ufuzzy': 1.0.19
       '@mui/icons-material': 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@mui/material': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mui/system': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)
-      '@mui/x-data-grid': 9.15.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mui/system@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mui/x-data-grid': 9.16.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mui/system@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       canvas-sequencer-ts: 3.1.3
       compare-versions: 6.1.1
       dompurify: 3.4.17
       generic-filehandle2: 2.5.1
       idb: 8.0.4
-      mobx: 7.0.6
-      mobx-react: 10.0.2(mobx@7.0.6)(react@19.3.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       rxjs: 7.8.2
@@ -4131,16 +4134,16 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/display-kit@5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+  '@jbrowse/display-kit@5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
     dependencies:
-      '@jbrowse/core': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/display-ui': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
-      '@jbrowse/render-core': 5.0.0-beta.11(react@19.3.1)
+      '@jbrowse/core': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/display-ui': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
+      '@jbrowse/render-core': 5.0.0-beta.18(react@19.3.1)
       '@mui/icons-material': 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@mui/material': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      mobx: 7.0.6
-      mobx-react: 10.0.2(mobx@7.0.6)(react@19.3.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -4150,12 +4153,12 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/display-ui@5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+  '@jbrowse/display-ui@5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
     dependencies:
-      '@jbrowse/core': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
-      mobx: 7.0.6
-      mobx-react: 10.0.2(mobx@7.0.6)(react@19.3.1)
+      '@jbrowse/core': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -4170,23 +4173,29 @@ snapshots:
 
   '@jbrowse/graph-walks@4.2.0': {}
 
-  '@jbrowse/jexl@6.0.0': {}
+  '@jbrowse/jexl@7.2.0': {}
 
-  '@jbrowse/mobx-state-tree@6.9.0(mobx@7.0.6)':
+  '@jbrowse/launch-args@5.0.0-beta.18':
     dependencies:
-      mobx: 7.0.6
+      '@jbrowse/add-track-core': 5.0.0-beta.18
+      '@jbrowse/cigar-utils': 5.0.0-beta.18
 
-  '@jbrowse/plugin-linear-genome-view@5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+  '@jbrowse/mobx-state-tree@6.10.0(mobx@7.1.1)':
     dependencies:
-      '@jbrowse/core': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/display-kit': 5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/display-ui': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
-      '@jbrowse/render-core': 5.0.0-beta.11(react@19.3.1)
+      mobx: 7.1.1
+
+  '@jbrowse/plugin-linear-genome-view@5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+    dependencies:
+      '@jbrowse/core': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/display-kit': 5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/display-ui': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/launch-args': 5.0.0-beta.18
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
+      '@jbrowse/render-core': 5.0.0-beta.18(react@19.3.1)
       '@mui/icons-material': 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@mui/material': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      mobx: 7.0.6
-      mobx-react: 10.0.2(mobx@7.0.6)(react@19.3.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -4198,24 +4207,25 @@ snapshots:
 
   '@jbrowse/quick-lru@8.0.0': {}
 
-  '@jbrowse/render-core@5.0.0-beta.11(react@19.3.1)':
+  '@jbrowse/render-core@5.0.0-beta.18(react@19.3.1)':
     dependencies:
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
-      mobx: 7.0.6
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
 
-  '@jbrowse/synteny-core@5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
+  '@jbrowse/synteny-core@5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
     dependencies:
-      '@jbrowse/cigar-utils': 5.0.0-beta.11
-      '@jbrowse/core': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/display-kit': 5.0.0-beta.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/display-ui': 5.0.0-beta.11(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      '@jbrowse/mobx-state-tree': 6.9.0(mobx@7.0.6)
-      '@jbrowse/render-core': 5.0.0-beta.11(react@19.3.1)
+      '@jbrowse/cigar-utils': 5.0.0-beta.18
+      '@jbrowse/core': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/display-kit': 5.0.0-beta.18(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/display-ui': 5.0.0-beta.18(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
+      '@jbrowse/mobx-state-tree': 6.10.0(mobx@7.1.1)
+      '@jbrowse/render-core': 5.0.0-beta.18(react@19.3.1)
       '@mui/icons-material': 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@mui/material': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      mobx: 7.0.6
-      mobx-react: 10.0.2(mobx@7.0.6)(react@19.3.1)
+      mobx: 7.1.1
+      mobx-react: 10.0.2(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -4345,15 +4355,15 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@mui/x-data-grid@9.15.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mui/system@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mui/x-data-grid@9.16.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mui/system@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@babel/runtime': 8.0.7
-      '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mui/material': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mui/system': 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)
       '@mui/utils': 9.5.0(@types/react@19.3.0)(react@19.3.1)
-      '@mui/x-internals': 9.15.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@mui/x-virtualizer': 0.7.3(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mui/x-internals': 9.16.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mui/x-virtualizer': 0.7.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       clsx: 2.1.1
       prop-types: 15.8.1
       react: 19.3.1
@@ -4365,10 +4375,10 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@mui/x-internals@9.15.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mui/x-internals@9.16.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@babel/runtime': 8.0.7
-      '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mui/utils': 9.5.0(@types/react@19.3.0)(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
@@ -4376,12 +4386,12 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@mui/x-virtualizer@0.7.3(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mui/x-virtualizer@0.7.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@babel/runtime': 8.0.7
-      '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mui/utils': 9.5.0(@types/react@19.3.0)(react@19.3.1)
-      '@mui/x-internals': 9.15.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mui/x-internals': 9.16.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -6198,18 +6208,18 @@ snapshots:
 
   mitt@3.0.1: {}
 
-  mobx-react-lite@5.1.0(mobx@7.0.6)(react@19.3.1):
+  mobx-react-lite@5.1.0(mobx@7.1.1)(react@19.3.1):
     dependencies:
-      mobx: 7.0.6
+      mobx: 7.1.1
       react: 19.3.1
 
-  mobx-react@10.0.2(mobx@7.0.6)(react@19.3.1):
+  mobx-react@10.0.2(mobx@7.1.1)(react@19.3.1):
     dependencies:
-      mobx: 7.0.6
-      mobx-react-lite: 5.1.0(mobx@7.0.6)(react@19.3.1)
+      mobx: 7.1.1
+      mobx-react-lite: 5.1.0(mobx@7.1.1)(react@19.3.1)
       react: 19.3.1
 
-  mobx@7.0.6: {}
+  mobx@7.1.1: {}
 
   modern-tar@0.8.6: {}
 

@@ -21,6 +21,7 @@
     "detach",
     "escapeJsonPath",
     "extendInstance",
+    "findParent",
     "flow",
     "getChildType",
     "getEnv",
@@ -546,6 +547,7 @@
     "detach",
     "escapeJsonPath",
     "extendInstance",
+    "findParent",
     "flow",
     "getChildType",
     "getEnv",
@@ -696,7 +698,22 @@
     "default",
     "expandAssemblySequence",
     "expandAssemblySequenceAdapter",
-    "expandAssemblyShorthand"
+    "expandAssemblyShorthand",
+    "expandSidecarShorthand",
+    "refNameAliasAdapterType"
+  ],
+  "@jbrowse/core/assemblyManager/expandAssemblyConfigShorthand": [
+    "expandAssemblySequence",
+    "expandAssemblySequenceAdapter",
+    "expandAssemblyShorthand",
+    "expandSidecarShorthand",
+    "refNameAliasAdapterType",
+    "referenceSequenceTrackId"
+  ],
+  "@jbrowse/core/assemblyManager/refNameMaps": [
+    "buildRefNameMaps",
+    "checkRefName",
+    "groupNamesByCanonicalRefName"
   ],
   "@jbrowse/core/BaseFeatureWidget": ["configSchema", "stateModelFactory"],
   "@jbrowse/core/BaseFeatureWidget/BaseFeatureDetail": [
@@ -739,12 +756,13 @@
     "DEFAULT_FORMAT_DETAILS_DEPTH",
     "FormatAboutConfigSchemaFactory",
     "FormatDetailsConfigSchemaFactory",
-    "PLOT_VOCABULARY",
     "applyConfSettings",
     "applyRetiredSpellings",
     "arraySlotUnion",
     "bamIndexFields",
     "bamIndexSchema",
+    "canonicalSpelling",
+    "declaredSnapshot",
     "evaluateForFeature",
     "evaluateJexl",
     "expandTabixShorthand",
@@ -772,16 +790,19 @@
     "liftPlot",
     "liftRetiredSpellings",
     "makeSlotFacade",
+    "mergeConfSettings",
     "mergeFormatCallbacks",
     "parsePlot",
     "partitionAdvanced",
     "plotKeysOf",
+    "plotList",
     "plotOf",
     "plotWrites",
     "preProcessConfigSnapshot",
     "preProcessSnapshotWith",
     "readConfObject",
     "readConfigValue",
+    "refusingUndeclaredKeys",
     "requestedIndexType",
     "requirementProblems",
     "setConf",
@@ -793,7 +814,8 @@
     "tabixIndexSchema",
     "tabixIndexSnapshot",
     "toCallbackValue",
-    "toFixedValue"
+    "toFixedValue",
+    "writesWholeAt"
   ],
   "@jbrowse/core/configuration/configurationSchema": [
     "ConfigurationReference",
@@ -809,12 +831,10 @@
     "BaseFeatureDataAdapter",
     "BaseSequenceAdapter",
     "cachedSetup",
-    "densityAdapterConfigSchemaFields",
     "isFeatureAdapter",
     "isRefNameAliasAdapter",
     "isRegionsAdapter",
     "isSequenceAdapter",
-    "isSubAdapterConfig",
     "isTextSearchAdapter"
   ],
   "@jbrowse/core/data_adapters/BaseAdapter/getAdapterId": ["getAdapterId"],
@@ -829,13 +849,19 @@
   "@jbrowse/core/data_adapters/dataAdapterCache": [
     "READS_REFERENCE",
     "adapterConfigCacheKey",
+    "adapterRequests",
+    "cachedAdapterCount",
     "clearAdapterCache",
     "freeAdapterResources",
-    "getAdapter"
+    "getAdapter",
+    "keepAdapters",
+    "withAdapterId"
   ],
   "@jbrowse/core/data_adapters/getFeatureAdapter": [
     "getFeatureAdapter",
-    "getFeatureAdapterOrThrow"
+    "getFeatureAdapterOrThrow",
+    "tablesAdapter",
+    "tablesFeatureAdapter"
   ],
   "@jbrowse/core/data_adapters/getSequenceSubAdapter": [
     "getSequenceSubAdapter"
@@ -934,6 +960,7 @@
     "pluginName",
     "pluginUrl",
     "pluginsNotIn",
+    "resolvedPluginUrl",
     "samePlugin",
     "storePluginName",
     "vendoredPluginNames"
@@ -958,7 +985,8 @@
     "measureRegionBytes",
     "measuredBytes",
     "measurementPartial",
-    "overByteBudget"
+    "overByteBudget",
+    "totalRegionBytes"
   ],
   "@jbrowse/core/rpc/RpcManager": ["default"],
   "@jbrowse/core/rpc/RpcRegistry": [],
@@ -1017,7 +1045,6 @@
     "JexlFilterDialog",
     "LAUNCH_LABEL",
     "LEGEND_ROW_HEIGHT",
-    "LEGEND_SVG_GUTTER_WIDTH",
     "LEGEND_SWATCH",
     "LabeledCheckbox",
     "LegendSwatchGlyph",
@@ -1082,9 +1109,11 @@
     "getInputWidth",
     "hoverBoxStyle",
     "launchTargetsMenuItem",
+    "legendDistinguishesColors",
     "legendEntries",
     "legendIsReadable",
     "legendSpecOf",
+    "legendSummary",
     "legendSwatches",
     "makeSizeMenu",
     "makeSizeSubMenu",
@@ -1122,12 +1151,15 @@
   "@jbrowse/core/ui/CascadingMenuButton": ["default"],
   "@jbrowse/core/ui/ColorPicker": ["ColorPopover", "default"],
   "@jbrowse/core/ui/colors": [
+    "DEAL_COLOR_DIFFERENCE",
     "categoricalColor",
     "categoricalColorScale",
     "categoricalPalette",
     "categoricalScale",
     "categoricalValueColor",
     "category10",
+    "ciede2000",
+    "colorDifference",
     "getQueryColor",
     "hashString",
     "paletteColors",
@@ -1141,9 +1173,12 @@
   "@jbrowse/core/ui/colorScale": [
     "colorScaleIsEmpty",
     "legendSpecOf",
-    "missingRowLast"
+    "missingRowLast",
+    "rampLabels",
+    "summarizePast"
   ],
   "@jbrowse/core/ui/ConfirmDialog": ["default"],
+  "@jbrowse/core/ui/ContextMenu": ["default"],
   "@jbrowse/core/ui/DataGridFlexContainer": ["default"],
   "@jbrowse/core/ui/Dialog": ["default"],
   "@jbrowse/core/ui/DraggableDialog": ["default"],
@@ -1154,6 +1189,7 @@
   "@jbrowse/core/ui/ErrorMessageStackTraceDialog": ["default"],
   "@jbrowse/core/ui/ErrorOverlay": ["default"],
   "@jbrowse/core/ui/filterMenuItems": [
+    "EDIT_FILTERS_LABEL",
     "activeCount",
     "clearAll",
     "filterMenuItems",
@@ -1179,9 +1215,12 @@
   "@jbrowse/core/ui/InfoDialog": ["default"],
   "@jbrowse/core/ui/JexlFilterDialog": ["default"],
   "@jbrowse/core/ui/legendSpec": [
+    "MAX_LEGEND_CANDIDATES",
     "MAX_LEGEND_ITEMS",
+    "legendDistinguishesColors",
     "legendEntries",
     "legendIsReadable",
+    "legendSummary",
     "legendSwatches",
     "nonEmptyLegendSections"
   ],
@@ -1192,6 +1231,7 @@
   "@jbrowse/core/ui/measureLegendText": ["measureLegendText"],
   "@jbrowse/core/ui/Menu": ["default"],
   "@jbrowse/core/ui/menuItems": [
+    "TRACK_MENU_PRIORITY",
     "checkboxItem",
     "makeRadioSubMenu",
     "radioItem",
@@ -1199,6 +1239,7 @@
     "resolveSubMenu",
     "showLegendCheckboxItem",
     "staysOpenOnClick",
+    "subMenuIfAny",
     "toggleItem",
     "withHint",
     "withSubHeader"
@@ -1255,6 +1296,7 @@
   "@jbrowse/core/ui/PluginStoreCard": ["default"],
   "@jbrowse/core/ui/PopoverPicker": ["default"],
   "@jbrowse/core/ui/ProgressChip": ["default"],
+  "@jbrowse/core/ui/rampKey": ["rampKeyOf"],
   "@jbrowse/core/ui/ResizeHandle": ["default"],
   "@jbrowse/core/ui/ReturnToImportFormDialog": ["default"],
   "@jbrowse/core/ui/SanitizedHTML": ["default"],
@@ -1283,9 +1325,9 @@
   "@jbrowse/core/ui/SubmitDialog": ["default"],
   "@jbrowse/core/ui/SvgColorLegend": [
     "LEGEND_ROW_HEIGHT",
-    "LEGEND_SVG_GUTTER_WIDTH",
     "LEGEND_SWATCH",
-    "default"
+    "default",
+    "svgColorLegendWidth"
   ],
   "@jbrowse/core/ui/theme": [
     "colorFwdStrand",
@@ -1340,11 +1382,14 @@
     "IUPAC_MOTIF_REGEX",
     "IntervalTree",
     "JSON_PREFIX",
+    "LOCAL_PREFIX",
     "MAX_GLOB_REGIONS",
     "MAX_ZOOM_RATE_PER_MS",
     "MORPH_DURATION_MS",
     "SCROLL_ZOOM_FACTOR_DIVISOR",
+    "SESSION_PARAM_KINDS",
     "SHARE_PREFIX",
+    "SPEC_PREFIX",
     "SimpleFeature",
     "UNKNOWN",
     "UNSUPPORTED",
@@ -1359,6 +1404,7 @@
     "addOrReplaceView",
     "addTrackFromWidget",
     "addTrackTypeGuesser",
+    "addTracksFromWidget",
     "aesDecrypt",
     "aesEncrypt",
     "animationAllowed",
@@ -1564,12 +1610,14 @@
     "parseLocStringOneBased",
     "parseMotifList",
     "parseRegionNames",
+    "persistTrackConfigNow",
     "pluralize",
     "polarToCartesian",
     "progressLabel",
     "rIC",
     "radToDeg",
     "readSessionFromDynamo",
+    "readSharedSession",
     "reducePrecision",
     "renameComparativeRegions",
     "renameRegionIfNeeded",
@@ -1592,6 +1640,8 @@
     "saveSvgAsImage",
     "scheduleDetachedDestroy",
     "selectNamedRegions",
+    "sessionParamKind",
+    "sessionParamPayload",
     "sessionStorageAvailable",
     "sessionStorageGetItem",
     "sessionStorageRemoveItem",
@@ -1633,6 +1683,7 @@
     "toggleTrackGeneric",
     "truncateMiddle",
     "updateStatus",
+    "useAddTrackFields",
     "useCreateOnce",
     "useDebounce",
     "useFinalUnmount",
@@ -1643,7 +1694,8 @@
     "wheelZoomAccum",
     "withAbortCheck",
     "withFeatureDetails",
-    "withProgress"
+    "withProgress",
+    "workflowForm"
   ],
   "@jbrowse/core/util/aborting": [
     "checkAbortSignal",
@@ -1673,7 +1725,9 @@
   ],
   "@jbrowse/core/util/analytics": [
     "doAnalytics",
+    "urlParamNames",
     "writeAWSAnalytics",
+    "writeAWSSessionEnd",
     "writeGAAnalytics"
   ],
   "@jbrowse/core/util/animationAllowed": [
@@ -1752,10 +1806,12 @@
   "@jbrowse/core/util/calculateStaticBlocks": ["default"],
   "@jbrowse/core/util/categoricalField": [
     "NO_VALUE_LABEL",
+    "OTHER_VALUES_LABEL",
     "STRAND_FIELD",
     "SV_TYPE_FIELD",
     "categoricalField",
     "dealKeyColors",
+    "dealShownKeyColors",
     "heldSlotsOf",
     "keyNames"
   ],
@@ -1777,14 +1833,17 @@
     "namedColorToHex"
   ],
   "@jbrowse/core/util/colorBits": [
+    "BED_COLOR_FIELDS",
     "abgrAlpha",
     "abgrBlue",
     "abgrGreen",
     "abgrRed",
     "abgrToCssRgba",
+    "abgrToHex",
     "alpha",
     "blend",
     "cssColorToABGR",
+    "cssColorToHex",
     "cssColorToNormalizedRgb",
     "cssColorToNormalizedRgba",
     "cssColorToRgb",
@@ -1806,10 +1865,12 @@
     "normalizedRgbToABGR",
     "normalizedRgbToCss",
     "normalizedRgbToCssRgba",
+    "normalizedRgbToHex",
     "packAbgr",
     "parse",
     "parseCssColor",
     "parseCssColorOr",
+    "scaleAbgrAlpha",
     "setAbgrFill",
     "toHSLA",
     "toRGBA",
@@ -1831,17 +1892,22 @@
     "COLOR_SCALES",
     "FEATURE_FIELD_PRESETS",
     "IDENTITY_SCALE",
+    "MAPQ_BINS",
+    "MEASURE_FIELD_PRESETS",
+    "RAMP_SCALES",
     "UNIVERSAL_FIELD_PRESETS",
     "colorNotices",
     "colorProblems",
     "colorSlotsOf",
     "fieldScaleOf",
+    "isRampScale",
     "noticeLines",
     "paintedScale",
     "presetOf",
     "scaleEndProblems",
     "scaleEndsOf",
     "universalPresetOf",
+    "withImpliedField",
     "withPreset"
   ],
   "@jbrowse/core/util/colorSchemes": ["COLOR_SCHEMES", "DEFAULT_COLOR_SCHEME"],
@@ -1854,7 +1920,11 @@
     "createAbortRotation",
     "createStatusChannel"
   ],
-  "@jbrowse/core/util/createSvgRasterCanvas": ["createSvgRasterCanvas"],
+  "@jbrowse/core/util/createSvgRasterCanvas": [
+    "MAX_SVG_RASTER_AREA_PX",
+    "createSvgRasterCanvas",
+    "svgRasterDataUrl"
+  ],
   "@jbrowse/core/util/cssColorParse": [
     "bedTriple",
     "isCssColor",
@@ -1890,15 +1960,43 @@
     "DEFAULT_FLATTEN_FIELD",
     "DEFAULT_PILEUP_AS",
     "DEFAULT_PILEUP_FIELDS",
+    "DEFAULT_WINDOW_FRAME",
     "facetLayers",
     "layerTables",
     "matedBy",
-    "runTransforms"
+    "runTransforms",
+    "unreadStepFields"
   ],
   "@jbrowse/core/util/fetchContext": ["fanOutStatus", "makeFetchContext"],
   "@jbrowse/core/util/fetchHub": ["fetchHub", "hubUrl"],
   "@jbrowse/core/util/fetchPhases": [],
-  "@jbrowse/core/util/fieldReader": ["fieldReader", "isPlainFieldRef"],
+  "@jbrowse/core/util/fieldPredicate": [
+    "compilePredicates",
+    "entriesOn",
+    "floorOf",
+    "isExpressionEntry",
+    "lowerBoundOf",
+    "passesFloor",
+    "predicatesOf",
+    "replaceField",
+    "testsSomething",
+    "unreadFieldNotice",
+    "unreadFields",
+    "unreadInEveryRegion",
+    "unreadRecordFields",
+    "upperBoundOf",
+    "withField",
+    "withFields",
+    "withLowerBound",
+    "withUpperBound"
+  ],
+  "@jbrowse/core/util/fieldPredicateType": ["testsSomething"],
+  "@jbrowse/core/util/fieldReader": [
+    "fieldReader",
+    "isConstantJexl",
+    "isPlainFieldRef",
+    "plainFieldName"
+  ],
   "@jbrowse/core/util/fileHandleStore": [
     "getFileHandle",
     "isFileSystemAccessSupported",
@@ -1929,10 +2027,10 @@
     "MAX_GROUPS",
     "OVERFLOW_GROUP_KEY",
     "capGroupKeys",
-    "carryGroupDomain",
     "compareGroupKeys",
     "groupKeyComparator",
     "groupKeySpaceOf",
+    "isMissing",
     "overflowLabel",
     "valueText"
   ],
@@ -1965,6 +2063,7 @@
     "detectIndexLocation",
     "indexCandidateNames",
     "indexSpellings",
+    "pairIndexFiles",
     "siblingLocation"
   ],
   "@jbrowse/core/util/installClearHoverOnSurfaceMove": [
@@ -1974,6 +2073,7 @@
   "@jbrowse/core/util/installInitAutorun": ["installInitAutorun"],
   "@jbrowse/core/util/installPrerequisiteFetch": [
     "installPrerequisiteFetch",
+    "isCurrentRead",
     "readFor"
   ],
   "@jbrowse/core/util/io": [
@@ -1988,6 +2088,7 @@
     "CachedFilehandle",
     "RemoteFileWithRangeCache",
     "clearCache",
+    "clearCacheFor",
     "sweepIdleCache"
   ],
   "@jbrowse/core/util/isDataCurrent": ["isDataCurrent"],
@@ -2002,15 +2103,26 @@
   ],
   "@jbrowse/core/util/isTextEntryFocused": ["isTextEntryFocused"],
   "@jbrowse/core/util/jexl": ["default"],
+  "@jbrowse/core/util/jexlDiagnostics": [
+    "expressionKind",
+    "jexlProblemText",
+    "jexlProblems",
+    "registeredFunctions"
+  ],
   "@jbrowse/core/util/jexlFilters": [
     "baseJexlFilters",
     "configuredJexlFilters",
+    "filterExpressionsOf",
+    "filterFieldNarrowing",
     "jexlFilterNarrowing",
-    "retiredFilterState"
+    "retiredFilterState",
+    "writeJexlFilters"
   ],
   "@jbrowse/core/util/jexlStrings": [
+    "EXPRESSION_CHARACTERS",
     "JEXL_PREFIX",
     "ensureJexlPrefix",
+    "isBareExpression",
     "isJexl",
     "stringToJexlExpression"
   ],
@@ -2063,6 +2175,7 @@
     "DEFAULT_MARK_COLOR",
     "DEFAULT_SIZE_RANGE_PX",
     "MISCONFIGURED_ABGR",
+    "NO_ROOT",
     "NO_VALUE_ABGR",
     "NO_VALUE_LABEL",
     "colorAt",
@@ -2091,7 +2204,8 @@
     "getSession",
     "hashCode",
     "launchOrReplaceView",
-    "objectHash"
+    "objectHash",
+    "persistTrackConfigNow"
   ],
   "@jbrowse/core/util/nanoid": ["nanoid"],
   "@jbrowse/core/util/numericUtils": [
@@ -2114,6 +2228,7 @@
   ],
   "@jbrowse/core/util/offscreenCanvasPonyfill": ["drawImageOntoCanvasContext"],
   "@jbrowse/core/util/openViews": ["openTracks", "openViews", "viewAndNested"],
+  "@jbrowse/core/util/originCut": ["originHeadId", "originTailId"],
   "@jbrowse/core/util/paintLayer": ["PaintLayer"],
   "@jbrowse/core/util/parseLineByLine": [
     "groupLinesByRef",
@@ -2121,6 +2236,7 @@
     "parseLineByLine"
   ],
   "@jbrowse/core/util/preloadComponent": ["preloadComponent"],
+  "@jbrowse/core/util/pressOwner": ["isClaimedPress", "isFromPortal"],
   "@jbrowse/core/util/progress": [
     "aggregateStatus",
     "createProgressReporter",
@@ -2172,9 +2288,14 @@
   ],
   "@jbrowse/core/util/selectEncodedFeature": ["selectEncodedFeature"],
   "@jbrowse/core/util/setStackTraceLimit": ["setStackTraceLimit"],
-  "@jbrowse/core/util/shapeNameList": ["SHAPE_NAMES"],
-  "@jbrowse/core/util/shapeNames": ["SHAPE_CODES", "SHAPE_NAMES"],
+  "@jbrowse/core/util/shapeNameList": ["DEFAULT_SHAPE_RANGE", "SHAPE_NAMES"],
+  "@jbrowse/core/util/shapeNames": [
+    "DEFAULT_SHAPE_RANGE",
+    "SHAPE_CODES",
+    "SHAPE_NAMES"
+  ],
   "@jbrowse/core/util/simpleFeature": [
+    "PROXY_NAMES",
     "buildJexlContext",
     "default",
     "isFeature",
@@ -2190,6 +2311,24 @@
     "calcStdFromSums",
     "rectifyStats",
     "scoresToStats"
+  ],
+  "@jbrowse/core/util/stepOutputs": [
+    "AGGREGATE_OPS",
+    "BIN_OVERLAP_FIELD",
+    "CELLS_FIELDS",
+    "DEFAULT_AGGREGATE_OP",
+    "DEFAULT_BIN_AS",
+    "DEFAULT_COVERAGE_AS",
+    "DEFAULT_FORMULA_AS",
+    "DEFAULT_PILEUP_AS",
+    "MATE_FIELDS",
+    "POSITION_FIELDS",
+    "STEP_OUTPUTS",
+    "aggregateFieldName",
+    "isFieldPair",
+    "isRowwise",
+    "stepWrites",
+    "stepsOutput"
   ],
   "@jbrowse/core/util/svAlt": [
     "SV_MIN_LENGTH",
@@ -2295,6 +2434,8 @@
     "stripTrackIds",
     "toTrackConfigEntry",
     "toggleTrackGeneric",
+    "trackCatalog",
+    "trackCatalogEntry",
     "trackDisplayType",
     "viewCanDisplayTrack",
     "viewDisplayNames",
@@ -2363,6 +2504,7 @@
     "JexlExpressionString",
     "LocalPathLocation",
     "NoAssemblyRegion",
+    "PredicateField",
     "Region",
     "UriLocation",
     "UriLocationRaw",
@@ -2425,21 +2567,29 @@
   ],
   "@jbrowse/display-kit/BlockMsg": ["default"],
   "@jbrowse/display-kit/BottomRightIndicators": ["default"],
+  "@jbrowse/display-kit/categoryFilter": [
+    "CATEGORY_FILTERS",
+    "categoryEntries",
+    "categoryFilterItem",
+    "categoryOf"
+  ],
   "@jbrowse/display-kit/ChromeHighlight": ["default"],
   "@jbrowse/display-kit/ChromeLegend": ["default"],
-  "@jbrowse/display-kit/coarseTier": [
-    "coarseTierCovers",
-    "resolveCoarseTier",
-    "resolveFetchSuspended"
+  "@jbrowse/display-kit/chromeOverlaySlots": [
+    "BackgroundProgressSlot",
+    "ErrorBarSlot",
+    "LoadingSlot",
+    "TooLargeSlot"
   ],
+  "@jbrowse/display-kit/coarseTier": ["coarseTierCovers", "isSubAdapterConfig"],
   "@jbrowse/display-kit/CoarseTierMixin": ["default"],
   "@jbrowse/display-kit/coarseTierPhase": [
     "coarseTierDisplayPhase",
-    "coarseTierPending",
     "coarseTierSvgReady"
   ],
   "@jbrowse/display-kit/colorByMenu": [
     "colorByMenuItem",
+    "colorFieldRows",
     "colorSchemeMenuItem",
     "solidColorItem"
   ],
@@ -2450,55 +2600,63 @@
     "DISCRETE_COLOR_SCALES",
     "FEATURE_COLOR_SCALES",
     "FEATURE_FIELD_PRESETS",
+    "FIELD_COLOR_SCALES",
     "IDENTITY_SCALE",
     "categoricalColorField",
     "colorChannelOptions",
     "colorChannelSlots",
     "colorConfigSchema",
+    "colorDescendingSlot",
+    "colorDiscreteSchemeSlots",
     "colorDomainEndsSlots",
     "colorDomainQuantileSlot",
     "colorDomainSlot",
     "colorEncodingOf",
     "colorFieldOf",
+    "colorFieldSlot",
     "colorForField",
+    "colorForScheme",
     "colorForValue",
+    "colorInvalidSlot",
     "colorLabelsSlot",
+    "colorLegendOptions",
+    "colorNamesSlot",
     "colorRampSlots",
     "colorRangeSlot",
     "colorReverseSlot",
+    "colorScaleOptions",
+    "colorScaleTypeSlot",
     "colorSettingOf",
     "colorSnapshotOf",
     "colorTitleSlot",
     "colorUnknownSlot",
     "dealRowColors",
+    "definedColor",
+    "encodingOptions",
     "featureColorEncoding",
     "identityKeyEntries",
+    "impliedFieldOf",
     "matrixColorEncodingOf",
     "normalizeChannel",
+    "ordinalRange",
     "paintedColorEncoding",
     "paintedScale",
     "pairedColorsOf",
+    "parkedColorOf",
     "presetOf",
     "withPreset"
   ],
+  "@jbrowse/display-kit/ColorWritesMixin": ["default", "writtenColorOf"],
   "@jbrowse/display-kit/ConfigProblemsIndicator": [
     "ConfigProblemsCorner",
     "default"
   ],
-  "@jbrowse/display-kit/configSchema": ["default"],
+  "@jbrowse/display-kit/configSchema": [
+    "default",
+    "retiredBaseDisplaySpellings"
+  ],
   "@jbrowse/display-kit/const": ["MIN_DISPLAY_HEIGHT"],
   "@jbrowse/display-kit/ContextMenuMixin": ["ContextMenuMixin"],
-  "@jbrowse/display-kit/densityTier": [
-    "DENSITY_TIER_MODES",
-    "coarseTierModeOf",
-    "densityZoomBucket",
-    "isDensityTierMode"
-  ],
-  "@jbrowse/display-kit/densityTierConfigSchemaFields": [
-    "densityTierConfigSchemaFields"
-  ],
-  "@jbrowse/display-kit/densityTierMenu": ["densityTierMenuItems"],
-  "@jbrowse/display-kit/DensityTierMixin": ["default"],
   "@jbrowse/display-kit/displayAutoruns": [
     "autorunOnReadyView",
     "installAnimationDeadline",
@@ -2506,20 +2664,26 @@
     "onDisplayedRegionsChange"
   ],
   "@jbrowse/display-kit/DisplayBackgroundProgress": ["default"],
-  "@jbrowse/display-kit/DisplayChrome": ["DisplayStatusChrome", "default"],
+  "@jbrowse/display-kit/DisplayChrome": ["default"],
   "@jbrowse/display-kit/DisplayChromeBase": ["default"],
   "@jbrowse/display-kit/DisplayContextMenu": [
     "DisplayContextMenu",
+    "isContextMenuHost",
     "openContextMenuFromEvent"
   ],
   "@jbrowse/display-kit/DisplayErrorBar": ["default"],
   "@jbrowse/display-kit/DisplayLoadingOverlay": ["default"],
   "@jbrowse/display-kit/DisplayRenderErrorOverlay": ["default"],
-  "@jbrowse/display-kit/DisplayStatusChromeBase": ["default"],
   "@jbrowse/display-kit/facetConfigSchema": [
     "facetConfigSchema",
     "facetSettingOf"
   ],
+  "@jbrowse/display-kit/FacetWritesMixin": ["default", "facetForField"],
+  "@jbrowse/display-kit/featureEncodingConfigSchema": [
+    "featureEncodingConfigSchema"
+  ],
+  "@jbrowse/display-kit/featureFilterConfigSchema": ["retiredFilterSpelling"],
+  "@jbrowse/display-kit/featureUtrsConfigSchema": ["featureUtrsConfigSchema"],
   "@jbrowse/display-kit/fetchEachRegion": [
     "callEachRegion",
     "fetchAllRegions",
@@ -2536,16 +2700,24 @@
     "fetchMixinLifecycle",
     "makeFetchContext"
   ],
-  "@jbrowse/display-kit/foundationDisplayPhase": [
-    "foundationDisplayPhase",
-    "foundationDisplayStatusPhase"
+  "@jbrowse/display-kit/fieldPredicateConfigSchema": [
+    "fieldPredicateArray",
+    "fieldPredicateConfigSchema",
+    "fieldPredicateList",
+    "predicateListDefaults"
   ],
+  "@jbrowse/display-kit/floatingLabelHost": [
+    "isFloatingLabelHost",
+    "isNamedFeatureHost"
+  ],
+  "@jbrowse/display-kit/foundationDisplayPhase": ["foundationDisplayPhase"],
   "@jbrowse/display-kit/foundationPaintInert": ["foundationPaintInert"],
   "@jbrowse/display-kit/foundationSvgReady": ["foundationSvgReady"],
   "@jbrowse/display-kit/foundationView": [
     "containingHost",
     "foundationCanRender",
-    "onTrackAssembly"
+    "onTrackAssembly",
+    "trackCanvasWidthPx"
   ],
   "@jbrowse/display-kit/gateCommit": [
     "measurementOf",
@@ -2557,9 +2729,10 @@
     "groupByRadioMenuItem",
     "hiddenGroupsItems",
     "mergeDomain",
+    "moveSectionOnto",
     "moveSectionTo",
     "resetOrderItem",
-    "sectionOrderMenuItems",
+    "resetSectionOrderItems",
     "sectionRowMenuItems",
     "showHiddenItems"
   ],
@@ -2592,6 +2765,7 @@
   "@jbrowse/display-kit/HeightModeMixin": ["default", "installGrowExitBake"],
   "@jbrowse/display-kit/heldColorSlots": ["heldColorSlots"],
   "@jbrowse/display-kit/HiddenGroupsMixin": ["NO_HIDDEN_GROUPS", "default"],
+  "@jbrowse/display-kit/hiddenLegendConfigSchema": ["hiddenLegendConfigSchema"],
   "@jbrowse/display-kit/highlightHost": [
     "isHighlightHost",
     "isPinnedInkHost",
@@ -2606,23 +2780,17 @@
   "@jbrowse/display-kit/installPerRegionFetchAutoruns": [
     "installPerRegionFetchAutoruns"
   ],
-  "@jbrowse/display-kit/jexlFilterConfigSchemaFields": [
-    "jexlFilterConfigSchemaFields",
-    "retiredFilterSpelling"
-  ],
   "@jbrowse/display-kit/KeyedFetchMixin": ["default"],
+  "@jbrowse/display-kit/legendConfigSchema": ["legendConfigSchema"],
   "@jbrowse/display-kit/legendHost": ["isLegendHost"],
-  "@jbrowse/display-kit/LegendMixin": [
-    "default",
-    "legendCheckboxItem",
-    "legendMixinSlots",
-    "svgLegendGutterWidth"
-  ],
+  "@jbrowse/display-kit/LegendMixin": ["default", "legendCheckboxItem"],
   "@jbrowse/display-kit/MarkSvgLayer": ["default"],
+  "@jbrowse/display-kit/MatrixRampMixin": ["default"],
   "@jbrowse/display-kit/MultiRegionDisplayMixin": [
     "MAX_STORED_REGIONS",
     "default"
   ],
+  "@jbrowse/display-kit/ParkedColorMixin": ["default"],
   "@jbrowse/display-kit/planRegionFetch": [
     "isBlockCovered",
     "planRegionFetch",
@@ -2631,6 +2799,7 @@
   ],
   "@jbrowse/display-kit/PlotDialog": ["default"],
   "@jbrowse/display-kit/plotMenu": ["editPlotMenuItems", "openPlotDialog"],
+  "@jbrowse/display-kit/PointerHoverMixin": ["default"],
   "@jbrowse/display-kit/regionCommit": [
     "makeCommitChecks",
     "payloadServesZoom"
@@ -2656,8 +2825,8 @@
     "SvgLegend",
     "SvgPinnedHighlight",
     "SvgYAxis",
-    "exportsTooLargeNote",
-    "renderDisplaySvg"
+    "renderDisplaySvg",
+    "svgLegendGutterWidth"
   ],
   "@jbrowse/display-kit/retiredSettings": [
     "RETIRED_ROW_STATE_KEYS",
@@ -2668,12 +2837,18 @@
     "ROW_ARRANGEMENT_MEMBERS",
     "rowArrangementConfigSchema"
   ],
-  "@jbrowse/display-kit/rowColorConfigSchema": ["rowColorConfigSchema"],
+  "@jbrowse/display-kit/rowColorConfigSchema": [
+    "rowColorConfigSchema",
+    "rowColorForOtherRows"
+  ],
   "@jbrowse/display-kit/rowsConfigSchema": [
     "rowsConfigSchema",
+    "rowsForField",
     "rowsSettingOf"
   ],
   "@jbrowse/display-kit/rpcArgs": ["rpcArgs"],
+  "@jbrowse/display-kit/sampleRowsConfigSchema": ["sampleRowsConfigSchema"],
+  "@jbrowse/display-kit/sectionFacetConfigSchema": ["sectionFacetConfigSchema"],
   "@jbrowse/display-kit/SkippedFeaturesIndicator": [
     "default",
     "skippedFeatures"
@@ -2697,7 +2872,7 @@
   "@jbrowse/display-kit/TrackHeightMixin": ["default"],
   "@jbrowse/display-kit/TriangleMatrixMixin": [
     "default",
-    "squashToHeightCheckboxItem",
+    "fitToHeightCheckboxItem",
     "triangleMatrixConfigSchemaFields"
   ],
   "@jbrowse/display-kit/TriangleMatrixSvgLayer": ["default"],
@@ -2709,9 +2884,13 @@
     "triangleScreenToData",
     "triangleViewTransform"
   ],
-  "@jbrowse/display-kit/types": [
-    "VIEW_TRACK_LABEL_MODES",
-    "svgLegendAreaReserved"
+  "@jbrowse/display-kit/types": ["VIEW_TRACK_LABEL_MODES"],
+  "@jbrowse/display-kit/valueRamp": [
+    "numericText",
+    "rampEncodingOf",
+    "rampKeyScales",
+    "rampTextColor",
+    "valueRampOf"
   ],
   "@jbrowse/display-kit/viewportEmpty": ["viewportEmpty"],
   "@jbrowse/display-kit/viewRegionTable": ["viewRegionTable"],
@@ -2777,21 +2956,30 @@
     "axisGutterLeft",
     "axisGutterWidth",
     "leftAxisGutterWidth",
+    "numbersGrowRight",
     "rulesABand"
   ],
   "@jbrowse/display-ui/embed": [
     "EmbedProvider",
+    "EngineBoundary",
+    "Gridlines",
     "Highlights",
     "Legend",
     "LocationBox",
+    "NavButton",
+    "Notifications",
+    "PosterFirst",
     "RegionSeams",
     "ResizeHandle",
     "Scalebar",
+    "SearchPicker",
+    "Toolbar",
     "Track",
     "TrackStack",
     "TrackToggle",
     "ViewStatus",
-    "useLocationBox"
+    "useLocationBox",
+    "useRubberband"
   ],
   "@jbrowse/display-ui/yAxisConstants": [
     "AXIS_FONT_PX",
@@ -2868,7 +3056,6 @@
     "COVERAGE_BAND_UNIFORMS_SIZE_BYTES",
     "COVERAGE_BAR_PASS",
     "COVERAGE_CLIP_PASS",
-    "COVERAGE_INDICATOR_PASS",
     "COVERAGE_INTERBASE_PASS",
     "COVERAGE_MOD_PASS",
     "COVERAGE_SNP_PASS",
@@ -2916,11 +3103,26 @@
   "@jbrowse/render-core/installUpload": ["installUpload", "oneCell"],
   "@jbrowse/render-core/instanceCache": ["createInstanceCache"],
   "@jbrowse/render-core/instancePass": ["uploadPass"],
+  "@jbrowse/render-core/linkFeet": [
+    "LINK_FOOT_FORWARD",
+    "LINK_FOOT_REVERSE",
+    "linkFeet"
+  ],
   "@jbrowse/render-core/marks": [
+    "BandPen",
+    "CONNECTOR_ARROW",
+    "CONNECTOR_BOW",
+    "CONNECTOR_DASHED",
+    "CONNECTOR_LEADING_2",
+    "CONNECTOR_MAX_REACH_PX",
+    "CONNECTOR_MINUS_1",
+    "CONNECTOR_MINUS_2",
+    "CONNECTOR_STRAIGHT",
     "HIDDEN_ROW",
     "LINK_ELSEWHERE",
     "LINK_NO_REGION",
     "NO_ROW_COLOR",
+    "RAMP_LINE_BANDS",
     "RAMP_NOT_A_NUMBER_COLOR",
     "RAMP_NO_VALUE_BITS",
     "RAMP_NO_VALUE_COLOR",
@@ -2930,6 +3132,8 @@
     "backToFront",
     "barMark",
     "buildRowTable",
+    "connectorEnds",
+    "connectorMark",
     "defineMark",
     "ellipseDistance",
     "ellipseNearest",
@@ -2943,6 +3147,8 @@
     "lineStepMark",
     "linkApex",
     "linkFeet",
+    "linkInstance",
+    "linkLabelAnchor",
     "linkMark",
     "makeAbgrFill",
     "nearestMarkHit",
@@ -2950,7 +3156,9 @@
     "paintMarkBlocks",
     "planMarks",
     "pointInsetPx",
+    "pointInstance",
     "pointMark",
+    "rampAsThreshold",
     "rampUniforms",
     "rampValueBits",
     "recordPath",
@@ -3029,376 +3237,11 @@
     "SCALE_TYPE_SYMLOG",
     "denormalizeScore",
     "makeScoreNormalizer",
+    "makeUnclampedScoreNormalizer",
     "rampMidNorm",
     "scaleTypeCode"
   ],
   "@jbrowse/render-core/ScrollLockedOverlay": ["ScrollLockedOverlay"],
-  "@jbrowse/render-core/shaders/antialias": [
-    "aaHalfPx",
-    "aaPx",
-    "aaRamp",
-    "edgeCoverage"
-  ],
-  "@jbrowse/render-core/shaders/barMarkIface": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "TEXTURES",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_SLOT_ARRAYS",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColor",
-    "getInstanceRow",
-    "getInstanceX",
-    "getInstanceX2",
-    "getInstanceY",
-    "packInstances",
-    "setInstanceColor",
-    "setInstanceRow",
-    "setInstanceX",
-    "setInstanceX2",
-    "setInstanceY",
-    "setUniformColorBands",
-    "setUniformColorCuts",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/capsule": ["capsuleDistPx"],
-  "@jbrowse/render-core/shaders/capsuleConsts": ["CAPSULE_MIN_LEN_PX"],
-  "@jbrowse/render-core/shaders/clipStrip": ["clipSide"],
-  "@jbrowse/render-core/shaders/clipStripConsts": [
-    "CLIP_STRIP_COLOR",
-    "CLIP_STRIP_PX"
-  ],
-  "@jbrowse/render-core/shaders/colorRampLut": ["rampMidT"],
-  "@jbrowse/render-core/shaders/coverageBar": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "SOURCE",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_OFFSET_U32",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstancePosition",
-    "getInstanceRelDepth",
-    "packInstances",
-    "setInstancePosition",
-    "setInstanceRelDepth",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/coverageIndicator": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "SOURCE",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_OFFSET_U32",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColorType",
-    "getInstancePosition",
-    "packInstances",
-    "setInstanceColorType",
-    "setInstancePosition",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/coverageInterbase": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "SOURCE",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_OFFSET_U32",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColorType",
-    "getInstancePosition",
-    "getInstanceSegHeight",
-    "getInstanceYOffset",
-    "packInstances",
-    "setInstanceColorType",
-    "setInstancePosition",
-    "setInstanceSegHeight",
-    "setInstanceYOffset",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/coverageMod": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "SOURCE",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_OFFSET_U32",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstancePackedColor",
-    "getInstancePosition",
-    "getInstanceRelDepth",
-    "getInstanceSegHeight",
-    "getInstanceYOffset",
-    "packInstances",
-    "setInstancePackedColor",
-    "setInstancePosition",
-    "setInstanceRelDepth",
-    "setInstanceSegHeight",
-    "setInstanceYOffset",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/coverageSnp": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "SOURCE",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_OFFSET_U32",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColorType",
-    "getInstancePosition",
-    "getInstanceRelDepth",
-    "getInstanceSegHeight",
-    "getInstanceYOffset",
-    "packInstances",
-    "setInstanceColorType",
-    "setInstancePosition",
-    "setInstanceRelDepth",
-    "setInstanceSegHeight",
-    "setInstanceYOffset",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/curveDistance": [
-    "distToWideCirclePx",
-    "ellipseHullPoint",
-    "legSweepAngle",
-    "wideCircleHullPoint",
-    "wideCircleLeg",
-    "wideCircleLegStep"
-  ],
-  "@jbrowse/render-core/shaders/hpmath": [
-    "extendToMinWidthPx",
-    "snapBoxCenterYPx",
-    "snapBoxHeightPx",
-    "snapBoxTopPx"
-  ],
-  "@jbrowse/render-core/shaders/lineCenterMarkIface": [
-    "BINDINGS",
-    "BLEND_STATE",
-    "COVERAGE",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "TEXTURES",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_SLOT_ARRAYS",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColor",
-    "getInstancePrevX",
-    "getInstancePrevX2",
-    "getInstancePrevY",
-    "getInstanceRow",
-    "getInstanceX",
-    "getInstanceX2",
-    "getInstanceY",
-    "packInstances",
-    "setInstanceColor",
-    "setInstancePrevX",
-    "setInstancePrevX2",
-    "setInstancePrevY",
-    "setInstanceRow",
-    "setInstanceX",
-    "setInstanceX2",
-    "setInstanceY",
-    "setUniformColorBands",
-    "setUniformColorCuts",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/lineCommonConsts": ["GAP_Y", "NO_PREV_X"],
-  "@jbrowse/render-core/shaders/lineStepMarkIface": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "TEXTURES",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_SLOT_ARRAYS",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColor",
-    "getInstanceNextY",
-    "getInstancePrevY",
-    "getInstanceRow",
-    "getInstanceX",
-    "getInstanceX2",
-    "getInstanceY",
-    "packInstances",
-    "setInstanceColor",
-    "setInstanceNextY",
-    "setInstancePrevY",
-    "setInstanceRow",
-    "setInstanceX",
-    "setInstanceX2",
-    "setInstanceY",
-    "setUniformColorBands",
-    "setUniformColorCuts",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/linkMark": [
-    "linkApexPx",
-    "linkBaseYPx",
-    "linkFootDir",
-    "linkFootLenPx",
-    "linkIsFar",
-    "linkRadiiPx",
-    "linkStrokeWidthPx",
-    "linkValuePx"
-  ],
-  "@jbrowse/render-core/shaders/linkMarkConsts": [
-    "LINK_CURVE_SEGMENTS",
-    "LINK_ELSEWHERE",
-    "LINK_FAR_SCREEN_WIDTHS",
-    "LINK_FOOT_PX",
-    "LINK_LINE_MIN_PX",
-    "LINK_MAX_REGIONS",
-    "LINK_NO_REGION",
-    "LINK_NO_SIZE",
-    "LINK_SHAPE_ARC",
-    "LINK_SHAPE_DOME",
-    "LINK_SHAPE_LINE",
-    "LINK_SIZE_CONSTANT",
-    "LINK_SIZE_SCALED",
-    "LINK_STEM_PX"
-  ],
-  "@jbrowse/render-core/shaders/markColorConsts": [
-    "MAX_COLOR_BANDS",
-    "MAX_COLOR_CUTS",
-    "RAMP_LINEAR",
-    "RAMP_LOG",
-    "RAMP_NONE",
-    "RAMP_NOT_A_NUMBER_COLOR",
-    "RAMP_NO_VALUE_BITS",
-    "RAMP_NO_VALUE_COLOR",
-    "RAMP_THRESHOLD"
-  ],
-  "@jbrowse/render-core/shaders/pointGlyph": [
-    "crispSquareTopLeftPx",
-    "discExpand",
-    "glyphExpand"
-  ],
-  "@jbrowse/render-core/shaders/pointGlyphConsts": ["SMALL_POINT_MAX_DIAMETER"],
-  "@jbrowse/render-core/shaders/pointMark": [
-    "pointRowYPx",
-    "pointYPx",
-    "valueToYPxScaled"
-  ],
-  "@jbrowse/render-core/shaders/pointMarkConsts": [
-    "DIAMOND_GLYPH_SCALE",
-    "DIAMOND_MITER_REACHES",
-    "GLYPH_DIAMOND",
-    "GLYPH_DISC",
-    "GLYPH_SQUARE",
-    "GLYPH_TRIANGLE",
-    "TRIANGLE_MITER_REACHES"
-  ],
-  "@jbrowse/render-core/shaders/pointMarkIface": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_F32",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "TEXTURES",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_SLOT_ARRAYS",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColor",
-    "getInstanceGlyph",
-    "getInstanceRow",
-    "getInstanceX",
-    "getInstanceX2",
-    "getInstanceY",
-    "packInstances",
-    "setInstanceColor",
-    "setInstanceGlyph",
-    "setInstanceRow",
-    "setInstanceX",
-    "setInstanceX2",
-    "setInstanceY",
-    "setUniformColorBands",
-    "setUniformColorCuts",
-    "writeUniforms"
-  ],
-  "@jbrowse/render-core/shaders/rowRect": [
-    "drawnRowHeightPx",
-    "rowBandOffsetPx"
-  ],
-  "@jbrowse/render-core/shaders/rowRectConsts": [
-    "MIN_DRAWN_ROW_PX",
-    "MULTI_ROW_MIN_CELL_PX"
-  ],
-  "@jbrowse/render-core/shaders/scoreScale": [
-    "normalizeScore",
-    "normalizeScoreUnclamped"
-  ],
-  "@jbrowse/render-core/shaders/spanMarkIface": [
-    "BINDINGS",
-    "INSTANCE_OFFSET_U32",
-    "INSTANCE_STRIDE_BYTES",
-    "INSTANCE_STRIDE_WORDS",
-    "InstanceWriter",
-    "TEXTURES",
-    "UNIFORMS_SIZE_BYTES",
-    "UNIFORM_OFFSET_F32",
-    "UNIFORM_OFFSET_I32",
-    "UNIFORM_SLOT_ARRAYS",
-    "VERTEX_ATTRIBUTES",
-    "VERTS_PER_INSTANCE",
-    "getInstanceColor",
-    "getInstanceRow",
-    "getInstanceX",
-    "getInstanceX2",
-    "packInstances",
-    "setInstanceColor",
-    "setInstanceRow",
-    "setInstanceX",
-    "setInstanceX2",
-    "setUniformColorBands",
-    "setUniformColorCuts",
-    "writeUniforms"
-  ],
   "@jbrowse/render-core/sharedBackendKey": ["sharedBackendKey"],
   "@jbrowse/render-core/slangPass": ["slangPass"],
   "@jbrowse/render-core/useGraphicsCapabilities": ["useGraphicsCapabilities"],

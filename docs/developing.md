@@ -1,8 +1,9 @@
 # Developing
 
 The plugin needs [pnpm](https://pnpm.io/installation) and builds against
-`@jbrowse/*` 5.0.0-beta.11. Earlier hosts fail because the plugin passes RPC
-calls an AbortSignal that older betas cannot post to a worker.
+`@jbrowse/*` 5.0.0-beta.18. Earlier hosts lack the display-kit modules the
+bundled synteny-core imports, and their status overlays need the display model
+as a prop.
 
 ```console
 pnpm install
@@ -70,7 +71,7 @@ pnpm host-names   # builds against each supported host's export names
 ## End-to-end tests
 
 Puppeteer boots a real JBrowse Web and loads the built plugin. All 48 tests pass
-on 5.0.0-beta.13, the latest release, as of 2026-10-15.
+on 5.0.0-beta.18, the latest release, as of 2026-10-27.
 
 ```console
 JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
@@ -78,7 +79,7 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 
 - The suite is opt-in because it needs a jbrowse-web static build to serve.
   Without `RUN_E2E=1` it skips and exits clean, so it never blocks a run
-- The host has to be at least 5.0.0-beta.11, the version the plugin's
+- The host has to be at least 5.0.0-beta.18, the version the plugin's
   `@jbrowse/*` dependencies are pinned to. On an older host the plugin throws
   while installing, so every suite dies in setup with a minified
   `e.<something> is not a function`, which looks like a plugin bug
