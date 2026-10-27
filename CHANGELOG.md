@@ -1,3 +1,14 @@
+## [8.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.7.0...v8.0.0) (2026-10-27)
+
+### Other Changes
+
+- An rGFA track's add-track config hides its labels as label parts ([f57dd4d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f57dd4db05e51835f4b3fe533cf8cdd35cedbf15))
+- Test configs, docs and figure specs write main's display spellings ([dfd6082](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/dfd6082fe1b6bd06c2a4c9b100e1d6c727de06ad))
+- A facet orders its panels and walk-row sections by sort, as core's facet does ([5e4a26f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5e4a26f9dbae50341dec56a8f365ac825ebca293))
+- Bundle render-core's shader modules instead of reading them from the host ([d5af255](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d5af255090fe603eb5c152cf53265398c9d1c55f))
+- Revert the shader-key filter in the host shim ([bf17f41](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bf17f41c9562b7d33b1705b72d3b93b6e2675ba6))
+- Require JBrowse 5.0.0-beta.18, reading session tracks as frozen entries ([bc0882f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bc0882fdb7db4cebbd57497f5acbe524d1833a14))
+
 ## [7.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.6.0...v7.7.0) (2026-10-26)
 
 ### Documentation
