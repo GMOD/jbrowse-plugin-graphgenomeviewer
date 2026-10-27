@@ -128,12 +128,12 @@ const CALLSET_TRACK = {
   trackId: 'hprc2_pgbi_grch38',
   type: 'LinearMultiSampleVariantDisplay',
   rows: {
-    domain: HAPLOTYPES.map(phasedRow),
+    sort: HAPLOTYPES.map(phasedRow),
     labels: Object.fromEntries(HAPLOTYPES.map(h => [phasedRow(h), h])),
   },
   rowHeight: CALLSET_ROW_PX,
   height: HAPLOTYPES.length * CALLSET_ROW_PX,
-  showTree: false,
+  axis: { tree: false },
 }
 
 function graphView(props) {
@@ -209,7 +209,7 @@ function maizeVariants(rowPx, kept) {
     ...(kept ? { rows: { kept, sort: kept } } : {}),
     rowHeight: rowPx,
     height: (kept?.length ?? MAIZE_FOUNDERS) * rowPx + (kept ? 20 : 0),
-    showTree: false,
+    axis: { tree: false },
   }
 }
 

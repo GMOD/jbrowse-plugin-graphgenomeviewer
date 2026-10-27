@@ -23,12 +23,12 @@
         {
           "type": "LinearMultiSampleVariantMatrixDisplay",
           "displayId": "hprc2_wave_grch38_matrix",
-          "renderingMode": "phased"
+          "unit": "haplotype"
         },
         {
           "type": "LinearMultiSampleVariantDisplay",
           "displayId": "hprc2_wave_grch38_regular",
-          "renderingMode": "phased"
+          "unit": "haplotype"
         }
       ]
     },

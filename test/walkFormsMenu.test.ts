@@ -58,7 +58,7 @@ function config() {
           {
             type: 'LinearMultiSampleVariantDisplay',
             displayId: 'forms_lpa-display',
-            showTree: false,
+            axis: { tree: false },
             shadeByDosage: false,
             encoding: {
               color: {

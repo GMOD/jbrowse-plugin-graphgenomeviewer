@@ -105,7 +105,7 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   "displays": [
     {
       "type": "LinearMultiSampleVariantDisplay",
-      "showTree": false,
+      "axis": { "tree": false },
       "shadeByDosage": false,
       "encoding": {
         "color": {

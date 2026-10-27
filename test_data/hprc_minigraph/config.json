@@ -35,7 +35,7 @@
       "displays": [
         {
           "type": "LinearBasicDisplay",
-          "showOnlyGenes": true
+          "filter": ["geneLike"]
         }
       ]
     },
