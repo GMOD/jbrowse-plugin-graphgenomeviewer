@@ -67,10 +67,10 @@ A session states walks and facet:
   { "walk": "GRCh38#0#chr6" },
   { "walk": "HG00133#1#CM090050.1", "color": { "scheme": "purple" } }
 ],
-"facet": { "field": "walk", "domain": ["HG00133#1#CM090050.1"], "columns": 2 }
+"facet": { "field": "walk", "sort": ["HG00133#1#CM090050.1"], "columns": 2 }
 ```
 
-`domain` lists the walks or samples whose panels come first.
+`sort` lists the walks or samples whose panels come first.
 
 ## Colouring lifted walks
 

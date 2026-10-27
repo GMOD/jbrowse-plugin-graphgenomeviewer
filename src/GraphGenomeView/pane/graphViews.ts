@@ -275,7 +275,7 @@ export const withGraphViews = paneBase
       // One section per value of a field, as a grammar of graphics splits a
       // plot. A node layout draws a panel per `walk` (each lifted walk alone,
       // on the same layout) or per `sample` (a sample's haplotypes in a row);
-      // `domain` orders the panels and `columns` fixes how many go across.
+      // `sort` orders the panels and `columns` fixes how many go across.
       // See facetPanels and facetCells.
       get facetSetting(): FacetSetting {
         return facet.get()
@@ -966,10 +966,10 @@ export const withGraphViews = paneBase
     // How a tube map splits into panels: by sample or walk, or by a sample
     // table column
     get tubeMapPanelSplit(): TubeMapPanelSplit | undefined {
-      const { field, domain } = self.facetSetting
+      const { field, sort } = self.facetSetting
       const grouped = this.tableGroupBy
       return field !== ''
-        ? { by: field, domain }
+        ? { by: field, sort }
         : grouped
           ? { by: 'column', ...grouped.groupBy, table: grouped.table }
           : undefined
