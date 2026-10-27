@@ -68,7 +68,10 @@ const config = {
   logOverride: { 'import-is-undefined': 'error' },
   plugins: [
     hostShim({
-      keys: JBrowseReExports,
+      // a shader module is pure, and hosts after 5.0.0-beta.17 serve none
+      keys: JBrowseReExports.filter(
+        key => !key.startsWith('@jbrowse/render-core/shaders/'),
+      ),
       names: JSON.parse(fs.readFileSync(hostNamesFile, 'utf8')),
       pluginName: 'GraphGenomeView',
       host: hostNamesFile,
