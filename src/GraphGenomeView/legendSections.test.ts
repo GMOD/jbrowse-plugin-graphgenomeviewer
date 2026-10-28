@@ -2,6 +2,7 @@ import {
   legendSections,
   rowPitch,
   swatchHeight,
+  swatchWidth,
   tubeMapRows,
 } from './legendSections'
 
@@ -64,7 +65,11 @@ function widthLegend(over: Record<string, unknown>) {
     pathLegend: [],
     tubeMapKeys: {},
     deletions: [],
-    graph: { nodes: [{ depth: 1 }, { depth: 26 }], edges: [], paths: [{}] },
+    graph: {
+      nodes: [{ depth: 1 }, { depth: 26 }],
+      edges: [],
+      paths: Array.from({ length: 26 }, () => ({})),
+    },
     drawsNodes: true,
     walkRowBars: undefined,
     nodeWidth: 'depth',
@@ -110,6 +115,37 @@ test('a walk count reads whole, and a mean that rounds onto an end is dropped', 
       r => r.label,
     ),
   ).toEqual(['node thickness: walks through it', '3 walks', '1 walk'])
+})
+
+test('a node a walk loops through keys passes, not walks', () => {
+  const looped = { nodes: [], edges: [], paths: [{}, {}, {}] }
+  expect(
+    widthLegend({
+      graph: looped,
+      depthRange: { min: 1, max: 9, mean: 3 },
+    })!.map(r => r.label),
+  ).toEqual([
+    'node thickness: walk passes through it',
+    '9 passes',
+    '3 passes',
+    '1 pass',
+  ])
+})
+
+test('colour keys are square chips, unlike the thickness bars', () => {
+  const model = {
+    walkLift: undefined,
+    graph: undefined,
+    referenceRampDomain: { start: 0, end: 1000 },
+    referenceRampDrawsOffReference: true,
+    bubbleHalos: [],
+    genePins: [],
+    pathLegend: [],
+    tubeMapKeys: {},
+  }
+  const [ramp] = legendSections(model as unknown as GraphPaneModel)
+  const off = ramp!.rows.find(r => r.key === 'off')!.swatch!
+  expect(swatchWidth(off)).toBe(swatchHeight(off))
 })
 
 test('a frequency width keys shares of haplotypes, or AF where tagged', () => {

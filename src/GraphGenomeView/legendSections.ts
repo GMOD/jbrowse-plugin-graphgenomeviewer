@@ -57,6 +57,7 @@ const FOLD_TICK_BACKING = '#b8b8c0'
 const WALK_ROW_SWATCH_PX = WALK_ROW_BAR_PX - 4
 const LINK_INK = 'rgba(119, 119, 119, 0.85)'
 const LINE_PX = 15
+const CHIP_PX = 10
 
 export interface Stop {
   offset: number
@@ -146,13 +147,18 @@ export function rowPitch(rows: readonly LegendRow[]) {
 
 const flat = (color: string): Stop[] => [{ offset: 0, color }]
 
-function fillRow(
-  key: string,
-  color: string,
-  label: string,
-  width = SWATCH_PX,
-): LegendRow {
-  return { key, label, swatch: { kind: 'fill', stops: flat(color), width } }
+// A colour's key is a square chip, so it never reads as a thickness bar
+function fillRow(key: string, color: string, label: string): LegendRow {
+  return {
+    key,
+    label,
+    swatch: {
+      kind: 'fill',
+      stops: flat(color),
+      width: CHIP_PX,
+      height: CHIP_PX,
+    },
+  }
 }
 
 // hard-edged bands, a read taking one shade of its strand's palette
@@ -199,7 +205,7 @@ function rampRows(model: GraphPaneModel): LegendRow[] {
       under: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
     },
     ...(model.referenceRampDrawsOffReference
-      ? [fillRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference', BAR_PX)]
+      ? [fillRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference')]
       : []),
   ]
 }
@@ -345,25 +351,33 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
   if (model.nodeWidth !== 'depth' || !range || range.min === range.max) {
     return []
   }
-  const walks = (graph.paths?.length ?? 0) > 0
+  const walkCount = graph.paths?.length ?? 0
+  const walks = walkCount > 0
   const depths = [
     ...new Set(
       [range.max, range.mean, range.min].map(walks ? Math.round : roundDepth),
     ),
   ]
+  // a walk looping through a repeat passes its nodes more than once, and
+  // each pass counts
+  const passes = depths[0]! > walkCount
+  const counted = (n: number) =>
+    passes
+      ? `${n.toLocaleString('en-US')} pass${n === 1 ? '' : 'es'}`
+      : `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`
   return [
     {
       key: 'width',
-      label: walks
-        ? 'node thickness: walks through it'
-        : 'node thickness: depth',
+      label: !walks
+        ? 'node thickness: depth'
+        : passes
+          ? 'node thickness: walk passes through it'
+          : 'node thickness: walks through it',
     },
     ...depths.map(depth =>
       thicknessRow(
         `width-${depth}`,
-        walks
-          ? `${depth.toLocaleString('en-US')} walk${depth === 1 ? '' : 's'}`
-          : `depth ${depth.toLocaleString('en-US')}`,
+        walks ? counted(depth) : `depth ${depth.toLocaleString('en-US')}`,
         nodeWidthPx({ depth } as GraphNode, px, 'depth', range.mean),
         REFERENCE_RAMP_ALT_CSS,
       ),
@@ -646,41 +660,26 @@ export function walkKeyRow(model: GraphPaneModel, walk: LiftedWalk): LegendRow {
 
 // The off-reference colour, where the lift paints it, and the faded rest.
 // rampRows draws no key while walks are lifted, so these rows name both.
-function fadedRows(
-  model: GraphPaneModel,
-  faded: string,
-  width = SWATCH_PX,
-): LegendRow[] {
+function fadedRows(model: GraphPaneModel, faded: string): LegendRow[] {
   return [
     ...(model.liftPaintsOffReference
-      ? [
-          fillRow(
-            'lift-off',
-            REFERENCE_RAMP_ALT_CSS,
-            'off the reference',
-            width,
-          ),
-        ]
+      ? [fillRow('lift-off', REFERENCE_RAMP_ALT_CSS, 'off the reference')]
       : []),
-    fillRow('faded', FADED_SWATCH, faded, width),
+    fillRow('faded', FADED_SWATCH, faded),
   ]
 }
 
-// Each lifted walk's key, then what the faded rest is; the colours under a
-// shaded walk's bar are bars of its width
+// Each lifted walk's key, then what the faded rest is
 function walkReadoutRows(model: GraphPaneModel): LegendRow[] {
   const lift = model.walkLift
   if (!lift || model.facetPanels) {
     return []
   }
   const rows = lift.walks.map(w => walkKeyRow(model, w))
-  const width = rows.some(r => swatchWidth(r.swatch!) === BAR_PX)
-    ? BAR_PX
-    : SWATCH_PX
   const faded = model.graph
     ? fadedKey(model.graph, lift, model.liftedWalksLabel)
     : `not on ${model.liftedWalksLabel}`
-  return [...rows, ...fadedRows(model, faded, width)]
+  return [...rows, ...fadedRows(model, faded)]
 }
 
 // The faceted pane's one key line under its panels: each panel's title keys
