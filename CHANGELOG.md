@@ -1,3 +1,10 @@
+## [8.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.0...v8.0.1) (2026-10-28)
+
+### Other Changes
+
+- Add a figure of MICB's alleles drawn by frequency and links by walks ([5709c0e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5709c0e9c32886fdadea77ab1c9c6a7be52fac54))
+- Bump bandage-core to 12.0.1, drawing a deletion by its walks ([6e6532a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6e6532ac587a7e2cb298fd3d8cee91ca79ff40b6))
+
 ## [8.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v7.7.0...v8.0.0) (2026-10-27)
 
 ### Other Changes
