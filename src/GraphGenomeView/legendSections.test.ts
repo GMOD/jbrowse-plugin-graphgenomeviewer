@@ -94,6 +94,19 @@ test('the width key names what node thickness counts, thickest first', () => {
   expect(thin).toBeLessThan(mean!)
 })
 
+test('a walk count reads whole, and a mean that rounds onto an end is dropped', () => {
+  expect(
+    widthLegend({ depthRange: { min: 1, max: 3, mean: 1.9 } })!.map(
+      r => r.label,
+    ),
+  ).toEqual(['node thickness: walks through it', '3 walks', '2 walks', '1 walk'])
+  expect(
+    widthLegend({ depthRange: { min: 1, max: 3, mean: 1.2 } })!.map(
+      r => r.label,
+    ),
+  ).toEqual(['node thickness: walks through it', '3 walks', '1 walk'])
+})
+
 test('a frequency width keys shares of haplotypes, or AF where tagged', () => {
   expect(widthLegend({ nodeWidth: 'frequency' })!.map(r => r.label)).toEqual([
     'node thickness: share of haplotypes through it',

@@ -347,7 +347,9 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
   }
   const walks = (graph.paths?.length ?? 0) > 0
   const depths = [
-    ...new Set([range.max, range.mean, range.min].map(roundDepth)),
+    ...new Set(
+      [range.max, range.mean, range.min].map(walks ? Math.round : roundDepth),
+    ),
   ]
   return [
     {
