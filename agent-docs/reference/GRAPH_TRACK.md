@@ -247,6 +247,16 @@ and each path piece as the routes it takes. A record's first and last pieces
 also give the bp to the contig's record before and after, which the graph lacks,
 so a walk row can say which of a gap's bases are not in the graph.
 
+- A haplotype whose deletion spans the window has no row in its chunks.
+  gfa-to-tabix 1.5 writes a `skip` row there instead, graph-walks returns it as
+  the cut's `skips`, and `WalkIndex.subgraph` hands them to the tables. A walk
+  row then draws the haplotype as a hairline gap, cause `deleted`, under the
+  stretch it leaves out, where before it had no row
+- gfa-to-tabix 1.5's `--max-component` leaves a component over the limit on its
+  own coordinates, so an anchored cut reaches only its ends, through the links
+  into it. graph-walks tags them `mv:i:1`, bandage-core draws them paler, and
+  the hover says the component is too large to draw here
+
 - A cut reads whole chunks to the window's end. A node is filed under the chunk
   holding its start, so the cut starts at the chunk before the window's own, or
   at the chunk before a `#long` pass (a reference node longer than a chunk) that
