@@ -15,6 +15,7 @@ import WalkRowsOverlay from './WalkRowsOverlay'
 import {
   facetKeyRows,
   legendSections,
+  rowPitch,
   swatchWidth,
   walkKeyRow,
 } from '../legendSections'
@@ -87,12 +88,12 @@ interface KeyRow {
 
 // A legend row as the screen lays it out: its swatch, then its words, the
 // line under it if any; a note is grey words alone
-function svgRow(row: LegendRow, id: string): KeyRow {
+function svgRow(row: LegendRow, id: string, pitch = ROW_PX): KeyRow {
   if (!row.swatch) {
     return {
       key: row.key,
       width: row.label.length * LABEL_CHAR_PX,
-      height: ROW_PX,
+      height: pitch,
       draw: left => (
         <text key={row.key} {...FONT} x={left} y={0} fill="#666">
           {row.label}
@@ -109,7 +110,7 @@ function svgRow(row: LegendRow, id: string): KeyRow {
       sw + 5 + words.length * LABEL_CHAR_PX,
       (row.under?.length ?? 0) * LABEL_CHAR_PX,
     ),
-    height: row.under ? ROW_PX * 2 : ROW_PX,
+    height: row.under ? pitch * 2 : pitch,
     draw: left => (
       <g key={row.key} {...FONT}>
         <SvgSwatch swatch={swatch} x={left} id={id} />
@@ -118,7 +119,7 @@ function svgRow(row: LegendRow, id: string): KeyRow {
           {row.label}
         </text>
         {row.under ? (
-          <text x={left} y={ROW_PX}>
+          <text x={left} y={pitch}>
             {row.under}
           </text>
         ) : null}
@@ -135,29 +136,26 @@ function Keys({
   model: GraphPaneModel
   idPrefix: string
 }) {
-  const sections = legendSections(model).map(({ testid, rows }) =>
-    rows.map((row, i) => svgRow(row, `${idPrefix}-${testid}-${i}`)),
-  )
+  const sections = legendSections(model)
   if (sections.length === 0) {
     return null
   }
+  const pitch = rowPitch(sections.flatMap(section => section.rows))
+  const rows = sections.flatMap(({ testid, rows }) =>
+    rows.map((row, i) => svgRow(row, `${idPrefix}-${testid}-${i}`, pitch)),
+  )
   const pad = 6
-  const rows = sections.flat()
   const boxWidth =
     rows.reduce((max, r) => Math.max(max, r.width), -Infinity) + pad * 2
-  const boxHeight =
-    rows.reduce((sum, r) => sum + r.height, 0) + sections.length * pad
+  const boxHeight = rows.reduce((sum, r) => sum + r.height, 0) + pad
   const right = model.paneWidth - LEGEND_INSET_PX
   const left = right - boxWidth + pad
   const top = LEGEND_INSET_PX + model.referenceStripZonePx
   const placed: { row: KeyRow; y: number }[] = []
-  let y = top + 12 - pad / 2
-  for (const section of sections) {
-    y += pad
-    for (const row of section) {
-      placed.push({ row, y })
-      y += row.height
-    }
+  let y = top + pad / 2 + pitch / 2 + 4
+  for (const row of rows) {
+    placed.push({ row, y })
+    y += row.height
   }
   return (
     <g data-testid="graph-svg-keys">

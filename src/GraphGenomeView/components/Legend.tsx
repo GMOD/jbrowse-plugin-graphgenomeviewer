@@ -4,7 +4,7 @@ import { observer } from 'mobx-react'
 
 import { LegendSwatchView } from './LegendSwatch'
 import { legendBoxStyle, legendNoteStyle, legendRowStyle } from './legendStyles'
-import { legendSections } from '../legendSections'
+import { legendSections, rowPitch } from '../legendSections'
 
 import type { LegendRow } from '../legendSections'
 import type { GraphPaneModel } from '../model'
@@ -53,16 +53,22 @@ const closeStyle = {
   textDecoration: 'underline',
 }
 
-// Every key the drawing needs, a section each
+// Every key the drawing needs in one box, a section each, every line at one
+// pitch
 export const LegendPanel = observer(function LegendPanel({
   model,
 }: {
   model: GraphPaneModel
 }) {
+  const sections = legendSections(model)
+  if (sections.length === 0) {
+    return null
+  }
+  const pitch = rowPitch(sections.flatMap(section => section.rows))
   return (
-    <>
-      {legendSections(model).map(({ testid, rows }) => (
-        <div key={testid} style={legendBoxStyle} data-testid={testid}>
+    <div style={{ ...legendBoxStyle, lineHeight: `${pitch}px` }}>
+      {sections.map(({ testid, rows }) => (
+        <div key={testid} data-testid={testid}>
           {rows.map(row => (
             <LegendRowView
               key={row.key}
@@ -86,6 +92,6 @@ export const LegendPanel = observer(function LegendPanel({
           ))}
         </div>
       ))}
-    </>
+    </div>
   )
 })

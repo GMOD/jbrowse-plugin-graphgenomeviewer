@@ -4,6 +4,7 @@ import {
   BUBBLE_KIND_NAMES,
 } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { deletionKey } from '@jbrowse/bandage-core/deletionEdges'
+import { edgeWidthFactor } from '@jbrowse/bandage-core/edgeWidths'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
@@ -14,6 +15,7 @@ import {
   UNBACKED_TICK,
   walkRowsKey,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import { frequencyKey, nodeWidthPx } from '@jbrowse/bandage-core/nodeWidths'
 import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
 import {
@@ -35,6 +37,7 @@ import { COLORED_BLOCKS, blockFill, blockLetter } from './walkRowBlocks'
 
 import type { GraphPaneModel } from './model'
 import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import type { GraphNode } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 
 // The legend as data, so the screen's panel and the exported figure's key
@@ -52,6 +55,8 @@ const STRIP_SAMPLES = 6
 const TUBE_SWATCH_PX = 7
 const FOLD_TICK_BACKING = '#b8b8c0'
 const WALK_ROW_SWATCH_PX = WALK_ROW_BAR_PX - 4
+const LINK_INK = 'rgba(119, 119, 119, 0.85)'
+const LINE_PX = 15
 
 export interface Stop {
   offset: number
@@ -104,6 +109,41 @@ export function swatchWidth(swatch: LegendSwatch) {
   return swatch.kind === 'fill' ? (swatch.width ?? SWATCH_PX) : SWATCH_PX
 }
 
+export const bandPx = (bands: readonly unknown[]) => (bands.length > 1 ? 3 : 4)
+
+export function swatchHeight(swatch: LegendSwatch) {
+  switch (swatch.kind) {
+    case 'fill':
+      return swatch.height ?? 8
+    case 'bands':
+      return bandPx(swatch.bands) * swatch.bands.length
+    case 'line':
+      return 3
+    case 'halo':
+    case 'overhang':
+      return 10
+    case 'outline':
+    case 'tick':
+      return swatch.height
+    case 'glyph':
+      return 15
+    case 'bracket':
+      return 7
+    case 'blank':
+      return 0
+  }
+}
+
+// One pitch for every line of a key, roomy enough for its tallest swatch, so
+// rows sit evenly however their swatches differ
+export function rowPitch(rows: readonly LegendRow[]) {
+  return rows.reduce(
+    (px, row) =>
+      row.swatch ? Math.max(px, Math.ceil(swatchHeight(row.swatch)) + 3) : px,
+    LINE_PX,
+  )
+}
+
 const flat = (color: string): Stop[] => [{ offset: 0, color }]
 
 function fillRow(
@@ -150,11 +190,13 @@ function rampRows(model: GraphPaneModel): LegendRow[] {
   // a measured domain runs between node midpoints, which can fall on a half bp
   const start = Math.round(domain.start)
   const end = Math.round(domain.end)
+  const reference = model.graph ? referenceLabel(model.graph) : 'reference'
   return [
     {
       key: 'ramp',
-      label: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
+      label: `color: position on ${reference}`,
       swatch: { kind: 'fill', stops: RAMP_GRADIENT_STOPS, width: BAR_PX },
+      under: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
     },
     ...(model.referenceRampDrawsOffReference
       ? [fillRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference', BAR_PX)]
@@ -261,6 +303,92 @@ function deletionRows(model: GraphPaneModel): LegendRow[] {
         },
       ]
     : []
+}
+
+function thicknessRow(
+  key: string,
+  label: string,
+  px: number,
+  color: string,
+): LegendRow {
+  return {
+    key,
+    label,
+    swatch: { kind: 'fill', stops: flat(color), width: BAR_PX, height: px },
+  }
+}
+
+const roundDepth = (depth: number) =>
+  depth >= 10 ? Math.round(depth) : Math.round(depth * 10) / 10
+
+// What a node's thickness counts, with bars as thick as the drawing makes
+// the thinnest, the mean and the thickest node
+function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
+  const { graph, contigThickness: px, depthRange: range } = model
+  if (!graph || !model.drawsNodes || model.walkRowBars) {
+    return []
+  }
+  if (model.nodeWidth === 'frequency') {
+    const tagged = graph.nodes.some(n => n.frequency !== undefined)
+    return [
+      {
+        key: 'width',
+        label: tagged
+          ? 'node thickness: allele frequency (AF)'
+          : 'node thickness: share of haplotypes through it',
+      },
+      ...frequencyKey(px).map(({ label, widthPx }) =>
+        thicknessRow(`width-${label}`, label, widthPx, REFERENCE_RAMP_ALT_CSS),
+      ),
+    ]
+  }
+  if (model.nodeWidth !== 'depth' || !range || range.min === range.max) {
+    return []
+  }
+  const walks = (graph.paths?.length ?? 0) > 0
+  const depths = [
+    ...new Set([range.max, range.mean, range.min].map(roundDepth)),
+  ]
+  return [
+    {
+      key: 'width',
+      label: walks ? 'node thickness: walks through it' : 'node thickness: depth',
+    },
+    ...depths.map(depth =>
+      thicknessRow(
+        `width-${depth}`,
+        walks
+          ? `${depth.toLocaleString('en-US')} walk${depth === 1 ? '' : 's'}`
+          : `depth ${depth.toLocaleString('en-US')}`,
+        nodeWidthPx({ depth } as GraphNode, px, 'depth', range.mean),
+        REFERENCE_RAMP_ALT_CSS,
+      ),
+    ),
+  ]
+}
+
+function linkWidthRows(model: GraphPaneModel): LegendRow[] {
+  const busiest = model.busiestLink
+  if (
+    !model.drawsNodes ||
+    model.walkRowBars ||
+    model.linkWidth !== 'walks' ||
+    busiest === 0
+  ) {
+    return []
+  }
+  const counts = busiest > 1 ? [busiest, 1] : [1]
+  return [
+    { key: 'link-width', label: 'link thickness: walks taking it' },
+    ...counts.map(n =>
+      thicknessRow(
+        `link-width-${n}`,
+        `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`,
+        model.connectorThickness * edgeWidthFactor(n, busiest, 'walks'),
+        LINK_INK,
+      ),
+    ),
+  ]
 }
 
 function geneRows(model: GraphPaneModel): LegendRow[] {
@@ -576,6 +704,10 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     { testid: 'graph-open-bubble-legend', rows: openBubbleRows(model) },
     { testid: 'graph-ramp-legend', rows: rampRows(model) },
     { testid: 'graph-reference-strip-legend', rows: stripRows(model) },
+    {
+      testid: 'graph-width-legend',
+      rows: [...nodeWidthRows(model), ...linkWidthRows(model)],
+    },
     { testid: 'graph-halo-legend', rows: haloRows(model) },
     { testid: 'graph-deletion-legend', rows: deletionRows(model) },
     { testid: 'graph-gene-legend', rows: geneRows(model) },

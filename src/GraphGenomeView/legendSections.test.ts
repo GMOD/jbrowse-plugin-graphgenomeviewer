@@ -1,4 +1,9 @@
-import { legendSections, tubeMapRows } from './legendSections'
+import {
+  legendSections,
+  rowPitch,
+  swatchHeight,
+  tubeMapRows,
+} from './legendSections'
 
 import type { GraphPaneModel } from './model'
 
@@ -47,5 +52,79 @@ test("the ramp key's bp read the same in every locale", () => {
   }
   const [ramp] = legendSections(model as unknown as GraphPaneModel)
   german.mockRestore()
-  expect(ramp!.rows[0]!.label).toBe('1,000-123,457 (122 kb)')
+  expect(ramp!.rows[0]!.under).toBe('1,000-123,457 (122 kb)')
+})
+
+function widthLegend(over: Record<string, unknown>) {
+  const model = {
+    walkLift: undefined,
+    referenceRampDomain: undefined,
+    bubbleHalos: [],
+    genePins: [],
+    pathLegend: [],
+    tubeMapKeys: {},
+    deletions: [],
+    graph: { nodes: [{ depth: 1 }, { depth: 26 }], edges: [], paths: [{}] },
+    drawsNodes: true,
+    walkRowBars: undefined,
+    nodeWidth: 'depth',
+    contigThickness: 6,
+    depthRange: { min: 1, max: 26, mean: 8 },
+    linkWidth: 'uniform',
+    connectorThickness: 2,
+    busiestLink: 26,
+    ...over,
+  }
+  return legendSections(model as unknown as GraphPaneModel).find(
+    s => s.testid === 'graph-width-legend',
+  )?.rows
+}
+
+test('the width key names what node thickness counts, thickest first', () => {
+  const rows = widthLegend({})!
+  expect(rows.map(r => r.label)).toEqual([
+    'node thickness: walks through it',
+    '26 walks',
+    '8 walks',
+    '1 walk',
+  ])
+  const [thick, mean, thin] = rows.slice(1).map(r => swatchHeight(r.swatch!))
+  expect(mean).toBe(6)
+  expect(thick).toBeGreaterThan(mean!)
+  expect(thin).toBeLessThan(mean!)
+})
+
+test('a frequency width keys shares of haplotypes, or AF where tagged', () => {
+  expect(widthLegend({ nodeWidth: 'frequency' })!.map(r => r.label)).toEqual([
+    'node thickness: share of haplotypes through it',
+    '100%',
+    '50%',
+    '10%',
+  ])
+  const tagged = { nodes: [{ depth: 1, frequency: 0.4 }], edges: [] }
+  expect(widthLegend({ nodeWidth: 'frequency', graph: tagged })![0]!.label).toBe(
+    'node thickness: allele frequency (AF)',
+  )
+})
+
+test('uniform widths, or one depth everywhere, draw no width key', () => {
+  expect(widthLegend({ nodeWidth: 'uniform' })).toBeUndefined()
+  expect(widthLegend({ depthRange: { min: 3, max: 3, mean: 3 } })).toBeUndefined()
+})
+
+test('links by walks key the busiest link and a single walk', () => {
+  const rows = widthLegend({ nodeWidth: 'uniform', linkWidth: 'walks' })!
+  expect(rows.map(r => r.label)).toEqual([
+    'link thickness: walks taking it',
+    '26 walks',
+    '1 walk',
+  ])
+})
+
+test('every row of a key shares one pitch, roomy enough for its tallest', () => {
+  const rows = widthLegend({})!
+  for (const row of rows.slice(1)) {
+    expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(row.swatch!) + 2)
+  }
+  expect(rowPitch([{ key: 'a', label: 'a' }])).toBe(15)
 })

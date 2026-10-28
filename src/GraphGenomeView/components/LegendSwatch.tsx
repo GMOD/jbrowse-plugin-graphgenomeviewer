@@ -1,7 +1,12 @@
 import { rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 
 import { useSvgId } from './ElTree'
-import { SWATCH_PX, swatchWidth } from '../legendSections'
+import {
+  SWATCH_PX,
+  bandPx,
+  swatchHeight,
+  swatchWidth,
+} from '../legendSections'
 
 import type { LegendSwatch, Stop } from '../legendSections'
 
@@ -46,31 +51,6 @@ function Gradient({
   ) : (
     rect(stops[0]!.color)
   )
-}
-
-const bandPx = (bands: readonly unknown[]) => (bands.length > 1 ? 3 : 4)
-
-function swatchHeight(swatch: LegendSwatch) {
-  switch (swatch.kind) {
-    case 'fill':
-      return swatch.height ?? 8
-    case 'bands':
-      return bandPx(swatch.bands) * swatch.bands.length
-    case 'line':
-      return 3
-    case 'halo':
-    case 'overhang':
-      return 10
-    case 'outline':
-    case 'tick':
-      return swatch.height
-    case 'glyph':
-      return 15
-    case 'bracket':
-      return 7
-    case 'blank':
-      return 0
-  }
 }
 
 // A row's swatch with its left edge at x, centred on the row's text 5 px

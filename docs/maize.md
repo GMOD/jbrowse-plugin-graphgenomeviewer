@@ -69,7 +69,9 @@ carrier's annotation.
 ## The graph force-directed
 
 A force-directed layout of the same window draws the sequence off B73's path as
-charcoal loops. The variant track above it shows which founders carry each loop:
+charcoal loops. A node draws thicker the more founders' walks pass through it,
+and the legend keys those thicknesses in walks. The variant track above it shows
+which founders carry each loop:
 
 ![The chr8:250-445 kb graph force-directed under the founders' insertions and deletions](maize/force_founders.png)
 
