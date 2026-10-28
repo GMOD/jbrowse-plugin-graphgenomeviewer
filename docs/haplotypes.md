@@ -135,9 +135,10 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   boxes instead
 - Each bar boxes genes from the assembly named by its PanSN name (`HG00097#1`).
   In the HPRC config every release 2 haplotype has one, with its CAT annotation
-- A walk file abridges a long walk through a satellite array, and its bar ends
-  in gold dashes. **Load the abridged steps** in the bar's right-click menu
-  reads it in full
+- A walk file abridges a long walk through a satellite array. Walk rows read a
+  list of up to 64 named haplotypes in full; under **Every haplotype** or a
+  longer list, an abridged bar ends in gold dashes, and **Load the abridged
+  steps** in its right-click menu reads it in full
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
 - Node lengths are not labelled while walks are lifted
