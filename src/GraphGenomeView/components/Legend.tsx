@@ -4,28 +4,35 @@ import { observer } from 'mobx-react'
 
 import { LegendSwatchView } from './LegendSwatch'
 import { legendBoxStyle, legendNoteStyle, legendRowStyle } from './legendStyles'
-import { legendSections, rowPitch } from '../legendSections'
+import { legendSections, rowPitch, swatchColumn } from '../legendSections'
 
 import type { LegendRow } from '../legendSections'
 import type { GraphPaneModel } from '../model'
 
 // One row: its swatch then its words, or a note with neither. `at`, where
-// the hovered node sits on a walk, stands in for the line under it.
+// the hovered node sits on a walk, stands in for the line under it. A
+// `column` sets the swatch in a slot that wide and indents the line under to
+// the words.
 export function LegendRowView({
   row,
   at,
   hint,
   after,
+  column,
 }: {
   row: LegendRow
   at?: string
   hint?: string
   after?: ReactNode
+  column?: number
 }) {
+  const indent = column === undefined ? undefined : { paddingLeft: column + 5 }
   return row.swatch ? (
     <div title={[row.title, hint].filter(Boolean).join(' · ') || undefined}>
       <div style={legendRowStyle}>
-        <LegendSwatchView swatch={row.swatch} />
+        <span style={{ display: 'flex', flex: 'none', width: column }}>
+          <LegendSwatchView swatch={row.swatch} />
+        </span>
         <span>
           {row.strong ? <strong>{row.strong}</strong> : null}
           {row.label}
@@ -33,9 +40,11 @@ export function LegendRowView({
         {after}
       </div>
       {at ? (
-        <div data-testid="graph-walk-at">{at}</div>
+        <div style={indent} data-testid="graph-walk-at">
+          {at}
+        </div>
       ) : row.under ? (
-        <div>{row.under}</div>
+        <div style={indent}>{row.under}</div>
       ) : null}
     </div>
   ) : (
@@ -64,7 +73,9 @@ export const LegendPanel = observer(function LegendPanel({
   if (sections.length === 0) {
     return null
   }
-  const pitch = rowPitch(sections.flatMap(section => section.rows))
+  const rows = sections.flatMap(section => section.rows)
+  const pitch = rowPitch(rows)
+  const column = swatchColumn(rows)
   return (
     <div style={{ ...legendBoxStyle, lineHeight: `${pitch}px` }}>
       {sections.map(({ testid, rows }) => (
@@ -73,6 +84,7 @@ export const LegendPanel = observer(function LegendPanel({
             <LegendRowView
               key={row.key}
               row={row}
+              column={column}
               at={row.walk ? model.hoveredOn(row.walk) : undefined}
               after={
                 row.closesBubble ? (

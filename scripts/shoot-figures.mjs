@@ -11,6 +11,7 @@
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
 //   node scripts/shoot-figures.mjs --compare /tmp/diffs   # old | new | diff
 //   node scripts/shoot-figures.mjs force_kiv2 --svg /tmp/svg   # + Export SVG
+//   node scripts/shoot-figures.mjs --legends /tmp/keys   # + each legend at 2x
 //
 // Every figure is a linear view, the graph as one of its tracks or as a view
 // opened under it, so each reads against the genes and annotations at their
@@ -963,6 +964,7 @@ const { values, positionals } = parseArgs({
     version: { type: 'string', default: 'main' },
     compare: { type: 'string' },
     svg: { type: 'string' },
+    legends: { type: 'string' },
   },
 })
 const unspecified = fs
@@ -989,6 +991,29 @@ async function specShot(context, spec) {
   await page.setContent(`<body style="margin:0;background:#fff">${svg}</body>`)
   const figure = await page.$('svg')
   return Buffer.from(await figure.screenshot())
+}
+
+// Each graph pane's legend box, at twice the screen's scale
+async function shootLegends(page, name) {
+  const boxes = await page.evaluate(() =>
+    [
+      ...new Set(
+        [...document.querySelectorAll('[data-testid^="graph-"]')]
+          .filter(el => el.dataset.testid.endsWith('-legend'))
+          .map(el => el.parentElement),
+      ),
+    ].map(el => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height, scale: 2 }
+    }),
+  )
+  fs.mkdirSync(values.legends, { recursive: true })
+  for (const [i, clip] of boxes.entries()) {
+    fs.writeFileSync(
+      path.join(values.legends, `${name}${i ? `-${i}` : ''}.png`),
+      await page.screenshot({ clip, captureBeyondViewport: false }),
+    )
+  }
 }
 
 // The linear view and what opened under it, after `act`
@@ -1036,6 +1061,9 @@ async function appShot(context, name) {
     )
     fs.mkdirSync(values.svg, { recursive: true })
     fs.writeFileSync(path.join(values.svg, `${name}.svg`), svg)
+  }
+  if (values.legends !== undefined) {
+    await shootLegends(page, name)
   }
   // captureBeyondViewport resizes the page for the capture, and the pane
   // re-lays out into a blank frame

@@ -71,6 +71,8 @@ export type LegendSwatch =
       width?: number
       height?: number
       square?: boolean
+      // a hairline edge, so a pale colour still shows on the white key
+      edged?: true
     }
   // the reference strip, a band per lifted walk
   | { kind: 'bands'; bands: Stop[][] }
@@ -135,6 +137,14 @@ export function swatchHeight(swatch: LegendSwatch) {
   }
 }
 
+// One column every swatch of a key sits in, so the words after them line up
+export function swatchColumn(rows: readonly LegendRow[]) {
+  return rows.reduce(
+    (px, row) => (row.swatch ? Math.max(px, swatchWidth(row.swatch)) : px),
+    0,
+  )
+}
+
 // One pitch for every line of a key, roomy enough for its tallest swatch, so
 // rows sit evenly however their swatches differ
 export function rowPitch(rows: readonly LegendRow[]) {
@@ -157,6 +167,7 @@ function fillRow(key: string, color: string, label: string): LegendRow {
       stops: flat(color),
       width: CHIP_PX,
       height: CHIP_PX,
+      edged: true,
     },
   }
 }

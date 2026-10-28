@@ -5,6 +5,8 @@ import { SWATCH_PX, bandPx, swatchHeight, swatchWidth } from '../legendSections'
 
 import type { LegendSwatch, Stop } from '../legendSections'
 
+const EDGE_INK = 'rgba(0, 0, 0, 0.28)'
+
 function Gradient({
   id,
   x,
@@ -13,6 +15,7 @@ function Gradient({
   width,
   height,
   square,
+  edged,
 }: {
   id: string
   x: number
@@ -21,15 +24,19 @@ function Gradient({
   width: number
   height: number
   square?: boolean
+  edged?: boolean
 }) {
+  // an edge's stroke sits half inside, so the chip keeps its size
+  const inset = edged ? 0.5 : 0
   const rect = (fill: string) => (
     <rect
-      x={x}
-      y={y}
-      width={width}
-      height={height}
+      x={x + inset}
+      y={y + inset}
+      width={width - inset * 2}
+      height={height - inset * 2}
       rx={square ? 0 : 2}
       fill={fill}
+      stroke={edged ? EDGE_INK : undefined}
     />
   )
   return stops.length > 1 ? (
@@ -72,6 +79,7 @@ export function SvgSwatch({
           width={swatchWidth(swatch)}
           height={height}
           square={swatch.square}
+          edged={swatch.edged}
         />
       )
     }

@@ -16,6 +16,7 @@ import {
   facetKeyRows,
   legendSections,
   rowPitch,
+  swatchColumn,
   swatchWidth,
   walkKeyRow,
 } from '../legendSections'
@@ -87,8 +88,14 @@ interface KeyRow {
 }
 
 // A legend row as the screen lays it out: its swatch, then its words, the
-// line under it if any; a note is grey words alone
-function svgRow(row: LegendRow, id: string, pitch = ROW_PX): KeyRow {
+// line under it if any; a note is grey words alone. A `column` is the slot
+// every swatch of the key sits in.
+function svgRow(
+  row: LegendRow,
+  id: string,
+  pitch = ROW_PX,
+  column?: number,
+): KeyRow {
   if (!row.swatch) {
     return {
       key: row.key,
@@ -102,13 +109,14 @@ function svgRow(row: LegendRow, id: string, pitch = ROW_PX): KeyRow {
     }
   }
   const swatch = row.swatch
-  const sw = swatchWidth(swatch)
+  const sw = column ?? swatchWidth(swatch)
+  const indent = column === undefined ? 0 : column + 5
   const words = (row.strong ?? '') + row.label
   return {
     key: row.key,
     width: Math.max(
       sw + 5 + words.length * LABEL_CHAR_PX,
-      (row.under?.length ?? 0) * LABEL_CHAR_PX,
+      indent + (row.under?.length ?? 0) * LABEL_CHAR_PX,
     ),
     height: row.under ? pitch * 2 : pitch,
     draw: left => (
@@ -119,7 +127,7 @@ function svgRow(row: LegendRow, id: string, pitch = ROW_PX): KeyRow {
           {row.label}
         </text>
         {row.under ? (
-          <text x={left} y={pitch}>
+          <text x={left + indent} y={pitch}>
             {row.under}
           </text>
         ) : null}
@@ -140,9 +148,13 @@ function Keys({
   if (sections.length === 0) {
     return null
   }
-  const pitch = rowPitch(sections.flatMap(section => section.rows))
+  const all = sections.flatMap(section => section.rows)
+  const pitch = rowPitch(all)
+  const column = swatchColumn(all)
   const rows = sections.flatMap(({ testid, rows }) =>
-    rows.map((row, i) => svgRow(row, `${idPrefix}-${testid}-${i}`, pitch)),
+    rows.map((row, i) =>
+      svgRow(row, `${idPrefix}-${testid}-${i}`, pitch, column),
+    ),
   )
   const pad = 6
   const boxWidth =
