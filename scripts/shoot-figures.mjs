@@ -615,6 +615,24 @@ const FIGURES = {
     session: c4Bundled,
     act: hoverRoute('HG00320#1', 32_005_000),
   },
+  // 60 haplotypes through MICB's exons 2-4 in order, each alternate allele
+  // hung below the reference on links as heavy as the walks taking them
+  ordered_micb_link_width: {
+    session: linearView(
+      MICB_LOC,
+      [GENE_TRACK],
+      [
+        graphView({
+          loadedTrackId: LANES,
+          loadedRegion: MICB_EXONS,
+          subgraphHaplotypes: POPULATION_SAMPLES,
+          layoutMode: 'ordered',
+          size: { field: 'frequency', value: 10, links: 'walks' },
+          paneHeight: 220,
+        }),
+      ],
+    ),
+  },
   // one map, each route a stack of its superpopulations' strands
   tube_map_c4_routes_by_population: {
     session: trackView(C4_LOC, {

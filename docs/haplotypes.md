@@ -8,6 +8,13 @@ labelled with its haplotypes and length. **Link width › By walks** in Graph
 settings does the same for links, so the common route through a bubble reads
 heavy and a private one thin, without lifting any walk.
 
+**Node width › By frequency** draws a node as wide as the share of haplotypes
+through it, so the two settings together read as allele frequency. The Ordered
+layout hangs each alternate allele below the reference, where its links stand
+out.
+
+![60 haplotypes through MICB's exons 2–4 in the Ordered layout, nodes by frequency and links by walks. Common alternate alleles hang below the reference on heavy links and rare ones on thin links](../img/ordered_micb_link_width.png)
+
 ## Lifting walks
 
 The Highlight picker lifts walks out of the drawing, and the rest fades to grey.
