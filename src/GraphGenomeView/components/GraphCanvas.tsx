@@ -126,7 +126,8 @@ const legendStackStyle = {
   display: 'flex',
   flexDirection: 'column' as const,
   borderRadius: 3,
-  overflow: 'hidden' as const,
+  overflowX: 'hidden' as const,
+  overflowY: 'auto' as const,
   zIndex: 4,
 }
 
@@ -167,15 +168,20 @@ export const Legends = observer(function Legends({
     if (!el || !atRest) {
       return
     }
-    // the last callback can land after the track is closed
+    // the last callback can land after the track is closed. scrollHeight is
+    // the whole key, even where the pane caps it to scroll, so the pane
+    // still grows to show it all when it can.
     const measure = () => {
       if (isAlive(model) && model.legendAtRest) {
-        model.setLegendSize({ width: el.offsetWidth, height: el.offsetHeight })
+        model.setLegendSize({ width: el.offsetWidth, height: el.scrollHeight })
       }
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(el)
+    if (el.firstElementChild) {
+      observer.observe(el.firstElementChild)
+    }
     return () => {
       observer.disconnect()
     }
@@ -186,6 +192,8 @@ export const Legends = observer(function Legends({
       style={{
         ...legendStackStyle,
         top: LEGEND_INSET_PX + model.referenceStripZonePx,
+        maxHeight:
+          model.canvasHeight - 2 * LEGEND_INSET_PX - model.referenceStripZonePx,
       }}
     >
       <LegendPanel model={model} />

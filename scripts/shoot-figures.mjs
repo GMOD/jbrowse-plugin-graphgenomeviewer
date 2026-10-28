@@ -434,7 +434,7 @@ const FIGURES = {
         encoding: { color: { field: 'position' } },
         subgraphHaplotypes: HAPLOTYPES,
         walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
-        height: 260,
+        height: 320,
       },
       [mafLane(HAPLOTYPES)],
       [
@@ -629,7 +629,7 @@ const FIGURES = {
           subgraphHaplotypes: POPULATION_SAMPLES,
           layoutMode: 'ordered',
           size: { field: 'frequency', value: 10, links: 'walks' },
-          paneHeight: 220,
+          paneHeight: 280,
         }),
       ],
     ),
