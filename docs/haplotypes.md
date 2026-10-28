@@ -5,8 +5,8 @@ Walks come from a walk file, a gbz-base database or a GFA's W or P lines
 
 A node draws thicker the more walks visit it, and each route through a bubble is
 labelled with its haplotypes and length. **Link width › By walks** in Graph
-settings does the same for links, so the common route through a bubble reads
-heavy and a private one thin, without lifting any walk.
+settings does the same for links, deletions included, so the common route
+through a bubble reads heavy and a private one thin, without lifting any walk.
 
 **Node width › By frequency** draws a node as wide as the share of haplotypes
 through it, so the two settings together read as allele frequency. The Ordered
