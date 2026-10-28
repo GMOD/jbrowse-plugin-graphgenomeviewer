@@ -1,18 +1,25 @@
+import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 
 import { observer } from 'mobx-react'
 
 import { LegendSwatchView } from './LegendSwatch'
-import { legendBoxStyle, legendNoteStyle, legendRowStyle } from './legendStyles'
+import {
+  HEADING_GAP_PX,
+  legendBoxStyle,
+  legendHeadingStyle,
+  legendNoteStyle,
+  legendRowStyle,
+} from './legendStyles'
 import { legendSections, rowPitch, swatchColumn } from '../legendSections'
 
 import type { LegendRow } from '../legendSections'
 import type { GraphPaneModel } from '../model'
 
-// One row: its swatch then its words, or a note with neither. `at`, where
-// the hovered node sits on a walk, stands in for the line under it. A
-// `column` sets the swatch in a slot that wide and indents the line under to
-// the words.
+// One row: its swatch then its words, or a note with neither.
+// `at`, where the hovered node sits on a walk, stands in for the line under
+// it. A `column` centres the swatch in a slot that wide and indents the line
+// under to the words.
 export function LegendRowView({
   row,
   at,
@@ -30,7 +37,14 @@ export function LegendRowView({
   return row.swatch ? (
     <div title={[row.title, hint].filter(Boolean).join(' · ') || undefined}>
       <div style={legendRowStyle}>
-        <span style={{ display: 'flex', flex: 'none', width: column }}>
+        <span
+          style={{
+            display: 'flex',
+            flex: 'none',
+            justifyContent: 'center',
+            width: column,
+          }}
+        >
           <LegendSwatchView swatch={row.swatch} />
         </span>
         <span>
@@ -78,31 +92,46 @@ export const LegendPanel = observer(function LegendPanel({
   const column = swatchColumn(rows)
   return (
     <div style={{ ...legendBoxStyle, lineHeight: `${pitch}px` }}>
-      {sections.map(({ testid, rows }) => (
-        <div key={testid} data-testid={testid}>
-          {rows.map(row => (
-            <LegendRowView
-              key={row.key}
-              row={row}
-              column={column}
-              at={row.walk ? model.hoveredOn(row.walk) : undefined}
-              after={
-                row.closesBubble ? (
-                  <button
-                    type="button"
-                    style={closeStyle}
-                    data-testid="graph-close-bubble"
-                    onClick={() => {
-                      model.closeBubbles()
-                    }}
-                  >
-                    close
-                  </button>
-                ) : null
-              }
-            />
-          ))}
-        </div>
+      {sections.map(({ testid, rows, heading, spaced }, i) => (
+        <Fragment key={testid}>
+          {heading ? (
+            <div
+              style={{
+                ...legendHeadingStyle,
+                paddingTop: i === 0 ? 0 : HEADING_GAP_PX,
+              }}
+            >
+              {heading}
+            </div>
+          ) : null}
+          <div
+            data-testid={testid}
+            style={spaced ? { paddingTop: HEADING_GAP_PX } : undefined}
+          >
+            {rows.map(row => (
+              <LegendRowView
+                key={row.key}
+                row={row}
+                column={column}
+                at={row.walk ? model.hoveredOn(row.walk) : undefined}
+                after={
+                  row.closesBubble ? (
+                    <button
+                      type="button"
+                      style={closeStyle}
+                      data-testid="graph-close-bubble"
+                      onClick={() => {
+                        model.closeBubbles()
+                      }}
+                    >
+                      close
+                    </button>
+                  ) : null
+                }
+              />
+            ))}
+          </div>
+        </Fragment>
       ))}
     </div>
   )

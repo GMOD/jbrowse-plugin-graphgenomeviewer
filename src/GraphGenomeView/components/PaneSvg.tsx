@@ -12,6 +12,7 @@ import { SvgSwatch } from './LegendSwatch'
 import { paintReferenceStrip } from './ReferenceStripOverlay'
 import { paintTubeMap } from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
+import { HEADING_GAP_PX, HEADING_INK } from './legendStyles'
 import {
   facetKeyRows,
   legendSections,
@@ -87,9 +88,39 @@ interface KeyRow {
   draw: (left: number) => React.ReactNode
 }
 
+// A group's name in small capitals, a gap below the rows before it
+function svgHeading(
+  heading: string,
+  key: string,
+  pitch: number,
+  first: boolean,
+): KeyRow {
+  const gap = first ? 0 : HEADING_GAP_PX
+  const text = heading.toUpperCase()
+  return {
+    key,
+    width: text.length * LABEL_CHAR_PX,
+    height: pitch + gap,
+    draw: left => (
+      <text
+        key={key}
+        fontFamily="sans-serif"
+        fontSize={9.5}
+        fontWeight={600}
+        letterSpacing="0.06em"
+        x={left}
+        y={gap}
+        fill={HEADING_INK}
+      >
+        {text}
+      </text>
+    ),
+  }
+}
+
 // A legend row as the screen lays it out: its swatch, then its words, the
 // line under it if any; a note is grey words alone. A `column` is the slot
-// every swatch of the key sits in.
+// every swatch of the key is centred in.
 function svgRow(
   row: LegendRow,
   id: string,
@@ -121,7 +152,11 @@ function svgRow(
     height: row.under ? pitch * 2 : pitch,
     draw: left => (
       <g key={row.key} {...FONT}>
-        <SvgSwatch swatch={swatch} x={left} id={id} />
+        <SvgSwatch
+          swatch={swatch}
+          x={left + (sw - swatchWidth(swatch)) / 2}
+          id={id}
+        />
         <text x={left + sw + 5} y={0}>
           {row.strong ? <tspan fontWeight="bold">{row.strong}</tspan> : null}
           {row.label}
@@ -151,11 +186,24 @@ function Keys({
   const all = sections.flatMap(section => section.rows)
   const pitch = rowPitch(all)
   const column = swatchColumn(all)
-  const rows = sections.flatMap(({ testid, rows }) =>
-    rows.map((row, i) =>
+  const rows = sections.flatMap(({ testid, rows, heading, spaced }, s) => [
+    ...(heading
+      ? [svgHeading(heading, `${testid}-heading`, pitch, s === 0)]
+      : []),
+    ...(spaced
+      ? [
+          {
+            key: `${testid}-gap`,
+            width: 0,
+            height: HEADING_GAP_PX,
+            draw: () => null,
+          },
+        ]
+      : []),
+    ...rows.map((row, i) =>
       svgRow(row, `${idPrefix}-${testid}-${i}`, pitch, column),
     ),
-  )
+  ])
   const pad = 6
   const boxWidth =
     rows.reduce((max, r) => Math.max(max, r.width), -Infinity) + pad * 2

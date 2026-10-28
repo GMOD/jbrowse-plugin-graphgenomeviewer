@@ -44,7 +44,7 @@ import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 // draw the same rows from one place
 
 export const SWATCH_PX = 18
-const BAR_PX = 48
+const BAR_PX = 32
 
 // LIFT_BACKDROP_CSS reads paler alone than faded strokes do where they
 // overlap, so the key samples it darker
@@ -106,6 +106,11 @@ export interface LegendRow {
 interface LegendSection {
   testid: string
   rows: LegendRow[]
+  group?: string
+  // the group's name, over the first of its sections
+  heading?: string
+  // set apart from the group above by a heading's gap, though it has none
+  spaced?: true
 }
 
 export function swatchWidth(swatch: LegendSwatch) {
@@ -211,7 +216,7 @@ function rampRows(model: GraphPaneModel): LegendRow[] {
   return [
     {
       key: 'ramp',
-      label: `color: position on ${reference}`,
+      label: `position on ${reference}`,
       swatch: { kind: 'fill', stops: RAMP_GRADIENT_STOPS, width: BAR_PX },
       under: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
     },
@@ -257,7 +262,7 @@ function stripRows(model: GraphPaneModel): LegendRow[] {
   return [
     {
       key: 'strip',
-      label: `top strip: reference${rowPerWalk ? ', a row per walk' : ''}`,
+      label: `reference${rowPerWalk ? ', a row per walk' : ''}`,
       swatch: { kind: 'bands', bands: stripBands(model) },
     },
     ...(model.referenceStripFaded
@@ -347,17 +352,14 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
   }
   if (model.nodeWidth === 'frequency') {
     const tagged = graph.nodes.some(n => n.frequency !== undefined)
-    return [
-      {
-        key: 'width',
-        label: tagged
-          ? 'node thickness: allele frequency (AF)'
-          : 'node thickness: share of haplotypes through it',
-      },
-      ...frequencyKey(px).map(({ label, widthPx }) =>
-        thicknessRow(`width-${label}`, label, widthPx, REFERENCE_RAMP_ALT_CSS),
+    return frequencyKey(px).map(({ label, widthPx }) =>
+      thicknessRow(
+        `width-${label}`,
+        tagged ? `AF ${label}` : `${label} of haplotypes`,
+        widthPx,
+        REFERENCE_RAMP_ALT_CSS,
       ),
-    ]
+    )
   }
   if (model.nodeWidth !== 'depth' || !range || range.min === range.max) {
     return []
@@ -374,26 +376,16 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
   const passes = depths[0]! > walkCount
   const counted = (n: number) =>
     passes
-      ? `${n.toLocaleString('en-US')} pass${n === 1 ? '' : 'es'}`
+      ? `${n.toLocaleString('en-US')} walk pass${n === 1 ? '' : 'es'}`
       : `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`
-  return [
-    {
-      key: 'width',
-      label: !walks
-        ? 'node thickness: depth'
-        : passes
-          ? 'node thickness: walk passes through it'
-          : 'node thickness: walks through it',
-    },
-    ...depths.map(depth =>
-      thicknessRow(
-        `width-${depth}`,
-        walks ? counted(depth) : `depth ${depth.toLocaleString('en-US')}`,
-        nodeWidthPx({ depth } as GraphNode, px, 'depth', range.mean),
-        REFERENCE_RAMP_ALT_CSS,
-      ),
+  return depths.map(depth =>
+    thicknessRow(
+      `width-${depth}`,
+      walks ? counted(depth) : `depth ${depth.toLocaleString('en-US')}`,
+      nodeWidthPx({ depth } as GraphNode, px, 'depth', range.mean),
+      REFERENCE_RAMP_ALT_CSS,
     ),
-  ]
+  )
 }
 
 function linkWidthRows(model: GraphPaneModel): LegendRow[] {
@@ -407,17 +399,14 @@ function linkWidthRows(model: GraphPaneModel): LegendRow[] {
     return []
   }
   const counts = busiest > 1 ? [busiest, 1] : [1]
-  return [
-    { key: 'link-width', label: 'link thickness: walks taking it' },
-    ...counts.map(n =>
-      thicknessRow(
-        `link-width-${n}`,
-        `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`,
-        model.connectorThickness * edgeWidthFactor(n, busiest, 'walks'),
-        LINK_INK,
-      ),
+  return counts.map(n =>
+    thicknessRow(
+      `link-width-${n}`,
+      `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`,
+      model.connectorThickness * edgeWidthFactor(n, busiest, 'walks'),
+      LINK_INK,
     ),
-  ]
+  )
 }
 
 function geneRows(model: GraphPaneModel): LegendRow[] {
@@ -712,23 +701,66 @@ export function facetKeyRows(model: GraphPaneModel): LegendRow[] {
   ]
 }
 
-// The keys in the order the panel stacks them, top first
+// The keys in the order the panel stacks them, top first, each under its
+// group's heading once the key holds more than one group
 export function legendSections(model: GraphPaneModel): LegendSection[] {
-  return [
+  const sections: LegendSection[] = [
     { testid: 'graph-open-bubble-legend', rows: openBubbleRows(model) },
-    { testid: 'graph-ramp-legend', rows: rampRows(model) },
-    { testid: 'graph-reference-strip-legend', rows: stripRows(model) },
+    { testid: 'graph-ramp-legend', rows: rampRows(model), group: 'Color' },
+    {
+      testid: 'graph-walk-readout',
+      rows: walkReadoutRows(model),
+      group: 'Walks',
+    },
     {
       testid: 'graph-width-legend',
-      rows: [...nodeWidthRows(model), ...linkWidthRows(model)],
+      rows: nodeWidthRows(model),
+      group: 'Node thickness',
     },
-    { testid: 'graph-halo-legend', rows: haloRows(model) },
-    { testid: 'graph-deletion-legend', rows: deletionRows(model) },
-    { testid: 'graph-gene-legend', rows: geneRows(model) },
+    {
+      testid: 'graph-link-width-legend',
+      rows: linkWidthRows(model),
+      group: 'Link thickness',
+    },
+    { testid: 'graph-halo-legend', rows: haloRows(model), group: 'Marks' },
+    {
+      testid: 'graph-deletion-legend',
+      rows: deletionRows(model),
+      group: 'Marks',
+    },
+    { testid: 'graph-gene-legend', rows: geneRows(model), group: 'Marks' },
+    { testid: 'graph-path-legend', rows: pathRows(model), group: 'Paths' },
+    {
+      testid: 'graph-tube-map-legend',
+      rows: tubeMapRows(model),
+      group: 'Tube map',
+    },
+    {
+      testid: 'graph-walk-rows-legend',
+      rows: walkRowsRows(model),
+      group: 'Walk rows',
+    },
+    {
+      testid: 'graph-reference-strip-legend',
+      rows: stripRows(model),
+      group: 'Top strip',
+    },
     { testid: 'graph-fold-legend', rows: foldRows(model) },
-    { testid: 'graph-path-legend', rows: pathRows(model) },
-    { testid: 'graph-tube-map-legend', rows: tubeMapRows(model) },
-    { testid: 'graph-walk-rows-legend', rows: walkRowsRows(model) },
-    { testid: 'graph-walk-readout', rows: walkReadoutRows(model) },
   ].filter(section => section.rows.length > 0)
+  const groups = new Set(sections.flatMap(section => section.group ?? []))
+  if (groups.size < 2) {
+    return sections
+  }
+  const headed = new Set<string>()
+  return sections.map((section, i) => {
+    const { group } = section
+    if (!group) {
+      return i === 0 ? section : { ...section, spaced: true as const }
+    }
+    if (headed.has(group)) {
+      return section
+    }
+    headed.add(group)
+    return { ...section, heading: group }
+  })
 }
