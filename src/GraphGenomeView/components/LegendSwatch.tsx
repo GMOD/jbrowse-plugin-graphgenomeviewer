@@ -1,12 +1,7 @@
 import { rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 
 import { useSvgId } from './ElTree'
-import {
-  SWATCH_PX,
-  bandPx,
-  swatchHeight,
-  swatchWidth,
-} from '../legendSections'
+import { SWATCH_PX, bandPx, swatchHeight, swatchWidth } from '../legendSections'
 
 import type { LegendSwatch, Stop } from '../legendSections'
 

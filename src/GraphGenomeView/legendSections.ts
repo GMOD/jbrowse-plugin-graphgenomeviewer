@@ -354,7 +354,9 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
   return [
     {
       key: 'width',
-      label: walks ? 'node thickness: walks through it' : 'node thickness: depth',
+      label: walks
+        ? 'node thickness: walks through it'
+        : 'node thickness: depth',
     },
     ...depths.map(depth =>
       thicknessRow(

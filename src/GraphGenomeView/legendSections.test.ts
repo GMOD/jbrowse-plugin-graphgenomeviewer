@@ -99,7 +99,12 @@ test('a walk count reads whole, and a mean that rounds onto an end is dropped', 
     widthLegend({ depthRange: { min: 1, max: 3, mean: 1.9 } })!.map(
       r => r.label,
     ),
-  ).toEqual(['node thickness: walks through it', '3 walks', '2 walks', '1 walk'])
+  ).toEqual([
+    'node thickness: walks through it',
+    '3 walks',
+    '2 walks',
+    '1 walk',
+  ])
   expect(
     widthLegend({ depthRange: { min: 1, max: 3, mean: 1.2 } })!.map(
       r => r.label,
@@ -115,14 +120,16 @@ test('a frequency width keys shares of haplotypes, or AF where tagged', () => {
     '10%',
   ])
   const tagged = { nodes: [{ depth: 1, frequency: 0.4 }], edges: [] }
-  expect(widthLegend({ nodeWidth: 'frequency', graph: tagged })![0]!.label).toBe(
-    'node thickness: allele frequency (AF)',
-  )
+  expect(
+    widthLegend({ nodeWidth: 'frequency', graph: tagged })![0]!.label,
+  ).toBe('node thickness: allele frequency (AF)')
 })
 
 test('uniform widths, or one depth everywhere, draw no width key', () => {
   expect(widthLegend({ nodeWidth: 'uniform' })).toBeUndefined()
-  expect(widthLegend({ depthRange: { min: 3, max: 3, mean: 3 } })).toBeUndefined()
+  expect(
+    widthLegend({ depthRange: { min: 3, max: 3, mean: 3 } }),
+  ).toBeUndefined()
 })
 
 test('links by walks key the busiest link and a single walk', () => {
