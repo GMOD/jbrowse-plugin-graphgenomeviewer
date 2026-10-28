@@ -993,8 +993,11 @@ async function specShot(context, spec) {
   return Buffer.from(await figure.screenshot())
 }
 
-// Each graph pane's legend box, at twice the screen's scale
+// Each graph pane's legend box, at twice the screen's scale: a clip's own
+// `scale` only enlarges the 1x pixels, so the page itself renders at 2x
 async function shootLegends(page, name) {
+  await page.setViewport({ ...page.viewport(), deviceScaleFactor: 2 })
+  await sleep(1500)
   const boxes = await page.evaluate(() =>
     [
       ...new Set(
@@ -1004,7 +1007,7 @@ async function shootLegends(page, name) {
       ),
     ].map(el => {
       const r = el.getBoundingClientRect()
-      return { x: r.x, y: r.y, width: r.width, height: r.height, scale: 2 }
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
     }),
   )
   fs.mkdirSync(values.legends, { recursive: true })
@@ -1062,14 +1065,15 @@ async function appShot(context, name) {
     fs.mkdirSync(values.svg, { recursive: true })
     fs.writeFileSync(path.join(values.svg, `${name}.svg`), svg)
   }
+  // captureBeyondViewport resizes the page for the capture, and the pane
+  // re-lays out into a blank frame
+  const shot = Buffer.from(
+    await page.screenshot({ clip, captureBeyondViewport: false }),
+  )
   if (values.legends !== undefined) {
     await shootLegends(page, name)
   }
-  // captureBeyondViewport resizes the page for the capture, and the pane
-  // re-lays out into a blank frame
-  return Buffer.from(
-    await page.screenshot({ clip, captureBeyondViewport: false }),
-  )
+  return shot
 }
 
 async function shoot(browser, name) {
@@ -1083,6 +1087,7 @@ async function shoot(browser, name) {
   } finally {
     await context.close()
   }
+  fs.mkdirSync(path.dirname(file), { recursive: true })
   if (values.compare === undefined || before === undefined) {
     fs.writeFileSync(file, after)
     console.log(`wrote ${file}${before ? '' : ', new'}`)

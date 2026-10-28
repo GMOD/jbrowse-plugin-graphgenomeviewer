@@ -178,7 +178,7 @@ function Keys({
         height={boxHeight}
         rx={3}
         fill="#fff"
-        fillOpacity={0.82}
+        fillOpacity={0.94}
       />
       {placed.map(({ row, y }) => (
         <g key={row.key} transform={`translate(0 ${y})`}>
