@@ -352,6 +352,9 @@ export const withGraphViews = paneBase
     get geometryPainted() {
       return geometryPainted(self)
     },
+    get paintSuperseded() {
+      return !this.geometryPainted
+    },
     // The app-wide readiness contract (AppReadyMarker, @jbrowse/capture)
     // reads this: a declared source still fetching, or a graph whose
     // settled geometry is not on the canvas yet.

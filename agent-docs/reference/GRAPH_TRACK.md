@@ -73,16 +73,19 @@ hover, as ribbons fill the space between nodes.
 
 ## Status
 
-The display reports `displayPhase` through core's `computeDisplayStatusPhase`
-and renders through `GraphStatusChrome`, so an error, the loading scrim and the
-too-large banner sit inside the track's box rather than below its clip, and the
-app's readiness waits for the first graph. The chrome is the plugin's own copy
-of core's `DisplayStatusChrome`, built from overlays every host from beta.11
-serves, since jbrowse-web main removed that component on 2026-10-08 and the
-track failed there with React error #130. It is `loading` until a graph is
-drawn, suppressed for a minimized track, an empty viewport or an unmounted view
-body as core's displays are. A backend failure is folded into the error phase,
-and GraphCanvas shows it with the render hook's retry.
+- The display reports `displayPhase` through core's `computeDisplayPhase` and
+  mounts display-kit's `DisplayChrome` with `createGraphRenderer` as its
+  factory, so an error, the loading scrim and the too-large banner sit inside
+  the track's box, and the app's readiness waits for the first graph.
+- The chrome owns the rendering backend and hands `GraphCanvas` its canvas. The
+  standalone graph view has no chrome, so there `GraphCanvas` calls
+  `useRenderingBackend` itself and shows a backend failure with its retry.
+- `painted` waits for the settled geometry (`paintSuperseded` is
+  `!geometryPainted`), so the phase is `loading` until a graph is drawn. Like
+  core's displays, it skips that wait for a minimized track, an empty viewport
+  or an unmounted view body.
+- A backend failure puts the display in the `renderError` phase, and the chrome
+  draws that phase's banner and retry in place of the track.
 
 ## Level of detail: the fold
 

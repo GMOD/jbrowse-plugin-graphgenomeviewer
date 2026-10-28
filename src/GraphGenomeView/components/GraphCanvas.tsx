@@ -26,6 +26,7 @@ import { PAPER_CSS } from '../pane/paneBase'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
 import type { GraphPaneModel } from '../model'
+import type { CanvasHandle } from '@jbrowse/display-kit/DisplayChromeBase'
 
 const wrapperStyle = { position: 'relative' as const }
 
@@ -247,23 +248,27 @@ const GraphSizeLabels = observer(function GraphSizeLabels({
   )
 })
 
-// `ownChrome` false for a pane inside a track, whose controls, loading state
-// and errors are the track's. A hosted pane whose x the host places takes no pan or wheel of its
-// own: those are the linear view's, as on any other track. One drawing its
-// own coordinates inside a track keeps them, and keeps them from the view.
-const GraphCanvas = observer(function GraphCanvas({
+type PaneCanvas = Pick<CanvasHandle, 'canvasRef' | 'canvas'>
+
+interface OwnChrome {
+  renderError: unknown
+  retryRender: () => void
+}
+
+// `ownChrome` absent for a pane inside a track, whose controls, loading
+// state and errors are the track's `DisplayChrome`. A hosted pane whose x the
+// host places takes no pan or wheel of its own: those are the linear view's,
+// as on any other track. One drawing its own coordinates inside a track keeps
+// them, and keeps them from the view.
+const GraphCanvasBody = observer(function GraphCanvasBody({
   model,
-  ownChrome = true,
+  handle: { canvasRef, canvas },
+  ownChrome,
 }: {
   model: GraphPaneModel
-  ownChrome?: boolean
+  handle: PaneCanvas
+  ownChrome?: OwnChrome
 }) {
-  const {
-    canvasRef,
-    canvas,
-    error: renderError,
-    retry: retryRender,
-  } = useRenderingBackend(createGraphRenderer, model)
   const {
     handlers,
     canvasStyle,
@@ -367,8 +372,11 @@ const GraphCanvas = observer(function GraphCanvas({
         onClose={closeContextMenu}
       />
 
-      {renderError ? (
-        <ErrorBanner error={renderError} onReset={retryRender} />
+      {ownChrome?.renderError ? (
+        <ErrorBanner
+          error={ownChrome.renderError}
+          onReset={ownChrome.retryRender}
+        />
       ) : null}
 
       {ownChrome && model.error ? (
@@ -384,6 +392,38 @@ const GraphCanvas = observer(function GraphCanvas({
         />
       ) : null}
     </div>
+  )
+})
+
+const StandaloneGraphCanvas = observer(function StandaloneGraphCanvas({
+  model,
+}: {
+  model: GraphPaneModel
+}) {
+  const { canvasRef, canvas, error, retry } = useRenderingBackend(
+    createGraphRenderer,
+    model,
+  )
+  return (
+    <GraphCanvasBody
+      model={model}
+      handle={{ canvasRef, canvas }}
+      ownChrome={{ renderError: error, retryRender: retry }}
+    />
+  )
+})
+
+const GraphCanvas = observer(function GraphCanvas({
+  model,
+  handle,
+}: {
+  model: GraphPaneModel
+  handle?: PaneCanvas
+}) {
+  return handle ? (
+    <GraphCanvasBody model={model} handle={handle} />
+  ) : (
+    <StandaloneGraphCanvas model={model} />
   )
 })
 
