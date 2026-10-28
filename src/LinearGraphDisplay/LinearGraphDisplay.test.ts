@@ -1549,7 +1549,7 @@ test('the track menu offers the layouts, colours and the settings dialog', async
     expect.arrayContaining([
       'Layout: Anchored',
       'Color: Auto (Reference position)',
-      'Show...',
+      'Show',
       'Graph settings...',
     ]),
   )

@@ -33,7 +33,7 @@ colour.
 - While haplotypes are lifted, the strip gives each walk a row, pale where the
   walk skips a segment. A deletion is a pale gap
 - A triangle at either end marks where the graph draws reference past that edge
-- **Show... › Show reference strip** turns it off
+- **Show › Show reference strip** turns it off
 
 Hovering HG02391's 68 kb segment boxes its span on the strip, and the linear
 view bands the same bp across the curated KIV-2 array:
@@ -54,7 +54,7 @@ repeat array. The node layouts can mark each one.
   `gfatools bubble` records, and `gfa-to-tabix bubbles` writes the same file
   from a plain GFA's snarl VCF. A GBZ cut, a pggb file or an open bubble gets
   bubbles derived from the ordered layout
-- **Show... › Show bubble halos** (off by default) draws each structural variant
+- **Show › Show bubble halos** (off by default) draws each structural variant
   as a halo along its nodes, coloured by kind, named in the legend
 - A variant under 50 bp is a tick above its nodes, named on hover
 - Clicking a label opens the bubble in place: its nodes get the full colour ramp
