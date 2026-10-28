@@ -1,3 +1,26 @@
+## [8.0.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.1...v8.0.2) (2026-10-28)
+
+### Other Changes
+
+- Mount DisplayChrome for the graph track ([6ad9c9e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6ad9c9ea680a8e714dbe2422dfb1e71bb5477076))
+- Key node and link thickness in the legend, every row at one pitch ([71254eb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/71254eb0d3a2304cbb1092d33b4f5123b86b83f2))
+- Round walk counts in the width key, and reshoot the figures with the new legend ([87d3ea9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/87d3ea92c1932f9da333f4324bbdf290f5e9f503))
+- Drop the ellipsis from the Show submenu label, as core's submenus do ([7bb4abd](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7bb4abd78aa6df5e67befa18365d992c7a48bbee))
+- Prettier: layouts.md and the legend sources ([40f56d1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/40f56d12afb2a77ef9eacefc831c7fdad1ee5b84))
+- Park the link width follow-ups as ideas ([ea56da3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ea56da3b1f4b76f90d0f29c2a8ccedb583b980dd))
+- Key colours with square chips, and walk passes where a walk loops a node ([5e70a3a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5e70a3a10999d8e83ea06eec233782bc63e7d307))
+- Reshoot the figures with square colour chips in the legend ([dabe267](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/dabe2676a188feda900e4a6e8d60dea0422c76b9))
+- Line up legend words in one swatch column, and edge the colour chips ([2de08e2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2de08e29208daf78712a30afee4d0d9262465013))
+- Back the legend nearly opaque, and shoot legends at a real 2x ([192e81a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/192e81aabce7081fb435acd0f45f1eb6bc8cc378))
+- Reshoot the figures with aligned legend columns and an opaque key ([336f263](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/336f263b672c14d60d99d92936b07aee8c81608d))
+- Group the legend under headings, in one order, with centred swatches ([e5824ca](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e5824ca85ed2f6f62bbf7d9a5540679254055a5d))
+- Keep a tall legend whole: opaque, scrolling past the pane, room in two figures ([cb571b3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cb571b3768eef564af0283565072b1a776ff62e4))
+- Reshoot the figures with grouped legends ([2e0ae30](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2e0ae30be1535068f2298b4a7dda8faa0f1c9bf5))
+- Walk rows read up to 64 named haplotypes in full where format 5 abridged them ([21ee2c2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/21ee2c269d93017472bfeebc7e4dcdbadac87351))
+- Float the legend over the drawing instead of fitting the drawing around it ([e640b21](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e640b21ff98395eec350a07cc61af721d3207fc8))
+- Reshoot the figures with the legend floating over the drawing ([0e21c9e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0e21c9efe90e848d4a6a7dc3b23428284c7570e2))
+- Bump bandage-core to 12.0.2, counting an abridged walk's bp once in its walk row ([97ab3e8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/97ab3e8557c36004c3b1c9bdad5a47cc0f5eedc0))
+
 ## [8.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.0...v8.0.1) (2026-10-28)
 
 ### Other Changes
