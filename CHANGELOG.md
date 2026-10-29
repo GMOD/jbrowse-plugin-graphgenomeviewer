@@ -1,3 +1,10 @@
+## [8.3.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.2...v8.3.3) (2026-10-29)
+
+### Other Changes
+
+- Docs, schema examples, the host-compat probe and a test read the -f5s walk files ([e465f91](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e465f91e04ea19b80f8fc0172520d672bbadfa1a))
+- Bump bandage-core to 12.2.1, leaving an abridged walk's stray handle out of the node layouts ([bbc8b00](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bbc8b00bfaa91d937198b276e34548215780a4a1))
+
 ## [8.3.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.1...v8.3.2) (2026-10-29)
 
 ### Other Changes
