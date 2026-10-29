@@ -123,13 +123,15 @@ switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
 The Add pangenome graph track workflow fills the slot from the
 `<prefix>.graph.json` manifest `gfa-to-tabix build` writes beside
-`<prefix>.segs.bed.gz` (`src/GraphAddTrackWorkflow/graphManifest.ts`). It takes
-`tier` and `reference` (the PanSN sample, used when the user leaves Sample
-blank). It adds only the graph track, since `addTrackFromWidget` takes one
-config; the manifest's `bubbles` and `alleles` go unused. A manifest that is
-missing, unreadable, not schema 1, or names anything but a bare sibling file is
-ignored. The core adapter guesser behind plain Open track is synchronous, so it
-cannot read the manifest.
+`<prefix>.segs.bed.gz`, or beside format 2's `<prefix>.graph.bed.gz`
+(`src/GraphAddTrackWorkflow/graphManifest.ts`). The tier the manifest names is
+read as a format 1 pair, which `gfa-to-tabix fold` writes. It takes `tier` and
+`reference` (the PanSN sample, used when the user leaves Sample blank). It adds
+only the graph track, since `addTrackFromWidget` takes one config; the
+manifest's `bubbles` and `alleles` go unused. A manifest that is missing,
+unreadable, not schema 1, or names anything but a bare sibling file is ignored.
+The core adapter guesser behind plain Open track is synchronous, so it cannot
+read the manifest.
 
 ## Height
 

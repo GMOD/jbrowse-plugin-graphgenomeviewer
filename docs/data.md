@@ -6,8 +6,8 @@ can:
 - **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
   format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
   from 1.4
-- **Segments index** (`.segs.bed.gz`): gfa-to-tabix's index of an rGFA or plain
-  GFA
+- **Segments index** (`.segs.bed.gz`, or `.graph.bed.gz` from
+  `gfa-to-tabix --format 2`): gfa-to-tabix's index of an rGFA or plain GFA
 - **gbz-base database** (`.gbz.db`): the one source that takes GAF
   [reads](#reads)
 - **GFA** small enough to load whole: opens with **Add → Graph genome view**
@@ -72,6 +72,9 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
   reads `<uri>.segs.bed.gz`, `<uri>.links.bed.gz` and their `.tbi`. Past
   `aboveBpPerPx` (default `foldBelowBp / 10`) the track uses the `coarse` tier
   (`gfa-to-tabix fold`)
+- **Format 2:** `"format": 2` beside `uri` reads `<uri>.graph.bed.gz`, the one
+  file `gfa-to-tabix --format 2` writes, and its `.tbi`. Its node rows carry a
+  plain GFA's carriers as bits, so a window reads a fraction of format 1's text
 - **gbz-base:** `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`. An
   `hg38` or `hs1` track finds the GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names. A haplotype's lane draws on the
