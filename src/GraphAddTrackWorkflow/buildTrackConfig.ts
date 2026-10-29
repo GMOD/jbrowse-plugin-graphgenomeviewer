@@ -94,6 +94,16 @@ function coarseTier(
   if (!tier) {
     return {}
   }
+  if (tier.format === 2) {
+    const graph = besideSegments(loc, `${tier.prefix}${GRAPH_SUFFIX}`)
+    return {
+      coarse: {
+        foldBelowBp: tier.foldBelowBp,
+        graphLocation: graph,
+        graphIndex: siblingIndex(graph, indexLoc),
+      },
+    }
+  }
   const segs = besideSegments(loc, `${tier.prefix}${SEGMENTS_SUFFIX}`)
   const links = besideSegments(loc, `${tier.prefix}.links.bed.gz`)
   return {

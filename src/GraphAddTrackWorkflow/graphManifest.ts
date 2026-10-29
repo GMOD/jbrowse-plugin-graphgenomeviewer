@@ -15,7 +15,9 @@ import type { FileLocation } from '@jbrowse/core/util'
 // Open track reads
 export interface GraphManifest {
   reference?: string
-  tier?: { prefix: string; foldBelowBp: number }
+  // `format: 2` when the tier is one `<prefix>.graph.bed.gz`, as gfa-to-tabix
+  // 2 writes it, rather than a segments and links pair
+  tier?: { prefix: string; foldBelowBp: number; format?: 2 }
 }
 
 const FETCH_TIMEOUT_MS = 5000
@@ -67,7 +69,13 @@ export function parseGraphManifest(text: string): GraphManifest | undefined {
   return {
     ...(typeof reference === 'string' ? { reference: reference.trim() } : {}),
     ...(isTier(tier)
-      ? { tier: { prefix: tier.prefix, foldBelowBp: tier.foldBelowBp } }
+      ? {
+          tier: {
+            prefix: tier.prefix,
+            foldBelowBp: tier.foldBelowBp,
+            ...(tier.format === 2 ? { format: 2 as const } : {}),
+          },
+        }
       : {}),
   }
 }
