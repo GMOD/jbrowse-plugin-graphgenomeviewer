@@ -1,3 +1,9 @@
+## [8.3.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.0...v8.3.1) (2026-10-29)
+
+### Other Changes
+
+- Bump bandage-core to 12.1.2, flanking an abridged walk by a handle past the cut's reference ([13c1b33](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/13c1b33b22173feda253f48070ca173d9f8a9ab7))
+
 ## [8.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.2.0...v8.3.0) (2026-10-29)
 
 ### Other Changes
