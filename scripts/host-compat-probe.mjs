@@ -59,7 +59,7 @@ const FORMS_TRACK = {
   assemblyNames: ['hg38'],
   adapter: {
     type: 'WalkFormsAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
     pinned: { refName: 'chr1', start: 109_680_000, end: 109_715_000 },
     exclude: ['CHM13'],
   },

@@ -56,7 +56,7 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "RgfaTabixAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
     "assemblyNameToPanSN": { "hg38": "GRCh38" },
     "defaultHaplotypes": ["HG002", "HG00733"]
   }
@@ -101,7 +101,7 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "WalkFormsAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
     "pinned": { "refName": "chr1", "start": 109680000, "end": 109715000 },
     "exclude": ["CHM13"]
   },

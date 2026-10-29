@@ -226,7 +226,7 @@ locus and the same walks, so a change in either reads against the other:
 | `walk_rows_kiv2`     | `kiv2_rows`       | KIV-2 copy number as walk rows                |
 
 When one of them changes, redraw its partner, or note in the commit why they now
-differ. Both read `hprc-v2.1-mc-grch38-f5` from jbrowse.org/demos/hprc.
+differ. Both read `hprc-v2.1-mc-grch38-f5s` from jbrowse.org/demos/hprc.
 
 `node scripts/preview-candidate.mjs '?config=…&session=…' out.png` screenshots
 that hosted session with `dist/` served in place of the published bundle, to
