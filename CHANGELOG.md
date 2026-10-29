@@ -1,3 +1,11 @@
+## [8.3.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.1...v8.3.2) (2026-10-29)
+
+### Other Changes
+
+- Take bandage-core 12.2.0, which draws a lifted walk's deletion as a solid lane ([8272e84](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8272e84e0bbdda5fc2484252e9c0829b31248028))
+- Lead the README with C4's syng graph, walks threaded under their callset rows ([19998c5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/19998c5b675f77c5074972bb39b1ba2b089cc29a))
+- Walk rows read the samples they show in full where format 5 abridged them ([ddf1d9c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ddf1d9cb043c39127e9be386805378d3a8876d46))
+
 ## [8.3.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.0...v8.3.1) (2026-10-29)
 
 ### Other Changes
