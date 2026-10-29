@@ -1,3 +1,9 @@
+## [8.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.2.0...v8.3.0) (2026-10-29)
+
+### Other Changes
+
+- Read a build manifest's format 2 coarse tier as its one graph file ([d3a3b60](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d3a3b603799d2282d127b3bf7bcd5d3b60c2cffe))
+
 ## [8.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.1.0...v8.2.0) (2026-10-29)
 
 ### Other Changes
