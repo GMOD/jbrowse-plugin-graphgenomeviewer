@@ -1,3 +1,11 @@
+## [8.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.2...v8.1.0) (2026-10-29)
+
+### Other Changes
+
+- Draw skip rows as deletion rows, and say a moved component's stub is one ([d37c11d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d37c11d2d10db195639ac228cb6daf5b35daa8ba))
+- Take graph-walks 4.3.0, bandage-core 12.1.0 and tabix 3.13.0 ([d0527a9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d0527a985e07ebe2d356ccd23c5d2e69e7691ff5))
+- Bump bandage-core to 12.1.1, estimating a walk row whose abridged block runs past the window ([e0002e3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e0002e3bb18bc4713fa547fe243901f42fba13e6))
+
 ## [8.0.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.1...v8.0.2) (2026-10-28)
 
 ### Other Changes
