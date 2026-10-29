@@ -6,6 +6,8 @@
 // before the shot, the config, the HPRC demo's unless it names another, and
 // the directory the figure lives in, img/ unless it names another.
 //
+// A figure is 1400 px wide unless it names a `width`.
+//
 // Usage:
 //   node scripts/shoot-figures.mjs                 # every figure, into its dir
 //   node scripts/shoot-figures.mjs force_mhc --out /tmp/figs
@@ -125,17 +127,20 @@ function phasedRow(haplotype) {
   return `${sample} HP${Number(n) - 1}`
 }
 const CALLSET_ROW_PX = 18
-const CALLSET_TRACK = {
-  trackId: 'hprc2_pgbi_grch38',
-  type: 'LinearMultiSampleVariantDisplay',
-  rows: {
-    sort: HAPLOTYPES.map(phasedRow),
-    labels: Object.fromEntries(HAPLOTYPES.map(h => [phasedRow(h), h])),
-  },
-  rowHeight: CALLSET_ROW_PX,
-  height: HAPLOTYPES.length * CALLSET_ROW_PX,
-  axis: { tree: false },
+function callsetLane(haplotypes) {
+  return {
+    trackId: 'hprc2_pgbi_grch38',
+    type: 'LinearMultiSampleVariantDisplay',
+    rows: {
+      sort: haplotypes.map(phasedRow),
+      labels: Object.fromEntries(haplotypes.map(h => [phasedRow(h), h])),
+    },
+    rowHeight: CALLSET_ROW_PX,
+    height: haplotypes.length * CALLSET_ROW_PX,
+    axis: { tree: false },
+  }
 }
+const CALLSET_TRACK = callsetLane(HAPLOTYPES)
 
 function graphView(props) {
   return {
@@ -406,11 +411,45 @@ function hoverRoute(member, bp) {
   }
 }
 
+// shaded light to dark along the walk, as syng_c4's spec draws it
+function syngThread(walk, scheme) {
+  return { walk, color: { field: 'progress', scheme } }
+}
+
 const FIGURES = {
   // ggbandage's syng_overlay, from the same GFA: HG01978#2 goes round the ring
   // three times, a thread per copy
   syng_c4: { spec: 'test_data/syng/c4.json' },
-  force_kiv2: { session: forceKiv2Track },
+  // The README's headline: syng_c4's graph and walks opened under the callset
+  // rows of the same two haplotypes. HG01952#1's threads cut across the HERV-K
+  // loop where its row shows a 6.4 kb deletion in C4A and in C4B. Narrow
+  // enough that GitHub's column keeps the labels legible.
+  syng_c4_view: {
+    session: linearView(
+      'chr6:31,972,047-32,055,647',
+      [GENE_TRACK, callsetLane(['HG01978.2', 'HG01952.1'])],
+      [
+        graphView({
+          gfaLocation: {
+            uri: `${FIXTURES_URL}syng/c4.syng.gfa.gz`,
+            locationType: 'UriLocation',
+          },
+          layoutMode: 'force',
+          referencePath: 'grch38#chr6:31972046-32055647',
+          walkLayers: [
+            syngThread('grch38#chr6:31972046-32055647', 'grey'),
+            syngThread('HG01978#2#JAGYVR010000046.1:2470802-2587140', 'blue'),
+            syngThread(
+              'HG01952#1#JAHAME010000044.1:28380191-28451052',
+              'orange',
+            ),
+          ],
+          paneHeight: 520,
+        }),
+      ],
+    ),
+    width: 1000,
+  },
   force_kiv2_hover: { session: forceKiv2Track, act: hoverLongestAllele },
   force_kiv2_bubbles: {
     session: trackView(
@@ -1021,9 +1060,9 @@ async function shootLegends(page, name) {
 
 // The linear view and what opened under it, after `act`
 async function appShot(context, name) {
-  const { session, act, config = HPRC_CONFIG } = FIGURES[name]
+  const { session, act, config = HPRC_CONFIG, width = 1400 } = FIGURES[name]
   const page = await context.newPage()
-  await page.setViewport({ width: 1400, height: 1600 })
+  await page.setViewport({ width, height: 1600 })
   await candidateServer(values.dist, {
     [FIXTURES]: 'test_data',
     [DOCS]: 'docs',
