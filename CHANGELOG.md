@@ -1,3 +1,9 @@
+## [8.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.1.0...v8.2.0) (2026-10-29)
+
+### Other Changes
+
+- Read gfa-to-tabix's format 2: one graph file, carriers as bits ([0b2dddd](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0b2dddd7ae36ba655d8e37de4ff74d7b6b9791db))
+
 ## [8.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.0.2...v8.1.0) (2026-10-29)
 
 ### Other Changes
