@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^12.1.0
-        version: 12.1.0
+        specifier: ^12.1.1
+        version: 12.1.1
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -607,9 +607,6 @@ packages:
   '@gmod/shared-read-cache@2.1.0':
     resolution: {integrity: sha512-AyiUt0hiEGl7lWc1fuigbXR/RToIw3h72dalaRoSNau9WL9ux9rEfkcsXDYTgSDudehfAEQac1jTvn2zrfnELQ==}
 
-  '@gmod/tabix@3.11.0':
-    resolution: {integrity: sha512-kunAT5jtwMoIx+rnuLLXt0rSI1MtX7sGW9Vn9agTgzz7sLJzZewx6knppvf22Ahr9JRZSnSj/TwKEXS/XeIjYw==}
-
   '@gmod/tabix@3.13.0':
     resolution: {integrity: sha512-pOWzGY7sm79zVGRq7EH9PiupqcfELLWdAHUAKjUiwMIErJWzr//FVeIdA/Dx7+8yVN2n+gbTqNIF4xBghOs3lA==}
 
@@ -639,8 +636,8 @@ packages:
   '@jbrowse/add-track-core@5.0.0-beta.18':
     resolution: {integrity: sha512-j+zFtg/bHJ6+rS0Ia6oFaNRVukPw77cxauuq+fWP3HHxiNHyupzjAFLgd7UNlKMv6AKmD0BOvZS0V63JJ9aGrQ==}
 
-  '@jbrowse/bandage-core@12.1.0':
-    resolution: {integrity: sha512-DeRtVLDw94GOq0F43mDdsklf/vg/IPv7glTJ37s6/W4uIkzkxLl5yzPlZUrmRVvhF6v79552ZepncppYBgLIRQ==}
+  '@jbrowse/bandage-core@12.1.1':
+    resolution: {integrity: sha512-CMYp9wMJ7PIgGYS7qPgDEUgbBDsmMNoX/G7TZL+zmMN/csQVYobojulWVzW6OT5bZZFnYXQUwvQHaC4QueOhyw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4048,13 +4045,6 @@ snapshots:
 
   '@gmod/shared-read-cache@2.1.0': {}
 
-  '@gmod/tabix@3.11.0':
-    dependencies:
-      '@gmod/bgzf-filehandle': 6.8.2
-      '@gmod/shared-read-cache': 2.1.0
-      '@jbrowse/quick-lru': 8.0.0
-      generic-filehandle2: 2.5.1
-
   '@gmod/tabix@3.13.0':
     dependencies:
       '@gmod/bgzf-filehandle': 6.8.2
@@ -4082,10 +4072,10 @@ snapshots:
 
   '@jbrowse/add-track-core@5.0.0-beta.18': {}
 
-  '@jbrowse/bandage-core@12.1.0':
+  '@jbrowse/bandage-core@12.1.1':
     dependencies:
       '@gmod/gbz-base': 7.4.1
-      '@gmod/tabix': 3.11.0
+      '@gmod/tabix': 3.13.0
       '@jbrowse/graph-fmmm-layout': 1.0.2
       '@jbrowse/graph-stress-layout': 1.0.0
       '@jbrowse/tubemap-core': 2.0.1
