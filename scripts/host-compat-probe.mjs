@@ -9,8 +9,8 @@
 // and the failures this catches pass tsc, eslint and the unit tests: an RPC
 // argument a released core cannot post to its worker, a re-export the host no
 // longer serves. They show only when the bundle runs on the host. The hosts
-// are every release in scripts/host-names/ and main, and the oldest release
-// is the support floor.
+// are every release in hostReleases.mjs and main, and the oldest release is
+// the support floor.
 //
 // Usage:
 //   node scripts/host-compat-probe.mjs
@@ -21,19 +21,13 @@
 // test is the one readers load. A host that moves with no commit here breaks
 // that bundle, and host-watch.yml runs this daily to see it.
 //
-import fs from 'node:fs'
 import { parseArgs } from 'node:util'
 
+import { HOST_RELEASES } from './hostReleases.mjs'
 import { HPRC_CONFIG, gotoHosted, launchBrowser } from './hostedBrowser.mjs'
 import { ENTRY, candidateServer } from './serveCandidate.mjs'
 
-const DEFAULT_VERSIONS = [
-  ...fs
-    .readdirSync(new URL('host-names/', import.meta.url))
-    .map(file => file.replace(/\.json$/, ''))
-    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true })),
-  'main',
-]
+const DEFAULT_VERSIONS = [...HOST_RELEASES, 'main']
 // The window part 1 of the HPRC tutorial cuts from its segments track
 const TRACK_ID = 'hprc_minigraph_segments'
 const REGION = {

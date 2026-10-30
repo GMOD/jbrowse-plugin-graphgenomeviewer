@@ -71,15 +71,14 @@ jobs:
           node-version: 24.x
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The newest release in scripts/host-names/, by url rather than --tag:
-      # the v5 releases on GitHub are drafts, which the CLI's unauthenticated
-      # release lookup cannot see. The zip beside the hosted build is the same
-      # artifact. sort -V ranks v5.0.0-beta.13 above v5.0.0 unless the - reads
-      # as ~.
+      # The newest release in scripts/hostReleases.mjs, by url rather than
+      # --tag: the v5 releases on GitHub are drafts, which the CLI's
+      # unauthenticated release lookup cannot see. The zip beside the hosted
+      # build is the same artifact.
       - name: Create JBrowse test instance
         run: |
-          host=$(ls scripts/host-names | sed 's/-/~/' | sort -V | tail -n 1 |
-            sed 's/~/-/; s/\.json$//')
+          host=$(node --input-type=module -e \
+            "import { HOST_RELEASES } from './scripts/hostReleases.mjs'; console.log(HOST_RELEASES.at(-1))")
           npx @jbrowse/cli create .test-jbrowse --url \
             "https://s3.amazonaws.com/jbrowse.org/code/jb2/$host/jbrowse-web-$host.zip"
       - run: JBROWSE_TEST_DIR=$PWD/.test-jbrowse RUN_E2E=1 pnpm test:e2e

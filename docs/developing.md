@@ -61,10 +61,11 @@ pnpm host-names   # builds against each supported host's export names
 - `host-compat` serves `dist/` to a shipped config on each hosted release. It
   catches an RPC argument a released core cannot post, or a re-export the host
   dropped. `pnpm version` runs it, and a publish has to pass
-- `esbuild.mjs` resolves each host import through `scripts/hostShim.mjs`, using
-  the names in `scripts/host-names/<tag>.json`. `pnpm host-names` builds against
-  every file and jbrowse-components `main`. Add a release with
-  `node scripts/fetch-host-names.mjs <tag>`
+- `esbuild.mjs` resolves each host import through
+  `@jbrowse/core/ReExports/hostShim`, using the installed `@jbrowse/core`'s
+  names. `pnpm host-names` builds against every release in
+  `scripts/hostReleases.mjs` and jbrowse-components `main`. The oldest release
+  there is the support floor, so a dependency bump does not raise it
 - On a host that lacks a name at runtime, the bundle holds a stub that throws
   naming the export
 

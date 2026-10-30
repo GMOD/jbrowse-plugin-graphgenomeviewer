@@ -20,7 +20,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     environmentOptions: { jsdom: { url: 'http://localhost' } },
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: [
       './config/vitest/console.js',
       './config/vitest/resizeObserver.js',

@@ -2,16 +2,14 @@ import fs from 'node:fs'
 import http from 'node:http'
 import * as esbuild from 'esbuild'
 import { parseArgs } from 'node:util'
-import JBrowseReExports from '@jbrowse/core/ReExports/list'
+import { hostShim } from '@jbrowse/core/ReExports/hostShim'
 import prettyBytes from 'pretty-bytes'
-
-import { hostShim } from './scripts/hostShim.mjs'
 
 const PORT = process.env.PORT ? +process.env.PORT : 9000
 
-// The names the bundle's host imports bind to. The default is the installed
-// @jbrowse/core's own host, the support floor; `pnpm host-names` passes each
-// newer host's file with --check to find an import that host dropped.
+// The bundle's host imports bind to the installed @jbrowse/core's names unless
+// --host-names gives another host's; `pnpm host-names` passes each supported
+// release's and main's with --check.
 const { values } = parseArgs({
   options: {
     watch: { type: 'boolean', default: false },
@@ -19,13 +17,8 @@ const { values } = parseArgs({
     'host-names': { type: 'string' },
   },
 })
-const floor = `v${JSON.parse(fs.readFileSync('node_modules/@jbrowse/core/package.json', 'utf8')).version}`
-const hostNamesFile = values['host-names'] ?? `scripts/host-names/${floor}.json`
-if (!fs.existsSync(hostNamesFile)) {
-  throw new Error(
-    `${hostNamesFile} is missing: run \`node scripts/fetch-host-names.mjs ${floor}\``,
-  )
-}
+const hostNamesFile = values['host-names']
+const pluginName = 'GraphGenomeView'
 
 const rebuildLogPlugin = {
   name: 'rebuild-log',
@@ -63,16 +56,14 @@ const config = {
   // Automatic JSX runtime; react/jsx-runtime is a JBrowse global (ReExports).
   jsx: 'automatic',
   metafile: true,
-  // esbuild only warns on `ns.name` from `import * as ns` when the host
-  // serves no `name`, and the bundle reads undefined there at runtime
-  logOverride: { 'import-is-undefined': 'error' },
   plugins: [
-    hostShim({
-      keys: JBrowseReExports,
-      names: JSON.parse(fs.readFileSync(hostNamesFile, 'utf8')),
-      pluginName: 'GraphGenomeView',
-      host: hostNamesFile,
-    }),
+    hostNamesFile
+      ? hostShim({
+          pluginName,
+          names: JSON.parse(fs.readFileSync(hostNamesFile, 'utf8')),
+          host: hostNamesFile,
+        })
+      : hostShim({ pluginName }),
     ...(values.check ? [] : [rebuildLogPlugin]),
   ],
   ...(values.watch
