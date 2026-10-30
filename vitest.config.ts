@@ -23,6 +23,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: [
       './config/vitest/console.js',
+      './config/vitest/contractGate.js',
       './config/vitest/resizeObserver.js',
     ],
     testTimeout: 15000,
