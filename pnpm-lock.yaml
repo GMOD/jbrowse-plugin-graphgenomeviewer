@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^12.2.1
-        version: 12.2.1
+        specifier: ^12.3.0
+        version: 12.3.0
       '@jbrowse/cli':
         specifier: ^4.3.0
         version: 4.3.0(supports-color@7.2.0)
@@ -633,8 +633,8 @@ packages:
   '@jbrowse/add-track-core@5.0.0-beta.18':
     resolution: {integrity: sha512-j+zFtg/bHJ6+rS0Ia6oFaNRVukPw77cxauuq+fWP3HHxiNHyupzjAFLgd7UNlKMv6AKmD0BOvZS0V63JJ9aGrQ==}
 
-  '@jbrowse/bandage-core@12.2.1':
-    resolution: {integrity: sha512-ISRARDQs78m7AqarFJZCU4DTBl4LIMXuHPMhvcpmiqcgnH4rDsSX4mIqjzIk9Hs3zpMmAE7FUf234oaXMaB8QA==}
+  '@jbrowse/bandage-core@12.3.0':
+    resolution: {integrity: sha512-cmVZy+sLo4vZVlZ+AlAVUXOcll0P67zZEjMpVXMOf/stOA1tjUSbllqixUbzfpTAwsNGpTIrjjgzZmiM+UaU2g==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -860,13 +860,6 @@ packages:
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  '@napi-rs/wasm-runtime@1.2.5':
-    resolution: {integrity: sha512-HshSvXzmBxNzqejd3k/KemgQ3hdREUYFRRrgxOZ+gPljDIsO2SDZrVZMd4Z/HsxudQbE62OVyVFE8z9BCurfjA==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
-    peerDependencies:
-      '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
-      '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
@@ -4071,7 +4064,7 @@ snapshots:
 
   '@jbrowse/add-track-core@5.0.0-beta.18': {}
 
-  '@jbrowse/bandage-core@12.2.1':
+  '@jbrowse/bandage-core@12.3.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.0
@@ -4396,17 +4389,17 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@napi-rs/wasm-runtime@1.2.5(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
-    dependencies:
-      '@emnapi/core': 1.11.1
-      '@emnapi/runtime': 1.11.1
-      '@tybys/wasm-util': 0.10.4
-    optional: true
-
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
+      '@tybys/wasm-util': 0.10.4
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+    dependencies:
+      '@emnapi/core': 1.11.1
+      '@emnapi/runtime': 1.11.1
       '@tybys/wasm-util': 0.10.4
     optional: true
 
@@ -4461,7 +4454,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
-      '@napi-rs/wasm-runtime': 1.2.5(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     optional: true
 
   '@rolldown/binding-win32-arm64-msvc@1.1.5':
