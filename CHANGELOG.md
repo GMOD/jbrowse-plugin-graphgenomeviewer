@@ -1,3 +1,16 @@
+## [8.3.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.4...v8.3.5) (2026-10-30)
+
+### Other Changes
+
+- Docs lead with the format 2 graph index gfa-to-tabix 2.0 writes by default ([3dbc159](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3dbc159d9135f42c71c0bb72a7c36d9974cd37f0))
+- Walk rows draw skip rows as deletion rows, and box each haplotype's own genes ([8131bf2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8131bf2471de316411484617464c04efc485f7c3))
+- Skip rows date from gfa-to-tabix 1.5, not 2.0 ([ef4f827](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ef4f827d6f5ec1623241f1fbdc2fb3be956e80c0))
+- Test that every display and view type publishes its loading state ([e18d299](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e18d299c5100d00ffc589e2c90df45d42655e1ce))
+- Bump @gmod/tabix to 3.13.1 ([11a67c3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/11a67c3593bef44658339ff1345ea79fcf2db148))
+- Lanes open for a haplotype whose deletion spans the window ([05d7f16](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/05d7f1656a6004d1cf5df2a3a8e44f7362b5c3e5))
+- Format the haplotype lanes docs ([90e685a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/90e685acd1b03c97c3f69f4a1631c8006921bdbf))
+- Skip rows cover deletions up to about 2 Mb, 64 kb is the default chunk, and HG00133#1's AMY1 copies match GRCh38's length ([5425534](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5425534196c2cb78578df7033c8f2bf054ab3682))
+
 ## [8.3.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.3...v8.3.4) (2026-10-30)
 
 ### Other Changes
