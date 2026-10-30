@@ -1,3 +1,11 @@
+## [8.3.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.6...v8.3.7) (2026-10-30)
+
+### Other Changes
+
+- HG002's HPRC gene track is RefSeq via JHU Liftoff ([1124db3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1124db3e37b36c91d4555c756e6b7a38686d0441))
+- A deletion row runs under the whole of the reference's bar ([c854818](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c854818cca0aceb5919f4dd60996886450100d25))
+- Bump @jbrowse/bandage-core to 12.4.0 ([fafa47c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fafa47c861eb17fd9a7954b95a938a73dd2ce961))
+
 ## [8.3.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.5...v8.3.6) (2026-10-30)
 
 ### Other Changes
