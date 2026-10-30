@@ -1,3 +1,10 @@
+## [8.3.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.7...v8.3.8) (2026-10-30)
+
+### Other Changes
+
+- Bump @jbrowse/bandage-core to 12.5.0 ([f026530](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f026530695c7d51ef8edcf4a4034a5f9efc8282e))
+- The walk rows' gene note leaves deletion rows out ([0be858d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0be858d8916319c5ab7eff5ef933869afc92f936))
+
 ## [8.3.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.6...v8.3.7) (2026-10-30)
 
 ### Other Changes
