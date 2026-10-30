@@ -130,8 +130,8 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   runs through. A stretch off it is charcoal (blue and purple under other
   schemes)
 - Charcoal is an alternative route through the graph, and may be sequence the
-  reference has. In the HPRC amylase cut, HG00133#1 has GRCh38's three AMY1
-  copies in order, yet 75 kb of its bar is purple. Count copies from the gene
+  reference has. In the HPRC amylase cut, HG00133#1 has three AMY1 copies, at
+  GRCh38's length, yet 75 kb of its bar is purple. Count copies from the gene
   boxes instead
 - The plugin boxes each bar's genes from the assembly named by its PanSN name
   (`HG00097#1`), reading that assembly's gene track over the bar's span on its
@@ -140,9 +140,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   one, with its CAT annotation, which names each copy of a duplicated gene after
   the GRCh38 copy it projected: HG00232#1's seven AMY1 copies read AMY1C five
   times
-- A haplotype whose deletion spans the whole window is a row of deletion, from
-  the walk file's skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files).
-  A file without them gives that haplotype no row
+- A haplotype whose deletion, up to about 2 Mb, spans the whole window is a row
+  of deletion, from the walk file's skip rows (gfa-to-tabix 1.5 and later, the
+  HPRC `-f5s` files). A file without them gives that haplotype no row
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, an abridged bar ends in gold dashes, and **Load the abridged
@@ -177,10 +177,10 @@ and right-click a VCF 4.5 `<CNV:TR>` record.
 A `WalkTabixSyntenyAdapter` track's lanes display stacks a lane per haplotype
 under the reference, each in the haplotype's own coordinates.
 
-- A haplotype whose deletion spans the whole window still gets a lane, from the
-  walk file's skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files). The
-  lane centres where the haplotype crosses the deletion, and the window's ribbon
-  narrows to that position
+- A haplotype whose deletion, up to about 2 Mb, spans the whole window still
+  gets a lane, from the walk file's skip rows (gfa-to-tabix 1.5 and later, the
+  HPRC `-f5s` files). The lane centres where the haplotype crosses the deletion,
+  and the window's ribbon narrows to that position
 - The adapter finds the crossing by reading the reference node where the
   haplotype leaves, so each such lane costs one more chunk read
 - A haplotype that walks the window on another contig draws that contig instead
