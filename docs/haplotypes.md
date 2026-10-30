@@ -171,3 +171,18 @@ copies: at KIV-2, 13 of 32 threaded copies take the hue of a reference copy of
 the other repeat type. To colour by the true unit, load
 [jbrowse-plugin-tandem-repeat](https://github.com/GMOD/jbrowse-plugin-tandem-repeat)
 and right-click a VCF 4.5 `<CNV:TR>` record.
+
+## Haplotype lanes
+
+A `WalkTabixSyntenyAdapter` track's lanes display stacks a lane per haplotype
+under the reference, each in the haplotype's own coordinates.
+
+- A haplotype whose deletion spans the whole window still gets a lane, from the
+  walk file's skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files).
+  The lane centres where the haplotype crosses the deletion, and the window's
+  ribbon narrows to that position
+- The adapter finds the crossing by reading the reference node where the
+  haplotype leaves, so each such lane costs one more chunk read
+- A haplotype that walks the window on another contig draws that contig
+  instead
+- A walk file without skip rows opens no lane for such a haplotype
