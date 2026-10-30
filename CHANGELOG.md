@@ -1,3 +1,9 @@
+## [8.3.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.8...v8.3.9) (2026-10-30)
+
+### Other Changes
+
+- A deletion row takes the pointer along its hairline, and walk-row cleanups ([f6f703c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f6f703c400c4b984108f81c9b7a5150ed10c7869))
+
 ## [8.3.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.7...v8.3.8) (2026-10-30)
 
 ### Other Changes
