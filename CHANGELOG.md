@@ -1,3 +1,9 @@
+## [8.3.10](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.9...v8.3.10) (2026-10-30)
+
+### Other Changes
+
+- Bump @jbrowse/bandage-core to 12.5.1 ([b8d2ab5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b8d2ab5a3dfb03d52e2f1fd2f7392a29e3f49512))
+
 ## [8.3.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.8...v8.3.9) (2026-10-30)
 
 ### Other Changes
