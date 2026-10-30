@@ -1,3 +1,9 @@
+## [8.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.10...v8.4.0) (2026-10-30)
+
+### Other Changes
+
+- The graph display's facet is core's Facet; the coarse tier declares its shorthand ([2cb9fdf](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2cb9fdf30348619c9cf5bdd71ff4e4b25ebb61ab))
+
 ## [8.3.10](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.9...v8.3.10) (2026-10-30)
 
 ### Other Changes
