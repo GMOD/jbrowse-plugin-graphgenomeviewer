@@ -137,9 +137,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   (`HG00097#1`), reading that assembly's gene track over the bar's span on its
   own contig. A box is the haplotype's own annotation; the plugin lifts no
   GRCh38 gene across the graph. In the HPRC config every release 2 haplotype has
-  one, with its CAT annotation, which names each copy of a duplicated gene after
-  the GRCh38 copy it projected: HG00232#1's seven AMY1 copies read AMY1C five
-  times
+  one: HPRC's CAT annotation, or for HG002 RefSeq via JHU's Liftoff. CAT names
+  each copy of a duplicated gene after the GRCh38 copy it projected, so
+  HG00232#1's seven AMY1 copies read AMY1C five times
 - A haplotype whose deletion spans the whole window is a row of deletion where
   the walk file has skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s`
   files). gfa-to-tabix writes them only in a chunk the deletion covers whole (64
