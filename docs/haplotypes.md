@@ -133,8 +133,16 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   reference has. In the HPRC amylase cut, HG00133#1 has GRCh38's three AMY1
   copies in order, yet 75 kb of its bar is purple. Count copies from the gene
   boxes instead
-- Each bar boxes genes from the assembly named by its PanSN name (`HG00097#1`).
-  In the HPRC config every release 2 haplotype has one, with its CAT annotation
+- The plugin boxes each bar's genes from the assembly named by its PanSN name
+  (`HG00097#1`), reading that assembly's gene track over the bar's span on its
+  own contig. A box is the haplotype's own annotation; the plugin lifts no
+  GRCh38 gene across the graph. In the HPRC config every release 2 haplotype has
+  one, with its CAT annotation, which names each copy of a duplicated gene after
+  the GRCh38 copy it projected: HG00232#1's seven AMY1 copies read AMY1C five
+  times
+- A haplotype whose deletion spans the whole window is a row of deletion, from
+  the walk file's skip rows (gfa-to-tabix 2.0, the HPRC `-f5s` files). A file
+  without them gives that haplotype no row
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, an abridged bar ends in gold dashes, and **Load the abridged

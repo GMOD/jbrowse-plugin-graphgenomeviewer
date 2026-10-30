@@ -5,7 +5,8 @@ can:
 
 - **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
   format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
-  from 1.4
+  from 1.4. From 2.0 it adds skip rows, which name each haplotype whose deletion
+  spans a whole 64 kb chunk; HPRC's `-f5s` files have them
 - **Graph index** (`.graph.bed.gz`, or the `.segs.bed.gz` and `.links.bed.gz`
   pair of `gfa-to-tabix --format 1`): gfa-to-tabix's index of an rGFA or plain
   GFA
