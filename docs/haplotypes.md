@@ -141,8 +141,8 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   the GRCh38 copy it projected: HG00232#1's seven AMY1 copies read AMY1C five
   times
 - A haplotype whose deletion spans the whole window is a row of deletion, from
-  the walk file's skip rows (gfa-to-tabix 2.0, the HPRC `-f5s` files). A file
-  without them gives that haplotype no row
+  the walk file's skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files).
+  A file without them gives that haplotype no row
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, an abridged bar ends in gold dashes, and **Load the abridged
