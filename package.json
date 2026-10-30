@@ -48,7 +48,7 @@
   "dependencies": {
     "@gmod/bgzf-filehandle": "^6.8.2",
     "@gmod/gbz-base": "^7.4.1",
-    "@gmod/tabix": "^3.13.0",
+    "@gmod/tabix": "^3.13.1",
     "@jbrowse/cigar-utils": "5.0.0-beta.18",
     "@jbrowse/core": "5.0.0-beta.18",
     "@jbrowse/display-kit": "5.0.0-beta.18",
