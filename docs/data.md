@@ -6,8 +6,9 @@ can:
 - **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
   format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
   from 1.4
-- **Segments index** (`.segs.bed.gz`, or `.graph.bed.gz` from
-  `gfa-to-tabix --format 2`): gfa-to-tabix's index of an rGFA or plain GFA
+- **Graph index** (`.graph.bed.gz`, or the `.segs.bed.gz` and `.links.bed.gz`
+  pair of `gfa-to-tabix --format 1`): gfa-to-tabix's index of an rGFA or plain
+  GFA
 - **gbz-base database** (`.gbz.db`): the one source that takes GAF
   [reads](#reads)
 - **GFA** small enough to load whole: opens with **Add → Graph genome view**
@@ -30,16 +31,17 @@ covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 | Minigraph paths per assembly | `minigraph -cxasm --call`, then `gfa-to-tabix paths` (0.9.0+)                                            | one row per bubble and sample                                    |
 
 `gfa-to-tabix build` calls [gfatools](https://github.com/lh3/gfatools) for
-bubbles and writes `.segs.bed.gz`, `.links.bed.gz`, `.bubbles.bed.gz`,
-`.alleles.bed.gz`, a coarse tier, a `.graph.json` manifest and a track config.
-For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
+bubbles and writes `.graph.bed.gz`, `.bubbles.bed.gz`, `.alleles.bed.gz`, a
+coarse tier, a `.graph.json` manifest and a track config. For plain GFA, pass a
+VCF from `vg deconstruct -a` or `pggb -V`.
 
 ## Opening tracks
 
-- **File → Open track** opens a walk file (`.walks.bed.gz`), a segments index
-  (`.segs.bed.gz`) or a gbz-base database (`.gbz.db`) as a `GraphTrack`. It
-  finds the links and indexes beside the url, which a presigned url's signature
-  does not cover, so spell out each location in a config for those
+- **File → Open track** opens a walk file (`.walks.bed.gz`), a graph index
+  (`.graph.bed.gz` or `.segs.bed.gz`) or a gbz-base database (`.gbz.db`) as a
+  `GraphTrack`. It finds the links and indexes beside the url, which a presigned
+  url's signature does not cover, so spell out each location in a config for
+  those
 - **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
   tier and the reference's PanSN sample. Without it the track has no coarse tier
 - A walk file's name gives its reference sample: `chr22.GRCh38.walks.bed.gz`
@@ -67,14 +69,14 @@ For plain GFA, pass a VCF from `vg deconstruct -a` or `pggb -V`.
   `defaultHaplotypes` lists the haplotypes the track cuts for until you pick
   others. `WalkTabixSyntenyAdapter` takes the same `walksUri` and also opens in
   synteny, dotplot and circular views, a lane per haplotype
-- **Segments index:**
-  `{ "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc", "coarse": { "uri": "https://example.com/hprc.fold10000", "foldBelowBp": 10000 } }`
-  reads `<uri>.segs.bed.gz`, `<uri>.links.bed.gz` and their `.tbi`. Past
-  `aboveBpPerPx` (default `foldBelowBp / 10`) the track uses the `coarse` tier
-  (`gfa-to-tabix fold`)
-- **Format 2:** `"format": 2` beside `uri` reads `<uri>.graph.bed.gz`, the one
-  file `gfa-to-tabix --format 2` writes, and its `.tbi`. Its node rows carry a
-  plain GFA's carriers as bits, so a window reads a fraction of format 1's text
+- **Graph index:**
+  `{ "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc", "format": 2, "coarse": { "uri": "https://example.com/hprc.fold10000", "format": 2, "foldBelowBp": 10000 } }`
+  reads `<uri>.graph.bed.gz` and its `.tbi`. Past `aboveBpPerPx` (default
+  `foldBelowBp / 10`) the track uses the `coarse` tier (`gfa-to-tabix fold`)
+- gfa-to-tabix writes a plain GFA's carriers as bits in each format 2 node row,
+  so the track reads a fraction of format 1's text for a window
+- **Format 1:** leave out `"format"` to read `<uri>.segs.bed.gz`,
+  `<uri>.links.bed.gz` and their `.tbi`
 - **gbz-base:** `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`. An
   `hg38` or `hs1` track finds the GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names. A haplotype's lane draws on the
