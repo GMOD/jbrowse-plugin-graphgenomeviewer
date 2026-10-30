@@ -1,3 +1,9 @@
+## [8.3.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.5...v8.3.6) (2026-10-30)
+
+### Other Changes
+
+- A haplotype inside a deletion draws as a deletion row at the stack's foot ([011b58f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/011b58f623d4d961a866d6d5873ad37f349abd60))
+
 ## [8.3.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.4...v8.3.5) (2026-10-30)
 
 ### Other Changes
