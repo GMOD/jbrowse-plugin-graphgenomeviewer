@@ -1,3 +1,10 @@
+## [8.3.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.3...v8.3.4) (2026-10-30)
+
+### Other Changes
+
+- Bump deps ([8beae00](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8beae006a97c7e9d68cd38182302a91a763b683a))
+- Bump bandage-core to 12.3.0, which puts a gene's name above its pin where its node runs on under it ([db86063](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/db8606322ba7f138222fa2618fee0a51cd84fb5d))
+
 ## [8.3.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.2...v8.3.3) (2026-10-29)
 
 ### Other Changes
