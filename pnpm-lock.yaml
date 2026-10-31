@@ -30,8 +30,8 @@ importers:
         specifier: 5.0.0-beta.19
         version: 5.0.0-beta.19(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/graph-walks':
-        specifier: ^4.4.0
-        version: 4.4.0
+        specifier: ^4.6.0
+        version: 4.6.0
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.19
         version: 5.0.0-beta.19(react@19.3.1)
@@ -675,8 +675,8 @@ packages:
     resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-walks@4.4.0':
-    resolution: {integrity: sha512-WtrpuUjachNC1xC9ZIoh2/OVbfIQQ5O89xxXir82e5QtvuND8+dr4aD9w25k5oyj2lSgso4xGhWNorTeFVrvvg==}
+  '@jbrowse/graph-walks@4.6.0':
+    resolution: {integrity: sha512-haKxTI/qGQQc1NAhR2064XCq4miv1arvMDs2BcOd8iwus/Tno1A5xpbM/nqocXWfiEQ3OxtDb8aKR6lvMwV9Dw==}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@7.2.0':
@@ -4171,7 +4171,7 @@ snapshots:
 
   '@jbrowse/graph-stress-layout@1.0.0': {}
 
-  '@jbrowse/graph-walks@4.4.0': {}
+  '@jbrowse/graph-walks@4.6.0': {}
 
   '@jbrowse/jexl@7.2.0': {}
 
