@@ -855,12 +855,12 @@ async function orderLaneRowsByKey(page) {
       t => t.displays[0],
     )
     const graph = displays.find(d => d.type === 'LinearGraphDisplay')
+    const callsetRows = (sample, n) => [`${sample} HP${n - 1}`, sample]
+    // a beta.18 host names the callset display LinearMultiSampleVariantDisplay
     const spellings = {
       LinearMafDisplay: (sample, n) => [`${sample}.${n}`],
-      LinearMultiSampleVariantDisplay: (sample, n) => [
-        `${sample} HP${n - 1}`,
-        sample,
-      ],
+      LinearVariantDisplay: callsetRows,
+      LinearMultiSampleVariantDisplay: callsetRows,
     }
     for (const lane of displays) {
       const spell = spellings[lane.type]
@@ -888,7 +888,11 @@ function hoverCallsetCell(row) {
       (name, rowPx) => {
         const display = window.JBrowseSession.views[0].tracks
           .map(t => t.displays[0])
-          .find(d => d.type === 'LinearMultiSampleVariantDisplay')
+          .find(
+            d =>
+              d.type === 'LinearVariantDisplay' ||
+              d.type === 'LinearMultiSampleVariantDisplay',
+          )
         const r = document
           .querySelector('[data-testid="variant-display"]')
           .getBoundingClientRect()
