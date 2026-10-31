@@ -806,7 +806,21 @@ export const withLoadActions = withEngineSettings.actions(self => {
         const cut = (yield getSession(self).rpcManager.call(
           getRpcSessionId(self),
           'GetSubgraph',
-          { adapterConfig, region, opts, signal },
+          {
+            adapterConfig,
+            region,
+            opts,
+            signal,
+            // the cut itself reports nothing, but renaming its region first
+            // can download the adapter's refName index
+            statusCallback: status => {
+              if (isLive()) {
+                self.setStatusMessage(
+                  statusMessageText(status) ?? 'Fetching subgraph',
+                )
+              }
+            },
+          },
         )) as string | WalkCut
         if (!isLive()) {
           return
