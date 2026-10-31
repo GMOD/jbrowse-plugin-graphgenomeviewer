@@ -1,3 +1,13 @@
+## [8.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.4.0...v8.5.0) (2026-10-31)
+
+### Other Changes
+
+- Bump @jbrowse/* to 5.0.0-beta.19 ([a53a684](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a53a684b145a1f6811810315a420ff734b73919f))
+- Build through @jbrowse/core's hostShim, with beta.18 as an explicit floor ([38ed522](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/38ed522cd318b553d6764bab84d8539c18eb3397))
+- Fail a test on a contract report, through display-kit's contract gate ([c73588f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c73588f438b4365a175f54e187f64e0eb1bf338f))
+- Feed the cut's refName index download to the pane's status line ([fcd0a3d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fcd0a3d16ea9870ceb16e4a5e3dbb4424482ab4d))
+- Lint with display-kit's display rules, and make the components observers ([2b30988](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2b30988689f9ef867aa4b2b478e8af297ada1bae))
+
 ## [8.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.3.10...v8.4.0) (2026-10-30)
 
 ### Other Changes
