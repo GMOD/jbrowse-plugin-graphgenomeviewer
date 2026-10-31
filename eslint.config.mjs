@@ -1,9 +1,19 @@
 import eslint from '@eslint/js'
+import {
+  displayRestrictedSyntax,
+  noUseEffectEvent,
+  unobservedComponents,
+} from '@jbrowse/display-kit/conformance/lintRules'
 import { defineConfig } from 'eslint/config'
 import { importX } from 'eslint-plugin-import-x'
 import eslintPluginReact from 'eslint-plugin-react'
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
+
+const noSpreadArguments = {
+  selector: ':matches(CallExpression, NewExpression) > SpreadElement',
+  message: 'Spread arguments overflow the stack on big arrays; use a loop',
+}
 
 export default defineConfig(
   {
@@ -59,12 +69,10 @@ export default defineConfig(
       'no-restricted-globals': ['error', 'Buffer'],
       'no-restricted-syntax': [
         'error',
-        {
-          selector: ':matches(CallExpression, NewExpression) > SpreadElement',
-          message:
-            'Spread arguments overflow the stack on big arrays; use a loop',
-        },
+        noSpreadArguments,
+        ...displayRestrictedSyntax,
       ],
+      'no-restricted-imports': ['error', { paths: [noUseEffectEvent] }],
       'no-empty': 'off',
       'no-console': [
         'warn',
@@ -152,6 +160,17 @@ export default defineConfig(
           ignoreRestSiblings: true,
           caughtErrors: 'none',
         },
+      ],
+    },
+  },
+  {
+    files: ['**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        noSpreadArguments,
+        ...displayRestrictedSyntax,
+        ...unobservedComponents,
       ],
     },
   },
