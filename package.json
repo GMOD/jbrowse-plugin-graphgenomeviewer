@@ -65,6 +65,7 @@
     "@jbrowse/cli": "^4.3.0",
     "@jbrowse/mobx-state-tree": "^6.10.0",
     "@jbrowse/plugin-linear-genome-view": "5.0.0-beta.19",
+    "@jbrowse/plugin-variants": "5.0.0-beta.19",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
     "@mui/system": "^9.5.0",
