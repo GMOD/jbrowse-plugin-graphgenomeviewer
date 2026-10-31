@@ -1,3 +1,9 @@
+## [8.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.5.0...v8.6.0) (2026-10-31)
+
+### Other Changes
+
+- Take graph-walks 4.6.0, and draw a walk crossing the window as a deletion lane ([a33e999](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a33e999972dc74f6e81e34ffc6a013b0d5819b25))
+
 ## [8.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.4.0...v8.5.0) (2026-10-31)
 
 ### Other Changes
