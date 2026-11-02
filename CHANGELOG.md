@@ -1,3 +1,10 @@
+## [8.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.6.0...v8.7.0) (2026-11-02)
+
+### Other Changes
+
+- The forms menu attaches by track type, not the variant display's name ([c8b0505](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c8b0505821e0088e8c893f629565a3af55d5b403))
+- Figures find the callset lane under either variant display name; the name flip is a todo ([b2450f1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b2450f13f11d6cf959c664e008d688600aa04be9))
+
 ## [8.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.5.0...v8.6.0) (2026-10-31)
 
 ### Other Changes
