@@ -140,12 +140,12 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   one: HPRC's CAT annotation, or for HG002 RefSeq via JHU's Liftoff. CAT names
   each copy of a duplicated gene after the GRCh38 copy it projected, so
   HG00232#1's seven AMY1 copies read AMY1C five times
-- A haplotype whose deletion spans the whole window is a row of deletion where
-  the walk file has skip rows (gfa-to-tabix 1.5 and later, the HPRC `-f5s`
-  files). gfa-to-tabix writes them only in a chunk the deletion covers whole (64
-  kb by default), for a deletion up to about 2 Mb, so a window in the first or
-  last chunk a deletion touches, or under most deletions shorter than 128 kb,
-  gives that haplotype no row
+- A haplotype with no step on the reference across the whole window is a row
+  reading "no step on the reference" where the walk file has skip rows
+  (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files). gfa-to-tabix writes them
+  only in a chunk the skip covers whole (64 kb by default), for a skip up to
+  about 2 Mb, so a window in the first or last chunk a skip touches, or under
+  most skips shorter than 128 kb, gives that haplotype no row
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, an abridged bar ends in gold dashes, and **Load the abridged
@@ -180,14 +180,14 @@ and right-click a VCF 4.5 `<CNV:TR>` record.
 A `WalkTabixSyntenyAdapter` track's lanes display stacks a lane per haplotype
 under the reference, each in the haplotype's own coordinates.
 
-- A haplotype whose deletion spans the whole window gets a row at the foot of
-  the stack, headed with the deletion's length ("inside a 150 kb deletion").
-  JBrowse draws the row without coordinates or ribbons, below every haplotype
-  that carries the window's sequence
-- Skip rows give the row, so it opens where the window lies in a chunk the
-  deletion covers whole (64 kb by default), for a deletion up to about 2 Mb. A
-  window in the deletion's first or last chunk gets none
-- The adapter places the deletion on the haplotype's contig with a cut over the
-  node it leaves at, which reads that node's chunk and the chunk before it
+- A haplotype with no step on the reference across the whole window gets a row
+  at the foot of the stack, headed with the stretch's length ("no step on the
+  reference across 150 kb"). JBrowse draws the row without coordinates or
+  ribbons, below every haplotype that carries the window's sequence
+- Skip rows give the row, so it opens where the window lies in a chunk the skip
+  covers whole (64 kb by default), for a skip up to about 2 Mb. A window in the
+  skip's first or last chunk gets none
+- The adapter places the skip on the haplotype's contig with a cut over the node
+  it leaves at, which reads that node's chunk and the chunk before it
 - A haplotype that walks the window on another contig draws that contig instead
 - A walk file without skip rows opens no lane for such a haplotype
