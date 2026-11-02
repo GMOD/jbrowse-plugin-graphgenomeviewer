@@ -1,3 +1,9 @@
+## [8.7.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.0...v8.7.1) (2026-11-02)
+
+### Other Changes
+
+- Take bandage-core 12.6.2: no step on the reference, and pggb windows without false deletions ([a00b1af](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a00b1af3e88a3163412d699bef7776af91727e69))
+
 ## [8.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.6.0...v8.7.0) (2026-11-02)
 
 ### Other Changes
