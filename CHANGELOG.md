@@ -1,3 +1,13 @@
+## [8.7.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.1...v8.7.2) (2026-11-03)
+
+### Other Changes
+
+- A haplotype with no step on the reference, not a deletion row ([1404364](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1404364442c6781996b847550492c02a33642e70))
+- Open track replaces the pangenome add-track workflow; walk files open with lanes ([777e7c0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/777e7c01551c248958e3375439f533ed89b91971))
+- Offer the segments lane only on the rGFA adapter ([15c62fb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/15c62fb170e36424403b602cfc32919722b26e47))
+- Restore Add pangenome graph track; its walk files open with lanes ([9316630](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/93166301879cf53ff90442ed77e93f8fb179e6c4))
+- A walk file through Open track opens with the lanes adapter ([5615863](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5615863b1b506f5c6a0799f0ee2f1c48a15e0a7d))
+
 ## [8.7.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.0...v8.7.1) (2026-11-02)
 
 ### Other Changes
