@@ -1,3 +1,13 @@
+## [8.8.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.0...v8.8.1) (2026-11-03)
+
+### Other Changes
+
+- A plain GFA's track reads <prefix>.contig, with a contig-layout tier ([376a77c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/376a77cbda14079364b11affeebee3a480ec9079))
+- Move the key to the bottom left where the drawing runs under the top right ([762da98](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/762da9847a3a05f9e96c2ab370384f7df3bcda2a))
+- Rewrap the plain GFA bullet ([80f53b2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/80f53b2827d580639fde736cf2d43cb9ae203073))
+- Gfa-to-tabix 2.4.0 indexes a plain GFA in the contig layout at <prefix> ([0df0707](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0df0707f625ffb42736d91230eba7f7e69342096))
+- Start the hosted pan drag past a bottom-left key ([43af0ef](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/43af0ef803b77004d74c50c4cbe6e308283f9286))
+
 ## [8.8.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.2...v8.8.0) (2026-11-03)
 
 ### Other Changes
