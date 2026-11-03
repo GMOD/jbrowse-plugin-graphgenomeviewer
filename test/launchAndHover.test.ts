@@ -125,6 +125,8 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
             { refName: string; start: number; end: number } | undefined,
           recuts: d.recuts as number,
           effectiveColorScheme: d.effectiveColorScheme as string,
+          chosenLayoutMode: d.chosenLayoutMode as string,
+          chosenLayoutEngine: d.chosenLayoutEngine as string,
           hostPlacesX: d.hostPlacesX as boolean,
           hoveredNode: d.hoveredNode as string | null,
           hoverHighlight: d.hoverHighlight as unknown,
@@ -158,8 +160,11 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     expect(state.type).toBe('LinearGraphDisplay')
     expect(state.nodeCount).toBeGreaterThan(0)
     expect(state.cutRegion).toMatchObject({ refName: REF_NAME })
-    // an rGFA opens anchored, on the ramp the linear lanes can be painted with
-    expect(state.hostPlacesX).toBe(true)
+    // a track naming no layout opens force-directed under stress (ADR-046),
+    // on the ramp the linear lanes can be painted with
+    expect(state.chosenLayoutMode).toBe('force')
+    expect(state.chosenLayoutEngine).toBe('stress')
+    expect(state.hostPlacesX).toBe(false)
     expect(state.effectiveColorScheme).toBe('reference-position')
   })
 
