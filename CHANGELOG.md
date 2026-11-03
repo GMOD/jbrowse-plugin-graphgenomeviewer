@@ -1,3 +1,10 @@
+## [8.8.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.2...v8.8.0) (2026-11-03)
+
+### Other Changes
+
+- A graph track opens force-directed with the stress engine, and the engine is a track config slot ([3feb96f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3feb96fb1a1d6b30bec20d05cd472be5517a9cbe))
+- An rGFA track naming no layout opens force-directed under stress ([0b34369](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0b343697b8d4f66c1ba3f1b81220d218af121b4f))
+
 ## [8.7.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.7.1...v8.7.2) (2026-11-03)
 
 ### Other Changes
