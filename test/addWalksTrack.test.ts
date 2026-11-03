@@ -95,7 +95,7 @@ describe.skipIf(!runE2E)('a walk file added through Open track', () => {
     )
     expect(await openTrackState(page, VIEW)).toMatchObject({
       type: 'GraphTrack',
-      adapter: 'RgfaTabixAdapter',
+      adapter: 'WalkTabixSyntenyAdapter',
       assemblies: ['hg38'],
       display: 'LinearGraphDisplay',
     })
