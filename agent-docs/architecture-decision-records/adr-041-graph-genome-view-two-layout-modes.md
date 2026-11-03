@@ -10,7 +10,8 @@ summary:
 
 ## Status
 
-Accepted (2026-07). Covers the layout decisions in `plugins/graph`. The
+Accepted (2026-07). Covers the layout decisions in `plugins/graph`. The track's
+anchored default is amended by ADR-046, which opens it force-directed. The
 `adr-027` citations that used to stand in for this were stale (that ADR was
 removed in 9d8102f0b5) and have been dropped from the source.
 
