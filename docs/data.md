@@ -82,13 +82,14 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   `{ "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc", "format": 2, "coarse": { "uri": "https://example.com/hprc.fold10000", "format": 2, "foldBelowBp": 10000 } }`
   reads `<uri>.graph.bed.gz` and its `.tbi`. Past `aboveBpPerPx` (default
   `foldBelowBp / 10`) the track uses the `coarse` tier (`gfa-to-tabix fold`)
-- **Plain GFA (pggb, base-level Minigraph-Cactus):** point `uri` at
-  `<prefix>.contig` and fold the tier with `--layout contig`, as
-  `gfa-to-tabix build` 2.3.0 and later configure it. The bare `<prefix>` is the
-  anchored layout, which files a segment under every reference position its
-  branch spans. On pggb's collapsed repeats that is megabases, so a force layout
-  draws segments from across the chromosome in every window. An rGFA reads the
-  bare `<prefix>`
+- **Plain GFA (pggb, base-level Minigraph-Cactus):** `gfa-to-tabix build` 2.4.0
+  and later index it and fold its tier in the contig layout, so `uri` is
+  `<prefix>` as for an rGFA. An index from an earlier `build` has the anchored
+  layout at `<prefix>` and the contig layout at `<prefix>.contig`; point `uri`
+  at `<prefix>.contig` and refold the tier with `--layout contig`. The anchored
+  layout files a segment under every reference position its branch spans, which
+  on pggb's collapsed repeats is megabases, so a force layout draws segments
+  from across the chromosome in every window
 - gfa-to-tabix writes a plain GFA's carriers as bits in each format 2 node row,
   so the track reads a fraction of format 1's text for a window
 - **Format 1:** leave out `"format"` to read `<uri>.segs.bed.gz`,
