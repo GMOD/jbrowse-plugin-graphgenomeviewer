@@ -1,3 +1,9 @@
+## [8.8.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.1...v8.8.2) (2026-11-03)
+
+### Other Changes
+
+- Take bandage-core 12.7.1, which keeps the key clear of a line's halo ([8153701](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/815370133420a9201b291a417d47c7fd44561fb9))
+
 ## [8.8.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.0...v8.8.1) (2026-11-03)
 
 ### Other Changes
