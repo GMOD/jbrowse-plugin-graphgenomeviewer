@@ -41,14 +41,22 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 
 - **File → Open track** opens a walk file (`.walks.bed.gz`), a graph index
   (`.graph.bed.gz` or `.segs.bed.gz`) or a gbz-base database (`.gbz.db`) as a
-  `GraphTrack`. It finds the links and indexes beside the url, which a presigned
-  url's signature does not cover, so spell out each location in a config for
-  those
-- **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
-  tier and the reference's PanSN sample. Without it the track has no coarse tier
+  `GraphTrack`, and `gfa-to-tabix build`'s `.bubbles.bed.gz` as a bubbles track.
+  It finds the links and indexes beside the url, which a presigned url's
+  signature does not cover, so spell out each location in a config for those
+- A walk file opens as `WalkTabixSyntenyAdapter`: the graph, and from the track
+  menu a lane per haplotype. Pick **Indexed rGFA adapter** to open it without
+  lanes
 - A walk file's name gives its reference sample: `chr22.GRCh38.walks.bed.gz`
-  opened on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also
-  takes the haplotypes the track cuts for until you pick others
+  opened on `hg38` reads `hg38` as `GRCh38`
+- For `gfa-to-tabix build`'s output, paste the `tracks` of its
+  `<prefix>.config.json` into **Add track from pasted JSON**. That brings the
+  coarse tier, the alleles and the bubbles, which a graph index opened alone
+  lacks
+- A lane draws its haplotype's genes from a session assembly named
+  `sample.haplotype` (`HG00097.1`) or aliased by its PanSN name (`HG00097#1`),
+  with a gene track on that assembly. The track's own assembly is never read as
+  a haplotype
 
 ## Track config
 
@@ -82,7 +90,7 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 - **gbz-base:** `{ "type": "GbzBaseSyntenyAdapter", "uri": "….gbz.db" }`. An
   `hg38` or `hs1` track finds the GRCh38 or CHM13 reference sample, and
   `assemblyNameToPanSN` covers other names. A haplotype's lane draws on the
-  assembly aliased by its PanSN name (`HG002#1`) with no map entry
+  assembly named `HG002.1` or aliased `HG002#1` with no map entry
 - The track cuts the window plus a window each side, up to 5 Mb. Past the cut (5
   Mb, a walk file's `walkByteBudget` or a gbz-base `nodeLimit`) the track asks
   you to zoom in. For a wide window, add the graph's VCF as a variant track

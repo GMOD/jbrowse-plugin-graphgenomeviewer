@@ -6,7 +6,6 @@ import GbzBaseSyntenyAdapterF from './GbzBaseSyntenyAdapter/index'
 import GetGraphHaplotypes from './GetGraphHaplotypes'
 import GetGraphReads from './GetGraphReads'
 import GetSubgraph from './GetSubgraph'
-import GraphAddTrackWorkflowF from './GraphAddTrackWorkflow/index'
 import GraphComputeLayout from './GraphComputeLayout'
 import GraphGenomeViewF from './GraphGenomeView/index'
 import GraphTrackF from './GraphTrack/index'
@@ -44,7 +43,6 @@ export default class GraphGenomeViewPlugin extends Plugin {
     WalkTabixSyntenyAdapterF(pluginManager)
     WalkFormsAdapterF(pluginManager)
     WalkFormsMenuF(pluginManager)
-    GraphAddTrackWorkflowF(pluginManager)
     GraphTrackDefaultsF(pluginManager)
     PanSNAliasesF(pluginManager)
     pluginManager.addRpcMethod(() => new GraphComputeLayout(pluginManager))
