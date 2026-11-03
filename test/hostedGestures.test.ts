@@ -177,7 +177,11 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     const before = await state()
     const was = await display()
     const box = await boxOf(GRAPH_CANVAS)
-    await drag(box.x + 20, box.y + box.height - 50)
+    // on empty canvas near the bottom left, past the key when it sits there
+    const key = await boxOf(`${DISPLAY} [data-legend-corner="bottom-left"]`)
+      .then(k => k.x + k.width)
+      .catch(() => box.x)
+    await drag(key + 20, box.y + box.height - 50)
     await viewMoved('offsetPx', before.offsetPx)
     const after = await state()
     expect(after.translateX - before.translateX).toBeCloseTo(
