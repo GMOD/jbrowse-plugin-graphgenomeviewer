@@ -47,12 +47,11 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 - A walk file opens as `WalkTabixSyntenyAdapter`: the graph, and from the track
   menu a lane per haplotype. Pick **Indexed rGFA adapter** to open it without
   lanes
+- **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
+  tier and the reference's PanSN sample. Without it the track has no coarse tier
 - A walk file's name gives its reference sample: `chr22.GRCh38.walks.bed.gz`
-  opened on `hg38` reads `hg38` as `GRCh38`
-- For `gfa-to-tabix build`'s output, paste the `tracks` of its
-  `<prefix>.config.json` into **Add track from pasted JSON**. That brings the
-  coarse tier, the alleles and the bubbles, which a graph index opened alone
-  lacks
+  opened on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also
+  takes the haplotypes the track cuts for until you pick others
 - A lane draws its haplotype's genes from a session assembly named
   `sample.haplotype` (`HG00097.1`) or aliased by its PanSN name (`HG00097#1`),
   with a gene track on that assembly. The track's own assembly is never read as

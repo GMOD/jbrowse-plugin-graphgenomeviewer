@@ -121,13 +121,17 @@ persists `cutRegion` and `coarseCut`, so a restored session re-makes the cut it
 saved. The segments lane (`LinearBasicDisplay` on the same track) does not
 switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
-The slot comes from the track config `gfa-to-tabix build` writes as
-`<prefix>.config.json`, beside the graph, alleles and bubbles tracks; core's
-**Add track from pasted JSON** takes its `tracks` whole. Open track on a graph
-index alone gets no tier: the core adapter guesser is synchronous, so it cannot
-read `<prefix>.graph.json`. A plugin workflow that read the manifest was
-removed, since it added only the graph track and dropped the manifest's
-`bubbles` and `alleles`, which the pasted config keeps.
+The Add pangenome graph track workflow fills the slot from the
+`<prefix>.graph.json` manifest `gfa-to-tabix build` writes beside
+`<prefix>.segs.bed.gz`, or beside format 2's `<prefix>.graph.bed.gz`
+(`src/GraphAddTrackWorkflow/graphManifest.ts`). The tier the manifest names is
+read as a format 1 pair, which `gfa-to-tabix fold` writes. It takes `tier` and
+`reference` (the PanSN sample, used when the user leaves Sample blank). It adds
+only the graph track, since `addTrackFromWidget` takes one config; the
+manifest's `bubbles` and `alleles` go unused. A manifest that is missing,
+unreadable, not schema 1, or names anything but a bare sibling file is ignored.
+The core adapter guesser behind plain Open track is synchronous, so it cannot
+read the manifest.
 
 ## Height
 

@@ -4,8 +4,8 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import { buildAdapterConfig } from '../GraphAddTrackWorkflow/buildTrackConfig.ts'
 import { bubblePrefix } from '../GraphGenomeView/pane/paneBase.ts'
-import { buildAdapterConfig } from '../graphTrackDefaults/guessAdapter.ts'
 
 // gfa-to-tabix 1.5's anchored index of test_data/ecoli_pggb_subgraph.gfa on
 // K12, in format 1 (`pggb_ecoli_f1`, a segs/links pair) and format 2
@@ -112,6 +112,8 @@ test('Open track takes a format 2 graph file', () => {
     choice: 'RgfaTabixAdapter',
     loc,
     indexLoc: undefined,
+    assembly: 'hg38',
+    sample: 'GRCh38',
   })
   expect(adapter).toMatchObject({
     type: 'RgfaTabixAdapter',
@@ -119,6 +121,7 @@ test('Open track takes a format 2 graph file', () => {
     graphIndex: {
       location: { uri: 'https://example.com/hprc.graph.bed.gz.tbi' },
     },
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
   })
   expect(adapter).not.toHaveProperty('segmentsLocation')
   expect(bubblePrefix(adapter)).toBe('https://example.com/hprc')
