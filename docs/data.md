@@ -84,11 +84,11 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   `foldBelowBp / 10`) the track uses the `coarse` tier (`gfa-to-tabix fold`)
 - **Plain GFA (pggb, base-level Minigraph-Cactus):** point `uri` at
   `<prefix>.contig` and fold the tier with `--layout contig`, as
-  `gfa-to-tabix build` 2.3.0 and later configure it. The bare `<prefix>` is
-  the anchored layout, which files a segment under every reference position its
-  branch spans. On pggb's collapsed repeats that is megabases, so a force
-  layout draws segments from across the chromosome in every window. An rGFA
-  reads the bare `<prefix>`
+  `gfa-to-tabix build` 2.3.0 and later configure it. The bare `<prefix>` is the
+  anchored layout, which files a segment under every reference position its
+  branch spans. On pggb's collapsed repeats that is megabases, so a force layout
+  draws segments from across the chromosome in every window. An rGFA reads the
+  bare `<prefix>`
 - gfa-to-tabix writes a plain GFA's carriers as bits in each format 2 node row,
   so the track reads a fraction of format 1's text for a window
 - **Format 1:** leave out `"format"` to read `<uri>.segs.bed.gz`,
