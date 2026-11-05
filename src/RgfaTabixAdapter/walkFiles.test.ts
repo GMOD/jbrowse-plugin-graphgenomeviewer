@@ -409,21 +409,29 @@ test.each([
   ])
 })
 
-// bandage-core 13.0.0 reads a fragment that ends on the reference as a
-// contig that ends there, format 5's meaning; a format 6 fragment always
-// ends on it, so both rows read "contig ends inside the window". This fails
-// until bandage-core says otherwise, and then wants test in place of fails.
-test.fails(
-  'a walk that goes on past its last step on the cut is not read as a contig end',
-  async () => {
-    const rows = await partialRows(rejoinPrefix)
-    expect(rows.map(({ label, stop }) => [label, stop?.contigEnds])).toEqual([
-      ['HG002#2', undefined],
-      ['HG002#1', false],
-      ['HG003#1', false],
-    ])
-  },
-)
+// HG002#1 departs at its last step on the cut, and the cut read 300 bp of
+// HG003#1 past its own
+test('a walk that goes on past its last step on the cut is not read as a contig end', async () => {
+  const cut = (await makeAdapter(rejoinPrefix).getSubgraph(chr1(1000, 1500), {
+    walkRows: true,
+  })) as WalkCut
+  const { reference, rows } = walkRowsOf(cut.walkRowRuns!)
+  expect(
+    rows.map(row => [
+      row.label,
+      row.stop?.contigEnds,
+      walkRowReadout(row, reference),
+    ]),
+  ).toEqual([
+    ['HG002#2', undefined, '0.5 kb'],
+    ['HG002#1', false, '≥ 0.5 kb · goes on near chr1:4 kb · 4 kb of its own'],
+    [
+      'HG003#1',
+      false,
+      '≥ 0.5 kb · does not rejoin the reference within the extracted subgraph',
+    ],
+  ])
+})
 
 // WalkTabixSyntenyAdapter.test.ts's walks6_skipfollow: twenty 1 kb reference
 // nodes, HG002#1 >1>2>6>...>20 a departure from 2000 to 5000, one record
