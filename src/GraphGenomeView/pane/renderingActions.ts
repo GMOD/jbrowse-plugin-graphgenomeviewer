@@ -11,6 +11,7 @@ import {
   dependOn,
   paneViewportOf,
 } from './paneBase'
+import { EXPAND_NAMED_MAX } from '../../GetSubgraph'
 import {
   bubbleForLgvHover,
   hoverFromPair,
@@ -499,18 +500,29 @@ export const withRenderingActions = withLoadActions
     expandWalk(name: string) {
       self.expandWalks([name])
     },
-    // A lifted walk's key states its length, so the cut reads a lifted walk
-    // it abridged in full
+    // A lifted walk's key states its length, and a picked sample's row is
+    // drawn whole, so the cut reads such a walk it abridged in full
     afterAttach() {
       addDisposer(
         self,
         reaction(
           () => {
             const lifted = new Set(self.walkLayers.map(l => l.walk))
+            const picked = new Set(
+              self.chosenLayoutMode === 'walkrows' &&
+                (self.walkRowSamples?.length ?? 0) <= EXPAND_NAMED_MAX
+                ? self.walkRowSamples
+                : [],
+            )
             return [
               ...new Set(
                 (self.graph?.paths ?? [])
-                  .filter(p => p.abridged && lifted.has(p.name))
+                  .filter(
+                    p =>
+                      p.abridged &&
+                      (lifted.has(p.name) ||
+                        (p.sample !== undefined && picked.has(p.sample))),
+                  )
                   .map(p => p.name),
               ),
             ]
