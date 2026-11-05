@@ -7,6 +7,7 @@ import {
 import { wheelZoomFactor } from '@jbrowse/bandage-core/util/wheelZoom'
 import { screenToLayout } from '@jbrowse/bandage-core/viewport'
 import { isAlive } from '@jbrowse/mobx-state-tree'
+import { runInAction } from 'mobx'
 
 import { chipReadoutAt } from './LabelLayer'
 import { PANS_WITH_DRAWING } from './PaneLayer'
@@ -380,33 +381,35 @@ export function usePaneGestures(model: GraphPaneModel) {
     setHoveredChip(was =>
       was?.label === chip?.label && was?.readout === chip?.readout ? was : chip,
     )
-    if (model.walkRowBars) {
-      const i = model.walkRowAt(sx, sy)
-      model.setHoveredWalkRow(
-        i === undefined ? null : model.walkRowList[i]!.name,
-      )
-    }
-    if (model.nodePositions && model.graph) {
-      const node = nodeAt(sx, sy)
-      model.setHoveredPanel(model.tubeMapPanelAt(sy))
-      model.setHoveredNode(node, { x: sx, y: sy })
-      setOverDraggable(
-        node !== null &&
-          !model.hostPlacesX &&
-          !model.layoutResult?.tubeMap &&
-          sy >= model.referenceStripZonePx,
-      )
-      model.setHoveredTube(
-        node === null && model.layoutResult?.tubeMap
-          ? model.tubeAt(sx, sy)
-          : null,
-      )
-      model.setHoveredEdge(
-        node || model.layoutResult?.tubeMap || !model.hoverLightsEverything
-          ? null
-          : edgeAt(sx, sy),
-      )
-    }
+    runInAction(() => {
+      if (model.walkRowBars) {
+        const i = model.walkRowAt(sx, sy)
+        model.setHoveredWalkRow(
+          i === undefined ? null : model.walkRowList[i]!.name,
+        )
+      }
+      if (model.nodePositions && model.graph) {
+        const node = nodeAt(sx, sy)
+        model.setHoveredPanel(model.tubeMapPanelAt(sy))
+        model.setHoveredNode(node, { x: sx, y: sy })
+        setOverDraggable(
+          node !== null &&
+            !model.hostPlacesX &&
+            !model.layoutResult?.tubeMap &&
+            sy >= model.referenceStripZonePx,
+        )
+        model.setHoveredTube(
+          node === null && model.layoutResult?.tubeMap
+            ? model.tubeAt(sx, sy)
+            : null,
+        )
+        model.setHoveredEdge(
+          node || model.layoutResult?.tubeMap || !model.hoverLightsEverything
+            ? null
+            : edgeAt(sx, sy),
+        )
+      }
+    })
   }
 
   function scheduleFrame() {

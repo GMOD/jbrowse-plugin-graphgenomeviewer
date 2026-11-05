@@ -190,7 +190,7 @@ export const withRenderingActions = withLoadActions
               // a bubble track's feature, or a graph-derived VCF record,
               // names a whole bubble, which lights whatever the setting
               const bubble =
-                inRegion && bubbleForLgvHover(inRegion, self.bubbles)
+                inRegion && bubbleForLgvHover(inRegion, () => self.bubbles)
               if (region && graph && !self.pointerInPane) {
                 self.setHoveredBubble(bubble ?? null)
                 self.setHoveredNode(
@@ -216,7 +216,7 @@ export const withRenderingActions = withLoadActions
                 selected &&
                 region &&
                 hoverInRegion(selected, region) &&
-                bubbleForLgvHover(selected, self.bubbles)
+                bubbleForLgvHover(selected, () => self.bubbles)
               if (
                 bubble &&
                 !self.openBubbles.some(open => sameBubble(open, bubble))
