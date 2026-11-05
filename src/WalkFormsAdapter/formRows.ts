@@ -1,5 +1,6 @@
 import {
   NO_CALL_STATE,
+  OTHER_STATE,
   RARER_STATE,
   REFERENCE_STATE,
   formStateAt,
@@ -128,6 +129,8 @@ export function formWarnings(
   const { abridged, unplaced, forms } = result
   const shown = shownCount(result, maxForms)
   const rest = forms.slice(shown)
+  const other =
+    forms.slice(0, shown).find(f => f.key === OTHER_STATE)?.members ?? []
   return [
     ...(rest.length > 0
       ? [
@@ -144,10 +147,16 @@ export function formWarnings(
           `${haplotypeCount(unplaced.length)} ${unplaced.length === 1 ? 'has' : 'have'} no walk over the pinned window, so no form: ${names(unplaced)}`,
         ]
       : []),
+    ...(other.length > 0
+      ? [
+          `${haplotypeCount(other.length)} ${other.length === 1 ? 'fits' : 'fit'} no common form, so the "other" row states nothing of ${other.length === 1 ? 'it' : 'them'}: ${names(other)}`,
+        ]
+      : []),
   ]
 }
 
-// Genotype `0` in every form with a row of its own
+// Genotype `0` in every form with a row of its own but `other`, which
+// states nothing
 export function referenceGenotypes(
   result: StructuralForms,
   maxForms = DEFAULT_MAX_FORMS,
@@ -155,7 +164,7 @@ export function referenceGenotypes(
   return Object.fromEntries(
     result.forms
       .slice(0, shownCount(result, maxForms))
-      .map((_, j) => [formName(j), '0']),
+      .flatMap((f, j) => (f.key === OTHER_STATE ? [] : [[formName(j), '0']])),
   )
 }
 
@@ -191,8 +200,11 @@ const genotypeOf = (formState: string | undefined, state: string) =>
  * The marks of each changed state at a site that is not an edge, one variant
  * each, with genotype `1` in the forms in that state, `0` in the others and
  * `.` where a form has no call or only a rarer change. Only the forms with a
- * row of their own get a genotype, so the "other forms" row draws empty, and
- * a state none of them carries gives no variant.
+ * row of their own get a genotype, and the `other` form, which states
+ * nothing of its members, none, so its row and the "other forms" row draw
+ * empty; a state none of them carries gives no variant. A state key is
+ * matched whole, so a change keyed on its place, `-2000@4500`, is a variant
+ * apart from one of its size elsewhere.
  */
 export function formVariants(
   result: StructuralForms,
@@ -211,7 +223,11 @@ export function formVariants(
           const genotypes = Object.fromEntries(
             states
               .slice(0, shown)
-              .map((f, j) => [formName(j), genotypeOf(f, state.key)]),
+              .flatMap((f, j) =>
+                f === OTHER_STATE
+                  ? []
+                  : [[formName(j), genotypeOf(f, state.key)]],
+              ),
           )
           const carriers = sum(forms.filter((_, j) => states[j] === state.key))
           return Object.values(genotypes).includes('1')

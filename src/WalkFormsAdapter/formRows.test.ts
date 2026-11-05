@@ -35,7 +35,6 @@ const haplotype = (
   haplotype: name,
   covered,
   departures,
-  open: false,
 })
 
 const deletion = departure(1000, 3000, 0)
@@ -254,5 +253,53 @@ test('a state of several marks is a variant per mark, carried alike', () => {
     [1900, 3200, 'del 1.3kb', carriedBy('B#1')],
     [2000, 2600, 'del 600bp', carriedBy('A#1')],
     [2660, 2661, 'ins 900bp', carriedBy('A#1')],
+  ])
+})
+
+// D#1 alone is under minCarriers, and no common form fits it
+const placed = structuralForms(
+  [
+    haplotype('A#1', [departure(2000, 4000, 0)]),
+    haplotype('A#2', [departure(2000, 4000, 0)]),
+    haplotype('B#1', [departure(4500, 6500, 0)]),
+    haplotype('B#2', [departure(4500, 6500, 0)]),
+    haplotype('C#1', [departure(1500, 7000, 0)]),
+    haplotype('C#2', [departure(1500, 7000, 0)]),
+    haplotype('D#1', []),
+  ],
+  { window, minCarriers: 2 },
+)
+
+test('the other form states nothing of its members, so it has no genotype, not the reference', () => {
+  const other = formName(placed.forms.findIndex(f => f.members.includes('D#1')))
+  expect(formSources(placed).find(s => s.name === other)?.label).toBe(
+    '14% · other',
+  )
+  const variants = formVariants(placed)
+  expect(variants).toHaveLength(3)
+  expect(variants.every(v => !(other in v.genotypes))).toBe(true)
+  expect(other in referenceGenotypes(placed)).toBe(false)
+  expect(Object.keys(referenceGenotypes(placed))).toHaveLength(3)
+  expect(formWarnings(placed)).toEqual([
+    '1 haplotype fits no common form, so the "other" row states nothing of it: D#1',
+  ])
+})
+
+// one site over 1 kb holds all three changes, so each keys on its place
+test('a change keyed on its place is a variant apart from one of its size elsewhere', () => {
+  const carriedBy = (name: string) =>
+    formName(placed.forms.findIndex(f => f.members.includes(name)))
+  expect(
+    formVariants(placed).map(v => [
+      v.name,
+      v.start,
+      Object.entries(v.genotypes)
+        .filter(([, g]) => g === '1')
+        .map(([form]) => form),
+    ]),
+  ).toEqual([
+    ['del 2kb', 2000, [carriedBy('A#1')]],
+    ['del 2kb', 4500, [carriedBy('B#1')]],
+    ['del 5.5kb', 1500, [carriedBy('C#1')]],
   ])
 })
