@@ -252,10 +252,10 @@ each end's breakpoint and strand and how many times the reference passes its
 node, and the haplotype's own sequence between them, `hapStart` and `ownBp`, of
 which `missingBp` lies between the contig's W lines and is not in the graph.
 
-- A cut makes two reads, the window's chunks and the departure records over the
-  window and its context, and returns every departure over that stretch once as
-  `departures`. `WalkIndex.subgraph` hands them to the tables, whose
-  `departures` bandage-core 13 requires
+- A cut makes two reads, the chunks over the window and its context and the
+  departure records over the same stretch, and returns every departure over that
+  stretch once as `departures`. `WalkIndex.subgraph` hands them to the tables,
+  whose `departures` bandage-core 13 requires
 - A haplotype with no step over the window has no row in its chunks, only its
   departure. A walk row draws it as a stepless hairline under the stretch
   between the departure's ends, stating that stretch and its own bp; the lanes
@@ -267,12 +267,12 @@ which `missingBp` lies between the contig's W lines and is not in the graph.
   into it. graph-walks tags them `mv:i:1`, bandage-core draws them paler, and
   the hover says the component is too large to draw here
 
-- A cut reads whole chunks to the window's end. A node is filed under the chunk
-  holding its start, so the cut starts at the chunk before the window's own, or
-  at the chunk before a `#long` pass (a reference node longer than a chunk) that
-  overlaps the window, whichever is earlier. `getFeatures` reads from the same
-  start, and reads the reference rows. `anchoredCut`, the coarse tier and the
-  bubble halos read no anchor interval of a walk-indexed file
+- A cut reads whole chunks through the window and its context. A node is filed
+  under the chunk holding its start, so the cut starts at the chunk before the
+  context's own, or at the chunk before a `#long` pass (a reference node longer
+  than a chunk) that overlaps it, whichever is earlier. `getFeatures` reads from
+  the same start, and reads the reference rows. `anchoredCut`, the coarse tier
+  and the bubble halos read no anchor interval of a walk-indexed file
 - graph-walks decodes each chunk once: the reference's nodes with their
   positions, and the kept walks' steps. The cut's tables then place its nodes
   off the reference and list the links among its nodes, from the reference rows
@@ -291,9 +291,8 @@ Haplotypes menu's "Every haplotype in the graph" sets it, and a harness tracing
 a cut for every haplotype sets the same. A graph view opened from the track
 takes the set with it. The cut decodes only those walks and the reference's.
 Each fragment runs from its first to its last step on the reference inside the
-window plus 1 kb, as far as the chunks read reach. graph-walks 5 runs no
-fragment on through nodes other walks brought in, so a fragment does not depend
-on which other walks are cut.
+window plus 1 kb. graph-walks 5 runs no fragment on through nodes other walks
+brought in, so a fragment does not depend on which other walks are cut.
 
 Before format 1 went, format 2 was checked against gfa-to-tabix 0.11.0's format
 1 files of the same chr22 graph: 50 windows of 0.6-100 kb on GRCh38 and CHM13

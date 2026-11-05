@@ -338,8 +338,7 @@ test("a node longer than a chunk is read back as far as the header's maxnode rea
   expect(features.map(f => f.get('name'))).toContain('1')
   const gfa = await gfaOf(adapter.getSubgraph(region))
   expect(gfa).toMatch(/^S\t1\t/m)
-  // node 4, 3200-3800, is filed under chunk 3000, past the window's chunks
-  expect(gfa).toMatch(/^W\tGRCh38\t0\tchr1\t0\t3200\t>1>2(\t|$)/m)
+  expect(gfa).toMatch(/^W\tGRCh38\t0\tchr1\t0\t3800\t>1>2>4(\t|$)/m)
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
 })
 
@@ -426,18 +425,18 @@ test.fails(
   },
 )
 
-// gfa-to-tabix --walks --chunk 10 of ten 10 bp reference nodes:
-//   W GRCh38 0 chr1 >1>2>3>4>5>6>7>8>9>10
-//   W HG002  1 ctg  >1>2>9>10   a departure from 20 to 80, one record
-const skipPrefix = fixture('walks6_skip')
+// WalkTabixSyntenyAdapter.test.ts's walks6_skipfollow: twenty 1 kb reference
+// nodes, HG002#1 >1>2>6>...>20 a departure from 2000 to 5000, one record
+const departurePrefix = fixture('walks6_skipfollow')
 
 // HG002's departure runs under the whole of GRCh38's bar, flanks included
 test('a haplotype with no step over the window draws as a stepless row', async () => {
-  const cut = (await makeAdapter(skipPrefix).getSubgraph(chr1(31, 60), {
-    walkRows: true,
-  })) as WalkCut
+  const cut = (await makeAdapter(departurePrefix).getSubgraph(
+    chr1(3100, 3900),
+    { walkRows: true, haplotypes: ['HG002#1'] },
+  )) as WalkCut
   const { reference, rows } = walkRowsOf(cut.walkRowRuns!)
-  expect(reference.bp).toBe(40)
+  expect(reference.bp).toBe(1000)
   expect(
     rows.map(({ label, bp, gapBp, complete }) => ({
       label,
@@ -445,17 +444,17 @@ test('a haplotype with no step over the window draws as a stepless row', async (
       gapBp,
       complete,
     })),
-  ).toEqual([{ label: 'HG002#1', bp: 0, gapBp: 40, complete: true }])
+  ).toEqual([{ label: 'HG002#1', bp: 0, gapBp: 1000, complete: true }])
   expect(rows[0]!.stepless).toBe(true)
   expect(rows[0]!.runs).toEqual([
-    expect.objectContaining({ start: 0, bp: 40, cause: 'departure' }),
+    expect.objectContaining({ start: 0, bp: 1000, cause: 'departure' }),
   ])
   expect(walkRowReadout(rows[0]!, reference)).toBe(
-    'no step on GRCh38 across 60 bp · 0 bp of its own',
+    'no step on GRCh38 across 3 kb · 0 bp of its own',
   )
 })
 
-test("a cut reads the window's chunks and the departure records over its stretch, and no chunk a walk goes on in", async () => {
+test('a cut reads the chunks and the departure records over the window and its context, and no chunk a walk goes on in', async () => {
   const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
   await makeAdapter(followPrefix).getSubgraph(chr1(1000, 1500), {
     walkRows: true,
@@ -465,7 +464,7 @@ test("a cut reads the window's chunks and the departure records over its stretch
   )
   getLines.mockRestore()
   expect(reads.sort()).toEqual([
-    'GRCh38#0#chr1:0-1500',
+    'GRCh38#0#chr1:0-2500',
     'GRCh38#0#chr1~departure:0-3000',
   ])
 })
@@ -480,8 +479,8 @@ test("a gap between a walk's W lines reads as not in the graph, from its departu
   )) as WalkCut
   const { reference, rows } = walkRowsOf(cut.walkRowRuns!)
   expect(rows.map(row => [row.label, walkRowReadout(row, reference)])).toEqual([
-    ['HG002#1', '4.0 kb · 1.0 kb not in the graph'],
-    ['HG003#1', '4.0 kb'],
+    ['HG002#1', '3.0 kb · 1.0 kb not in the graph'],
+    ['HG003#1', '3.0 kb'],
   ])
 })
 

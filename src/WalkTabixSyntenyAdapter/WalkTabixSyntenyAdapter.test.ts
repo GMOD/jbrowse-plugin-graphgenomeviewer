@@ -285,14 +285,13 @@ const stepless = (lane: string, mate: string, strand: number) => ({
   strand,
   spansWindow: true,
 })
-// the cut reads the chunk before the window's and the window's, 2000-4000
 const walkingThrough = (lane: string) => ({
   lane,
   refName: 'chr1',
   start: 2000,
-  end: 4000,
-  mate: `${lane === 'HG003#1' ? 'ctg' : 'ctgB'}:2000-4000`,
-  cigar: '2000=',
+  end: 5000,
+  mate: `${lane === 'HG003#1' ? 'ctg' : 'ctgB'}:2000-5000`,
+  cigar: '3000=',
   strand: 1,
   spansWindow: undefined,
 })
@@ -358,7 +357,7 @@ test("a stepless lane reads nothing past the window's walk rows and its departur
   )
   getLines.mockRestore()
   expect(reads.sort()).toEqual([
-    'GRCh38#0#chr1:2000-3900',
+    'GRCh38#0#chr1:1000-4900',
     'GRCh38#0#chr1~departure:1100-5900',
   ])
 })
@@ -379,9 +378,9 @@ test('a departure read past its budget fails the lanes whole, with no zoom-in no
   spy.mockRestore()
 })
 
-// RgfaTabixAdapter/walkFiles.test.ts's walks6_skip: HG002#1 >1>2>9>10 over
-// ten 10 bp reference nodes in 10 bp chunks
-test("a named haplotype with no step over the window is a record of the stretch between its departure's ends", async () => {
+// walks6_skip: HG002#1 >1>2>9>10 over ten 10 bp reference nodes, a departure
+// from 20 to 80. Its steps on 0-20 and 80-100 lie in the window's context
+test('a haplotype with steps in the cut is drawn by its walk, not by its departure', async () => {
   const found = await firstValueFrom(
     makeAdapter({}, 'walks6_skip')
       .getFeatures(
@@ -390,18 +389,7 @@ test("a named haplotype with no step over the window is a record of the stretch 
       )
       .pipe(toArray()),
   )
-  expect(found.map(departureSummary)).toEqual([
-    {
-      lane: 'HG002#1',
-      refName: 'chr1',
-      start: 20,
-      end: 80,
-      mate: 'ctg:20-20',
-      cigar: undefined,
-      strand: 1,
-      spansWindow: true,
-    },
-  ])
+  expect(found.filter(f => f.get('spansWindow'))).toEqual([])
 })
 
 test('clipToRegion cuts a record to the window on both axes', async () => {
