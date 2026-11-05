@@ -31,8 +31,6 @@ The synteny adapters' shared dispatch waits on a call, in
   `Record<LayoutEngineKind, string>` would make a third engine a type error
 - Four group-into-a-Map loops: `tubeMapPanels.ts` 151, `walkRowGroups.ts` 103,
   `repeats/walkCalls.ts` 139, `launchFromGraph/contributors.ts` 105
-- The pane transform string repeats in `GenePins.tsx` 39 and `BubbleHalos.tsx`
-  30
 
 ## Adapters
 
