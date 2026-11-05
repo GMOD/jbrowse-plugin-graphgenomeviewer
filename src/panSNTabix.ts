@@ -13,6 +13,7 @@ import { types } from '@jbrowse/mobx-state-tree'
 import { WALKS_SUFFIX, locationIsSet, renamed } from './locationName.ts'
 import { bytesForRegions } from './tabixRange.ts'
 
+import type PluginManager from '@jbrowse/core/PluginManager'
 import type {
   BaseFeatureDataAdapter,
   BaseOptions,
@@ -88,6 +89,7 @@ export function openTabixSlot(
   index: string[],
 ) {
   const pm = adapter.pluginManager
+  /* eslint-disable @typescript-eslint/no-unsafe-argument -- a slot named by a runtime path reads as any */
   return new TabixIndexedFile({
     filehandle: openLocation(adapter.getConf(location), pm),
     ...openTabixIndexFilehandle(
@@ -96,6 +98,7 @@ export function openTabixSlot(
       pm,
     ),
   })
+  /* eslint-enable @typescript-eslint/no-unsafe-argument */
 }
 
 /**
@@ -103,10 +106,13 @@ export function openTabixSlot(
  * `walksIndex`, or from `<walksLocation>.idx` beside it where that slot is
  * unset
  */
-export function openWalkReader(adapter: BaseFeatureDataAdapter) {
+export function openWalkReader(adapter: {
+  pluginManager?: PluginManager
+  getConf(slot: 'walksLocation' | 'walksIndex'): FileLocation
+}) {
   const pm = adapter.pluginManager
-  const data: FileLocation = adapter.getConf('walksLocation')
-  const index: FileLocation = adapter.getConf('walksIndex')
+  const data = adapter.getConf('walksLocation')
+  const index = adapter.getConf('walksIndex')
   return WalkReader.fromFilehandles({
     data: openLocation(data, pm),
     directory: openLocation(
