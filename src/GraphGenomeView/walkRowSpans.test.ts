@@ -143,3 +143,20 @@ test('the spans state how far the longest row reaches', () => {
   expect(walkRowSpans(all, frame.scaleX).longest).toBe(3500)
   expect(walkRowSpans([], frame.scaleX).longest).toBe(1)
 })
+
+test("a stepless row's stretch draws as a hairline, its own sequence the cut did not read as a gap", () => {
+  const stepless = {
+    ...row('C', [
+      { start: 0, bp: 3000, onReference: false, gap: true, cause: 'departure' },
+    ]),
+    stepless: true as const,
+  }
+  const own = row('D', [
+    { start: 0, bp: 1000, onReference: true, referenceStart: 1000 },
+    { start: 1000, bp: 800, onReference: false, gap: true, cause: 'own' },
+    { start: 1800, bp: 2000, onReference: true, referenceStart: 2000 },
+  ])
+  const spans = walkRowSpans([stepless, own], frame.scaleX)
+  expect(spans.hairlines.count).toBe(1)
+  expect(spans.gaps.count).toBe(1)
+})

@@ -5,6 +5,7 @@ import {
   graphFromTables,
   graphTablesGFA,
 } from '@jbrowse/bandage-core/gfa/graphTables'
+import { walkRowReadout } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { WalkReader } from '@jbrowse/graph-walks'
@@ -18,13 +19,13 @@ import { EXPAND_NAMED_MAX } from './walkReader.ts'
 import type { WalkCut } from './walkCut.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 
-// chr22 of HPRC v2.1 at base level, one walk file per reference in walk
-// format 5, built under ~/work/scratch/walks-20261008/f5. Skipped where the
-// files are absent.
-const chr22 = '/home/cdiesh/work/scratch/walks-20261008/f5/chr22'
-const present = ['GRCh38', 'CHM13'].every(sample =>
-  existsSync(`${chr22}.${sample}.walks.bed.gz`),
-)
+// chr22 of HPRC v2.1 Minigraph-Cactus at base level in walk format 6, as
+// gfa-to-tabix 3.0's release check built it into gfa-to-tabix's
+// target/forms-check/rel3, one walk file per reference. Each test skips where
+// its file is absent.
+const chr22 = '/home/cdiesh/src/gfa-to-tabix/target/forms-check/rel3/mc22'
+const present = (sample: string) =>
+  existsSync(`${chr22}.${sample}.walks.bed.gz`)
 
 const fixture = (name: string) =>
   require
@@ -36,27 +37,27 @@ const fixture = (name: string) =>
 //   W HG002   1 chr1 >1>2>7>4>5>6   7 replaces 3
 //   W HG002   2 chr1 >1>2>3>4>8>6   8 replaces 5
 //   W HG00097 1 chr1 >1>2>3>4>5>6
-const headerPrefix = fixture('walks5_header')
+const headerPrefix = fixture('walks6_header')
 
-// walks5_header's walks with the reference named as pggb names a P-line,
+// walks6_header's walks with the reference named as pggb names a P-line,
 // GRCh38#chr1
-const twoPartPrefix = fixture('walks5_twopart')
+const twoPartPrefix = fixture('walks6_twopart')
 
 // An unchopped graph, node 1 spanning 0-2600 and filed under chunk 0 alone:
 //   W GRCh38 0 chr1 >1>2>4
 //   W HG002  1 chr1 >1>3>4   3 replaces 2
-const maxNodePrefix = fixture('walks5_maxnode')
+const maxNodePrefix = fixture('walks6_maxnode')
 
 // Twelve 500 bp reference nodes over chr1:0-6000 in one 10 kb chunk:
 //   W GRCh38  0 chr1 >1>2>3>4>5>6>7>8>9>10>11>12
 //   W HG002   1 chr1 >1>2>3>20>21>9>10>11>12   20 and 21, 2 kb each, replace 4-8
 //   W HG002   2 chr1 >1>2>3>4>5>6>7>8>9>10>11>12
 //   W HG003   1 chr1 >1>2>3>22                 the contig ends on 22, 300 bp
-const rejoinPrefix = fixture('walks5_rejoin')
+const rejoinPrefix = fixture('walks6_rejoin')
 
-// The same graph in 1 kb chunks, whose rows name the chunks their path goes on
-// in: HG002#1 leaves chunk 1000 for 20 and 21 and rejoins at 9, in chunk 4000
-const followPrefix = fixture('walks5_follow')
+// The same graph in 1 kb chunks: HG002#1 leaves the reference in chunk 1000
+// for 20 and 21 and rejoins it at 9, in chunk 4000, a departure record
+const followPrefix = fixture('walks6_follow')
 
 function makeAdapter(prefix: string, slots = {}) {
   const local = (path: string) => ({
@@ -99,7 +100,7 @@ const chr1 = (start: number, end: number) => ({
   end,
 })
 
-test.skipIf(!present)(
+test.skipIf(!present('GRCh38'))(
   'a walk-indexed cut carries a W line per haplotype',
   async () => {
     const gfa = await gfaOf(
@@ -114,7 +115,7 @@ test.skipIf(!present)(
   },
 )
 
-test.skipIf(!present)(
+test.skipIf(!present('GRCh38'))(
   'a cut for some haplotypes decodes those and the reference',
   async () => {
     const gfa = await gfaOf(
@@ -134,18 +135,21 @@ test.skipIf(!present)(
   },
 )
 
-test.skipIf(!present)('a CHM13 window cuts from its own file', async () => {
-  const gfa = await gfaOf(
-    makeAdapter(`${chr22}.CHM13`).getSubgraph(
-      { ...window, assemblyName: 'hs1' },
-      { haplotypes: ['HG002'] },
-    ),
-  )
-  expect(walkNames(gfa)).toContain('CHM13#0#chr22')
-  expect(walkNames(gfa)).toContain('HG002#1#chr22')
-})
+test.skipIf(!present('CHM13'))(
+  'a CHM13 window cuts from its own file',
+  async () => {
+    const gfa = await gfaOf(
+      makeAdapter(`${chr22}.CHM13`).getSubgraph(
+        { ...window, assemblyName: 'hs1' },
+        { haplotypes: ['HG002'] },
+      ),
+    )
+    expect(walkNames(gfa)).toContain('CHM13#0#chr22')
+    expect(walkNames(gfa)).toContain('HG002#1#chr22')
+  },
+)
 
-test.skipIf(!present)(
+test.skipIf(!present('GRCh38'))(
   "chr22's haplotypes come from its walk file's header",
   async () => {
     const names = (await makeAdapter(`${chr22}.GRCh38`).getHaplotypeNames())!
@@ -155,7 +159,7 @@ test.skipIf(!present)(
   },
 )
 
-test.skipIf(!present)(
+test.skipIf(!present('GRCh38'))(
   'the densest chunk is past the step budget for every haplotype',
   async () => {
     const cut = makeAdapter(`${chr22}.GRCh38`, {
@@ -275,10 +279,16 @@ test('a cut for some haplotypes keeps a reference walk named without a haplotype
   ])
 })
 
-test('a format 1 walk file is refused, with what to rebuild it with', async () => {
-  const cut = makeAdapter(fixture('walks1_header')).getSubgraph(chr1(0, 600))
-  await expect(cut).rejects.toThrow(/rebuild it with gfa-to-tabix 1.4/)
-})
+test.each(['walks1_header', 'walks5_header'])(
+  'an earlier format, %s, is refused with what to rebuild it with',
+  async name => {
+    const cut = makeAdapter(fixture(name)).getSubgraph(chr1(0, 600))
+    await expect(cut).rejects.toMatchObject({
+      name: 'WalkFormatError',
+      message: expect.stringMatching(/rebuild it with gfa-to-tabix 3.0/),
+    })
+  },
+)
 
 test('a cut over walkByteBudget reads no row', async () => {
   const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
@@ -328,7 +338,8 @@ test("a node longer than a chunk is read back as far as the header's maxnode rea
   expect(features.map(f => f.get('name'))).toContain('1')
   const gfa = await gfaOf(adapter.getSubgraph(region))
   expect(gfa).toMatch(/^S\t1\t/m)
-  expect(gfa).toMatch(/^W\tGRCh38\t0\tchr1\t0\t3800\t>1>2>4(\t|$)/m)
+  // node 4, 3200-3800, is filed under chunk 3000, past the window's chunks
+  expect(gfa).toMatch(/^W\tGRCh38\t0\tchr1\t0\t3200\t>1>2(\t|$)/m)
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG002#1#chr1'])
 })
 
@@ -360,32 +371,68 @@ test('getFeatures reads from the chunk before the window', async () => {
   getLines.mockRestore()
 })
 
-test('a walk leaving the window is measured to where it rejoins the reference', async () => {
-  const cut = (await makeAdapter(rejoinPrefix).getSubgraph(chr1(1000, 1500), {
+// HG002#1's departure leaves 1500 and rejoins 4000, past the cut's
+// stretch, through 4 kb of nodes 20 and 21; HG003#1's contig goes on 300 bp
+// off the reference and ends
+const partialRows = async (prefix: string) => {
+  const cut = (await makeAdapter(prefix).getSubgraph(chr1(1000, 1500), {
     walkRows: true,
   })) as WalkCut
-  const rows = walkRowsOf(cut.walkRowRuns!).rows.map(
-    ({ label, bp, complete, stop }) => ({ label, bp, complete, stop }),
-  )
-  expect(rows).toEqual([
-    { label: 'HG002#1', bp: 4500, complete: true, stop: undefined },
-    { label: 'HG002#2', bp: 500, complete: true, stop: undefined },
+  return walkRowsOf(cut.walkRowRuns!).rows
+}
+
+test.each([
+  ['in one chunk', rejoinPrefix],
+  ['in chunks of its own', followPrefix],
+])('a walk leaving the window states its departure, %s', async (_, prefix) => {
+  const rows = await partialRows(prefix)
+  expect(
+    rows.map(({ label, bp, complete, departures }) => ({
+      label,
+      bp,
+      complete,
+      departures: departures?.map(d => [
+        d.leavePos,
+        d.rejoinPos,
+        d.hapStart,
+        d.ownBp,
+      ]),
+    })),
+  ).toEqual([
+    { label: 'HG002#2', bp: 500, complete: true, departures: undefined },
     {
-      label: 'HG003#1',
-      bp: 800,
+      label: 'HG002#1',
+      bp: 500,
       complete: false,
-      stop: { contigEnds: false, shortBp: 0 },
+      departures: [[1500, 4000, 1500, 4000]],
     },
+    { label: 'HG003#1', bp: 500, complete: false, departures: undefined },
   ])
 })
 
-// gfa-to-tabix 1.5 --walks --chunk 10 of ten 10 bp reference nodes:
-//   W GRCh38 0 chr1 >1>2>3>4>5>6>7>8>9>10
-//   W HG002  1 ctg  >1>2>9>10   a deletion of 20-80, whose chunks hold skip rows
-const skipPrefix = fixture('walks5_skip')
+// bandage-core 13.0.0 reads a fragment that ends on the reference as a
+// contig that ends there, format 5's meaning; a format 6 fragment always
+// ends on it, so both rows read "contig ends inside the window". This fails
+// until bandage-core says otherwise, and then wants test in place of fails.
+test.fails(
+  'a walk that goes on past its last step on the cut is not read as a contig end',
+  async () => {
+    const rows = await partialRows(rejoinPrefix)
+    expect(rows.map(({ label, stop }) => [label, stop?.contigEnds])).toEqual([
+      ['HG002#2', undefined],
+      ['HG002#1', false],
+      ['HG003#1', false],
+    ])
+  },
+)
 
-// HG002's deletion runs under the whole of GRCh38's bar, flanks included
-test('a haplotype that jumps over the window draws as a deletion row', async () => {
+// gfa-to-tabix --walks --chunk 10 of ten 10 bp reference nodes:
+//   W GRCh38 0 chr1 >1>2>3>4>5>6>7>8>9>10
+//   W HG002  1 ctg  >1>2>9>10   a departure from 20 to 80, one record
+const skipPrefix = fixture('walks6_skip')
+
+// HG002's departure runs under the whole of GRCh38's bar, flanks included
+test('a haplotype with no step over the window draws as a stepless row', async () => {
   const cut = (await makeAdapter(skipPrefix).getSubgraph(chr1(31, 60), {
     walkRows: true,
   })) as WalkCut
@@ -399,28 +446,43 @@ test('a haplotype that jumps over the window draws as a deletion row', async () 
       complete,
     })),
   ).toEqual([{ label: 'HG002#1', bp: 0, gapBp: 40, complete: true }])
+  expect(rows[0]!.stepless).toBe(true)
   expect(rows[0]!.runs).toEqual([
-    expect.objectContaining({ start: 0, bp: 40, cause: 'deleted' }),
+    expect.objectContaining({ start: 0, bp: 40, cause: 'departure' }),
+  ])
+  expect(walkRowReadout(rows[0]!, reference)).toBe(
+    'no step on GRCh38 across 60 bp · 0 bp of its own',
+  )
+})
+
+test("a cut reads the window's chunks and the departure records over its stretch, and no chunk a walk goes on in", async () => {
+  const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
+  await makeAdapter(followPrefix).getSubgraph(chr1(1000, 1500), {
+    walkRows: true,
+  })
+  const reads = getLines.mock.calls.map(
+    call => `${call[0]}:${call[1]}-${call[2]}`,
+  )
+  getLines.mockRestore()
+  expect(reads.sort()).toEqual([
+    'GRCh38#0#chr1:0-1500',
+    'GRCh38#0#chr1~departure:0-3000',
   ])
 })
 
-test('a walk the read cuts off is read on to the chunk its row names', async () => {
-  const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
-  const cut = (await makeAdapter(followPrefix).getSubgraph(chr1(1000, 1500), {
-    walkRows: true,
-  })) as WalkCut
-  const reads = getLines.mock.calls.map(call => [call[1], call[2]])
-  getLines.mockRestore()
-  const rows = walkRowsOf(cut.walkRowRuns!).rows.map(
-    ({ label, bp, complete }) => ({ label, bp, complete }),
-  )
-  expect(rows).toEqual([
-    { label: 'HG002#1', bp: 4500, complete: true },
-    { label: 'HG002#2', bp: 500, complete: true },
-    { label: 'HG003#1', bp: 800, complete: false },
+// walkRowsGap.test.ts's graph: HG002's contig has W lines 0-2000 >1>2 and
+// 3000-5000 >4>5, so its departure record leaves 2000 and rejoins 3000 with
+// 1 kb of its own, all between the W lines
+test("a gap between a walk's W lines reads as not in the graph, from its departure record", async () => {
+  const cut = (await makeAdapter(fixture('walks6_gap')).getSubgraph(
+    chr1(1500, 3500),
+    { walkRows: true },
+  )) as WalkCut
+  const { reference, rows } = walkRowsOf(cut.walkRowRuns!)
+  expect(rows.map(row => [row.label, walkRowReadout(row, reference)])).toEqual([
+    ['HG002#1', '4.0 kb · 1.0 kb not in the graph'],
+    ['HG003#1', '4.0 kb'],
   ])
-  // the window's chunks, then on to chunk 4000; HG003#1's contig ends
-  expect(new Set(reads.map(String))).toEqual(new Set(['0,1500', '2000,4001']))
 })
 
 test('a cut on a signal already aborted reads no row', async () => {

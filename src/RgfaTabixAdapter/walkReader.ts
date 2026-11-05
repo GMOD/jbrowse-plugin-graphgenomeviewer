@@ -18,7 +18,7 @@ export const BUDGET_SLOTS = {
 }
 
 // Walk rows read a list of haplotypes, or of the samples they show, this long or
-// shorter in full where format 5 abridged it; a longer list, or every
+// shorter in full where the walk file abridged it; a longer list, or every
 // haplotype, keeps the abridged rows
 export const EXPAND_NAMED_MAX = 64
 
@@ -56,10 +56,11 @@ export class WalkIndex {
 
   /**
    * The graph display's cut of a window: the reference walk, the walks of
-   * `haplotypes` (every walk when unset), and the nodes and links they visit,
-   * with the haplotypes whose deletion spans the window as `skips`, which walk
-   * rows draw. Walk rows draw runs, so the step budget spares them, and read a
-   * short list of named walks in full where format 5 abridged them.
+   * `haplotypes` (every walk when unset), the nodes and links they visit,
+   * and every departure from the reference over the window, which walk rows
+   * draw for a haplotype with no step there. Walk rows draw runs, so the step
+   * budget spares them, and read a short list of named walks in full where
+   * the walk file abridged them.
    */
   async subgraph(
     refName: string,
@@ -93,7 +94,7 @@ export class WalkIndex {
     const asked = expand?.length
       ? (name: string) => expand.includes(name)
       : undefined
-    const { graph, kept, fragments, skips } = await this.reader.cut(
+    const { graph, kept, fragments, departures } = await this.reader.cut(
       refName,
       region,
       {
@@ -109,7 +110,11 @@ export class WalkIndex {
           : {}),
       },
     )
-    return walkCutFor(graph.tables(kept, fragments, skips), region, walkRows)
+    return walkCutFor(
+      graph.tables(kept, fragments, departures),
+      region,
+      walkRows,
+    )
   }
 
   /**

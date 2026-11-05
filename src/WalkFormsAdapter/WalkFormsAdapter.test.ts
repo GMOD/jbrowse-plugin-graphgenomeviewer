@@ -21,7 +21,7 @@ vi.mock('@jbrowse/graph-walks', async importOriginal => {
 //   W HG002   2 chr1 >1>2>3>4>8>6   8 (20 bp) replaces 5
 //   W HG00097 1 chr1 >1>2>3>4>5>6
 const walks =
-  require.resolve('../RgfaTabixAdapter/test_data/walks5_header.GRCh38.walks.bed.gz')
+  require.resolve('../RgfaTabixAdapter/test_data/walks6_header.GRCh38.walks.bed.gz')
 
 const local = (path: string) => ({
   localPath: path,

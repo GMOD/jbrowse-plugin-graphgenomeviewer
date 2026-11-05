@@ -109,8 +109,8 @@ export const withWalkRowViews = withLaunchViews
       if (!bars || !self.showGenes) {
         return undefined
       }
-      const notDeleted = bars.rows.filter(row => row.deletionBp === undefined)
-      const reads = notDeleted.flatMap(row => {
+      const stepped = bars.rows.filter(row => !row.stepless)
+      const reads = stepped.flatMap(row => {
         const location = row.axis ? self.rowLocation(row, row.axis) : undefined
         const assembly = location?.assembly
         const track = assembly
@@ -126,11 +126,11 @@ export const withWalkRowViews = withLaunchViews
             ]
           : []
       })
-      const unplaced = notDeleted.filter(row => !row.axis).length
+      const unplaced = stepped.filter(row => !row.axis).length
       return {
         reads: reads.slice(0, WALK_GENE_ROWS),
         gaps: {
-          untracked: notDeleted.length - unplaced - reads.length,
+          untracked: stepped.length - unplaced - reads.length,
           unplaced,
           unread: Math.max(0, reads.length - WALK_GENE_ROWS),
         },

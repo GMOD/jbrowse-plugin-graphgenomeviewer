@@ -7,8 +7,8 @@ import type { Graph } from '@jbrowse/bandage-core/types'
 
 /**
  * The Graph a walk-rows cut parses to: nodes with their depth over every
- * walk, links, and the reference walk, with every other walk named and
- * stepless. The rows come from the cut's runs, so no object per step is
+ * walk, links, the reference walk, with every other walk named and
+ * stepless, and the cut's departures. The rows come from the cut's runs, so no object per step is
  * built for them; a layout that draws nodes parses the cut whole.
  */
 export function walkRowsGraph(
@@ -29,6 +29,7 @@ export function walkRowsGraph(
       steps: w.steps.subarray(0, first),
       reversed: w.reversed.subarray(0, first),
     },
+    departures: cut.departures,
   }
   const graph = loadGraph(light, name, { referencePath })
   const depth = new Int32Array(cut.nodes.names.length)

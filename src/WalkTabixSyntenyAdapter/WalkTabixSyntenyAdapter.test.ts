@@ -5,7 +5,7 @@ import { walkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import PluginManager from '@jbrowse/core/PluginManager'
 import { readConfObject } from '@jbrowse/core/configuration'
-import { WalkReader } from '@jbrowse/graph-walks'
+import { DepartureReadError, WalkReader } from '@jbrowse/graph-walks'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -36,7 +36,7 @@ const fixture = (name: string) =>
 
 function makeAdapter(
   slots: Record<string, unknown> = {},
-  name = 'walks5_header',
+  name = 'walks6_header',
 ) {
   const local = (path: string) => ({
     localPath: path,
@@ -113,7 +113,7 @@ test('a fetch for some haplotypes answers those lanes in the order asked, named 
 })
 
 test('a fetch for some haplotypes reads them against a reference walk named without a haplotype', async () => {
-  const found = await feats(makeAdapter({}, 'walks5_twopart'), {
+  const found = await feats(makeAdapter({}, 'walks6_twopart'), {
     haplotypes: ['HG002#1'],
   })
   expect(found.map(summary)).toEqual([
@@ -174,7 +174,7 @@ test('a batch of lane pairs answers each pair what it answers alone', async () =
   expect(batch).toHaveLength(2)
 })
 
-// walks5_lanepairs, a 5.5 kb reference of 2 kb flanks around three 500 bp
+// walks6_lanepairs, a 5.5 kb reference of 2 kb flanks around three 500 bp
 // nodes, in 1 kb chunks:
 //   W GRCh38  0 chr1 >1>2>3>4>5
 //   W HG002   1 chr1 >1>2>3>4>5
@@ -182,7 +182,7 @@ test('a batch of lane pairs answers each pair what it answers alone', async () =
 //   W HG00097 1 chr1 >1>2>6>2>6>2>3>4>5   2 three times, 6 a 30 bp spacer
 test('a lane pair matches through a copy-number array, and draws an inversion between the lanes as a reverse-strand record', async () => {
   const found = await firstValueFrom(
-    makeAdapter({}, 'walks5_lanepairs')
+    makeAdapter({}, 'walks6_lanepairs')
       .getFeatures(
         { ...window, end: 5500 },
         {
@@ -250,30 +250,32 @@ test('a window on a haplotype lane answers nothing', async () => {
 })
 
 // gfa-to-tabix --walks --chunk 1000 of twenty 1 kb reference nodes; every
-// haplotype but HG003 skips 2000-5000, so chunks 2000-4000 hold skip rows:
+// haplotype but HG003 leaves the reference at 2000 and rejoins it at 5000,
+// one departure record each:
 //   W GRCh38 0      chr1 >1>2>3>...>20
 //   W HG002  1      ctg  >1>2>6>...>20
 //   W HG004  1      ctg  <20<...<6<2<1     the same walk backwards
 //   W HG003  1      ctg  >1>2>3>...>20
 //   W HG007  1      ctg  >1>2>6>...>20     a W line starting at 100,000
-//   W HG005  1      ctg  >1>2>99>6>...>20  500 bp of node 99 in the gap,
-//                                          a crossing when chunk 1000 is read
-const skipWindow = { ...window, start: 3100, end: 3900 }
-const skipFeats = (
+//   W HG005  1      ctg  >1>2>99>6>...>20  500 bp of node 99 its own
+//   W HG009  1      ctgA >1>2>6>...>20
+//   W HG009  1      ctgB >1>2>3>...>20     walks the window on another contig
+const departureWindow = { ...window, start: 3100, end: 3900 }
+const departureFeats = (
   opts: Record<string, unknown> = {},
-  name = 'walks5_skipfollow',
+  name = 'walks6_skipfollow',
 ) =>
   firstValueFrom(
     makeAdapter({}, name)
-      .getFeaturesInMultipleRegions([skipWindow], opts as never)
+      .getFeaturesInMultipleRegions([departureWindow], opts as never)
       .pipe(toArray()),
   )
-const skipSummary = (f: { get: (k: string) => unknown }) => ({
+const departureSummary = (f: { get: (k: string) => unknown }) => ({
   ...summary(f),
   strand: f.get('strand'),
   spansWindow: f.get('spansWindow'),
 })
-const deletion = (lane: string, mate: string, strand: number) => ({
+const stepless = (lane: string, mate: string, strand: number) => ({
   lane,
   refName: 'chr1',
   start: 2000,
@@ -283,107 +285,112 @@ const deletion = (lane: string, mate: string, strand: number) => ({
   strand,
   spansWindow: true,
 })
-const crossings = [
-  deletion('HG002#1', 'ctg:2000-2000', 1),
-  deletion('HG004#1', 'ctg:15000-15000', -1),
-  deletion('HG007#1', 'ctg:102000-102000', 1),
-]
-const ownSteps = deletion('HG005#1', 'ctg:2000-2500', 1)
+// the cut reads the chunk before the window's and the window's, 2000-4000
+const walkingThrough = (lane: string) => ({
+  lane,
+  refName: 'chr1',
+  start: 2000,
+  end: 4000,
+  mate: `${lane === 'HG003#1' ? 'ctg' : 'ctgB'}:2000-4000`,
+  cigar: '2000=',
+  strand: 1,
+  spansWindow: undefined,
+})
+const ownSequence = stepless('HG005#1', 'ctg:2000-2500', 1)
 
-test('a haplotype whose deletion spans the window is one spansWindow record of the whole deletion, its mate where it crosses', async () => {
-  const found = await skipFeats()
-  expect(found.map(skipSummary)).toEqual([
-    {
-      lane: 'HG003#1',
-      refName: 'chr1',
-      start: 2000,
-      end: 5000,
-      mate: 'ctg:2000-5000',
-      cigar: '3000=',
-      strand: 1,
-      spansWindow: undefined,
-    },
-    ownSteps,
-    ...crossings,
+test('a haplotype with no step over the window is one spansWindow record of its departure, its mate the own sequence between the ends', async () => {
+  const found = await departureFeats()
+  expect(found.map(departureSummary)).toEqual([
+    walkingThrough('HG003#1'),
+    walkingThrough('HG009#1'),
+    stepless('HG002#1', 'ctg:2000-2000', 1),
+    stepless('HG004#1', 'ctg:15000-15000', -1),
+    ownSequence,
+    stepless('HG007#1', 'ctg:102000-102000', 1),
   ])
-  expect(found[1]!.get('identity')).toBeUndefined()
+  const own = found.find(f => mateOf(f).assemblyName === 'HG005#1')!
+  expect(own.get('identity')).toBeUndefined()
+  expect(own.get('type')).toBe('departure')
+  expect(own.get('ownBp')).toBe(500)
+  expect(own.get('placementChoice')).toBe(false)
 })
 
-test("the display's clip passes a deletion through whole, so its extent is the deletion's length", async () => {
-  const found = await skipFeats({
+test("a departure record's mate is the same whichever other lanes are read", async () => {
+  const alone = await departureFeats({ haplotypes: ['HG005'] })
+  expect(alone.map(departureSummary)).toEqual([ownSequence])
+})
+
+test("the display's clip passes a departure record through whole, so its extent is the stretch between the ends", async () => {
+  const found = await departureFeats({
     haplotypes: ['HG002'],
     clipToRegion: true,
     splitAtGapBp: 10_000,
   })
-  expect(found.map(skipSummary)).toEqual([crossings[0]])
-})
-
-test('a walk passing the node it leaves at inverted still crosses after it', async () => {
-  const found = await skipFeats({ haplotypes: ['HG008'] }, 'walks5_skipinv')
-  expect(found.map(skipSummary)).toEqual([
-    deletion('HG008#1', 'ctg:2000-2000', 1),
+  expect(found.map(departureSummary)).toEqual([
+    stepless('HG002#1', 'ctg:2000-2000', 1),
   ])
 })
 
-test('a skipping haplotype outside the lanes asked for opens no lane', async () => {
-  const found = await skipFeats({ haplotypes: ['HG003'] })
+// HG008 leaves node 1 forward for node 2 backward, then leaves node 2's
+// start backward for node 6 forward: W HG008 1 ctg >1<2>6>...>20
+test('a departure whose ends run on different strands is on neither, each end stating its own', async () => {
+  const found = await departureFeats(
+    { haplotypes: ['HG008'] },
+    'walks6_skipinv',
+  )
+  expect(found.map(departureSummary)).toEqual([
+    { ...stepless('HG008#1', 'ctg:2000-2000', 0), start: 1000 },
+  ])
+  expect(found[0]!.get('leaveStrand')).toBe(-1)
+  expect(found[0]!.get('rejoinStrand')).toBe(1)
+})
+
+test('a stepless haplotype outside the lanes asked for opens no lane', async () => {
+  const found = await departureFeats({ haplotypes: ['HG003'] })
   expect(found.map(f => mateOf(f).assemblyName)).toEqual(['HG003#1'])
 })
 
-test('the crossing cut reads only the chunks before the node a haplotype leaves', async () => {
+test("a stepless lane reads nothing past the window's walk rows and its departure records", async () => {
   const getLines = vi.spyOn(TabixIndexedFile.prototype, 'getLines')
-  await skipFeats({ haplotypes: ['HG002'] })
-  const reads = getLines.mock.calls.map(call => `${call[1]}-${call[2]}`)
+  await departureFeats({ haplotypes: ['HG002'] })
+  const reads = getLines.mock.calls.map(
+    call => `${call[0]}:${call[1]}-${call[2]}`,
+  )
   getLines.mockRestore()
-  expect(reads.at(-1)).toBe('0-2000')
+  expect(reads.sort()).toEqual([
+    'GRCh38#0#chr1:2000-3900',
+    'GRCh38#0#chr1~departure:1100-5900',
+  ])
 })
 
-test('a haplotype whose leaving node the cut lacks is crossed from the node it rejoins', async () => {
-  const cut = WalkReader.prototype.cut
-  const spy = vi
-    .spyOn(WalkReader.prototype, 'cut')
-    .mockImplementation(async function (
-      this: WalkReader,
-      refName,
-      region,
-      opts,
-    ) {
-      const found = await cut.call(this, refName, region, opts)
-      return opts?.contained && region.end === 2000
-        ? { ...found, fragments: [] }
-        : found
-    })
-  const found = await skipFeats()
-  spy.mockRestore()
-  expect(found.slice(1).map(skipSummary)).toEqual([ownSteps, ...crossings])
-})
-
-test('a failed crossing cut drops only its own lanes', async () => {
+test('a departure read past its budget fails the lanes whole, with no zoom-in notice', async () => {
   const cut = WalkReader.prototype.cut
   const spy = vi
     .spyOn(WalkReader.prototype, 'cut')
     .mockImplementation(function (this: WalkReader, refName, region, opts) {
-      return opts?.contained
-        ? Promise.reject(new Error('no such chunk'))
-        : cut.call(this, refName, region, opts)
+      return cut.call(this, refName, region, {
+        ...opts,
+        departureByteBudget: 1,
+      })
     })
-  const found = await skipFeats()
+  const found = departureFeats()
+  await expect(found).rejects.toBeInstanceOf(DepartureReadError)
+  await expect(found).rejects.not.toMatchObject({ name: 'NodeLimitError' })
   spy.mockRestore()
-  expect(found.map(f => mateOf(f).assemblyName)).toEqual(['HG003#1', 'HG005#1'])
 })
 
-// RgfaTabixAdapter/walkFiles.test.ts's walks5_skip: HG002#1 >1>2>9>10 over
+// RgfaTabixAdapter/walkFiles.test.ts's walks6_skip: HG002#1 >1>2>9>10 over
 // ten 10 bp reference nodes in 10 bp chunks
-test('a named haplotype skipping the window is a deletion of the skipped stretch', async () => {
+test("a named haplotype with no step over the window is a record of the stretch between its departure's ends", async () => {
   const found = await firstValueFrom(
-    makeAdapter({}, 'walks5_skip')
+    makeAdapter({}, 'walks6_skip')
       .getFeatures(
         { ...window, start: 31, end: 60 },
         { haplotypes: ['HG002#1'] },
       )
       .pipe(toArray()),
   )
-  expect(found.map(skipSummary)).toEqual([
+  expect(found.map(departureSummary)).toEqual([
     {
       lane: 'HG002#1',
       refName: 'chr1',
@@ -532,6 +539,7 @@ const repeatNodes = new Map(
       start: id * 1000,
       end: id * 1000 + (id === 4 ? 30 : 500),
       rank: 0,
+      passes: 1,
       onWindow: true,
     },
   ]),
@@ -543,8 +551,10 @@ const fragment = (name: string, steps: [number, number][]) => ({
   hapEnd: 0,
   ids: Int32Array.from(steps, ([id]) => id),
   rev: Uint8Array.from(steps, ([, rev]) => rev),
-  before: { kind: 'end' as const },
-  after: { kind: 'end' as const },
+  refStarts: new Float64Array(steps.length).fill(Number.NaN),
+  against: new Uint8Array(steps.length),
+  trimmedBefore: 0,
+  trimmedAfter: 0,
 })
 const cigar = (edits: [string, number][]) =>
   edits.map(([op, len]) => `${len}${op}`).join('')
@@ -613,6 +623,7 @@ const inversionNodes = new Map(
       start: id * 10_000,
       end: id * 10_000 + (id === 1 || id === 5 ? 2000 : 500),
       rank: 0,
+      passes: 1,
       onWindow: true,
     },
   ]),
@@ -673,6 +684,7 @@ const largeInversionNodes = new Map(
       start: id * 100_000,
       end: id * 100_000 + (id === 1 || id === 5 ? 20_000 : 5000),
       rank: 0,
+      passes: 1,
       onWindow: true,
     },
   ]),
@@ -704,7 +716,7 @@ test('a walk turned against the reference for 10 kb or more gains a reverse-stra
 //   W HG00097 1 chr1 >1>2>3>4>5
 test('the anchor window answers a haplotype turned against the reference with a reverse-strand record of the turned stretch', async () => {
   const records = await firstValueFrom(
-    makeAdapter({}, 'walks5_inversion')
+    makeAdapter({}, 'walks6_inversion')
       .getFeatures({ ...window, end: 55_000 }, {})
       .pipe(toArray()),
   )
