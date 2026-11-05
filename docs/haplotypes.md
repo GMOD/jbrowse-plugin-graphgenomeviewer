@@ -140,12 +140,19 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   one: HPRC's CAT annotation, or for HG002 RefSeq via JHU's Liftoff. CAT names
   each copy of a duplicated gene after the GRCh38 copy it projected, so
   HG00232#1's seven AMY1 copies read AMY1C five times
-- A haplotype with no step on the reference across the whole window is a row
-  reading "no step on the reference" where the walk file has skip rows
-  (gfa-to-tabix 1.5 and later, the HPRC `-f5s` files). gfa-to-tabix writes them
-  only in a chunk the skip covers whole (64 kb by default), for a skip up to
-  about 2 Mb, so a window in the first or last chunk a skip touches, or under
-  most skips shorter than 128 kb, gives that haplotype no row
+- A haplotype with no step on the reference across the whole window is a
+  hairline row stating its departure from the reference: "no step on GRCh38
+  across 54 kb · 120 kb of its own", the reference between the two ends and the
+  haplotype's own sequence between them. The walk file records every departure,
+  so every window gives such a haplotype its row
+- A gap between two pieces of a bar says what the departures inside it state:
+  "not in the graph" for sequence between the contig's W lines, "of its own, not
+  read", or "on nodes filed near chr22:20.3 Mb", where the walk rejoins the
+  reference
+- A row with a departure end on a node the reference passes more than once adds
+  "placement choice": the walk file chose which pass the step takes, so the
+  departure is where it put the step, not a jump the haplotype makes. The walk
+  file's header counts such nodes as `revisited`
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, an abridged bar ends in gold dashes, and **Load the abridged
@@ -181,13 +188,15 @@ A `WalkTabixSyntenyAdapter` track's lanes display stacks a lane per haplotype
 under the reference, each in the haplotype's own coordinates.
 
 - A haplotype with no step on the reference across the whole window gets a row
-  at the foot of the stack, headed with the stretch's length ("no step on the
-  reference across 150 kb"). JBrowse draws the row without coordinates or
-  ribbons, below every haplotype that carries the window's sequence
-- Skip rows give the row, so it opens where the window lies in a chunk the skip
-  covers whole (64 kb by default), for a skip up to about 2 Mb. A window in the
-  skip's first or last chunk gets none
-- The adapter places the skip on the haplotype's contig with a cut over the node
-  it leaves at, which reads that node's chunk and the chunk before it
+  at the foot of the stack, headed with the length of the reference between its
+  departure's two ends ("no step on the reference across 150 kb"). JBrowse draws
+  the row without coordinates or ribbons, below every haplotype that carries the
+  window's sequence
+- The row's record lies on the haplotype's contig at its own sequence between
+  the ends, from the departure record. Each end states its strand: the record is
+  on the minus strand where both ends run against the reference, and on neither
+  where they differ
 - A haplotype that walks the window on another contig draws that contig instead
-- A walk file without skip rows opens no lane for such a haplotype
+- A window whose departure records are too many to read, as at a collapsed
+  repeat that haplotypes hop between the copies of, shows that error rather than
+  a zoom-in notice, since zooming in does not shrink that read

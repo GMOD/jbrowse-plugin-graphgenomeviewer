@@ -25,6 +25,8 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  *   many to read in full errors instead
  * - The largest `maxForms` forms get a row each, labelled by share and largest
  *   change ("66% · del 18.4kb"); the rest share one empty "other forms" row
+ * - Haplotypes no common form fits make the `other` form, labelled "other",
+ *   which states nothing of them, so its row draws empty too
  * - A variant's `consequence` is `loss`, `gain`, `shift`, `inversion` or
  *   `net`, for colouring the cells; `svType` and `type` follow core's names
  * - `walksUri` takes the prefix of one reference's walk file and resolves
@@ -34,7 +36,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * ```js
  * {
  *   type: 'WalkFormsAdapter',
- *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+ *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38',
  *   pinned: { refName: 'chr1', start: 109680000, end: 109715000 },
  *   exclude: ['CHM13'],
  * }
@@ -45,7 +47,7 @@ const WalkFormsAdapter = ConfigurationSchema(
   {
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 5
+     * a `gfa-to-tabix --walks` file in walk format 6
      */
     walksLocation: fileLocationSlot('/path/to/graph.walks.bed.gz'),
     /**

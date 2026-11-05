@@ -36,8 +36,8 @@ short.
    }
    ```
 
-2. Write a walk file from a base-level GFA with W or P lines
-   (`vg convert -f graph.gbz` writes one):
+2. Write a walk file with gfa-to-tabix 3.0 or later from a base-level GFA with W
+   or P lines (`vg convert -f graph.gbz` writes one):
 
    ```console
    gfa-to-tabix chr22.gfa --walks --refs GRCh38 -o chr22

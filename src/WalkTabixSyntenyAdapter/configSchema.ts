@@ -25,14 +25,16 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  *
  * `walksUri` takes the prefix of one reference's walk file, `<prefix>.<sample>`,
  * and resolves `<walksUri>.walks.bed.gz` and its `.tbi`. The adapter reads walk
- * format 5, which gfa-to-tabix writes from 1.4, through @jbrowse/graph-walks.
- * Only a window on the anchor is answered.
+ * format 6, which gfa-to-tabix writes from 3.0, through @jbrowse/graph-walks.
+ * Only a window on the anchor is answered. A haplotype with no step over the
+ * window is one record of the reference stretch between its departure's
+ * breakpoints, its mate the haplotype's own sequence between them.
  *
  * #example
  * ```js
  * {
  *   type: 'WalkTabixSyntenyAdapter',
- *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+ *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38',
  *   assemblyNames: ['hg38'],
  *   assemblyNameToPanSN: { hg38: 'GRCh38' },
  * }
@@ -56,7 +58,7 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 5
+     * a `gfa-to-tabix --walks` file in walk format 6
      */
     walksLocation: fileLocationSlot('/path/to/graph.walks.bed.gz'),
     /**

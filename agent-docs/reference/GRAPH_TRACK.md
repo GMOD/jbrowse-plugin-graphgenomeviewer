@@ -219,7 +219,7 @@ gbz-base's `haplotypeOverview` are untouched; a 5.x session's
 ## Walk-indexed cuts
 
 A walk-indexed `RgfaTabixAdapter` names a walk file, `walksLocation`, which
-`gfa-to-tabix --walks` (1.4 or later) writes one per reference sample as
+`gfa-to-tabix --walks` (3.0 or later) writes one per reference sample as
 `<prefix>.<sample>.walks.bed.gz`. `walksUri` names it and its `.tbi` by
 `<prefix>.<sample>`, in place of `uri`, and the track names the file for its
 assembly's reference:
@@ -232,7 +232,7 @@ assembly's reference:
   assemblyNames: ['hg38'],
   adapter: {
     type: 'RgfaTabixAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38',
     assemblyNameToPanSN: { hg38: 'GRCh38' },
     defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
   },
@@ -241,19 +241,27 @@ assembly's reference:
 
 [@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) reads and cuts the
 file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
-format 5 (`format:i:5` on the header's `#walks` line; the converter's
-`docs/walks-format.md`) and asks for a rebuild of a file in any other format. A
+format 6 (`format:i:6` on the header's `#walks` line; the converter's
+`docs/walks-format.md`) and asks for a rebuild of a file in an earlier format. A
 chunk lists the reference's path through it once, each distinct route a
 haplotype takes off that path once, the lengths of the nodes those routes visit,
-and each path piece as the routes it takes. A record's first and last pieces
-also give the bp to the contig's record before and after, which the graph lacks,
-so a walk row can say which of a gap's bases are not in the graph.
+and each path piece as the routes it takes. Every place a path's consecutive
+steps on the reference are not adjacent there is a `departure` record, filed
+under the sequence's `~departure` sibling over the stretch between its ends:
+each end's breakpoint and strand and how many times the reference passes its
+node, and the haplotype's own sequence between them, `hapStart` and `ownBp`, of
+which `missingBp` lies between the contig's W lines and is not in the graph.
 
-- A haplotype whose deletion spans the window has no row in its chunks.
-  gfa-to-tabix 1.5 writes a `skip` row there instead, graph-walks returns it as
-  the cut's `skips`, and `WalkIndex.subgraph` hands them to the tables. A walk
-  row then draws the haplotype as a hairline gap, cause `deleted`, under the
-  stretch it leaves out, where before it had no row
+- A cut makes two reads, the window's chunks and the departure records over the
+  window and its context, and returns every departure over that stretch once as
+  `departures`. `WalkIndex.subgraph` hands them to the tables, whose
+  `departures` bandage-core 13 requires
+- A haplotype with no step over the window has no row in its chunks, only its
+  departure. A walk row draws it as a stepless hairline under the stretch
+  between the departure's ends, stating that stretch and its own bp; the lanes
+  display gives it a record of that stretch whose mate is its own sequence
+- A departure end on a node the reference passes more than once is the writer's
+  placement choice (`placementChoice`), and walk rows say so
 - gfa-to-tabix 1.5's `--max-component` leaves a component over the limit on its
   own coordinates, so an anchored cut reaches only its ends, through the links
   into it. graph-walks tags them `mv:i:1`, bandage-core draws them paler, and
@@ -283,8 +291,9 @@ Haplotypes menu's "Every haplotype in the graph" sets it, and a harness tracing
 a cut for every haplotype sets the same. A graph view opened from the track
 takes the set with it. The cut decodes only those walks and the reference's.
 Each fragment runs from its first to its last step on the reference inside the
-window plus 1 kb, then on outward while the next node is already in the cut, so
-an allele straddling the edge draws every walk that crosses it.
+window plus 1 kb, as far as the chunks read reach. graph-walks 5 runs no
+fragment on through nodes other walks brought in, so a fragment does not depend
+on which other walks are cut.
 
 Before format 1 went, format 2 was checked against gfa-to-tabix 0.11.0's format
 1 files of the same chr22 graph: 50 windows of 0.6-100 kb on GRCh38 and CHM13
@@ -294,24 +303,20 @@ read. graph-walks keeps the four fixture graphs' format 1 cuts as goldens.
 
 ### Walks that leave the window
 
-A walk that leaves the reference inside the window, through steps off it or
-across a deletion, is followed to the reference step where it rejoins
-(`walkCut`), and the reference walk is cut out as far as those rejoins reach.
-gfa-to-tabix files a step off the reference with the reference step before it,
-so an excursion leaving inside the window is in the read; its rejoin is too
-unless it lies in a chunk past the read. A walk that never rejoins keeps the
-steps off the reference the read holds.
+A walk that leaves the reference inside the window ends its fragment at its last
+step on the cut's stretch, and its departure record says where it rejoins and
+how much sequence of its own lies between. graph-walks attaches a departure's
+own steps up to 64 kb of them, so an insertion or replacement at the window's
+edge draws whole. Nothing is followed, so a row's length no longer depends on
+the walks cut beside it.
 
-From gfa-to-tabix 0.6.0 each walk row ends with `pv:i:`/`nx:i:`, the chunk its
-path's previous and next piece is filed under. A walk the read cuts off with no
-reference step to rejoin at reads on to that chunk, the reference between
-included, up to four chunks out, three rounds and the byte budget
-(`WalkReader.cut`). A contig that ends has no tag and is not followed; 0.5.0
-files have no tags and are not followed either. The tags add 0.8% to the chr22
-walk file, and the node and link files are byte-identical.
+Format 5 had no departure records. graph-walks 4 followed a walk that left the
+window to the reference step where it rejoined (`walkCut`'s run-on), and from
+gfa-to-tabix 0.6.0 read on to the chunk a walk row's `pv:i:`/`nx:i:` tags named,
+up to four chunks out in three rounds. What follows measures that route.
 
-Measured 2026-10-09, every haplotype, rows over the window against gbz-base's
-`walkRows` (bp and complete), both on bandage-core 8.2.0:
+Measured 2026-10-09 under format 5, every haplotype, rows over the window
+against gbz-base's `walkRows` (bp and complete), both on bandage-core 8.2.0:
 
 | where                                    | before    | rejoin in the read | and follow (0.6.0 files) |
 | ---------------------------------------- | --------- | ------------------ | ------------------------ |
@@ -453,7 +458,7 @@ track carries both displays with no gbz-base database:
   assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
   adapter: {
     type: 'WalkTabixSyntenyAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38',
     assemblyNames: ['hg38'],
     assemblyNameToPanSN: {
       hg38: 'GRCh38#0',

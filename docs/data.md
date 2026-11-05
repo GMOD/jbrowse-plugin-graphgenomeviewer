@@ -4,10 +4,9 @@ A graph track reads one window of a graph at a time. Use a walk file where you
 can:
 
 - **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
-  format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
-  from 1.4. From 1.5 it adds skip rows, which name each haplotype with no step
-  on the reference across a whole chunk (64 kb by default); HPRC's `-f5s` files
-  have them
+  format 6, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
+  from 3.0, with a record of every departure from the reference. They refuse an
+  earlier format, asking for a rebuild; HPRC's `-f6` files are format 6
 - **Graph index** (`.graph.bed.gz`, or the `.segs.bed.gz` and `.links.bed.gz`
   pair of `gfa-to-tabix --format 1`): gfa-to-tabix's index of an rGFA or plain
   GFA
@@ -23,7 +22,7 @@ covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 
 | Data                         | Commands                                                                                                 | Adapter                                                          |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (1.4+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
+| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (3.0+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
 | rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                                      | `RgfaTabixAdapter`                                               |
 | Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                                   | `RgfaTabixAdapter`                                               |
 | Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index         | alignments track                                                 |
@@ -67,7 +66,7 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "RgfaTabixAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38",
     "assemblyNameToPanSN": { "hg38": "GRCh38" },
     "defaultHaplotypes": ["HG002", "HG00733"]
   }
@@ -112,7 +111,7 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "WalkFormsAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38",
     "pinned": { "refName": "chr1", "start": 109680000, "end": 109715000 },
     "exclude": ["CHM13"]
   },
@@ -153,6 +152,8 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   CHM13 as a haplotype
 - `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
   the rest share an empty "other forms" row
+- Haplotypes that no common form fits make the form labelled "other", which
+  states nothing of them, so its row draws empty and a notification names them
 - A row label names the form's largest change in graph-walks' tokens, such as
   `del 18.4kb`, `del 6.46kb->94bp`, `repl 32.7kb->58.7kb`, `shift 94.2kb` or
   `ref`, and "+N" counts its other changes, which the variants under it name.
@@ -161,7 +162,7 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   over it shows an error naming how much of the window fits
 - The adapter reads every abridged walk in full. A window whose walks would take
   more than graph-walks' 16 M step budget shows an error naming how much of it
-  fits; the MHC's 90 kb take 9.4 M steps
+  fits
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
   `inversion` or `net`, which `encoding.color` paints with a key. A replacement
   counts as a loss or gain by its net change. graph-walks labels one whose

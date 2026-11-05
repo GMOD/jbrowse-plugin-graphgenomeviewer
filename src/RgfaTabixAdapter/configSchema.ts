@@ -34,10 +34,11 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `walksUri` takes the prefix of a walk file in place of `uri`, and resolves
  * `<walksUri>.walks.bed.gz` and its `.tbi`. `gfa-to-tabix --walks -o <prefix>`
  * writes one per reference sample, so a track names one as
- * `<prefix>.<sample>`. The adapter reads walk format 5, which gfa-to-tabix
- * writes from 1.4, through @jbrowse/graph-walks. Such a graph's cut carries
- * the haplotypes' walks, and `defaultHaplotypes` names the ones it is cut for
- * until the user picks others.
+ * `<prefix>.<sample>`. The adapter reads walk format 6, which gfa-to-tabix
+ * writes from 3.0, through @jbrowse/graph-walks, and refuses an earlier
+ * format, asking for a rebuild. Such a graph's cut carries the haplotypes'
+ * walks and their departures from the reference, and `defaultHaplotypes`
+ * names the ones it is cut for until the user picks others.
  *
  * #example
  * ```js
@@ -52,7 +53,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * ```js
  * {
  *   type: 'RgfaTabixAdapter',
- *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+ *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f6.GRCh38',
  *   assemblyNameToPanSN: { hg38: 'GRCh38' },
  *   defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
  * }
@@ -195,9 +196,11 @@ const RgfaTabixAdapter = ConfigurationSchema(
     graphIndex: tabixIndexSchema('RgfaGraphIndex'),
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 5: per reference chunk,
+     * a `gfa-to-tabix --walks` file in walk format 6: per reference chunk,
      * the reference's path, the ways haplotypes leave it and each haplotype's
-     * piece. Unset means the graph has no walks.
+     * piece, and a departure record wherever a haplotype's consecutive steps
+     * on the reference are not adjacent there. Unset means the graph has no
+     * walks.
      */
     walksLocation: fileLocationSlot(''),
     /**
