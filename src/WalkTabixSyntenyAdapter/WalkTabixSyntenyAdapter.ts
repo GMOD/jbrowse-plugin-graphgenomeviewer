@@ -33,8 +33,21 @@ import type { LaneFeatureOptions, LanePair } from '../synteny/lanePairs.ts'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
+import type { WalkFragment, WalkNode } from '@jbrowse/graph-walks'
 
 const haplotypeOf = ({ name }: { name: string }) => panSNHaplotype(name) ?? name
+
+// Whether a fragment has a step on the reference inside the window
+function stepsOnWindow(
+  { ids, refStarts }: WalkFragment,
+  nodes: Map<number, WalkNode>,
+  { start, end }: { start: number; end: number },
+) {
+  return refStarts.some((at, i) => {
+    const node = nodes.get(ids[i]!)
+    return node !== undefined && at < end && at + node.end - node.start > start
+  })
+}
 
 export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<WalkTabixSyntenyAdapterConfig> {
   private readonly walks: WalkIndex = new WalkIndex(
@@ -185,8 +198,12 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
         ? 0
         : prefixes.findIndex(prefix => panSNMatchesPrefix(name, prefix))
     // NA19036#1 has no step on the IGL locus on one contig and walks it on
-    // another
-    const walking = new Set(fragments.map(haplotypeOf))
+    // another; a step in the window's context alone does not walk it
+    const walking = new Set(
+      fragments
+        .filter(fragment => stepsOnWindow(fragment, graph.nodes, region))
+        .map(haplotypeOf),
+    )
     const align = anchorAligner(graph.nodes)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const laneOf = (walk: { name: string }) =>

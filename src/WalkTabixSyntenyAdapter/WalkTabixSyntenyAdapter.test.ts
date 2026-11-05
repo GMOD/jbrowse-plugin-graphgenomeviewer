@@ -380,7 +380,7 @@ test('a departure read past its budget fails the lanes whole, with no zoom-in no
 
 // walks6_skip: HG002#1 >1>2>9>10 over ten 10 bp reference nodes, a departure
 // from 20 to 80. Its steps on 0-20 and 80-100 lie in the window's context
-test('a haplotype with steps in the cut is drawn by its walk, not by its departure', async () => {
+test("a haplotype with steps in the window's context alone still gets its departure record", async () => {
   const found = await firstValueFrom(
     makeAdapter({}, 'walks6_skip')
       .getFeatures(
@@ -389,7 +389,18 @@ test('a haplotype with steps in the cut is drawn by its walk, not by its departu
       )
       .pipe(toArray()),
   )
-  expect(found.filter(f => f.get('spansWindow'))).toEqual([])
+  expect(found.map(departureSummary)).toEqual([
+    {
+      lane: 'HG002#1',
+      refName: 'chr1',
+      start: 20,
+      end: 80,
+      mate: 'ctg:20-20',
+      cigar: undefined,
+      strand: 1,
+      spansWindow: true,
+    },
+  ])
 })
 
 test('clipToRegion cuts a record to the window on both axes', async () => {
