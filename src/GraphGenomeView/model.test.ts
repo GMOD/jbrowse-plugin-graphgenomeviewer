@@ -29,6 +29,7 @@ import { LAUNCH_LABEL, resolveSubMenu } from '@jbrowse/core/ui'
 import {
   applyPatch,
   applySnapshot,
+  destroy,
   getSnapshot,
   types,
 } from '@jbrowse/mobx-state-tree'
@@ -569,6 +570,97 @@ describe('performance instrumentation', () => {
     model.stopLoad()
     runs[0]!('stopped')
     expect(model.statusMessage).toBe('')
+  })
+
+  // each GraphComputeLayout call held, to be answered by hand
+  function heldLayouts() {
+    const runs: {
+      signal: AbortSignal
+      resolve: (value: unknown) => void
+      reject: (reason: unknown) => void
+    }[] = []
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, _method: string, args: { signal: AbortSignal }) =>
+        new Promise((resolve, reject) => {
+          runs.push({ signal: args.signal, resolve, reject })
+        }),
+    )
+    return runs
+  }
+
+  test('a force run no live layout waits on is aborted, and a shared one is not', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA, 'imported')
+    const runs = heldLayouts()
+    model.setLayoutQuality(3)
+    void model.recomputeLayout()
+    void model.recomputeLayout()
+    expect(runs).toHaveLength(1)
+    expect(runs[0]!.signal.aborted).toBe(false)
+
+    model.setLayoutQuality(1)
+    void model.recomputeLayout()
+    expect(runs[0]!.signal.aborted).toBe(true)
+    expect(runs[1]!.signal.aborted).toBe(false)
+
+    model.setLayoutMode('auto')
+    void model.recomputeLayout()
+    expect(runs[1]!.signal.aborted).toBe(true)
+  })
+
+  test('a layout back on an aborted run that fails asks the engine again', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(SIMPLE_GFA, 'imported')
+    const runs = heldLayouts()
+    model.setLayoutQuality(3)
+    void model.recomputeLayout()
+    model.setLayoutQuality(1)
+    void model.recomputeLayout()
+    model.setLayoutQuality(3)
+    const back = model.recomputeLayout()
+    expect(runs).toHaveLength(2)
+    expect(runs[1]!.signal.aborted).toBe(true)
+
+    runs[0]!.reject(new DOMException('aborted', 'AbortError'))
+    await vi.waitFor(() => {
+      expect(runs).toHaveLength(3)
+    })
+    expect(runs[2]!.signal.aborted).toBe(false)
+    runs[2]!.resolve({ result: structuredClone(MOCK_LAYOUT), duration: 5 })
+    await back
+    expect(model.error).toBeUndefined()
+    expect(model.isLoading).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  test('a layout started after a stop is aborted by the next load, clearGraph or destroy', async () => {
+    const model = createModel()
+    async function layoutAfterStop(quality: number) {
+      rpcRespond()
+      await model.loadGFA(SIMPLE_GFA, 'imported')
+      model.stopLoad()
+      const runs = heldLayouts()
+      model.setLayoutQuality(quality)
+      void model.recomputeLayout()
+      expect(runs).toHaveLength(1)
+      expect(runs[0]!.signal.aborted).toBe(false)
+      return runs[0]!.signal
+    }
+
+    const beforeNextLoad = await layoutAfterStop(3)
+    void model.loadGFA(WALKED_GFA, 'next')
+    expect(beforeNextLoad.aborted).toBe(true)
+
+    const beforeClear = await layoutAfterStop(1)
+    model.clearGraph()
+    expect(beforeClear.aborted).toBe(true)
+
+    const beforeDestroy = await layoutAfterStop(3)
+    destroy(model)
+    expect(beforeDestroy.aborted).toBe(true)
   })
 
   test('clearGraph drops every hover naming a part of the graph', async () => {

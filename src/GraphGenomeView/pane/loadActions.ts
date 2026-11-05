@@ -54,7 +54,10 @@ import type { GafReads } from '../../gaf/gafFile'
 import type { PaneLayout } from '../tubeMapPanels'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
-import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
+import type {
+  EngineRequest,
+  EngineSettings,
+} from '@jbrowse/bandage-core/pipeline'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -72,21 +75,29 @@ const withEngineSettings = withSettingActions.views(self => ({
 }))
 
 export const withLoadActions = withEngineSettings.actions(self => {
-  let loadController: AbortController | undefined
+  let loadController = new AbortController()
   // the samples TSV location the table was read from, or is being read from
   let sampleTableKey: string | undefined
   // The engine run the live layout waits on, which alone writes the status
   // line, and each run by the promise the force cache hands every request
-  // that shares it
-  let awaitedRun: object | undefined
-  const runOf = new WeakMap<Promise<unknown>, object>()
+  // that shares it. A run no live layout waits on is aborted, so it neither
+  // holds the worker nor writes the status line.
+  let awaitedRun: AbortController | undefined
+  const runOf = new WeakMap<Promise<unknown>, AbortController>()
+
+  function awaitRun(run?: AbortController) {
+    if (run !== awaitedRun) {
+      awaitedRun?.abort()
+      awaitedRun = run
+    }
+  }
 
   // A StatusCallback takes an RpcStatus, which `statusMessageText` reads
-  function callEngine(request: EngineRequest, run: object) {
+  function callEngine(request: EngineRequest, run: AbortController) {
     const { rpcManager } = getSession(self)
     return rpcManager.call(getRpcSessionId(self), 'GraphComputeLayout', {
       ...request,
-      signal: loadController?.signal,
+      signal: run.signal,
       statusCallback: status => {
         if (run === awaitedRun) {
           self.setStatusMessage(statusMessageText(status) ?? '')
@@ -104,11 +115,40 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }
   }
 
+  // The force cache hands back an aborted run until it settles. One that
+  // fails is dropped from the cache, so a request still wanted asks again.
+  function* forceRun(
+    graph: Graph,
+    settings: EngineSettings,
+    wanted: () => boolean,
+  ) {
+    let forced: { result: LayoutResult; duration: number } | undefined
+    while (!forced) {
+      const fresh = new AbortController()
+      const pending = forceLayouts.layout(graph, settings, r =>
+        callEngine(r, fresh),
+      )
+      const run = runOf.get(pending) ?? fresh
+      runOf.set(pending, run)
+      const rejoined = run.signal.aborted
+      awaitRun(run)
+      forced = (yield rejoined
+        ? pending.catch((e: unknown) => {
+            if (wanted()) {
+              return undefined
+            }
+            throw e
+          })
+        : pending) as { result: LayoutResult; duration: number } | undefined
+    }
+    return forced
+  }
+
   // Single dispatch point for every layout mode. A mode that returns a
   // result computed it locally; one that returns undefined can't draw this
   // graph and hands off to the remote FMMM engine, which is also how
   // 'force' is expressed. See LAYOUT_MODES.
-  function* computeLayout(graph: Graph) {
+  function* computeLayout(graph: Graph, wanted: () => boolean) {
     const start = performance.now()
     const tubeMap = TUBE_MAP_MODES.has(self.chosenLayoutMode)
     // a tube map draws the window; the cut's context is for walk rows
@@ -138,6 +178,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
             self.host ? self.layoutResult?.sampleRows : undefined,
           )
     if (local) {
+      awaitRun()
       const withCoarse = (r: LayoutResult) =>
         coarse && r.tubeMap ? { ...r, tubeMap: { ...r.tubeMap, coarse } } : r
       const whole = withCoarse(local)
@@ -166,19 +207,14 @@ export const withLoadActions = withEngineSettings.actions(self => {
     const settings = self.engineSettings
     const hit = forceLayouts.ready(graph, settings)
     if (hit) {
+      awaitRun()
       return {
         result: hit,
         duration: performance.now() - start,
         mode: 'force' as const,
       }
     }
-    const run = {}
-    const pending = forceLayouts.layout(graph, settings, r =>
-      callEngine(r, run),
-    )
-    awaitedRun = runOf.get(pending) ?? run
-    runOf.set(pending, awaitedRun)
-    const forced = (yield pending) as { result: LayoutResult; duration: number }
+    const forced = yield* forceRun(graph, settings, wanted)
     return { ...forced, mode: 'force' as const }
   }
 
@@ -217,25 +253,25 @@ export const withLoadActions = withEngineSettings.actions(self => {
   function* layoutInto(graph: Graph) {
     const request = ++liveRequest
     liveRequestPending = true
-    awaitedRun = undefined
     const isLive = () => self.graph === graph && request === liveRequest
-    const signal = loadController?.signal
+    const { signal } = loadController
     let computed
     try {
       // walk rows draw a bar per walk, not a node each
       if (self.modeDrawsNodes) {
         assertDrawable(graph)
       }
-      computed = yield* computeLayout(graph)
+      computed = yield* computeLayout(graph, () => isLive() && !signal.aborted)
     } catch (e) {
       // A discarded layout's failure is not the user's problem: the drawing
       // they asked for is on screen or on its way, and raising a banner
       // over it reports a graph as broken because a setting they moved on
       // from could not be drawn. An aborted one was discarded by the load
       // that replaced it, even when the graph is still the same object.
-      if (!isLive() || signal?.aborted) {
+      if (!isLive() || signal.aborted) {
         return false
       }
+      awaitRun()
       layoutError = e
       dropLayoutOfReplacedGraph()
       throw e
@@ -348,7 +384,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     // that fails or runs long neither drops nor delays them
     alongside?: () => Promise<unknown>,
   ) {
-    const signal = loadController?.signal
+    const { signal } = loadController
     const walkCut =
       typeof source !== 'string' && source.walkRowRuns ? source : undefined
     const parsed = parseCut(source, name, region)
@@ -375,12 +411,12 @@ export const withLoadActions = withEngineSettings.actions(self => {
         graph.reads = records
         readsShown = { shown: records.length, total }
       } catch (e) {
-        if (signal?.aborted) {
+        if (signal.aborted) {
           return
         }
         console.warn('[GraphGenomeView] no reads for this graph', e)
       }
-      if (signal?.aborted) {
+      if (signal.aborted) {
         return
       }
     }
@@ -408,7 +444,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     reads?.catch(() => undefined)
     yield* layoutInto(graph)
     // a load superseded mid-layout leaves the status to the one replacing it
-    if (reads && !signal?.aborted) {
+    if (reads && !signal.aborted) {
       self.setStatusMessage('Reading annotations')
       yield reads
     }
@@ -422,10 +458,16 @@ export const withLoadActions = withEngineSettings.actions(self => {
   // layout of the graph already on screen must not clear
   let loadInFlight: number | undefined
 
+  // A layout started after a stop is aborted with the next load like any other
+  function replaceLoadController() {
+    loadController.abort()
+    awaitRun()
+    loadController = new AbortController()
+  }
+
   function beginLoad() {
     const load = ++liveLoad
-    loadController?.abort()
-    loadController = new AbortController()
+    replaceLoadController()
     loadInFlight = load
     self.loadCanceled = false
     return {
@@ -690,13 +732,11 @@ export const withLoadActions = withEngineSettings.actions(self => {
   }
 
   function abortLoad() {
-    loadController?.abort()
-    loadController = undefined
+    replaceLoadController()
     loadInFlight = undefined
     liveLoad++
     liveRequest++
     liveRequestPending = false
-    awaitedRun = undefined
   }
 
   // The graph a layout of the current mode draws: a walk-rows cut's
