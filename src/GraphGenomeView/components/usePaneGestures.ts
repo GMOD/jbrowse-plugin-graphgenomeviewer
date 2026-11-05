@@ -493,22 +493,29 @@ export function usePaneGestures(model: GraphPaneModel) {
   }
 
   // also fired by the canvas unmounting under a resting pointer, after the
-  // view closing it has destroyed the model, and by a finger lifting
+  // view closing it has destroyed the model, and by a finger lifting. A pan
+  // started on a label runs on window listeners, so crossing onto another
+  // label or the legend leaves it going.
   function onPointerLeave(e: React.PointerEvent) {
     if (isOtherPointer(e)) {
       return
     }
-    dragPointerRef.current = undefined
-    pointsRef.current.clear()
-    pinchRef.current = null
-    dropPending()
     setHoveredChip(undefined)
     setOverDraggable(false)
-    if (!isAlive(model)) {
-      return
+    if (labelPanRef.current) {
+      pendingRef.current.hover = null
+    } else {
+      dragPointerRef.current = undefined
+      pointsRef.current.clear()
+      pinchRef.current = null
+      dropPending()
+      if (isAlive(model)) {
+        model.stopDragging()
+      }
     }
-    model.stopDragging()
-    model.clearHover()
+    if (isAlive(model)) {
+      model.clearHover()
+    }
   }
 
   // Right-clicking a node is the gesture that asks "where is this?", and until
