@@ -154,10 +154,11 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
 
   /**
    * One record per stretch a haplotype's walk shares with the reference's,
-   * on the reference with the haplotype as its mate. A haplotype with no
-   * walk in the cut on any contig is one `spansWindow` record per departure
-   * whose breakpoints lie either side of the window, its mate the
-   * haplotype's own sequence between them.
+   * on the reference with the haplotype as its mate, for each walk with a
+   * step on the window. A haplotype with no step on the window on any contig
+   * is one `spansWindow` record per departure whose breakpoints lie either
+   * side of the window, its mate the haplotype's own sequence between them,
+   * and no record of its steps in the window's context.
    */
   private async anchorFeatures(
     refName: string,
@@ -197,19 +198,19 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
       prefixes === undefined
         ? 0
         : prefixes.findIndex(prefix => panSNMatchesPrefix(name, prefix))
-    // NA19036#1 has no step on the IGL locus on one contig and walks it on
-    // another; a step in the window's context alone does not walk it
-    const walking = new Set(
-      fragments
-        .filter(fragment => stepsOnWindow(fragment, graph.nodes, region))
-        .map(haplotypeOf),
+    // Only a walk with a step on the window draws alignment records; a
+    // haplotype with none is drawn by its departure records alone. NA19036#1
+    // has no step on the IGL locus on one contig and walks it on another
+    const onWindow = fragments.filter(fragment =>
+      stepsOnWindow(fragment, graph.nodes, region),
     )
+    const walking = new Set(onWindow.map(haplotypeOf))
     const align = anchorAligner(graph.nodes)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const laneOf = (walk: { name: string }) =>
       laneAssemblyName(asmByPrefix, haplotypeOf(walk))
     const references = fragments.filter(f => f.name === refName)
-    const walked = fragments
+    const walked = onWindow
       .filter(fragment => fragment.name !== refName && rank(fragment) >= 0)
       .map(query => ({
         rank: rank(query),

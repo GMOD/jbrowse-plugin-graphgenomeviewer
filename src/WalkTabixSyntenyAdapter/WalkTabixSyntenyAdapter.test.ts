@@ -344,6 +344,46 @@ test('a departure whose ends run on different strands is on neither, each end st
   expect(found[0]!.get('rejoinStrand')).toBe(1)
 })
 
+// HG002#1 steps on 1000-2000 and 5000-6000, in chr1:2500-4500's context
+// alone; HG003#1 walks the window
+const contextWindow = { ...window, start: 2500, end: 4500 }
+const contextFeats = (opts: Record<string, unknown>) =>
+  firstValueFrom(
+    makeAdapter({}, 'walks6_skipfollow')
+      .getFeaturesInMultipleRegions([contextWindow], opts as never)
+      .pipe(toArray()),
+  )
+
+test.each([false, true])(
+  "a haplotype stepping only in the window's context is its departure record alone, clipToRegion %s",
+  async clipToRegion => {
+    const found = await contextFeats({
+      haplotypes: ['HG002#1'],
+      clipToRegion,
+      splitAtGapBp: 10_000,
+    })
+    expect(found.map(departureSummary)).toEqual([
+      stepless('HG002#1', 'ctg:2000-2000', 1),
+    ])
+  },
+)
+
+test('a haplotype stepping on the window keeps its alignment record', async () => {
+  const found = await contextFeats({ haplotypes: ['HG003#1'] })
+  expect(found.map(departureSummary)).toEqual([
+    {
+      lane: 'HG003#1',
+      refName: 'chr1',
+      start: 1000,
+      end: 6000,
+      mate: 'ctg:1000-6000',
+      cigar: '5000=',
+      strand: 1,
+      spansWindow: undefined,
+    },
+  ])
+})
+
 test('a stepless haplotype outside the lanes asked for opens no lane', async () => {
   const found = await departureFeats({ haplotypes: ['HG003'] })
   expect(found.map(f => mateOf(f).assemblyName)).toEqual(['HG003#1'])
