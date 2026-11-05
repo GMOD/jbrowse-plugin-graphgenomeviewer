@@ -19,13 +19,14 @@ import { assemblyWalk } from '@jbrowse/bandage-core/reference'
 import { bundleRoutes } from '@jbrowse/bandage-core/tubeMap/bundle'
 import { coarsenTubeMap } from '@jbrowse/bandage-core/tubeMap/coarsen'
 import {
+  getEnv,
   getRpcSessionId,
   getSession,
   statusMessageText,
 } from '@jbrowse/core/util'
 import { openLocation } from '@jbrowse/core/util/io'
 import { parseSamplesTsv } from '@jbrowse/core/util/samplesTsv'
-import { flow, getEnv, isAlive } from '@jbrowse/mobx-state-tree'
+import { flow, isAlive } from '@jbrowse/mobx-state-tree'
 
 import {
   EMPTY_BATCH,
@@ -767,8 +768,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
     beforeDestroy() {
       abortLoad()
     },
-    loadGFA: flow(function* (text: string, name = 'Imported GFA') {
-      yield* loadWholeGFA(name, text)
+    loadGFA: flow(function* (text: string, name?: string) {
+      yield* loadWholeGFA(name ?? 'Imported GFA', text)
     }),
     // A file the user picked, read inside the load so the form shows its
     // progress rather than sitting idle through a large read
@@ -799,7 +800,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       adapterConfig: Record<string, unknown>,
       region: SubgraphRegion,
       opts: SubgraphCutOptions = {},
-      foldBelowBp = 0,
+      foldBelowBp?: number,
     ) {
       yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
         self.setStatusMessage('Fetching subgraph')

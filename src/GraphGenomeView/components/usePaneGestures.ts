@@ -206,7 +206,7 @@ export function usePaneGestures(model: GraphPaneModel) {
 
   // the event's point in pane px, against the canvas it is on
   function pointerAt(e: React.MouseEvent) {
-    const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect()
+    const rect = e.currentTarget.getBoundingClientRect()
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
 
@@ -461,9 +461,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       }
       scheduleFrame()
     } else {
-      const rect = (
-        e.currentTarget as HTMLCanvasElement
-      ).getBoundingClientRect()
+      const rect = e.currentTarget.getBoundingClientRect()
       pending.hover = { x: e.clientX - rect.left, y: e.clientY - rect.top }
       scheduleFrame()
     }
