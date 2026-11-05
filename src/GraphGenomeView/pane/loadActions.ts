@@ -880,7 +880,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }),
     // The source track's samples TSV, read once per location, for walk
     // rows to group by. A failed read leaves the rows ungrouped, says so,
-    // and is tried again on the next call.
+    // and is tried again on the next cut.
     loadWalkRowSampleTable: flow(function* () {
       const location = self.walkRowSamplesTsv
       const key = location ? JSON.stringify(location) : undefined

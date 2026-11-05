@@ -4746,6 +4746,29 @@ describe('walk rows grouped by a sample column', () => {
     expect(model.walkRowGroupFields).toEqual(['population', 'superpopulation'])
   })
 
+  test('the next cut retries a read that failed', async () => {
+    rpcRespond()
+    mockReadFile.mockRejectedValue(new Error('network'))
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+      loadedTrackId: 'gbz-track',
+    })
+    model.startRenderingBackend(fakeRenderer())
+    await model.loadGFA(GFA, 'walks')
+    await vi.waitFor(() => {
+      expect(mockSession.notify).toHaveBeenCalledTimes(1)
+    })
+    mockReadFile.mockResolvedValue(TSV)
+    await model.loadGFA(GFA, 'walks')
+    await vi.waitFor(() => {
+      expect(model.walkRowGroupFields).toEqual([
+        'population',
+        'superpopulation',
+      ])
+    })
+  })
+
   test('a dropped graph takes its samples table with it', async () => {
     const model = await groupedModel()
     model.clearGraph()

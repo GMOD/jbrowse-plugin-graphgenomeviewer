@@ -209,6 +209,7 @@ export class PanSNRefNames {
       const names = await this.source.names(opts)
       const prefix = resolvePanSNPrefix(this.adapter, region.assemblyName)
       if (
+        names.length > 0 &&
         names.every(n => n.includes('#')) &&
         !names.some(n => panSNMatchesPrefix(n, prefix))
       ) {
