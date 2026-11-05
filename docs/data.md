@@ -154,6 +154,9 @@ largest change ("66% · del 18.4kb"):
 
 - `pinned` names the window the forms come from, 0-based and half-open. The rows
   keep the same forms wherever the view moves, and draw empty outside it
+- The display sends the assembly's aliases for the pinned contig as
+  `pinnedAliases`, so a window pinned on `6` in an assembly with bare contig
+  names cuts the walk file's `GRCh38#0#chr6`
 - `floorBp` sets the smallest change that tells two forms apart: `auto`, the
   default, picks 50 bp under 25 kb, 1 kb to 300 kb and 10 kb past it; 50, 1000
   and 10000 fix it. A new floor regroups the cut the adapter already read
