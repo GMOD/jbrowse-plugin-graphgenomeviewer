@@ -50,8 +50,11 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 - **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
   tier and the reference's PanSN sample. Without it the track has no coarse tier
 - A walk file's name gives its reference sample: `chr22.GRCh38.walks.gz` opened
-  on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also takes
-  the haplotypes the track cuts for until you pick others
+  on `hg38` reads `hg38` as `GRCh38`. A name ending in a version, such as
+  `pg.GCA_000005845.2.walks.gz`, does not mark where the sample starts and gives
+  none; set `assemblyNameToPanSN`. **Add pangenome graph track** reads the
+  sample from the file's header instead, and also takes the haplotypes the track
+  cuts for until you pick others
 - A lane draws its haplotype's genes from a session assembly named
   `sample.haplotype` (`HG00097.1`) or aliased by its PanSN name (`HG00097#1`),
   with a gene track on that assembly. The track's own assembly is never read as

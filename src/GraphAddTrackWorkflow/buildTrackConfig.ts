@@ -71,7 +71,10 @@ function linksLocation(loc: FileLocation) {
   return segmentsSibling(loc, '.links.bed.gz')
 }
 
-function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
+export function tabixIndex(
+  loc: FileLocation,
+  indexLoc: FileLocation | undefined,
+) {
   return indexLoc
     ? {
         location: indexLoc,
@@ -128,7 +131,7 @@ function coarseTier(
 }
 
 // The user's sample wins; the reference the graph's files name (a manifest's,
-// or a walk file's own) stands in when blank
+// or a walk file's header or name) stands in when blank
 function referencePanSN(
   assembly: string,
   sample: string,
@@ -164,6 +167,7 @@ export function buildAdapterConfig({
   assembly,
   sample,
   haplotypes = [],
+  walkReference,
 }: {
   choice: GraphFileChoice
   loc: FileLocation
@@ -176,6 +180,8 @@ export function buildAdapterConfig({
   sample: string
   // a walk file's haplotypes to cut for until the user picks others
   haplotypes?: string[]
+  // the reference sample a walk file's header names
+  walkReference?: string
 }) {
   if (choice === 'RgfaTabixWalks' || choice === 'WalkTabixSyntenyAdapter') {
     if (!locationName(loc).endsWith(WALKS_SUFFIX)) {
@@ -187,7 +193,11 @@ export function buildAdapterConfig({
       type: choice === 'RgfaTabixWalks' ? 'RgfaTabixAdapter' : choice,
       walksLocation: loc,
       walksIndex: indexLoc ?? sibling(loc, '.idx'),
-      ...referencePanSN(assembly, sample, walkFileSample(loc)),
+      ...referencePanSN(
+        assembly,
+        sample,
+        walkReference ?? walkFileSample(locationName(loc)),
+      ),
       ...(haplotypes.length > 0 ? { defaultHaplotypes: haplotypes } : {}),
     }
   }
@@ -238,6 +248,7 @@ export function buildTrackConfig(args: {
   assembly: string
   sample: string
   haplotypes?: string[]
+  walkReference?: string
   trackId: string
   name: string
 }) {
