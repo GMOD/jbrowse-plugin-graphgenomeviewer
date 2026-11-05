@@ -2524,6 +2524,54 @@ describe('launching out of the graph', () => {
     ])
   })
 
+  test("a strain's gene read is aborted by the next read, clearGraph and destroy", async () => {
+    mockSession.assemblyNames = ['K12', 'Sakai']
+    mockSession.tracks = [
+      {
+        trackId: 'Sakai_genes',
+        name: 'Sakai genes',
+        assemblyNames: ['Sakai'],
+        adapter: { type: 'Gff3TabixAdapter' },
+      },
+    ]
+    const region = {
+      refName: 'chr',
+      assemblyName: 'K12',
+      start: 1000,
+      end: 1020,
+    }
+    const reads: { signal: AbortSignal; settle: (f: unknown[]) => void }[] = []
+    async function readOwnGenes() {
+      const model = await loadedGraph(ECOLI_RGFA, region)
+      mockRpcCall.mockImplementation(
+        (_sid: unknown, method: string, args: { signal: AbortSignal }) =>
+          method === 'CoreGetFeatures'
+            ? new Promise(resolve => {
+                reads.push({ signal: args.signal, settle: resolve })
+              })
+            : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+      )
+      return { model, read: model.loadOwnGenes() }
+    }
+
+    const { model, read } = await readOwnGenes()
+    void model.loadOwnGenes()
+    expect(reads).toHaveLength(2)
+    expect(reads[0]!.signal.aborted).toBe(true)
+    expect(reads[1]!.signal.aborted).toBe(false)
+    reads[0]!.settle([])
+    await read
+    expect(model.ownGeneFeatures).toBeUndefined()
+
+    model.clearGraph()
+    expect(reads[1]!.signal.aborted).toBe(true)
+
+    const next = await readOwnGenes()
+    expect(reads[2]!.signal.aborted).toBe(false)
+    destroy(next.model)
+    expect(reads[2]!.signal.aborted).toBe(true)
+  })
+
   test('loaded strains offer a per-strain linear view and a synteny item', async () => {
     mockSession.assemblyNames = ['K12', 'Sakai']
     const model = await loadedGraph(ECOLI_RGFA, {

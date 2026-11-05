@@ -238,6 +238,22 @@ export const withLoadActions = withEngineSettings.actions(self => {
   let laidOutGraph: Graph | undefined
   // a haplotype's genes by track and contig span
   const walkGeneCache = new Map<string, GeneModel[]>()
+  // the haplotype gene reads in flight, aborted when the next replaces them
+  const geneReads = {
+    walk: new AbortController(),
+    own: new AbortController(),
+  }
+
+  function restartGeneReads(kind: keyof typeof geneReads) {
+    geneReads[kind].abort()
+    geneReads[kind] = new AbortController()
+    return geneReads[kind].signal
+  }
+
+  function abortGeneReads() {
+    geneReads.walk.abort()
+    geneReads.own.abort()
+  }
 
   function dropLayoutOfReplacedGraph() {
     if (self.graph !== laidOutGraph) {
@@ -363,6 +379,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     self.walkGeneFeatures = undefined
     self.ownGeneFeatures = undefined
     walkGeneCache.clear()
+    abortGeneReads()
     self.repeatArrays = undefined
     self.clearInteractionState()
   }
@@ -631,11 +648,20 @@ export const withLoadActions = withEngineSettings.actions(self => {
 
   // A haplotype assembly's genes over a span of its own contig, named for
   // that contig whatever the track calls it, read once per cut
-  function* haplotypeGenes(trackId: string, region: SubgraphRegion) {
+  function* haplotypeGenes(
+    trackId: string,
+    region: SubgraphRegion,
+    signal: AbortSignal,
+  ) {
     const cacheKey = `${trackId} ${region.refName}:${region.start}-${region.end}`
     let genes = walkGeneCache.get(cacheKey)
     if (!genes) {
-      const features = yield* trackFeatures(trackId, region, 'haplotype genes')
+      const features = yield* trackFeatures(
+        trackId,
+        region,
+        'haplotype genes',
+        signal,
+      )
       if (!features) {
         return undefined
       }
@@ -807,6 +833,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     },
     beforeDestroy() {
       abortLoad()
+      abortGeneReads()
     },
     loadGFA: flow(function* (text: string, name?: string) {
       yield* loadWholeGFA(name ?? 'Imported GFA', text)
@@ -963,11 +990,12 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const reads = self.walkGeneReads?.reads ?? []
       const key = JSON.stringify(reads)
       const graph = self.graph
+      const signal = restartGeneReads('walk')
       const fetched = new Map<string, GeneModel[]>()
       yield Promise.all(
         reads.map(({ row, trackId, region }) =>
           flow(function* () {
-            const genes = yield* haplotypeGenes(trackId, region)
+            const genes = yield* haplotypeGenes(trackId, region, signal)
             if (genes) {
               fetched.set(row, genes)
             }
@@ -975,6 +1003,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         ),
       )
       if (
+        !signal.aborted &&
         isAlive(self) &&
         self.graph === graph &&
         JSON.stringify(self.walkGeneReads?.reads ?? []) === key
@@ -988,10 +1017,11 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const reads = self.ownGeneReads
       const key = JSON.stringify(reads)
       const graph = self.graph
+      const signal = restartGeneReads('own')
       const fetched = (yield Promise.all(
         reads.map(({ stableRefName, trackId, region }) =>
           flow(function* () {
-            const genes = yield* haplotypeGenes(trackId, region)
+            const genes = yield* haplotypeGenes(trackId, region, signal)
             // a chip reading LPA twice would not say whose copy each is
             const whose =
               panSNHaplotype(stableRefName) ?? panSNSample(stableRefName)
@@ -1004,6 +1034,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         ),
       )) as GeneModel[][]
       if (
+        !signal.aborted &&
         isAlive(self) &&
         self.graph === graph &&
         JSON.stringify(self.ownGeneReads) === key
