@@ -59,15 +59,14 @@ const FORMS_TRACK = {
   },
   displays: [
     {
-      type: 'LinearMultiSampleVariantDisplay',
+      type: 'LinearVariantDisplay',
       displayId: 'probe_walk_forms-display',
     },
   ],
 }
 const FORMS_LOCUS = 'chr1:109,680,001-109,715,000'
-// 100 kb past the pin, where the track has no change to draw. Core before
-// 5.0.0-beta.14 left such a window on "Loading" for good, a hang the step
-// above cannot see.
+// 100 kb past the pin, where the track has no change to draw and must still
+// finish loading, a hang the step above cannot see.
 const OUTSIDE_PIN_LOCUS = 'chr1:109,815,001-109,850,000'
 
 const { values } = parseArgs({

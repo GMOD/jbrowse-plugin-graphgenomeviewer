@@ -21,14 +21,16 @@
       },
       "displays": [
         {
-          "type": "LinearMultiSampleVariantMatrixDisplay",
+          "type": "LinearVariantDisplay",
           "displayId": "hprc2_wave_grch38_matrix",
-          "unit": "haplotype"
+          "variantLayout": "columns",
+          "rows": { "field": "haplotype" },
+          "height": 700
         },
         {
-          "type": "LinearMultiSampleVariantDisplay",
+          "type": "LinearVariantDisplay",
           "displayId": "hprc2_wave_grch38_regular",
-          "unit": "haplotype"
+          "rows": { "field": "haplotype" }
         }
       ]
     },
@@ -65,9 +67,8 @@
             "configuration": "hprc2_wave_grch38",
             "displays": [
               {
-                "type": "LinearMultiSampleVariantMatrixDisplay",
-                "configuration": "hprc2_wave_grch38_matrix",
-                "heightPreConfig": 700
+                "type": "LinearVariantDisplay",
+                "configuration": "hprc2_wave_grch38_matrix"
               }
             ]
           }

@@ -104,7 +104,7 @@ function mafLane(samples) {
   return {
     trackId: MAF,
     type: 'LinearMafDisplay',
-    showCoverage: false,
+    coverage: { show: false },
     sessionTrack: {
       type: 'MafTrack',
       trackId: MAF,
@@ -130,14 +130,14 @@ const CALLSET_ROW_PX = 18
 function callsetLane(haplotypes) {
   return {
     trackId: 'hprc2_pgbi_grch38',
-    type: 'LinearMultiSampleVariantDisplay',
+    type: 'LinearVariantDisplay',
     rows: {
       sort: haplotypes.map(phasedRow),
       labels: Object.fromEntries(haplotypes.map(h => [phasedRow(h), h])),
+      step: CALLSET_ROW_PX,
+      axis: { tree: false },
     },
-    rowHeight: CALLSET_ROW_PX,
     height: haplotypes.length * CALLSET_ROW_PX,
-    axis: { tree: false },
   }
 }
 const CALLSET_TRACK = callsetLane(HAPLOTYPES)
@@ -210,12 +210,14 @@ function maizeView(loc, tracks) {
 function maizeVariants(rowPx, kept) {
   return {
     trackId: 'maize_nam_variants',
-    type: 'LinearMultiSampleVariantDisplay',
+    type: 'LinearVariantDisplay',
     filter: [MAIZE_SV_FILTER],
-    ...(kept ? { rows: { kept, sort: kept } } : {}),
-    rowHeight: rowPx,
+    rows: {
+      ...(kept ? { kept, sort: kept } : {}),
+      step: rowPx,
+      axis: { tree: false },
+    },
     height: (kept?.length ?? MAIZE_FOUNDERS) * rowPx + (kept ? 20 : 0),
-    axis: { tree: false },
   }
 }
 
@@ -856,11 +858,9 @@ async function orderLaneRowsByKey(page) {
     )
     const graph = displays.find(d => d.type === 'LinearGraphDisplay')
     const callsetRows = (sample, n) => [`${sample} HP${n - 1}`, sample]
-    // a beta.18 host names the callset display LinearMultiSampleVariantDisplay
     const spellings = {
       LinearMafDisplay: (sample, n) => [`${sample}.${n}`],
       LinearVariantDisplay: callsetRows,
-      LinearMultiSampleVariantDisplay: callsetRows,
     }
     for (const lane of displays) {
       const spell = spellings[lane.type]
@@ -888,11 +888,7 @@ function hoverCallsetCell(row) {
       (name, rowPx) => {
         const display = window.JBrowseSession.views[0].tracks
           .map(t => t.displays[0])
-          .find(
-            d =>
-              d.type === 'LinearVariantDisplay' ||
-              d.type === 'LinearMultiSampleVariantDisplay',
-          )
+          .find(d => d.type === 'LinearVariantDisplay')
         const r = document
           .querySelector('[data-testid="variant-display"]')
           .getBoundingClientRect()

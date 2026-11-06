@@ -575,7 +575,7 @@
       },
       "displays": [
         {
-          "type": "LinearMultiSampleVariantDisplay",
+          "type": "LinearVariantDisplay",
           "encoding": {
             "color": "svType"
           }

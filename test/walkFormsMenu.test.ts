@@ -56,10 +56,9 @@ function config() {
         },
         displays: [
           {
-            type: 'LinearMultiSampleVariantDisplay',
+            type: 'LinearVariantDisplay',
             displayId: 'forms_lpa-display',
-            axis: { tree: false },
-            shadeByDosage: false,
+            rows: { axis: { tree: false } },
             encoding: {
               color: {
                 field: 'consequence',

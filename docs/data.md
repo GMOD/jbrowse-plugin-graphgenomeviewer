@@ -108,9 +108,9 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 ## Structural forms
 
 `WalkFormsAdapter` groups a walk file's haplotypes by the structural changes
-their walks make over one pinned window. Core's
-`LinearMultiSampleVariantDisplay` draws a row per group, or form, labelled with
-its share of the haplotypes and its largest change ("66% · del 18.4kb"):
+their walks make over one pinned window. Core's `LinearVariantDisplay` draws a
+row per group, or form, labelled with its share of the haplotypes and its
+largest change ("66% · del 18.4kb"):
 
 ```json
 {
@@ -126,9 +126,8 @@ its share of the haplotypes and its largest change ("66% · del 18.4kb"):
   },
   "displays": [
     {
-      "type": "LinearMultiSampleVariantDisplay",
-      "axis": { "tree": false },
-      "shadeByDosage": false,
+      "type": "LinearVariantDisplay",
+      "rows": { "axis": { "tree": false } },
       "encoding": {
         "color": {
           "field": "consequence",

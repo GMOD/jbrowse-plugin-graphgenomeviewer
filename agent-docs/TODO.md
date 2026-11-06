@@ -36,9 +36,3 @@ Commitment, not size, separates an item here from a proposal in
 | ---------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------ |
 | [Halo behind arrowheads](todo/halo-behind-arrowheads.md)                     | drawing    | Prototype the barb-only stroke and look at an abutting joint.      |
 | [The lifted walk's colour on its bar](todo/lifted-walk-colour-on-its-bar.md) | walk strip | Pick between a chip beside the label and an outline round the bar. |
-
-## Waiting on a host release
-
-| Item                                                               | Area        | First move                                                                                                                   |
-| ------------------------------------------------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [Write LinearVariantDisplay](todo/write-linear-variant-display.md) | host compat | Once the floor is 5.0.0-beta.20 or later, replace the name at the sites listed and drop the old name from shoot-figures.mjs. |
