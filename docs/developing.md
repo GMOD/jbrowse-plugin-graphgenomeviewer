@@ -1,9 +1,7 @@
 # Developing
 
 The plugin needs [pnpm](https://pnpm.io/installation) and builds against
-`@jbrowse/*` 5.0.0-beta.18. Earlier hosts lack the display-kit modules the
-bundled synteny-core imports, and their status overlays need the display model
-as a prop.
+`@jbrowse/*` 5.0.0-beta.20, the oldest host it supports.
 
 ```console
 pnpm install
@@ -80,7 +78,7 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
 
 - The suite is opt-in because it needs a jbrowse-web static build to serve.
   Without `RUN_E2E=1` it skips and exits clean, so it never blocks a run
-- The host has to be at least 5.0.0-beta.18, the version the plugin's
+- The host has to be at least 5.0.0-beta.20, the version the plugin's
   `@jbrowse/*` dependencies are pinned to. On an older host the plugin throws
   while installing, so every suite dies in setup with a minified
   `e.<something> is not a function`, which looks like a plugin bug
@@ -102,7 +100,7 @@ JBROWSE_TEST_DIR=/path/to/jbrowse-web/build RUN_E2E=1 pnpm test:e2e
   `.test-jbrowse-<version>`), such as a build newer than the release. The
   harness writes `config.json`, `test.gfa` and `plugin/` into it, so point it at
   a copy
-- `TEST_JBROWSE_VERSION`: names the default dir (`beta13` if unset)
+- `TEST_JBROWSE_VERSION`: names the default dir (`beta20` if unset)
 - `JBROWSE_PORT` (9876): moves the server, so two sessions can run at once
 - `SKIP_BUILD=1`: skips the plugin build and tests whatever `dist/` holds, which
   once made a fixed import look broken
@@ -120,8 +118,8 @@ JBROWSE_TEST_DIR=$PWD/.test-jbrowse-local RUN_E2E=1 pnpm test:e2e
   `index.html`, so `serve` shows a directory listing and React never mounts.
   Check that `index.html` and `static/js` exist in the copy
 - The served JBrowse and its fixtures live in the primary checkout's
-  `.test-jbrowse-beta13`. From a git worktree, set
-  `JBROWSE_TEST_DIR=<primary checkout>/.test-jbrowse-beta13`, or the fixture
+  `.test-jbrowse-beta20`. From a git worktree, set
+  `JBROWSE_TEST_DIR=<primary checkout>/.test-jbrowse-beta20`, or the fixture
   suites (`walkRows`, `walkStrip`) skip without a word
 
 ### Suites

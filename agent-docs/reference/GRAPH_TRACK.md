@@ -175,8 +175,8 @@ carry, is cut once on attach; following the linear view is the track's job.
 What the drawing shows is the display config, in core's plot vocabulary where it
 has a word: `layoutMode`, `encoding`, `size`, `layers`, `facet`, `rows` and
 `hover`. A share link and Reset track settings see them all; Edit plot shows the
-ones core's `PLOT_VOCABULARY` names (`facet`, `rows`, and `size` past
-v5.0.0-beta.11), plus every `plot: true` slot on a host that reads the flag.
+ones core's `PLOT_VOCABULARY` names (`facet`, `rows` and `size`), plus every
+`plot: true` slot.
 
 - The node color is `encoding.color`: `{ value: 'grey' | 'uniform' }` or
   `{ field, scale }`. The schema's `retired` lifts a flat `color`
@@ -197,10 +197,10 @@ is the bp cap, which draws core's region-too-large banner, or a cut that came
 back over the GBZ adapter's `nodeLimit`. The second is learned by failing: the
 adapter throws `NodeLimitError` marked `regionTooLarge`, which core's error bar
 (jbrowse-components `526ff487e6`) shows as a neutral "Zoom in to about … to see
-the graph" with no Retry; older hosts show it as a plain error. `dense` records
-the refused window, and windows as wide or wider on that contig within one
-window-width of it keep the notice without cutting again, so where the track
-stops follows how dense the graph is. A narrower window cuts again.
+the graph" with no Retry. `dense` records the refused window, and windows as
+wide or wider on that contig within one window-width of it keep the notice
+without cutting again, so where the track stops follows how dense the graph is.
+A narrower window cuts again.
 
 For lanes, `laneZoomNotice` rewrites the notice from either lane adapter to name
 a fold of the view, "Zoom in about 1.7× to see lanes". The lanes display fetches
