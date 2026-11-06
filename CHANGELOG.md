@@ -1,3 +1,10 @@
+## [8.9.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.2...v8.9.0) (2026-11-06)
+
+### Other Changes
+
+- Target JBrowse 5.0.0-beta.20 only, dropping what older hosts needed ([384b506](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/384b506b8e941fdb281dc907d5f790cd710ce091))
+- Write LinearVariantDisplay and beta.20's variant and MAF slot spellings ([1cd6586](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1cd65866c08f0dd279cd45f2a7429bc211b887f6))
+
 ## [8.8.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.1...v8.8.2) (2026-11-03)
 
 ### Other Changes
