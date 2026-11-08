@@ -121,6 +121,14 @@ persists `cutRegion` and `coarseCut`, so a restored session re-makes the cut it
 saved. The segments lane (`LinearBasicDisplay` on the same track) does not
 switch tier: `RenderFeatureData` hands a feature adapter no bpPerPx.
 
+A force drawing that tangles on a plain GFA is an index problem before an engine
+one: check `layout:Z:` in `tabix -H` on both tiers. pggb collapses repeats, so
+an anchored-layout tier files rows under spans wider than 100 kb and a 15 kb cut
+of E. coli returned 628 segments against 17 in the contig layout. Builds before
+gfa-to-tabix 2.4.0 put that anchored index at `<prefix>`. A tier's `graph:Z:`
+differs from the fine index's by design: it hashes the segment set, which
+folding changes.
+
 The Add pangenome graph track workflow fills the slot from the
 `<prefix>.graph.json` manifest `gfa-to-tabix build` writes beside
 `<prefix>.segs.bed.gz`, or beside format 2's `<prefix>.graph.bed.gz`

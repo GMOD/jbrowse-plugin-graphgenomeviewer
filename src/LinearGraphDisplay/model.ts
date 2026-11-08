@@ -700,6 +700,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             self.openGraphView()
           },
         })
+        // Per-haplotype items go under Haplotypes, and figure export stays in
+        // the graph genome view's menu: the linear view's Export SVG already
+        // draws this track
         const haplotypes = [
           ...this.cutMenuItems(),
           ...self.highlightMenuItems(),

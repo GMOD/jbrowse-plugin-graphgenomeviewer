@@ -17,3 +17,6 @@ metadata:
 - `LinearGraphDisplay/configSchema.ts` 25 and 91 use `types.enumeration`
 - The view reads an unknown mode as unset; core `layoutModeByValue` falls back
   to `auto`
+- jbrowse's config editor reads a `stringEnum` slot's dropdown choices off the
+  enumeration's union subtypes, which a `snapshotProcessor` wrapper hides, so
+  check the editor still lists the modes after the change

@@ -112,6 +112,14 @@ window at MHC class II with everything local: Paths scan 2.7 s (no name index on
 `context` 20000 or `overlapping` snarls at AMY1 exhaust a 4 GB heap after about
 a minute.
 
+**Ribbons against an independent alignment** (2026-09-28): where both align, the
+graph's synteny ribbons match HPRC's `impg/pafs/hprc465vsgrch38.aln.paf.gz` base
+for base at 99.74% at GSTM1 (463 haplotypes) and 99.70% at CFH (8). Rerun the
+comparison, the PAF streamed once per window, before trusting ribbons at a new
+locus. A copy minigraph-cactus never merged with GRCh38's (84 haplotypes at
+GSTM1) reads as a D beside an equal I from gbz-base 4.1.0, which synteny lanes
+still draw as a bare gap, like a deletion.
+
 ## The ruzstd shim
 
 `cmdcolin/gbwt-rs` branch `wasm-ruzstd` (`~/src/gbwt-rs`) builds gbwt-rs for

@@ -21,6 +21,18 @@ Serve a JBrowse Web pointed at `config.json`, whose `plugins` entry targets
 `typescript` stays on 6 for typescript-eslint and the core's declaration build.
 `npx tsc` picks 6.
 
+So lint can fail where typecheck passes: the `no-unsafe-*` rules see the anys
+TypeScript 6 infers and 7 does not (TS7022/7023, implicit any through its own
+initializer):
+
+- A class field initialized with `new X(this.y, this)`: annotate the field's
+  type
+- A `flow(function* (a = 'x') {…})` parameter with a default: make it optional
+  and default it where it is used. An annotated default is stripped by
+  `no-inferrable-types` on `--fix`
+- To see what lint sees, run `ts.getPreEmitDiagnostics` from
+  `require('typescript')`
+
 ## Build output
 
 A host has to serve the whole `dist/` directory, because the entry loads chunks

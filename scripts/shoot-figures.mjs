@@ -98,7 +98,9 @@ const BUBBLE_TRACK = {
 // The multiple alignment from the gbz graph's Minigraph-Cactus build, whose
 // rows carry the walks' own names, so a lane of the walks a figure draws reads
 // row for row against the graph. The adapter's samples pick the rows because a
-// display's row focus covers the first label with its chip.
+// display's row focus covers the first label with its chip. The KIV-2 figures
+// leave it out: across the VNTR it truncates or empties rows, HG02055.1 near
+// blank where its walk carries 39 kb more.
 const MAF = 'hprc_v2_1_mc_grch38_maf'
 function mafLane(samples) {
   return {
