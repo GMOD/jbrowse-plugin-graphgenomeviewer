@@ -1,11 +1,7 @@
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 
 import { DEFAULT_MAX_FORMS } from './formRows.ts'
-import {
-  fileLocationSlot,
-  tabixIndexSchema,
-  walksLocations,
-} from '../panSNTabix.ts'
+import { fileLocationSlot, walksLocations } from '../panSNTabix.ts'
 
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -28,13 +24,15 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * - A variant's `consequence` is `loss`, `gain`, `shift`, `inversion` or
  *   `net`, for colouring the cells; `svType` and `type` follow core's names
  * - `walksUri` takes the prefix of one reference's walk file and resolves
- *   `<walksUri>.walks.bed.gz` and its `.tbi`, as the other walk adapters do
+ *   `<walksUri>.walks.gz` and its directory `<walksUri>.walks.gz.idx`, as
+ *   the other walk adapters do. The adapter reads walk format 7, which
+ *   gfa-to-tabix writes from 4.0
  *
  * #example
  * ```js
  * {
  *   type: 'WalkFormsAdapter',
- *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38',
+ *   walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
  *   pinned: { refName: 'chr1', start: 109680000, end: 109715000 },
  *   exclude: ['CHM13'],
  * }
@@ -45,13 +43,15 @@ const WalkFormsAdapter = ConfigurationSchema(
   {
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 5
+     * a `gfa-to-tabix --walks` file in walk format 7
      */
-    walksLocation: fileLocationSlot('/path/to/graph.walks.bed.gz'),
+    walksLocation: fileLocationSlot('/path/to/graph.walks.gz'),
     /**
      * #slot
+     * the walk file's directory, `<prefix>.<sample>.walks.gz.idx`. Unset
+     * reads it beside the walk file.
      */
-    walksIndex: tabixIndexSchema('WalkFormsWalksIndex'),
+    walksIndex: fileLocationSlot(''),
     /**
      * #slot
      * The window the forms come from, `{ refName, start, end }`, 0-based and
@@ -94,8 +94,8 @@ const WalkFormsAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * The most compressed bytes the forms cut fetches from the walk file, as
-     * its Tabix index estimates it before any row is read. A pinned window
+     * The most compressed bytes the forms cut fetches from the walk file,
+     * which its directory gives before any row is read. A pinned window
      * over it shows an error instead. 1 MB holds about 1 Mb of the MHC, whose
      * cut takes 13 s and 0.8 GB.
      */

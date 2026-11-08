@@ -4,7 +4,6 @@ import { ObservableCreate } from '@jbrowse/core/util/rxjs'
 import {
   ExpansionTooLargeError,
   RegionTooLargeError,
-  WalkReader,
   bpString,
   formsCut,
   panSNContig,
@@ -14,7 +13,7 @@ import {
 
 import { formSources, formVariants, formWarnings } from './formRows.ts'
 import { floorOf, pinnedLocus, pinnedOf, warningPrefix } from './pinned.ts'
-import { openTabixSlot } from '../panSNTabix.ts'
+import { openWalkReader } from '../panSNTabix.ts'
 
 import type { WalkFormsAdapterConfig } from './configSchema.ts'
 import type { Pinned } from './pinned.ts'
@@ -80,9 +79,7 @@ function cachedCut(key: string, cut: () => Promise<HaplotypeDepartures[]>) {
 export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAdapterConfig> {
   public static capabilities = ['getFeatures', 'getRefNames']
 
-  private readonly reader = new WalkReader(
-    openTabixSlot(this, ['walksLocation'], ['walksIndex']),
-  )
+  private readonly reader = openWalkReader(this)
 
   private formsRead: Promise<StructuralForms> | undefined
 
@@ -113,7 +110,7 @@ export default class WalkFormsAdapter extends BaseFeatureDataAdapter<WalkFormsAd
 
   // Read once per adapter, and so once per floor and exclude list. The cut
   // takes no caller's signal, since every later caller shares it. A partial
-  // expansion would leave some walks as net changes over a whole chunk, so a
+  // expansion would leave some walks as net changes over a whole tile, so a
   // window too large to read them all errors instead.
   private forms(opts: BaseOptions) {
     if (!this.formsRead) {

@@ -34,7 +34,6 @@ const haplotype = (
   haplotype: name,
   covered,
   departures,
-  open: false,
 })
 
 const deletion = departure(1000, 3000, 0)

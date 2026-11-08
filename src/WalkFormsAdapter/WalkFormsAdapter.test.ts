@@ -14,14 +14,14 @@ vi.mock('@jbrowse/graph-walks', async importOriginal => {
   return { ...actual, formsCut: vi.fn(actual.formsCut) }
 })
 
-// Four walks over a 3.6 kb reference of six 600 bp nodes, in 1 kb chunks
+// Four walks over a 3.6 kb reference of six 600 bp nodes, in 1 kb tiles
 // (RgfaTabixAdapter/walkFiles.test.ts builds on the same file):
 //   W GRCh38  0 chr1 >1>2>3>4>5>6
 //   W HG002   1 chr1 >1>2>7>4>5>6   7 (550 bp) replaces 3
 //   W HG002   2 chr1 >1>2>3>4>8>6   8 (20 bp) replaces 5
 //   W HG00097 1 chr1 >1>2>3>4>5>6
 const walks =
-  require.resolve('../RgfaTabixAdapter/test_data/walks5_header.GRCh38.walks.bed.gz')
+  require.resolve('../RgfaTabixAdapter/test_data/walks7/header.GRCh38.walks.gz')
 
 const local = (path: string) => ({
   localPath: path,
@@ -33,7 +33,7 @@ function makeAdapter(slots: Record<string, unknown>) {
   return new Adapter(
     configSchema.create({
       walksLocation: local(walks),
-      walksIndex: { location: local(`${walks}.tbi`) },
+      walksIndex: local(`${walks}.idx`),
       ...slots,
     }),
   )
