@@ -3,11 +3,11 @@
 A graph track reads one window of a graph at a time. Use a walk file where you
 can:
 
-- **Walk file** (`<prefix>.<sample>.walks.bed.gz`): the walk adapters read walk
-  format 5, which [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes
-  from 1.4. From 1.5 it adds skip rows, which name each haplotype with no step
-  on the reference across a whole chunk (64 kb by default); HPRC's `-f5s` files
-  have them
+- **Walk file** (`<prefix>.<sample>.walks.gz` with its directory
+  `<prefix>.<sample>.walks.gz.idx`): the walk adapters read walk format 7, which
+  [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes from 4.0. It files
+  every departure a haplotype makes from the reference, so a haplotype with no
+  step on the reference across the window still gets its row
 - **Graph index** (`.graph.bed.gz`, or the `.segs.bed.gz` and `.links.bed.gz`
   pair of `gfa-to-tabix --format 1`): gfa-to-tabix's index of an rGFA or plain
   GFA
@@ -23,7 +23,7 @@ covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 
 | Data                         | Commands                                                                                                 | Adapter                                                          |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (1.4+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
+| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (4.0+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
 | rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                                      | `RgfaTabixAdapter`                                               |
 | Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                                   | `RgfaTabixAdapter`                                               |
 | Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index         | alignments track                                                 |
@@ -39,7 +39,7 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 
 ## Opening tracks
 
-- **File → Open track** opens a walk file (`.walks.bed.gz`), a graph index
+- **File → Open track** opens a walk file (`.walks.gz`), a graph index
   (`.graph.bed.gz` or `.segs.bed.gz`) or a gbz-base database (`.gbz.db`) as a
   `GraphTrack`, and `gfa-to-tabix build`'s `.bubbles.bed.gz` as a bubbles track.
   It finds the links and indexes beside the url, which a presigned url's
@@ -49,9 +49,9 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   lanes
 - **Add pangenome graph track** also reads `<prefix>.graph.json` for the coarse
   tier and the reference's PanSN sample. Without it the track has no coarse tier
-- A walk file's name gives its reference sample: `chr22.GRCh38.walks.bed.gz`
-  opened on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also
-  takes the haplotypes the track cuts for until you pick others
+- A walk file's name gives its reference sample: `chr22.GRCh38.walks.gz` opened
+  on `hg38` reads `hg38` as `GRCh38`. **Add pangenome graph track** also takes
+  the haplotypes the track cuts for until you pick others
 - A lane draws its haplotype's genes from a session assembly named
   `sample.haplotype` (`HG00097.1`) or aliased by its PanSN name (`HG00097#1`),
   with a gene track on that assembly. The track's own assembly is never read as
@@ -67,17 +67,18 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "RgfaTabixAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38",
     "assemblyNameToPanSN": { "hg38": "GRCh38" },
     "defaultHaplotypes": ["HG002", "HG00733"]
   }
 }
 ```
 
-- **Walk files:** the adapter reads `<walksUri>.walks.bed.gz` and its `.tbi`.
-  `defaultHaplotypes` lists the haplotypes the track cuts for until you pick
-  others. `WalkTabixSyntenyAdapter` takes the same `walksUri` and also opens in
-  synteny, dotplot and circular views, a lane per haplotype
+- **Walk files:** the adapter reads `<walksUri>.walks.gz` and its directory
+  `<walksUri>.walks.gz.idx`. `defaultHaplotypes` lists the haplotypes the track
+  cuts for until you pick others. `WalkTabixSyntenyAdapter` takes the same
+  `walksUri` and also opens in synteny, dotplot and circular views, a lane per
+  haplotype
 - **Graph index:**
   `{ "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc", "format": 2, "coarse": { "uri": "https://example.com/hprc.fold10000", "format": 2, "foldBelowBp": 10000 } }`
   reads `<uri>.graph.bed.gz` and its `.tbi`. Past `aboveBpPerPx` (default
@@ -120,7 +121,7 @@ largest change ("66% · del 18.4kb"):
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "WalkFormsAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f5s.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38",
     "pinned": { "refName": "chr1", "start": 109680000, "end": 109715000 },
     "exclude": ["CHM13"]
   },

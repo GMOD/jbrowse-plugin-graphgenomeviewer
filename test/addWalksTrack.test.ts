@@ -24,7 +24,7 @@ import type { Browser, Page } from 'puppeteer'
 // PanSN sample its file name gives
 const runE2E = process.env.RUN_E2E === '1'
 const VIEW = 'walks_lgv'
-const WALKS = 'src/RgfaTabixAdapter/test_data/walks5_follow.GRCh38.walks.bed.gz'
+const WALKS = 'src/RgfaTabixAdapter/test_data/walks7/follow.GRCh38.walks.gz'
 
 function config() {
   return {
@@ -67,8 +67,8 @@ describe.skipIf(!runE2E)('a walk file added through Open track', () => {
     setupJBrowse({
       config: config(),
       dataFiles: [
-        [WALKS, 'walks/chr1.GRCh38.walks.bed.gz'],
-        [`${WALKS}.tbi`, 'walks/chr1.GRCh38.walks.bed.gz.tbi'],
+        [WALKS, 'walks/chr1.GRCh38.walks.gz'],
+        [`${WALKS}.idx`, 'walks/chr1.GRCh38.walks.gz.idx'],
       ],
     })
     writeServedFile('walks_chr1.chrom.sizes', 'chr1\t6000\n')
@@ -84,10 +84,7 @@ describe.skipIf(!runE2E)('a walk file added through Open track', () => {
   })
 
   it('opens as a GraphTrack that cuts the window by its walks', async () => {
-    await addTrackThroughMenu(
-      page,
-      `${BASE_URL}/walks/chr1.GRCh38.walks.bed.gz`,
-    )
+    await addTrackThroughMenu(page, `${BASE_URL}/walks/chr1.GRCh38.walks.gz`)
     await confirmAddTrack(page)
     await waitForAppReady(
       page,
