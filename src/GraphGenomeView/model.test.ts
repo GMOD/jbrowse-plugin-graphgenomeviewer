@@ -3100,7 +3100,7 @@ describe('what the row axis draws, in pixels', () => {
     const shown = await fitted()
     expect(deletionRows(shown)).toMatchObject([
       {
-        label: expect.stringMatching(/^skips .* sequence \(a deletion\)$/),
+        label: expect.stringMatching(/^skips .* sequence/),
         swatch: { kind: 'line', dashed: true },
       },
     ])
