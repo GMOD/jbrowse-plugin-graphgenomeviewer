@@ -17,6 +17,9 @@ import type { Browser, Page } from 'puppeteer'
 
 // RUN_E2E=1 pnpm test:e2e test/walkRowsGap.test.ts
 // A haplotype the cut returns in two pieces draws as one row with the gap.
+// Bases the graph lacks between a contig's W lines are stated by a walk file's
+// departure records, not by W-line tags (bandage-core 13 reads a GFA's W lines
+// plain), so that readout is bandage-core's to test.
 const runE2E = process.env.RUN_E2E === '1'
 const VIEW = 'graph_walk_rows_gap'
 
@@ -32,9 +35,6 @@ const GFA = [
   'W\tHG002\t1\tchr1\t0\t2000\t>1>2',
   'W\tHG002\t1\tchr1\t3000\t5000\t>4>5',
   'W\tHG003\t1\tchr1\t0\t5000\t>1>2>3>4>5',
-  // a walk-file cut's stops say the graph lacks the kilobase between these
-  'W\tHG004\t1\tchr1\t0\t2000\t>1>2\tws:Z:end\twe:Z:break,bp=1000',
-  'W\tHG004\t1\tchr1\t3000\t5000\t>4>5\tws:Z:break,bp=1000\twe:Z:end',
   '',
 ].join('\n')
 
@@ -110,14 +110,13 @@ describe.skipIf(!runE2E)('walk rows with a piece gap', () => {
         el => el.textContent.trim(),
       ),
     )
-    expect(labels).toEqual(['GRCh38#0', 'HG002#1', 'HG003#1', 'HG004#1'])
+    expect(labels).toEqual(['GRCh38#0', 'HG002#1', 'HG003#1'])
     const readouts = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="graph-walk-row"] text')].map(
         el => el.textContent,
       ),
     )
     expect(readouts).toContain('5.0 kb · 1.0 kb outside the extracted subgraph')
-    expect(readouts).toContain('5.0 kb · 1.0 kb not in the graph')
     await screenshot(page, 'walk-rows-gap')
   }, 60_000)
 })
