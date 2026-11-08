@@ -2,7 +2,8 @@
 // the page and on every worker it starts, so a real shipped config loads the
 // candidate instead of what jbrowse.org serves. Shared by host-compat-probe.mjs.
 // `fixtures` maps a path on the host to a local directory, served the same
-// way, so a figure can draw local data on a hosted JBrowse.
+// way, so a figure can draw local data on a hosted JBrowse. `documents` maps a
+// path on the host to a JSON value served in its place.
 //
 // serveCandidate(page) returns the candidate files it has fulfilled, so a
 // caller can tell a host that loaded the candidate from one that fetched the
@@ -58,7 +59,7 @@ function fixtureResponse(file, range) {
   }
 }
 
-export function candidateServer(distDir, fixtures = {}) {
+export function candidateServer(distDir, fixtures = {}, documents = {}) {
   // The whole dist, by the path under the plugin's url: the entry imports its
   // code-split chunks by their own hashed names, and answering those with the
   // entry would fail in a way that reads as a host incompatibility.
@@ -83,6 +84,17 @@ export function candidateServer(distDir, fixtures = {}) {
   }
 
   function respond(request) {
+    const document = documents[new URL(request.url).pathname]
+    if (document !== undefined) {
+      return {
+        responseCode: 200,
+        responseHeaders: [
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+        body: JSON.stringify(document),
+      }
+    }
     const fixture = fixtureFile(request.url)
     if (fixture) {
       const range = Object.entries(request.headers).find(
@@ -138,7 +150,9 @@ export function candidateServer(distDir, fixtures = {}) {
       patterns: [
         { urlPattern: `*${DEMOS_PATH}*` },
         { urlPattern: '*/plugins/jbrowse-plugin-graphgenomeviewer/*' },
-        ...Object.keys(fixtures).map(prefix => ({ urlPattern: `*${prefix}*` })),
+        ...[...Object.keys(fixtures), ...Object.keys(documents)].map(
+          prefix => ({ urlPattern: `*${prefix}*` }),
+        ),
       ],
     })
   }

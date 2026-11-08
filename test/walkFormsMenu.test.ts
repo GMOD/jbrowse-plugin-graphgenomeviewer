@@ -12,6 +12,7 @@ import {
   waitForAppReady,
   writeServedFile,
 } from './setup'
+import { HPRC_WALKS } from '../scripts/hostedBrowser.mjs'
 
 import type { Browser, ElementHandle, Page } from 'puppeteer'
 
@@ -20,7 +21,6 @@ import type { Browser, ElementHandle, Page } from 'puppeteer'
 // Reads the published HPRC walk file over the network, as the docs' track
 // does: LPA's forms cut takes about 5 s.
 const runE2E = process.env.RUN_E2E === '1'
-const WALKS = 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38'
 const LPA = { refName: 'chr6', start: 160_525_000, end: 160_655_000 }
 
 function config() {
@@ -50,7 +50,7 @@ function config() {
         assemblyNames: ['hg38'],
         adapter: {
           type: 'WalkFormsAdapter',
-          walksUri: WALKS,
+          walksUri: HPRC_WALKS,
           pinned: LPA,
           exclude: ['CHM13'],
         },

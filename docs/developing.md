@@ -58,7 +58,12 @@ pnpm host-names   # builds against each supported host's export names
 
 - `host-compat` serves `dist/` to a shipped config on each hosted release. It
   catches an RPC argument a released core cannot post, or a re-export the host
-  dropped. `pnpm version` runs it, and a publish has to pass
+  dropped. `pnpm version` runs it, and a publish has to pass. It answers the
+  hosted HPRC config with every `walksUri` set to `HPRC_WALKS`
+  (`scripts/hostedBrowser.mjs`), the walk file this bundle reads, so a release
+  that changes the walk format ships first and the hosted config moves to the
+  new file after, together with the store's `latest/`. `--published` reads the
+  hosted config as it stands
 - `esbuild.mjs` resolves each host import through
   `@jbrowse/core/ReExports/hostShim`, using the installed `@jbrowse/core`'s
   names. `pnpm host-names` builds against every release in

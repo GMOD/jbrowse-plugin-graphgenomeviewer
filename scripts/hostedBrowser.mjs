@@ -5,6 +5,12 @@ import puppeteer from 'puppeteer'
 // A real shipped config that names this plugin
 export const HPRC_CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
 
+// The HPRC walk file this bundle reads. The probe hands the hosted config this
+// file in place of the one it names, so a release that changes the walk format
+// can ship before the hosted config moves to the new file.
+export const HPRC_WALKS =
+  'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38'
+
 // Chrome 155 turns WebGL off under --use-gl=swiftshader.
 // --enable-unsafe-swiftshader lets it draw WebGL with SwiftShader on a machine
 // with no GPU.
