@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^13.0.1
-        version: 13.0.1
+        specifier: file:/home/cdiesh/src/vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz
+        version: file:../vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,9 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@13.0.1':
-    resolution: {integrity: sha512-cHkx5iKRMv8lCH5AdMDbVZHAlkTqQdiqLORKQJ19F2Mi1acydz3NBT1Ig/6w8F8uWgVnfxbJXEoWTt22m33dKA==}
+  '@jbrowse/bandage-core@file:../vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz':
+    resolution: {integrity: sha512-jorJfv1H9BYExgXHUuYgQbFkpnBpJ1ipZGp9CTbhIReL3RdSmmSA6AuQ0XufUEC4SakQCsIwq9jXRVn1Q0wLBQ==, tarball: file:../vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz}
+    version: 13.0.1
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3837,7 +3838,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@13.0.1':
+  '@jbrowse/bandage-core@file:../vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1

@@ -61,7 +61,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@eslint/js": "^10.0.1",
-    "@jbrowse/bandage-core": "^13.0.1",
+    "@jbrowse/bandage-core": "file:/home/cdiesh/src/vendor/walks6-pack/jbrowse-bandage-core-13.0.1.tgz",
     "@jbrowse/cli": "5.0.0-beta.20",
     "@jbrowse/mobx-state-tree": "^6.10.0",
     "@jbrowse/plugin-linear-genome-view": "5.0.0-beta.20",

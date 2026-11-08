@@ -407,22 +407,32 @@ test.each([
 const skipPrefix = fixture('skip')
 
 // HG002 steps on 2 and 9, the reference nodes either side of the window, so
-// its bar between them holds no bp against the reference's 30
-test('a haplotype that jumps over the window draws as a row of no bp', async () => {
+// its row across the reference's 30 bp is its departure from 20 to 80
+test('a haplotype that jumps over the window draws as a row of its departure', async () => {
   const cut = (await makeAdapter(skipPrefix).getSubgraph(chr1(31, 60), {
     walkRows: true,
   })) as WalkCut
   const { reference, rows } = walkRowsOf(cut.walkRowRuns!)
   expect(reference.bp).toBe(30)
   expect(
-    rows.map(({ label, bp, gapBp, complete, runs }) => ({
+    rows.map(({ label, bp, gapBp, complete, stepless, runs }) => ({
       label,
       bp,
       gapBp,
       complete,
-      runs,
+      stepless,
+      runs: runs.map(({ start, bp, cause }) => ({ start, bp, cause })),
     })),
-  ).toEqual([{ label: 'HG002#1', bp: 0, gapBp: 0, complete: true, runs: [] }])
+  ).toEqual([
+    {
+      label: 'HG002#1',
+      bp: 0,
+      gapBp: 30,
+      complete: true,
+      stepless: true,
+      runs: [{ start: 0, bp: 30, cause: 'departure' }],
+    },
+  ])
 })
 
 test('a cut on a signal already aborted reads no unit', async () => {
