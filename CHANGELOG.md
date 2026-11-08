@@ -1,3 +1,18 @@
+## [9.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.9.0...v9.0.0) (2026-11-08)
+
+### Other Changes
+
+- Walk fixtures in format 7, with graph-walks 6.0.0 and bandage-core 13.0.1 ([ebf11c2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ebf11c272abae94590280b8fede01106ab2a4087))
+- Read walk format 7 through graph-walks 6: a walk file and its directory ([b07c45b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b07c45be85d51d909faffe7ced9ca6006f211251))
+- Haplotype lanes read departures in place of skip rows and crossings ([056f94f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/056f94fcffc21671ee145ee40150876574af7809))
+- Structural forms open the walk file through graph-walks 6 ([37b695b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/37b695b650c51d2476ca9068150042f76d71357e))
+- Pin the graph-walks 6.0.0 tarball at a durable path, packed from e7259ee ([7499885](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7499885959df73182da05701e0e39f57e8a2b866))
+- Test against bandage-core with the flank-only departure fix, from its tarball ([8a0242e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8a0242e3477cb65e42d178c1434b503974ea9995))
+- Lockfile takes the graph-walks 6.0.0 tarball repacked from e6e5a74 ([2c2a25f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2c2a25f22967fe2ab773ecd1ab652235ee58bcd8))
+- Depend on the published @jbrowse/graph-walks 6.0.0 and @jbrowse/bandage-core 13.1.0 ([abcad8f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/abcad8f889cfea8f144f895ccd4c0bd502723318))
+- The gap e2e reads its GFA's W lines plain: the bp a graph lacks between a contig's lines are a walk file's departure records, which bandage-core states and tests ([619f27e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/619f27eaaf8faf84896fd1075415b758c2ca5c79))
+- The host-compat probe, the forms e2e and the docs read the format 7 HPRC walk file hosted today ([46dc84e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/46dc84e120f1f2f72169da9a2b9781893beb1524))
+
 ## [8.9.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.8.2...v8.9.0) (2026-11-06)
 
 ### Other Changes
