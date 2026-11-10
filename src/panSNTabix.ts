@@ -110,14 +110,25 @@ export function openWalkReader(adapter: {
   pluginManager?: PluginManager
   getConf(slot: 'walksLocation' | 'walksIndex'): FileLocation
 }) {
-  const pm = adapter.pluginManager
-  const data = adapter.getConf('walksLocation')
   const index = adapter.getConf('walksIndex')
+  return openWalkFile(
+    adapter.getConf('walksLocation'),
+    locationIsSet(index) ? index : undefined,
+    adapter.pluginManager,
+  )
+}
+
+// A walk file, with its directory at `index` or at `<data>.idx` beside it
+export function openWalkFile(
+  data: FileLocation,
+  index: FileLocation | undefined,
+  pluginManager?: PluginManager,
+) {
   return WalkReader.fromFilehandles({
-    data: openLocation(data, pm),
+    data: openLocation(data, pluginManager),
     directory: openLocation(
-      locationIsSet(index) ? index : renamed(data, name => `${name}.idx`),
-      pm,
+      index ?? renamed(data, name => `${name}.idx`),
+      pluginManager,
     ),
   })
 }

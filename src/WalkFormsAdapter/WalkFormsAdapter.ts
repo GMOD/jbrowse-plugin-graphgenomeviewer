@@ -21,7 +21,11 @@ import type { Pinned } from './pinned.ts'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
-import type { HaplotypeDepartures, StructuralForms, WalkReader  } from '@jbrowse/graph-walks'
+import type {
+  HaplotypeDepartures,
+  StructuralForms,
+  WalkReader,
+} from '@jbrowse/graph-walks'
 
 const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
 

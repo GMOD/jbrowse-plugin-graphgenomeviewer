@@ -71,10 +71,7 @@ function linksLocation(loc: FileLocation) {
   return segmentsSibling(loc, '.links.bed.gz')
 }
 
-export function tabixIndex(
-  loc: FileLocation,
-  indexLoc: FileLocation | undefined,
-) {
+function tabixIndex(loc: FileLocation, indexLoc: FileLocation | undefined) {
   return indexLoc
     ? {
         location: indexLoc,
