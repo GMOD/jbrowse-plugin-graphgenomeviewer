@@ -1,3 +1,25 @@
+## [9.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v9.0.0...v9.0.1) (2026-11-10)
+
+### Other Changes
+
+- The host-compat probe serves the hosted HPRC config with its walks swapped for the file this bundle reads, so a walk format change can publish before the hosted config moves ([a867914](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a8679146776c62ff46e84ebac936d4fac91e8fe4))
+- Match the dashed-link key by the reference sequence it skips, as core 13.1.1 drops "(a deletion)" ([129dd9f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/129dd9f50851044e1edbf6652442dd76d6af72a7))
+- Agent memories about this repo's code move to the docs and sites a session reads ([5d5b9a1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5d5b9a1da4f3722847879e0d1c07b95e27871cf9))
+- Fix small bugs a code review found ([86e15e8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/86e15e8852d191fd0f4ad0fe4cccb3aba8b18032))
+- Keep linear-view hovers and pointer moves from redoing work ([9a67d04](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9a67d04ebd1f3cacdcabae639b9b97881d68463e))
+- Type what TypeScript 6 and lint read as any, and drop casts ([ea7b1a9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ea7b1a9322c5fd314d294c377bc1df08358f5a37))
+- A force run no live layout waits on is aborted ([c331189](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c331189f193fe216a66f95b392bb45871bac40d0))
+- A layout aborted while queued in the worker is dropped before it runs ([016c816](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/016c8166f210dbc5c1939f1357631cfc96124c73))
+- Haplotype gene reads are aborted when superseded ([8cfcd6a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8cfcd6a54296d460e1be3807fcb88356ccc4f253))
+- Pin forms windows through the assembly's aliases, and cut only on the pinned sequence ([3e7fe91](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3e7fe913af3dd5550bbaddf62136de5dfe7012c8))
+- Read a walk file's reference from its header in Open track, and guess no dotted sample from its name ([14770e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/14770e17b8893c1592d203200c26441c8e83c467))
+- Lint production code for values typed any ([69a0dc7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/69a0dc7dd7f60ec9933ef7af50259e69763e2d38))
+- Keep walk-row trees across pan frames ([02403c3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/02403c38acfb1a70eed61df4c0f1bf5ca100f69d))
+- Move gene pins' exon outlines with the pane's transform group ([125a6a2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/125a6a232afd6a03f53b897aac41201986a66076))
+- Keep a label pan going off the canvas, and measure a key that mounts late ([11584e2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/11584e222c5a171380ddfc41f72f21c1c3ce217d))
+- Read a picked sample's abridged walks in full without waiting for a pan ([f5d386a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f5d386ac3cd8dbc11510a8f750a5377f47d581a9))
+- Take graph-walks 6.2 and bandage-core 13.3, and open walk files through one helper ([34d4af0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/34d4af067f8b570794c17cb0e4b9a547081330ba))
+
 ## [9.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v8.9.0...v9.0.0) (2026-11-08)
 
 ### Other Changes
