@@ -22,7 +22,7 @@ import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
-import { isNodeLimitError } from '../nodeLimitError'
+import { isNodeLimitError, isUnzoomableNodeLimitError } from '../nodeLimitError'
 import { denseCovers } from './denseWindow'
 import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
 import { GraphPane, formatSpanBp } from '../GraphGenomeView/model'
@@ -190,6 +190,11 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         const seen = self.settledWindow
         return seen ? self.capFor(self.tierAt(seen.bpPerPx)) : Infinity
       },
+      get unzoomableBytes() {
+        return isUnzoomableNodeLimitError(self.error)
+          ? self.error.bytes
+          : undefined
+      },
     }))
     .views(self => ({
       get regionTooLarge() {
@@ -198,15 +203,22 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
       get regionTooLargeReason() {
         const seen = self.settledWindow
-        return seen
-          ? `Region too large for a graph cut (${formatSpanBp(seen.end - seen.start)}, max ${formatSpanBp(self.settledCapBp)})`
-          : ''
+        return isUnzoomableNodeLimitError(self.error)
+          ? self.error.message
+          : seen
+            ? `Region too large for a graph cut (${formatSpanBp(seen.end - seen.start)}, max ${formatSpanBp(self.settledCapBp)})`
+            : ''
       },
       get zoomCanReleaseGate() {
-        return true
+        return self.unzoomableBytes === undefined
       },
       get fetchCanceled() {
         return self.loadCanceled
+      },
+    }))
+    .views(self => ({
+      get showsTooLarge() {
+        return self.regionTooLarge || self.unzoomableBytes !== undefined
       },
     }))
     .views(self => ({
@@ -214,7 +226,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return computeSvgReady(
           {
             error: self.error,
-            regionTooLarge: self.regionTooLarge,
+            regionTooLarge: self.showsTooLarge,
             extraTerminal: false,
             fetchCanceled: self.loadCanceled,
           },
@@ -229,7 +241,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return computeDisplayPhase(
           {
             renderError: self.renderError,
-            regionTooLarge: self.regionTooLarge,
+            regionTooLarge: self.showsTooLarge,
             error: self.error,
           },
           () =>
@@ -432,8 +444,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
     }))
     .actions(self => ({
       forceLoad() {
+        const bytes = self.unzoomableBytes
         const seen = self.settledWindow
-        if (seen) {
+        if (bytes !== undefined) {
+          self.forcedByteBudget = bytes
+          self.setDense(undefined)
+          self.recut()
+        } else if (seen) {
           self.setMaxRegionBp(Math.ceil(seen.end - seen.start))
           self.settleOn(seen)
         }
@@ -654,7 +671,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               ? 'The track could not cut a graph here'
               : self.isLoading && !self.hasGraph
                 ? 'The track is still cutting its graph'
-                : 'Zoom in until the track cuts a graph',
+                : self.unzoomableBytes !== undefined
+                  ? 'Force load the track to cut a graph here'
+                  : 'Zoom in until the track cuts a graph',
           onClick: () => {
             self.openGraphView()
           },

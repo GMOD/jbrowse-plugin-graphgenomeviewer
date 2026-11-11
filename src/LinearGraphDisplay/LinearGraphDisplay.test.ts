@@ -377,6 +377,9 @@ function createEnvironment({
   const signals: AbortSignal[] = []
   // a GBZ cut of more than this many bp fails over its node limit
   let denseAbove = Infinity
+  // a GBZ cut under a forced byte budget of fewer bytes than this fails where
+  // no zoom fits
+  let unzoomableBytes = 0
   // what a walk-indexed graph's header names
   let haplotypeNames: string[] | undefined = ['HG1#1', 'HG1#2', 'HG2#1']
   const rpcCall = vi.fn(
@@ -385,12 +388,35 @@ function createEnvironment({
       method: string,
       args: {
         region: SubgraphRegion
-        opts?: { tier?: SubgraphTier; snarls?: string; hops?: number }
+        opts?: {
+          tier?: SubgraphTier
+          snarls?: string
+          hops?: number
+          forcedByteBudget?: number
+        }
         options?: { engine: string }
         signal?: AbortSignal
         adapterConfig?: { type?: string }
       },
     ) => {
+      if (
+        method === 'GetSubgraph' &&
+        args.adapterConfig?.type === 'GbzBaseSyntenyAdapter' &&
+        unzoomableBytes > (args.opts?.forcedByteBudget ?? 0)
+      ) {
+        cuts.push({ tier: 'fine', region: args.region })
+        return Promise.reject(
+          Object.assign(
+            new Error('Too much graph here to fetch, even zoomed in'),
+            {
+              name: 'NodeLimitError',
+              regionTooLarge: true,
+              zoomHelps: false,
+              bytes: unzoomableBytes,
+            },
+          ),
+        )
+      }
       if (
         method === 'GetSubgraph' &&
         args.adapterConfig?.type === 'GbzBaseSyntenyAdapter' &&
@@ -529,6 +555,9 @@ function createEnvironment({
     rpcCall,
     setDenseAbove(bp: number) {
       denseAbove = bp
+    },
+    setUnzoomableBytes(bytes: number) {
+      unzoomableBytes = bytes
     },
     setHaplotypeNames(names: string[] | undefined) {
       haplotypeNames = names
@@ -1395,6 +1424,31 @@ test('a cut over its node limit shows its zoom-in notice at that span and wider 
     expect(display.hasGraph).toBe(true)
   })
   expect(display.error).toBeUndefined()
+})
+
+test('a cut no zoom fits is too large to show, and loading it anyway raises the byte budget to what it fetches, cutting once', async () => {
+  const { view, display, cuts, rpcCall } = await shownWalks(60_000, env => {
+    env.setUnzoomableBytes(45_600_000)
+  })
+  await vi.waitFor(() => {
+    expect(display.displayPhase).toBe('tooLarge')
+  })
+  expect(display.regionTooLargeReason).toMatch(/even zoomed in/)
+  expect(display.zoomCanReleaseGate).toBe(false)
+  view.zoomTo(20_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(display.displayPhase).toBe('tooLarge')
+  const refused = cuts.length
+  display.forceLoad()
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(refused + 1)
+  expect(display.forcedByteBudget).toBe(45_600_000)
+  expect(display.displayPhase).not.toBe('tooLarge')
+  const last = rpcCall.mock.calls.findLast(([, m]) => m === 'GetSubgraph')
+  expect(last?.[2].opts?.forcedByteBudget).toBe(45_600_000)
 })
 
 test('a refused cut stands only near where it was refused: far along the contig the same zoom cuts again', async () => {

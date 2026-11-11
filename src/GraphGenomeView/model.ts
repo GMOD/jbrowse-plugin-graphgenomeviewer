@@ -64,6 +64,9 @@ export const GraphPane = withLaunchActions
         ...(self.expandedWalks.length > 0
           ? { expand: self.expandedWalks }
           : {}),
+        ...(self.forcedByteBudget
+          ? { forcedByteBudget: self.forcedByteBudget }
+          : {}),
       }
     },
   }))

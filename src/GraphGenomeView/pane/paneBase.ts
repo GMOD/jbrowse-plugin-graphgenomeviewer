@@ -316,6 +316,7 @@ export const paneBase = types
       // The bp ceiling on a fine cut, a proxy for node count that only
       // holds at fine granularity; `maxGraphNodes` counts what came back.
       maxRegionBp: types.optional(types.number, MAX_GRAPH_REGION_BP),
+      forcedByteBudget: types.maybe(types.number),
       // How far the cut follows links past the region's own segments. At
       // 0 a detour that leaves the backbone before the window and rejoins
       // after it arrives as a fragment, since its interior is indexed only
