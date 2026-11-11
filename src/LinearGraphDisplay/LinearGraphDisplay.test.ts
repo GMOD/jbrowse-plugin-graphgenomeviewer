@@ -1325,8 +1325,12 @@ test('a walk-indexed graph whose header names no haplotype counts none', async (
   expect(menu()[1]!.label).toBe('Every haplotype in the graph')
 })
 
-async function shownWalks(windowBp: number, setup?: (env: Env) => void) {
-  const env = createEnvironment()
+async function shownWalks(
+  windowBp: number,
+  setup?: (env: Env) => void,
+  options?: Parameters<typeof createEnvironment>[0],
+) {
+  const env = createEnvironment(options)
   setup?.(env)
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
@@ -1499,6 +1503,29 @@ test('after a refused cut, a context change cuts the window again', async () => 
   expect(cuts).toHaveLength(2)
   await vi.waitFor(() => {
     expect(display.hasGraph).toBe(true)
+  })
+})
+
+test('on a graph with walks, a context change whose cut is refused leaves the window to cut again, and zooming in cuts', async () => {
+  const env = await shownWalks(400_000, undefined, { paths: true })
+  const { view, display, cuts } = env
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+  })
+  env.setDenseAbove(500_000)
+  display.setSubgraphContext(0)
+  await vi.waitFor(() => {
+    expect(display.dense).toBeDefined()
+  })
+  expect(display.cutRegion).toBeUndefined()
+  expect(display.error).toMatchObject({ regionTooLarge: true })
+  const refused = cuts.length
+  view.zoomTo(50_000 / WIDTH_PX)
+  await wait(SETTLE_MS)
+  expect(cuts.length).toBeGreaterThan(refused)
+  await vi.waitFor(() => {
+    expect(display.hasGraph).toBe(true)
+    expect(display.error).toBeUndefined()
   })
 })
 

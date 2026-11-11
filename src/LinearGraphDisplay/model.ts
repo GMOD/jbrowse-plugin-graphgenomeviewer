@@ -320,81 +320,94 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return self.cut()
       },
     }))
-    .actions(self => ({
-      // The settle clock. A window the cut still holds fetches nothing; one
-      // past its edge re-cuts, on the tier the zoom asks for, with margins
-      // when the host places x and the window alone when the layout draws
-      // its own picture of it. A canceled cut is re-made by the next move,
-      // and a window a refused cut covers keeps its notice without asking
-      // again. Returns whether it re-cut.
-      settleOn(seen: HostWindow): boolean {
-        self.settledWindow = seen
-        const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
-        if (
-          self.regionTooLarge ||
-          denseCovers(self.dense, seen) ||
-          (!self.loadCanceled &&
-            self.tierAt(seen.bpPerPx) === self.cutTier &&
-            cutHolds(self.cutRegion, seen, margins) &&
-            !self.cutStale &&
-            !self.foldDrifted(seen.bpPerPx))
-        ) {
-          return false
-        }
+    .actions(self => {
+      let followed = 0
+      return {
         // An outrun cut resolves without touching the error, so the error
         // is this cut's only while no later one has started
-        const cut = self.recutAt(seen)
-        const recut = self.recuts
-        void Promise.resolve(cut).then(() => {
+        followCut(cut: ReturnType<typeof self.cut>, seen: HostWindow) {
+          const latest = ++followed
+          void Promise.resolve(cut).then(() => {
+            if (
+              isAlive(self) &&
+              followed === latest &&
+              isNodeLimitError(self.error)
+            ) {
+              this.refuseDenseCut(seen)
+            }
+          })
+        },
+        // The settle clock. A window the cut still holds fetches nothing;
+        // one past its edge re-cuts, on the tier the zoom asks for, with
+        // margins when the host places x and the window alone when the
+        // layout draws its own picture of it. A canceled cut is re-made by
+        // the next move, and a window a refused cut covers keeps its notice
+        // without asking again. Returns whether it re-cut.
+        settleOn(seen: HostWindow): boolean {
+          self.settledWindow = seen
+          const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
           if (
-            isAlive(self) &&
-            self.recuts === recut &&
-            isNodeLimitError(self.error)
+            self.regionTooLarge ||
+            denseCovers(self.dense, seen) ||
+            (!self.loadCanceled &&
+              self.tierAt(seen.bpPerPx) === self.cutTier &&
+              cutHolds(self.cutRegion, seen, margins) &&
+              !self.cutStale &&
+              !self.foldDrifted(seen.bpPerPx))
           ) {
-            this.refuseDenseCut(seen)
+            return false
           }
-        })
-        return true
-      },
-      // A cut refused for its node count holds nothing, so a window
-      // narrower than this one cuts again
-      refuseDenseCut(seen: HostWindow) {
-        self.setDense(seen)
-        self.cutRegion = undefined
-        this.settleOn(self.settledWindow ?? seen)
-      },
-      // Cut the region again with the current options, or the window on
-      // screen where a refused cut left no region
-      recut() {
-        if (self.cutRegion) {
-          void self.cut()
-        } else if (self.settledWindow) {
-          this.settleOn(self.settledWindow)
-        }
-      },
-      relayoutFrom(from: LayoutModeValue) {
-        const seen = self.host ? hostWindow(self.host) : undefined
-        if (
-          seen &&
-          !self.regionTooLarge &&
-          (self.cutStale ||
-            layoutModeByValue(from).cutMargins !==
-              layoutModeByValue(self.chosenLayoutMode).cutMargins)
-        ) {
-          return self.recutAt(seen)
-        }
-        return self.recomputeLayout()
-      },
-      retryLoad() {
-        this.recut()
-      },
-      reload() {
-        void self.cut()
-      },
-      cancelFetchByUser() {
-        self.stopLoad()
-      },
-    }))
+          this.followCut(self.recutAt(seen), seen)
+          return true
+        },
+        // A cut refused for its node count holds nothing, so a window
+        // narrower than this one cuts again
+        refuseDenseCut(seen: HostWindow) {
+          self.setDense(seen)
+          self.cutRegion = undefined
+          this.settleOn(self.settledWindow ?? seen)
+        },
+        // Cut the region again with the current options, or the window on
+        // screen where a refused cut left no region
+        recut() {
+          if (self.cutRegion) {
+            this.reload()
+          } else if (self.settledWindow) {
+            this.settleOn(self.settledWindow)
+          }
+        },
+        relayoutFrom(from: LayoutModeValue) {
+          const seen = self.host ? hostWindow(self.host) : undefined
+          if (
+            seen &&
+            !self.regionTooLarge &&
+            (self.cutStale ||
+              layoutModeByValue(from).cutMargins !==
+                layoutModeByValue(self.chosenLayoutMode).cutMargins)
+          ) {
+            const cut = self.recutAt(seen)
+            this.followCut(cut, seen)
+            return cut
+          }
+          return self.recomputeLayout()
+        },
+        retryLoad() {
+          this.recut()
+        },
+        reload() {
+          const seen =
+            self.settledWindow ??
+            (self.host ? hostWindow(self.host) : undefined)
+          const cut = self.cut()
+          if (seen) {
+            this.followCut(cut, seen)
+          }
+        },
+        cancelFetchByUser() {
+          self.stopLoad()
+        },
+      }
+    })
     .actions(self => ({
       stretchWithHost(
         before: { bpPerPx: number; offsetPx: number },
