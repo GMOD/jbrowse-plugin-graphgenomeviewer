@@ -21,8 +21,7 @@ import {
   readSelectedFeature,
 } from '../../hoverSync/lgvHover'
 import { walksForRow } from '../../hoverSync/rowWalks'
-import { isRecord } from '../../isRecord'
-import { withRows } from '../../launchFromGraph/linearViewTarget'
+import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { trackedDpr } from '../trackedDpr'
 
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
@@ -170,16 +169,15 @@ export const withRenderingActions = withLoadActions
             untracked(() => {
               const region = self.graphRegion
               const graph = self.graph
-              const liveViewIds = new Set(
-                withRows([...getSession(self).views]).flatMap(v =>
-                  isRecord(v) && typeof v.id === 'string' ? [v.id] : [],
-                ),
-              )
               const inRegion =
                 hover &&
                 region &&
                 hoverInRegion(hover, region) &&
-                hoverFromPair(hover, self.pairedViewId, liveViewIds)
+                hoverFromPair(
+                  hover,
+                  self.pairedViewId,
+                  liveViewIds([...getSession(self).views]),
+                )
                   ? hover
                   : undefined
               // a row naming a walk is the hover, not the node at its bp,

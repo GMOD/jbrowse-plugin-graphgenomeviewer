@@ -17,7 +17,7 @@ import {
 import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
 import { withTubeMapViews } from './tubeMapViews'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
-import { withRows } from '../../launchFromGraph/linearViewTarget'
+import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { withLayer } from '../graphLayers'
 import { colorOfScheme } from '../nodeColor'
 import { sizeOf } from '../nodeSize'
@@ -286,9 +286,7 @@ export const withSettingActions = withTubeMapViews
       const paired = self.connectedViewId
       const stillOpen =
         paired !== undefined &&
-        withRows([...getSession(self).views]).some(
-          view => (view as { id?: unknown }).id === paired,
-        )
+        liveViewIds([...getSession(self).views]).has(paired)
       if (!stillOpen) {
         self.connectedViewId = viewId
       }
