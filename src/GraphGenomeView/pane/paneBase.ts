@@ -430,9 +430,6 @@ export const paneBase = types
     // and then never re-fit.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     viewportOwner: 'fit' as ViewportOwner,
-    viewportDirtyTimer: undefined as ReturnType<typeof setTimeout> | undefined,
-    // 0 is never a live rAF handle, so it doubles as "nothing pending"
-    positionsDirtyFrame: 0,
     // Performance instrumentation, surfaced in GraphStats for browser tests
     // to assert against budgets. `fetchMs` is the GetSubgraph RPC round-trip,
     // `layoutMs` the last layout's compute time in any mode (near zero on a

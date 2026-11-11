@@ -591,13 +591,16 @@ export const withSettingActions = withTubeMapViews
     },
   }))
   .actions(self => {
+    let viewportDirtyTimer: ReturnType<typeof setTimeout> | undefined
+    let positionsDirtyFrame = 0
+
     // Pan/zoom can wait: the geometry on screen is still correct while the
     // gesture runs (the viewport bounds carry 20% overscan), so rebuilding is
     // deferred until the user settles.
     function scheduleViewportDirty() {
-      clearTimeout(self.viewportDirtyTimer)
+      clearTimeout(viewportDirtyTimer)
       self.viewportRebuildPending = true
-      self.viewportDirtyTimer = setTimeout(() => {
+      viewportDirtyTimer = setTimeout(() => {
         if (isAlive(self)) {
           self.setViewportDirty()
         }
@@ -611,8 +614,8 @@ export const withSettingActions = withTubeMapViews
     // drag live while bounding that work to once per frame instead of once
     // per event.
     function requestPositionsDirtyFrame() {
-      cancelAnimationFrame(self.positionsDirtyFrame)
-      self.positionsDirtyFrame = requestAnimationFrame(() => {
+      cancelAnimationFrame(positionsDirtyFrame)
+      positionsDirtyFrame = requestAnimationFrame(() => {
         if (isAlive(self)) {
           self.setPositionsDirty()
         }
