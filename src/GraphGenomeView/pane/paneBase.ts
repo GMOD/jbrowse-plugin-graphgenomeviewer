@@ -6,7 +6,11 @@ import { viewportOf } from '@jbrowse/bandage-core/viewport'
 import { types } from '@jbrowse/mobx-state-tree'
 import { RenderLifecycleMixin } from '@jbrowse/render-core/RenderLifecycleMixin'
 
-import { GRAPH_SUFFIX, SEGMENTS_SUFFIX } from '../../locationName.ts'
+import {
+  GRAPH_SUFFIX,
+  SEGMENTS_SUFFIX,
+  locationName,
+} from '../../locationName.ts'
 import { lenientOptionalEnum } from '../lenientEnum'
 
 import type { MorphEntering } from './morph'
@@ -157,7 +161,9 @@ export const MAX_GRAPH_REGION_BP = 5_000_000
 export function formatSpanBp(bp: number) {
   return bp >= 1_000_000
     ? `${+(bp / 1_000_000).toFixed(1)} Mb`
-    : `${Math.round(bp / 1000)} kb`
+    : bp >= 1000
+      ? `${Math.round(bp / 1000)} kb`
+      : `${bp} bp`
 }
 
 // What the view will actually draw, checked once the graph is parsed and so
@@ -172,15 +178,7 @@ export const DEFAULT_MAX_GRAPH_NODES = 20_000
 
 // the last segment of a file's path, its query dropped, or a blob's own name
 export function fileName(location: FileLocation) {
-  const path =
-    'uri' in location
-      ? location.uri.split(/[?#]/)[0]!
-      : 'localPath' in location
-        ? location.localPath
-        : 'name' in location
-          ? location.name
-          : ''
-  return path.split(/[\\/]/).at(-1) ?? ''
+  return locationName(location).split(/[\\/]/).at(-1) ?? ''
 }
 
 type ViewportOwner = 'fit' | 'user' | 'host'
