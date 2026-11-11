@@ -1,3 +1,26 @@
+## [9.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v9.0.1...v9.1.0) (2026-11-11)
+
+### Other Changes
+
+- Re-cut from one reaction on the cut options, and offer the cut settings on a graph view of its own ([ecdb533](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ecdb533685424b725a891dc31096534a82280251))
+- Drop the readers for config and session shapes retired two majors ago ([abe84e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/abe84e11374b8e37c56e56bd4e11ba6484eb65b7))
+- Keep the data readers out of the plugin's entry chunk ([c2dcce4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c2dcce4a45a3cc4b2ef4ba70ae80158a8311f42b))
+- Label the add-track button Reading… whatever file it reads ([4850f09](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4850f0914c5a82ae294828b072f76dab217b5267))
+- Offer a way back to the import form from a failed or canceled load ([641a804](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/641a80476dbdea5bb79646c98f5724a40acc1b01))
+- Take the toolbar border and perf text colours from the theme ([593a405](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/593a405333f0de1d145bf589a05074feae3c8bef))
+- Build fileName on locationName, and print sub-kb spans in bp ([73e36d6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/73e36d6aeb9c2d0667ef7f6cbcb82c1b64b09691))
+- Declare the add-track fetch timeout once ([7ee27e0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7ee27e0ef289b540875975d3176c56fbc29a3f83))
+- Give an off-reference node's tooltip its span on the reference ([8ab2f3b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8ab2f3b253920daaaa985cbe5d208de12ac0e21e))
+- Load a GFA dropped onto the import form ([74ec5f4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/74ec5f407fbd47dccfa7cdef3d2f97bdc814d88b))
+- Name layoutEngine among the strict track config enums ([304f794](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/304f7943155990ef8d0aa07c176d263cd73db2e9))
+- Build the set of open view ids in one place ([90a1796](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/90a179684508087cbc793d289d6a5fefeebcce28))
+- Split the pane model's tests by stage ([8c2fbe5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8c2fbe5daf635aa4538d02e037d73c9f51ea4203))
+- Refuse a settings re-cut over its node limit, so zooming in cuts again ([32ce0ff](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/32ce0ffa0147b556c72fde0432de2a07d4ab2416))
+- Hold the pane's rebuild timers outside its observable state ([f2f0a65](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f2f0a65d30f0fda310d7bb243208962f499d9f34))
+- Abort a superseded annotation reload, and offer walk rows only to a graph with walks ([ccb2580](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ccb2580d62e8901dd355f4b8c2db7240c1bf1fa6))
+- Dedupe open bubbles without a mutating filter ([c16345e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c16345e8ca4e3d066cead181091983dd46cac09a))
+- Offer Force load for a walk cut no zoom fits under the byte budget ([69f2305](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/69f2305d1dff2dff6c655e1b3af2707df92db39f))
+
 ## [9.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v9.0.0...v9.0.1) (2026-11-10)
 
 ### Other Changes
