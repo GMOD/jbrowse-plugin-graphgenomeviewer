@@ -420,6 +420,19 @@ describe('node budget', () => {
     consoleSpy.mockRestore()
   })
 
+  test('the refusal offers walk rows only to a graph with walks', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcRespond()
+    const bare = withLimit(1)
+    await bare.loadGFA(SIMPLE_GFA, 'two nodes')
+    const walked = withLimit(1)
+    await walked.loadGFA(WALKED_GFA, 'two nodes')
+
+    expect(String(bare.error)).not.toMatch(/walk rows/i)
+    expect(String(walked.error)).toMatch(/walk rows/i)
+    consoleSpy.mockRestore()
+  })
+
   test('a layout that lands clears the error the last one raised', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcRespond()
@@ -709,6 +722,23 @@ describe('annotation reads beside a cut', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(model.geneFeatures?.map(g => g.name)).toEqual(['ABC1'])
+  })
+
+  test('picking another gene track aborts the read of the one it replaced', async () => {
+    const model = attachedModel()
+    await cutAndSettle(model)
+
+    model.setGeneTrackId('genes-b')
+    model.setGeneTrackId('genes-a')
+    await vi.waitFor(() => {
+      expect(reads.filter(r => r.tag === 'genes-a')).toHaveLength(2)
+    })
+    const [replaced, chosen] = mockRpcCall.mock.calls
+      .filter(c => c[1] === 'CoreGetFeatures')
+      .slice(-2)
+      .map(c => c[2].signal)
+    expect(replaced).toMatchObject({ aborted: true })
+    expect(chosen).toMatchObject({ aborted: false })
   })
 
   test("a cut's gene read does not land over a track picked during it", async () => {
