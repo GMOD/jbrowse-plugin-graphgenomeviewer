@@ -16,12 +16,7 @@ import {
 } from '@jbrowse/core/pluggableElementTypes/models'
 import { LAUNCH_LABEL } from '@jbrowse/core/ui'
 import SimpleFeature from '@jbrowse/core/util/simpleFeature'
-import {
-  applyPatch,
-  getSnapshot,
-  getType,
-  types,
-} from '@jbrowse/mobx-state-tree'
+import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { reaction } from 'mobx'
@@ -198,8 +193,7 @@ function createEnvironment({
   RgfaTabixAdapterF(pluginManager)
   GbzBaseSyntenyAdapterF(pluginManager)
   addGeneLaneTypes(pluginManager)
-  // the track types a 4.0 config names its graph on, and the gene lane's
-  for (const name of ['FeatureTrack', 'SyntenyTrack', 'GeneLaneTrack']) {
+  for (const name of ['GeneLaneTrack']) {
     pluginManager.addTrackType(() => {
       const trackConfigSchema = ConfigurationSchema(
         name,
@@ -298,17 +292,17 @@ function createEnvironment({
     },
     { pluginManager },
   )
-  const featureTrackConfig = trackSchema.create(
+  const bareTrackConfig = trackSchema.create(
     {
-      type: 'FeatureTrack',
-      trackId: 'graph-as-feature',
-      name: 'graph as a 4.0 config states it',
+      type: 'GraphTrack',
+      trackId: 'graph-bare',
+      name: 'graph whose display states nothing',
       assemblyNames: [ASM],
       adapter: { type: 'RgfaTabixAdapter', uri: 'graph' },
       displays: [
         {
           type: 'LinearGraphDisplay',
-          displayId: 'graph-as-feature-LinearGraphDisplay',
+          displayId: 'graph-bare-LinearGraphDisplay',
         },
       ],
     },
@@ -334,7 +328,7 @@ function createEnvironment({
     trackConfig,
     gbzTrackConfig,
     walkIndexedTrackConfig,
-    featureTrackConfig,
+    bareTrackConfig,
     aliasTrackConfig,
   ]
   if (geneLaneFilter) {
@@ -1032,51 +1026,6 @@ test("a launch names the pane's props without its type, and opens in that layout
 })
 
 test.each([
-  ['uniform', 'uniform'],
-  [{ field: 'id', scale: 'categorical' }, 'random'],
-  [{ field: 'id', scheme: 'rainbow' }, 'rainbow'],
-  [{ field: 'depth' }, 'depth'],
-])('a flat color %j in a saved config is read as %s', async (color, scheme) => {
-  const { view } = createEnvironment()
-  view.showTrack('graph', {}, { type: 'LinearGraphDisplay', color })
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(display.chosenColorScheme).toBe(scheme)
-  expect(getSnapshot(display.configuration)).not.toHaveProperty('color')
-})
-
-test('a flat color lifts to encoding.color', async () => {
-  const { view } = createEnvironment()
-  view.showTrack(
-    'graph',
-    {},
-    {
-      type: 'LinearGraphDisplay',
-      color: { field: 'position', domainMin: 5, domainMax: 50 },
-    },
-  )
-  const lifted = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(readConfObject(lifted.configuration, 'encoding')).toEqual({
-    color: { field: 'position', scale: { domainMin: 5, domainMax: 50 } },
-  })
-  expect(lifted.statedColorDomain).toEqual({ start: 5, end: 50 })
-})
-
-test('an encoding beside a flat color wins', () => {
-  const { view } = createEnvironment()
-  view.showTrack(
-    'graph',
-    {},
-    {
-      type: 'LinearGraphDisplay',
-      color: { field: 'depth', domainMin: 1 },
-      encoding: { color: { field: 'length' } },
-    },
-  )
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(display.chosenColorScheme).toBe('node-length')
-})
-
-test.each([
   ['force', false],
   ['auto', true],
 ])(
@@ -1207,26 +1156,11 @@ test('closing a drawn track reads nothing of the dead display', async () => {
   )
 })
 
-// every hosted config and share link through 4.0.7 names the graph on a
-// FeatureTrack, and a store update reaches them all at once
-test('a 4.0 FeatureTrack config still opens as the graph', async () => {
-  const { view, cuts } = createEnvironment()
-  view.zoomTo(60_000 / WIDTH_PX)
-  view.scrollTo(1_000_000 / view.bpPerPx)
-  view.showTrack('graph-as-feature', {}, { type: 'LinearGraphDisplay' })
-  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  expect(display.type).toBe('LinearGraphDisplay')
-  display.startRenderingBackend(fakeRenderer())
-  await wait(SETTLE_MS)
-  expect(cuts).toHaveLength(1)
-  expect(display.hasGraph).toBe(true)
-})
-
 test('a track whose config names no layout opens force-directed, drawn by stress', async () => {
   const { view } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
-  view.showTrack('graph-as-feature', {}, { type: 'LinearGraphDisplay' })
+  view.showTrack('graph-bare', {}, { type: 'LinearGraphDisplay' })
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
@@ -1240,7 +1174,7 @@ test('a config that picks FMMM opens with it, and the graph view it launches kee
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
   view.showTrack(
-    'graph-as-feature',
+    'graph-bare',
     {},
     { type: 'LinearGraphDisplay', layoutEngine: 'fmmm' },
   )

@@ -7,7 +7,6 @@ import { isAlive, types } from '@jbrowse/mobx-state-tree'
 import { HOVER_HIGHLIGHT_VALUES } from './hoverHighlight'
 import { lenientMaybeEnum, lenientOptionalEnum } from './lenientEnum'
 import { GraphPane, fileName, formatSpanBp } from './model'
-import { liftFlatNodeColor } from './retiredNodeColor'
 import { canonicalRegion } from '../launchFromGraph/launchFromGraph'
 
 import type { GraphLayers } from './graphLayers'
@@ -51,11 +50,6 @@ export default function stateModelFactory() {
         // unset is nodes
         hover: lenientMaybeEnum(HOVER_HIGHLIGHT_VALUES),
       }),
-    )
-    .preProcessSnapshot(snap =>
-      snap.color === undefined
-        ? snap
-        : { ...snap, color: liftFlatNodeColor(snap.color) as NodeColor },
     )
     .views(self => ({
       get grammar(): GraphGrammar {

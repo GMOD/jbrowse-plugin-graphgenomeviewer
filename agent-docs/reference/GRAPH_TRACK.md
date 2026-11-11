@@ -187,11 +187,9 @@ ones core's `PLOT_VOCABULARY` names (`facet`, `rows` and `size`), plus every
 `plot: true` slot.
 
 - The node color is `encoding.color`: `{ value: 'grey' | 'uniform' }` or
-  `{ field, scale }`. The schema's `retired` lifts a flat `color`
-  (`retiredNodeColor.ts`).
+  `{ field, scale }`.
 - A standalone view keeps the other keys as props. Its `color` prop holds the
-  same channel object, since core's docs specs state `color`; the view lifts a
-  flat one on load.
+  same channel object, since core's docs specs state `color`.
 
 The pane reads them through `grammar` and writes through `writeGrammar`, which
 each host overrides. A layout change from anywhere but the menu (reset, undo,
