@@ -224,7 +224,7 @@ const GraphAddTrackWidget = observer(function GraphAddTrackWidget({
           void handleSubmit()
         }}
       >
-        {submitting ? 'Reading graph.json…' : 'Submit'}
+        {submitting ? 'Reading…' : 'Submit'}
       </Button>
     </Paper>
   )
