@@ -2,17 +2,14 @@ import { render, screen } from '@testing-library/react'
 
 import SubgraphContextSelect from './SubgraphContextSelect'
 
-import type { LinearGraphCutModel } from '../model'
-
 const shown = (adapterConfig: Record<string, unknown>) => {
   render(
     <SubgraphContextSelect
-      model={
-        {
-          sourceAdapter: adapterConfig,
-          subgraphContext: 1,
-        } as unknown as LinearGraphCutModel
-      }
+      model={{
+        sourceAdapter: adapterConfig,
+        subgraphContext: 1,
+        setSubgraphContext: () => {},
+      }}
     />,
   )
   return screen.queryByTestId('graph-context-select') !== null

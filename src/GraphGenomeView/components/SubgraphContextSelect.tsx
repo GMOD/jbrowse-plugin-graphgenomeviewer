@@ -2,10 +2,10 @@ import { Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import LabelledSelect from '../../GraphGenomeView/components/LabelledSelect'
+import LabelledSelect from './LabelledSelect'
 import { walkIndexed } from '../../graphTrackConfig'
 
-import type { LinearGraphCutModel } from '../model'
+import type { GraphPaneModel } from '../model'
 
 const useStyles = makeStyles()({
   section: {
@@ -31,7 +31,10 @@ const SUBGRAPH_CONTEXTS = [
 const SubgraphContextSelect = observer(function SubgraphContextSelect({
   model,
 }: {
-  model: LinearGraphCutModel
+  model: Pick<
+    GraphPaneModel,
+    'sourceAdapter' | 'subgraphContext' | 'setSubgraphContext'
+  >
 }) {
   const { classes } = useStyles()
   const adapter = model.sourceAdapter
@@ -45,7 +48,6 @@ const SubgraphContextSelect = observer(function SubgraphContextSelect({
         testId="graph-context-select"
         onChange={hops => {
           model.setSubgraphContext(Number(hops))
-          model.recut()
         }}
       />
       <Typography variant="caption" component="div" color="text.secondary">

@@ -3,16 +3,13 @@ import { observable, runInAction } from 'mobx'
 
 import SubgraphHaplotypesField from './SubgraphHaplotypesField'
 
-import type { LinearGraphCutModel } from '../model'
-
 function model(haplotypeNames?: string[]) {
   return {
     sourceAdapter: { type: 'RgfaTabixAdapter', walksUri: 'chr22' },
     cutHaplotypes: ['HG002'],
     haplotypeNames,
     setSubgraphHaplotypes: vi.fn(),
-    recut: vi.fn(),
-  } as unknown as LinearGraphCutModel
+  }
 }
 
 test("the field offers the haplotypes a walk file's header names", () => {
@@ -26,7 +23,6 @@ test("the field offers the haplotypes a walk file's header names", () => {
     key: 'Escape',
   })
   expect(m.setSubgraphHaplotypes).toHaveBeenCalledWith(['HG002', 'HG00097#1'])
-  expect(m.recut).toHaveBeenCalled()
 })
 
 test('a typed prefix left in the box applies when the box loses focus', () => {
@@ -66,12 +62,11 @@ function liveModel(haplotypeNames?: string[]) {
     sourceAdapter: { type: 'RgfaTabixAdapter', walksUri: 'chr22' },
     cutHaplotypes: ['HG002'],
     haplotypeNames,
-    setSubgraphHaplotypes(haplotypes: string[]) {
-      m.cutHaplotypes = haplotypes
+    setSubgraphHaplotypes(haplotypes: string[] | undefined) {
+      m.cutHaplotypes = haplotypes ?? []
     },
-    recut: vi.fn(),
   })
-  return m as unknown as LinearGraphCutModel & { cutHaplotypes: string[] }
+  return m
 }
 
 test('applying from the field keeps its focus', () => {

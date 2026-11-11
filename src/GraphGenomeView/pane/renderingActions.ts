@@ -487,12 +487,10 @@ export const withRenderingActions = withLoadActions
     },
   }))
   .actions(self => ({
-    // reads the abridged walks `names` in full with the next cut
     expandWalks(names: string[]) {
       const more = names.filter(name => !self.expandedWalks.includes(name))
       if (more.length > 0) {
         self.expandedWalks = self.expandedWalks.concat(more)
-        self.retryLoad()
       }
     },
   }))

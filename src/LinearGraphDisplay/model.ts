@@ -9,7 +9,7 @@ import {
 } from '@jbrowse/core/configuration'
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { computeSvgReady } from '@jbrowse/core/svg/svgReady'
-import { getRpcSessionId, getSession } from '@jbrowse/core/util'
+import { getSession } from '@jbrowse/core/util'
 import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
 import { editPlotMenuItems } from '@jbrowse/display-kit/plotMenu'
 import { addDisposer, isAlive, types } from '@jbrowse/mobx-state-tree'
@@ -32,7 +32,6 @@ import {
   configHaplotypes,
   cutsByHaplotype,
   trackLanes,
-  walkIndexed,
 } from '../graphTrackConfig'
 import { pushLaunchItem } from '../launchFromGraph/pushLaunchItem'
 
@@ -86,8 +85,8 @@ export function coarseHandover(coarse: unknown) {
       : undefined
 }
 
-const GraphTrackSettingsDialog = lazy(
-  () => import('./components/GraphTrackSettingsDialog'),
+const GraphSettingsDialog = lazy(
+  () => import('../GraphGenomeView/components/GraphSettingsDialog'),
 )
 
 export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
@@ -114,8 +113,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       settledWindow: undefined as HostWindow | undefined,
       // where a cut came back over its node limit (denseCovers)
       dense: undefined as SubgraphRegion | undefined,
-      // the haplotypes a walk-indexed graph's header names, once read
-      haplotypeNames: undefined as string[] | undefined,
       // the fold the latest cut asked for
       cutFoldBp: 0,
     }))
@@ -255,6 +252,20 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         )
       },
     }))
+    .actions(self => {
+      const { setSubgraphContext, setSubgraphHaplotypes } = self
+      return {
+        // a refused cut may fit under other options
+        setSubgraphContext(hops: number) {
+          setSubgraphContext(hops)
+          self.dense = undefined
+        },
+        setSubgraphHaplotypes(haplotypes: string[] | undefined) {
+          setSubgraphHaplotypes(haplotypes)
+          self.dense = undefined
+        },
+      }
+    })
     .actions(self => ({
       // Into the config, so a share link, Edit plot and Reset track
       // settings all see it
@@ -263,20 +274,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           setConf(self, slot as keyof GraphGrammar, value)
         }
       },
-      // The setters describe the next cut, which recut makes
-      setSubgraphContext(hops: number) {
-        self.subgraphContext = hops
-        self.dense = undefined
-      },
-      setSubgraphHaplotypes(haplotypes: string[] | undefined) {
-        self.subgraphHaplotypes = haplotypes
-        self.dense = undefined
-      },
       setDense(window: SubgraphRegion | undefined) {
         self.dense = window
-      },
-      setHaplotypeNames(names: string[] | undefined) {
-        self.haplotypeNames = names
       },
       setMaxRegionBp(bp: number) {
         self.maxRegionBp = bp
@@ -299,6 +298,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         self.cutFoldBp = Math.round(
           FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0),
         )
+        self.markCut()
         return self.cutSubgraph(
           adapterConfig,
           region,
@@ -336,6 +336,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           (!self.loadCanceled &&
             self.tierAt(seen.bpPerPx) === self.cutTier &&
             cutHolds(self.cutRegion, seen, margins) &&
+            !self.cutStale &&
             !self.foldDrifted(seen.bpPerPx))
         ) {
           return false
@@ -376,7 +377,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         if (
           seen &&
           !self.regionTooLarge &&
-          (self.cutChangedFrom(from) ||
+          (self.cutStale ||
             layoutModeByValue(from).cutMargins !==
               layoutModeByValue(self.chosenLayoutMode).cutMargins)
         ) {
@@ -385,36 +386,13 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         return self.recomputeLayout()
       },
       retryLoad() {
-        void self.cut()
+        this.recut()
       },
       reload() {
         void self.cut()
       },
       cancelFetchByUser() {
         self.stopLoad()
-      },
-    }))
-    .actions(self => ({
-      // A failed read leaves the picker taking typed names
-      async fetchHaplotypeNames(
-        adapterConfig: Record<string, unknown>,
-        signal?: AbortSignal,
-      ) {
-        try {
-          const names = await getSession(self).rpcManager.call(
-            getRpcSessionId(self),
-            'GetGraphHaplotypes',
-            // eslint-disable-next-line no-restricted-syntax -- a background read for the haplotype picker, which has no status line; the display's belongs to the cut
-            { adapterConfig, signal },
-          )
-          if (isAlive(self) && !signal?.aborted) {
-            self.setHaplotypeNames(names)
-          }
-        } catch (e) {
-          if (!signal?.aborted) {
-            console.warn('[LinearGraphDisplay] no haplotype names', e)
-          }
-        }
       },
     }))
     .actions(self => ({
@@ -454,35 +432,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         if (self.cutRegion && !self.graph) {
           void self.cut()
         }
-        let namesRead: AbortController | undefined
-        addDisposer(self, () => {
-          namesRead?.abort()
-        })
-        addDisposer(
-          self,
-          reaction(
-            () => {
-              const adapter = self.sourceAdapter
-              return adapter && walkIndexed(adapter) ? adapter : undefined
-            },
-            adapterConfig => {
-              namesRead?.abort()
-              namesRead = undefined
-              self.setHaplotypeNames(undefined)
-              if (adapterConfig) {
-                namesRead = new AbortController()
-                void self.fetchHaplotypeNames(adapterConfig, namesRead.signal)
-              }
-            },
-            {
-              fireImmediately: true,
-              // a lane adapter's config is rebuilt whenever an assembly is
-              // added, which would drop and re-read the names
-              equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
-              name: 'GraphHaplotypeNames',
-            },
-          ),
-        )
         addDisposer(
           self,
           reaction(
@@ -632,10 +581,6 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         const lanes = trackLanes(track)
         const names = self.haplotypeNames
         const chosen = self.subgraphHaplotypes
-        const recut = (haplotypes: string[] | undefined) => {
-          self.setSubgraphHaplotypes(haplotypes)
-          self.recut()
-        }
         return [
           { type: 'subHeader', label: 'Load' },
           {
@@ -645,7 +590,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               : 'Every haplotype in the graph',
             checked: chosen ? chosen.length === 0 : !defaults && !lanes,
             onClick: () => {
-              recut([])
+              self.setSubgraphHaplotypes([])
             },
           },
           ...(defaults || lanes
@@ -657,7 +602,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
                     : `The track's ${lanes?.length} assemblies`,
                   checked: chosen === undefined,
                   onClick: () => {
-                    recut(undefined)
+                    self.setSubgraphHaplotypes(undefined)
                   },
                 },
               ]
@@ -674,7 +619,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
       openSettings() {
         getSession(self).queueDialog(onClose => [
-          GraphTrackSettingsDialog,
+          GraphSettingsDialog,
           { model: self, onClose },
         ])
       },
@@ -730,9 +675,3 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
 
 export type LinearGraphDisplayStateModel = ReturnType<typeof stateModelFactory>
 export type LinearGraphDisplayModel = Instance<LinearGraphDisplayStateModel>
-// what the track's own settings read, which the menus that open them cannot
-// name without naming themselves
-export type LinearGraphCutModel = Omit<
-  LinearGraphDisplayModel,
-  'trackMenuItems' | 'cutMenuItems' | 'openSettings' | 'renderSvg'
->

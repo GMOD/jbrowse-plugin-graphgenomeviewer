@@ -1562,7 +1562,6 @@ test('after a refused cut, a context change cuts the window again', async () => 
   })
   env.setDenseAbove(Infinity)
   display.setSubgraphContext(0)
-  display.recut()
   expect(cuts).toHaveLength(2)
   await vi.waitFor(() => {
     expect(display.hasGraph).toBe(true)

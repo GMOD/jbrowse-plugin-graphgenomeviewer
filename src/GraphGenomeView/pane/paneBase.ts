@@ -339,6 +339,8 @@ export const paneBase = types
     walkCut: undefined as WalkCut | undefined,
     // the reference window the graph on screen was cut for, set with it
     graphRegion: undefined as SubgraphRegion | undefined,
+    cutKeyOnRecord: undefined as string | undefined,
+    haplotypeNames: undefined as string[] | undefined,
     // The walk the track's graph lies on for the region's assembly, which
     // the track's config declares; x starts along it unless the user chose
     // another. Undefined for an rGFA, whose backbone is fixed, and for a

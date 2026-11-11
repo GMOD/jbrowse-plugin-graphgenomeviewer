@@ -4,9 +4,14 @@ import { Autocomplete, TextField, Typography } from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
-import { cutsByHaplotype } from '../../graphTrackConfig'
+import { cutsByHaplotype, parseHaplotypes } from '../../graphTrackConfig'
 
-import type { LinearGraphCutModel } from '../model'
+import type { GraphPaneModel } from '../model'
+
+type CutHaplotypes = Pick<
+  GraphPaneModel,
+  'sourceAdapter' | 'cutHaplotypes' | 'haplotypeNames' | 'setSubgraphHaplotypes'
+>
 
 const useStyles = makeStyles()({
   section: {
@@ -14,17 +19,13 @@ const useStyles = makeStyles()({
   },
 })
 
-function parseHaplotypeList(text: string) {
-  return text.split(/[\s,]+/).filter(name => name !== '')
-}
-
 const sameList = (a: readonly string[], b: readonly string[]) =>
   a.join('\n') === b.join('\n')
 
 // The cut's set, and the last one this field saw: an outside change (a
 // restored session, a launch) resets the draft, while the field's own apply
 // records what it set first, so it keeps its focus and draft
-function useCutHaplotypes(model: LinearGraphCutModel, reset: () => void) {
+function useCutHaplotypes(model: CutHaplotypes, reset: () => void) {
   const current = model.cutHaplotypes ?? []
   const [seen, setSeen] = useState(current)
   if (!sameList(current, seen)) {
@@ -35,7 +36,6 @@ function useCutHaplotypes(model: LinearGraphCutModel, reset: () => void) {
     if (!sameList(haplotypes, current)) {
       setSeen(haplotypes)
       model.setSubgraphHaplotypes(haplotypes)
-      model.recut()
     }
   }
 }
@@ -43,14 +43,14 @@ function useCutHaplotypes(model: LinearGraphCutModel, reset: () => void) {
 const HaplotypeListField = observer(function HaplotypeListField({
   model,
 }: {
-  model: LinearGraphCutModel
+  model: CutHaplotypes
 }) {
   const [draft, setDraft] = useState(model.cutHaplotypes?.join(', ') ?? '')
   const setCut = useCutHaplotypes(model, () => {
     setDraft(model.cutHaplotypes?.join(', ') ?? '')
   })
   const apply = () => {
-    setCut(parseHaplotypeList(draft))
+    setCut(parseHaplotypes(draft))
   }
   return (
     <TextField
@@ -84,7 +84,7 @@ const HaplotypePickField = observer(function HaplotypePickField({
   model,
   names,
 }: {
-  model: LinearGraphCutModel
+  model: CutHaplotypes
   names: string[]
 }) {
   const [draft, setDraft] = useState(model.cutHaplotypes ?? [])
@@ -147,7 +147,7 @@ const HaplotypePickField = observer(function HaplotypePickField({
 const SubgraphHaplotypesField = observer(function SubgraphHaplotypesField({
   model,
 }: {
-  model: LinearGraphCutModel
+  model: CutHaplotypes
 }) {
   const { classes } = useStyles()
   const names = model.haplotypeNames

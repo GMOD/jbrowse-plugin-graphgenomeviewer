@@ -788,6 +788,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     self.drawnBatch = EMPTY_BATCH
     self.paintedViewport = undefined
     resetCut()
+    self.cutKeyOnRecord = undefined
     laidOutGraph = undefined
     layoutError = undefined
     self.layoutResult = undefined
@@ -810,6 +811,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     // back to the import form
     clearGraph() {
       dropGraph()
+      self.expandedWalks = []
     },
     // The user's stop before anything is drawn. The source stays, so a
     // retry can load it again.
