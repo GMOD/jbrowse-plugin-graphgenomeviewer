@@ -28,7 +28,7 @@ Commitment, not size, separates an item here from a proposal in
 | [The gene chip readout prints a 0-based start and the PanSN name](todo/gene-chip-readout.md)           | genes                | Print gene.start + 1 on the contig name in LabelLayer.tsx, or use core regionLabel.             |
 | [The reference walk row gets every gene unfiltered](todo/reference-row-gene-filter.md)                 | walk rows            | Filter the reference row's genes as BandageJS's genesOnRow does.                                |
 | [A samples TSV row named HG00097#01 never matches](todo/column-key-haplotype.md)                       | tube map             | Use core panSNHaplotype in columnKeyOf in tubeMapPanels.ts.                                     |
-| [An unknown layoutMode or hover in a track config throws](todo/lenient-track-enums.md)                 | linear graph display | Use GraphGenomeView/lenientEnum.ts for both slots in LinearGraphDisplay/configSchema.ts.        |
+| [An unknown layoutMode, layoutEngine or hover in a track config throws](todo/lenient-track-enums.md)   | linear graph display | Use GraphGenomeView/lenientEnum.ts for all three slots in LinearGraphDisplay/configSchema.ts.   |
 
 ## Needs a visual call
 
