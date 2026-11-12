@@ -338,7 +338,9 @@ function deletionRows(model: GraphPaneModel): LegendRow[] {
 }
 
 function tubeMapNoteRows(model: GraphPaneModel): LegendRow[] {
-  const note = model.layoutResult?.tubeMap ? tubeMapNote(model.graph) : undefined
+  const note = model.layoutResult?.tubeMap
+    ? tubeMapNote(model.graph)
+    : undefined
   return note ? [{ key: 'tube-not-shown', label: note }] : []
 }
 
