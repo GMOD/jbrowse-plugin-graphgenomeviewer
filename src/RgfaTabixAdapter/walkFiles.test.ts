@@ -19,18 +19,18 @@ import type { WalkCut } from './walkCut.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 
 // chr22 of HPRC v2.1 at base level, one walk file per reference in walk
-// format 7, built under ~/work/scratch/walks7. Skipped where the files are
+// format 8, built under ~/work/scratch/walks8. Skipped where the files are
 // absent.
-const chr22 = '/home/cdiesh/work/scratch/walks7/chr22'
+const chr22 = '/home/cdiesh/work/scratch/walks8/chr22'
 const present = ['GRCh38', 'CHM13'].every(sample =>
   existsSync(`${chr22}.${sample}.walks.gz`),
 )
 
-// The walk files under test_data/walks7, which its build.sh writes from the
+// The walk files under test_data/walks8, which its build.sh writes from the
 // GFAs beside them
 const fixture = (name: string) =>
   require
-    .resolve(`./test_data/walks7/${name}.GRCh38.walks.gz`)
+    .resolve(`./test_data/walks8/${name}.GRCh38.walks.gz`)
     .replace(/\.walks\.gz$/, '')
 
 // Four walks over a 3.6 kb reference in 1 kb tiles:

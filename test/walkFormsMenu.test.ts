@@ -64,14 +64,8 @@ function config() {
                 field: 'consequence',
                 scale: {
                   type: 'ordinal',
-                  domain: ['loss', 'gain', 'shift', 'inversion', 'net'],
-                  range: [
-                    '#e41a1c',
-                    '#800080',
-                    '#8a94a3',
-                    '#ff7f00',
-                    '#7e6148',
-                  ],
+                  domain: ['loss', 'gain', 'shift', 'inversion'],
+                  range: ['#e41a1c', '#800080', '#8a94a3', '#ff7f00'],
                 },
                 legend: { title: 'Change' },
               },

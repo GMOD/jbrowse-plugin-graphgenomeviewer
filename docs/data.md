@@ -4,8 +4,8 @@ A graph track reads one window of a graph at a time. Use a walk file where you
 can:
 
 - **Walk file** (`<prefix>.<sample>.walks.gz` with its directory
-  `<prefix>.<sample>.walks.gz.idx`): the walk adapters read walk format 7, which
-  [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes from 4.0. It files
+  `<prefix>.<sample>.walks.gz.idx`): the walk adapters read walk format 8, which
+  [gfa-to-tabix](https://github.com/GMOD/gfa-to-tabix) writes from 5.0. It files
   every departure a haplotype makes from the reference, so a haplotype with no
   step on the reference across the window still gets its row
 - **Graph index** (`.graph.bed.gz`, or the `.segs.bed.gz` and `.links.bed.gz`
@@ -23,7 +23,7 @@ covers the GBZ steps. [syng.md](syng.md) builds a syng graph with impg.
 
 | Data                         | Commands                                                                                                 | Adapter                                                          |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (4.0+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
+| Walk file                    | `vg convert -f graph.gbz > graph.gfa`, then `gfa-to-tabix graph.gfa --walks --refs GRCh38 -o out` (5.0+) | `RgfaTabixAdapter` with `walksUri`, or `WalkTabixSyntenyAdapter` |
 | rGFA                         | `gfa-to-tabix build graph.rgfa.gz -o out` (0.11.0+)                                                      | `RgfaTabixAdapter`                                               |
 | Plain GFA (pggb, odgi, vg)   | the same, plus `--reference`, `--assembly`, `--snarls`                                                   | `RgfaTabixAdapter`                                               |
 | Alleles with a CIGAR each    | `build` writes `.alleles.bed.gz`; `gfa-to-tabix alleles <prefix>` from a `--layout contig` index         | alignments track                                                 |
@@ -137,15 +137,9 @@ largest change ("66% · del 18.4kb"):
           "field": "consequence",
           "scale": {
             "type": "ordinal",
-            "domain": ["loss", "gain", "shift", "inversion", "net"],
-            "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00", "#7e6148"],
-            "names": [
-              "Loss",
-              "Gain",
-              "Shifted, same length",
-              "Inversion",
-              "Net change, place unknown"
-            ]
+            "domain": ["loss", "gain", "shift", "inversion"],
+            "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00"],
+            "names": ["Loss", "Gain", "Shifted, same length", "Inversion"]
           },
           "legend": { "title": "Change" }
         }
@@ -173,14 +167,13 @@ largest change ("66% · del 18.4kb"):
   Changes every form shares stay out of the label
 - `walkByteBudget`, 1 MB by default, caps what the cut fetches. A pinned window
   over it shows an error naming how much of the window fits
-- The adapter reads every abridged walk in full. A window whose walks would take
-  more than graph-walks' 16 M step budget shows an error naming how much of it
-  fits; the MHC's 90 kb take 9.4 M steps
-- Each change is a variant with a `consequence` of `loss`, `gain`, `shift`,
-  `inversion` or `net`, which `encoding.color` paints with a key. A replacement
-  counts as a loss or gain by its net change. graph-walks labels one whose
-  smaller side is under 5% of the other as a deletion or insertion, so C4's
-  6,460 bp to 94 bp reads `del 6.46kb->94bp`
+- A walk the file abridged counts as loaded: graph-walks builds its piece from
+  the file's blocks, so its changes are the ones its steps make
+- Each change is a variant with a `consequence` of `loss`, `gain`, `shift` or
+  `inversion`, which `encoding.color` paints with a key. A replacement counts as
+  a loss or gain by its net change. graph-walks labels one whose smaller side is
+  under 5% of the other as a deletion or insertion, so C4's 6,460 bp to 94 bp
+  reads `del 6.46kb->94bp`
 - The adapter sets a form's genotype to `1` at its own changes and `.` where its
   walks do not span a site
 - The display's notifications name the haplotypes with no walk over the window
@@ -193,8 +186,7 @@ largest change ("66% · del 18.4kb"):
   the config's `pinned` and `floorBp`. A new floor regroups the cut without
   reading the walk file again
 - A re-pin over `walkByteBudget` shows the error in place of the rows
-- The adapter cuts GSTM1 in about 0.5 s and LPA in 5 s, abridged walks included.
-  graph-walks'
+- graph-walks'
   [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
   gives the grouping rules and their measurements
 

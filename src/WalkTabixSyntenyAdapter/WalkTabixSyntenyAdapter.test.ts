@@ -29,7 +29,7 @@ import type { SyntenyMate } from '@jbrowse/synteny-core'
 //   W HG00097 1 chr1 >1>2>3>4>5>6
 const fixture = (name: string) =>
   require.resolve(
-    `../RgfaTabixAdapter/test_data/walks7/${name}.GRCh38.walks.gz`,
+    `../RgfaTabixAdapter/test_data/walks8/${name}.GRCh38.walks.gz`,
   )
 
 function makeAdapter(slots: Record<string, unknown> = {}, name = 'header') {

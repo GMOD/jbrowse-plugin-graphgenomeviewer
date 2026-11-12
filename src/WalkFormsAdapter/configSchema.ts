@@ -17,16 +17,15 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * change a variant whose genotype is `1` in the forms that make it.
  *
  * - The adapter cuts the pinned window once, whatever the view shows; outside
- *   it the rows stay and draw empty. A window whose abridged walks are too
- *   many to read in full errors instead
+ *   it the rows stay and draw empty
  * - The largest `maxForms` forms get a row each, labelled by share and largest
  *   change ("66% · del 18.4kb"); the rest share one empty "other forms" row
- * - A variant's `consequence` is `loss`, `gain`, `shift`, `inversion` or
- *   `net`, for colouring the cells; `svType` and `type` follow core's names
+ * - A variant's `consequence` is `loss`, `gain`, `shift` or `inversion`, for
+ *   colouring the cells; `svType` and `type` follow core's names
  * - `walksUri` takes the prefix of one reference's walk file and resolves
  *   `<walksUri>.walks.gz` and its directory `<walksUri>.walks.gz.idx`, as
- *   the other walk adapters do. The adapter reads walk format 7, which
- *   gfa-to-tabix writes from 4.0
+ *   the other walk adapters do. The adapter reads walk format 8, which
+ *   gfa-to-tabix writes from 5.0
  *
  * #example
  * ```js
@@ -43,7 +42,7 @@ const WalkFormsAdapter = ConfigurationSchema(
   {
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 7
+     * a `gfa-to-tabix --walks` file in walk format 8
      */
     walksLocation: fileLocationSlot('/path/to/graph.walks.gz'),
     /**

@@ -21,7 +21,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  *
  * `walksUri` takes the prefix of one reference's walk file, `<prefix>.<sample>`,
  * and resolves `<walksUri>.walks.gz` and its directory `<walksUri>.walks.gz.idx`.
- * The adapter reads walk format 7, which gfa-to-tabix writes from 4.0, through
+ * The adapter reads walk format 8, which gfa-to-tabix writes from 5.0, through
  * @jbrowse/graph-walks.
  * Only a window on the anchor is answered.
  *
@@ -53,7 +53,7 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
     },
     /**
      * #slot
-     * a `gfa-to-tabix --walks` file in walk format 7
+     * a `gfa-to-tabix --walks` file in walk format 8
      */
     walksLocation: fileLocationSlot('/path/to/graph.walks.gz'),
     /**

@@ -112,8 +112,8 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
   // The window's walks for the haplotypes named and the reference, with
   // every departure from the reference over it and no link read; a window
   // past a budget fails as a zoom-in notice for lanes. Named lanes come back
-  // in full where the walk file abridged them: an abridged walk is two
-  // reference steps, which drew 15 of the HPRC MHC launch's 32 lanes empty.
+  // in full where the walk file abridged them, so a lane draws the nodes its
+  // haplotype walks rather than runs of steps not loaded.
   private async laneWalks(
     refName: string,
     region: Region,
