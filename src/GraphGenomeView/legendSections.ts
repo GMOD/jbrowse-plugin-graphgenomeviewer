@@ -76,6 +76,8 @@ export type LegendSwatch =
       square?: boolean
       // a hairline edge, so a pale colour still shows on the white key
       edged?: true
+      // a hollow chip's rim, round the fill
+      rim?: string
     }
   // the reference strip, a band per lifted walk
   | { kind: 'bands'; bands: Stop[][] }
@@ -567,6 +569,7 @@ export function walkRowSwatch(swatch: KeySwatch): LegendSwatch {
             ? RAMP_GRADIENT_STOPS
             : flat(swatch.fill),
         height: swatch.kind === 'gap' ? swatch.px : WALK_ROW_SWATCH_PX,
+        ...(swatch.kind === 'bar' && swatch.rim ? { rim: swatch.rim } : {}),
       }
 }
 
