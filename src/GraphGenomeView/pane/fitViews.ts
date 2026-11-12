@@ -14,7 +14,7 @@ import {
   barEnd,
   boxesGenes,
   rowPitch,
-  walkRowReadout,
+  walkRowReadoutAt,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import {
   walkRowLabels,
@@ -179,28 +179,26 @@ export const withFitViews = withHostViews
           })
         : undefined
     },
-    // What a hovered row's label and readout would say, while its rows are
-    // too thin to draw them
+    // A hovered row's label and its readout in full, while its rows are too
+    // thin to draw readouts or where its own readout is drawn cut short
     get hoveredWalkRowText() {
       const bars = self.walkRowBars
-      const name = self.hoveredWalkRow
-      if (!bars || name === null || this.walkRowPitch?.readouts !== false) {
-        return undefined
-      }
-      const isReference = bars.reference.name === name
-      const row = isReference
-        ? bars.reference
-        : bars.rows.find(r => r.name === name)
-      return row
-        ? {
-            label: row.label,
-            readout: walkRowReadout(
-              row,
-              isReference ? undefined : bars.reference,
-              bars.unit,
-              row.call,
-            ),
-          }
+      const i = self.walkRowList.findIndex(r => r.name === self.hoveredWalkRow)
+      const at =
+        bars && i >= 0
+          ? walkRowReadoutAt(
+              bars,
+              i,
+              {
+                scaleX: self.scaleX,
+                translateX: self.translateX,
+                width: self.paneWidth,
+              },
+              { comparing: self.rowVisitsNeeded },
+            )
+          : undefined
+      return at && (this.walkRowPitch?.readouts === false || at.cut)
+        ? { label: self.walkRowList[i]!.label, readout: at.text }
         : undefined
     },
     // The walk row under a pane point, as its index among the reference row

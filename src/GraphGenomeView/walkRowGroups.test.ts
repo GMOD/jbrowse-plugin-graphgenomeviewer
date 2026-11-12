@@ -1,4 +1,5 @@
 import { serializeEl } from '@jbrowse/bandage-core/el'
+import { walkRowReadoutAt } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { parseSamplesTsv } from '@jbrowse/core/util/samplesTsv'
 
 import {
@@ -244,6 +245,49 @@ describe('panning the trees', () => {
       return { kept, moved }
     })
   }
+
+  test('a pan that makes room beside a bar draws its cut readout whole again', () => {
+    const gappy: WalkRow = {
+      ...row('F', 2000),
+      gapBp: 1200,
+      runs: [
+        { start: 0, bp: 400, onReference: true, referenceStart: 1000 },
+        {
+          start: 400,
+          bp: 600,
+          onReference: false,
+          gap: true,
+          cause: 'missing',
+        },
+        { start: 1000, bp: 600, onReference: false, gap: true },
+        { start: 1600, bp: 400, onReference: true, referenceStart: 1400 },
+      ],
+    }
+    const drawn = { ...bars, rows: [gappy] }
+    const place = sectionPlacement([], pitch.rowPx)
+    const frameAt = (translateX: number) => ({
+      scaleX: 0.1,
+      scaleY: 1,
+      translateX,
+      translateY: 30,
+      width: 800,
+      height: 60,
+      ...pitch,
+    })
+    const tight = frameAt(150)
+    const roomy = frameAt(-290)
+    expect(walkRowReadoutAt(drawn, 1, tight).cut).toBe(true)
+    const whole = walkRowReadoutAt(drawn, 1, roomy)
+    expect(whole.cut).toBe(false)
+    expect(walkRowTreesPanKey(drawn, place.rowY, tight)).not.toBe(
+      walkRowTreesPanKey(drawn, place.rowY, roomy),
+    )
+    expect(
+      serializeEl(
+        walkRowTrees(drawn, [], place.rowY, roomy, { idPrefix: 't' })[0]!,
+      ),
+    ).toContain(whole.text)
+  })
 
   test.each([
     ['ungrouped', []],

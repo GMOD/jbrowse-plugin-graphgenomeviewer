@@ -1,8 +1,6 @@
 import {
   barEnd,
-  fitReadout,
-  readoutPlacement,
-  walkRowReadout,
+  walkRowReadoutAt,
   walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { groupKeyComparator } from '@jbrowse/core/util/groupKeys'
@@ -227,41 +225,31 @@ export function walkRowTrees(
       ]
 }
 
-// A readout's side of its bar's end, and beside it the text cut to the room
-// left, as walkRowsTree places and cuts it
-function shownReadout(text: string, endX: number, width: number) {
-  const { anchor, x } = readoutPlacement(text, endX, width)
-  return anchor === 'start'
-    ? `${anchor} ${fitReadout(text, width - x)}`
-    : anchor
-}
-
 // What walkRowTrees decides from where the frame sits rather than from its
-// scale: which rows it culls past the pane's top and bottom, which side of
-// its bar's end each readout goes, and how much of it fits there. While this
-// holds, a pan only moves the trees.
+// scale: which rows it culls past the pane's top and bottom, and each
+// readout as walkRowsTree places it: its side, its offset from its bar's end
+// and its text as cut to the room there. While this holds, a pan only moves
+// the trees.
 export function walkRowTreesPanKey(
   bars: WalkRowsWithCalls,
   rowY: (i: number) => number,
   frame: WalkRowsFrame & { barPx: number },
+  o: { comparing?: boolean } = {},
 ) {
-  const { scaleX, scaleY, translateX, translateY, width, height, barPx } = frame
+  const { scaleX, scaleY, translateX, translateY, height, barPx } = frame
   return [bars.reference, ...bars.rows]
     .map((row, i) => {
       const y = rowY(i) * scaleY + translateY
-      return y < -barPx || y > height + barPx
+      const culled = y < -barPx || y > height + barPx
+      const at =
+        culled || !(frame.readouts ?? true)
+          ? undefined
+          : walkRowReadoutAt(bars, i, frame, o)
+      const endX = (bars.origin + barEnd(row)) * scaleX + translateX
+      return culled
         ? '-'
-        : (frame.readouts ?? true)
-          ? shownReadout(
-              walkRowReadout(
-                row,
-                i === 0 ? undefined : bars.reference,
-                bars.unit,
-                row.call,
-              ),
-              (bars.origin + barEnd(row)) * scaleX + translateX,
-              width,
-            )
+        : at
+          ? `${at.anchor} ${Math.round(at.x - endX)} ${at.shown}`
           : '+'
     })
     .join(' ')

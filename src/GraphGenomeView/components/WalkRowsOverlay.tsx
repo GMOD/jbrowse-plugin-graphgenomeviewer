@@ -218,6 +218,7 @@ type WalkRowTreesSource = Pick<
   | 'translateY'
   | 'paneWidth'
   | 'canvasHeight'
+  | 'rowVisitsNeeded'
 >
 
 // The rows' trees and the translate they were drawn at. A zoom redraws them,
@@ -249,7 +250,9 @@ export function walkRowTreesOnPane(
     const place = model.walkRowPlacement
     const pitch = model.walkRowPitch
     return bars && place && pitch
-      ? walkRowTreesPanKey(bars, place.rowY, frameAt(pitch, translate()))
+      ? walkRowTreesPanKey(bars, place.rowY, frameAt(pitch, translate()), {
+          comparing: model.rowVisitsNeeded,
+        })
       : undefined
   })
   return computed(() => {
@@ -270,6 +273,7 @@ export function walkRowTreesOnPane(
               ramp: model.referenceRampDomain,
               rowGenes: model.walkRowGenes,
               idPrefix,
+              comparing: model.rowVisitsNeeded,
             },
           ),
         }
