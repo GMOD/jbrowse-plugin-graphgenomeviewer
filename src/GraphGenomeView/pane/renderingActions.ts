@@ -517,8 +517,7 @@ export const withRenderingActions = withLoadActions
               unloadedWalks(self.graph, self.cohortWalkRows?.rows),
             )
               .flatMap(([name, sample]) =>
-                lifted.has(name) ||
-                (sample !== undefined && picked.has(sample))
+                lifted.has(name) || (sample !== undefined && picked.has(sample))
                   ? [name]
                   : [],
               )

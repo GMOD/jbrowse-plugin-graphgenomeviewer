@@ -146,9 +146,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
 - A walk file keeps a long detour, such as one through a satellite array, in a
   short form that gives its length and its place on the reference but not its
   nodes. Its bar is drawn the same either way. Walk rows read the full route of
-  up to 64 named haplotypes; under **Every haplotype** or a longer list,
-  **Show this haplotype's full route (N more steps)** in a row's right-click
-  menu reads it
+  up to 64 named haplotypes; under **Every haplotype** or a longer list, **Show
+  this haplotype's full route (N more steps)** in a row's right-click menu reads
+  it
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
 - Node lengths are not labelled while walks are lifted
@@ -163,8 +163,8 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   this order within each section
 - These three compare the nodes rows walk, so they need each row's full route.
   Turning one on reads the full routes of up to 64 haplotypes that lack them;
-  past that, those haplotypes are left out, and the help icon beside each of
-  the three says how many
+  past that, those haplotypes are left out, and the help icon beside each of the
+  three says how many
 
 The **Repeat** picker tiles bars by a repeat annotation's unit and marks the
 allele a genotyper called. With the curated VNTR track, the picker tiles each
