@@ -69,11 +69,6 @@ test.each([
     'Load the 12 k steps not loaded',
   ],
   [
-    'runs not loaded and no count',
-    { unloadedBp: 900 },
-    'Load the steps not loaded',
-  ],
-  [
     'a count and no run in the window',
     { abridgedSteps: 40 },
     'Load the 40 steps not loaded',

@@ -256,7 +256,8 @@ rebuild with, and the track shows that error.
 - A piece the file abridged is built from its tile's `blocks` row, each run off
   the reference one placeholder step of known bp: bandage-core draws it hollow
   and amber-rimmed at its true size, "not loaded", and a row holding one offers
-  "Load the steps not loaded", which cuts again with the walk named in `expand`
+  "Load the N steps not loaded", which cuts again with the walk named in
+  `expand`
 
 - A cut reads the tiles and departure blocks overlapping the window and its
   context, and nothing before them. `getFeatures` reads the reference rows the

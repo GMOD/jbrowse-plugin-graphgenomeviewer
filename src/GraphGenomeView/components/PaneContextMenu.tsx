@@ -8,7 +8,6 @@ import LineStyleIcon from '@mui/icons-material/LineStyle'
 import { observer } from 'mobx-react'
 
 import { nodeLaunchMenuItems } from '../../launchFromGraph/graphMenuItems'
-import { holdsUnloaded } from '../unloadedWalks'
 
 import type { GraphPaneModel } from '../model'
 import type { WalkRows } from '@jbrowse/bandage-core/layout/walkRows'
@@ -87,12 +86,10 @@ function walkRowMenuItems(
             : 'This walk states no contig coordinates',
           onClick: () => {},
         },
-    ...(walk && holdsUnloaded(walk)
+    ...(walk?.abridgedSteps
       ? [
           {
-            label: walk.abridgedSteps
-              ? `Load the ${formatSteps(walk.abridgedSteps)} steps ${NOT_LOADED_TEXT}`
-              : `Load the steps ${NOT_LOADED_TEXT}`,
+            label: `Load the ${formatSteps(walk.abridgedSteps)} steps ${NOT_LOADED_TEXT}`,
             onClick: () => {
               model.expandWalk(walk.name)
             },

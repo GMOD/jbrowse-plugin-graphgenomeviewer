@@ -1,17 +1,15 @@
 import type { WalkRow } from '@jbrowse/bandage-core/layout/walkRows'
 import type { Graph } from '@jbrowse/bandage-core/types'
 
-// A row holds steps the cut did not load where it counts them or draws a run
-// of them; a piece that reaches the row only through a departure or a gap
-// has a run and no count
-export const holdsUnloaded = (
-  row: Pick<WalkRow, 'abridgedSteps' | 'unloadedBp'>,
-) => (row.abridgedSteps ?? 0) > 0 || (row.unloadedBp ?? 0) > 0
+// A row counts the steps it holds that the cut did not load, its walk's
+// pieces and its departures' alike
+export const holdsUnloaded = (row: Pick<WalkRow, 'abridgedSteps'>) =>
+  (row.abridgedSteps ?? 0) > 0
 
 /**
  * The walks holding steps the cut did not load, each with its sample: a
- * path that counts them or steps through a run of them, and a row that
- * holds them
+ * path that counts them or steps through a run of them, since a path counts
+ * only its own pieces, and a row that counts them
  */
 export function unloadedWalks(graph: Graph | undefined, rows: WalkRow[] = []) {
   const placeholders = new Set(

@@ -146,7 +146,7 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
 - A walk file abridges a long walk through a satellite array. Walk rows read a
   list of up to 64 named haplotypes in full; under **Every haplotype** or a
   longer list, the steps the cut did not load draw as a hollow amber-rimmed bar
-  at their true size, the readout states their bp "not loaded", and **Load the
+  at their true size, the readout states their bp "not loaded", and **Load the N
   steps not loaded** in the row's right-click menu reads them
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
