@@ -595,9 +595,8 @@ const FIGURES = {
       },
       [VNTR_TRACK],
     ),
-    // Loads every walk holding steps the cut did not load, as a row's Load the
-    // steps not loaded does, then the Repeat picker lists the arrays the repeat
-    // track has over the cut
+    // Fetches every node of each walk the file keeps in short form, then the
+    // Repeat picker lists the arrays the repeat track has over the cut
     act: async page => {
       await page.evaluate(() => {
         const display = window.JBrowseSession.views[0].tracks

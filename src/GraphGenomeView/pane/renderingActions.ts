@@ -11,7 +11,6 @@ import {
   dependOn,
   paneViewportOf,
 } from './paneBase'
-import { EXPAND_NAMED_MAX } from '../../GetSubgraph'
 import {
   bubbleForLgvHover,
   hoverFromPair,
@@ -23,7 +22,11 @@ import {
 import { walksForRow } from '../../hoverSync/rowWalks'
 import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { trackedDpr } from '../trackedDpr'
-import { routesToLoad, unloadedWalks } from '../unloadedWalks'
+import {
+  routesToLoad,
+  tubeMapWalksToLoad,
+  unloadedWalks,
+} from '../unloadedWalks'
 
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -497,31 +500,27 @@ export const withRenderingActions = withLoadActions
     expandWalk(name: string) {
       self.expandWalks([name])
     },
-    // A lifted walk's key states its length, a picked sample's row is drawn
-    // whole, and ribbons, shared blocks and the shared order compare nodes, so
-    // the cut reads such a walk's steps it did not load, the compared rows'
-    // while few enough
+    // A lifted walk's key states its length, a tube map draws the nodes of
+    // the walks it shows while they are few enough, and ribbons, shared blocks
+    // and the shared order compare nodes, so the cut fetches the steps of such
+    // walks it left out. Walk rows draw a walk the same either way, so they
+    // fetch only what a comparison needs.
     afterAttach() {
       addDisposer(
         self,
         reaction(
           () => {
-            const lifted = new Set(self.walkLayers.map(l => l.walk))
-            const picked = new Set(
-              self.chosenLayoutMode === 'walkrows' &&
-                (self.walkRowSamples?.length ?? 0) <= EXPAND_NAMED_MAX
-                ? self.walkRowSamples
-                : [],
+            const lifted = Array.from(unloadedWalks(self.graph)).filter(name =>
+              self.walkLayers.some(l => l.walk === name),
             )
+            const tubeMap = TUBE_MAP_MODES.has(self.chosenLayoutMode)
+              ? tubeMapWalksToLoad(self.graph)
+              : []
             return Array.from(
-              unloadedWalks(self.graph, self.cohortWalkRows?.rows),
+              new Set(
+                lifted.concat(tubeMap, routesToLoad(self.comparedRows)),
+              ),
             )
-              .flatMap(([name, sample]) =>
-                lifted.has(name) || (sample !== undefined && picked.has(sample))
-                  ? [name]
-                  : [],
-              )
-              .concat(routesToLoad(self.comparedRows))
           },
           names => {
             self.expandWalks(names)

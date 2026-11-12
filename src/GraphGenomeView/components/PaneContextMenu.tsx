@@ -85,10 +85,10 @@ function walkRowMenuItems(
             : 'This walk states no contig coordinates',
           onClick: () => {},
         },
-    ...(walk?.abridgedSteps
+    ...(bars && walk?.abridgedSteps
       ? [
           {
-            label: `Show this haplotype's full route (${formatSteps(walk.abridgedSteps)} more steps)`,
+            label: `Show the nodes of this haplotype's detours (${formatSteps(walk.abridgedSteps)} steps)`,
             onClick: () => {
               model.expandWalk(walk.name)
             },

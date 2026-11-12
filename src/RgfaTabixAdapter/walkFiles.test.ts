@@ -12,7 +12,6 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
-import { EXPAND_NAMED_MAX } from '../GetSubgraph.ts'
 import { isUnzoomableNodeLimitError } from '../nodeLimitError.ts'
 
 import type { WalkCut } from './walkCut.ts'
@@ -232,46 +231,19 @@ test('a cut asked to expand walks hands the reader their names', async () => {
   cut.mockRestore()
 })
 
-test('walk rows read the haplotypes they name in full', async () => {
+test('walk rows fetch every node of no walk unless asked', async () => {
   const cut = vi.spyOn(WalkReader.prototype, 'cut')
-  await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600), {
+  const adapter = makeAdapter(headerPrefix)
+  await adapter.getSubgraph(chr1(1000, 2600), { haplotypes: ['HG002#1'] })
+  await adapter.getSubgraph(chr1(1000, 2600), {
     haplotypes: ['HG002#1'],
     walkRows: true,
   })
-  const expand = cut.mock.calls[0]?.[2]?.expand
-  expect(expand?.('HG002#1#chr1')).toBe(true)
-  expect(expand?.('HG002#2#chr1')).toBe(false)
-  cut.mockRestore()
-})
-
-test('walk rows read the samples they show in full under every haplotype', async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
-  await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600), {
-    haplotypes: [],
-    walkRows: true,
-    expandSamples: ['HG002'],
-  })
-  const expand = cut.mock.calls[0]?.[2]?.expand
-  expect(expand?.('HG002#1#chr1')).toBe(true)
-  expect(expand?.('HG002#2#chr1')).toBe(true)
-  expect(expand?.('HG00097#1#chr1')).toBe(false)
-  cut.mockRestore()
-})
-
-test('a graph layout, every haplotype, or a long list keeps abridged walks', async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
-  const adapter = makeAdapter(headerPrefix)
-  const many = Array.from({ length: EXPAND_NAMED_MAX + 1 }, (_, i) => `S${i}#1`)
-  await adapter.getSubgraph(chr1(1000, 2600), { haplotypes: ['HG002#1'] })
   await adapter.getSubgraph(chr1(1000, 2600), {
     haplotypes: [],
     walkRows: true,
   })
   await adapter.getSubgraph(chr1(1000, 2600), { walkRows: true })
-  await adapter.getSubgraph(chr1(1000, 2600), {
-    haplotypes: [...many, 'HG002#1'],
-    walkRows: true,
-  })
   expect(cut.mock.calls.map(c => c[2]?.expand)).toEqual([
     undefined,
     undefined,

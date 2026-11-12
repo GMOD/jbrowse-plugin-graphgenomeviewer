@@ -5,49 +5,48 @@ import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 import type { WalkRow } from '@jbrowse/bandage-core/layout/walkRows'
 import type { Graph } from '@jbrowse/bandage-core/types'
 
-// A row counts the steps it holds that the cut did not load, its walk's
-// pieces and its departures' alike
-export const holdsUnloaded = (row: Pick<WalkRow, 'abridgedSteps'>) =>
-  (row.abridgedSteps ?? 0) > 0
-
 /**
- * The walks holding steps the cut did not load, each with its sample: a
- * path that counts them or steps through a run of them, since a path counts
- * only its own pieces, and a row that counts them
+ * The walks holding steps the cut did not fetch: a path that counts them or
+ * steps through a run of them, since a path counts only its own pieces
  */
-export function unloadedWalks(graph: Graph | undefined, rows: WalkRow[] = []) {
+export function unloadedWalks(graph: Graph | undefined) {
   const placeholders = new Set(
     (graph?.nodes ?? []).filter(n => n.placeholder).map(n => n.id),
   )
-  const walks = new Map<string, string | undefined>()
-  for (const p of graph?.paths ?? []) {
-    if (
-      (p.abridgedSteps ?? 0) > 0 ||
-      p.nodeIds.some(id => placeholders.has(id))
-    ) {
-      walks.set(p.name, p.sample)
-    }
-  }
-  for (const row of rows) {
-    if (holdsUnloaded(row)) {
-      walks.set(row.name, row.sample)
-    }
-  }
-  return walks
+  return new Set(
+    (graph?.paths ?? [])
+      .filter(
+        p =>
+          (p.abridgedSteps ?? 0) > 0 ||
+          p.nodeIds.some(id => placeholders.has(id)),
+      )
+      .map(p => p.name),
+  )
 }
 
-// The walks of the rows that ribbons, shared blocks and the shared order
-// leave out, while few enough to read whole as a short list of names is
-export function routesToLoad(rows: WalkRow[]) {
-  return rowsNeedingRoutes(rows) <= EXPAND_NAMED_MAX
-    ? rows.filter(row => (row.unloadedBp ?? 0) > 0).map(row => row.name)
+// The walks a tube map fetches the nodes of: every one holding steps not
+// fetched, while it shows few enough haplotypes to fetch them all
+export function tubeMapWalksToLoad(graph: Graph | undefined) {
+  const haplotypes = new Set(
+    (graph?.paths ?? []).map(p => `${p.sample}#${p.haplotype}`),
+  )
+  return haplotypes.size <= EXPAND_NAMED_MAX
+    ? Array.from(unloadedWalks(graph))
     : []
 }
 
-// Why those rows stay out, where they are too many to read whole
+// The walks of the rows that ribbons, shared blocks and the shared order
+// leave out, while few enough to fetch whole as a short list of names is
+export function routesToLoad(rows: WalkRow[]) {
+  return rowsNeedingRoutes(rows) <= EXPAND_NAMED_MAX
+    ? rows.filter(row => rowsNeedingRoutes([row]) > 0).map(row => row.name)
+    : []
+}
+
+// Why those rows stay out, where they are too many to fetch whole
 export function routesLeftOut(rows: WalkRow[]) {
   const n = rowsNeedingRoutes(rows)
   return n > EXPAND_NAMED_MAX
-    ? `${n} haplotypes are left out of this comparison: their full routes through this region are not read yet, and at most ${EXPAND_NAMED_MAX} are read at once. Choose up to ${EXPAND_NAMED_MAX} samples under Samples to compare them.`
+    ? `Leaves out ${n} rows: node-level detail is fetched for at most ${EXPAND_NAMED_MAX} at a time. Choose up to ${EXPAND_NAMED_MAX} samples under Samples to include them.`
     : undefined
 }

@@ -49,7 +49,7 @@ test('nothing opens without a right-click', () => {
 
 const rowOf = (
   name: string,
-  held: { abridgedSteps?: number; unloadedBp?: number },
+  held: { abridgedSteps?: number },
 ) => ({
   name,
   label: name,
@@ -62,39 +62,44 @@ const rowOf = (
   ...held,
 })
 
-test.each([
-  [
-    'a count',
-    { abridgedSteps: 12_400, unloadedBp: 900 },
-    "Show this haplotype's full route (12 k more steps)",
-  ],
-  [
-    'a count and no run in the window',
-    { abridgedSteps: 40 },
-    "Show this haplotype's full route (40 more steps)",
-  ],
-])('a walk row holding %s offers to load them', (_, held, label) => {
-  const expandWalk = vi.fn()
-  const withRow = {
-    ...model,
-    expandWalk,
-    walkRowBars: { reference: { name: 'ref' }, rows: [rowOf('HG1#1#c', held)] },
-  } as unknown as GraphPaneModel
-  render(
-    <PaneContextMenu
-      model={withRow}
-      at={{ clientX: 10, clientY: 10, row: 1 }}
-      onClose={() => {}}
-    />,
-  )
-  fireEvent.click(screen.getByText(label))
-  expect(expandWalk).toHaveBeenCalledWith('HG1#1#c')
+const stripOf = (held: { abridgedSteps?: number }) => ({
+  reference: rowOf('ref', {}),
+  rows: [rowOf('HG1#1#c', held)],
+  origin: 0,
 })
 
-test('a walk row with every step loaded offers no load', () => {
+test.each([
+  ['12 k', 12_400],
+  ['40', 40],
+])(
+  "a strip row whose detours are fetched without nodes offers to show them, %s steps",
+  (steps, abridgedSteps) => {
+    const expandWalk = vi.fn()
+    render(
+      <PaneContextMenu
+        model={{ ...model, expandWalk } as unknown as GraphPaneModel}
+        at={{
+          clientX: 10,
+          clientY: 10,
+          row: 1,
+          bars: stripOf({ abridgedSteps }),
+        }}
+        onClose={() => {}}
+      />,
+    )
+    fireEvent.click(
+      screen.getByText(
+        `Show the nodes of this haplotype's detours (${steps} steps)`,
+      ),
+    )
+    expect(expandWalk).toHaveBeenCalledWith('HG1#1#c')
+  },
+)
+
+test('a walk row offers no fetch, since its bar would look the same', () => {
   const withRow = {
     ...model,
-    walkRowBars: { reference: { name: 'ref' }, rows: [rowOf('HG1#1#c', {})] },
+    walkRowBars: stripOf({ abridgedSteps: 40 }),
   } as unknown as GraphPaneModel
   render(
     <PaneContextMenu
@@ -104,5 +109,16 @@ test('a walk row with every step loaded offers no load', () => {
     />,
   )
   expect(screen.getByText('Linear genome view')).toBeTruthy()
-  expect(screen.queryByText(/full route/)).toBeNull()
+  expect(screen.queryByText(/detours/)).toBeNull()
+})
+
+test('a strip row with every node fetched offers no fetch', () => {
+  render(
+    <PaneContextMenu
+      model={model}
+      at={{ clientX: 10, clientY: 10, row: 1, bars: stripOf({}) }}
+      onClose={() => {}}
+    />,
+  )
+  expect(screen.queryByText(/detours/)).toBeNull()
 })

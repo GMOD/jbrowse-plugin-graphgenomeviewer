@@ -347,7 +347,7 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test('lifting a walk with steps not loaded cuts again with its name', async () => {
+  test('lifting a walk with steps not fetched cuts again with its name', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -378,7 +378,7 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test('lifting a walk through a run not loaded that states no count cuts again with its name', async () => {
+  test('lifting a walk through a run not fetched that states no count cuts again with its name', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -402,7 +402,7 @@ describe('canceling and retrying', () => {
     expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
   })
 
-  test("picking a sample in walk rows cuts again with its walk's name, which has steps not loaded", async () => {
+  test('picking a sample in walk rows fetches nothing, since its bar is drawn the same', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -422,12 +422,29 @@ describe('canceling and retrying', () => {
     })
     mockRpcCall.mockClear()
     model.setWalkRowSamples(['NA20809'])
-    expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
+    expect(model.expandedWalks).toEqual([])
+    expect(mockRpcCall).not.toHaveBeenCalled()
+  })
+
+  test('a tube map of few haplotypes fetches the nodes of the walks it shows', async () => {
+    const tables = gfaTables(
+      [
+        GFA,
+        'W\tGRCh38\t0\tchr6\t32000000\t32001900\t>s1>s3',
+        'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
+      ].join('\n'),
+    )!
+    tables.nodes.placeholders = Uint8Array.from(tables.nodes.names, name =>
+      name === 'h1' ? 1 : 0,
+    )
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(tables)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = attachedView({ layoutMode: 'tubemap' })
     await vi.waitFor(() => {
-      expect(mockRpcCall).toHaveBeenCalledTimes(1)
-    })
-    expect(mockRpcCall.mock.calls[0]?.[2]).toMatchObject({
-      opts: { expand: ['NA20809#2#CM094351.1'] },
+      expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
     })
   })
 
@@ -488,7 +505,6 @@ describe('canceling and retrying', () => {
     })
     mockRpcCall.mockClear()
     model.setWalkRowSamples(['NA20809'])
-    expect(model.cutOptions.expandSamples).toEqual(['NA20809'])
     expect(mockRpcCall).not.toHaveBeenCalled()
   })
 

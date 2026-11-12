@@ -113,7 +113,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
   // every departure from the reference over it and no link read; a window
   // past a budget fails as a zoom-in notice for lanes. Named lanes come back
   // in full where the walk file abridged them, so a lane draws the nodes its
-  // haplotype walks rather than runs of steps not loaded.
+  // haplotype walks rather than runs of steps not fetched.
   private async laneWalks(
     refName: string,
     region: Region,

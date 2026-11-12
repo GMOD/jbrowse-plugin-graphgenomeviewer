@@ -256,14 +256,18 @@ rebuild with, and the track shows that error.
 - A piece the file abridged is built from its tile's `blocks` row, each run off
   the reference one placeholder step of known bp. Walk rows draw it exactly as a
   fetched run (the owner's call: a "not loaded" bar told the user nothing they
-  could use), the tube map dashes its box and captions it "nodes not shown", and
-  a row holding one offers "Show this haplotype's full route (N more steps)",
-  which cuts again with the walk named in `expand`
-- Ribbons, shared blocks and the shared order leave out rows holding
-  placeholders (bandage-core's `rowsNeedingRoutes`). Turning one on expands
-  those walks when they number `EXPAND_NAMED_MAX` or fewer (`routesToLoad`);
-  past that the three checkboxes' `helpText` says how many are left out
-  (`routesLeftOut`)
+  could use); the strip under a node layout marks it (`markUnloaded`), as node
+  layouts do, and offers "Show the nodes of this haplotype's detours (N
+  steps)", which cuts again with the walk named in `expand`; the tube map dashes
+  its box and captions it "nodes not shown"
+- What fetches nodes on its own (`renderingActions.ts`, all capped at
+  `EXPAND_NAMED_MAX`): a lifted walk; every walk a tube map shows, while it
+  shows that many haplotypes or fewer (`tubeMapWalksToLoad`); and, with
+  ribbons, shared blocks or the shared order on, the rows they would leave out
+  (bandage-core's `rowsNeedingRoutes`, `routesToLoad`). Past the cap the key
+  and the three checkboxes' `helpText` say how many rows are left out
+  (`routesLeftOut`). Walk rows fetch nothing else, since they draw a walk the
+  same either way
 
 - A cut reads the tiles and departure blocks overlapping the window and its
   context, and nothing before them. `getFeatures` reads the reference rows the

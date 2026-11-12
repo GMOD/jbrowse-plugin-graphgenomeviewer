@@ -52,14 +52,7 @@ export const GraphPane = withLaunchActions
       return {
         hops: self.subgraphContext,
         haplotypes: self.cutHaplotypes,
-        ...(self.chosenLayoutMode === 'walkrows'
-          ? {
-              walkRows: true,
-              ...(self.walkRowSamples?.length
-                ? { expandSamples: self.walkRowSamples }
-                : {}),
-            }
-          : {}),
+        ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
         ...(self.cutsWholeWalks ? { snarls: 'overlapping' as const } : {}),
         ...(self.expandedWalks.length > 0
           ? { expand: self.expandedWalks }
@@ -71,11 +64,8 @@ export const GraphPane = withLaunchActions
     },
   }))
   .views(self => ({
-    // `expandSamples` is left out: a sample filter alone fetches nothing, and
-    // the walks it finds abridged join `expand`
     get cutKey() {
-      const { expandSamples: _filter, ...fetched } = self.cutOptions
-      return JSON.stringify(fetched)
+      return JSON.stringify(self.cutOptions)
     },
   }))
   .views(self => ({
