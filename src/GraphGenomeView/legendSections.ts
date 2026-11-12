@@ -39,6 +39,7 @@ import { walkKey } from '@jbrowse/bandage-core/walkKey'
 
 import { CALL_TOLERANCE } from './repeats/walkCalls'
 import { PANEL_REFERENCE_TUBE } from './tubeMapPanels'
+import { tubeMapNote } from './unloadedWalks'
 import { COLORED_BLOCKS, blockFill, blockLetter } from './walkRowBlocks'
 import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 
@@ -334,6 +335,11 @@ function deletionRows(model: GraphPaneModel): LegendRow[] {
         },
       ]
     : []
+}
+
+function tubeMapNoteRows(model: GraphPaneModel): LegendRow[] {
+  const note = model.layoutResult?.tubeMap ? tubeMapNote(model.graph) : undefined
+  return note ? [{ key: 'tube-not-shown', label: note }] : []
 }
 
 // A node layout draws a run of a walk's steps the cut did not fetch as a
@@ -770,7 +776,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     { testid: 'graph-path-legend', rows: pathRows(model), group: 'Paths' },
     {
       testid: 'graph-tube-map-legend',
-      rows: tubeMapRows(model),
+      rows: [...tubeMapRows(model), ...tubeMapNoteRows(model)],
       group: 'Tube map',
     },
     {

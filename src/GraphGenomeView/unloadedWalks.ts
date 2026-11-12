@@ -35,6 +35,14 @@ export function tubeMapWalksToLoad(graph: Graph | undefined) {
     : []
 }
 
+// Why a tube map's boxes stay "nodes not shown": it shows more haplotypes
+// than it fetches the nodes of
+export function tubeMapNote(graph: Graph | undefined) {
+  return unloadedWalks(graph).size > 0 && tubeMapWalksToLoad(graph).length === 0
+    ? `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time: load ${EXPAND_NAMED_MAX} or fewer to see it`
+    : undefined
+}
+
 // The walks of the rows that ribbons, shared blocks and the shared order
 // leave out, while few enough to fetch whole as a short list of names is
 export function routesToLoad(rows: WalkRow[]) {
@@ -43,10 +51,15 @@ export function routesToLoad(rows: WalkRow[]) {
     : []
 }
 
-// Why those rows stay out, where they are too many to fetch whole
-export function routesLeftOut(rows: WalkRow[]) {
+const rowsText = (n: number) => `${n} row${n === 1 ? '' : 's'}`
+
+// What happens to those rows, in the walk-row key's words: fetched while few
+// enough, else left out, and how to bring them in
+export function routesNote(rows: WalkRow[]) {
   const n = rowsNeedingRoutes(rows)
-  return n > EXPAND_NAMED_MAX
-    ? `Leaves out ${n} rows: node-level detail is fetched for at most ${EXPAND_NAMED_MAX} at a time. Choose up to ${EXPAND_NAMED_MAX} samples under Samples to include them.`
-    : undefined
+  return n === 0
+    ? undefined
+    : n <= EXPAND_NAMED_MAX
+      ? `Fetching node-level detail for ${rowsText(n)}`
+      : `Leaves out ${rowsText(n)}: node-level detail is fetched for at most ${EXPAND_NAMED_MAX} at a time. Choose up to ${EXPAND_NAMED_MAX} samples under Samples to include them.`
 }

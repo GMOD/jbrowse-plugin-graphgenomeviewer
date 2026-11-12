@@ -50,6 +50,10 @@ Hovering a genotype cell of a callset or MAF row lifts that haplotype's walk
   give its node. Under **Reference position** that is its hue on the ramp the
   linear view's segments share, charcoal off the reference, and the tubes turn
   grey
+- A walk file keeps a long detour in a short form without its nodes. A tube
+  map showing up to 64 haplotypes fetches those nodes; past that, such a
+  detour is a dashed, untinted box captioned "nodes not shown", and the key
+  says why
 
 ## Fold variants
 
