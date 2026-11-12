@@ -224,8 +224,7 @@ export const withFitViews = withHostViews
       const row = self.walkRowList[i]
       const y = place.rowY(i) * self.scaleY + self.translateY
       const bp = (screenX - self.translateX) / self.scaleX - bars.origin
-      const at =
-        row && pitch.readouts !== false ? this.walkRowReadoutOf(i) : undefined
+      const at = row && pitch.readouts ? this.walkRowReadoutOf(i) : undefined
       const endX = row
         ? (bars.origin + barEnd(row)) * self.scaleX + self.translateX
         : 0

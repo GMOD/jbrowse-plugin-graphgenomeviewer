@@ -95,7 +95,8 @@ export const StripTip = observer(function StripTip({
   const all = bars ? [bars.reference, ...bars.rows] : []
   const index = hover ? all.findIndex(r => r.name === hover.row) : -1
   const row = all[index]
-  const at = bars && frame && row ? walkRowReadoutAt(bars, index, frame) : undefined
+  const at =
+    bars && frame && row ? walkRowReadoutAt(bars, index, frame) : undefined
   if (!bars || !frame || !hover || !row || !at || (frame.labelled && !at.cut)) {
     return null
   }
