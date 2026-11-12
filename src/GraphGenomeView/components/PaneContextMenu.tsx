@@ -1,4 +1,3 @@
-import { NOT_LOADED_TEXT } from '@jbrowse/bandage-core/gfa/departures'
 import { regionLabel } from '@jbrowse/bandage-core/hoverText'
 import { ContextMenu } from '@jbrowse/core/ui'
 import FilterListIcon from '@mui/icons-material/FilterList'
@@ -89,7 +88,7 @@ function walkRowMenuItems(
     ...(walk?.abridgedSteps
       ? [
           {
-            label: `Load the ${formatSteps(walk.abridgedSteps)} steps ${NOT_LOADED_TEXT}`,
+            label: `Show this haplotype's full route (${formatSteps(walk.abridgedSteps)} more steps)`,
             onClick: () => {
               model.expandWalk(walk.name)
             },

@@ -167,8 +167,9 @@ largest change ("66% · del 18.4kb"):
   Changes every form shares stay out of the label
 - `walkByteBudget`, 1 MB by default, caps what the cut fetches. A pinned window
   over it shows an error naming how much of the window fits
-- A walk the file abridged counts as loaded: graph-walks builds its piece from
-  the file's blocks, so its changes are the ones its steps make
+- A detour the walk file keeps in short form counts in full: graph-walks
+  builds it from its length and its place on the reference, so its changes are
+  the ones its steps make
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift` or
   `inversion`, which `encoding.color` paints with a key. A replacement counts as
   a loss or gain by its net change. graph-walks labels one whose smaller side is

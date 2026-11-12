@@ -254,10 +254,11 @@ other format at open with a `WalkFormatError` naming the gfa-to-tabix version to
 rebuild with, and the track shows that error.
 
 - A piece the file abridged is built from its tile's `blocks` row, each run off
-  the reference one placeholder step of known bp: bandage-core draws it hollow
-  and amber-rimmed at its true size, "not loaded", and a row holding one offers
-  "Load the N steps not loaded", which cuts again with the walk named in
-  `expand`
+  the reference one placeholder step of known bp. Walk rows draw it exactly as a
+  fetched run (the owner's call: a "not loaded" bar told the user nothing they
+  could use), the tube map dashes its box and captions it "nodes not shown",
+  and a row holding one offers "Show this haplotype's full route (N more
+  steps)", which cuts again with the walk named in `expand`
 
 - A cut reads the tiles and departure blocks overlapping the window and its
   context, and nothing before them. `getFeatures` reads the reference rows the

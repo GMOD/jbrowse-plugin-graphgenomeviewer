@@ -66,12 +66,12 @@ test.each([
   [
     'a count',
     { abridgedSteps: 12_400, unloadedBp: 900 },
-    'Load the 12 k steps not loaded',
+    "Show this haplotype's full route (12 k more steps)",
   ],
   [
     'a count and no run in the window',
     { abridgedSteps: 40 },
-    'Load the 40 steps not loaded',
+    "Show this haplotype's full route (40 more steps)",
   ],
 ])('a walk row holding %s offers to load them', (_, held, label) => {
   const expandWalk = vi.fn()
@@ -104,5 +104,5 @@ test('a walk row with every step loaded offers no load', () => {
     />,
   )
   expect(screen.getByText('Linear genome view')).toBeTruthy()
-  expect(screen.queryByText(/^Load the/)).toBeNull()
+  expect(screen.queryByText(/full route/)).toBeNull()
 })
