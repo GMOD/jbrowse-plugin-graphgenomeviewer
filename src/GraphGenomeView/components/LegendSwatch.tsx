@@ -1,4 +1,3 @@
-import { NOT_LOADED_RIM_PX } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 import { observer } from 'mobx-react'
 
@@ -19,7 +18,6 @@ function Gradient({
   height,
   square,
   edged,
-  rim,
 }: {
   id: string
   x: number
@@ -29,11 +27,9 @@ function Gradient({
   height: number
   square?: boolean
   edged?: boolean
-  rim?: string
 }) {
-  // an edge's or a rim's stroke sits half inside, so the chip keeps its size
-  const strokePx = rim ? NOT_LOADED_RIM_PX : edged ? 1 : 0
-  const inset = strokePx / 2
+  // an edge's stroke sits half inside, so the chip keeps its size
+  const inset = edged ? 0.5 : 0
   const rect = (fill: string) => (
     <rect
       x={x + inset}
@@ -42,8 +38,7 @@ function Gradient({
       height={height - inset * 2}
       rx={square ? 0 : 2}
       fill={fill}
-      stroke={rim ?? (edged ? EDGE_INK : undefined)}
-      strokeWidth={rim ? strokePx : undefined}
+      stroke={edged ? EDGE_INK : undefined}
     />
   )
   return stops.length > 1 ? (
@@ -87,7 +82,6 @@ export function SvgSwatch({
           height={height}
           square={swatch.square}
           edged={swatch.edged}
-          rim={swatch.rim}
         />
       )
     }

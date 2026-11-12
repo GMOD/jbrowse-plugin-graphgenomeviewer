@@ -4,7 +4,6 @@ import {
   swatchHeight,
   swatchWidth,
   tubeMapRows,
-  walkRowSwatch,
 } from './legendSections'
 
 import type { GraphPaneModel } from './model'
@@ -178,22 +177,4 @@ test('every row of a key shares one pitch, roomy enough for its tallest', () => 
     expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(row.swatch!) + 2)
   }
   expect(rowPitch([{ key: 'a', label: 'a' }])).toBe(15)
-})
-
-test("a walk row key's hollow bar keeps its rim round its fill", () => {
-  expect(
-    walkRowSwatch({
-      kind: 'bar',
-      fill: 'rgb(250, 240, 214)',
-      rim: 'rgb(217, 164, 65)',
-    }),
-  ).toEqual({
-    kind: 'fill',
-    stops: [{ offset: 0, color: 'rgb(250, 240, 214)' }],
-    height: expect.any(Number),
-    rim: 'rgb(217, 164, 65)',
-  })
-  expect(walkRowSwatch({ kind: 'bar', fill: '#3c4148' })).not.toHaveProperty(
-    'rim',
-  )
 })

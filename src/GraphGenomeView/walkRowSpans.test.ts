@@ -1,4 +1,3 @@
-import { WALK_NOT_LOADED, WALK_NOT_LOADED_FILL } from '@jbrowse/bandage-core'
 import { walkRowsTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 import {
@@ -55,51 +54,13 @@ const frame = {
   barPx: 10,
 }
 
-const hex = (css: string) =>
-  `#${cssRgb(css)
-    .map(c => c.toString(16).padStart(2, '0'))
-    .join('')}`
-const rimHex = hex(WALK_NOT_LOADED)
-const fillHex = hex(WALK_NOT_LOADED_FILL)
-// a tree rect's colour as the painter's context records it
-const hexed = (rect: string) => {
-  const at = rect.indexOf(' ')
-  const fill = rect.slice(at + 1)
-  return `${rect.slice(0, at)} ${fill.startsWith('#') ? fill : hex(fill)}`
-}
-
 const key = (x: number, y: number, w: number, h: number, fill: string) =>
   `${[x, y, w, h].map(v => v.toFixed(3)).join(',')} ${fill}`
 
-// a stroked rect as the two fills it paints: the stroke's colour out to its
-// outer edge, and the fill inside its inner edge
 function treeRects(e: El, out: string[] = []) {
   if (e.tag === 'rect' && typeof e.attrs.fill === 'string') {
-    const { x, y, width, height, fill, stroke } = e.attrs as Record<
-      string,
-      number
-    >
-    const half = Number(e.attrs['stroke-width'] ?? 0) / 2
-    if (stroke === undefined) {
-      out.push(key(x!, y!, width!, height!, String(fill)))
-    } else {
-      out.push(
-        key(
-          x! - half,
-          y! - half,
-          width! + 2 * half,
-          height! + 2 * half,
-          String(stroke),
-        ),
-        key(
-          x! + half,
-          y! + half,
-          width! - 2 * half,
-          height! - 2 * half,
-          String(fill),
-        ),
-      )
-    }
+    const { x, y, width, height, fill } = e.attrs as Record<string, number>
+    out.push(key(x!, y!, width!, height!, String(fill)))
   }
   for (const c of e.children) {
     if (c && typeof c === 'object') {
@@ -109,10 +70,7 @@ function treeRects(e: El, out: string[] = []) {
   return out
 }
 
-function paintedRects(
-  ramp?: { start: number; end: number },
-  drawn: WalkRows = bars,
-) {
+function paintedRects(ramp?: { start: number; end: number }) {
   const out: string[] = []
   let style = ''
   const ctx = {
@@ -127,10 +85,10 @@ function paintedRects(
       out.push(key(x, y, w, h, style))
     },
   }
-  const all = [drawn.reference, ...drawn.rows]
+  const all = [bars.reference, ...bars.rows]
   paintWalkRowSpans(ctx as never, walkRowSpans(all, frame.scaleX, ramp), {
     ...frame,
-    origin: drawn.origin,
+    origin: bars.origin,
     blocks: [{ first: 0, count: all.length, rowY: 0 }],
   })
   return out
@@ -140,26 +98,6 @@ test('the spans paint the rects walkRowsTree draws the runs as', () => {
   const rects = paintedRects()
   expect(rects.length).toBeGreaterThan(3)
   expect(rects.sort()).toEqual(treeRects(walkRowsTree(bars, frame)).sort())
-})
-
-test('a run not loaded paints hollow as walkRowsTree strokes it, and solid where too narrow', () => {
-  const unloaded = {
-    ...bars,
-    rows: [
-      row('C', [
-        { start: 0, bp: 1000, onReference: true, referenceStart: 1000 },
-        { start: 1000, bp: 1500, onReference: false, unloaded: true },
-        { start: 2500, bp: 200, onReference: true, referenceStart: 2500 },
-        { start: 2700, bp: 250, onReference: false, unloaded: true },
-      ]),
-    ],
-  }
-  const rects = paintedRects(undefined, unloaded)
-  expect(rects.filter(r => r.endsWith(rimHex))).toHaveLength(2)
-  expect(rects.filter(r => r.endsWith(fillHex))).toHaveLength(1)
-  expect(rects.sort()).toEqual(
-    treeRects(walkRowsTree(unloaded, frame)).map(hexed).sort(),
-  )
 })
 
 test('a run the ramp gives a gradient paints a piece per pixel, through its stops', () => {
