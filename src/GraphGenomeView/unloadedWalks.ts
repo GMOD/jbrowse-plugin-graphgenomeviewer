@@ -39,7 +39,7 @@ export function tubeMapWalksToLoad(graph: Graph | undefined) {
 // than it fetches the nodes of
 export function tubeMapNote(graph: Graph | undefined) {
   return unloadedWalks(graph).size > 0 && tubeMapWalksToLoad(graph).length === 0
-    ? `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time: load ${EXPAND_NAMED_MAX} or fewer to see it`
+    ? `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time. Choose ${EXPAND_NAMED_MAX} or fewer under Load in the track menu, or in Graph settings, to see it.`
     : undefined
 }
 

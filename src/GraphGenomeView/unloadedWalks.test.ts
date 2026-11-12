@@ -79,6 +79,6 @@ test('a tube map fetches the nodes of the walks it shows, up to the limit', () =
 test('a tube map says why its boxes stay unfilled only past the limit', () => {
   expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX))).toBeUndefined()
   expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX + 1))).toBe(
-    `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time: load ${EXPAND_NAMED_MAX} or fewer to see it`,
+    `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time. Choose ${EXPAND_NAMED_MAX} or fewer under Load in the track menu, or in Graph settings, to see it.`,
   )
 })
