@@ -8,6 +8,7 @@ import {
   deletionKey,
 } from '@jbrowse/bandage-core/deletionEdges'
 import { edgeWidthFactor } from '@jbrowse/bandage-core/edgeWidths'
+import { NOT_LOADED_TEXT } from '@jbrowse/bandage-core/gfa/departures'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
@@ -23,6 +24,8 @@ import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
 import {
   LIFT_BACKDROP_CSS,
+  NOT_LOADED_CSS,
+  NOT_LOADED_FILL_CSS,
   REFERENCE_RAMP_ALT_CSS,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { deviationInk } from '@jbrowse/bandage-core/tubeMap/deviations'
@@ -37,6 +40,7 @@ import { walkKey } from '@jbrowse/bandage-core/walkKey'
 import { CALL_TOLERANCE } from './repeats/walkCalls'
 import { PANEL_REFERENCE_TUBE } from './tubeMapPanels'
 import { COLORED_BLOCKS, blockFill, blockLetter } from './walkRowBlocks'
+import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 
 import type { GraphPaneModel } from './model'
 import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -76,6 +80,8 @@ export type LegendSwatch =
       square?: boolean
       // a hairline edge, so a pale colour still shows on the white key
       edged?: true
+      // a hollow chip's rim, round the fill
+      rim?: string
     }
   // the reference strip, a band per lifted walk
   | { kind: 'bands'; bands: Stop[][] }
@@ -330,6 +336,26 @@ function deletionRows(model: GraphPaneModel): LegendRow[] {
     : []
 }
 
+// A node layout draws a run of a walk's steps the cut did not fetch as a
+// hollow node
+function notShownRows(model: GraphPaneModel): LegendRow[] {
+  return model.drawsNodes &&
+    !model.layoutResult?.tubeMap &&
+    model.graph?.nodes.some(node => node.placeholder)
+    ? [
+        {
+          key: 'not-shown',
+          label: NOT_LOADED_TEXT,
+          swatch: {
+            kind: 'fill',
+            stops: flat(NOT_LOADED_FILL_CSS),
+            rim: NOT_LOADED_CSS,
+          },
+        },
+      ]
+    : []
+}
+
 function thicknessRow(
   key: string,
   label: string,
@@ -567,6 +593,7 @@ export function walkRowSwatch(swatch: KeySwatch): LegendSwatch {
             ? RAMP_GRADIENT_STOPS
             : flat(swatch.fill),
         height: swatch.kind === 'gap' ? swatch.px : WALK_ROW_SWATCH_PX,
+        ...(swatch.kind === 'bar' && swatch.rim ? { rim: swatch.rim } : {}),
       }
 }
 
@@ -618,6 +645,9 @@ function walkRowsRows(model: GraphPaneModel): LegendRow[] {
       ramp: model.referenceRampDomain,
       genes: model.walkRowGeneKey,
       annotation: model.walkRowAnnotation,
+      ...(model.rowVisitsNeeded
+        ? { comparing: { fetchLimit: EXPAND_NAMED_MAX } }
+        : {}),
     }).map(entry => ({
       key: `rows-${entry.label}`,
       label: entry.label,
@@ -729,6 +759,11 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     {
       testid: 'graph-deletion-legend',
       rows: deletionRows(model),
+      group: 'Marks',
+    },
+    {
+      testid: 'graph-not-shown-legend',
+      rows: notShownRows(model),
       group: 'Marks',
     },
     { testid: 'graph-gene-legend', rows: geneRows(model), group: 'Marks' },

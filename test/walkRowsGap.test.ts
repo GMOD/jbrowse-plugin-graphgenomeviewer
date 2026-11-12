@@ -116,7 +116,7 @@ describe.skipIf(!runE2E)('walk rows with a piece gap', () => {
         el => el.textContent,
       ),
     )
-    expect(readouts).toContain('5.0 kb · 1.0 kb outside the extracted subgraph')
+    expect(readouts).toContain('5.0 kb, of which 1.0 kb out of view')
     await screenshot(page, 'walk-rows-gap')
   }, 60_000)
 })

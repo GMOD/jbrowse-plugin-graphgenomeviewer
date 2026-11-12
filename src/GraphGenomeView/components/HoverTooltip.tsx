@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 
 import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
-import { edgeHoverText, regionLabel } from '@jbrowse/bandage-core/hoverText'
+import {
+  edgeHoverText,
+  placeholderHoverText,
+  regionLabel,
+} from '@jbrowse/bandage-core/hoverText'
 import { observer } from 'mobx-react'
 
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -49,6 +53,7 @@ function hoverTip(
     ? model.hoverNodeById?.get(model.hoveredNode)
     : undefined
   if (node) {
+    const placeholder = placeholderHoverText(node)
     const merged = model.hoverDrawing?.members.get(node.id)
     const own = nodeOwnLocation(node)
     const region = model.graphRegion
@@ -57,7 +62,9 @@ function hoverTip(
       region && span && !isBackbone(node)
         ? `${region.assemblyName} ${regionLabel({ refName: region.refName, ...span })}`
         : undefined
-    return {
+    return placeholder
+      ? { body: placeholder }
+      : {
       body: (
         <>
           <strong>{node.name}</strong>

@@ -1,5 +1,6 @@
 import {
   barEnd,
+  fitReadout,
   readoutPlacement,
   walkRowReadout,
   walkRowsTree,
@@ -226,10 +227,17 @@ export function walkRowTrees(
       ]
 }
 
+// A readout's side of its bar's end, and beside it the text cut to the room
+// left, as walkRowsTree places and cuts it
+function shownReadout(text: string, endX: number, width: number) {
+  const { anchor, x } = readoutPlacement(text, endX, width)
+  return anchor === 'start' ? `${anchor} ${fitReadout(text, width - x)}` : anchor
+}
+
 // What walkRowTrees decides from where the frame sits rather than from its
-// scale: which rows it culls past the pane's top and bottom, and which side of
-// its bar's end each readout goes. While this holds, a pan only moves the
-// trees.
+// scale: which rows it culls past the pane's top and bottom, which side of
+// its bar's end each readout goes, and how much of it fits there. While this
+// holds, a pan only moves the trees.
 export function walkRowTreesPanKey(
   bars: WalkRowsWithCalls,
   rowY: (i: number) => number,
@@ -242,7 +250,7 @@ export function walkRowTreesPanKey(
       return y < -barPx || y > height + barPx
         ? '-'
         : (frame.readouts ?? true)
-          ? readoutPlacement(
+          ? shownReadout(
               walkRowReadout(
                 row,
                 i === 0 ? undefined : bars.reference,
@@ -251,7 +259,7 @@ export function walkRowTreesPanKey(
               ),
               (bars.origin + barEnd(row)) * scaleX + translateX,
               width,
-            ).anchor
+            )
           : '+'
     })
     .join(' ')

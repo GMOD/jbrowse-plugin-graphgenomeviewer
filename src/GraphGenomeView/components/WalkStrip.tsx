@@ -69,7 +69,13 @@ const StripBars = observer(function StripBars({
 }) {
   const idPrefix = useSvgId()
   const tree = useMemo(
-    () => walkRowsTree(bars, frame, { ramp, rowGenes, idPrefix }),
+    () =>
+      walkRowsTree(bars, frame, {
+        ramp,
+        rowGenes,
+        idPrefix,
+        markUnloaded: true,
+      }),
     [bars, frame, ramp, rowGenes, idPrefix],
   )
   return <ElTree el={tree} />
@@ -149,6 +155,7 @@ const WalkStrip = observer(function WalkStrip({
     rampCss: RAMP_GRADIENT_CSS,
     genes: stripGeneGaps(frame, model.walkRowGenes, model.walkRowGeneGaps),
     annotation: model.walkRowAnnotation,
+    markUnloaded: true,
   })
   return (
     <div
