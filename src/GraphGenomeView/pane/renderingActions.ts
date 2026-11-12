@@ -517,9 +517,7 @@ export const withRenderingActions = withLoadActions
               ? tubeMapWalksToLoad(self.graph)
               : []
             return Array.from(
-              new Set(
-                lifted.concat(tubeMap, routesToLoad(self.comparedRows)),
-              ),
+              new Set(lifted.concat(tubeMap, routesToLoad(self.comparedRows))),
             )
           },
           names => {

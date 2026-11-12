@@ -231,7 +231,9 @@ export function walkRowTrees(
 // left, as walkRowsTree places and cuts it
 function shownReadout(text: string, endX: number, width: number) {
   const { anchor, x } = readoutPlacement(text, endX, width)
-  return anchor === 'start' ? `${anchor} ${fitReadout(text, width - x)}` : anchor
+  return anchor === 'start'
+    ? `${anchor} ${fitReadout(text, width - x)}`
+    : anchor
 }
 
 // What walkRowTrees decides from where the frame sits rather than from its

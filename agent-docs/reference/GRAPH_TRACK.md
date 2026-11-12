@@ -257,15 +257,15 @@ rebuild with, and the track shows that error.
   the reference one placeholder step of known bp. Walk rows draw it exactly as a
   fetched run (the owner's call: a "not loaded" bar told the user nothing they
   could use); the strip under a node layout marks it (`markUnloaded`), as node
-  layouts do, and offers "Show the nodes of this haplotype's detours (N
-  steps)", which cuts again with the walk named in `expand`; the tube map dashes
-  its box and captions it "nodes not shown"
+  layouts do, and offers "Show the nodes of this haplotype's detours (N steps)",
+  which cuts again with the walk named in `expand`; the tube map dashes its box
+  and captions it "nodes not shown"
 - What fetches nodes on its own (`renderingActions.ts`, all capped at
   `EXPAND_NAMED_MAX`): a lifted walk; every walk a tube map shows, while it
-  shows that many haplotypes or fewer (`tubeMapWalksToLoad`); and, with
-  ribbons, shared blocks or the shared order on, the rows they would leave out
-  (bandage-core's `rowsNeedingRoutes`, `routesToLoad`). Past the cap the key
-  and the three checkboxes' `helpText` say how many rows are left out
+  shows that many haplotypes or fewer (`tubeMapWalksToLoad`); and, with ribbons,
+  shared blocks or the shared order on, the rows they would leave out
+  (bandage-core's `rowsNeedingRoutes`, `routesToLoad`). Past the cap the key and
+  the three checkboxes' `helpText` say how many rows are left out
   (`routesLeftOut`). Walk rows fetch nothing else, since they draw a walk the
   same either way
 

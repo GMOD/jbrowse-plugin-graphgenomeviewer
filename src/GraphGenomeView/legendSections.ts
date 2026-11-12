@@ -8,8 +8,8 @@ import {
   deletionKey,
 } from '@jbrowse/bandage-core/deletionEdges'
 import { edgeWidthFactor } from '@jbrowse/bandage-core/edgeWidths'
-import { NOT_LOADED_TEXT } from '@jbrowse/bandage-core/gfa/departures'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
+import { NOT_LOADED_TEXT } from '@jbrowse/bandage-core/gfa/departures'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
   BAR_PX as WALK_ROW_BAR_PX,

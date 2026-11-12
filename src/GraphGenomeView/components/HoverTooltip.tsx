@@ -65,35 +65,35 @@ function hoverTip(
     return placeholder
       ? { body: placeholder }
       : {
-      body: (
-        <>
-          <strong>{node.name}</strong>
-          {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
-          {node.length.toLocaleString()} bp, depth {node.depth.toFixed(1)}
-          {/* the assembly that contributed the segment, and where on it */}
-          {own ? (
+          body: (
             <>
-              <br />
-              {own.sample} {regionLabel(own)} (rank {node.stable?.rank})
-            </>
-          ) : null}
-          {onReference ? (
-            <>
-              <br />
-              Reference {onReference}
-            </>
-          ) : null}
-          {/* gfa-to-tabix --max-component left its component off the
+              <strong>{node.name}</strong>
+              {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
+              {node.length.toLocaleString()} bp, depth {node.depth.toFixed(1)}
+              {/* the assembly that contributed the segment, and where on it */}
+              {own ? (
+                <>
+                  <br />
+                  {own.sample} {regionLabel(own)} (rank {node.stable?.rank})
+                </>
+              ) : null}
+              {onReference ? (
+                <>
+                  <br />
+                  Reference {onReference}
+                </>
+              ) : null}
+              {/* gfa-to-tabix --max-component left its component off the
               reference, so the cut holds only its ends */}
-          {node.moved ? (
-            <>
-              <br />
-              End of a component too large to draw here
+              {node.moved ? (
+                <>
+                  <br />
+                  End of a component too large to draw here
+                </>
+              ) : null}
             </>
-          ) : null}
-        </>
-      ),
-    }
+          ),
+        }
   }
   const edge =
     model.hoveredEdge === null

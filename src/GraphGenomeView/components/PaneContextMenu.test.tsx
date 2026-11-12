@@ -47,10 +47,7 @@ test('nothing opens without a right-click', () => {
   expect(screen.queryByRole('menu')).toBeNull()
 })
 
-const rowOf = (
-  name: string,
-  held: { abridgedSteps?: number },
-) => ({
+const rowOf = (name: string, held: { abridgedSteps?: number }) => ({
   name,
   label: name,
   sample: name,
@@ -72,12 +69,12 @@ test.each([
   ['12 k', 12_400],
   ['40', 40],
 ])(
-  "a strip row whose detours are fetched without nodes offers to show them, %s steps",
+  'a strip row whose detours are fetched without nodes offers to show them, %s steps',
   (steps, abridgedSteps) => {
     const expandWalk = vi.fn()
     render(
       <PaneContextMenu
-        model={{ ...model, expandWalk } as unknown as GraphPaneModel}
+        model={{ ...model, expandWalk }}
         at={{
           clientX: 10,
           clientY: 10,
