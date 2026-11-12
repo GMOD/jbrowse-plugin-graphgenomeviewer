@@ -86,6 +86,11 @@ export const withWalkRowViews = withLaunchViews
         span: { refName: axis.contig, ...rowSpan(axis, row.bp) },
       }
     },
+    // The rows ribbons, shared blocks or the shared order compare, while one
+    // of them is on
+    get comparedRows() {
+      return self.rowVisitsNeeded ? (self.walkRowBars?.rows ?? []) : []
+    },
     // Where the drawing has the node a strip point lights, for the ring
     // that finds it in a hairball
     get walkStripLocator() {

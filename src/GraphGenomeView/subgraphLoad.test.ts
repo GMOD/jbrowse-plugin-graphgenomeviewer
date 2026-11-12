@@ -431,6 +431,32 @@ describe('canceling and retrying', () => {
     })
   })
 
+  test('turning on ribbons in walk rows reads the routes of the rows they would leave out', async () => {
+    const tables = gfaTables(
+      [
+        GFA,
+        'W\tGRCh38\t0\tchr6\t32000000\t32001900\t>s1>s3',
+        'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
+      ].join('\n'),
+    )!
+    tables.nodes.placeholders = Uint8Array.from(tables.nodes.names, name =>
+      name === 'h1' ? 1 : 0,
+    )
+    tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(tables)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = attachedView({ layoutMode: 'walkrows' })
+    await vi.waitFor(() => {
+      expect(model.hasGraph).toBe(true)
+    })
+    expect(model.expandedWalks).toEqual([])
+    model.setLayer('walkRibbons', true)
+    expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
+  })
+
   test('a cut option changed on a drawn view cuts again with it', async () => {
     answerCutsWith(GFA)
     const model = attachedView()

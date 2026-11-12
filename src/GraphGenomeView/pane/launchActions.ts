@@ -33,6 +33,7 @@ import { downloadText } from '../download'
 import { GENE_ADAPTER_TYPES } from '../genes/geneFeatures'
 import { HOVER_HIGHLIGHT_VALUES } from '../hoverHighlight'
 import { TUBE_MAP_PANELS, tubeMapPanelGroups } from '../tubeMapPanels'
+import { routesLeftOut } from '../unloadedWalks'
 
 import type { GraphLocation } from '../../launchFromGraph/contributors'
 import type { GraphLayer } from '../graphLayers'
@@ -308,6 +309,7 @@ export const withLaunchActions = withRenderingActions
                 type: 'checkbox' as const,
                 label: 'Ribbons between rows',
                 checked: self.walkRibbons,
+                helpText: routesLeftOut(self.comparedRows),
                 onClick: () => {
                   self.setLayer('walkRibbons', !self.walkRibbons)
                 },
@@ -316,6 +318,7 @@ export const withLaunchActions = withRenderingActions
                 type: 'checkbox' as const,
                 label: 'Letter shared blocks',
                 checked: self.layerSet.has('walkBlocks'),
+                helpText: routesLeftOut(self.comparedRows),
                 onClick: () => {
                   self.setLayer('walkBlocks', !self.layerSet.has('walkBlocks'))
                 },
@@ -324,6 +327,7 @@ export const withLaunchActions = withRenderingActions
                 type: 'checkbox' as const,
                 label: 'Order rows by shared sequence',
                 checked: self.walkRowOrder === 'shared',
+                helpText: routesLeftOut(self.comparedRows),
                 onClick: () => {
                   self.setWalkRowOrder(
                     self.walkRowOrder === 'shared' ? undefined : 'shared',

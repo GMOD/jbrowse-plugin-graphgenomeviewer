@@ -259,6 +259,11 @@ rebuild with, and the track shows that error.
   could use), the tube map dashes its box and captions it "nodes not shown",
   and a row holding one offers "Show this haplotype's full route (N more
   steps)", which cuts again with the walk named in `expand`
+- Ribbons, shared blocks and the shared order leave out rows holding
+  placeholders (bandage-core's `rowsNeedingRoutes`). Turning one on expands
+  those walks when they number `EXPAND_NAMED_MAX` or fewer (`routesToLoad`);
+  past that the three checkboxes' `helpText` says how many are left out
+  (`routesLeftOut`)
 
 - A cut reads the tiles and departure blocks overlapping the window and its
   context, and nothing before them. `getFeatures` reads the reference rows the

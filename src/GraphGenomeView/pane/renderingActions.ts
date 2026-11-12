@@ -23,7 +23,7 @@ import {
 import { walksForRow } from '../../hoverSync/rowWalks'
 import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { trackedDpr } from '../trackedDpr'
-import { unloadedWalks } from '../unloadedWalks'
+import { routesToLoad, unloadedWalks } from '../unloadedWalks'
 
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -497,8 +497,10 @@ export const withRenderingActions = withLoadActions
     expandWalk(name: string) {
       self.expandWalks([name])
     },
-    // A lifted walk's key states its length, and a picked sample's row is
-    // drawn whole, so the cut reads such a walk's steps it did not load
+    // A lifted walk's key states its length, a picked sample's row is drawn
+    // whole, and ribbons, shared blocks and the shared order compare nodes, so
+    // the cut reads such a walk's steps it did not load, the compared rows'
+    // while few enough
     afterAttach() {
       addDisposer(
         self,
@@ -513,11 +515,14 @@ export const withRenderingActions = withLoadActions
             )
             return Array.from(
               unloadedWalks(self.graph, self.cohortWalkRows?.rows),
-            ).flatMap(([name, sample]) =>
-              lifted.has(name) || (sample !== undefined && picked.has(sample))
-                ? [name]
-                : [],
             )
+              .flatMap(([name, sample]) =>
+                lifted.has(name) ||
+                (sample !== undefined && picked.has(sample))
+                  ? [name]
+                  : [],
+              )
+              .concat(routesToLoad(self.comparedRows))
           },
           names => {
             self.expandWalks(names)

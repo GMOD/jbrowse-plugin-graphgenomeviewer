@@ -161,6 +161,10 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
 - **Order rows by shared sequence** stacks each row under the one it shares the
   most sequence with, so ribbons stay short and blocks line up. A grouping keeps
   this order within each section
+- These three compare the nodes rows walk, so they need each row's full route.
+  Turning one on reads the full routes of up to 64 haplotypes that lack them;
+  past that, those haplotypes are left out, and the help icon beside each of
+  the three says how many
 
 The **Repeat** picker tiles bars by a repeat annotation's unit and marks the
 allele a genotyper called. With the curated VNTR track, the picker tiles each
