@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import {
-  walkRowReadout,
+  walkRowReadoutAt,
   walkRowsKey,
   walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
@@ -81,9 +81,9 @@ const StripBars = observer(function StripBars({
   return <ElTree el={tree} />
 })
 
-// The hovered row's readout where the rows are too thin to letter, at the
-// pointer's place on its bar. Its own observer, so a move along a bar redraws
-// the tip and not the strip.
+// The hovered row's readout in full where the rows are too thin to letter, or
+// where its own readout is drawn cut, at the pointer's place on its bar. Its
+// own observer, so a move along a bar redraws the tip and not the strip.
 export const StripTip = observer(function StripTip({
   model,
 }: {
@@ -95,7 +95,8 @@ export const StripTip = observer(function StripTip({
   const all = bars ? [bars.reference, ...bars.rows] : []
   const index = hover ? all.findIndex(r => r.name === hover.row) : -1
   const row = all[index]
-  if (!bars || !frame || frame.labelled || !hover || !row) {
+  const at = bars && frame && row ? walkRowReadoutAt(bars, index, frame) : undefined
+  if (!bars || !frame || !hover || !row || !at || (frame.labelled && !at.cut)) {
     return null
   }
   const x = (bars.origin + hover.offset) * frame.scaleX + frame.translateX
@@ -111,8 +112,7 @@ export const StripTip = observer(function StripTip({
         top: index * frame.rowPx + frame.translateY - 18,
       }}
     >
-      {row.label} ·{' '}
-      {walkRowReadout(row, index === 0 ? undefined : bars.reference)}
+      {row.label} · {at.text}
     </div>
   )
 })

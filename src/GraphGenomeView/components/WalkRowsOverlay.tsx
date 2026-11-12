@@ -11,6 +11,7 @@ import {
   PaneTranslateGroup,
 } from './PaneLayer'
 import { dependOn } from '../pane/paneBase'
+import { measureReadout } from '../readoutMeasure'
 import { paintWalkRowBlocks } from '../walkRowBlocks'
 import {
   SECTION_HEADER_PX,
@@ -244,6 +245,7 @@ export function walkRowTreesOnPane(
     height: model.canvasHeight,
     ...pitch,
     bars: vector,
+    measure: measureReadout,
   })
   const panKey = computed(() => {
     const bars = model.walkRowBars

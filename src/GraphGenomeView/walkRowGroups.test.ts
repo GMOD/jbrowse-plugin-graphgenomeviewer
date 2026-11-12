@@ -246,6 +246,28 @@ describe('panning the trees', () => {
     })
   }
 
+  test('turning a comparison on changes the pan key of a row it leaves out', () => {
+    const leftOut: WalkRow = { ...row('G', 1500), unloadedBp: 300 }
+    const drawn = { ...bars, rows: [row('A', 1000), leftOut] }
+    const place = sectionPlacement([], pitch.rowPx)
+    const frame = {
+      scaleX: 0.1,
+      scaleY: 1,
+      translateX: 0,
+      translateY: 30,
+      width: 800,
+      height: 60,
+      ...pitch,
+    }
+    const keyOf = (comparing: boolean) =>
+      walkRowTreesPanKey(drawn, place.rowY, frame, { comparing }).split(
+        ' start ',
+      )
+    expect(keyOf(true)[1]).toBe(keyOf(false)[1])
+    expect(keyOf(true)[2]).not.toBe(keyOf(false)[2])
+    expect(keyOf(true)[2]).toContain('· not compared')
+  })
+
   test('a pan that makes room beside a bar draws its cut readout whole again', () => {
     const gappy: WalkRow = {
       ...row('F', 2000),

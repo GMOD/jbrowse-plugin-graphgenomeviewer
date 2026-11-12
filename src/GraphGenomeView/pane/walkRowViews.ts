@@ -15,6 +15,7 @@ import { nodeAnchor } from '@jbrowse/bandage-core/referenceStrip'
 import { withLaunchViews } from './launchViews'
 import { WALK_GENE_ROWS } from './paneBase'
 import { resolveLocationAssembly } from '../../launchFromGraph/contributors'
+import { measureReadout } from '../readoutMeasure'
 
 import type { WalkAxis, WalkRow } from '@jbrowse/bandage-core/layout/walkRows'
 
@@ -39,12 +40,16 @@ export const withWalkRowViews = withLaunchViews
         ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
         : undefined
     },
+    // measured as the pane draws a readout, so the strip cuts one only where
+    // it does not fit
     get walkStripFrame() {
       const bars = this.walkStripRows
-      if (!bars) {
-        return undefined
-      }
-      return walkStripFrame(bars, { width: self.paneWidth })
+      return bars
+        ? {
+            ...walkStripFrame(bars, { width: self.paneWidth }),
+            measure: measureReadout,
+          }
+        : undefined
     },
     // Whether a cut must follow every snarl a walk leaves the window by, so
     // walks come back whole: walk rows measure them, and so does the strip
