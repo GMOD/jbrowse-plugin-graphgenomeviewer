@@ -246,11 +246,17 @@ and the track names the file for its assembly's reference:
 }
 ```
 
-[@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) 6 reads and cuts the
+[@jbrowse/graph-walks](https://github.com/GMOD/graph-walks) 7 reads and cuts the
 file, for this plugin, BandageJS and the sequenceTubeMap fork. It reads walk
-format 7 only (gfa-to-tabix's ADR 0010, `docs/walks-format.md`): gzip units with
-a unit table per sequence and a directory, not a Tabix file. It refuses an older
-file with a `WalkFormatError` asking for a rebuild.
+format 8 only (gfa-to-tabix's ADR 0012, `docs/walks-format.md`): gzip units with
+a unit table per sequence and a directory, not a Tabix file. It refuses any
+other format at open with a `WalkFormatError` naming the gfa-to-tabix version to
+rebuild with, and the track shows that error.
+
+- A piece the file abridged is built from its tile's `blocks` row, each run off
+  the reference one placeholder step of known bp: bandage-core draws it hollow
+  and amber-rimmed at its true size, "not loaded", and a row holding one offers
+  "Load the steps not loaded", which cuts again with the walk named in `expand`
 
 - A cut reads the tiles and departure blocks overlapping the window and its
   context, and nothing before them. `getFeatures` reads the reference rows the

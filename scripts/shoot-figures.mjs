@@ -595,9 +595,9 @@ const FIGURES = {
       },
       [VNTR_TRACK],
     ),
-    // Loads every walk the walk file abridged, as a row's Load the abridged
-    // steps does, then the Repeat picker lists the arrays the repeat track has
-    // over the cut
+    // Loads every walk holding steps the cut did not load, as a row's Load the
+    // steps not loaded does, then the Repeat picker lists the arrays the repeat
+    // track has over the cut
     act: async page => {
       await page.evaluate(() => {
         const display = window.JBrowseSession.views[0].tracks
@@ -605,7 +605,7 @@ const FIGURES = {
           .find(d => d.type === 'LinearGraphDisplay')
         display.expandWalks(
           display.walkRowBars.rows
-            .filter(row => row.abridgedSteps)
+            .filter(row => row.abridgedSteps || row.unloadedBp)
             .map(row => row.name),
         )
       })
@@ -614,7 +614,7 @@ const FIGURES = {
           !window.JBrowseSession.views[0].tracks
             .map(t => t.displays[0])
             .find(d => d.type === 'LinearGraphDisplay')
-            .walkRowBars?.rows.some(row => row.abridgedSteps),
+            .walkRowBars?.rows.some(row => row.abridgedSteps || row.unloadedBp),
         { timeout: 180_000 },
       )
       await page.waitForFunction(

@@ -23,6 +23,7 @@ import {
 import { walksForRow } from '../../hoverSync/rowWalks'
 import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { trackedDpr } from '../trackedDpr'
+import { unloadedWalks } from '../unloadedWalks'
 
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -497,7 +498,7 @@ export const withRenderingActions = withLoadActions
       self.expandWalks([name])
     },
     // A lifted walk's key states its length, and a picked sample's row is
-    // drawn whole, so the cut reads such a walk it abridged in full
+    // drawn whole, so the cut reads such a walk's steps it did not load
     afterAttach() {
       addDisposer(
         self,
@@ -510,18 +511,13 @@ export const withRenderingActions = withLoadActions
                 ? self.walkRowSamples
                 : [],
             )
-            return [
-              ...new Set(
-                (self.graph?.paths ?? [])
-                  .filter(
-                    p =>
-                      p.abridged &&
-                      (lifted.has(p.name) ||
-                        (p.sample !== undefined && picked.has(p.sample))),
-                  )
-                  .map(p => p.name),
-              ),
-            ]
+            return Array.from(
+              unloadedWalks(self.graph, self.cohortWalkRows?.rows),
+            ).flatMap(([name, sample]) =>
+              lifted.has(name) || (sample !== undefined && picked.has(sample))
+                ? [name]
+                : [],
+            )
           },
           names => {
             self.expandWalks(names)

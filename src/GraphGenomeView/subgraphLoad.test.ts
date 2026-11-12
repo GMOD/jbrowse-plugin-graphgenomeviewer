@@ -347,7 +347,7 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test('lifting an abridged walk cuts again with its name', async () => {
+  test('lifting a walk with steps not loaded cuts again with its name', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -356,7 +356,6 @@ describe('canceling and retrying', () => {
       ].join('\n'),
     )!
     tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
-    tables.walks.abridgedBp = Float64Array.from([Number.NaN, 9000])
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve(tables)
@@ -379,7 +378,31 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test("picking a sample in walk rows cuts again with its abridged walk's name", async () => {
+  test('lifting a walk through a run not loaded that states no count cuts again with its name', async () => {
+    const tables = gfaTables(
+      [
+        GFA,
+        'W\tGRCh38\t0\tchr6\t32000000\t32001900\t>s1>s3',
+        'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
+      ].join('\n'),
+    )!
+    tables.nodes.placeholders = Uint8Array.from(tables.nodes.names, name =>
+      name === 'h1' ? 1 : 0,
+    )
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(tables)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    const model = attachedView()
+    await vi.waitFor(() => {
+      expect(model.hasGraph).toBe(true)
+    })
+    model.liftWalks(['GRCh38#0#chr6', 'NA20809#2#CM094351.1'])
+    expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
+  })
+
+  test("picking a sample in walk rows cuts again with its walk's name, which has steps not loaded", async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -388,7 +411,6 @@ describe('canceling and retrying', () => {
       ].join('\n'),
     )!
     tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
-    tables.walks.abridgedBp = Float64Array.from([Number.NaN, 9000])
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve(tables)
