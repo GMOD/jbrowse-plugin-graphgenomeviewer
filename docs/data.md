@@ -70,7 +70,7 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "RgfaTabixAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38",
     "assemblyNameToPanSN": { "hg38": "GRCh38" },
     "defaultHaplotypes": ["HG002", "HG00733"]
   }
@@ -124,7 +124,7 @@ largest change ("66% · del 18.4kb"):
   "assemblyNames": ["hg38"],
   "adapter": {
     "type": "WalkFormsAdapter",
-    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38",
+    "walksUri": "https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38",
     "pinned": { "refName": "chr1", "start": 109680000, "end": 109715000 },
     "exclude": ["CHM13"]
   },

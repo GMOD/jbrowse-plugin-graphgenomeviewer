@@ -239,7 +239,7 @@ and the track names the file for its assembly's reference:
   assemblyNames: ['hg38'],
   adapter: {
     type: 'RgfaTabixAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38',
     assemblyNameToPanSN: { hg38: 'GRCh38' },
     defaultHaplotypes: ['HG002', 'HG00733', 'HG02257', 'NA19240'],
   },
@@ -466,7 +466,7 @@ track carries both displays with no gbz-base database:
   assemblyNames: ['hg38', 'HG00097.1', 'HG00099.1'],
   adapter: {
     type: 'WalkTabixSyntenyAdapter',
-    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38.GRCh38',
+    walksUri: 'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38',
     assemblyNames: ['hg38'],
     assemblyNameToPanSN: {
       hg38: 'GRCh38#0',
