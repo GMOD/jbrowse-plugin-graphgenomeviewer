@@ -20,9 +20,12 @@
   [sequenceTubeMap](https://github.com/vgteam/sequenceTubeMap). See
   [tube-maps.md](tube-maps.md)
 - **Show › Show node lengths** (off by default) writes each node's length on it
-  where the node is long enough to hold it. A link that skips reference sequence
-  carries no words: it is dashed where it is long enough to show a dash, a plain
-  line where shorter, and not drawn under a pixel
+  where the node is long enough to hold it. A "nodes not shown" placeholder
+  states its length either way
+- **Show › Show links that skip reference** (on by default) draws each link that
+  skips reference sequence, with no words: dashed where the span it jumps on
+  screen holds three dashes, a plain line with no arrowhead where shorter, and
+  not drawn under a pixel
 
 ## Reference strip
 
