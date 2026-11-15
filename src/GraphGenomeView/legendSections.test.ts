@@ -80,6 +80,7 @@ const node = (id: string, depth: number) => ({
 })
 
 const DEPTHS: Graph = {
+  name: 'depths',
   nodes: [node('a', 1), node('b', 26)],
   edges: [{ from: 'a', to: 'b', pathIds: ['p', 'q'] }],
   paths: Array.from({ length: 26 }, (_, i) => ({
@@ -101,7 +102,7 @@ test("the ramp key's bp read the same in every locale", () => {
       return format.call(this, locales ?? 'de-DE', options)
     })
   const model = keyModel(
-    { nodes: [], edges: [] },
+    { name: 'empty', nodes: [], edges: [] },
     {
       referenceRamp: { start: 999.5, span: 122_457, midpoints: new Map() },
     },
@@ -135,7 +136,7 @@ test("the legend draws bandage-core's key, each section under the plugin's testi
 
 test('colour keys are square chips, unlike the thickness bars', () => {
   const model = keyModel(
-    { nodes: [node('x', 1)], edges: [] },
+    { name: 'off', nodes: [node('x', 1)], edges: [] },
     {
       referenceRamp: { start: 0, span: 1000, midpoints: new Map() },
       marks: { ...MARKS, offReference: true },
