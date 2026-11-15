@@ -1,5 +1,6 @@
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
+import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
   ConfigurationReference,
@@ -26,7 +27,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
-import { paneBase } from '../GraphGenomeView/pane/paneBase'
+import { forceLayouts, paneBase } from '../GraphGenomeView/pane/paneBase'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
@@ -1011,6 +1012,40 @@ test('a force track lays out with the stress engine by default, and an engine se
   await vi.waitFor(() => {
     expect(engines()).toEqual(['stress', 'fmmm', 'fmmm'])
   })
+})
+
+test('a force track lays out for the pane it fits the drawing to: the width to the key column, and the track height less the reference strip', async () => {
+  const sized = vi.spyOn(forceLayouts, 'layout')
+  const { view } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force' },
+  )
+  const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  const fits = () => sized.mock.calls.map(c => c[3])
+  expect(fits()).toEqual([
+    {
+      width: display.paneWidth,
+      height: 300 - REFERENCE_STRIP_ZONE_PX,
+    },
+  ])
+
+  display.setLegendSize({ width: 200, height: 100 })
+  display.resizeHeight(100)
+  display.setLayoutEngine('fmmm')
+  await vi.waitFor(() => {
+    expect(fits()).toHaveLength(2)
+  })
+  expect(fits()[1]).toEqual({
+    width: display.paneWidth - (200 + 2 * LEGEND_INSET_PX),
+    height: 400 - REFERENCE_STRIP_ZONE_PX,
+  })
+  sized.mockRestore()
 })
 
 test('the drawing is the track height, and resizing the track resizes it', async () => {

@@ -58,6 +58,7 @@ import type {
   EngineRequest,
   EngineSettings,
 } from '@jbrowse/bandage-core/pipeline'
+import type { FitSize } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
@@ -123,13 +124,17 @@ export const withLoadActions = withEngineSettings.actions(self => {
   function* forceRun(
     graph: Graph,
     settings: EngineSettings,
+    fit: FitSize,
     wanted: () => boolean,
   ) {
     let forced: { result: LayoutResult; duration: number } | undefined
     while (!forced) {
       const fresh = new AbortController()
-      const pending = forceLayouts.layout(graph, settings, r =>
-        callEngine(r, fresh),
+      const pending = forceLayouts.layout(
+        graph,
+        settings,
+        r => callEngine(r, fresh),
+        fit,
       )
       const run = runOf.get(pending) ?? fresh
       runOf.set(pending, run)
@@ -208,7 +213,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
     // walk rows and tube maps fall back here for a graph with no walks
     assertDrawable(graph)
     const settings = self.engineSettings
-    const hit = forceLayouts.ready(graph, settings)
+    const fit = self.layoutFit
+    const hit = forceLayouts.ready(graph, settings, fit)
     if (hit) {
       awaitRun()
       return {
@@ -217,7 +223,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         mode: 'force' as const,
       }
     }
-    const forced = yield* forceRun(graph, settings, wanted)
+    const forced = yield* forceRun(graph, settings, fit, wanted)
     return { ...forced, mode: 'force' as const }
   }
 

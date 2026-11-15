@@ -22,6 +22,7 @@ import {
   rpcRespond,
   toggleDeletionEdges,
 } from './modelTestSupport'
+import { forceLayouts } from './pane/paneBase'
 import stateModelFactory from './viewModel'
 
 import type { GraphLayers } from './graphLayers'
@@ -229,6 +230,19 @@ describe('canvas height follows the drawing', () => {
     expect(model.keyColumnPx).toBe(column)
     expect(model.drawingWidth).toBe(model.paneWidth - column)
     expect(right()).toBeLessThanOrEqual(model.paneWidth - column)
+  })
+
+  test('a force layout is sized for the pane the fit maps it into: the width to the key column, and the pane ceiling', async () => {
+    rpcRespond()
+    const sized = vi.spyOn(forceLayouts, 'layout')
+    const model = createModel()
+    model.setWidth(900)
+    model.setLegendSize({ width: 150, height: 60 })
+    await model.loadGFA(SIMPLE_GFA, 'square')
+    expect(sized.mock.calls.map(c => c[3])).toEqual([
+      { width: 900 - (150 + 2 * LEGEND_INSET_PX), height: 600 },
+    ])
+    sized.mockRestore()
   })
 
   test('a pane too narrow for the key and the drawing keeps the key whole and shrinks the drawing', async () => {

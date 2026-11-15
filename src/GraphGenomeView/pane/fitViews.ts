@@ -24,6 +24,7 @@ import {
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import { drawingBounds, fitTransform } from '@jbrowse/bandage-core/pipeline'
+import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import {
@@ -266,6 +267,20 @@ export const withFitViews = withHostViews
         Math.max(0, rows - 1) * GENE_ROW_PX +
         self.referenceStripZonePx
       )
+    },
+    // The pane a force layout is sized for, the one the fit maps it into:
+    // the width to the key's column, and the height the fit fills less the
+    // reference strip a linear view draws over it, which shows only once the
+    // layout lands
+    get layoutFit() {
+      return {
+        width: this.drawingWidth,
+        height:
+          this.fitRoom -
+          (self.host?.initialized && self.showReferenceStrip
+            ? REFERENCE_STRIP_ZONE_PX
+            : 0),
+      }
     },
     // A tube map on its own axis reads by panning along it, as in
     // sequenceTubeMap. Rather than shrink a long cut to a strip, the fit
