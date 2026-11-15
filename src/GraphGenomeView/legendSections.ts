@@ -1,3 +1,4 @@
+import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import {
@@ -462,6 +463,12 @@ function geneRows(model: GraphPaneModel): LegendRow[] {
     : []
 }
 
+function compressedRows(model: GraphPaneModel): LegendRow[] {
+  return model.layoutResult?.compressed
+    ? [{ key: 'compressed', label: COMPRESSED_KEY }]
+    : []
+}
+
 function foldRows(model: GraphPaneModel): LegendRow[] {
   const note = model.foldNote
   return note ? [{ key: 'fold', label: note }] : []
@@ -801,6 +808,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
       rows: stripRows(model),
       group: 'Top strip',
     },
+    { testid: 'graph-compressed-legend', rows: compressedRows(model) },
     { testid: 'graph-fold-legend', rows: foldRows(model) },
   ].filter(section => section.rows.length > 0)
   const groups = new Set(sections.flatMap(section => section.group ?? []))

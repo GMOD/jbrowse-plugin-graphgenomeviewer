@@ -1,3 +1,5 @@
+import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
+
 import {
   legendSections,
   rowPitch,
@@ -92,6 +94,18 @@ function widthLegend(
 ) {
   return legendSections(widthModel(over)).find(s => s.testid === testid)?.rows
 }
+
+test('the key says node lengths are not to scale where the layout compressed them', () => {
+  const rows = (over: { compressed?: true }) =>
+    widthLegend(
+      { layoutResult: { nodePositions: {}, ...over } },
+      'graph-compressed-legend',
+    )
+  expect(rows({ compressed: true })!.map(r => r.label)).toEqual([
+    COMPRESSED_KEY,
+  ])
+  expect(rows({})).toBeUndefined()
+})
 
 // GSTM1's key read 9, 6 and 1 walks, its middle bar the mean depth, which no
 // node need have

@@ -11,6 +11,7 @@ import {
   LEGEND_INSET_PX,
   layoutLabels,
 } from '@jbrowse/bandage-core/labelLayout'
+import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import {
   barEnd,
   boxesGenes,
@@ -22,11 +23,7 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import {
-  FIT_PADDING,
-  drawingBounds,
-  fitTransform,
-} from '@jbrowse/bandage-core/pipeline'
+import { drawingBounds, fitTransform } from '@jbrowse/bandage-core/pipeline'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import {
