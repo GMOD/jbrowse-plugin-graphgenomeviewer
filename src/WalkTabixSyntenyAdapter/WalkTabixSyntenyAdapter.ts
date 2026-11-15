@@ -125,7 +125,7 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     return updateStatus(status, opts.statusCallback, () =>
       this.walks.reader
         .cut(refName, region, {
-          ...this.walks.budgets(),
+          ...this.walks.cutOptions(),
           signal: opts.signal,
           keep,
           expand: keep,

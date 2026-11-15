@@ -1,5 +1,5 @@
 import { resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
-import { checkRange, walksKept } from '@jbrowse/graph-walks'
+import { CUT_PRESETS, checkRange, walksKept } from '@jbrowse/graph-walks'
 
 import { walkCutFor } from './walkCut.ts'
 
@@ -52,8 +52,9 @@ export class WalkIndex {
     return haplotypes.length > 0 ? haplotypes : undefined
   }
 
-  budgets() {
+  cutOptions() {
     return {
+      ...CUT_PRESETS.browser,
       stepBudget: this.adapter.getConf('walkStepBudget') as number,
       byteBudget: this.adapter.getConf('walkByteBudget') as number,
       budgetNames: BUDGET_SLOTS,
@@ -78,7 +79,7 @@ export class WalkIndex {
       forcedByteBudget = 0,
     }: SubgraphAdapterOptions,
   ) {
-    const budgets = this.budgets()
+    const options = this.cutOptions()
     const keep = walksKept(
       haplotypes?.map(lane => resolvePanSNPrefix(this.adapter, lane)),
       refName,
@@ -90,9 +91,9 @@ export class WalkIndex {
       refName,
       region,
       {
-        ...budgets,
-        byteBudget: Math.max(budgets.byteBudget, forcedByteBudget),
-        stepBudget: walkRows ? Infinity : budgets.stepBudget,
+        ...options,
+        byteBudget: Math.max(options.byteBudget, forcedByteBudget),
+        stepBudget: walkRows ? Infinity : options.stepBudget,
         signal,
         keep,
         ...(asked ? { expand: asked } : {}),
