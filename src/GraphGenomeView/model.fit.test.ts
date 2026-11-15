@@ -1,4 +1,4 @@
-import { drawnSkips } from '@jbrowse/bandage-core/graphKey'
+import { drawnMarks } from '@jbrowse/bandage-core/graphKey'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
@@ -867,10 +867,10 @@ describe('what the row axis draws, in pixels', () => {
         .flatMap(s => s.rows)
     const shown = await fitted()
     shown.startRenderingBackend(fakeRenderer())
-    const drawn = drawnSkips([shown.drawnBatch])
-    expect(drawn.dashed || drawn.short).toBe(true)
+    const drawn = drawnMarks([shown.drawnBatch])
+    expect(drawn.dashedSkip || drawn.shortSkip).toBe(true)
     expect(deletionRows(shown)).toMatchObject([
-      ...(drawn.dashed
+      ...(drawn.dashedSkip
         ? [
             {
               label: expect.stringMatching(/^skips .* sequence/),
@@ -878,7 +878,7 @@ describe('what the row axis draws, in pixels', () => {
             },
           ]
         : []),
-      ...(drawn.short
+      ...(drawn.shortSkip
         ? [
             {
               label: 'a skip too short to dash',

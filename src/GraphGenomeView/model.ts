@@ -1,4 +1,4 @@
-import { drawnSkips, graphKey } from '@jbrowse/bandage-core/graphKey'
+import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
@@ -45,7 +45,7 @@ export const GraphPane = withLaunchActions
             edgeWidth: self.linkWidth,
             connectorThickness: self.connectorThickness,
             drawsNodes: self.drawsNodes,
-            skips: drawnSkips(
+            marks: drawnMarks(
               drawings
                 ? drawings.flatMap(drawing => (drawing ? [drawing.batch] : []))
                 : [self.drawnBatch],

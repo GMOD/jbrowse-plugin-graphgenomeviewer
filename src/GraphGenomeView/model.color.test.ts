@@ -534,6 +534,7 @@ test('the node thickness key draws its two bars as wide as the thickest and thin
     ].join('\n'),
     'g',
   )
+  model.startRenderingBackend(fakeRenderer())
   const { batch } = model.buildDrawing(undefined, false)!
   const drawnPx = (id: string) =>
     batch.nodeStrokes[batch.nodeStrokeRuns.get(id)!.start]!.thickness * 2

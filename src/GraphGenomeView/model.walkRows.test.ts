@@ -280,6 +280,7 @@ describe('walk rows', () => {
       ].join('\n'),
       'walks',
     )
+    model.startRenderingBackend(fakeRenderer())
     const passes = () =>
       legendSections(model)
         .find(section => section.testid === 'graph-walk-readout')
@@ -521,6 +522,7 @@ describe('walk rows', () => {
       layoutMode: 'auto',
     })
     await model.loadGFA(WALKS_GFA, 'walks')
+    model.startRenderingBackend(fakeRenderer())
     model.liftWalks(['B#1#ctg'])
     model.setWalkColor('B#1#ctg', { field: 'walk' })
     const keysOff = () =>
@@ -681,7 +683,9 @@ describe('walk rows', () => {
     model.liftWalks(['B#1#ctg'])
     const svg = model.figure()!
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
-    expect(svg).toContain('only in other haplotypes')
+    // B walks every node, so the drawing fades only GRCh38's link past 2
+    expect(svg).toContain('>links not on B#1</text>')
+    expect(svg).not.toContain('only in other haplotypes')
   })
 
   test('a tube map lifts no walk: its tubes are the walks', async () => {

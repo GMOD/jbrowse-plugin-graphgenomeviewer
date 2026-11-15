@@ -1,9 +1,12 @@
 import { gfaTables } from '@jbrowse/bandage-core/gfa/gfaTables'
+import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { types } from '@jbrowse/mobx-state-tree'
 
+import { fakeRenderer } from './modelTestSupport'
 import stateModelFactory from './viewModel'
 import { hoverInRegion } from '../hoverSync/lgvHover'
 
+import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { readConfObject } from '@jbrowse/core/configuration'
 
 interface MockAssembly {
@@ -750,14 +753,18 @@ describe('reads', () => {
 
   test.each([
     ['force', true],
-    ['walkrows', false],
+    // a cut with no walks draws no rows, and walk rows fall back to force
+    ['walkrows', true],
   ])(
     'a %s layout keys deep alleles as off the reference: %s',
     async (layoutMode, keyed) => {
-      mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
-        method === 'GetSubgraph'
-          ? Promise.resolve(DEEP)
-          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+      mockRpcCall.mockImplementation(
+        (_sid: unknown, method: string, request: EngineRequest) =>
+          method === 'GetSubgraph'
+            ? Promise.resolve(DEEP)
+            : method === 'GraphComputeLayout'
+              ? layoutEngine(request)
+              : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
       )
       const model = createView({
         layoutMode,
@@ -766,6 +773,8 @@ describe('reads', () => {
         loadedRegion: ON_HG38,
       })
       await model.load()
+      model.startRenderingBackend(fakeRenderer())
+      model.setWidth(800)
 
       expect(keysOff(model)).toBe(keyed)
     },

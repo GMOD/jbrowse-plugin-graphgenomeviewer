@@ -40,6 +40,19 @@ test('a read set drawn whole says nothing of its count', () => {
   expect(labels({ shown: 40, total: 40 }).join()).not.toMatch(/reads shown/)
 })
 
+// a drawing of nodes of more than one thickness, and plain links, and no
+// other mark
+const MARKS = {
+  dashedSkip: false,
+  shortSkip: false,
+  placeholder: false,
+  plainNode: true,
+  plainLink: true,
+  offReference: false,
+  threads: false,
+  widthsVary: true,
+}
+
 // A pane model holding bandage-core's key for `graph`, as model.graphKey
 // builds it
 function keyModel(
@@ -53,7 +66,7 @@ function keyModel(
     pathLegend: [],
     tubeMapKeys: {},
     graphKey: graphKey(graph, layout, {
-      skips: { dashed: false, short: false },
+      marks: MARKS,
       ...options,
     }),
   } as unknown as GraphPaneModel
@@ -123,7 +136,10 @@ test("the legend draws bandage-core's key, each section under the plugin's testi
 test('colour keys are square chips, unlike the thickness bars', () => {
   const model = keyModel(
     { nodes: [node('x', 1)], edges: [] },
-    { referenceRamp: { start: 0, span: 1000, midpoints: new Map() } },
+    {
+      referenceRamp: { start: 0, span: 1000, midpoints: new Map() },
+      marks: { ...MARKS, offReference: true },
+    },
   )
   const [ramp] = legendSections(model)
   const off = ramp!.rows.find(r => r.key === 'off')!.swatch!
