@@ -6,7 +6,7 @@ import {
 } from '@jbrowse/bandage-core/gfa/graphTables'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { readConfObject } from '@jbrowse/core/configuration'
-import { WalkFile, WalkReader } from '@jbrowse/graph-walks'
+import { CUT_PRESETS, WalkFile, WalkReader } from '@jbrowse/graph-walks'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -228,6 +228,14 @@ test('a cut asked to expand walks hands the reader their names', async () => {
   const expand = cut.mock.calls[0]?.[2]?.expand
   expect(expand?.('HG002#1#chr1')).toBe(true)
   expect(expand?.('HG002#2#chr1')).toBe(false)
+  cut.mockRestore()
+})
+
+test("a cut takes graph-walks' browser preset, the cut rules every reader shares", async () => {
+  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const tables = await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600))
+  expect(cut.mock.calls[0]?.[2]).toMatchObject(CUT_PRESETS.browser)
+  expect(tables).toMatchObject({ abridged: [] })
   cut.mockRestore()
 })
 

@@ -4,41 +4,29 @@ import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 
 import type { WalkRow } from '@jbrowse/bandage-core/layout/walkRows'
 import type { Graph } from '@jbrowse/bandage-core/types'
-
-/**
- * The walks holding steps the cut did not fetch: a path that counts them or
- * steps through a run of them, since a path counts only its own pieces
- */
-export function unloadedWalks(graph: Graph | undefined) {
-  const placeholders = new Set(
-    (graph?.nodes ?? []).filter(n => n.placeholder).map(n => n.id),
-  )
-  return new Set(
-    (graph?.paths ?? [])
-      .filter(
-        p =>
-          (p.abridgedSteps ?? 0) > 0 ||
-          p.nodeIds.some(id => placeholders.has(id)),
-      )
-      .map(p => p.name),
-  )
-}
+import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 // The walks a tube map fetches the nodes of: every one holding steps not
 // fetched, while it shows few enough haplotypes to fetch them all
-export function tubeMapWalksToLoad(graph: Graph | undefined) {
+export function tubeMapWalksToLoad(
+  graph: Graph | undefined,
+  abridged: AbridgedWalk[],
+) {
   const haplotypes = new Set(
     (graph?.paths ?? []).map(p => `${p.sample}#${p.haplotype}`),
   )
   return haplotypes.size <= EXPAND_NAMED_MAX
-    ? Array.from(unloadedWalks(graph))
+    ? abridged.map(walk => walk.name)
     : []
 }
 
 // Why a tube map's boxes stay "nodes not shown": it shows more haplotypes
 // than it fetches the nodes of
-export function tubeMapNote(graph: Graph | undefined) {
-  return unloadedWalks(graph).size > 0 && tubeMapWalksToLoad(graph).length === 0
+export function tubeMapNote(
+  graph: Graph | undefined,
+  abridged: AbridgedWalk[],
+) {
+  return abridged.length > 0 && tubeMapWalksToLoad(graph, abridged).length === 0
     ? `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time. Choose ${EXPAND_NAMED_MAX} or fewer under Load in the track menu, or in Graph settings, to see it.`
     : undefined
 }

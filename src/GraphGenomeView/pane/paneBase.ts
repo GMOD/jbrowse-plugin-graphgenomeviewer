@@ -30,6 +30,7 @@ import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
+import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
 // size against. A roughly square drawing (FMMM) hits this and keeps the
@@ -336,6 +337,8 @@ export const paneBase = types
     // a walk-rows cut's tables and runs, which draw the rows in place of the
     // graph's walks
     walkCut: undefined as WalkCut | undefined,
+    // the walks the cut left steps of unloaded, each with its counts
+    abridged: [] as AbridgedWalk[],
     // the reference window the graph on screen was cut for, set with it
     graphRegion: undefined as SubgraphRegion | undefined,
     cutKeyOnRecord: undefined as string | undefined,

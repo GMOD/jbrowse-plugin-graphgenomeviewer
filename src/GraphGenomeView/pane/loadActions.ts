@@ -62,6 +62,7 @@ import type { FitSize } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
+import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 const withEngineSettings = withSettingActions.views(self => ({
   get engineSettings() {
@@ -376,6 +377,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
   function resetCut(cut?: {
     graph: Graph
     walkCut: WalkCut | undefined
+    abridged: AbridgedWalk[]
     region: SubgraphRegion | undefined
     loadedReferencePath: string | undefined
     foldedBelowBp: number | undefined
@@ -383,6 +385,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
   }) {
     self.graph = cut?.graph
     self.walkCut = cut?.walkCut
+    self.abridged = cut?.abridged ?? []
     self.graphRegion = cut?.region
     self.loadedReferencePath = cut?.loadedReferencePath
     self.foldedBelowBp = cut?.foldedBelowBp
@@ -454,6 +457,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     resetCut({
       graph,
       walkCut,
+      abridged: typeof source === 'string' ? [] : (source.abridged ?? []),
       region,
       loadedReferencePath: loaded,
       foldedBelowBp: folded === anchored ? undefined : foldBelowBp,

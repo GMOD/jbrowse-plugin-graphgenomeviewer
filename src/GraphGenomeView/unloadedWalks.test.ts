@@ -53,7 +53,8 @@ test('rows with every step fetched need nothing', () => {
   expect(routesNote([rowOf('A#1#c')])).toBeUndefined()
 })
 
-// a graph of `n` haplotypes' walks, the first stepping through a placeholder
+// a graph of `n` haplotypes' walks, the first stepping through a placeholder,
+// which the cut's abridged list names
 function graphOf(n: number): Graph {
   return {
     name: 'g',
@@ -71,14 +72,21 @@ function graphOf(n: number): Graph {
   }
 }
 
+const abridged = [{ name: 'S0#1#c', steps: 0, bp: 300 }]
+
 test('a tube map fetches the nodes of the walks it shows, up to the limit', () => {
-  expect(tubeMapWalksToLoad(graphOf(EXPAND_NAMED_MAX))).toEqual(['S0#1#c'])
-  expect(tubeMapWalksToLoad(graphOf(EXPAND_NAMED_MAX + 1))).toEqual([])
+  expect(tubeMapWalksToLoad(graphOf(EXPAND_NAMED_MAX), abridged)).toEqual([
+    'S0#1#c',
+  ])
+  expect(tubeMapWalksToLoad(graphOf(EXPAND_NAMED_MAX + 1), abridged)).toEqual(
+    [],
+  )
 })
 
 test('a tube map says why its boxes stay unfilled only past the limit', () => {
-  expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX))).toBeUndefined()
-  expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX + 1))).toBe(
+  expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX), abridged)).toBeUndefined()
+  expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX + 1), [])).toBeUndefined()
+  expect(tubeMapNote(graphOf(EXPAND_NAMED_MAX + 1), abridged)).toBe(
     `Node-level detail is fetched for at most ${EXPAND_NAMED_MAX} haplotypes at a time. Choose ${EXPAND_NAMED_MAX} or fewer under Load in the track menu, or in Graph settings, to see it.`,
   )
 })

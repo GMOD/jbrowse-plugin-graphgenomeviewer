@@ -22,11 +22,7 @@ import {
 import { walksForRow } from '../../hoverSync/rowWalks'
 import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
 import { trackedDpr } from '../trackedDpr'
-import {
-  routesToLoad,
-  tubeMapWalksToLoad,
-  unloadedWalks,
-} from '../unloadedWalks'
+import { routesToLoad, tubeMapWalksToLoad } from '../unloadedWalks'
 
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -510,11 +506,11 @@ export const withRenderingActions = withLoadActions
         self,
         reaction(
           () => {
-            const lifted = Array.from(unloadedWalks(self.graph)).filter(name =>
-              self.walkLayers.some(l => l.walk === name),
-            )
+            const lifted = self.abridged
+              .map(walk => walk.name)
+              .filter(name => self.walkLayers.some(l => l.walk === name))
             const tubeMap = TUBE_MAP_MODES.has(self.chosenLayoutMode)
-              ? tubeMapWalksToLoad(self.graph)
+              ? tubeMapWalksToLoad(self.graph, self.abridged)
               : []
             return Array.from(
               new Set(lifted.concat(tubeMap, routesToLoad(self.comparedRows))),

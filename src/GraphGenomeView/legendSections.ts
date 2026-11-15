@@ -329,7 +329,7 @@ function stripRows(model: GraphPaneModel): LegendRow[] {
 
 function tubeMapNoteRows(model: GraphPaneModel): LegendRow[] {
   const note = model.layoutResult?.tubeMap
-    ? tubeMapNote(model.graph)
+    ? tubeMapNote(model.graph, model.abridged)
     : undefined
   return note ? [{ key: 'tube-not-shown', label: note }] : []
 }
