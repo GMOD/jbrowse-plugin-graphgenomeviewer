@@ -155,16 +155,29 @@ export const withLaunchActions = withRenderingActions
     walkRowSampleMenuItems(): MenuItem[] {
       const { disagreeing } = self.walkRowSampleChoices
       const shown = self.walkRowSamples
+      const following = self.walkRowsFollowLift
       const same = (a: string[]) => a.join('\n') === shown?.join('\n')
       return [
         {
           type: 'radio',
           label: 'Every sample',
-          checked: shown === undefined,
+          checked: shown === undefined && !following,
           onClick: () => {
             self.setWalkRowSamples(undefined)
           },
         },
+        ...(following || self.drawnWalks.length > 0
+          ? [
+              {
+                type: 'radio' as const,
+                label: 'Haplotypes of the lifted walks',
+                checked: following,
+                onClick: () => {
+                  self.setWalkRowSamples('lifted')
+                },
+              },
+            ]
+          : []),
         ...(disagreeing.length > 0
           ? [
               {
@@ -302,9 +315,12 @@ export const withLaunchActions = withRenderingActions
               },
             ]
           : []),
+        ...((self.chosenLayoutMode === 'walkrows' && self.walkRowBars) ||
+        self.walkStripShown
+          ? [{ label: 'Samples', subMenu: this.walkRowSampleMenuItems() }]
+          : []),
         ...(self.chosenLayoutMode === 'walkrows' && self.walkRowBars
           ? [
-              { label: 'Samples', subMenu: this.walkRowSampleMenuItems() },
               {
                 type: 'checkbox' as const,
                 label: 'Ribbons between rows',
@@ -447,6 +463,18 @@ export const withLaunchActions = withRenderingActions
                     HighlightColorDialog,
                     { model: self, onClose },
                   ])
+                },
+              },
+            ]
+          : []),
+        ...(self.drawnWalks.length > 1
+          ? [
+              {
+                type: 'checkbox' as const,
+                label: 'Shade each light to dark along itself',
+                checked: self.walksShadedAlong,
+                onClick: () => {
+                  self.shadeWalksAlong(!self.walksShadedAlong)
                 },
               },
             ]

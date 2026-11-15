@@ -22,6 +22,7 @@ import { legendRowStyle } from './legendStyles'
 import { walkRowSwatch } from '../legendSections'
 
 import type { GraphPaneModel } from '../model'
+import type { RowInk } from '@jbrowse/bandage-core/layout/rowInks'
 import type { RowGene } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { WalkRows } from '@jbrowse/bandage-core/layout/walkRows'
 import type { StripFrame } from '@jbrowse/bandage-core/layout/walkStrip'
@@ -30,8 +31,9 @@ import type { StripFrame } from '@jbrowse/bandage-core/layout/walkStrip'
 // bp, linked to the drawing above: the hovered node ticks every bar where its
 // walk passes it, and a point on a bar lights its node, ringed, above. The
 // bars share the drawing's colours, so under the reference-position ramp a hue
-// in the drawing is the same hue on each bar. Every row is shown; rows too
-// thin to letter say who they are on hover.
+// in the drawing is the same hue on each bar, and a lifted walk's row takes
+// its thread's colours. Every row is shown; rows too thin to letter say who
+// they are on hover.
 
 const keyStyle = {
   display: 'flex',
@@ -61,11 +63,13 @@ const StripBars = observer(function StripBars({
   frame,
   ramp,
   rowGenes,
+  inks,
 }: {
   bars: WalkRows
   frame: StripFrame
   ramp: { start: number; end: number } | undefined
   rowGenes: Map<string, RowGene[]> | undefined
+  inks: RowInk[]
 }) {
   const idPrefix = useSvgId()
   const tree = useMemo(
@@ -75,8 +79,9 @@ const StripBars = observer(function StripBars({
         rowGenes,
         idPrefix,
         markUnloaded: true,
+        inks,
       }),
-    [bars, frame, ramp, rowGenes, idPrefix],
+    [bars, frame, ramp, rowGenes, idPrefix, inks],
   )
   return <ElTree el={tree} />
 })
@@ -157,6 +162,7 @@ const WalkStrip = observer(function WalkStrip({
     genes: stripGeneGaps(frame, model.walkRowGenes, model.walkRowGeneGaps),
     annotation: model.walkRowAnnotation,
     markUnloaded: true,
+    inks: model.walkStripInks,
   })
   return (
     <div
@@ -207,6 +213,7 @@ const WalkStrip = observer(function WalkStrip({
           frame={frame}
           ramp={model.referenceRampDomain}
           rowGenes={model.walkRowGenes}
+          inks={model.walkStripInks}
         />
         <StripMarks model={model} bars={bars} frame={frame} />
         <ElTree

@@ -1,4 +1,9 @@
-import { barEnd } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import { serializeEl } from '@jbrowse/bandage-core/el'
+import {
+  barEnd,
+  walkRowsKey,
+  walkRowsTree,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/legendCorner'
 import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -6,7 +11,7 @@ import { resolveSubMenu } from '@jbrowse/core/ui'
 import { getSnapshot } from '@jbrowse/mobx-state-tree'
 import { autorun } from 'mobx'
 
-import { facetKeyRows } from './legendSections'
+import { facetKeyRows, legendSections } from './legendSections'
 import { mockReadFile, mockRpcCall, mockSession } from './modelTestMocks'
 import { MOCK_LAYOUT, fakeRenderer, rpcRespond } from './modelTestSupport'
 import { walkRowGeneKey } from './pane/fitViews'
@@ -144,6 +149,149 @@ describe('walk rows', () => {
         true,
       )
     }
+  })
+
+  test("a lifted walk's strip row takes its thread's ramp, under a grey strip where it runs on the reference's path", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'ordered',
+      layers: { walkStrip: true },
+      referencePath: 'GRCh38',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    expect(model.walkStripInks).toEqual([])
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
+    model.setWalkColor('B#1#ctg', { field: 'progress' })
+    expect(model.walkStripInks.map(ink => ink.walk)).toEqual([
+      'GRCh38#0#chr1',
+      'B#1#ctg',
+    ])
+    const bars = model.walkStripRows!
+    const svg = serializeEl(
+      walkRowsTree(bars, model.walkStripFrame!, {
+        ramp: model.referenceRampDomain,
+        inks: model.walkStripInks,
+        idPrefix: 's',
+      }),
+    )
+    const rowSvg = (label: string) => {
+      const i = [bars.reference, ...bars.rows].findIndex(r => r.label === label)
+      return svg.split('<g data-testid="graph-walk-')[i + 1]!
+    }
+    const b = model.walkStripInks[1]!
+    expect(rowSvg('B#1')).toContain('gradientUnits="userSpaceOnUse"')
+    expect(rowSvg('B#1')).toContain(`stop-color="${b.stops[0]}"`)
+    expect(rowSvg('B#1')).toContain(`stop-color="${b.stops.at(-1)}"`)
+    expect(rowSvg('B#1')).toContain('data-testid="graph-walk-on-path"')
+    expect(rowSvg('A#2')).not.toContain('-ink')
+    expect(rowSvg('A#2')).not.toContain('graph-walk-on-path')
+    const key = walkRowsKey(bars, {
+      ramp: model.referenceRampDomain,
+      inks: model.walkStripInks,
+    }).map(entry => entry.label)
+    expect(key).toContain(`grey above: on ${bars.reference.label}'s path`)
+  })
+
+  test("the strip's rows follow the lifted walks' haplotypes, from a Samples menu the strip offers", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'ordered',
+      layers: { walkStrip: true },
+      referencePath: 'GRCh38',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    const samples = () =>
+      (model.layoutOptionMenuItems() as MenuItem[]).find(
+        item => item.label === 'Samples',
+      )?.subMenu
+    expect(samples()!.map(item => item.label)).toEqual([
+      'Every sample',
+      'Choose samples...',
+    ])
+    model.liftWalks(['GRCh38#0#chr1', 'A#1#ctg'])
+    const follow = samples()!.find(
+      item => item.label === 'Haplotypes of the lifted walks',
+    )!
+    follow.onClick!()
+    expect(model.grammar.rows).toEqual({ kept: 'lifted' })
+    expect(model.walkStripRows!.rows.map(r => r.label)).toEqual(['A#1'])
+    model.toggleWalk('B#1#ctg')
+    expect(model.walkStripRows!.rows.map(r => r.label)).toEqual(['A#1', 'B#1'])
+    expect(follow.label).toBe('Haplotypes of the lifted walks')
+    expect(
+      samples()!.find(item => item.label === 'Haplotypes of the lifted walks')!
+        .checked,
+    ).toBe(true)
+    expect(samples()![0]!.checked).toBe(false)
+    model.setWalkRowOrder('shared')
+    expect(model.grammar.rows).toEqual({ kept: 'lifted', order: 'shared' })
+    samples()![0]!.onClick!()
+    expect(model.walkStripRows!.rows).toHaveLength(3)
+    model.setWalkRowSamples(['A#2', 'B'])
+    expect(model.walkStripRows!.rows.map(r => r.label)).toEqual(['A#2', 'B#1'])
+  })
+
+  test('one click shades every lifted walk along itself, and another sets them flat again', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    const shade = () =>
+      highlightMenu(model).find(
+        item => item.label === 'Shade each light to dark along itself',
+      )
+    model.liftWalks(['B#1#ctg'])
+    expect(shade()).toBeUndefined()
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg', 'A#1#ctg'])
+    expect(shade()!.checked).toBe(false)
+    shade()!.onClick!()
+    expect(model.drawnWalks.map(w => w.encoding.field)).toEqual([
+      'progress',
+      'progress',
+      'progress',
+    ])
+    expect(shade()!.checked).toBe(true)
+    shade()!.onClick!()
+    expect(model.drawnWalks.map(w => w.encoding.field)).toEqual([
+      'walk',
+      'walk',
+      'walk',
+    ])
+  })
+
+  test('walks lifted together key a thread per pass where one passes a node more than once', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'auto',
+    })
+    await model.loadGFA(
+      [
+        ...WALKS_GFA.split('\n').filter(line => line !== ''),
+        'L\t3\t+\t1\t+\t0M',
+        'W\tC\t1\tctg\t0\t24\t>1>2>3>1>3',
+        '',
+      ].join('\n'),
+      'walks',
+    )
+    const passes = () =>
+      legendSections(model)
+        .find(section => section.testid === 'graph-walk-readout')
+        ?.rows.find(row => row.key === 'walk-passes')
+    model.liftWalks(['GRCh38#0#chr1', 'B#1#ctg'])
+    expect(passes()).toBeUndefined()
+    model.liftWalks(['GRCh38#0#chr1', 'C#1#ctg'])
+    expect(passes()).toEqual({
+      key: 'walk-passes',
+      label: 'a thread per pass through a node',
+      swatch: { kind: 'threads' },
+    })
   })
 
   test('walk rows and tube maps take no strip', async () => {

@@ -1,4 +1,5 @@
 import { NOT_LOADED_RIM_PX } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { THREAD_PX } from '@jbrowse/bandage-core/renderer/walkLanes'
 import { rulerInk } from '@jbrowse/bandage-core/tubeMap/axis'
 import { observer } from 'mobx-react'
 
@@ -224,6 +225,22 @@ export function SvgSwatch({
       )
     case 'blank':
       return null
+    case 'threads':
+      return (
+        <>
+          {[-3, 0, 3].map(dy => (
+            <line
+              key={dy}
+              x1={x}
+              x2={x + SWATCH_PX}
+              y1={mid + dy}
+              y2={mid + dy}
+              stroke="#444"
+              strokeWidth={THREAD_PX}
+            />
+          ))}
+        </>
+      )
   }
 }
 

@@ -254,7 +254,14 @@ export const withSettingActions = withTubeMapViews
         l.walk === walk ? { ...l, color: { ...l.color, ...color } } : l,
       )
     },
-    setWalkRowSamples(samples: string[] | undefined) {
+    // Each lifted walk shaded along its own length, or each one flat colour
+    shadeWalksAlong(along: boolean) {
+      self.walkLayers = self.walkLayers.map(l => ({
+        ...l,
+        color: { ...l.color, field: along ? 'progress' : 'walk' },
+      }))
+    },
+    setWalkRowSamples(samples: string[] | 'lifted' | undefined) {
       const order = self.walkRowOrder
       self.writeGrammar({
         rows: {
@@ -264,7 +271,7 @@ export const withSettingActions = withTubeMapViews
       })
     },
     setWalkRowOrder(order: 'shared' | undefined) {
-      const kept = self.walkRowSamples
+      const kept = self.grammar.rows?.kept
       self.writeGrammar({
         rows: { ...(kept ? { kept } : {}), ...(order ? { order } : {}) },
       })

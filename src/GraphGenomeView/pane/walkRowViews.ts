@@ -1,3 +1,4 @@
+import { liftedRowInks } from '@jbrowse/bandage-core/layout/rowInks'
 import {
   placeRowGenes,
   rowSpan,
@@ -37,8 +38,12 @@ export const withWalkRowViews = withLaunchViews
     get walkStripRows() {
       const bars = this.walkStripShown ? self.cutWalkRows : undefined
       return bars
-        ? { ...bars, rows: filterSamples(bars.rows, self.walkRowSamples) }
+        ? { ...bars, rows: filterSamples(bars.rows, self.keptRowSamples) }
         : undefined
+    },
+    // The lifted walks' colours, which the strip's rows they name take
+    get walkStripInks() {
+      return liftedRowInks(self.drawnWalks)
     },
     // measured as the pane draws a readout, so the strip cuts one only where
     // it does not fit

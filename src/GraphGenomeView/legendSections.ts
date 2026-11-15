@@ -26,6 +26,10 @@ import {
   NOT_LOADED_FILL_CSS,
   REFERENCE_RAMP_ALT_CSS,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import {
+  passesKey,
+  threadsPasses,
+} from '@jbrowse/bandage-core/renderer/walkLanes'
 import { deviationInk } from '@jbrowse/bandage-core/tubeMap/deviations'
 import {
   FORWARD_READ_COLORS,
@@ -98,6 +102,8 @@ export type LegendSwatch =
   | { kind: 'tick'; color: string; height: number; backing?: string }
   | { kind: 'bracket' }
   | { kind: 'blank' }
+  // a lane's threads side by side, one per pass through a node
+  | { kind: 'threads' }
 
 // A row with no swatch is a note on the drawing
 export interface LegendRow {
@@ -145,6 +151,8 @@ export function swatchHeight(swatch: LegendSwatch) {
       return 15
     case 'bracket':
       return 7
+    case 'threads':
+      return 8
     case 'blank':
       return 0
   }
@@ -710,7 +718,19 @@ function walkReadoutRows(model: GraphPaneModel): LegendRow[] {
   const faded = model.graph
     ? fadedKey(model.graph, lift, model.liftedWalksLabel)
     : `not on ${model.liftedWalksLabel}`
-  return [...rows, ...fadedRows(model, faded)]
+  return [
+    ...rows,
+    ...fadedRows(model, faded),
+    ...(threadsPasses(lift.walks)
+      ? [
+          {
+            key: 'walk-passes',
+            label: passesKey(lift.walks),
+            swatch: { kind: 'threads' as const },
+          },
+        ]
+      : []),
+  ]
 }
 
 // The faceted pane's one key line under its panels: each panel's title keys

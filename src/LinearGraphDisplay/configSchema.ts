@@ -92,7 +92,9 @@ export function configSchemaFactory() {
       facet: graphFacetConfigSchema,
       /**
        * #slot
-       * the rows walk rows draw: `{ kept: [...] }` names the samples shown
+       * the rows walk rows draw: `{ kept: [...] }` names the samples, or
+       * `sample#haplotype` haplotypes, shown; `{ kept: 'lifted' }` shows the
+       * haplotypes of the lifted walks
        */
       rows: {
         type: 'frozen',

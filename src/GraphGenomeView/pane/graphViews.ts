@@ -16,6 +16,7 @@ import {
   formatBp,
   labelledNodeLengths,
 } from '@jbrowse/bandage-core/graphLabels'
+import { walkNamesRow } from '@jbrowse/bandage-core/layout/rowInks'
 import {
   sharedRowOrder,
   walkRowBlocks,
@@ -25,7 +26,11 @@ import {
   walkRowRuns,
   walkRowsOf,
 } from '@jbrowse/bandage-core/layout/walkRowRuns'
-import { filterSamples, walkRows } from '@jbrowse/bandage-core/layout/walkRows'
+import {
+  filterSamples,
+  rowHaplotype,
+  walkRows,
+} from '@jbrowse/bandage-core/layout/walkRows'
 import {
   layoutModeByValue,
   modeUsesLayoutEngine,
@@ -184,11 +189,13 @@ export interface GraphGrammar {
 type TubeColorKind = 'value' | 'tinted' | 'role' | 'path'
 
 // The rows walk rows draw: `kept` names the samples whose walks show, by the
-// name before the haplotype number; unset shows every walk the cut holds.
+// name before the haplotype number, or one haplotype as `sample#haplotype`;
+// `'lifted'` keeps the haplotypes of the lifted walks, as they change; unset
+// shows every walk the cut holds.
 // `order: 'shared'` stacks each row under the one it shares the most sequence
 // with, so ribbons stay short and shared blocks line up.
 export interface GraphRows {
-  kept?: string[]
+  kept?: string[] | 'lifted'
   order?: 'shared'
 }
 
@@ -301,6 +308,9 @@ export const withGraphViews = paneBase
       get walkRowSamples() {
         const kept = self.grammar.rows?.kept
         return Array.isArray(kept) ? kept : undefined
+      },
+      get walkRowsFollowLift() {
+        return self.grammar.rows?.kept === 'lifted'
       },
       get walkRowOrder() {
         return self.grammar.rows?.order === 'shared' ? 'shared' : undefined
@@ -494,6 +504,12 @@ export const withGraphViews = paneBase
         this.facetPanels?.map(panel => panel.walks[0]!) ??
         this.walkLift?.walks ??
         []
+      )
+    },
+    get walksShadedAlong() {
+      const walks = this.drawnWalks
+      return (
+        walks.length > 0 && walks.every(w => w.encoding.field === 'progress')
       )
     },
     // A tube map draws every walk as a tube of its own
@@ -997,11 +1013,29 @@ export const withGraphViews = paneBase
           ? { by: 'column', ...grouped.groupBy, table: grouped.table }
           : undefined
     },
+    // The haplotypes of the cut's rows the lifted walks are, as the sample
+    // filter names them
+    get liftedRowHaplotypes() {
+      const walks = self.drawnWalks
+      return [
+        ...new Set(
+          (self.cutWalkRows?.rows ?? [])
+            .filter(row => walks.some(w => walkNamesRow(w.name, row)))
+            .map(rowHaplotype),
+        ),
+      ]
+    },
+    // The samples or haplotypes the rows keep
+    get keptRowSamples() {
+      return self.walkRowsFollowLift
+        ? this.liftedRowHaplotypes
+        : self.walkRowSamples
+    },
     // The cohort's rows the sample filter keeps, in the shared order where
     // asked; a grouping then keeps that order within each section
     get keptCohortRows() {
       const bars = this.cohortWalkRows
-      const rows = bars && filterSamples(bars.rows, self.walkRowSamples)
+      const rows = bars && filterSamples(bars.rows, this.keptRowSamples)
       if (!bars || !rows || self.walkRowOrder !== 'shared') {
         return rows
       }
