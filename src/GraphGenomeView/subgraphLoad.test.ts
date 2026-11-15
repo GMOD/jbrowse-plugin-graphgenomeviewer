@@ -4,8 +4,10 @@ import { types } from '@jbrowse/mobx-state-tree'
 
 import { fakeRenderer } from './modelTestSupport'
 import stateModelFactory from './viewModel'
+import { walkCutFor } from '../RgfaTabixAdapter/walkCut.ts'
 import { hoverInRegion } from '../hoverSync/lgvHover'
 
+import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { readConfObject } from '@jbrowse/core/configuration'
 
@@ -135,6 +137,10 @@ const keysOff = (model: ReturnType<typeof createView>) =>
   model.graphKey.some(section =>
     section.entries.some(entry => entry.key === 'off'),
   )
+
+// the cut as the adapter hands it over, with the walks it abridged
+const cutOf = (tables: GraphTables) =>
+  walkCutFor(tables, { start: 32000000, end: 32001900 }, false)
 
 function answerCutsWith(cut: unknown) {
   mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
@@ -367,7 +373,7 @@ describe('canceling and retrying', () => {
     tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
-        ? Promise.resolve(tables)
+        ? Promise.resolve(cutOf(tables))
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = attachedView()
@@ -400,7 +406,7 @@ describe('canceling and retrying', () => {
     )
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
-        ? Promise.resolve(tables)
+        ? Promise.resolve(cutOf(tables))
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = attachedView()
@@ -448,7 +454,7 @@ describe('canceling and retrying', () => {
     )
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
-        ? Promise.resolve(tables)
+        ? Promise.resolve(cutOf(tables))
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
     )
     const model = attachedView({ layoutMode: 'tubemap' })
