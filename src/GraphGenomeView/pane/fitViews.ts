@@ -21,7 +21,10 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { legendCorner } from '@jbrowse/bandage-core/legendCorner'
+import {
+  legendCorner,
+  rowsLegendRoom,
+} from '@jbrowse/bandage-core/legendCorner'
 import {
   FIT_PADDING,
   drawingBounds,
@@ -180,6 +183,13 @@ export const withFitViews = withHostViews
           })
         : undefined
     },
+    // How far walk rows and their readouts reach: short of the key's column
+    get walkRowsWidth() {
+      return (
+        self.paneWidth -
+        (self.walkRowBars ? rowsLegendRoom({ legendSize: self.legendSize }) : 0)
+      )
+    },
     // Row i's readout as the pane places it, measured as it is drawn
     walkRowReadoutOf(i: number) {
       const bars = self.walkRowBars
@@ -190,7 +200,7 @@ export const withFitViews = withHostViews
             {
               scaleX: self.scaleX,
               translateX: self.translateX,
-              width: self.paneWidth,
+              width: this.walkRowsWidth,
               measure: measureReadout,
             },
             { comparing: self.rowVisitsNeeded },
@@ -374,7 +384,7 @@ export const withFitViews = withHostViews
         : {
             left: this.fitPadLeft,
             top: this.fitPadTop,
-            right: FIT_PADDING,
+            right: FIT_PADDING + self.paneWidth - this.walkRowsWidth,
             bottom: FIT_PADDING,
           }
     },

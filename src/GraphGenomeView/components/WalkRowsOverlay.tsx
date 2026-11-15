@@ -68,7 +68,7 @@ const WalkRowSpansCanvas = observer(function WalkRowSpansCanvas({
       }
       paintWalkRowSpans(ctx, painted, {
         ...model.screenTransform,
-        width: model.paneWidth,
+        width: model.walkRowsWidth,
         height: model.canvasHeight,
         rowPx: pitch.rowPx,
         barPx: pitch.barPx,
@@ -217,7 +217,7 @@ type WalkRowTreesSource = Pick<
   | 'scaleY'
   | 'translateX'
   | 'translateY'
-  | 'paneWidth'
+  | 'walkRowsWidth'
   | 'canvasHeight'
   | 'rowVisitsNeeded'
 >
@@ -241,7 +241,7 @@ export function walkRowTreesOnPane(
     scaleY: model.scaleY,
     translateX: at.translateX,
     translateY: at.translateY,
-    width: model.paneWidth,
+    width: model.walkRowsWidth,
     height: model.canvasHeight,
     ...pitch,
     bars: vector,

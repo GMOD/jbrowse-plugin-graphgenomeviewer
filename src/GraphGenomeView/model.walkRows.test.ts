@@ -1,3 +1,5 @@
+import { barEnd } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/legendCorner'
 import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { resolveSubMenu } from '@jbrowse/core/ui'
@@ -8,6 +10,7 @@ import { facetKeyRows } from './legendSections'
 import { mockReadFile, mockRpcCall, mockSession } from './modelTestMocks'
 import { MOCK_LAYOUT, fakeRenderer, rpcRespond } from './modelTestSupport'
 import { walkRowGeneKey } from './pane/fitViews'
+import { measureReadout } from './readoutMeasure'
 import { PANEL_REFERENCE_TUBE, PANEL_TUBES } from './tubeMapPanels'
 import stateModelFactory from './viewModel'
 import {
@@ -216,6 +219,29 @@ describe('walk rows', () => {
       'A#2',
     ])
     expect(model.hoveredWalkRowText).toBeUndefined()
+  })
+
+  test('the key takes a column of its own beside walk rows, so no bar or readout runs under it', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    model.setLegendSize({ width: 300, height: 120 })
+    model.zoomToFit()
+    const keyLeft = 800 - LEGEND_INSET_PX - 300
+    expect(model.walkRowsWidth).toBe(keyLeft)
+    const bars = model.walkRowBars!
+    ;[bars.reference, ...bars.rows].forEach((row, i) => {
+      const end = (bars.origin + barEnd(row)) * model.scaleX + model.translateX
+      expect(end).toBeLessThanOrEqual(keyLeft)
+      const at = model.walkRowReadoutOf(i)!
+      const right =
+        at.anchor === 'start' ? at.x + measureReadout(at.shown) : at.x
+      expect(right).toBeLessThanOrEqual(keyLeft)
+    })
   })
 
   test('the Layout menu lists force-directed once per engine', async () => {
