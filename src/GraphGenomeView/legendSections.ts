@@ -1,6 +1,7 @@
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import {
+  SHORT_SKIP_KEY,
   dashedDeletions,
   deletionKey,
 } from '@jbrowse/bandage-core/deletionEdges'
@@ -82,7 +83,8 @@ export type LegendSwatch =
     }
   // the reference strip, a band per lifted walk
   | { kind: 'bands'; bands: Stop[][] }
-  | { kind: 'line'; color: string; dashed?: true }
+  // a link's stroke; `short`, a skip's plain stroke too short to dash
+  | { kind: 'line'; color: string; dashed?: true; short?: true }
   | { kind: 'halo'; color: string }
   | {
       kind: 'outline'
@@ -307,18 +309,22 @@ function haloRows(model: GraphPaneModel): LegendRow[] {
     : []
 }
 
+// The two marks a skip draws as: dashed, and one plain stroke where its span
+// on screen is too short to hold the dashes
 function deletionRows(model: GraphPaneModel): LegendRow[] {
   const { graph } = model
+  const color = model.walkLift ? FADED_SWATCH : DELETION_INK
   return graph && dashedDeletions(model.deletions, model.walkLift).length > 0
     ? [
         {
           key: 'deletion',
           label: deletionKey(referenceLabel(graph)),
-          swatch: {
-            kind: 'line',
-            color: model.walkLift ? FADED_SWATCH : DELETION_INK,
-            dashed: true,
-          },
+          swatch: { kind: 'line', color, dashed: true },
+        },
+        {
+          key: 'short-skip',
+          label: SHORT_SKIP_KEY,
+          swatch: { kind: 'line', color, short: true },
         },
       ]
     : []

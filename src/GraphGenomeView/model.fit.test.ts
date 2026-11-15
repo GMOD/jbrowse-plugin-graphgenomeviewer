@@ -872,7 +872,9 @@ describe('what the row axis draws, in pixels', () => {
     expect(hidden.hiddenEdgeIndexes!.size).toBe(0)
   })
 
-  test('the legend keys the dashed links only while they draw', async () => {
+  // d719794 draws a skip too short on screen to hold three dashes as one
+  // plain stroke, which the key left out
+  test('the legend keys the dashed links and the plain stroke of a short skip only while they draw', async () => {
     const deletionRows = (model: Awaited<ReturnType<typeof fitted>>) =>
       legendSections(model)
         .filter(s => s.testid === 'graph-deletion-legend')
@@ -882,6 +884,10 @@ describe('what the row axis draws, in pixels', () => {
       {
         label: expect.stringMatching(/^skips .* sequence/),
         swatch: { kind: 'line', dashed: true },
+      },
+      {
+        label: 'a skip too short to dash',
+        swatch: { kind: 'line', short: true },
       },
     ])
     expect(

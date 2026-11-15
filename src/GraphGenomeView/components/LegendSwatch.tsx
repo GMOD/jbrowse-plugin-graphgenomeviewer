@@ -112,7 +112,16 @@ export function SvgSwatch({
       )
     }
     case 'line':
-      return swatch.dashed ? (
+      return swatch.short ? (
+        <line
+          x1={x + 5}
+          x2={x + SWATCH_PX - 5}
+          y1={mid}
+          y2={mid}
+          stroke={swatch.color}
+          strokeWidth={1.5}
+        />
+      ) : swatch.dashed ? (
         <line
           x1={x + 1}
           x2={x + SWATCH_PX}
