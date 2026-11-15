@@ -476,3 +476,22 @@ describe('opening a bubble', () => {
     )
   })
 })
+
+// amylase's "nodes not shown" loops lost their 75 kb and 116 kb with node
+// lengths turned off, the only cue to how much sequence each one holds
+test("the graph writes a placeholder's length with node lengths off, and every node's with them on", async () => {
+  rpcRespond()
+  const model = createModel()
+  await model.loadGFA(
+    `${SIMPLE_GFA}S\t3\t*\tLN:i:75000\tnl:i:1\nL\t2\t+\t3\t+\t0M\n`,
+    'g',
+  )
+  expect(model.layerSet.has('lengths')).toBe(false)
+  expect([...model.nodeLengths]).toEqual([['3+', 75000]])
+  model.setLayer('lengths', true)
+  expect([...model.nodeLengths]).toEqual([
+    ['1+', 4],
+    ['2+', 4],
+    ['3+', 75000],
+  ])
+})

@@ -12,7 +12,10 @@ import {
 import { busiestEdge } from '@jbrowse/bandage-core/edgeWidths'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
-import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import {
+  formatBp,
+  labelledNodeLengths,
+} from '@jbrowse/bandage-core/graphLabels'
 import {
   sharedRowOrder,
   walkRowBlocks,
@@ -330,16 +333,14 @@ export const withGraphViews = paneBase
     get nodeById() {
       return self.drawnGraph && nodeMapOf(self.drawnGraph)
     },
-    // bp per node id, which is all the label overlay needs of a GraphNode.
-    // Held here rather than rebuilt in the component: that render runs on
-    // every pan, and the map is a fact about the graph (measured 6.9 ms an
-    // allocation on a 30k-node cut).
+    // The lengths the label overlay writes, by node id. Held here rather than
+    // rebuilt in the component: that render runs on every pan, and the map is
+    // a fact about the graph (measured 6.9 ms an allocation on a 30k-node cut).
     get nodeLengths() {
-      const m = new Map<string, number>()
-      for (const n of self.drawnGraph?.nodes ?? []) {
-        m.set(n.id, n.length)
-      }
-      return m
+      return labelledNodeLengths(
+        self.drawnGraph?.nodes ?? [],
+        self.layerSet.has('lengths'),
+      )
     },
     get nodeCount() {
       return self.graph?.nodes.length ?? 0
@@ -579,9 +580,6 @@ export const withGraphViews = paneBase
     // a length label would sit on the lanes of lifted walks
     get labelsNodeSizes() {
       return !self.layoutResult?.tubeMap && !this.walkLift
-    },
-    get nodeLengthLabels() {
-      return self.layerSet.has('lengths')
     },
     // Deletions the layout found inside an allele, empty rather than
     // undefined: a layout drawn at sequence scale states none, because there
