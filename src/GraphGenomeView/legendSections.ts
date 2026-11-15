@@ -16,7 +16,7 @@ import {
   UNBACKED_TICK,
   walkRowsKey,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { frequencyKey, nodeWidthPx } from '@jbrowse/bandage-core/nodeWidths'
+import { frequencyKey } from '@jbrowse/bandage-core/nodeWidths'
 import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
 import {
@@ -42,7 +42,6 @@ import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 
 import type { GraphPaneModel } from './model'
 import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import type { GraphNode } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 
 // The legend as data, so the screen's panel and the exported figure's key
@@ -369,9 +368,9 @@ const roundDepth = (depth: number) =>
   depth >= 10 ? Math.round(depth) : Math.round(depth * 10) / 10
 
 // What a node's thickness counts, with bars as thick as the drawing makes
-// the thinnest, the mean and the thickest node
+// the thickest and the thinnest node
 function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
-  const { graph, contigThickness: px, depthRange: range } = model
+  const { graph, contigThickness: px } = model
   if (!graph || !model.drawsNodes || model.walkRowBars) {
     return []
   }
@@ -386,31 +385,28 @@ function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
       ),
     )
   }
-  if (model.nodeWidth !== 'depth' || !range || range.min === range.max) {
+  if (model.nodeWidth !== 'depth') {
     return []
   }
   const walkCount = graph.paths?.length ?? 0
   const walks = walkCount > 0
-  const depths = [
-    ...new Set(
-      [range.max, range.mean, range.min].map(walks ? Math.round : roundDepth),
-    ),
-  ]
+  const key = model.depthKey
   // a walk looping through a repeat passes its nodes more than once, and
   // each pass counts
-  const passes = depths[0]! > walkCount
+  const passes = (key[0]?.depth ?? 0) > walkCount
   const counted = (n: number) =>
     passes
       ? `${n.toLocaleString('en-US')} walk pass${n === 1 ? '' : 'es'}`
       : `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`
-  return depths.map(depth =>
-    thicknessRow(
-      `width-${depth}`,
-      walks ? counted(depth) : `depth ${depth.toLocaleString('en-US')}`,
-      nodeWidthPx({ depth } as GraphNode, px, 'depth', range.mean),
+  return key.map(({ depth, widthPx }, i) => {
+    const shown = walks ? Math.round(depth) : roundDepth(depth)
+    return thicknessRow(
+      i === 0 ? 'width-thickest' : 'width-thinnest',
+      walks ? counted(shown) : `depth ${shown.toLocaleString('en-US')}`,
+      widthPx,
       REFERENCE_RAMP_ALT_CSS,
-    ),
-  )
+    )
+  })
 }
 
 function linkWidthRows(model: GraphPaneModel): LegendRow[] {

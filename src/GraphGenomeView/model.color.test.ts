@@ -1,4 +1,5 @@
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
+import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { legendSections } from './legendSections'
@@ -15,6 +16,8 @@ import {
   rpcRespond,
 } from './modelTestSupport'
 import { SELECT_BRIGHTEN } from './pane/paneBase'
+
+import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 
 vi.mock('@jbrowse/core/util', async () =>
   (await import('./modelTestMocks')).coreUtilMock(),
@@ -493,5 +496,47 @@ test("the graph writes a placeholder's length with node lengths off, and every n
     ['1+', 4],
     ['2+', 4],
     ['3+', 75000],
+  ])
+})
+
+// mean depth 2.2, which a middle bar keyed as "2 walks" though no node has it
+test('the node thickness key draws its two bars as wide as the thickest and thinnest nodes draw', async () => {
+  mockRpcCall.mockImplementation(
+    (_session: unknown, method: string, request: EngineRequest) =>
+      method === 'GraphComputeLayout'
+        ? layoutEngine(request)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const model = createModel()
+  model.setLayoutEngine('stress')
+  model.setNodeWidth('depth')
+  await model.loadGFA(
+    [
+      'H\tVN:Z:1.0',
+      'S\t1\tACGTACGTAC',
+      'S\t2\tGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG',
+      'S\t3\tTTTTTTTTTT',
+      'L\t1\t+\t2\t+\t0M',
+      'L\t2\t+\t3\t+\t0M',
+      'L\t1\t+\t3\t+\t0M',
+      'W\tGRCh38\t0\tchr1\t0\t50\t>1>2>3',
+      'W\tA\t1\tchr1\t0\t20\t>1>3',
+      'W\tB\t1\tchr1\t0\t20\t>1>3',
+      'W\tC\t1\tchr1\t0\t20\t>1>3',
+      '',
+    ].join('\n'),
+    'g',
+  )
+  const { batch } = model.buildDrawing(undefined, false)!
+  const drawnPx = (id: string) =>
+    batch.nodeStrokes[batch.nodeStrokeRuns.get(id)!.start]!.thickness * 2
+  const rows = legendSections(model).find(
+    s => s.testid === 'graph-width-legend',
+  )?.rows
+  expect(
+    rows?.map(r => [r.label, r.swatch?.kind === 'fill' && r.swatch.height]),
+  ).toEqual([
+    ['4 walks', drawnPx('1+')],
+    ['1 walk', drawnPx('2+')],
   ])
 })

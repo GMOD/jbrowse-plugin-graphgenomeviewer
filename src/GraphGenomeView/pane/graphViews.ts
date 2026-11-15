@@ -30,7 +30,7 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
-import { meanDepth, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { depthKey, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   pathColorsLegible,
@@ -895,20 +895,9 @@ export const withGraphViews = paneBase
         self.nodeWidth,
       )
     },
-    // the depths the width key samples, swept once per graph rather than on
-    // each legend render
-    get depthRange() {
-      const nodes = self.graph?.nodes
-      if (!nodes?.length) {
-        return undefined
-      }
-      let min = Infinity
-      let max = -Infinity
-      for (const { depth } of nodes) {
-        min = Math.min(min, depth)
-        max = Math.max(max, depth)
-      }
-      return { min, max, mean: meanDepth(self.graph!) }
+    // swept once per graph rather than on each legend render
+    get depthKey() {
+      return self.graph ? depthKey(self.graph, self.contigThickness) : []
     },
     get busiestLink() {
       return self.graph ? busiestEdge(self.graph) : 0

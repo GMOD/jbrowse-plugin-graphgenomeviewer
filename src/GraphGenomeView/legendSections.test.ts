@@ -75,7 +75,10 @@ function widthModel(over: Record<string, unknown>) {
     walkRowBars: undefined,
     nodeWidth: 'depth',
     contigThickness: 6,
-    depthRange: { min: 1, max: 26, mean: 8 },
+    depthKey: [
+      { depth: 26, widthPx: 11 },
+      { depth: 1, widthPx: 2 },
+    ],
     linkWidth: 'uniform',
     connectorThickness: 2,
     busiestLink: 26,
@@ -90,26 +93,25 @@ function widthLegend(
   return legendSections(widthModel(over)).find(s => s.testid === testid)?.rows
 }
 
-test('the width key names what node thickness counts, thickest first', () => {
+// GSTM1's key read 9, 6 and 1 walks, its middle bar the mean depth, which no
+// node need have
+test("the width key names what node thickness counts at the scale's two ends, thickest first", () => {
   const rows = widthLegend({})!
-  expect(rows.map(r => r.label)).toEqual(['26 walks', '8 walks', '1 walk'])
-  const [thick, mean, thin] = rows.map(r => swatchHeight(r.swatch!))
-  expect(mean).toBe(6)
-  expect(thick).toBeGreaterThan(mean!)
-  expect(thin).toBeLessThan(mean!)
+  expect(rows.map(r => r.label)).toEqual(['26 walks', '1 walk'])
+  expect(rows.map(r => swatchHeight(r.swatch!))).toEqual([11, 2])
 })
 
-test('a walk count reads whole, and a mean that rounds onto an end is dropped', () => {
+test('a walk count reads whole, a depth without walks to the tenth', () => {
+  const unwalked = { nodes: [], edges: [], paths: [] }
   expect(
-    widthLegend({ depthRange: { min: 1, max: 3, mean: 1.9 } })!.map(
-      r => r.label,
-    ),
-  ).toEqual(['3 walks', '2 walks', '1 walk'])
-  expect(
-    widthLegend({ depthRange: { min: 1, max: 3, mean: 1.2 } })!.map(
-      r => r.label,
-    ),
-  ).toEqual(['3 walks', '1 walk'])
+    widthLegend({
+      graph: unwalked,
+      depthKey: [
+        { depth: 2.46, widthPx: 7 },
+        { depth: 1, widthPx: 4 },
+      ],
+    })!.map(r => r.label),
+  ).toEqual(['depth 2.5', 'depth 1'])
 })
 
 test('a node a walk loops through keys passes, not walks', () => {
@@ -117,9 +119,12 @@ test('a node a walk loops through keys passes, not walks', () => {
   expect(
     widthLegend({
       graph: looped,
-      depthRange: { min: 1, max: 9, mean: 3 },
+      depthKey: [
+        { depth: 9, widthPx: 9 },
+        { depth: 1, widthPx: 3 },
+      ],
     })!.map(r => r.label),
-  ).toEqual(['9 walk passes', '3 walk passes', '1 walk pass'])
+  ).toEqual(['9 walk passes', '1 walk pass'])
 })
 
 test('colour keys are square chips, unlike the thickness bars', () => {
@@ -152,9 +157,7 @@ test('a frequency width keys shares of haplotypes, or AF where tagged', () => {
 
 test('uniform widths, or one depth everywhere, draw no width key', () => {
   expect(widthLegend({ nodeWidth: 'uniform' })).toBeUndefined()
-  expect(
-    widthLegend({ depthRange: { min: 3, max: 3, mean: 3 } }),
-  ).toBeUndefined()
+  expect(widthLegend({ depthKey: [] })).toBeUndefined()
 })
 
 test('links by walks key the busiest link and a single walk', () => {
