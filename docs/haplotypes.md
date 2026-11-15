@@ -147,9 +147,9 @@ Walk rows draw one bar per haplotype. Under the reference-position ramp:
   short form that gives its length and its place on the reference but not its
   nodes. Walk rows draw its bar the same either way and fetch nothing for it.
   Under a node layout the strip marks such a stretch "nodes not shown", as the
-  graph above it does, and **Show the nodes of this haplotype's detours (N
-  steps)** in a strip row's right-click menu fetches them. A tube map showing up
-  to 64 haplotypes fetches them on its own
+  graph above it does, and **Load its steps** in a strip row's right-click menu
+  fetches them, under the steps and bp not loaded in the words every reader
+  gives them. A tube map showing up to 64 haplotypes fetches them on its own
 - Right-click a bar to open its span in a linear view on that haplotype's
   assembly
 - Node lengths are not labelled while walks are lifted
