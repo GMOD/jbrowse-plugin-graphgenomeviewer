@@ -49,7 +49,14 @@ const LabelLayer = observer(function LabelLayer({
   if (bubbles.length + genes.length + ticks.length === 0) {
     return null
   }
-  const { scaleY, translateY, contigThickness, hoveredBubble } = model
+  const {
+    scaleX,
+    scaleY,
+    translateX,
+    translateY,
+    contigThickness,
+    hoveredBubble,
+  } = model
   const hoveredTick = hoveredBubble
     ? ticks.find(t => sameBubble(t.item.bubble, hoveredBubble))
     : undefined
@@ -127,16 +134,19 @@ const LabelLayer = observer(function LabelLayer({
       </g>
       {genes.map(({ item: pin, x, y, w, text }) => {
         const { gene } = pin
-        const { y1, y2 } = geneLeader(
-          { y },
-          pin.at.y * scaleY + translateY,
+        const { x1, y1, x2, y2 } = geneLeader(
+          { x, y },
+          {
+            x: pin.at.x * scaleX + translateX,
+            y: pin.at.y * scaleY + translateY,
+          },
           contigThickness,
         )
         return (
           <g key={`${gene.name}-${gene.start}`}>
             <line
-              x1={x}
-              x2={x}
+              x1={x1}
+              x2={x2}
               y1={y1}
               y2={y2}
               stroke={GENE_INK}
