@@ -207,62 +207,47 @@ describe('canvas height follows the drawing', () => {
     expect(model.canvasHeight).toBe(600)
   })
 
-  // As a JBrowse track's legend does, the key floats over the drawing, which
-  // fits as though it were not there
-  test('the fit leaves the floating legend no room', async () => {
+  // The key once floated over the drawing, covering a full-width drawing's
+  // right end (HBB) and a gene's name pinned near it (AMY2A)
+  test('the key takes a column of its own, which the fit draws nothing in', async () => {
     rpcRespond()
     const model = createModel()
     await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    const right = () =>
+      maxOf(
+        Object.values(model.nodePositions!)
+          .flat()
+          .map(p => model.toScreen(p).x),
+      )
     model.zoomToFit()
-    const { scale, translateX, translateY, canvasHeight } = model
+    const column = 150 + 2 * LEGEND_INSET_PX
+    expect(right()).toBeGreaterThan(model.paneWidth - column)
 
     model.setLegendSize({ width: 150, height: 60 })
     model.zoomToFit()
-    expect(model.scale).toBeCloseTo(scale, 10)
-    expect(model.translateX).toBeCloseTo(translateX, 5)
-    expect(model.translateY).toBeCloseTo(translateY, 5)
-    expect(model.canvasHeight).toBe(canvasHeight)
+    expect(model.keyColumnPx).toBe(column)
+    expect(model.drawingWidth).toBe(model.paneWidth - column)
+    expect(right()).toBeLessThanOrEqual(model.paneWidth - column)
   })
 
-  test.each([
-    {
-      along: 'the top and right edges',
-      points: [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
-        { x: 100, y: 100 },
-      ],
-      corner: 'bottom-left',
-    },
-    {
-      along: 'the left and bottom edges',
-      points: [
-        { x: 0, y: 0 },
-        { x: 0, y: 100 },
-        { x: 100, y: 100 },
-      ],
-      corner: 'top-right',
-    },
-  ])(
-    'a drawing along $along puts the key $corner',
-    async ({ points, corner }) => {
-      mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
-        method === 'GraphComputeLayout'
-          ? Promise.resolve({
-              result: { nodePositions: { '1+': points } },
-              duration: 5,
-            })
-          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
-      )
-      const model = createModel()
-      await model.loadGFA(SIMPLE_GFA, 'square')
-      model.zoomToFit()
-      // wide enough to reach the square drawing centred in the 800 px pane
-      model.setLegendSize({ width: 300, height: 200 })
-
-      expect(model.legendCorner).toBe(corner)
-    },
-  )
+  test('a pane too narrow for the key and the drawing keeps the key whole and shrinks the drawing', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.setLegendSize({ width: 150, height: 60 })
+    model.setWidth(800)
+    model.zoomToFit()
+    const wide = model.scale
+    model.setWidth(400)
+    model.zoomToFit()
+    const xs = Object.values(model.nodePositions!)
+      .flat()
+      .map(p => model.toScreen(p).x)
+    expect(model.keyColumnPx).toBe(150 + 2 * LEGEND_INSET_PX)
+    expect(model.scale).toBeLessThan(wide)
+    expect(minOf(xs)).toBeGreaterThanOrEqual(0)
+    expect(maxOf(xs)).toBeLessThanOrEqual(400 - model.keyColumnPx)
+  })
 
   test('the hover tooltip moves beside a legend that reaches its corner', async () => {
     rpcRespond()

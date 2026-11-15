@@ -114,8 +114,8 @@ const RowLabels = observer(function RowLabels({
   )
 })
 
-// In the corner model.legendCorner picks. Every key stretches to the widest,
-// so together they read as one panel. It takes the pointer, for its rows'
+// Top right, in the column the fit leaves it (keyColumnPx). Every key
+// stretches to the widest, so together they read as one panel. It takes the pointer, for its rows'
 // titles and its close button.
 const legendStackStyle = {
   position: 'absolute' as const,
@@ -181,15 +181,10 @@ export const Legends = observer(function Legends({
   return (
     <div
       ref={ref}
-      data-legend-corner={model.legendCorner}
       style={{
         ...legendStackStyle,
-        ...(model.legendCorner === 'top-right'
-          ? {
-              top: LEGEND_INSET_PX + model.referenceStripZonePx,
-              right: LEGEND_INSET_PX,
-            }
-          : { bottom: LEGEND_INSET_PX, left: LEGEND_INSET_PX }),
+        top: LEGEND_INSET_PX + model.referenceStripZonePx,
+        right: LEGEND_INSET_PX,
         maxHeight:
           model.canvasHeight - 2 * LEGEND_INSET_PX - model.referenceStripZonePx,
       }}

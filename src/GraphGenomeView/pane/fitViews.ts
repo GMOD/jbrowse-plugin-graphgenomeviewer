@@ -6,6 +6,7 @@ import {
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
+import { keyColumnPx, keyHeightPx } from '@jbrowse/bandage-core/keyColumn'
 import {
   LEGEND_INSET_PX,
   layoutLabels,
@@ -21,10 +22,6 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import {
-  legendCorner,
-  rowsLegendRoom,
-} from '@jbrowse/bandage-core/legendCorner'
 import {
   FIT_PADDING,
   drawingBounds,
@@ -183,11 +180,24 @@ export const withFitViews = withHostViews
           })
         : undefined
     },
-    // How far walk rows and their readouts reach: short of the key's column
-    get walkRowsWidth() {
-      return (
-        self.paneWidth -
-        (self.walkRowBars ? rowsLegendRoom({ legendSize: self.legendSize }) : 0)
+    // The key's column down the pane's right edge. A faceted pane mounts no
+    // key, so its last measured size is stale; a tube map of reads keys
+    // marks that come and go with the fit's scale, so a column for them would
+    // refit the drawing it is measured from.
+    get keyColumnPx() {
+      return self.facetPanels || self.tubeMapReads ? 0 : keyColumnPx(self)
+    },
+    // How far the drawing, walk rows and their readouts reach: to the key's
+    // column
+    get drawingWidth() {
+      return self.paneWidth - this.keyColumnPx
+    },
+    // The height that shows every row of the key, and the drawing's own
+    // floor, which leaves room to hover a node and read its tooltip
+    get canvasFloor() {
+      return Math.max(
+        MIN_CANVAS_HEIGHT,
+        self.facetPanels ? 0 : keyHeightPx(self),
       )
     },
     // Row i's readout as the pane places it, measured as it is drawn
@@ -200,7 +210,7 @@ export const withFitViews = withHostViews
             {
               scaleX: self.scaleX,
               translateX: self.translateX,
-              width: this.walkRowsWidth,
+              width: this.drawingWidth,
               measure: measureReadout,
             },
             { comparing: self.rowVisitsNeeded },
@@ -240,7 +250,6 @@ export const withFitViews = withHostViews
         : 0
       const overCut =
         !!at?.cut &&
-        at.anchor === 'start' &&
         screenX >= endX &&
         screenX <= at.x + measureReadout(at.shown)
       return row &&
@@ -251,8 +260,8 @@ export const withFitViews = withHostViews
     },
     // Room over a tube map for the rows its genes need, one inside the
     // padding and one more for each further gene that overlaps it, and
-    // room for the reference strip. The legend floats over the drawing, as
-    // a JBrowse track's legend does, so the fit leaves it no room.
+    // room for the reference strip. The key has a column of its own beside
+    // the drawing, so it takes no room above.
     get fitPadTop() {
       const rows = tubeMapGeneRows(self.tubeMapGenes)
       return (
@@ -339,13 +348,7 @@ export const withFitViews = withHostViews
       if (grid) {
         return Math.max(MIN_CANVAS_HEIGHT, grid.total + FACET_KEY_PX)
       }
-      // never shorter than the legend, which a flat drawing would clip
-      const floor = Math.max(
-        MIN_CANVAS_HEIGHT,
-        self.legendSize.height +
-          2 * LEGEND_INSET_PX +
-          self.referenceStripZonePx,
-      )
+      const floor = this.canvasFloor
       const pads = this.fitPads
       const padsY = pads.top + pads.bottom
       if (self.pixelRows) {
@@ -372,7 +375,7 @@ export const withFitViews = withHostViews
         : { width: self.paneWidth, height: this.canvasHeight }
     },
     // The fit's margins: a facet panel's all round, else room for the row
-    // labels and the genes and strip above
+    // labels, the genes and strip above, and the key's column
     get fitPads() {
       return this.facetGrid
         ? {
@@ -384,7 +387,7 @@ export const withFitViews = withHostViews
         : {
             left: this.fitPadLeft,
             top: this.fitPadTop,
-            right: FIT_PADDING + self.paneWidth - this.walkRowsWidth,
+            right: FIT_PADDING + this.keyColumnPx,
             bottom: FIT_PADDING,
           }
     },
@@ -411,24 +414,15 @@ export const withFitViews = withHostViews
     },
   }))
   .views(self => ({
-    // The corner the key takes: top right, or bottom left where the drawing
-    // runs under the top right and less of it under the bottom left. The fit
-    // gives the key no room of its own (e640b21): room shrank every drawing,
-    // and a hosted KIV-2 track's loops fill its height whatever the fit does.
-    get legendCorner() {
-      return legendCorner(self)
-    },
     // The hover tooltip's distance from the pane's right edge: in the corner,
-    // unless the legend reaches down into its room, and then beside it. A
-    // faceted pane mounts no legend, so its last measured size is stale.
+    // unless the key reaches down into its room, and then beside the key. A
+    // faceted pane mounts no key, so its last measured size is stale.
     get tooltipRightPx() {
-      const { width, height } = self.legendSize
-      const legendBottom = LEGEND_INSET_PX + self.referenceStripZonePx + height
       return !self.facetPanels &&
-        width > 0 &&
-        this.legendCorner === 'top-right' &&
-        legendBottom > self.canvasHeight - TOOLTIP_ROOM_PX
-        ? width + 2 * LEGEND_INSET_PX
+        self.legendSize.width > 0 &&
+        keyHeightPx(self) - LEGEND_INSET_PX >
+          self.canvasHeight - TOOLTIP_ROOM_PX
+        ? keyColumnPx(self)
         : TOOLTIP_INSET_PX
     },
   }))

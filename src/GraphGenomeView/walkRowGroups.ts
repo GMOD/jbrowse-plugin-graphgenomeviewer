@@ -227,8 +227,8 @@ export function walkRowTrees(
 
 // What walkRowTrees decides from where the frame sits rather than from its
 // scale: which rows it culls past the pane's top and bottom, and each
-// readout as walkRowsTree places it: its side, its offset from its bar's end
-// and its text as cut to the room there. While this holds, a pan only moves
+// readout as walkRowsTree places it: its offset from its bar's end and its
+// text as cut to the room there. While this holds, a pan only moves
 // the trees.
 export function walkRowTreesPanKey(
   bars: WalkRowsWithCalls,
@@ -246,11 +246,7 @@ export function walkRowTreesPanKey(
           ? undefined
           : walkRowReadoutAt(bars, i, frame, o)
       const endX = (bars.origin + barEnd(row)) * scaleX + translateX
-      return culled
-        ? '-'
-        : at
-          ? `${at.anchor} ${Math.round(at.x - endX)} ${at.shown}`
-          : '+'
+      return culled ? '-' : at ? `${Math.round(at.x - endX)} ${at.shown}` : '+'
     })
     .join(' ')
 }

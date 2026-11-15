@@ -1,3 +1,4 @@
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
@@ -1018,6 +1019,34 @@ test('the drawing is the track height, and resizing the track resizes it', async
   expect(display.canvasHeight).toBe(300)
   display.resizeHeight(-100)
   expect(display.canvasHeight).toBe(200)
+})
+
+// KIV-2 and AMY2A lost the key's last row, "graph runs past this edge", to
+// the track's 300 px
+test('a key taller than the track grows the track to show its last row, and a shrink after stays', async () => {
+  const { display } = await shownGraph()
+  expect(display.height).toBe(300)
+  display.setLegendSize({ width: 200, height: 330 })
+  expect(display.height).toBe(330 + 2 * LEGEND_INSET_PX)
+  expect(display.canvasHeight).toBe(display.height)
+
+  display.resizeHeight(-100)
+  expect(display.height).toBe(242)
+})
+
+test('a hosted drawing in its own coordinates fits beside the key, not under it', async () => {
+  const { pane } = await shownGraph()
+  await pane.switchLayout('force')
+  await wait(SETTLE_MS)
+  pane.setLegendSize({ width: 200, height: 100 })
+  pane.zoomToFit()
+  const xs = Object.values(pane.nodePositions!)
+    .flat()
+    .map(p => pane.toScreen(p).x)
+  expect(pane.keyColumnPx).toBe(200 + 2 * LEGEND_INSET_PX)
+  expect(xs.reduce((a, b) => Math.max(a, b))).toBeLessThanOrEqual(
+    pane.paneWidth - pane.keyColumnPx,
+  )
 })
 
 test('side by side grows a track too short for its panels, and a shrink after stays', async () => {

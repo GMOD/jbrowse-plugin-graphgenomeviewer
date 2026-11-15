@@ -1,10 +1,10 @@
 import { serializeEl } from '@jbrowse/bandage-core/el'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import {
   barEnd,
   walkRowsKey,
   walkRowsTree,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/legendCorner'
 import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { resolveSubMenu } from '@jbrowse/core/ui'
@@ -379,16 +379,16 @@ describe('walk rows', () => {
     model.setWidth(800)
     model.setLegendSize({ width: 300, height: 120 })
     model.zoomToFit()
-    const keyLeft = 800 - LEGEND_INSET_PX - 300
-    expect(model.walkRowsWidth).toBe(keyLeft)
+    const keyLeft = 800 - 2 * LEGEND_INSET_PX - 300
+    expect(model.drawingWidth).toBe(keyLeft)
     const bars = model.walkRowBars!
     ;[bars.reference, ...bars.rows].forEach((row, i) => {
       const end = (bars.origin + barEnd(row)) * model.scaleX + model.translateX
       expect(end).toBeLessThanOrEqual(keyLeft)
       const at = model.walkRowReadoutOf(i)!
-      const right =
-        at.anchor === 'start' ? at.x + measureReadout(at.shown) : at.x
-      expect(right).toBeLessThanOrEqual(keyLeft)
+      for (const line of at.lines) {
+        expect(at.x + measureReadout(line)).toBeLessThanOrEqual(keyLeft)
+      }
     })
   })
 

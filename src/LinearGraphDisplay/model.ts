@@ -535,6 +535,21 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             { name: 'GraphFacetHeight' },
           ),
         )
+        // Nor is the track shorter than its key and the drawing's floor, as a
+        // standalone pane is not: a key cut by the track's height loses its
+        // last rows. Only a change in that floor grows it.
+        addDisposer(
+          self,
+          reaction(
+            () => self.canvasFloor,
+            floor => {
+              if (floor > self.height) {
+                self.setHeight(Math.ceil(floor))
+              }
+            },
+            { name: 'GraphKeyHeight' },
+          ),
+        )
         addDisposer(
           self,
           reaction(
