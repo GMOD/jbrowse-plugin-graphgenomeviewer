@@ -1,6 +1,7 @@
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
+import { sizeLeader } from '@jbrowse/bandage-core/graphLabels'
 import { geneCoverageNote, geneLeader } from '@jbrowse/bandage-core/labelLayout'
 import { labelWidth } from '@jbrowse/bandage-core/overlayLabels'
 import { isAlive } from '@jbrowse/mobx-state-tree'
@@ -13,8 +14,9 @@ import type { GraphPaneModel } from '../model'
 import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
 
-// Every chip drawn over the graph, above all of its ink: bubble names and gene
-// names on their pins. `overlayLabels` has placed
+// Every chip drawn over the graph, above all of its ink: bubble names, gene
+// names on their pins, and the leader from a placeholder's length stacked off
+// its loop. `overlayLabels` has placed
 // them against each other and against the row labels already.
 
 const GENE_INK = '#1c1c22'
@@ -45,8 +47,12 @@ const LabelLayer = observer(function LabelLayer({
 }: {
   model: GraphPaneModel
 }) {
-  const { bubbles, genes, ticks } = model.overlayLabels
-  if (bubbles.length + genes.length + ticks.length === 0) {
+  const { bubbles, genes, ticks, sizes } = model.overlayLabels
+  const leaders = sizes.flatMap(label => {
+    const leader = sizeLeader(label)
+    return leader ? [{ key: label.key, ...leader }] : []
+  })
+  if (bubbles.length + genes.length + ticks.length + leaders.length === 0) {
     return null
   }
   const {
@@ -132,6 +138,19 @@ const LabelLayer = observer(function LabelLayer({
           />
         ))}
       </g>
+      {leaders.map(({ key, x1, y1, x2, y2 }) => (
+        <line
+          key={key}
+          data-testid="graph-size-leader"
+          x1={x1}
+          x2={x2}
+          y1={y1}
+          y2={y2}
+          stroke={GENE_INK}
+          strokeWidth={0.8}
+          strokeOpacity={0.6}
+        />
+      ))}
       {genes.map(({ item: pin, x, y, w, text }) => {
         const { gene } = pin
         const { x1, y1, x2, y2 } = geneLeader(
