@@ -1,4 +1,4 @@
-import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { legendSections } from './legendSections'

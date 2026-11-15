@@ -1,7 +1,7 @@
 import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
+import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { bubbleSubgraph } from '@jbrowse/bandage-core/bubbles/popBubble'
 import { graphBubbles } from '@jbrowse/bandage-core/bubbles/superbubbles'
 import { resolveColorScheme } from '@jbrowse/bandage-core/colorSchemes'

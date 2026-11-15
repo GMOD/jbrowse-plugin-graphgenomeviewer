@@ -354,7 +354,7 @@ export const withLaunchActions = withRenderingActions
       })
       return [
         layerItem('Show bubble halos', 'bubbles'),
-        layerItem('Show deletion edges', 'deletions'),
+        layerItem('Show links that skip reference', 'deletions'),
         layerItem('Show node lengths', 'lengths'),
         {
           label: 'Hover highlight',

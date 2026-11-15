@@ -1,5 +1,5 @@
+import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { geneCoverageNote, geneLeader } from '@jbrowse/bandage-core/labelLayout'
 import { labelWidth } from '@jbrowse/bandage-core/overlayLabels'

@@ -1,5 +1,5 @@
+import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { foldVariants } from '@jbrowse/bandage-core/foldVariants'
 import { regionLabel } from '@jbrowse/bandage-core/hoverText'
 import {
