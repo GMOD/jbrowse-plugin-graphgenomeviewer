@@ -1,3 +1,4 @@
+import { drawnSkips, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
@@ -20,6 +21,42 @@ export { MAX_GRAPH_REGION_BP, fileName, formatSpanBp } from './pane/paneBase'
 // linear view. Built in stages under pane/, each extending the one before,
 // and given here the cut options both hosts share.
 export const GraphPane = withLaunchActions
+  // Each facet panel's drawing, which the panel paints and the key reads
+  .views(self => ({
+    get facetDrawings() {
+      return self.facetPanels?.map(panel => self.buildDrawing(panel, false))
+    },
+  }))
+  // bandage-core's key for the graph on screen, which the legend and the
+  // facet key draw
+  .views(self => ({
+    get graphKey() {
+      const graph = self.drawnGraph
+      const drawings = self.facetDrawings
+      return graph
+        ? graphKey(graph, self.layoutResult ?? {}, {
+            region: self.graphRegion,
+            referenceRamp: self.referenceRamp,
+            lift: self.walkLift,
+            panels: self.facetPanels,
+            walkLabel: name => self.walkLabel(name),
+            nodeWidth: self.nodeWidth,
+            contigThickness: self.contigThickness,
+            edgeWidth: self.linkWidth,
+            connectorThickness: self.connectorThickness,
+            drawsNodes: self.drawsNodes,
+            skips: drawnSkips(
+              drawings
+                ? drawings.flatMap(drawing => (drawing ? [drawing.batch] : []))
+                : [self.drawnBatch],
+            ),
+            genePins: self.genePins,
+            halos: self.bubbleHalos,
+            stripOverhangs: self.referenceStripOverhangs,
+          })
+        : []
+    },
+  }))
   .views(self => ({
     // the config's defaultHaplotypes, which a cut is for until the user
     // picks others

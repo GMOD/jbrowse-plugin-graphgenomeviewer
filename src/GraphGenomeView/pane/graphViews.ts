@@ -1,4 +1,3 @@
-import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { bubbleHalos } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 import { bubbleSegmentIds } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
@@ -9,7 +8,6 @@ import {
   deletionDrawing,
   deletionEdges,
 } from '@jbrowse/bandage-core/deletionEdges'
-import { busiestEdge } from '@jbrowse/bandage-core/edgeWidths'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import {
@@ -35,7 +33,7 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
-import { depthKey, nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   pathColorsLegible,
@@ -46,6 +44,7 @@ import {
   backboneAssembly,
   featuresOnBackbone,
   graphBackbone,
+  referenceLabel,
 } from '@jbrowse/bandage-core/reference'
 import {
   buildNeighbors,
@@ -57,7 +56,6 @@ import {
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { tubeMapNodeColors } from '@jbrowse/bandage-core/tubeMap/nodeColors'
 import { axisScaleOf } from '@jbrowse/bandage-core/viewport'
-import { NO_VALUE_COLOR } from '@jbrowse/bandage-core/walkEncoding'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
 import SerializableFilterChain from '@jbrowse/core/pluggableElementTypes/renderers/util/serializableFilterChain'
 import {
@@ -519,7 +517,12 @@ export const withGraphViews = paneBase
     // The window a lane coloured by reference position spans, by name
     get walkReference() {
       const domain = this.walkLift?.referenceDomain
-      return domain && { ...domain, name: self.graphRegion?.refName }
+      return (
+        domain && {
+          ...domain,
+          name: self.graph && referenceLabel(self.graph, self.graphRegion),
+        }
+      )
     },
     // A label per walk, which the pickers, the keys and a bubble's label all
     // read, so a walk name repeated across records reads the same everywhere
@@ -528,15 +531,6 @@ export const withGraphViews = paneBase
     },
     walkLabel(name: string) {
       return this.walkLabels.get(name) ?? name
-    },
-    // Whether a lifted lane paints a node charcoal, the colour a lane coloured
-    // by reference position gives what is off the reference
-    get liftPaintsOffReference() {
-      return !!this.walkLift?.walks.some(
-        w =>
-          w.encoding.field !== 'walk' &&
-          [...w.colors.values()].includes(NO_VALUE_COLOR),
-      )
     },
     // what the faded rest of the drawing is not on
     get liftedWalksLabel() {
@@ -911,13 +905,6 @@ export const withGraphViews = paneBase
         self.nodeWidth,
       )
     },
-    // swept once per graph rather than on each legend render
-    get depthKey() {
-      return self.graph ? depthKey(self.graph, self.contigThickness) : []
-    },
-    get busiestLink() {
-      return self.graph ? busiestEdge(self.graph) : 0
-    },
     // Links that skip reference sequence, i.e. the deletions this graph
     // holds. Computed once per graph rather than per geometry rebuild: it is
     // a pass over the edges and the drawing rebuilds on every pan.
@@ -1235,15 +1222,6 @@ export const withGraphViews = paneBase
     // map's boxes. Walk rows draw bars with a key of their own.
     get paintsNodeColors() {
       return self.drawsNodes || !!self.layoutResult?.tubeMap
-    },
-    // Whether the ramp paints a drawn node charcoal, as getNodeColor does
-    // every node off the backbone
-    get referenceRampDrawsOffReference() {
-      return (
-        !!self.referenceRamp &&
-        this.paintsNodeColors &&
-        !!self.drawnGraph?.nodes.some(node => !isBackbone(node))
-      )
     },
     // Each tube map box in its node's colour, where the scheme paints one
     get tubeMapNodeColors() {

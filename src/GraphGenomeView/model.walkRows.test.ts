@@ -523,10 +523,14 @@ describe('walk rows', () => {
     await model.loadGFA(WALKS_GFA, 'walks')
     model.liftWalks(['B#1#ctg'])
     model.setWalkColor('B#1#ctg', { field: 'walk' })
-    expect(model.liftPaintsOffReference).toBe(false)
+    const keysOff = () =>
+      model.graphKey.some(section =>
+        section.entries.some(entry => entry.key === 'lift-off'),
+      )
+    expect(keysOff()).toBe(false)
     // B takes node 2, which GRCh38 skips
     model.setWalkColor('B#1#ctg', { field: 'reference' })
-    expect(model.liftPaintsOffReference).toBe(true)
+    expect(keysOff()).toBe(true)
   })
 
   // Walk rows draw their bars over the canvas the panels would split, so a

@@ -1,3 +1,4 @@
+import { drawnSkips } from '@jbrowse/bandage-core/graphKey'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { ROW_HEIGHT_PX } from '@jbrowse/bandage-core/layout/rowSpacing'
@@ -859,21 +860,32 @@ describe('what the row axis draws, in pixels', () => {
 
   // d719794 draws a skip too short on screen to hold three dashes as one
   // plain stroke, which the key left out
-  test('the legend keys the dashed links and the plain stroke of a short skip only while they draw', async () => {
+  test('the legend keys the dashed links and the plain stroke of a short skip only where the drawing holds them', async () => {
     const deletionRows = (model: Awaited<ReturnType<typeof fitted>>) =>
       legendSections(model)
         .filter(s => s.testid === 'graph-deletion-legend')
         .flatMap(s => s.rows)
     const shown = await fitted()
+    shown.startRenderingBackend(fakeRenderer())
+    const drawn = drawnSkips([shown.drawnBatch])
+    expect(drawn.dashed || drawn.short).toBe(true)
     expect(deletionRows(shown)).toMatchObject([
-      {
-        label: expect.stringMatching(/^skips .* sequence/),
-        swatch: { kind: 'line', dashed: true },
-      },
-      {
-        label: 'a skip too short to dash',
-        swatch: { kind: 'line', short: true },
-      },
+      ...(drawn.dashed
+        ? [
+            {
+              label: expect.stringMatching(/^skips .* sequence/),
+              swatch: { kind: 'line', dashed: true },
+            },
+          ]
+        : []),
+      ...(drawn.short
+        ? [
+            {
+              label: 'a skip too short to dash',
+              swatch: { kind: 'line', short: true },
+            },
+          ]
+        : []),
     ])
     expect(
       deletionRows(await fitted({ layers: { deletions: false } })),

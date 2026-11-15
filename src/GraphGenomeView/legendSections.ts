@@ -1,14 +1,6 @@
-import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import {
-  SHORT_SKIP_KEY,
-  dashedDeletions,
-  deletionKey,
-} from '@jbrowse/bandage-core/deletionEdges'
-import { edgeWidthFactor } from '@jbrowse/bandage-core/edgeWidths'
-import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
-import { NOT_LOADED_TEXT } from '@jbrowse/bandage-core/gfa/departures'
+import { walkKeyEntry } from '@jbrowse/bandage-core/graphKey'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
   BAR_PX as WALK_ROW_BAR_PX,
@@ -18,27 +10,15 @@ import {
   UNBACKED_TICK,
   walkRowsKey,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { frequencyKey } from '@jbrowse/bandage-core/nodeWidths'
-import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
-import {
-  LIFT_BACKDROP_CSS,
-  NOT_LOADED_CSS,
-  NOT_LOADED_FILL_CSS,
-  REFERENCE_RAMP_ALT_CSS,
-} from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import {
-  passesKey,
-  threadsPasses,
-} from '@jbrowse/bandage-core/renderer/walkLanes'
+import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
+import { abgrToCssRgba } from '@jbrowse/bandage-core/renderer/colorBits'
 import { deviationInk } from '@jbrowse/bandage-core/tubeMap/deviations'
 import {
   FORWARD_READ_COLORS,
   REVERSE_READ_COLORS,
 } from '@jbrowse/bandage-core/tubeMap/reads'
 import { encodingStops } from '@jbrowse/bandage-core/walkEncoding'
-import { fadedKey } from '@jbrowse/bandage-core/walkHighlight'
-import { walkKey } from '@jbrowse/bandage-core/walkKey'
 
 import { CALL_TOLERANCE } from './repeats/walkCalls'
 import { PANEL_REFERENCE_TUBE } from './tubeMapPanels'
@@ -47,6 +27,12 @@ import { COLORED_BLOCKS, blockFill, blockLetter } from './walkRowBlocks'
 import { EXPAND_NAMED_MAX } from '../GetSubgraph'
 
 import type { GraphPaneModel } from './model'
+import type {
+  GraphKeyEntry,
+  GraphKeySectionId,
+  GraphKeySwatch,
+  KeyStop,
+} from '@jbrowse/bandage-core/graphKey'
 import type { KeySwatch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 
@@ -56,16 +42,10 @@ import type { LiftedWalk } from '@jbrowse/bandage-core/walkHighlight'
 export const SWATCH_PX = 18
 const BAR_PX = 32
 
-// LIFT_BACKDROP_CSS reads paler alone than faded strokes do where they
-// overlap, so the key samples it darker
-const FADED_SWATCH = 'rgba(160, 160, 160, 0.45)'
-const DELETION_INK = '#18181c'
-
 const STRIP_SAMPLES = 6
 const TUBE_SWATCH_PX = 7
 const FOLD_TICK_BACKING = '#b8b8c0'
 const WALK_ROW_SWATCH_PX = WALK_ROW_BAR_PX - 4
-const LINK_INK = 'rgba(119, 119, 119, 0.85)'
 const LINE_PX = 15
 const CHIP_PX = 10
 
@@ -202,6 +182,79 @@ function bandStops(colors: readonly string[]) {
   ])
 }
 
+const css = abgrToCssRgba
+
+const cssStops = (stops: readonly KeyStop[]) =>
+  stops.map(({ offset, ink }) => ({ offset, color: css(ink) }))
+
+// bandage-core's swatch, drawn by LegendSwatch
+function legendSwatch(swatch: GraphKeySwatch): LegendSwatch {
+  switch (swatch.kind) {
+    case 'scale':
+      return { kind: 'fill', stops: cssStops(swatch.stops), width: BAR_PX }
+    case 'swatch':
+      return { kind: 'fill', stops: flat(css(swatch.ink)), width: SWATCH_PX }
+    case 'chip':
+      return {
+        kind: 'fill',
+        stops: flat(css(swatch.ink)),
+        width: CHIP_PX,
+        height: CHIP_PX,
+        edged: true,
+      }
+    case 'width':
+      return {
+        kind: 'fill',
+        stops: flat(css(swatch.ink)),
+        width: BAR_PX,
+        height: swatch.px,
+      }
+    case 'hollow':
+      return {
+        kind: 'fill',
+        stops: flat(css(swatch.ink)),
+        rim: css(swatch.rim),
+      }
+    case 'line':
+      return swatch.dashed
+        ? { kind: 'line', color: css(swatch.ink), dashed: true }
+        : { kind: 'line', color: css(swatch.ink), short: true }
+    case 'outline':
+      return {
+        kind: 'outline',
+        color: css(swatch.ink),
+        stroke: 2,
+        radius: 5,
+        height: 8,
+      }
+    case 'halo':
+      return { kind: 'halo', color: css(swatch.ink) }
+    case 'threads':
+      return { kind: 'threads' }
+    case 'overhang':
+      return { kind: 'overhang' }
+  }
+}
+
+export function keyRow(entry: GraphKeyEntry): LegendRow {
+  return {
+    key: entry.key,
+    label: entry.text,
+    ...(entry.swatch ? { swatch: legendSwatch(entry.swatch) } : {}),
+    ...(entry.strong === undefined ? {} : { strong: entry.strong }),
+    ...(entry.under === undefined ? {} : { under: entry.under }),
+    ...(entry.hover === undefined ? {} : { title: entry.hover }),
+    ...(entry.walk ? { walk: entry.walk } : {}),
+  }
+}
+
+// The rows of one section of bandage-core's key
+function keyRowsOf(model: GraphPaneModel, id: GraphKeySectionId) {
+  return (
+    model.graphKey.find(section => section.id === id)?.entries.map(keyRow) ?? []
+  )
+}
+
 function openBubbleRows(model: GraphPaneModel): LegendRow[] {
   const open = model.openBubble
   if (!open) {
@@ -217,29 +270,6 @@ function openBubbleRows(model: GraphPaneModel): LegendRow[] {
         : { kind: 'blank' },
       closesBubble: true,
     },
-  ]
-}
-
-// Under lifted walks each lane states its own scale, and the rest is grey
-function rampRows(model: GraphPaneModel): LegendRow[] {
-  const domain = model.walkLift ? undefined : model.referenceRampDomain
-  if (!domain) {
-    return []
-  }
-  // a measured domain runs between node midpoints, which can fall on a half bp
-  const start = Math.round(domain.start)
-  const end = Math.round(domain.end)
-  const reference = model.graph ? referenceLabel(model.graph) : 'reference'
-  return [
-    {
-      key: 'ramp',
-      label: `position on ${reference}`,
-      swatch: { kind: 'fill', stops: RAMP_GRADIENT_STOPS, width: BAR_PX },
-      under: `${start.toLocaleString('en-US')}-${end.toLocaleString('en-US')} (${formatBp(end - start)})`,
-    },
-    ...(model.referenceRampDrawsOffReference
-      ? [fillRow('off', REFERENCE_RAMP_ALT_CSS, 'off the reference')]
-      : []),
   ]
 }
 
@@ -293,50 +323,8 @@ function stripRows(model: GraphPaneModel): LegendRow[] {
           ),
         ]
       : []),
-    ...(model.referenceStripOverhangs
-      ? [
-          {
-            key: 'overhang',
-            label: 'graph runs past this edge',
-            swatch: { kind: 'overhang' } as const,
-          },
-        ]
-      : []),
+    ...keyRowsOf(model, 'overhang'),
   ]
-}
-
-// One row for the halos drawn, which name no kind of bubble
-function haloRows(model: GraphPaneModel): LegendRow[] {
-  return model.bubbleHalos.some(h => !h.whole)
-    ? [
-        {
-          key: 'halo',
-          label: 'bubble',
-          swatch: { kind: 'halo', color: BUBBLE_HALO_COLOR },
-        },
-      ]
-    : []
-}
-
-// The two marks a skip draws as: dashed, and one plain stroke where its span
-// on screen is too short to hold the dashes
-function deletionRows(model: GraphPaneModel): LegendRow[] {
-  const { graph } = model
-  const color = model.walkLift ? FADED_SWATCH : DELETION_INK
-  return graph && dashedDeletions(model.deletions, model.walkLift).length > 0
-    ? [
-        {
-          key: 'deletion',
-          label: deletionKey(referenceLabel(graph)),
-          swatch: { kind: 'line', color, dashed: true },
-        },
-        {
-          key: 'short-skip',
-          label: SHORT_SKIP_KEY,
-          swatch: { kind: 'line', color, short: true },
-        },
-      ]
-    : []
 }
 
 function tubeMapNoteRows(model: GraphPaneModel): LegendRow[] {
@@ -344,129 +332,6 @@ function tubeMapNoteRows(model: GraphPaneModel): LegendRow[] {
     ? tubeMapNote(model.graph)
     : undefined
   return note ? [{ key: 'tube-not-shown', label: note }] : []
-}
-
-// A node layout draws a run of a walk's steps the cut did not fetch as a
-// hollow node
-function notShownRows(model: GraphPaneModel): LegendRow[] {
-  return model.drawsNodes &&
-    !model.layoutResult?.tubeMap &&
-    model.graph?.nodes.some(node => node.placeholder)
-    ? [
-        {
-          key: 'not-shown',
-          label: NOT_LOADED_TEXT,
-          swatch: {
-            kind: 'fill',
-            stops: flat(NOT_LOADED_FILL_CSS),
-            rim: NOT_LOADED_CSS,
-          },
-        },
-      ]
-    : []
-}
-
-function thicknessRow(
-  key: string,
-  label: string,
-  px: number,
-  color: string,
-): LegendRow {
-  return {
-    key,
-    label,
-    swatch: { kind: 'fill', stops: flat(color), width: BAR_PX, height: px },
-  }
-}
-
-const roundDepth = (depth: number) =>
-  depth >= 10 ? Math.round(depth) : Math.round(depth * 10) / 10
-
-// What a node's thickness counts, with bars as thick as the drawing makes
-// the thickest and the thinnest node
-function nodeWidthRows(model: GraphPaneModel): LegendRow[] {
-  const { graph, contigThickness: px } = model
-  if (!graph || !model.drawsNodes || model.walkRowBars) {
-    return []
-  }
-  if (model.nodeWidth === 'frequency') {
-    const tagged = graph.nodes.some(n => n.frequency !== undefined)
-    return frequencyKey(px).map(({ label, widthPx }) =>
-      thicknessRow(
-        `width-${label}`,
-        tagged ? `AF ${label}` : `${label} of haplotypes`,
-        widthPx,
-        REFERENCE_RAMP_ALT_CSS,
-      ),
-    )
-  }
-  if (model.nodeWidth !== 'depth') {
-    return []
-  }
-  const walkCount = graph.paths?.length ?? 0
-  const walks = walkCount > 0
-  const key = model.depthKey
-  // a walk looping through a repeat passes its nodes more than once, and
-  // each pass counts
-  const passes = (key[0]?.depth ?? 0) > walkCount
-  const counted = (n: number) =>
-    passes
-      ? `${n.toLocaleString('en-US')} walk pass${n === 1 ? '' : 'es'}`
-      : `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`
-  return key.map(({ depth, widthPx }, i) => {
-    const shown = walks ? Math.round(depth) : roundDepth(depth)
-    return thicknessRow(
-      i === 0 ? 'width-thickest' : 'width-thinnest',
-      walks ? counted(shown) : `depth ${shown.toLocaleString('en-US')}`,
-      widthPx,
-      REFERENCE_RAMP_ALT_CSS,
-    )
-  })
-}
-
-function linkWidthRows(model: GraphPaneModel): LegendRow[] {
-  const busiest = model.busiestLink
-  if (
-    !model.drawsNodes ||
-    model.walkRowBars ||
-    model.linkWidth !== 'walks' ||
-    busiest === 0
-  ) {
-    return []
-  }
-  const counts = busiest > 1 ? [busiest, 1] : [1]
-  return counts.map(n =>
-    thicknessRow(
-      `link-width-${n}`,
-      `${n.toLocaleString('en-US')} walk${n === 1 ? '' : 's'}`,
-      model.connectorThickness * edgeWidthFactor(n, busiest, 'walks'),
-      LINK_INK,
-    ),
-  )
-}
-
-function geneRows(model: GraphPaneModel): LegendRow[] {
-  return model.genePins.some(pin => pin.exonsByNode.length > 0)
-    ? [
-        {
-          key: 'exon',
-          label: 'exon',
-          swatch: {
-            kind: 'outline',
-            color: EXON_COLOR,
-            stroke: 2,
-            radius: 5,
-            height: 8,
-          },
-        },
-      ]
-    : []
-}
-
-function compressedRows(model: GraphPaneModel): LegendRow[] {
-  return model.layoutResult?.compressed
-    ? [{ key: 'compressed', label: COMPRESSED_KEY }]
-    : []
 }
 
 function foldRows(model: GraphPaneModel): LegendRow[] {
@@ -687,111 +552,38 @@ function walkRowsRows(model: GraphPaneModel): LegendRow[] {
 
 // One lifted walk's key: a swatch, or a short bar of the scale its lane
 // shades by, then its name, with the scale's stretch under it
-export function walkKeyRow(model: GraphPaneModel, walk: LiftedWalk): LegendRow {
-  const key = walkKey(walk, model.walkReference)
-  return {
-    key: `walk-${walk.name}`,
-    strong: model.walkLabel(walk.name),
-    label: key.gaps,
-    swatch: {
-      kind: 'fill',
-      stops: encodingStops(walk.encoding),
-      width: key.shades ? BAR_PX : SWATCH_PX,
-    },
-    under: key.scale,
-    title: key.hover,
-    walk,
-  }
-}
-
-// The off-reference colour, where the lift paints it, and the faded rest.
-// rampRows draws no key while walks are lifted, so these rows name both.
-function fadedRows(model: GraphPaneModel, faded: string): LegendRow[] {
-  return [
-    ...(model.liftPaintsOffReference
-      ? [fillRow('lift-off', REFERENCE_RAMP_ALT_CSS, 'off the reference')]
-      : []),
-    fillRow('faded', FADED_SWATCH, faded),
-  ]
-}
-
-// Each lifted walk's key, then what the faded rest is
-function walkReadoutRows(model: GraphPaneModel): LegendRow[] {
-  const lift = model.walkLift
-  if (!lift || model.facetPanels) {
-    return []
-  }
-  const rows = lift.walks.map(w => walkKeyRow(model, w))
-  const faded = model.graph
-    ? fadedKey(model.graph, lift, model.liftedWalksLabel)
-    : `not on ${model.liftedWalksLabel}`
-  return [
-    ...rows,
-    ...fadedRows(model, faded),
-    ...(threadsPasses(lift.walks)
-      ? [
-          {
-            key: 'walk-passes',
-            label: passesKey(lift.walks),
-            swatch: { kind: 'threads' as const },
-          },
-        ]
-      : []),
-  ]
+export function walkKeyRow(model: GraphPaneModel, walk: LiftedWalk) {
+  return keyRow(
+    walkKeyEntry(walk, model.walkLabel(walk.name), model.walkReference),
+  )
 }
 
 // The faceted pane's one key line under its panels: each panel's title keys
-// its walk, so this keys only what every panel greys
-export function facetKeyRows(model: GraphPaneModel): LegendRow[] {
-  const { graph, facetPanels } = model
-  if (!graph || !facetPanels) {
-    return []
-  }
-  const keys = new Set(
-    facetPanels.map(panel => fadedKey(graph, panel, "the panel's walk")),
-  )
-  return [
-    ...fadedRows(
-      model,
-      keys.size === 1 ? [...keys][0]! : "not on the panel's walk",
-    ),
-    ...deletionRows(model),
-  ]
+// its walk, so this keys only what every panel greys and the skips
+export function facetKeyRows(model: GraphPaneModel) {
+  return model.facetPanels
+    ? [...keyRowsOf(model, 'walks'), ...keyRowsOf(model, 'skips')]
+    : []
 }
 
 // The keys in the order the panel stacks them, top first, each under its
 // group's heading once the key holds more than one group
 export function legendSections(model: GraphPaneModel): LegendSection[] {
+  const core = (testid: string, id: GraphKeySectionId, group?: string) => ({
+    testid,
+    rows: model.facetPanels && id === 'walks' ? [] : keyRowsOf(model, id),
+    group,
+  })
   const sections: LegendSection[] = [
     { testid: 'graph-open-bubble-legend', rows: openBubbleRows(model) },
-    { testid: 'graph-ramp-legend', rows: rampRows(model), group: 'Color' },
-    {
-      testid: 'graph-walk-readout',
-      rows: walkReadoutRows(model),
-      group: 'Walks',
-    },
-    {
-      testid: 'graph-width-legend',
-      rows: nodeWidthRows(model),
-      group: 'Node thickness',
-    },
-    {
-      testid: 'graph-link-width-legend',
-      rows: linkWidthRows(model),
-      group: 'Link thickness',
-    },
-    { testid: 'graph-halo-legend', rows: haloRows(model), group: 'Marks' },
-    {
-      testid: 'graph-deletion-legend',
-      rows: deletionRows(model),
-      group: 'Marks',
-    },
-    {
-      testid: 'graph-not-shown-legend',
-      rows: notShownRows(model),
-      group: 'Marks',
-    },
-    { testid: 'graph-gene-legend', rows: geneRows(model), group: 'Marks' },
+    core('graph-ramp-legend', 'ramp', 'Color'),
+    core('graph-walk-readout', 'walks', 'Walks'),
+    core('graph-width-legend', 'node-width', 'Node thickness'),
+    core('graph-link-width-legend', 'link-width', 'Link thickness'),
+    core('graph-halo-legend', 'halo', 'Marks'),
+    core('graph-deletion-legend', 'skips', 'Marks'),
+    core('graph-not-shown-legend', 'not-shown', 'Marks'),
+    core('graph-gene-legend', 'exon', 'Marks'),
     { testid: 'graph-path-legend', rows: pathRows(model), group: 'Paths' },
     {
       testid: 'graph-tube-map-legend',
@@ -808,7 +600,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
       rows: stripRows(model),
       group: 'Top strip',
     },
-    { testid: 'graph-compressed-legend', rows: compressedRows(model) },
+    core('graph-compressed-legend', 'compressed'),
     { testid: 'graph-fold-legend', rows: foldRows(model) },
   ].filter(section => section.rows.length > 0)
   const groups = new Set(sections.flatMap(section => section.group ?? []))

@@ -1,5 +1,9 @@
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
+import {
+  abgrToCssRgba,
+  hexAbgr,
+} from '@jbrowse/bandage-core/renderer/colorBits'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { legendSections } from './legendSections'
@@ -418,7 +422,10 @@ describe('opening a bubble', () => {
       {
         key: 'halo',
         label: 'bubble',
-        swatch: { kind: 'halo', color: BUBBLE_HALO_COLOR },
+        swatch: {
+          kind: 'halo',
+          color: abgrToCssRgba(hexAbgr(BUBBLE_HALO_COLOR)),
+        },
       },
     ])
     model.setLayer('bubbles', false)

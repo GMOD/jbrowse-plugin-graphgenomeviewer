@@ -1,4 +1,5 @@
 import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
+import { graphKey } from '@jbrowse/bandage-core/graphKey'
 
 import {
   legendSections,
@@ -10,6 +11,8 @@ import {
 } from './legendSections'
 
 import type { GraphPaneModel } from './model'
+import type { GraphKeyOptions } from '@jbrowse/bandage-core/graphKey'
+import type { Graph } from '@jbrowse/bandage-core/types'
 
 function labels(readsShown: { shown: number; total: number } | undefined) {
   const model = {
@@ -37,6 +40,45 @@ test('a read set drawn whole says nothing of its count', () => {
   expect(labels({ shown: 40, total: 40 }).join()).not.toMatch(/reads shown/)
 })
 
+// A pane model holding bandage-core's key for `graph`, as model.graphKey
+// builds it
+function keyModel(
+  graph: Graph,
+  options: Partial<GraphKeyOptions> = {},
+  layout: { compressed?: true } = {},
+) {
+  return {
+    walkLift: undefined,
+    bubbleHalos: [],
+    pathLegend: [],
+    tubeMapKeys: {},
+    graphKey: graphKey(graph, layout, {
+      skips: { dashed: false, short: false },
+      ...options,
+    }),
+  } as unknown as GraphPaneModel
+}
+
+const node = (id: string, depth: number) => ({
+  id,
+  name: id,
+  length: 10,
+  depth,
+})
+
+const DEPTHS: Graph = {
+  nodes: [node('a', 1), node('b', 26)],
+  edges: [{ from: 'a', to: 'b', pathIds: ['p', 'q'] }],
+  paths: Array.from({ length: 26 }, (_, i) => ({
+    name: `w${i}`,
+    nodeIds: ['a'],
+  })),
+}
+
+function rowsOf(model: GraphPaneModel, testid: string) {
+  return legendSections(model).find(s => s.testid === testid)?.rows
+}
+
 // toLocaleString with no locale writes 1.000 for a German viewer
 test("the ramp key's bp read the same in every locale", () => {
   const format = Number.prototype.toLocaleString
@@ -45,152 +87,58 @@ test("the ramp key's bp read the same in every locale", () => {
     .mockImplementation(function (this: number, locales, options) {
       return format.call(this, locales ?? 'de-DE', options)
     })
-  const model = {
-    walkLift: undefined,
-    referenceRampDomain: { start: 999.5, end: 123_456.5 },
-    referenceRampDrawsOffReference: false,
-    bubbleHalos: [],
-    genePins: [],
-    pathLegend: [],
-    tubeMapKeys: {},
-  }
-  const [ramp] = legendSections(model as unknown as GraphPaneModel)
+  const model = keyModel(
+    { nodes: [], edges: [] },
+    {
+      referenceRamp: { start: 999.5, span: 122_457, midpoints: new Map() },
+    },
+  )
+  const [ramp] = legendSections(model)
   german.mockRestore()
-  expect(ramp!.rows[0]!.under).toBe('1,000-123,457 (122 kb)')
+  expect(ramp!.rows[0]!.under).toBe('1,001-123,457 (122 kb)')
 })
 
-function widthModel(over: Record<string, unknown>) {
-  return {
-    walkLift: undefined,
-    referenceRampDomain: undefined,
-    bubbleHalos: [],
-    genePins: [],
-    pathLegend: [],
-    tubeMapKeys: {},
-    deletions: [],
-    graph: {
-      nodes: [{ depth: 1 }, { depth: 26 }],
-      edges: [],
-      paths: Array.from({ length: 26 }, () => ({})),
-    },
-    drawsNodes: true,
-    walkRowBars: undefined,
-    nodeWidth: 'depth',
-    contigThickness: 6,
-    depthKey: [
-      { depth: 26, widthPx: 11 },
-      { depth: 1, widthPx: 2 },
-    ],
-    linkWidth: 'uniform',
-    connectorThickness: 2,
-    busiestLink: 26,
-    ...over,
-  } as unknown as GraphPaneModel
-}
-
-function widthLegend(
-  over: Record<string, unknown>,
-  testid = 'graph-width-legend',
-) {
-  return legendSections(widthModel(over)).find(s => s.testid === testid)?.rows
-}
-
-test('the key says node lengths are not to scale where the layout compressed them', () => {
-  const rows = (over: { compressed?: true }) =>
-    widthLegend(
-      { layoutResult: { nodePositions: {}, ...over } },
-      'graph-compressed-legend',
-    )
-  expect(rows({ compressed: true })!.map(r => r.label)).toEqual([
+test("the legend draws bandage-core's key, each section under the plugin's testid", () => {
+  const model = keyModel(DEPTHS, { edgeWidth: 'walks' }, { compressed: true })
+  expect(rowsOf(model, 'graph-width-legend')!.map(r => r.label)).toEqual([
+    '26 walks',
+    '1 walk',
+  ])
+  expect(
+    rowsOf(model, 'graph-width-legend')!.map(r => swatchHeight(r.swatch!)),
+  ).toEqual(
+    model.graphKey[0]!.entries.map(e =>
+      e.swatch?.kind === 'width' ? e.swatch.px : 0,
+    ),
+  )
+  expect(rowsOf(model, 'graph-link-width-legend')!.map(r => r.label)).toEqual([
+    '2 walks',
+    '1 walk',
+  ])
+  expect(rowsOf(model, 'graph-compressed-legend')!.map(r => r.label)).toEqual([
     COMPRESSED_KEY,
   ])
-  expect(rows({})).toBeUndefined()
-})
-
-// GSTM1's key read 9, 6 and 1 walks, its middle bar the mean depth, which no
-// node need have
-test("the width key names what node thickness counts at the scale's two ends, thickest first", () => {
-  const rows = widthLegend({})!
-  expect(rows.map(r => r.label)).toEqual(['26 walks', '1 walk'])
-  expect(rows.map(r => swatchHeight(r.swatch!))).toEqual([11, 2])
-})
-
-test('a walk count reads whole, a depth without walks to the tenth', () => {
-  const unwalked = { nodes: [], edges: [], paths: [] }
-  expect(
-    widthLegend({
-      graph: unwalked,
-      depthKey: [
-        { depth: 2.46, widthPx: 7 },
-        { depth: 1, widthPx: 4 },
-      ],
-    })!.map(r => r.label),
-  ).toEqual(['depth 2.5', 'depth 1'])
-})
-
-test('a node a walk loops through keys passes, not walks', () => {
-  const looped = { nodes: [], edges: [], paths: [{}, {}, {}] }
-  expect(
-    widthLegend({
-      graph: looped,
-      depthKey: [
-        { depth: 9, widthPx: 9 },
-        { depth: 1, widthPx: 3 },
-      ],
-    })!.map(r => r.label),
-  ).toEqual(['9 walk passes', '1 walk pass'])
 })
 
 test('colour keys are square chips, unlike the thickness bars', () => {
-  const model = {
-    walkLift: undefined,
-    graph: undefined,
-    referenceRampDomain: { start: 0, end: 1000 },
-    referenceRampDrawsOffReference: true,
-    bubbleHalos: [],
-    genePins: [],
-    pathLegend: [],
-    tubeMapKeys: {},
-  }
-  const [ramp] = legendSections(model as unknown as GraphPaneModel)
+  const model = keyModel(
+    { nodes: [node('x', 1)], edges: [] },
+    { referenceRamp: { start: 0, span: 1000, midpoints: new Map() } },
+  )
+  const [ramp] = legendSections(model)
   const off = ramp!.rows.find(r => r.key === 'off')!.swatch!
   expect(swatchWidth(off)).toBe(swatchHeight(off))
 })
 
-test('a frequency width keys shares of haplotypes, or AF where tagged', () => {
-  expect(widthLegend({ nodeWidth: 'frequency' })!.map(r => r.label)).toEqual([
-    '100% of haplotypes',
-    '50% of haplotypes',
-    '10% of haplotypes',
-  ])
-  const tagged = { nodes: [{ depth: 1, frequency: 0.4 }], edges: [] }
-  expect(
-    widthLegend({ nodeWidth: 'frequency', graph: tagged })![0]!.label,
-  ).toBe('AF 100%')
-})
-
-test('uniform widths, or one depth everywhere, draw no width key', () => {
-  expect(widthLegend({ nodeWidth: 'uniform' })).toBeUndefined()
-  expect(widthLegend({ depthKey: [] })).toBeUndefined()
-})
-
-test('links by walks key the busiest link and a single walk', () => {
-  const rows = widthLegend(
-    { nodeWidth: 'uniform', linkWidth: 'walks' },
-    'graph-link-width-legend',
-  )!
-  expect(rows.map(r => r.label)).toEqual(['26 walks', '1 walk'])
-})
-
 test('a key of several groups heads each once, a key of one stays bare', () => {
-  const both = legendSections(widthModel({ linkWidth: 'walks' }))
+  const both = legendSections(keyModel(DEPTHS, { edgeWidth: 'walks' }))
   expect(both.map(s => s.heading)).toEqual(['Node thickness', 'Link thickness'])
-  const one = legendSections(widthModel({}))
+  const one = legendSections(keyModel(DEPTHS))
   expect(one.map(s => s.heading)).toEqual([undefined])
 })
 
 test('every row of a key shares one pitch, roomy enough for its tallest', () => {
-  const rows = widthLegend({})!
+  const rows = rowsOf(keyModel(DEPTHS), 'graph-width-legend')!
   for (const row of rows) {
     expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(row.swatch!) + 2)
   }

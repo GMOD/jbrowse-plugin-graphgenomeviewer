@@ -127,6 +127,12 @@ function attachedView(snapshot: Record<string, unknown> = {}) {
   }).view
 }
 
+// whether the key names the charcoal the ramp paints off the reference
+const keysOff = (model: ReturnType<typeof createView>) =>
+  model.graphKey.some(section =>
+    section.entries.some(entry => entry.key === 'off'),
+  )
+
 function answerCutsWith(cut: unknown) {
   mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
     method === 'GetSubgraph'
@@ -722,7 +728,7 @@ describe('reads', () => {
     const drawn = model.tubeMapPicture!.nodes.map(n => n.name)
     const h0 = model.graph!.nodes.find(n => n.name === 'h0')!
     expect(drawn).not.toContain(h0.id)
-    expect(model.referenceRampDrawsOffReference).toBe(false)
+    expect(keysOff(model)).toBe(false)
   })
 
   // a chain of six alleles runs past the flanking walk's reach, which once
@@ -761,7 +767,7 @@ describe('reads', () => {
       })
       await model.load()
 
-      expect(model.referenceRampDrawsOffReference).toBe(keyed)
+      expect(keysOff(model)).toBe(keyed)
     },
   )
 
