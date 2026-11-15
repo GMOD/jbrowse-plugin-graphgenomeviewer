@@ -1,3 +1,5 @@
+import { deletionEdges } from '@jbrowse/bandage-core/deletionEdges'
+import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { render, screen } from '@testing-library/react'
 
 import HoverTooltip from './HoverTooltip'
@@ -81,4 +83,43 @@ test('a backbone node reads its own location only', () => {
       hoveredSpan: { start: 1000, end: 2000 },
     }),
   ).toEqual(['s7 — 1,000 bp, depth 1.0GRCh38 chr6:1,001-2,000 (rank 0)'])
+})
+
+// HG002 takes the 1 to 3 link past node 2, 50 bp of GRCh38 chr1
+const SKIP_GFA = [
+  'H\tVN:Z:1.1',
+  `S\t1\t${'A'.repeat(100)}`,
+  `S\t2\t${'C'.repeat(50)}`,
+  `S\t3\t${'G'.repeat(100)}`,
+  'L\t1\t+\t2\t+\t0M',
+  'L\t2\t+\t3\t+\t0M',
+  'L\t1\t+\t3\t+\t0M',
+  'W\tGRCh38\t0\tchr1\t0\t250\t>1>2>3',
+  'W\tHG002\t1\tchr1\t0\t200\t>1>3',
+].join('\n')
+
+test('a link skipping reference sequence says the bp it skips of the named reference, and names no event', () => {
+  const graph = loadGraph(SKIP_GFA, 'skip', { referencePath: 'GRCh38#0#chr1' })
+  const deletions = deletionEdges(graph)
+  const hoveredEdge = deletions[0]!.edgeIndex
+  render(
+    <HoverTooltip
+      model={
+        {
+          hoveredNode: null,
+          hoveredEdge,
+          hoveredWalkRowText: undefined,
+          hoveredTubeText: undefined,
+          tooltipRightPx: 8,
+          graph,
+          deletions,
+        } as unknown as GraphPaneModel
+      }
+      chip={undefined}
+    />,
+  )
+  expect(screen.getByText(/^skips/).textContent).toBe(
+    'skips 50 bp of GRCh38 chr1 sequenceGRCh38#0#chr1:101-150',
+  )
+  expect(screen.queryByText(/Deletion/)).toBeNull()
 })

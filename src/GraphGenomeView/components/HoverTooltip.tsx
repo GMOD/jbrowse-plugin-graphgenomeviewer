@@ -6,6 +6,7 @@ import {
   placeholderHoverText,
   regionLabel,
 } from '@jbrowse/bandage-core/hoverText'
+import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import { observer } from 'mobx-react'
 
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
@@ -105,12 +106,13 @@ function hoverTip(
       model.deletions.find(d => d.edgeIndex === model.hoveredEdge),
       id => model.nodeById?.get(id)?.name ?? id,
     )
-    // a deletion edge skips backbone that some haplotype lacks, so its
-    // readout gives the bp skipped
+    // a link that skips reference sequence says how much, naming the
+    // reference as the key does, and no event
+    const reference = model.graph ? referenceLabel(model.graph) : undefined
     return {
       body: text.deletion ? (
         <>
-          <strong>Deletion</strong> {text.deletion.bp}
+          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence`}
           <br />
           {text.deletion.where}
         </>
