@@ -786,6 +786,7 @@ const WALK_TABLES: GraphTables = {
     reversed: new Uint8Array(9),
   },
   departures: departureTable(),
+  revisited: 0,
 }
 
 describe('a walk-file cut', () => {
