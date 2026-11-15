@@ -1,8 +1,5 @@
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import {
-  BUBBLE_KIND_COLORS,
-  BUBBLE_KIND_NAMES,
-} from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import {
   dashedDeletions,
   deletionKey,
@@ -206,7 +203,7 @@ function openBubbleRows(model: GraphPaneModel): LegendRow[] {
       key: 'open',
       label: `open: ${halo?.label ?? 'bubble'}`,
       swatch: halo
-        ? { kind: 'halo', color: BUBBLE_KIND_COLORS[halo.kind] }
+        ? { kind: 'halo', color: BUBBLE_HALO_COLOR }
         : { kind: 'blank' },
       closesBubble: true,
     },
@@ -298,26 +295,17 @@ function stripRows(model: GraphPaneModel): LegendRow[] {
   ]
 }
 
-// One row per halo colour drawn, naming the kinds it stands for
+// One row for the halos drawn, which name no kind of bubble
 function haloRows(model: GraphPaneModel): LegendRow[] {
-  const kindsByColor = new Map<string, Set<string>>()
-  for (const h of model.bubbleHalos) {
-    if (!h.whole) {
-      const color = BUBBLE_KIND_COLORS[h.kind]
-      const kinds = kindsByColor.get(color) ?? new Set<string>()
-      kinds.add(BUBBLE_KIND_NAMES[h.kind])
-      kindsByColor.set(color, kinds)
-    }
-  }
-  return [...kindsByColor].map(([color, kinds]) => {
-    const names = [...kinds].join(' or ')
-    return {
-      key: `halo-${color}`,
-      label:
-        names === BUBBLE_KIND_NAMES.superbubble ? names : `${names} bubble`,
-      swatch: { kind: 'halo', color },
-    }
-  })
+  return model.bubbleHalos.some(h => !h.whole)
+    ? [
+        {
+          key: 'halo',
+          label: 'bubble',
+          swatch: { kind: 'halo', color: BUBBLE_HALO_COLOR },
+        },
+      ]
+    : []
 }
 
 function deletionRows(model: GraphPaneModel): LegendRow[] {
@@ -687,7 +675,7 @@ export function walkKeyRow(model: GraphPaneModel, walk: LiftedWalk): LegendRow {
   return {
     key: `walk-${walk.name}`,
     strong: model.walkLabel(walk.name),
-    label: key.delta + key.gaps + key.reversed,
+    label: key.gaps,
     swatch: {
       kind: 'fill',
       stops: encodingStops(walk.encoding),

@@ -1,3 +1,5 @@
+import { LABEL_DEFAULTS } from '@jbrowse/bandage-core/graphLabels'
+
 import { isRecord } from '../isRecord'
 
 // What a drawing adds over its nodes and edges:
@@ -6,6 +8,7 @@ import { isRecord } from '../isRecord'
 //   Off by default, since on a base-level cut every SNP's halo is a blob
 // - `deletions`: an edge for each walk that skips reference
 // - `genes`: the session's genes, exons along the nodes that carry them
+// - `lengths`: each node's length written on it, where it fits
 // - `referenceStrip`: reference segments at their bp, over a drawing in its
 //   own coordinates inside a linear view
 // - `walkStrip`: walk rows under a node layout, linked to the drawing
@@ -18,6 +21,7 @@ export type GraphLayer =
   | 'bubbles'
   | 'deletions'
   | 'genes'
+  | 'lengths'
   | 'referenceStrip'
   | 'walkStrip'
   | 'walkRibbons'
@@ -28,6 +32,7 @@ const DEFAULTS: Record<GraphLayer, boolean> = {
   bubbles: false,
   deletions: true,
   genes: true,
+  lengths: LABEL_DEFAULTS.nodeLengths,
   referenceStrip: true,
   walkStrip: false,
   walkRibbons: false,

@@ -1,5 +1,5 @@
 import { bubbleKey, sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { BUBBLE_KIND_COLORS } from '@jbrowse/bandage-core/bubbles/classifyBubble'
+import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { geneCoverageNote, geneLeader } from '@jbrowse/bandage-core/labelLayout'
 import { labelWidth } from '@jbrowse/bandage-core/overlayLabels'
@@ -119,7 +119,7 @@ const LabelLayer = observer(function LabelLayer({
             width={TICK_WIDTH}
             height={TICK_PX}
             rx={TICK_WIDTH / 2}
-            fill={BUBBLE_KIND_COLORS[h.kind]}
+            fill={BUBBLE_HALO_COLOR}
             opacity={dimmedBubble(h) ? 0.35 : 1}
             style={{ pointerEvents: 'all', cursor: 'pointer' }}
           />
@@ -164,7 +164,7 @@ const LabelLayer = observer(function LabelLayer({
           y={y}
           w={w}
           text={text}
-          color={BUBBLE_KIND_COLORS[h.kind]}
+          color={BUBBLE_HALO_COLOR}
           dimmed={dimmedBubble(h)}
           title={`${h.label}\n${h.bubble.segmentCount} segments${h.bubble.covering ? '' : isOpen(h) ? ' · click to close' : ' · click to open'}`}
           testId="graph-bubble-halo-label"
@@ -190,7 +190,7 @@ const LabelLayer = observer(function LabelLayer({
           y={hoveredTick.y - TICK_PX - 4}
           w={labelWidth(hoveredTick.item.label)}
           text={hoveredTick.item.label}
-          color={BUBBLE_KIND_COLORS[hoveredTick.item.kind]}
+          color={BUBBLE_HALO_COLOR}
           testId="graph-bubble-tick-label"
         />
       ) : null}

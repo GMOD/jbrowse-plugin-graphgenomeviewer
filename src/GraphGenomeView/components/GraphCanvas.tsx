@@ -15,7 +15,6 @@ import HoverTooltip from './HoverTooltip'
 import LabelLayer from './LabelLayer'
 import { LegendPanel } from './Legend'
 import PaneContextMenu from './PaneContextMenu'
-import { PaneSvgLayer } from './PaneLayer'
 import ReferenceStripOverlay from './ReferenceStripOverlay'
 import TubeMapOverlay from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
@@ -141,13 +140,6 @@ const nodeLabelStyle = {
   zIndex: 3,
 }
 
-// Matches EDGE_DELETION_COLOR, so the words and the arc they name are one thing.
-const deletionLabelStyle = {
-  ...nodeLabelStyle,
-  color: '#18181c',
-  fontWeight: 600,
-}
-
 // Measures itself for the model, so no label is placed under a legend and
 // none gives way to one that is not drawn.
 //
@@ -207,53 +199,23 @@ export const Legends = observer(function Legends({
   )
 })
 
-// Writes each drawn thing's size onto it, which is what Bandage's Length label
-// does and what the tooltip alone could not: a graph you have to hover to read
-// is a graph nobody reads. graphLabels applies the same transform the canvas
-// draws with — so a label tracks its node across pan and zoom — and decides
-// which labels fit; this only paints them, mounted in the canvas's own
-// positioning context for the reason RowLabels is.
+// Writes each node's length onto it, which is what Bandage's Length label does.
+// graphLabels applies the same transform the canvas draws with, so a label
+// tracks its node across pan and zoom, and decides which labels fit; this only
+// paints them, mounted in the canvas's own positioning context for the reason
+// RowLabels is.
 const GraphSizeLabels = observer(function GraphSizeLabels({
   model,
 }: {
   model: GraphPaneModel
 }) {
-  const labels = model.overlayLabels.sizes
-  // A label too wide for the arc it names is placed clear of it and tethered
-  // back; nothing else in the drawing carries one.
-  const leaders = labels.flatMap(({ key, leader }) =>
-    leader ? [{ key, ...leader }] : [],
-  )
   return (
     <>
-      {/* under the labels (z 3), so a leader runs beneath the text it points
-          from; the placement culls a label past the canvas edge, so the
-          layer leaves overflow visible */}
-      {leaders.length > 0 ? (
-        <PaneSvgLayer model={model} zIndex={2} overflow="visible">
-          {leaders.map(({ key, arcX, arcY, labelX, labelY }) => (
-            <line
-              key={key}
-              data-testid="graph-label-leader"
-              x1={arcX}
-              y1={arcY}
-              x2={labelX}
-              y2={labelY}
-              stroke="#18181c"
-              strokeWidth={1}
-            />
-          ))}
-        </PaneSvgLayer>
-      ) : null}
-      {labels.map(({ key, text, x, y, kind }) => (
+      {model.overlayLabels.sizes.map(({ key, text, x, y }) => (
         <div
           key={key}
           data-testid="graph-size-label"
-          style={{
-            ...(kind === 'deletion' ? deletionLabelStyle : nodeLabelStyle),
-            left: x,
-            top: y,
-          }}
+          style={{ ...nodeLabelStyle, left: x, top: y }}
         >
           {text}
         </div>

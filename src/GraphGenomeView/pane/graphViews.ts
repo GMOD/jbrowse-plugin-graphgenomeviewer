@@ -580,6 +580,9 @@ export const withGraphViews = paneBase
     get labelsNodeSizes() {
       return !self.layoutResult?.tubeMap && !this.walkLift
     },
+    get nodeLengthLabels() {
+      return self.layerSet.has('lengths')
+    },
     // Deletions the layout found inside an allele, empty rather than
     // undefined: a layout drawn at sequence scale states none, because there
     // a node's drawn extent already IS its length. `deletions` beside

@@ -355,6 +355,7 @@ export const withLaunchActions = withRenderingActions
       return [
         layerItem('Show bubble halos', 'bubbles'),
         layerItem('Show deletion edges', 'deletions'),
+        layerItem('Show node lengths', 'lengths'),
         {
           label: 'Hover highlight',
           subMenu: radioItems(

@@ -1,5 +1,7 @@
+import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/classifyBubble'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
+import { legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import {
   MOCK_LAYOUT,
@@ -406,7 +408,16 @@ describe('opening a bubble', () => {
         h.path.startsWith('M'),
         h.tick,
       ]),
-    ).toEqual([['≤4 bp ins', 1, true, true]])
+    ).toEqual([['0–4 bp, 2 routes', 1, true, true]])
+    expect(
+      legendSections(model).find(s => s.testid === 'graph-halo-legend')?.rows,
+    ).toEqual([
+      {
+        key: 'halo',
+        label: 'bubble',
+        swatch: { kind: 'halo', color: BUBBLE_HALO_COLOR },
+      },
+    ])
     model.setLayer('bubbles', false)
     expect(model.bubbleHalos).toEqual([])
   })

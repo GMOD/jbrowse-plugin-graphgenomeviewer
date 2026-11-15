@@ -250,14 +250,12 @@ function Chip({
   text,
   fontSize,
   anchor,
-  bold,
 }: {
   x: number
   y: number
   text: string
   fontSize: number
   anchor: 'start' | 'middle'
-  bold?: boolean
 }) {
   const w = text.length * fontSize * 0.56 + 6
   const left = anchor === 'middle' ? x - w / 2 : x - 3
@@ -277,7 +275,6 @@ function Chip({
         y={y + fontSize * 0.35}
         textAnchor={anchor}
         fontSize={fontSize}
-        fontWeight={bold ? 600 : undefined}
         fill="#18181c"
       >
         {text}
@@ -286,31 +283,13 @@ function Chip({
   )
 }
 
-// The node and deletion lengths written on the drawing, with their leaders
+// The node lengths written on the drawing
 // eslint-disable-next-line no-restricted-syntax -- drawn inside a frozen SVG figure
 function SizeLabels({ model }: { model: GraphPaneModel }) {
   return (
     <g fontFamily={FONT.fontFamily}>
-      {model.overlayLabels.sizes.map(({ key, text, x, y, kind, leader }) => (
-        <g key={key}>
-          {leader ? (
-            <line
-              x1={leader.arcX}
-              y1={leader.arcY}
-              x2={leader.labelX}
-              y2={leader.labelY}
-              stroke="#18181c"
-            />
-          ) : null}
-          <Chip
-            x={x}
-            y={y}
-            text={text}
-            fontSize={10}
-            anchor="middle"
-            bold={kind === 'deletion'}
-          />
-        </g>
+      {model.overlayLabels.sizes.map(({ key, text, x, y }) => (
+        <Chip key={key} x={x} y={y} text={text} fontSize={10} anchor="middle" />
       ))}
     </g>
   )
