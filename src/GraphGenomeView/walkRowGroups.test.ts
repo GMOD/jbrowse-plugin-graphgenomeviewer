@@ -260,9 +260,7 @@ describe('panning the trees', () => {
       ...pitch,
     }
     const keyOf = (comparing: boolean) =>
-      walkRowTreesPanKey(drawn, place.rowY, frame, { comparing }).split(
-        ' start ',
-      )
+      walkRowTreesPanKey(drawn, place.rowY, frame, { comparing }).split('\t')
     expect(keyOf(true)[1]).toBe(keyOf(false)[1])
     expect(keyOf(true)[2]).not.toBe(keyOf(false)[2])
     expect(keyOf(true)[2]).toContain('· not compared')
