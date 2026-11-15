@@ -210,7 +210,7 @@ describe('walk rows', () => {
     const row = model.walkRowBars!.rows[i - 1]!
     model.setHoveredWalkRow(row.name)
     expect(model.hoveredWalkRowText).toMatchObject({ label: row.label })
-    expect(model.hoveredWalkRowText!.readout).toContain('kb')
+    expect(model.hoveredWalkRowText!.readout).toBe('16 bp (+8 bp)')
     model.setWalkRowSamples(['A'])
     expect(model.walkRowPitch!.labelled).toBe(true)
     expect(model.drawnRowLabels.map(r => r.label)).toEqual([
