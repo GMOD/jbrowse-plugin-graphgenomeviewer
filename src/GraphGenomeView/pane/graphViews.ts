@@ -939,12 +939,16 @@ export const withGraphViews = paneBase
     get folded() {
       return this.drawnFold?.nodes
     },
+    // how wide each node is drawn, a node inside a run of folded sites as
+    // wide as the run's even stroke
     get nodeInk(): NodeInk {
       return nodeInk(
         self.drawnGraph,
         self.nodeById,
         self.contigThickness,
         self.nodeWidth,
+        0,
+        this.drawnFold?.through,
       )
     },
     // Links that skip reference sequence, i.e. the deletions this graph

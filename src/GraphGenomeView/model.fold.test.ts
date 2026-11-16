@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
+import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
 
 import { mockRpcCall } from './modelTestMocks'
 import { createAnchoredModel, fakeRenderer } from './modelTestSupport'
@@ -102,4 +103,30 @@ test('a node the drawing folds is not lit as selected, nor ringed from the walk 
   expect(model.walkStripLocator).toBeUndefined()
   model.setHoveredNode(drawn)
   expect(model.walkStripLocator).toBeDefined()
+})
+
+test('a node inside a run of folded sites is hit and outlined as wide as the run draws it', async () => {
+  const model = await drawnGap571()
+  const through = [...model.drawnFold!.through.keys()]
+  const own = nodeInk(
+    model.drawnGraph,
+    model.nodeById,
+    model.contigThickness,
+    model.nodeWidth,
+  )
+  const widened = through.filter(
+    id => model.nodeInk.halfWidthPx(id) !== own.halfWidthPx(id),
+  )
+  expect(widened.length).toBeGreaterThan(0)
+  const drawn = nodeInk(
+    model.drawnGraph,
+    model.nodeById,
+    model.contigThickness,
+    model.nodeWidth,
+    0,
+    model.drawnFold!.through,
+  )
+  for (const id of through) {
+    expect(model.nodeInk.halfWidthPx(id)).toBe(drawn.halfWidthPx(id))
+  }
 })
