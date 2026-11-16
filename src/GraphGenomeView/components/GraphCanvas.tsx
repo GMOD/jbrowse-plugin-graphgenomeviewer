@@ -15,6 +15,7 @@ import HoverTooltip from './HoverTooltip'
 import LabelLayer from './LabelLayer'
 import { LegendPanel } from './Legend'
 import PaneContextMenu from './PaneContextMenu'
+import PassBars from './PassBars'
 import ReferenceStripOverlay from './ReferenceStripOverlay'
 import TubeMapOverlay from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
@@ -346,6 +347,8 @@ const GraphCanvasBody = observer(function GraphCanvasBody({
 
         <HoverTooltip model={model} chip={hoveredChip} />
       </div>
+
+      <PassBars model={model} />
 
       {model.walkStripShown ? <WalkStrip model={model} /> : null}
 

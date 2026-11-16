@@ -1,5 +1,7 @@
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
+import { render } from '@testing-library/react'
 
+import PassBars from './components/PassBars'
 import { mockRpcCall } from './modelTestMocks'
 import stateModelFactory from './viewModel'
 
@@ -72,4 +74,24 @@ test('each pass of a walk lifted by pass is named once on the graph, beside a th
   }
   model.setWalkLayers([{ walk: 'ref#0#chr' }, { walk: 'hap#1#ctg' }])
   expect(model.overlayLabels.passes).toEqual([])
+})
+
+test('a view of its own draws a bar along each walk lifted by pass, colouring the stretches each pass steps again', async () => {
+  const model = await liftedByPass()
+  const [bar, ...more] = model.passBars
+  expect(more).toEqual([])
+  expect(bar!.walk).toBe('hap#1#ctg')
+  expect(bar!.passes.map(p => [p.text, p.start, p.end])).toEqual([
+    ['pass 1 · 16 bp', 10, 26],
+    ['pass 2 · 16 bp', 26, 42],
+    ['pass 3 · 16 bp', 42, 58],
+  ])
+  const { getAllByTestId } = render(<PassBars model={model} />)
+  const [drawn] = getAllByTestId('graph-pass-bar')
+  expect(drawn!.textContent).toContain('along its length')
+  for (const name of ['pass 1 · 16 bp', 'pass 2 · 16 bp', 'pass 3 · 16 bp']) {
+    expect(drawn!.textContent).toContain(name)
+  }
+  model.setWalkLayers([{ walk: 'ref#0#chr' }, { walk: 'hap#1#ctg' }])
+  expect(model.passBars).toEqual([])
 })

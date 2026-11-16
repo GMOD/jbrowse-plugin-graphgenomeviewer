@@ -11,6 +11,7 @@ import {
   walkStripFrame,
 } from '@jbrowse/bandage-core/layout/walkStrip'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+import { passBars } from '@jbrowse/bandage-core/passBar'
 import { nodeAnchor } from '@jbrowse/bandage-core/referenceStrip'
 
 import { withLaunchViews } from './launchViews'
@@ -100,6 +101,14 @@ export const withWalkRowViews = withLaunchViews
     // of them is on
     get comparedRows() {
       return self.rowVisitsNeeded ? (self.walkRowBars?.rows ?? []) : []
+    },
+    // Each walk lifted by pass along its own length, under a drawing of
+    // nodes in a view of its own, as bandage-core's figure stacks them; a
+    // faceted pane names no pass
+    get passBars() {
+      return !self.host && self.drawsNodes && !self.facetPanels
+        ? passBars(self.walkLift)
+        : []
     },
     // Where the drawing has the node a strip point lights, for the ring
     // that finds it in a hairball, unless the drawing folded it
