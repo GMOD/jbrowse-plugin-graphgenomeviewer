@@ -571,6 +571,9 @@ export const withSettingActions = withTubeMapViews
     // into the pane once its width is known.
     followNewLayout(previous: LayoutResult | undefined) {
       const bounds = self.layoutBounds
+      if (self.followsWindow && self.viewportOwner === 'user') {
+        self.viewportOwner = 'fit'
+      }
       if (
         self.viewportOwner !== 'user' ||
         !bounds ||

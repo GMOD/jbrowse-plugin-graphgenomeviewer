@@ -27,6 +27,7 @@ import { openLocation } from '@jbrowse/core/util/io'
 import { parseSamplesTsv } from '@jbrowse/core/util/samplesTsv'
 import { flow, isAlive } from '@jbrowse/mobx-state-tree'
 
+import { holdReference } from './fitViews'
 import {
   EMPTY_BATCH,
   TUBE_MAP_MODES,
@@ -318,6 +319,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
       layoutError = undefined
       const previous = self.layoutResult
       const before = self.screenTransform
+      if (self.snapsHostCut) {
+        holdReference(graph, computed.result)
+      }
       laidOutGraph = graph
       self.layoutResult = computed.result
       self.drawnLayoutMode = computed.mode

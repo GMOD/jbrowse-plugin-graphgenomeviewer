@@ -1,3 +1,4 @@
+import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import {
   FACET_GAP_PX,
   FACET_PAD_PX,
@@ -24,7 +25,12 @@ import {
   walkRowsExtent,
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { drawingBounds, fitTransform } from '@jbrowse/bandage-core/pipeline'
+import {
+  drawingBounds,
+  fitTransform,
+  followTransform,
+  referenceExtent,
+} from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
@@ -36,7 +42,7 @@ import { padded } from '@jbrowse/bandage-core/viewport'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { untracked } from 'mobx'
 
-import { cutRuleOf } from '../host'
+import { cutRuleOf, hostWindow } from '../host'
 import { measureReadout } from '../readoutMeasure'
 import { sectionHeadersPx, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
@@ -59,7 +65,31 @@ import type {
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
+import type {
+  Graph,
+  LayoutResult,
+  NodeSegment,
+} from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
+
+const landedReference = new WeakMap<
+  LayoutResult,
+  Record<string, NodeSegment[]>
+>()
+
+export function holdReference(graph: Graph, layout: LayoutResult) {
+  if (!landedReference.has(layout)) {
+    landedReference.set(
+      layout,
+      Object.fromEntries(
+        graph.nodes.filter(isBackbone).flatMap(node => {
+          const line = layout.nodePositions[node.id]
+          return line ? [[node.id, line.map(({ x, y }) => ({ x, y }))]] : []
+        }),
+      ),
+    )
+  }
+}
 
 export const TOOLTIP_INSET_PX = 8
 export const FACET_KEY_ROW_PX = 19
@@ -420,6 +450,48 @@ export const withFitViews = withHostViews
     get snapsHostCut() {
       return !!self.host && cutRuleOf(self.chosenLayoutMode) === 'snapped'
     },
+    get followsWindow() {
+      const layout = self.layoutResult
+      return (
+        this.snapsHostCut &&
+        self.drawnLayoutMode === 'force' &&
+        !!layout &&
+        !layout.referenceAxis &&
+        !layout.pixelRows &&
+        !layout.tubeMap &&
+        !this.facetGrid
+      )
+    },
+    get windowTransform() {
+      const { graph, host, layoutResult, graphRegion } = self
+      const seen = host && this.followsWindow ? hostWindow(host) : undefined
+      const extent =
+        seen && graph && layoutResult && graphRegion?.refName === seen.refName
+          ? referenceExtent(
+              graph,
+              landedReference.get(layoutResult) ?? layoutResult.nodePositions,
+              seen.start,
+              seen.end,
+            )
+          : undefined
+      const bounds = this.layoutBounds
+      const pads = this.fitPads
+      return seen && extent && bounds
+        ? followTransform(
+            extent,
+            seen,
+            bounds,
+            this.drawingWidth,
+            this.canvasHeight,
+            {
+              padLeft: pads.left,
+              padTop: pads.top,
+              padRight: pads.right,
+              padBottom: pads.bottom,
+            },
+          )
+        : undefined
+    },
     // Where the fit puts the drawing, beside the key, or undefined until
     // there is a layout and a measured canvas to fit it into
     get fittedTransform() {
@@ -430,15 +502,18 @@ export const withFitViews = withHostViews
         height: this.canvasHeight,
       }
       const pads = this.fitPads
-      return bounds
-        ? fitTransform(bounds, width, height, self.pixelRows, {
-            minScale: this.facetGrid ? 0 : this.minFitScale,
-            padLeft: pads.left,
-            padTop: pads.top,
-            padRight: pads.right,
-            padBottom: pads.bottom,
-          })
-        : undefined
+      return (
+        this.windowTransform ??
+        (bounds
+          ? fitTransform(bounds, width, height, self.pixelRows, {
+              minScale: this.facetGrid ? 0 : this.minFitScale,
+              padLeft: pads.left,
+              padTop: pads.top,
+              padRight: pads.right,
+              padBottom: pads.bottom,
+            })
+          : undefined)
+      )
     },
   }))
   .views(self => ({

@@ -1,6 +1,10 @@
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
-import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
+import {
+  REFERENCE_STRIP_ZONE_PX,
+  stripOverhang,
+  stripPixels,
+} from '@jbrowse/bandage-core/referenceStrip'
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
   ConfigurationReference,
@@ -27,6 +31,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
+import { hostWindow } from '../GraphGenomeView/host'
 import { forceLayouts, paneBase } from '../GraphGenomeView/pane/paneBase'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
 import GraphTrackF from '../GraphTrack/index'
@@ -1014,6 +1019,25 @@ async function forceGraph({
   return { ...env, pane, layouts, panTo }
 }
 
+// where the drawing puts reference bp: on the node holding it, inside the
+// window whichever end of the window it is
+function screenXOf(pane: LinearGraphDisplayModel, bp: number, end = false) {
+  const node = pane.graph?.nodes.find(
+    n =>
+      n.stable?.rank === 0 &&
+      (end
+        ? n.stable.start < bp && bp <= n.stable.start + n.length
+        : n.stable.start <= bp && bp < n.stable.start + n.length),
+  )
+  const line = node && pane.nodePositions?.[node.id]
+  const [a, b] = line ?? []
+  return node?.stable && a && b
+    ? (a.x + ((b.x - a.x) * (bp - node.stable.start)) / node.length) *
+        pane.scale +
+        pane.translateX
+    : undefined
+}
+
 function placement(pane: LinearGraphDisplayModel) {
   return {
     cut: pane.cutRegion,
@@ -1036,6 +1060,25 @@ test('a force layout does not cut again for a pan inside its snapped cut', async
   expect(cuts).toHaveLength(1)
   expect(layouts()).toBe(laid)
   expect(pane.layoutResult).toBe(layout)
+})
+
+test("the window's stretch of the reference runs across the track at every step of a pan inside the cut", async () => {
+  const { view, pane, cuts } = await forceGraph()
+  const usable = () => {
+    const { left, right } = pane.fitPads
+    return [left, pane.drawingWidth - right] as const
+  }
+  for (const start of [1_000_000, 1_001_000, 985_000, 975_000, 970_000]) {
+    view.scrollTo(start / view.bpPerPx)
+    const seen = pane.host && hostWindow(pane.host)
+    expect(seen).toBeDefined()
+    const [left, right] = usable()
+    expect(screenXOf(pane, seen!.start)).toBeCloseTo(left, 6)
+    expect(screenXOf(pane, seen!.end, true)).toBeCloseTo(right, 6)
+    await wait(SETTLE_MS)
+    expect(screenXOf(pane, seen!.start)).toBeCloseTo(left, 6)
+  }
+  expect(cuts).toHaveLength(1)
 })
 
 test('a force layout draws a window the same way however the view came to it', async () => {
@@ -1063,6 +1106,29 @@ test('a force layout draws a window the same way however the view came to it', a
   expect(zoomedBack.scale).toBeCloseTo(fromTheLeft.scale, 9)
   expect(zoomedBack.translateX).toBeCloseTo(fromTheLeft.translateX, 6)
   expect(zoomedBack.translateY).toBeCloseTo(fromTheLeft.translateY, 6)
+})
+
+test('a pan inside the held cut keeps the reference strip whole and true to the linear view, with edge marks where the graph runs on', async () => {
+  const { view, pane, holdCuts } = await forceGraph()
+  holdCuts()
+  view.horizontalScroll(50)
+  await wait(SETTLE_MS)
+  const frame = pane.hostBpFrame!
+  const blocks = pane.referenceStripBlocks
+  expect(pane.referenceStripShown).toBe(true)
+  for (const b of blocks) {
+    expect(b.bp0 * frame.scale + frame.translateX).toBeCloseTo(
+      lgvX(view, b.bp0),
+      6,
+    )
+  }
+  const pixels = stripPixels(blocks, frame, pane.paneWidth, 1)
+  expect(pixels[0]!.x0).toBeLessThanOrEqual(0)
+  expect(pixels.at(-1)!.x1).toBeGreaterThanOrEqual(pane.paneWidth)
+  const over = stripOverhang(blocks, frame, pane.paneWidth)
+  expect(over.left).toBeGreaterThan(0)
+  expect(over.right).toBeGreaterThan(0)
+  expect(pane.referenceStripOverhangs).toBe(true)
 })
 
 test('a 20-step pan at GSTM1 and at the amylase locus lays the graph out at most three times', async () => {
@@ -1177,18 +1243,17 @@ test('a key taller than the track grows the track to show its last row, and a sh
   expect(display.height).toBe(242)
 })
 
-test('a hosted drawing in its own coordinates fits beside the key, not under it', async () => {
+test('a hosted drawing placed by its window lays the window beside the key, not under it', async () => {
   const { pane } = await shownGraph()
   await pane.switchLayout('force')
   await wait(SETTLE_MS)
   pane.setLegendSize({ width: 200, height: 100 })
   pane.zoomToFit()
-  const xs = Object.values(pane.nodePositions!)
-    .flat()
-    .map(p => pane.toScreen(p).x)
+  const seen = hostWindow(pane.host!)!
   expect(pane.keyColumnPx).toBe(200 + 2 * LEGEND_INSET_PX)
-  expect(xs.reduce((a, b) => Math.max(a, b))).toBeLessThanOrEqual(
-    pane.paneWidth - pane.keyColumnPx,
+  expect(screenXOf(pane, seen.end, true)).toBeCloseTo(
+    pane.paneWidth - pane.keyColumnPx - pane.fitPads.right,
+    6,
   )
 })
 
@@ -2013,9 +2078,10 @@ test('a graph with walks is drawn whole at any zoom', async () => {
   expect(pane.foldNote).toBeUndefined()
 })
 
-test('a force drawing holds its fit through a pan inside its cut, and no screen map of the last frame stands in', async () => {
+test('a force drawing is placed by its window alone: between cuts it moves with the view, and no screen map of the last frame stands in', async () => {
   const { view, pane, cuts } = await forceGraph()
   expect(pane.hostPlacesX).toBe(false)
+  expect(pane.followsWindow).toBe(true)
   view.horizontalScroll(20)
   expect(pane.viewportOwner).toBe('fit')
   expect(pane.fittedTransform).toMatchObject({
@@ -2025,4 +2091,12 @@ test('a force drawing holds its fit through a pan inside its cut, and no screen 
   })
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
+  const { scale } = pane
+  view.zoomTo(view.bpPerPx / 2, WIDTH_PX / 2)
+  expect(pane.viewportOwner).toBe('fit')
+  expect(pane.scale).toBeGreaterThan(scale)
+  expect(pane.fittedTransform).toMatchObject({
+    scale: pane.scale,
+    translateX: pane.translateX,
+  })
 })
