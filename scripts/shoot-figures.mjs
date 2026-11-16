@@ -128,7 +128,7 @@ function mafLane(samples) {
 // cover the first label with its chip.
 function phasedRow(haplotype) {
   const [sample, n] = haplotype.split('.')
-  return `${sample} HP${Number(n) - 1}`
+  return `${sample} HP${n}`
 }
 const CALLSET_ROW_PX = 18
 function callsetLane(haplotypes) {
@@ -738,7 +738,7 @@ const FIGURES = {
       },
       [CALLSET_TRACK],
     ),
-    act: hoverCallsetCell('HG00133 HP0'),
+    act: hoverCallsetCell('HG00133 HP1'),
   },
   // the cut opened as a view under the linear view it came from; hovering a
   // variant's box in the view bands its bp in the linear view
@@ -852,15 +852,16 @@ async function recolorAnnotations(page) {
 
 // A lane's rows in the order the graph's walk rows or key list the walks, so
 // the two read top to bottom alike: the MAF names a walk's row `HG00097.1`,
-// the phased callset `HG00097 HP0`, a callset by sample `HG00097`. A drawing
-// with neither keeps the lane's own order.
+// the phased callset `HG00097 HP1`, a callset by sample `HG00097`. A drawing
+// with neither keeps the lane's own order. A lane's rows are `drawnRows` on
+// JBrowse main and `sources` on the releases before it.
 async function orderLaneRowsByKey(page) {
   await page.evaluate(() => {
     const displays = window.JBrowseSession.views[0].tracks.map(
       t => t.displays[0],
     )
     const graph = displays.find(d => d.type === 'LinearGraphDisplay')
-    const callsetRows = (sample, n) => [`${sample} HP${n - 1}`, sample]
+    const callsetRows = (sample, n) => [`${sample} HP${n}`, sample]
     const spellings = {
       LinearMafDisplay: (sample, n) => [`${sample}.${n}`],
       LinearVariantDisplay: callsetRows,
@@ -868,7 +869,7 @@ async function orderLaneRowsByKey(page) {
     for (const lane of displays) {
       const spell = spellings[lane.type]
       if (graph && spell) {
-        const rows = new Set(lane.sources.map(s => s.name))
+        const rows = new Set((lane.drawnRows ?? lane.sources).map(s => s.name))
         const walks = graph.walkRowBars?.rows ?? graph.pathLegend
         const order = walks.flatMap(({ name }) => {
           const [sample, n] = name.split('#')
@@ -884,7 +885,8 @@ async function orderLaneRowsByKey(page) {
 }
 
 // Points at a cell of one haplotype's callset row, so the lane publishes that
-// row and the graph lifts its walk
+// row and the graph lifts its walk. The rows start `rowsTopOffset` down the
+// display, under its records band.
 function hoverCallsetCell(row) {
   return async page => {
     const lane = await page.evaluate(
@@ -895,8 +897,14 @@ function hoverCallsetCell(row) {
         const r = document
           .querySelector('[data-testid="variant-display"]')
           .getBoundingClientRect()
-        const index = display.sources.findIndex(s => s.name === name)
-        return { x: r.x, width: r.width, y: r.y + (index + 0.5) * rowPx }
+        const index = (display.drawnRows ?? display.sources).findIndex(
+          s => s.name === name,
+        )
+        return {
+          x: r.x,
+          width: r.width,
+          y: r.y + display.rowsTopOffset + (index + 0.5) * rowPx,
+        }
       },
       row,
       CALLSET_ROW_PX,
