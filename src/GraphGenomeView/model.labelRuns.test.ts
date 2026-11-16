@@ -1,4 +1,5 @@
 import { readConfObject } from '@jbrowse/core/configuration'
+import { destroy } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
 
 import { legendSections } from './legendSections'
@@ -271,4 +272,30 @@ test("a sample filter that reads the rows' genes again leaves the placed labels 
   })
   expect(seen).toEqual([['CFH', 'CFHR3']])
   stop()
+})
+
+test('a view closed while a read is on its way is not written to when the read lands', async () => {
+  reads.haplotype = () => later([gene('CFHR3', 'CM1', 5011, 5019)], 200)
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+    loadedTrackId: 'graph',
+  })
+  model.setWidth(1200)
+  model.startRenderingBackend(fakeRenderer())
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+  await later(undefined, 60)
+  expect(model.featureReadsInFlight).toBeGreaterThan(0)
+  destroy(model)
+  await later(undefined, 300)
+  expect(
+    warn.mock.calls.filter(call =>
+      String(call[0]).includes('featureReadsInFlight'),
+    ),
+  ).toEqual([])
+  warn.mockRestore()
 })

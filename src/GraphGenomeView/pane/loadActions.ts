@@ -557,7 +557,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
     try {
       return (yield read) as T
     } finally {
-      self.featureReadsInFlight--
+      if (isAlive(self)) {
+        self.featureReadsInFlight--
+      }
     }
   }
 
