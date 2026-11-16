@@ -369,3 +369,19 @@ test('a read that fails is no longer awaited', async () => {
   stopKey()
   warn.mockRestore()
 })
+
+test("a second cut's labels wait for its own reads again, and are laid out once", async () => {
+  const { model } = await settledView()
+  runs.onLaidOutGraph = 0
+  reads.haplotype = () => later([gene('CFHR3', 'CM1', 5011, 5019)], 200)
+  const stopKey = measureKeyAsDrawn(model)
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1029 },
+  )
+  await vi.waitFor(() => {
+    expect(chipTexts(model)).toEqual(['CFH', 'CFHR3'])
+  })
+  expect(runs.onLaidOutGraph).toBe(1)
+  stopKey()
+})
