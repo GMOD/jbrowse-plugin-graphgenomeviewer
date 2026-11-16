@@ -2367,3 +2367,47 @@ test('a force drawing is placed by its window alone: a pan only slides it, a zoo
   expect(cuts).toHaveLength(2)
   expect(pane.scale / scale).toBeCloseTo(2, 1)
 })
+
+function screenExtent(pane: LinearGraphDisplayModel) {
+  const xs = Object.values(pane.nodePositions ?? {}).flatMap(line =>
+    line.map(p => p.x * pane.scale + pane.translateX),
+  )
+  return {
+    x0: xs.reduce((m, x) => Math.min(m, x), Infinity),
+    x1: xs.reduce((m, x) => Math.max(m, x), -Infinity),
+  }
+}
+
+test('a held cut is never refitted to a view it does not cover: a jump far along slides it away with the ruler until the new cut lands, and a jump to another sequence shows none of it', async () => {
+  const { view, pane, holdCuts } = await forceGraph({ paths: true })
+  const { scale, translateY } = pane
+  const { left, right } = pane.fitPads
+  const usable = pane.drawingWidth - left - right
+  const ruler = (bp: number) => {
+    const seen = hostWindow(pane.host!)!
+    return left + (usable * (bp - seen.start)) / (seen.end - seen.start)
+  }
+  const answers = holdCuts()
+  view.scrollTo(1_080_000 / view.bpPerPx)
+  const off = pane.translateX
+  expect(screenXOf(pane, 1_070_000, true)).toBeCloseTo(ruler(1_070_000), 6)
+  view.scrollTo(1_090_000 / view.bpPerPx)
+  expect(pane.translateX - off).toBeCloseTo((-10_000 * usable) / 60_000, 6)
+  view.scrollTo(3_000_000 / view.bpPerPx)
+  expect(pane.scale).toBe(scale)
+  expect(pane.translateY).toBe(translateY)
+  expect(screenExtent(pane).x1).toBeLessThan(0)
+  await wait(SETTLE_MS)
+  expect(answers.length).toBeGreaterThan(0)
+  expect(pane.scale).toBe(scale)
+  expect(screenExtent(pane).x1).toBeLessThan(0)
+
+  view.setDisplayedRegions([
+    { refName: 'chr2', start: 0, end: CONTIG, assemblyName: ASM },
+  ])
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  expect(hostWindow(pane.host!)?.refName).toBe('chr2')
+  expect(pane.graphRegion?.refName).toBe(REF)
+  expect(screenExtent(pane).x0).toBeGreaterThan(pane.paneWidth)
+})

@@ -29,6 +29,7 @@ import {
   drawingBounds,
   fitTransform,
   followTransform,
+  layoutExtent,
   referenceProfile,
 } from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
@@ -488,27 +489,37 @@ export const withFitViews = withHostViews
           )
         : undefined
     },
+    // a window on another sequence puts the held cut past the pane's edge
     get windowTransform() {
-      const { graphRegion } = self
+      const { graphRegion, layoutResult } = self
       const seen = this.heldWindow
       const pieces = this.heldReference
       const scale = this.heldScale
       const bounds = this.layoutBounds
-      return seen &&
-        pieces &&
-        scale !== undefined &&
-        bounds &&
-        graphRegion?.refName === seen.refName
-        ? followTransform(
-            pieces,
-            seen,
-            scale,
-            bounds,
-            this.drawingWidth,
-            this.canvasHeight,
-            this.followPads,
-          )
-        : undefined
+      const placed =
+        seen && pieces && scale !== undefined && bounds
+          ? followTransform(
+              pieces,
+              seen,
+              scale,
+              bounds,
+              this.drawingWidth,
+              this.canvasHeight,
+              this.followPads,
+            )
+          : undefined
+      return placed &&
+        layoutResult &&
+        (graphRegion?.refName !== seen?.refName ||
+          graphRegion?.assemblyName !== seen?.assemblyName)
+        ? {
+            ...placed,
+            translateX:
+              self.paneWidth +
+              this.drawingWidth -
+              placed.scale * layoutExtent(layoutResult.nodePositions).minX,
+          }
+        : placed
     },
     get drawingClip() {
       return this.followsWindow
