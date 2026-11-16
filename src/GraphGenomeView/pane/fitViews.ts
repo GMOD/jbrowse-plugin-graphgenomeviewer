@@ -1,4 +1,3 @@
-import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import {
   FACET_GAP_PX,
   FACET_PAD_PX,
@@ -26,10 +25,11 @@ import {
 } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import {
+  cutScale,
   drawingBounds,
   fitTransform,
   followTransform,
-  referenceExtent,
+  referenceProfile,
 } from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -64,30 +64,16 @@ import type {
   GeneGaps,
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import type { ReferencePiece } from '@jbrowse/bandage-core/pipeline'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
-import type {
-  Graph,
-  LayoutResult,
-  NodeSegment,
-} from '@jbrowse/bandage-core/types'
+import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 
-const landedReference = new WeakMap<
-  LayoutResult,
-  Record<string, NodeSegment[]>
->()
+const landedReference = new WeakMap<LayoutResult, ReferencePiece[]>()
 
 export function holdReference(graph: Graph, layout: LayoutResult) {
   if (!landedReference.has(layout)) {
-    landedReference.set(
-      layout,
-      Object.fromEntries(
-        graph.nodes.filter(isBackbone).flatMap(node => {
-          const line = layout.nodePositions[node.id]
-          return line ? [[node.id, line.map(({ x, y }) => ({ x, y }))]] : []
-        }),
-      ),
-    )
+    landedReference.set(layout, referenceProfile(graph, layout.nodePositions))
   }
 }
 
@@ -462,33 +448,57 @@ export const withFitViews = withHostViews
         !this.facetGrid
       )
     },
-    get windowTransform() {
-      const { graph, host, layoutResult, graphRegion } = self
-      const seen = host && this.followsWindow ? hostWindow(host) : undefined
-      const extent =
-        seen && graph && layoutResult && graphRegion?.refName === seen.refName
-          ? referenceExtent(
-              graph,
-              landedReference.get(layoutResult) ?? layoutResult.nodePositions,
-              seen.start,
-              seen.end,
-            )
-          : undefined
-      const bounds = this.layoutBounds
+    get heldReference() {
+      const { graph, layoutResult } = self
+      return graph && layoutResult && this.followsWindow
+        ? (landedReference.get(layoutResult) ??
+            referenceProfile(graph, layoutResult.nodePositions))
+        : undefined
+    },
+    get followPads() {
       const pads = this.fitPads
-      return seen && extent && bounds
-        ? followTransform(
-            extent,
-            seen,
+      return {
+        padLeft: pads.left,
+        padTop: pads.top,
+        padRight: pads.right,
+        padBottom: pads.bottom,
+      }
+    },
+    get heldScale() {
+      const pieces = this.heldReference
+      const region = self.graphRegion
+      const bounds = this.layoutBounds
+      return pieces && region && bounds
+        ? cutScale(
+            pieces,
+            region,
+            region.viewSpan ?? region.end - region.start,
             bounds,
             this.drawingWidth,
             this.canvasHeight,
-            {
-              padLeft: pads.left,
-              padTop: pads.top,
-              padRight: pads.right,
-              padBottom: pads.bottom,
-            },
+            this.followPads,
+          )
+        : undefined
+    },
+    get windowTransform() {
+      const { host, graphRegion } = self
+      const seen = host && this.followsWindow ? hostWindow(host) : undefined
+      const pieces = this.heldReference
+      const scale = this.heldScale
+      const bounds = this.layoutBounds
+      return seen &&
+        pieces &&
+        scale !== undefined &&
+        bounds &&
+        graphRegion?.refName === seen.refName
+        ? followTransform(
+            pieces,
+            seen,
+            scale,
+            bounds,
+            this.drawingWidth,
+            this.canvasHeight,
+            this.followPads,
           )
         : undefined
     },

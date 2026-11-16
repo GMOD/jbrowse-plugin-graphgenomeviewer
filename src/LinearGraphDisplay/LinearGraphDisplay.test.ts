@@ -32,7 +32,11 @@ import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
 import { hostWindow } from '../GraphGenomeView/host'
-import { forceLayouts, paneBase } from '../GraphGenomeView/pane/paneBase'
+import {
+  MIN_CANVAS_HEIGHT,
+  forceLayouts,
+  paneBase,
+} from '../GraphGenomeView/pane/paneBase'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
@@ -1065,24 +1069,71 @@ test('a force layout does not cut again for a pan inside its snapped cut', async
   expect(pane.layoutResult).toBe(layout)
 })
 
-test("the window's stretch of the reference runs across the track at every step of a pan inside the cut", async () => {
+test("the reference at the window's centre is drawn at the track's centre at every step of a pan inside the cut, the window's stretch its share of the widest view-width stretch in the cut", async () => {
   const { view, pane, cuts } = await forceGraph()
-  const usable = () => {
-    const { left, right } = pane.fitPads
-    return [left, pane.drawingWidth - right] as const
-  }
+  const { left, right } = pane.fitPads
+  const centre = (left + pane.drawingWidth - right) / 2
+  const scale = pane.scale
   for (const start of [1_000_000, 1_001_000, 985_000, 975_000, 970_000]) {
     view.scrollTo(start / view.bpPerPx)
-    const seen = pane.host && hostWindow(pane.host)
-    expect(seen).toBeDefined()
-    const [left, right] = usable()
-    expect(screenXOf(pane, seen!.start)).toBeCloseTo(left, 6)
-    expect(screenXOf(pane, seen!.end, true)).toBeCloseTo(right, 6)
+    const seen = hostWindow(pane.host!)!
+    const x0 = screenXOf(pane, seen.start)!
+    const x1 = screenXOf(pane, seen.end, true)!
+    expect((x0 + x1) / 2).toBeCloseTo(centre, 6)
+    expect(x1 - x0).toBeCloseTo(
+      ((pane.drawingWidth - left - right) * 60_000) / 65_536,
+      6,
+    )
+    expect(pane.scale / scale).toBeCloseTo(1, 12)
     await wait(SETTLE_MS)
-    expect(screenXOf(pane, seen!.start)).toBeCloseTo(left, 6)
   }
   expect(cuts).toHaveLength(1)
 })
+
+// a track as short as it goes leaves the cut's height, rather than its
+// width, to set the scale
+async function heldSteps(height: number | undefined) {
+  const windowBp = 60_000
+  const { view, pane, layouts } = await forceGraph({ paths: true })
+  if (height) {
+    pane.setHeight(height)
+  }
+  const { top, bottom } = pane.fitPads
+  const heightScale = (pane.canvasHeight - top - bottom) / pane.layoutBounds!.h
+  const binds = pane.scale < heightScale - 1e-9 ? 'width' : 'height'
+  const steps: { scale: number; translateY: number; same: boolean }[] = []
+  let layout = pane.layoutResult
+  for (let i = 1; i <= 20; i++) {
+    view.scrollTo((1_000_000 + i * 0.05 * windowBp) / view.bpPerPx)
+    await wait(SETTLE_MS)
+    steps.push({
+      scale: pane.scale,
+      translateY: pane.translateY,
+      same: pane.layoutResult === layout,
+    })
+    layout = pane.layoutResult
+  }
+  return { binds, steps, layouts: layouts() }
+}
+
+test('every held step of a 20-step pan is a pure translation, where the width sets the scale and where the height does', async () => {
+  for (const [height, binds] of [
+    [undefined, 'width'],
+    [MIN_CANVAS_HEIGHT, 'height'],
+  ] as const) {
+    const held = await heldSteps(height)
+    expect(held.binds).toBe(binds)
+    const pairs = held.steps
+      .slice(1)
+      .map((step, i) => ({ step, before: held.steps[i]! }))
+      .filter(({ step }) => step.same)
+    expect(pairs.length).toBeGreaterThanOrEqual(15)
+    for (const { step, before } of pairs) {
+      expect(step.scale / before.scale).toBeCloseTo(1, 12)
+      expect(step.translateY).toBeCloseTo(before.translateY, 9)
+    }
+  }
+}, 60_000)
 
 test('a force layout draws a window the same way however the view came to it', async () => {
   const { view, pane, cuts, panTo } = await forceGraph({ paths: true })
@@ -1207,7 +1258,8 @@ test('a pan inside the held cut keeps the reference strip whole and true to the 
 })
 
 test('a drawing placed by its window is clipped at the key column it runs under', async () => {
-  const { pane } = await forceGraph()
+  const { pane, panTo } = await forceGraph()
+  await panTo(970_000)
   pane.setLegendSize({ width: 120, height: 40 })
   await wait(0)
   const key = pane.paneWidth - pane.drawingWidth
@@ -1360,9 +1412,11 @@ test('a hosted drawing placed by its window lays the window beside the key, not 
   pane.zoomToFit()
   const seen = hostWindow(pane.host!)!
   expect(pane.keyColumnPx).toBe(200 + 2 * LEGEND_INSET_PX)
-  expect(screenXOf(pane, seen.end, true)).toBeCloseTo(
-    pane.paneWidth - pane.keyColumnPx - pane.fitPads.right,
-    6,
+  expect(screenXOf(pane, seen.end, true)).toBeLessThanOrEqual(
+    pane.paneWidth - pane.keyColumnPx - pane.fitPads.right + 1e-6,
+  )
+  expect(screenXOf(pane, seen.start)).toBeGreaterThanOrEqual(
+    pane.fitPads.left - 1e-6,
   )
 })
 
@@ -2200,25 +2254,26 @@ test('a graph with walks is drawn whole at any zoom', async () => {
   expect(pane.foldNote).toBeUndefined()
 })
 
-test('a force drawing is placed by its window alone: between cuts it moves with the view, and no screen map of the last frame stands in', async () => {
+test('a force drawing is placed by its window alone: between cuts it only slides with the view, and no screen map of the last frame stands in', async () => {
   const { view, pane, cuts } = await forceGraph()
   expect(pane.hostPlacesX).toBe(false)
   expect(pane.followsWindow).toBe(true)
+  const { scale, translateX, translateY } = pane
   view.horizontalScroll(20)
   expect(pane.viewportOwner).toBe('fit')
+  expect(pane.scale / scale).toBeCloseTo(1, 12)
+  expect(pane.translateY).toBeCloseTo(translateY, 9)
+  expect(pane.translateX).not.toBe(translateX)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  view.zoomTo(view.bpPerPx / 2, WIDTH_PX / 2)
+  expect(pane.scale / scale).toBeCloseTo(1, 12)
   expect(pane.fittedTransform).toMatchObject({
     scale: pane.scale,
     translateX: pane.translateX,
     translateY: pane.translateY,
   })
   await wait(SETTLE_MS)
-  expect(cuts).toHaveLength(1)
-  const { scale } = pane
-  view.zoomTo(view.bpPerPx / 2, WIDTH_PX / 2)
-  expect(pane.viewportOwner).toBe('fit')
-  expect(pane.scale).toBeGreaterThan(scale)
-  expect(pane.fittedTransform).toMatchObject({
-    scale: pane.scale,
-    translateX: pane.translateX,
-  })
+  expect(cuts).toHaveLength(2)
+  expect(pane.scale).toBeGreaterThan(1.5 * scale)
 })
