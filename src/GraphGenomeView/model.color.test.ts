@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import {
@@ -5,7 +7,9 @@ import {
   hexAbgr,
 } from '@jbrowse/bandage-core/renderer/colorBits'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
+import { renderToStaticMarkup } from 'react-dom/server'
 
+import PaneSvg from './components/PaneSvg'
 import { drawnLegendSections, legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import {
@@ -533,6 +537,14 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   expect(keyed?.under).toBe('')
   expect(drawn?.under).toBe('5 unlabelled, 5 bp or less each')
   expect(drawn?.sizer).toBe('100 unlabelled, 100 bp or less each')
+  const exported = renderToStaticMarkup(
+    createElement(
+      'svg',
+      null,
+      createElement(PaneSvg, { model, idPrefix: 'k' }),
+    ),
+  )
+  expect(exported).toContain('5 unlabelled, 5 bp or less each')
 })
 
 test("a lifted walk's drawing labels no node length, so its key keeps no line for the count", async () => {

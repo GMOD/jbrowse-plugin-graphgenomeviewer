@@ -48,7 +48,13 @@ test('the unlabelled count line carries an unseen sizer of the widest it can com
     const sized = screen.getByTestId('graph-key-sizer')
     expect(sized.textContent).toBe(sizer)
     expect(sized.style.visibility).toBe('hidden')
-    expect(sized.nextElementSibling?.textContent).toBe(under || '\u00a0')
+    const line = sized.nextElementSibling as HTMLElement
+    expect(line.textContent).toBe(under || '\u00a0')
+    // no wider than the sizer makes the key, clipped past it
+    expect(line.style.width).toBe('0px')
+    expect(line.style.minWidth).toBe('100%')
+    expect(line.style.overflow).toBe('hidden')
+    expect(line.style.textOverflow).toBe('ellipsis')
     unmount()
   }
 })

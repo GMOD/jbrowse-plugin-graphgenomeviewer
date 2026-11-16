@@ -1064,6 +1064,10 @@ test('a key taller than the track grows the track to show its last row, and a sh
   display.setLegendSize({ width: 200, height: 330 })
   expect(display.height).toBe(330 + 2 * LEGEND_INSET_PX)
   expect(display.canvasHeight).toBe(display.height)
+  // the labels wait for the floor to be answered, which it is at once
+  expect(display.answeredKeyFloor).toBe(display.canvasFloor)
+  display.setLegendSize({ width: 200, height: 100 })
+  expect(display.answeredKeyFloor).toBe(display.canvasFloor)
 
   display.resizeHeight(-100)
   expect(display.height).toBe(242)

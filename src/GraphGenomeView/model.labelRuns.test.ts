@@ -126,7 +126,7 @@ type Model = ReturnType<ReturnType<typeof stateModelFactory>['create']>
 // What the page's key does: it tells the model how to say what it draws,
 // and once the browser has laid it out measures it, a 15 px line per row and
 // heading
-function measureKeyAsDrawn(model: Model) {
+function measureKeyAsDrawn(model: Model, afterMs = 1) {
   model.setKeyShapeOf(() => JSON.stringify(legendSections(model)))
   return reaction(
     () => model.keyShape,
@@ -137,7 +137,7 @@ function measureKeyAsDrawn(model: Model) {
       )
       setTimeout(() => {
         model.setLegendSize({ width: 220, height: lines * 15 }, shape)
-      }, 1)
+      }, afterMs)
     },
     { fireImmediately: true },
   )
@@ -297,5 +297,75 @@ test('a view closed while a read is on its way is not written to when the read l
       String(call[0]).includes('featureReadsInFlight'),
     ),
   ).toEqual([])
+  warn.mockRestore()
+})
+
+function cutView() {
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+    loadedTrackId: 'graph',
+  })
+  model.setWidth(1200)
+  model.startRenderingBackend(fakeRenderer())
+  return model
+}
+
+const cutWindow = (model: Model) =>
+  model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+
+test("labels landed before the key is measured wait for the key's measure, and are laid out once at its size", async () => {
+  reads.reference = () => Promise.resolve([gene('CFH', 'chr1', 1005, 1025)])
+  reads.haplotype = () => Promise.resolve([gene('CFHR3', 'CM1', 5011, 5019)])
+  const model = cutView()
+  const legendAtLayout: unknown[] = []
+  const stopLabels = reaction(
+    () => model.overlayLabels,
+    layout => {
+      if (layout.genes.length > 0) {
+        legendAtLayout.push(model.legendSize)
+      }
+    },
+  )
+  const stopKey = measureKeyAsDrawn(model, 200)
+  await cutWindow(model)
+  await later(undefined, 100)
+  expect(model.genePins).toHaveLength(2)
+  expect(chipTexts(model)).toEqual([])
+  await vi.waitFor(() => {
+    expect(chipTexts(model)).toEqual(['CFH', 'CFHR3'])
+  })
+  expect(runs.onLaidOutGraph).toBe(1)
+  expect(legendAtLayout).toEqual([model.legendSize])
+  stopLabels()
+  stopKey()
+})
+
+test('labels wait for a track to answer the floor its key sets', async () => {
+  const model = cutView()
+  const stopKey = measureKeyAsDrawn(model)
+  model.setAnsweredKeyFloor(-1)
+  await cutWindow(model)
+  await later(undefined, 200)
+  expect(model.labelFrameSettled).toBe(false)
+  expect(chipTexts(model)).toEqual([])
+  model.setAnsweredKeyFloor(model.canvasFloor)
+  expect(chipTexts(model)).toEqual(['CFH', 'CFHR3'])
+  stopKey()
+})
+
+test('a read that fails is no longer awaited', async () => {
+  reads.haplotype = () => Promise.reject(new Error('no such file'))
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const model = cutView()
+  const stopKey = measureKeyAsDrawn(model)
+  await cutWindow(model)
+  await later(undefined, 200)
+  expect(model.featureReadsInFlight).toBe(0)
+  expect(chipTexts(model)).toEqual(['CFH'])
+  stopKey()
   warn.mockRestore()
 })
