@@ -240,6 +240,36 @@ describe('a drawing the linear view drives', () => {
     expect(model.setDraggingNode).toHaveBeenCalledWith('s1')
   })
 
+  test('placed by its window, leaves a press wholly to the view, so a drag moves the drawing only with the view', () => {
+    const model = drivenModel(null)
+    Object.assign(model, { followsWindow: true, overlayLabels: { genes: [] } })
+    const captures = canvas.setPointerCapture.mock.calls.length
+    const { handlers, flush } = renderGestures(model)
+    act(() => {
+      handlers.onPointerDown(finger(1, 100))
+      handlers.onPointerMove({
+        ...finger(1, 140),
+        clientY: 50,
+      })
+      flush()
+    })
+    expect(canvas.hasAttribute('data-gesture-owner')).toBe(false)
+    expect(canvas.setPointerCapture.mock.calls.length).toBe(captures)
+    expect(model.isPanning).toBe(false)
+    expect(model.setTransform).not.toHaveBeenCalled()
+  })
+
+  test('placed by its window, still drags a node', () => {
+    const model = drivenModel('s1')
+    Object.assign(model, { followsWindow: true, setDraggingNode: vi.fn() })
+    const { handlers } = renderGestures(model)
+    act(() => {
+      handlers.onPointerDown(finger(1, 100))
+    })
+    expect(canvas.hasAttribute('data-gesture-owner')).toBe(true)
+    expect(model.setDraggingNode).toHaveBeenCalledWith('s1')
+  })
+
   test('claims nothing for the surface, so shift-drag range-selects', () => {
     const { result } = renderHook(() =>
       usePaneGestures(drivenModel(null) as unknown as GraphPaneModel),
