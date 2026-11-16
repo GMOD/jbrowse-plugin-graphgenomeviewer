@@ -931,7 +931,7 @@ describe('what the row axis draws, in pixels', () => {
       ...(drawn.shortSkip
         ? [
             {
-              label: 'a skip too short to dash',
+              label: 'short skip',
               swatch: { kind: 'line', short: true },
             },
           ]
