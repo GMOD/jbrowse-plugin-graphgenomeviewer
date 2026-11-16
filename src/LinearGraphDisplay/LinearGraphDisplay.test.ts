@@ -2674,3 +2674,30 @@ test('a drawing placed by its window is clipped at the key column on its canvas,
   )
   expect(tagOf(overlay, 'an-overlay')).toContain(clip)
 })
+
+test("a force track restored with a viewport of its own is placed by its window once its cut lands, not where the session left the drawing", async () => {
+  const { view } = createEnvironment({ paths: true })
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'graph',
+    {},
+    {
+      type: 'LinearGraphDisplay',
+      layoutMode: 'force',
+      cutRegion: { refName: REF, assemblyName: ASM, start: 966_656, end: 1_064_960 },
+      scale: 2,
+      translateX: 50,
+    },
+  )
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(pane.layoutResult).toBeDefined()
+  expect(pane.viewportOwner).toBe('fit')
+  expect(pane.windowTransform).toMatchObject({
+    scale: pane.scale,
+    translateX: pane.translateX,
+    translateY: pane.translateY,
+  })
+})

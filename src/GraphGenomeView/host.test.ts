@@ -118,6 +118,11 @@ test('snap levels are a square root of two apart, the smallest holding the span'
   expect(snapLevel(46_000)).toBeCloseTo(32_768 * Math.SQRT2, 6)
 })
 
+test('a span a rounding error past a level, as bp per px times the width can come out, stays on that level', () => {
+  expect(snapLevel(65_536 * (1 + 1e-12))).toBe(65_536)
+  expect(snapLevel(2 ** 15.5 * (1 + 1e-12))).toBe(2 ** 15.5)
+})
+
 test('a snapped cut stops at the ends of the displayed region', () => {
   const cut = snappedCut({ ...window, start: 1_000, end: 61_000 })
   expect(cut.start).toBe(0)
