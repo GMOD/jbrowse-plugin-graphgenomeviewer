@@ -119,6 +119,7 @@ import type {
 } from '@jbrowse/bandage-core/colorSchemes'
 import type { EdgeWidth } from '@jbrowse/bandage-core/edgeWidths'
 import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
+import type { GenePin } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
@@ -141,6 +142,35 @@ function walkRowsFromCut(
 ) {
   const runs = walkRowRuns(cut, region, { visits })
   return runs ? walkRowsOf(runs, unit) : undefined
+}
+
+const NO_PINS: GenePin[] = []
+
+function samePin(a: GenePin, b: GenePin) {
+  return (
+    a.gene.name === b.gene.name &&
+    a.gene.refName === b.gene.refName &&
+    a.gene.start === b.gene.start &&
+    a.gene.end === b.gene.end &&
+    a.exons === b.exons &&
+    a.at.x === b.at.x &&
+    a.at.y === b.at.y &&
+    a.covered === b.covered &&
+    a.onReference === b.onReference &&
+    a.walks === b.walks &&
+    a.nodeIds.size === b.nodeIds.size &&
+    [...a.nodeIds].every(id => b.nodeIds.has(id))
+  )
+}
+
+function samePins(a: GenePin[], b: GenePin[]) {
+  return (
+    a.length === b.length &&
+    a.every((pin, i) => {
+      const other = b[i]
+      return other !== undefined && samePin(pin, other)
+    })
+  )
 }
 
 // undefined for a pane outside any track or view, as a test makes one
@@ -1091,24 +1121,6 @@ export const withGraphViews = paneBase
       return layoutModeByValue(self.drawnLayoutMode ?? self.chosenLayoutMode)
         .drawsNodes
     },
-    // Exons and names on the nodes that carry them, in layout units. Reads
-    // positionsVersion so a dragged node takes its exons with it.
-    get genePins() {
-      dependOn(self.positionsVersion)
-      const positions = self.layoutResult?.nodePositions
-      // each haplotype's own genes ride its nodes off the reference
-      const genes = [
-        ...(self.backboneGenes ?? []),
-        ...(self.ownGeneFeatures ?? []),
-      ]
-      return self.showGenes &&
-        this.drawsNodes &&
-        self.graph &&
-        genes.length > 0 &&
-        positions
-        ? genePins(self.graph, genes, positions, self.layoutResult?.stranded)
-        : []
-    },
     // The bubbles as halos along their nodes.
     // Reads positionsVersion so a dragged node takes its halo with it.
     get bubbleHalos() {
@@ -1175,6 +1187,36 @@ export const withGraphViews = paneBase
       return this.axisScale.scaleY
     },
   }))
+  // Exons and names on the nodes that carry them, in layout units. Reads
+  // positionsVersion so a dragged node takes its exons with it. Pins equal to
+  // the last ones are the last ones, so a recomputation that changes nothing,
+  // as a gene list read again or still empty, lays no label out again.
+  .views(self => {
+    const pins = computed(
+      () => {
+        dependOn(self.positionsVersion)
+        const positions = self.layoutResult?.nodePositions
+        // each haplotype's own genes ride its nodes off the reference
+        const genes = [
+          ...(self.backboneGenes ?? []),
+          ...(self.ownGeneFeatures ?? []),
+        ]
+        return self.showGenes &&
+          self.drawsNodes &&
+          self.graph &&
+          genes.length > 0 &&
+          positions
+          ? genePins(self.graph, genes, positions, self.layoutResult?.stranded)
+          : NO_PINS
+      },
+      { equals: samePins },
+    )
+    return {
+      get genePins() {
+        return pins.get()
+      },
+    }
+  })
   .views(self => ({
     // layout units to pane px
     get screenTransform(): ScreenTransform {

@@ -1,6 +1,7 @@
 import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import { readConfObject } from '@jbrowse/core/configuration'
+import { autorun } from 'mobx'
 
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import stateModelFactory from './viewModel'
@@ -186,4 +187,20 @@ test('a gene with no symbol is not named, and keeps its outlines and its hover',
   expect(genesOverNode(model.genePins, 'h0+')).toContain(
     `${UNNAMED} · HG00097#1`,
   )
+})
+
+test('pins read again the same, or still none, change nothing a label reads', async () => {
+  const model = await drawn()
+  const seen: unknown[] = []
+  const stop = autorun(() => {
+    seen.push(model.genePins)
+  })
+  await model.loadOwnGenes()
+  expect(seen).toHaveLength(1)
+  model.setLayer('genes', false)
+  expect(seen).toHaveLength(2)
+  await model.loadOwnGenes()
+  model.setLayer('deletions', !model.showDeletionEdges)
+  expect(seen).toHaveLength(2)
+  stop()
 })
