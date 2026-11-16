@@ -362,7 +362,7 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test('lifting a walk with steps not fetched cuts again with its name', async () => {
+  test('lifting a walk through a run not fetched cuts again with its name', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -370,7 +370,9 @@ describe('canceling and retrying', () => {
         'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
       ].join('\n'),
     )!
-    tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
+    tables.nodes.placeholders = Uint8Array.from(tables.nodes.names, name =>
+      name === 'h1' ? 1 : 0,
+    )
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve(cutOf(tables))
@@ -393,7 +395,7 @@ describe('canceling and retrying', () => {
     })
   })
 
-  test('lifting a walk through a run not fetched that states no count cuts again with its name', async () => {
+  test('lifting a walk whose steps not fetched lie past the window cuts nothing again, since the cut draws it exactly', async () => {
     const tables = gfaTables(
       [
         GFA,
@@ -401,9 +403,7 @@ describe('canceling and retrying', () => {
         'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
       ].join('\n'),
     )!
-    tables.nodes.placeholders = Uint8Array.from(tables.nodes.names, name =>
-      name === 'h1' ? 1 : 0,
-    )
+    tables.walks.abridgedSteps = Float64Array.from([Number.NaN, 40])
     mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
       method === 'GetSubgraph'
         ? Promise.resolve(cutOf(tables))
@@ -413,8 +413,10 @@ describe('canceling and retrying', () => {
     await vi.waitFor(() => {
       expect(model.hasGraph).toBe(true)
     })
+    mockRpcCall.mockClear()
     model.liftWalks(['GRCh38#0#chr6', 'NA20809#2#CM094351.1'])
-    expect(model.expandedWalks).toEqual(['NA20809#2#CM094351.1'])
+    expect(model.expandedWalks).toEqual([])
+    expect(mockRpcCall).not.toHaveBeenCalled()
   })
 
   test('picking a sample in walk rows fetches nothing, since its bar is drawn the same', async () => {

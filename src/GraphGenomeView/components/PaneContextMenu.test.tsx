@@ -65,20 +65,18 @@ const strip = {
   origin: 0,
 }
 
-// 6 bp in a departure alone is a walk whose row counts no abridged steps
 test.each([
-  [12_400, 0, 'HG1#1#c: 12,400 steps not loaded'],
-  [40, 6, 'HG1#1#c: 40 steps not loaded, 6 bp off the reference'],
-  [0, 6, 'HG1#1#c: 0 steps not loaded, 6 bp off the reference'],
+  [6, 'HG1#1#c: 6 bp off the reference not loaded'],
+  [12_400, 'HG1#1#c: 12 kb off the reference not loaded'],
 ])(
-  "a strip row whose walk the cut abridged offers to load its steps, saying graph-walks' not-loaded text: %i steps, %i bp",
-  (steps, bp, text) => {
+  "a strip row whose walk the cut abridged offers to load its steps, saying graph-walks' not-loaded text: %i bp",
+  (bp, text) => {
     const expandWalk = vi.fn()
     render(
       <PaneContextMenu
         model={{
           ...model,
-          abridged: [{ name: 'HG1#1#c', steps, bp }],
+          abridged: [{ name: 'HG1#1#c', bp }],
           expandWalk,
         }}
         at={{ clientX: 10, clientY: 10, row: 1, bars: strip }}
@@ -95,7 +93,7 @@ test('a walk row offers no fetch, since its bar would look the same', () => {
   const withRow = {
     ...model,
     walkRowBars: strip,
-    abridged: [{ name: 'HG1#1#c', steps: 40, bp: 6 }],
+    abridged: [{ name: 'HG1#1#c', bp: 6 }],
   } as unknown as GraphPaneModel
   render(
     <PaneContextMenu

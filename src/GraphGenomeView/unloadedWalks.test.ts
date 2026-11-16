@@ -72,7 +72,7 @@ function graphOf(n: number): Graph {
   }
 }
 
-const abridged = [{ name: 'S0#1#c', steps: 0, bp: 300 }]
+const abridged = [{ name: 'S0#1#c', bp: 300 }]
 
 test('a tube map fetches the nodes of the walks it shows, up to the limit', () => {
   expect(tubeMapWalksToLoad(graphOf(EXPAND_NAMED_MAX), abridged)).toEqual([
