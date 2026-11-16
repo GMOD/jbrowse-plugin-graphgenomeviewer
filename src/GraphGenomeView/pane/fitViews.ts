@@ -434,8 +434,19 @@ export const withFitViews = withHostViews
       const { top, bottom } = this.fitPads
       return this.viewBox.height - top - bottom
     },
+    // A flipped view runs bp right to left, which a held cut's slide does not
     get snapsHostCut() {
-      return !!self.host && cutRuleOf(self.chosenLayoutMode) === 'snapped'
+      const { host, graphRegion } = self
+      const seen = host && hostWindow(host)
+      return (
+        !!host &&
+        cutRuleOf(self.chosenLayoutMode) === 'snapped' &&
+        !host.dynamicBlocks.contentBlocks.some(
+          b =>
+            b.reversed &&
+            (b.refName === graphRegion?.refName || b.refName === seen?.refName),
+        )
+      )
     },
     get followsWindow() {
       const layout = self.layoutResult

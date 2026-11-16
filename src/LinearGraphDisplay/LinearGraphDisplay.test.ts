@@ -2411,3 +2411,20 @@ test('a held cut is never refitted to a view it does not cover: a jump far along
   expect(pane.graphRegion?.refName).toBe(REF)
   expect(screenExtent(pane).x0).toBeGreaterThan(pane.paneWidth)
 })
+
+test('in a flipped view a force track cuts and slides as the release line did, so its drawing moves with the ruler rather than against it', async () => {
+  const { view, pane, cuts } = await forceGraph({ paths: true })
+  expect(pane.snapsHostCut).toBe(true)
+  view.horizontallyFlip()
+  await wait(SETTLE_MS)
+  expect(pane.snapsHostCut).toBe(false)
+  expect(pane.followsWindow).toBe(false)
+  const seen = hostWindow(pane.host!)!
+  expect(cuts.at(-1)!.region).toMatchObject({
+    start: Math.floor(seen.start),
+    end: Math.ceil(seen.end),
+  })
+  const before = pane.translateX
+  view.horizontalScroll(100)
+  expect(pane.translateX - before).toBeCloseTo(-100, 6)
+})
