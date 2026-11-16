@@ -1,10 +1,12 @@
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
+import { findHoveredEdge } from '@jbrowse/bandage-core/util/hitDetection'
 import { act, renderHook } from '@testing-library/react'
 
 import { PANS_WITH_DRAWING } from './PaneLayer'
 import { easeZoom, usePaneGestures, wheelAction } from './usePaneGestures'
 
 import type { GraphPaneModel } from '../model'
+import type { Graph } from '@jbrowse/bandage-core/types'
 
 vi.mock('@jbrowse/mobx-state-tree', async importOriginal => ({
   ...(await importOriginal<object>()),
@@ -150,6 +152,86 @@ test('a pointer over a node or link the drawing folded finds neither, so neither
     x: 50,
     y: 100,
   })
+  vi.unstubAllGlobals()
+})
+
+test('a link is hovered where the drawing draws it, joining the ends its strands name under a stranded layout', () => {
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    frames.push(cb),
+  )
+  const nodePositions = {
+    r1: [
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
+    ],
+    f: [
+      { x: 200, y: 20 },
+      { x: 300, y: 20 },
+    ],
+  }
+  const graph: Graph = {
+    name: 'stranded',
+    nodes: [
+      { id: 'r1', name: 'r1', length: 100, depth: 1 },
+      { id: 'f', name: 'f', length: 100, depth: 1 },
+    ],
+    edges: [{ from: 'r1', to: 'f', fromStrand: '+', toStrand: '-' }],
+  }
+  const axis = { scaleX: 1, scaleY: 1 }
+  const edgeAt = (x: number, y: number, stranded: boolean) =>
+    findHoveredEdge(
+      nodePositions,
+      graph,
+      x,
+      y,
+      axis,
+      false,
+      0,
+      undefined,
+      undefined,
+      undefined,
+      stranded,
+      undefined,
+    )
+  // clear of both nodes, so the pointer is on the link alone
+  const points = Array.from({ length: 31 * 5 }, (_, i) => ({
+    x: (i % 31) * 10,
+    y: 40 + Math.floor(i / 31) * 10,
+  }))
+  const onStranded = points.find(
+    p => edgeAt(p.x, p.y, true) === 0 && edgeAt(p.x, p.y, false) === null,
+  )!
+  expect(onStranded).toBeDefined()
+  const setHoveredEdge = vi.fn()
+  const model = fakeModel({
+    isPanning: false,
+    draggingNode: null,
+    overlayLabels: { genes: [] },
+    walkRowBars: undefined,
+    axisScale: axis,
+    positionsVersion: 0,
+    nodeInk: undefined,
+    hoverLightsEverything: true,
+    effectiveDrawPaths: false,
+    nodePositions,
+    graph,
+    layoutResult: { stranded: true },
+    drawnFold: undefined,
+    setHoveredPanel: vi.fn(),
+    setHoveredNode: vi.fn(),
+    setHoveredTube: vi.fn(),
+    setHoveredEdge,
+    tubeMapPanelAt: () => null,
+  })
+  const { result } = renderHook(() =>
+    usePaneGestures(model as unknown as GraphPaneModel),
+  )
+  act(() => {
+    result.current.handlers.onPointerMove(at(onStranded.x, onStranded.y))
+    frames.shift()?.(0)
+  })
+  expect(setHoveredEdge).toHaveBeenLastCalledWith(0)
   vi.unstubAllGlobals()
 })
 
