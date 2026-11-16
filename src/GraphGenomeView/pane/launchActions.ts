@@ -371,6 +371,11 @@ export const withLaunchActions = withRenderingActions
       return [
         layerItem('Show bubble halos', 'bubbles'),
         layerItem('Show links that skip reference', 'deletions'),
+        {
+          ...layerItem('Show small sites', 'smallSites'),
+          helpText:
+            'Draw every node and skip at any zoom. Off, a site too small to see at this zoom is left out and counted in the key, and drawn again as you zoom in',
+        },
         layerItem('Show node lengths', 'lengths'),
         {
           label: 'Hover highlight',

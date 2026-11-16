@@ -686,6 +686,7 @@ export const withFitViews = withHostViews
         referenceRamp: self.referenceRamp,
         // passed so the shared edge-curve cache can tell a drag from a pan
         version: self.positionsVersion,
+        smallSites: self.smallSites,
       })
       const entering = self.morphEntering
       if (entering?.layout === layoutResult) {
@@ -726,6 +727,7 @@ export const withFitViews = withHostViews
             nodeWidth: self.nodeWidth,
             edgeWidth: self.linkWidth,
             showDeletionEdges: self.showDeletionEdges,
+            smallSites: self.smallSites,
             linearLayout: self.linearLayout,
             contigThickness: self.contigThickness,
             connectorThickness: self.connectorThickness,

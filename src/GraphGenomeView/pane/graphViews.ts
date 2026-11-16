@@ -123,6 +123,7 @@ import type { FacetInput, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type { GenePin } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
+import type { SmallSites } from '@jbrowse/bandage-core/levelOfDetail'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
 import type { Graph, GraphNode } from '@jbrowse/bandage-core/types'
@@ -308,6 +309,9 @@ export const withGraphViews = paneBase
       },
       get showDeletionEdges() {
         return this.layerSet.has('deletions')
+      },
+      get smallSites(): SmallSites {
+        return this.layerSet.has('smallSites') ? 'nodes' : 'hidden'
       },
       get showGenes() {
         return this.layerSet.has('genes')

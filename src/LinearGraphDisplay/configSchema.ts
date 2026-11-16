@@ -72,8 +72,8 @@ export function configSchemaFactory() {
       /**
        * #slot
        * what the drawing adds over its nodes and edges, stated as changes to
-       * the defaults: `paths`, `bubbles`, `walkStrip` and `walkRibbons` are
-       * off, `deletions`, `genes` and `referenceStrip` on
+       * the defaults: `paths`, `bubbles`, `walkStrip`, `walkRibbons` and
+       * `smallSites` are off, `deletions`, `genes` and `referenceStrip` on
        * ```js
        * { layers: { bubbles: true, genes: false } }
        * ```

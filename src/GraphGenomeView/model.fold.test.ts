@@ -3,12 +3,15 @@ import { readFileSync } from 'node:fs'
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { getSnapshot } from '@jbrowse/mobx-state-tree'
 
 import { mockRpcCall } from './modelTestMocks'
 import { createAnchoredModel, fakeRenderer } from './modelTestSupport'
+import stateModelFactory from './viewModel'
 
 import type { GraphLayers } from './graphLayers'
 import type { GraphPaneModel } from './model'
+import type { MenuItem } from './modelTestSupport'
 import type { Fold } from '@jbrowse/bandage-core/levelOfDetail'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 
@@ -129,4 +132,25 @@ test('a node inside a run of folded sites is hit and outlined as wide as the run
   for (const id of through) {
     expect(model.nodeInk.halfWidthPx(id)).toBe(drawn.halfWidthPx(id))
   }
+})
+
+test('Show small sites, off by default, draws every node and skip and keys nothing as not drawn, on screen and in the SVG, and is saved with the session', async () => {
+  const model = await drawnGap571()
+  const item = () =>
+    (model.showMenuItems() as MenuItem[]).find(
+      i => i.label === 'Show small sites',
+    )!
+  expect(item().checked).toBe(false)
+  expect(model.drawnFold?.sites.length).toBeGreaterThan(0)
+  expect(model.graphKey.map(s => s.id)).toContain('too-small')
+  expect(model.figure()).toMatch(/under \d+ bp not drawn/)
+  item().onClick!()
+  draw(model)
+  expect(item().checked).toBe(true)
+  expect(model.drawnFold?.sites).toEqual([])
+  expect(model.graphKey.map(s => s.id)).not.toContain('too-small')
+  expect(model.figure()).not.toMatch(/not drawn/)
+  const snapshot = getSnapshot(model)
+  expect(snapshot.layers).toEqual({ lengths: true, smallSites: true })
+  expect(stateModelFactory().create(snapshot).smallSites).toBe('nodes')
 })
