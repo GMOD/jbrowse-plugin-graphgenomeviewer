@@ -64,12 +64,12 @@ import type {
   GeneGaps,
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import type { ReferencePiece } from '@jbrowse/bandage-core/pipeline'
+import type { ReferenceProfile } from '@jbrowse/bandage-core/pipeline'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 
-const landedReference = new WeakMap<LayoutResult, ReferencePiece[]>()
+const landedReference = new WeakMap<LayoutResult, ReferenceProfile>()
 
 export function holdReference(graph: Graph, layout: LayoutResult) {
   if (!landedReference.has(layout)) {
@@ -464,15 +464,23 @@ export const withFitViews = withHostViews
         padBottom: pads.bottom,
       }
     },
+    get heldWindow() {
+      const { host } = self
+      return host && this.followsWindow ? hostWindow(host) : undefined
+    },
+    get viewSpan() {
+      return this.heldWindow?.span
+    },
     get heldScale() {
       const pieces = this.heldReference
       const region = self.graphRegion
       const bounds = this.layoutBounds
-      return pieces && region && bounds
+      const span = this.viewSpan
+      return pieces && region && bounds && span
         ? cutScale(
             pieces,
             region,
-            region.viewSpan ?? region.end - region.start,
+            span,
             bounds,
             this.drawingWidth,
             this.canvasHeight,
@@ -481,8 +489,8 @@ export const withFitViews = withHostViews
         : undefined
     },
     get windowTransform() {
-      const { host, graphRegion } = self
-      const seen = host && this.followsWindow ? hostWindow(host) : undefined
+      const { graphRegion } = self
+      const seen = this.heldWindow
       const pieces = this.heldReference
       const scale = this.heldScale
       const bounds = this.layoutBounds

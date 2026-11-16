@@ -159,7 +159,6 @@ export function snappedCut(window: HostWindow): SubgraphRegion {
     assemblyName: window.assemblyName,
     start: Math.max(window.regionStart, Math.round(centre - 0.75 * level)),
     end: Math.min(window.regionEnd, Math.round(centre + 0.75 * level)),
-    viewSpan: level,
   }
 }
 

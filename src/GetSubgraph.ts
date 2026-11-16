@@ -51,8 +51,6 @@ export interface SubgraphRegion {
   assemblyName: string
   start: number
   end: number
-  // the widest view a snapped cut holds
-  viewSpan?: number
 }
 
 export interface GetSubgraphArgs {

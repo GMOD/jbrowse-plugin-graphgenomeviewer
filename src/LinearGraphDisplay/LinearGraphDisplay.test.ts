@@ -1069,7 +1069,7 @@ test('a force layout does not cut again for a pan inside its snapped cut', async
   expect(pane.layoutResult).toBe(layout)
 })
 
-test("the reference at the window's centre is drawn at the track's centre at every step of a pan inside the cut, the window's stretch its share of the widest view-width stretch in the cut", async () => {
+test("the reference at the window's centre is drawn at the track's centre at every step of a pan inside the cut, the window's stretch its share of the widest stretch as wide as the view", async () => {
   const { view, pane, cuts } = await forceGraph()
   const { left, right } = pane.fitPads
   const centre = (left + pane.drawingWidth - right) / 2
@@ -1080,15 +1080,105 @@ test("the reference at the window's centre is drawn at the track's centre at eve
     const x0 = screenXOf(pane, seen.start)!
     const x1 = screenXOf(pane, seen.end, true)!
     expect((x0 + x1) / 2).toBeCloseTo(centre, 6)
-    expect(x1 - x0).toBeCloseTo(
-      ((pane.drawingWidth - left - right) * 60_000) / 65_536,
-      6,
-    )
+    expect(x1 - x0).toBeCloseTo(pane.drawingWidth - left - right, 6)
     expect(pane.scale / scale).toBeCloseTo(1, 12)
     await wait(SETTLE_MS)
   }
   expect(cuts).toHaveLength(1)
 })
+
+// The window's stretch of the reference and every node off it anchored
+// inside the window, in pane px
+function windowInk(pane: LinearGraphDisplayModel) {
+  const seen = hostWindow(pane.host!)!
+  const points: { x: number; y: number }[] = []
+  for (const node of pane.graph!.nodes) {
+    const line = pane.nodePositions?.[node.id] ?? []
+    const start = node.stable?.start ?? -1
+    const [a, b] = line
+    if (node.stable?.rank === 0 && a && b) {
+      const lo = Math.max(seen.start, start)
+      const hi = Math.min(seen.end, start + node.length)
+      for (const bp of hi > lo ? [lo, hi] : []) {
+        const f = (bp - start) / node.length
+        points.push(
+          pane.toScreen({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }),
+        )
+      }
+    } else if (start >= seen.start && start < seen.end) {
+      for (const p of line) {
+        points.push(pane.toScreen(p))
+      }
+    }
+  }
+  return {
+    x0: points.reduce((m, p) => Math.min(m, p.x), Infinity),
+    x1: points.reduce((m, p) => Math.max(m, p.x), -Infinity),
+    y0: points.reduce((m, p) => Math.min(m, p.y), Infinity),
+    y1: points.reduce((m, p) => Math.max(m, p.y), -Infinity),
+  }
+}
+
+test('a zoom inside one level magnifies the held drawing as the view does, step by step, about the window centre, and clips nothing in the window', async () => {
+  for (const paths of [false, true]) {
+    const { view, pane, cuts } = await forceGraph({ paths })
+    const cut = pane.cutRegion
+    const { top, bottom } = pane.fitPads
+    const first = pane.scale
+    let before = { scale: first, span: 60_000 }
+    for (const span of [58_000, 56_000, 54_000, 52_000, 50_000, 48_000]) {
+      view.zoomTo(span / WIDTH_PX, WIDTH_PX / 2)
+      await wait(SETTLE_MS)
+      expect(pane.cutRegion).toEqual(cut)
+      expect(pane.scale).toBeGreaterThanOrEqual(before.scale)
+      if (!paths) {
+        expect(pane.scale / before.scale).toBeCloseTo(before.span / span, 9)
+      }
+      const ink = windowInk(pane)
+      expect(ink.x0).toBeGreaterThanOrEqual(0)
+      expect(ink.x1).toBeLessThanOrEqual(pane.drawingWidth)
+      expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
+      expect(ink.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
+      before = { scale: pane.scale, span }
+    }
+    expect(before.scale).toBeGreaterThan(1.1 * first)
+    expect(cuts).toHaveLength(1)
+  }
+}, 30_000)
+
+test('a pan at any one width inside the level is a pure translation, and zoom then pan lands where pan then zoom does', async () => {
+  const { view, pane, panTo } = await forceGraph({ paths: true })
+  for (const span of [60_000, 54_000, 48_000]) {
+    view.zoomTo(span / WIDTH_PX, WIDTH_PX / 2)
+    await wait(SETTLE_MS)
+    const { scale, translateY } = pane
+    for (const start of [1_000_000, 1_002_000, 990_000]) {
+      view.scrollTo(start / view.bpPerPx)
+      expect(pane.scale / scale).toBeCloseTo(1, 12)
+      expect(pane.translateY).toBeCloseTo(translateY, 9)
+    }
+    await wait(SETTLE_MS)
+  }
+  const at = (p: LinearGraphDisplayModel) => ({
+    scale: p.scale,
+    translateX: p.translateX,
+    translateY: p.translateY,
+  })
+  await panTo(1_000_000)
+  view.zoomTo(60_000 / WIDTH_PX, WIDTH_PX / 2)
+  await wait(SETTLE_MS)
+  await panTo(1_001_000)
+  const zoomThenPan = at(pane)
+  view.zoomTo(54_000 / WIDTH_PX, WIDTH_PX / 2)
+  await panTo(995_000)
+  view.zoomTo(60_000 / WIDTH_PX, WIDTH_PX / 2)
+  await wait(SETTLE_MS)
+  await panTo(1_001_000)
+  const panThenZoom = at(pane)
+  expect(panThenZoom.scale).toBeCloseTo(zoomThenPan.scale, 9)
+  expect(panThenZoom.translateX).toBeCloseTo(zoomThenPan.translateX, 6)
+  expect(panThenZoom.translateY).toBeCloseTo(zoomThenPan.translateY, 6)
+}, 30_000)
 
 // a track as short as it goes leaves the cut's height, rather than its
 // width, to set the scale
@@ -2254,7 +2344,7 @@ test('a graph with walks is drawn whole at any zoom', async () => {
   expect(pane.foldNote).toBeUndefined()
 })
 
-test('a force drawing is placed by its window alone: between cuts it only slides with the view, and no screen map of the last frame stands in', async () => {
+test('a force drawing is placed by its window alone: a pan only slides it, a zoom magnifies it before the next cut lands, and no screen map of the last frame stands in', async () => {
   const { view, pane, cuts } = await forceGraph()
   expect(pane.hostPlacesX).toBe(false)
   expect(pane.followsWindow).toBe(true)
@@ -2267,7 +2357,7 @@ test('a force drawing is placed by its window alone: between cuts it only slides
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
   view.zoomTo(view.bpPerPx / 2, WIDTH_PX / 2)
-  expect(pane.scale / scale).toBeCloseTo(1, 12)
+  expect(pane.scale / scale).toBeCloseTo(2, 6)
   expect(pane.fittedTransform).toMatchObject({
     scale: pane.scale,
     translateX: pane.translateX,
@@ -2275,5 +2365,5 @@ test('a force drawing is placed by its window alone: between cuts it only slides
   })
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(2)
-  expect(pane.scale).toBeGreaterThan(1.5 * scale)
+  expect(pane.scale / scale).toBeCloseTo(2, 1)
 })

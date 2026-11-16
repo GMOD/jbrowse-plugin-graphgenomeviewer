@@ -84,7 +84,6 @@ test('a snapped cut is one cut for every window of its cell, and the next cell i
     assemblyName: 'hg38',
     start: 966_656,
     end: 1_064_960,
-    viewSpan: 65_536,
   })
   expect(sameCut(cut, snappedCut(shifted(2_000)))).toBe(true)
   expect(sameCut(cut, snappedCut(shifted(-20_000)))).toBe(true)
