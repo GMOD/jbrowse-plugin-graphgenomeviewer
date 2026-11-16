@@ -11,8 +11,16 @@ import {
   walkRowsKey,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
+import { arrowheadOutline } from '@jbrowse/bandage-core/renderer/Canvas2DRenderer'
 import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { abgrToCssRgba } from '@jbrowse/bandage-core/renderer/colorBits'
+import {
+  LANE_HEAD_HALO_PX,
+  LANE_HEAD_LENGTH,
+  LANE_HEAD_MIN_PX,
+  laneHeadInk,
+} from '@jbrowse/bandage-core/renderer/laneHeads'
+import { THREAD_PX } from '@jbrowse/bandage-core/renderer/walkLanes'
 import { deviationInk } from '@jbrowse/bandage-core/tubeMap/deviations'
 import {
   FORWARD_READ_COLORS,
@@ -48,6 +56,7 @@ const FOLD_TICK_BACKING = '#b8b8c0'
 const WALK_ROW_SWATCH_PX = WALK_ROW_BAR_PX - 4
 const LINE_PX = 15
 const CHIP_PX = 10
+const HEADS_LANE_PX = 8
 
 export interface Stop {
   offset: number
@@ -85,6 +94,16 @@ export type LegendSwatch =
   | { kind: 'blank' }
   // a lane's threads side by side, one per pass through a node
   | { kind: 'threads' }
+  // a lane with its heads, about its centre line; a head wider than its
+  // lane stands on a white halo
+  | {
+      kind: 'heads'
+      lane: string
+      lanePx: number
+      heads: string
+      fill: string
+      haloPx?: number
+    }
 
 // A row with no swatch is a note on the drawing
 export interface LegendRow {
@@ -140,6 +159,10 @@ export function swatchHeight(swatch: LegendSwatch) {
       return 7
     case 'threads':
       return 8
+    case 'heads':
+      return swatch.haloPx === undefined
+        ? swatch.lanePx
+        : LANE_HEAD_MIN_PX + swatch.haloPx
     case 'blank':
       return 0
   }
@@ -193,6 +216,30 @@ const css = abgrToCssRgba
 const cssStops = (stops: readonly KeyStop[]) =>
   stops.map(({ offset, ink }) => ({ offset, color: css(ink) }))
 
+// as bandage-core's figure keys them: one head inside a lane, or two on a
+// thread, each wider than the thread and haloed
+function headsSwatch(ink: number, haloed: boolean): LegendSwatch {
+  const width = haloed ? LANE_HEAD_MIN_PX : HEADS_LANE_PX
+  const length = width * LANE_HEAD_LENGTH
+  const heads = (haloed ? [length, SWATCH_PX] : [SWATCH_PX - 1])
+    .map(x => {
+      const outline = arrowheadOutline(
+        { x, y: 0, angle: 0, length, halfWidth: width / 2, color: ink },
+        { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, dpr: 1 },
+      )
+      return `M${outline.map(p => `${+p.x.toFixed(1)},${+p.y.toFixed(1)}`).join('L')}Z`
+    })
+    .join('')
+  return {
+    kind: 'heads',
+    lane: css(ink),
+    lanePx: haloed ? THREAD_PX : HEADS_LANE_PX,
+    heads,
+    fill: css(laneHeadInk(ink, !haloed)),
+    ...(haloed ? { haloPx: 2 * LANE_HEAD_HALO_PX } : {}),
+  }
+}
+
 // bandage-core's swatch, drawn by LegendSwatch
 function legendSwatch(swatch: GraphKeySwatch): LegendSwatch {
   switch (swatch.kind) {
@@ -239,6 +286,8 @@ function legendSwatch(swatch: GraphKeySwatch): LegendSwatch {
       return { kind: 'threads' }
     case 'overhang':
       return { kind: 'overhang' }
+    case 'heads':
+      return headsSwatch(swatch.ink, swatch.haloed)
   }
 }
 

@@ -241,6 +241,26 @@ export function SvgSwatch({
           ))}
         </>
       )
+    case 'heads':
+      return (
+        <g transform={`translate(${x} ${mid})`}>
+          <line
+            x2={SWATCH_PX}
+            stroke={swatch.lane}
+            strokeWidth={swatch.lanePx}
+          />
+          {swatch.haloPx === undefined ? null : (
+            <path
+              d={swatch.heads}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={swatch.haloPx}
+              strokeLinejoin="round"
+            />
+          )}
+          <path d={swatch.heads} fill={swatch.fill} />
+        </g>
+      )
   }
 }
 

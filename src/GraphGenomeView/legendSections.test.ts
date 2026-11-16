@@ -1,5 +1,6 @@
 import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
-import { graphKey } from '@jbrowse/bandage-core/graphKey'
+import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
+import { walkLift } from '@jbrowse/bandage-core/walkHighlight'
 
 import {
   legendSections,
@@ -43,13 +44,9 @@ test('a read set drawn whole says nothing of its count', () => {
 // a drawing of nodes of more than one thickness, and plain links, and no
 // other mark
 const MARKS = {
-  dashedSkip: false,
-  shortSkip: false,
-  placeholder: false,
+  ...drawnMarks([]),
   plainNode: true,
   plainLink: true,
-  offReference: false,
-  threads: false,
   widthsVary: true,
 }
 
@@ -160,6 +157,26 @@ test('every row of a key shares one pitch, roomy enough for its tallest', () => 
     expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(row.swatch!) + 2)
   }
   expect(rowPitch([{ key: 'a', label: 'a' }])).toBe(15)
+})
+
+test("a lifted lane's heads are keyed with a swatch of the lane and its head", () => {
+  const lift = walkLift(DEPTHS, [{ walk: 'w0' }])
+  for (const haloed of [false, true]) {
+    const rows = rowsOf(
+      keyModel(DEPTHS, {
+        lift,
+        marks: { ...MARKS, headsAlong: true, headsHaloed: haloed },
+      }),
+      'graph-walk-readout',
+    )!
+    const heads = rows.find(r => r.key === 'lane-heads')!
+    expect(heads.swatch).toMatchObject({
+      kind: 'heads',
+      heads: expect.stringMatching(haloed ? /^M[^M]+ZM[^M]+Z$/ : /^M[^M]+Z$/),
+    })
+    expect(swatchHeight(heads.swatch!)).toBeGreaterThan(0)
+    expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(heads.swatch!))
+  }
 })
 
 test("a walk row key's hollow bar keeps its rim round its fill", () => {

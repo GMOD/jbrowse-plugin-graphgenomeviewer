@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
+import { SMALL_SITE_PX } from '@jbrowse/bandage-core/levelOfDetail'
 import { curvePointAt } from '@jbrowse/bandage-core/util/geometry'
 
 import { mockRpcCall } from './modelTestMocks'
@@ -40,9 +41,10 @@ const layouts = [
 
 // At chr1:27,853,000-27,855,000 HG02055's 50 bp skip and the 1 and 2 bp
 // skips drew as solid black darts on the backbone: two or three dashes of a
-// heavy stroke, a few px each, under a head
+// heavy stroke, a few px each, under a head. A skip under SMALL_SITE_PX at
+// the reference's px a bp is not drawn at all, and the fold says so.
 test.each(layouts)(
-  'at the 571 bp gap under $layout, a skip is one plain stroke with no head until its span on screen holds three dashes',
+  'at the 571 bp gap under $layout, a skip is one plain stroke with no head until its span on screen holds three dashes, and is folded while under the small-site line',
   async ({ create }) => {
     mockRpcCall.mockImplementation(
       (_session: unknown, method: string, request: EngineRequest) =>
@@ -60,6 +62,7 @@ test.each(layouts)(
     const wrong: string[] = []
     const plain: string[] = []
     const dashed: string[] = []
+    const folded: string[] = []
     for (const scale of [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 6]) {
       for (const { edgeIndex, bp } of model.deletions) {
         const { from } = model.graph!.edges[edgeIndex]!
@@ -76,9 +79,19 @@ test.each(layouts)(
         const a = first && model.toScreen(curvePointAt(first, 0))
         const b = last && model.toScreen(curvePointAt(last, 1))
         const spanPx = a && b ? Math.hypot(b.x - a.x, b.y - a.y) : 0
+        const fold = batch.collapsed
+        const small =
+          !!fold && fold.pxPerBp > 0 && bp * fold.pxPerBp < SMALL_SITE_PX
         const seen = `${bp} bp at ${scale}`
-        const drawn = `${seen}: ${strokes.length} strokes, ${heads} heads, ${spanPx.toFixed(1)} px across`
-        if (strokes.length === 1) {
+        const drawn = `${seen}: ${strokes.length} strokes, ${heads} heads, ${spanPx.toFixed(1)} px across, ${small ? '' : 'not '}small, ${fold?.edges.has(edgeIndex) ? '' : 'not '}folded`
+        if (
+          small !== !!fold?.edges.has(edgeIndex) ||
+          small !== !strokes.length
+        ) {
+          wrong.push(drawn)
+        } else if (small) {
+          folded.push(seen)
+        } else if (strokes.length === 1) {
           plain.push(seen)
           if (
             heads > 0 ||
@@ -87,7 +100,7 @@ test.each(layouts)(
           ) {
             wrong.push(drawn)
           }
-        } else if (strokes.length > 1) {
+        } else {
           dashed.push(seen)
           if (spanPx < THREE_DASHES_PX - 1) {
             wrong.push(drawn)
@@ -96,11 +109,10 @@ test.each(layouts)(
       }
     }
     expect(wrong).toEqual([])
-    expect(plain).toEqual(
-      expect.arrayContaining(['50 bp at 0.25', '2 bp at 1']),
-    )
+    expect(plain).toEqual(expect.arrayContaining(['50 bp at 0.25']))
     expect(dashed).toEqual(
       expect.arrayContaining(['50 bp at 3', '571 bp at 0.25']),
     )
+    expect(folded).toEqual(expect.arrayContaining(['1 bp at 1', '2 bp at 1']))
   },
 )
