@@ -38,6 +38,7 @@ import {
 import { withSettingActions } from './settingActions'
 import { namesReads } from '../../GetGraphReads'
 import { trackAdapterSnapshot } from '../../graphTrackConfig'
+import { DrawLimitError } from '../../nodeLimitError'
 import { geneModelsFrom } from '../genes/geneFeatures'
 import { gfaText } from '../gfaText'
 import { repeatArraysFrom } from '../repeats/repeatFeatures'
@@ -114,7 +115,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const ways = layoutModeByValue('walkrows').available(graph)
         ? 'Pick Layout → Walk rows, zoom in to a smaller region'
         : 'Zoom in to a smaller region'
-      throw new Error(
+      throw new DrawLimitError(
         `Graph too large to draw: ${graph.nodes.length.toLocaleString()} nodes (limit ${self.maxGraphNodes.toLocaleString()}). ${ways}, or raise the node limit in Graph settings.`,
       )
     }

@@ -1108,6 +1108,57 @@ test('a force layout draws a window the same way however the view came to it', a
   expect(zoomedBack.translateY).toBeCloseTo(fromTheLeft.translateY, 6)
 })
 
+test('a snapped cut over the node limit falls back to the window alone, which a view always gets there however it came', async () => {
+  const { view, pane, cuts, panTo } = await forceGraph({ paths: true })
+  pane.setMaxGraphNodes(12)
+  await wait(SETTLE_MS)
+  const snappedAt = (start: number) =>
+    cuts.filter(c => c.region.start === start).length
+  expect(snappedAt(966_656)).toBeGreaterThan(0)
+  expect(pane.cutRegion).toMatchObject({ start: 1_000_000, end: 1_060_000 })
+  expect(pane.error).toBeUndefined()
+  expect(pane.graph!.nodes.length).toBeLessThanOrEqual(12)
+  const first = placement(pane)
+  const asked = snappedAt(966_656)
+
+  await panTo(1_200_000)
+  expect(pane.cutRegion).toMatchObject({ start: 1_200_000, end: 1_260_000 })
+  expect(pane.error).toBeUndefined()
+  await panTo(1_000_000)
+  const back = placement(pane)
+  expect(back.cut).toEqual(first.cut)
+  expect(back.scale).toBeCloseTo(first.scale, 9)
+  expect(back.translateX).toBeCloseTo(first.translateX, 6)
+  expect(back.translateY).toBeCloseTo(first.translateY, 6)
+  expect(snappedAt(966_656)).toBe(asked)
+  expect(view.bpPerPx).toBe(60)
+
+  pane.setMaxGraphNodes(1000)
+  await wait(SETTLE_MS)
+  expect(pane.cutRegion).toMatchObject({ start: 966_656, end: 1_064_960 })
+})
+
+test('a snapped cut the adapter refuses over its node limit falls back to the window alone, with no zoom-in notice', async () => {
+  const env = createEnvironment({ paths: true })
+  env.setDenseAbove(80_000)
+  const { view, cuts } = env
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  view.showTrack(
+    'walks',
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force' },
+  )
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts.map(c => c.region.start)).toEqual([966_656, 1_000_000])
+  expect(pane.cutRegion).toMatchObject({ start: 1_000_000, end: 1_060_000 })
+  expect(pane.dense).toBeUndefined()
+  expect(pane.displayPhase).not.toBe('tooLarge')
+  expect(pane.graph).toBeDefined()
+})
+
 test('a pan inside the held cut keeps the reference strip whole and true to the linear view, with edge marks where the graph runs on', async () => {
   const { view, pane, holdCuts } = await forceGraph()
   holdCuts()

@@ -22,7 +22,11 @@ import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction } from 'mobx'
 
-import { isNodeLimitError, isUnzoomableNodeLimitError } from '../nodeLimitError'
+import {
+  isDrawLimitError,
+  isNodeLimitError,
+  isUnzoomableNodeLimitError,
+} from '../nodeLimitError'
 import { denseCovers } from './denseWindow'
 import {
   cutHolds,
@@ -93,6 +97,8 @@ export function coarseHandover(coarse: unknown) {
       : undefined
 }
 
+const OVER_LIMIT_KEPT = 64
+
 const GraphSettingsDialog = lazy(
   () => import('../GraphGenomeView/components/GraphSettingsDialog'),
 )
@@ -123,6 +129,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       dense: undefined as SubgraphRegion | undefined,
       // the fold the latest cut asked for
       cutFoldBp: 0,
+      overLimit: new Set<string>(),
     }))
     .views(self => ({
       get grammar(): GraphGrammar {
@@ -206,17 +213,35 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
     }))
     .views(self => ({
+      overLimitKey(region: SubgraphRegion, seen: HostWindow) {
+        return JSON.stringify([
+          region,
+          self.tierAt(seen.bpPerPx),
+          self.foldFor(region, seen),
+          self.cutKey,
+          self.maxGraphNodes,
+        ])
+      },
+    }))
+    .views(self => ({
       cutFor(seen: HostWindow) {
-        return self.snapsHostCut
-          ? snappedCut(seen)
+        const cap = self.capFor(self.tierAt(seen.bpPerPx))
+        const snapped = snappedCut(seen)
+        return self.snapsHostCut &&
+          snapped.end - snapped.start <= cap &&
+          !self.overLimit.has(self.overLimitKey(snapped, seen))
+          ? snapped
           : hostCut(
               seen,
-              self.capFor(self.tierAt(seen.bpPerPx)),
+              cap,
               layoutModeByValue(self.chosenLayoutMode).cutMargins,
             )
       },
     }))
     .views(self => ({
+      snapped(region: SubgraphRegion | undefined, seen: HostWindow) {
+        return self.snapsHostCut && sameCut(region, snappedCut(seen))
+      },
       cutHoldsAt(seen: HostWindow) {
         return self.snapsHostCut
           ? sameCut(self.cutRegion, self.cutFor(seen)) &&
@@ -378,13 +403,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         // is this cut's only while no later one has started
         followCut(cut: ReturnType<typeof self.cut>, seen: HostWindow) {
           const latest = ++followed
+          const region = self.cutRegion
           void Promise.resolve(cut).then(() => {
             if (
               isAlive(self) &&
               followed === latest &&
               isNodeLimitError(self.error)
             ) {
-              this.refuseDenseCut(seen)
+              if (self.snapped(region, seen)) {
+                this.refuseSnappedCut(seen)
+              } else {
+                this.refuseDenseCut(seen)
+              }
             }
           })
         },
@@ -407,6 +437,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           }
           this.followCut(self.recutAt(seen), seen)
           return true
+        },
+        // A snapped cut over a node limit holds nothing, so the window is
+        // cut alone wherever that snapped cut is the window's
+        refuseSnappedCut(seen: HostWindow) {
+          const { overLimit } = self
+          overLimit.add(self.overLimitKey(snappedCut(seen), seen))
+          for (const key of overLimit) {
+            if (overLimit.size > OVER_LIMIT_KEPT) {
+              overLimit.delete(key)
+            }
+          }
+          this.settleOn(self.settledWindow ?? seen)
         },
         // A cut refused for its node count holds nothing, so a window
         // narrower than this one cuts again
@@ -586,6 +628,36 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               self.setAnsweredKeyFloor(floor)
             },
             { name: 'GraphKeyHeight' },
+          ),
+        )
+        addDisposer(
+          self,
+          reaction(
+            () => self.error,
+            error => {
+              const seen = self.settledWindow
+              if (
+                seen &&
+                isDrawLimitError(error) &&
+                self.snapped(self.cutRegion, seen)
+              ) {
+                self.refuseSnappedCut(seen)
+              }
+            },
+            { name: 'GraphSnapDrawLimit' },
+          ),
+        )
+        addDisposer(
+          self,
+          reaction(
+            () => self.maxGraphNodes,
+            () => {
+              const seen = self.settledWindow
+              if (seen && self.snapsHostCut) {
+                self.settleOn(seen)
+              }
+            },
+            { name: 'GraphSnapNodeLimit' },
           ),
         )
         addDisposer(
