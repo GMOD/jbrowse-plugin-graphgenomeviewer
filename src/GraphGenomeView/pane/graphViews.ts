@@ -9,6 +9,7 @@ import {
   deletionEdges,
 } from '@jbrowse/bandage-core/deletionEdges'
 import { facetSettingOf } from '@jbrowse/bandage-core/facetGrid'
+import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
 import { genePins } from '@jbrowse/bandage-core/genes/genePins'
 import {
   formatBp,
@@ -1233,6 +1234,30 @@ export const withGraphViews = paneBase
       },
     }
   })
+  .views(self => ({
+    // Each exon's stretch of drawn node, in layout units, so neither a pan
+    // nor a zoom inside one fold rebuilds them; an open bubble rings only its
+    // own exons
+    get exonOutlines() {
+      const { genePins, walkLift } = self
+      const focus = walkLift ? undefined : self.openBubbleFocus
+      const pins = focus
+        ? genePins.map(pin => ({
+            ...pin,
+            exonsByNode: pin.exonsByNode.filter(e =>
+              focus.nodeIds.has(e.nodeId),
+            ),
+          }))
+        : genePins
+      return exonStretches(
+        pins,
+        self.nodeInk.halfWidthPx,
+        walkLift,
+        undefined,
+        self.folded,
+      )
+    },
+  }))
   .views(self => ({
     // layout units to pane px
     get screenTransform(): ScreenTransform {
