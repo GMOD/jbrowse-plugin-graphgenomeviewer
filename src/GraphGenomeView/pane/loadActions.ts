@@ -65,6 +65,19 @@ import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
 import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
+// a host panning back and forth over a few snapped cuts
+const KEPT_CUTS = 4
+
+interface ParsedCut {
+  graph: Graph
+  walkCut: WalkCut | undefined
+  abridged: AbridgedWalk[]
+  region: SubgraphRegion | undefined
+  loadedReferencePath: string | undefined
+  foldedBelowBp: number | undefined
+  readsShown: { shown: number; total: number } | undefined
+}
+
 const withEngineSettings = withSettingActions.views(self => ({
   get engineSettings() {
     return engineSettingsOf({
@@ -378,15 +391,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
   // selection too, because hoveredEdge is an index into graph.edges and
   // hoveredNode/selectedNode are ids, which would point the tooltip and the
   // highlight at whatever sits there in the new graph.
-  function resetCut(cut?: {
-    graph: Graph
-    walkCut: WalkCut | undefined
-    abridged: AbridgedWalk[]
-    region: SubgraphRegion | undefined
-    loadedReferencePath: string | undefined
-    foldedBelowBp: number | undefined
-    readsShown: { shown: number; total: number } | undefined
-  }) {
+  function resetCut(cut?: ParsedCut) {
     self.graph = cut?.graph
     self.walkCut = cut?.walkCut
     self.abridged = cut?.abridged ?? []
@@ -405,22 +410,16 @@ export const withLoadActions = withEngineSettings.actions(self => {
     self.clearInteractionState()
   }
 
-  // `keepSelection` for a re-cut of the same source: node ids survive one
-  // where edge indexes do not, so the selection is found again by id.
   // `readsOf` fetches the reads over the parsed graph before its one
   // layout, since the tube map lays them out with the paths. `foldBelowBp`
   // is what a host's zoom cannot show: variants under it fold into the
   // reference, and the drawing is clipped to the region it was cut for.
-  function* parseAndLayout(
+  function* parsedCut(
     source: string | WalkCut,
     name: string,
     region: SubgraphRegion | undefined,
-    keepSelection = false,
     readsOf?: (graph: Graph) => Promise<GafReads>,
     foldBelowBp = 0,
-    // reads over the cut that need no layout, started with it so a layout
-    // that fails or runs long neither drops nor delays them
-    alongside?: () => Promise<unknown>,
   ) {
     const { signal } = loadController
     const walkCut =
@@ -450,16 +449,15 @@ export const withLoadActions = withEngineSettings.actions(self => {
         readsShown = { shown: records.length, total }
       } catch (e) {
         if (signal.aborted) {
-          return
+          return undefined
         }
         console.warn('[GraphGenomeView] no reads for this graph', e)
       }
       if (signal.aborted) {
-        return
+        return undefined
       }
     }
-    const selected = keepSelection ? self.selectedNode : null
-    resetCut({
+    return {
       graph,
       walkCut,
       abridged: typeof source === 'string' ? [] : (source.abridged ?? []),
@@ -467,7 +465,22 @@ export const withLoadActions = withEngineSettings.actions(self => {
       loadedReferencePath: loaded,
       foldedBelowBp: folded === anchored ? undefined : foldBelowBp,
       readsShown,
-    })
+    } satisfies ParsedCut
+  }
+
+  // `keepSelection` for a re-cut of the same source: node ids survive one
+  // where edge indexes do not, so the selection is found again by id.
+  function* showCut(
+    cut: ParsedCut,
+    keepSelection: boolean,
+    // reads over the cut that need no layout, started with it so a layout
+    // that fails or runs long neither drops nor delays them
+    alongside?: () => Promise<unknown>,
+  ) {
+    const { signal } = loadController
+    const { graph } = cut
+    const selected = keepSelection ? self.selectedNode : null
+    resetCut(cut)
     // a re-cut keeps the bubbles still in it open
     const names = new Set(graph.nodes.map(n => n.name))
     self.openBubbles = self.openBubbles.filter(b =>
@@ -487,6 +500,33 @@ export const withLoadActions = withEngineSettings.actions(self => {
       self.setStatusMessage('Reading annotations')
       yield reads
     }
+  }
+
+  function* parseAndLayout(
+    source: string | WalkCut,
+    name: string,
+    region: SubgraphRegion | undefined,
+    alongside?: () => Promise<unknown>,
+  ) {
+    const cut = yield* parsedCut(source, name, region)
+    if (cut) {
+      yield* showCut(cut, false, alongside)
+    }
+  }
+
+  // Cuts a host may come back to, by what they were cut from, each the
+  // graph its force layouts are cached against, the oldest dropped first
+  const keptCuts = new Map<string, ParsedCut>()
+
+  function keepCut(key: string, cut: ParsedCut) {
+    keptCuts.delete(key)
+    keptCuts.set(key, cut)
+    for (const old of keptCuts.keys()) {
+      if (keptCuts.size > KEPT_CUTS) {
+        keptCuts.delete(old)
+      }
+    }
+    return cut
   }
 
   // Which load is the live one, for the reason liveRequest orders layouts:
@@ -790,9 +830,6 @@ export const withLoadActions = withEngineSettings.actions(self => {
         text,
         name,
         region,
-        false,
-        undefined,
-        0,
         region && (() => Promise.all(annotationReads(region, isLive, signal))),
       )
     })
@@ -908,80 +945,101 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }),
     // One cut of a region, laid out with the annotations over it. Whether
     // the region may be cut is the caller's call; overlapping cuts are
-    // ordered by liveLoad, so the latest one lands.
+    // ordered by liveLoad, so the latest one lands. A cut the caller `keep`s
+    // is shown again from KEPT_CUTS without a fetch or a layout.
     cutSubgraph: flow(function* (
       adapterConfig: Record<string, unknown>,
       region: SubgraphRegion,
       opts: SubgraphCutOptions = {},
       foldBelowBp?: number,
+      keep = false,
     ) {
       yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
-        self.setStatusMessage('Fetching subgraph')
-        const fetchStart = performance.now()
-        const cut = (yield getSession(self).rpcManager.call(
-          getRpcSessionId(self),
-          'GetSubgraph',
-          {
-            adapterConfig,
-            region,
-            opts,
-            signal,
-            // the cut itself reports nothing, but renaming its region first
-            // can download the adapter's refName index
-            statusCallback: status => {
-              if (isLive()) {
-                self.setStatusMessage(
-                  statusMessageText(status) ?? 'Fetching subgraph',
-                )
-              }
-            },
-          },
-        )) as string | WalkCut
-        if (!isLive()) {
-          return
-        }
-        self.setFetchMs(performance.now() - fetchStart)
-        if (!cut) {
-          throw new Error(
-            'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
-          )
-        }
-        yield* parseAndLayout(
-          cut,
-          regionLabel(region),
+        const readsOf = namesReads(adapterConfig)
+          ? (graph: Graph) =>
+              getSession(self).rpcManager.call(
+                getRpcSessionId(self),
+                'GetGraphReads',
+                // eslint-disable-next-line no-restricted-syntax -- GetGraphReads renames no region and its adapters report no phase, so the pane's own 'Reading alignments' is all there is
+                {
+                  adapterConfig,
+                  nodeNames: graph.nodes.map(n => n.name),
+                  signal,
+                },
+              )
+          : undefined
+        // Independent remote reads, each landing as it arrives. A coarse
+        // cut reads no bubble index: its nodes are the bubbles, and the
+        // index over its window can run to a chromosome's rows.
+        const alongside = () =>
+          Promise.all([
+            opts.tier === 'coarse'
+              ? undefined
+              : flow(loadBubbles)(
+                  adapterConfig,
+                  region,
+                  isLive,
+                  signal,
+                  self.foldedBelowBp,
+                ),
+            ...annotationReads(region, isLive, signal),
+          ])
+        const key = JSON.stringify([
+          adapterConfig,
           region,
-          true,
-          namesReads(adapterConfig)
-            ? graph =>
-                getSession(self).rpcManager.call(
-                  getRpcSessionId(self),
-                  'GetGraphReads',
-                  // eslint-disable-next-line no-restricted-syntax -- GetGraphReads renames no region and its adapters report no phase, so the pane's own 'Reading alignments' is all there is
-                  {
-                    adapterConfig,
-                    nodeNames: graph.nodes.map(n => n.name),
-                    signal,
-                  },
-                )
-            : undefined,
+          opts,
           foldBelowBp,
-          // Independent remote reads, each landing as it arrives. A coarse
-          // cut reads no bubble index: its nodes are the bubbles, and the
-          // index over its window can run to a chromosome's rows.
-          () =>
-            Promise.all([
-              opts.tier === 'coarse'
-                ? undefined
-                : flow(loadBubbles)(
-                    adapterConfig,
-                    region,
-                    isLive,
-                    signal,
-                    self.foldedBelowBp,
-                  ),
-              ...annotationReads(region, isLive, signal),
-            ]),
-        )
+          self.referencePath,
+        ])
+        const kept = keep && !readsOf ? keptCuts.get(key) : undefined
+        if (kept) {
+          yield* showCut(keepCut(key, kept), true, alongside)
+        } else {
+          self.setStatusMessage('Fetching subgraph')
+          const fetchStart = performance.now()
+          const cut = (yield getSession(self).rpcManager.call(
+            getRpcSessionId(self),
+            'GetSubgraph',
+            {
+              adapterConfig,
+              region,
+              opts,
+              signal,
+              // the cut itself reports nothing, but renaming its region first
+              // can download the adapter's refName index
+              statusCallback: status => {
+                if (isLive()) {
+                  self.setStatusMessage(
+                    statusMessageText(status) ?? 'Fetching subgraph',
+                  )
+                }
+              },
+            },
+          )) as string | WalkCut
+          if (!isLive()) {
+            return
+          }
+          self.setFetchMs(performance.now() - fetchStart)
+          if (!cut) {
+            throw new Error(
+              'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
+            )
+          }
+          const parsed = yield* parsedCut(
+            cut,
+            regionLabel(region),
+            region,
+            readsOf,
+            foldBelowBp,
+          )
+          if (parsed) {
+            yield* showCut(
+              keep && !readsOf ? keepCut(key, parsed) : parsed,
+              true,
+              alongside,
+            )
+          }
+        }
       })
     }),
     // A track change re-reads that annotation alone. The graph, its layout

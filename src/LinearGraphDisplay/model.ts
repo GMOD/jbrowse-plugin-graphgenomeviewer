@@ -384,6 +384,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           region,
           { ...self.cutOptions, tier: coarse ? 'coarse' : undefined },
           self.cutFoldBp,
+          !!seen && self.snapped(region, seen),
         )
       },
     }))

@@ -951,15 +951,18 @@ test('walk rows cut every snarl a GBZ walk takes past the window, so a walk come
   await pane.switchLayout('force')
   await wait(SETTLE_MS)
   const before = cuts.length
+  const forced = pane.graph
   expect(cuts.at(-1)!.snarls).toBeUndefined()
   await pane.switchLayout('walkrows')
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(before + 1)
   expect(cuts.at(-1)!.snarls).toBe('overlapping')
+  // the force cut is kept, so coming back fetches nothing
   await pane.switchLayout('force')
   await wait(SETTLE_MS)
-  expect(cuts).toHaveLength(before + 2)
-  expect(cuts.at(-1)!.snarls).toBeUndefined()
+  expect(cuts).toHaveLength(before + 1)
+  expect(pane.graph).toBe(forced)
+  expect(pane.cutOptions.snarls).toBeUndefined()
 })
 
 // A walk file cuts the same whatever the snarl option says
@@ -1082,7 +1085,7 @@ test("the window's stretch of the reference runs across the track at every step 
 })
 
 test('a force layout draws a window the same way however the view came to it', async () => {
-  const { view, pane, panTo } = await forceGraph({ paths: true })
+  const { view, pane, cuts, panTo } = await forceGraph({ paths: true })
   await panTo(1_001_000)
   const fromTheLeft = placement(pane)
   await panTo(2_000_000)
@@ -1093,6 +1096,7 @@ test('a force layout draws a window the same way however the view came to it', a
   expect(fromTheRight.translateX).toBeCloseTo(fromTheLeft.translateX, 6)
   expect(fromTheRight.translateY).toBeCloseTo(fromTheLeft.translateY, 6)
   expect(pane.cutRegion).toMatchObject({ start: 966_656, end: 1_064_960 })
+  expect(cuts).toHaveLength(2)
 
   const centre = view.offsetPx + WIDTH_PX / 2
   view.zoomTo(view.bpPerPx * 4, WIDTH_PX / 2)
@@ -1157,6 +1161,26 @@ test('a snapped cut the adapter refuses over its node limit falls back to the wi
   expect(pane.dense).toBeUndefined()
   expect(pane.displayPhase).not.toBe('tooLarge')
   expect(pane.graph).toBeDefined()
+})
+
+test('a snapped cut panned back to is drawn again without a fetch or a layout, for the last four cuts', async () => {
+  const { pane, cuts, layouts, panTo } = await forceGraph()
+  const first = { graph: pane.graph, layout: pane.layoutResult }
+  await panTo(1_100_000)
+  expect(cuts).toHaveLength(2)
+  await panTo(1_000_000)
+  expect(cuts).toHaveLength(2)
+  expect(layouts()).toBe(2)
+  expect(pane.graph).toBe(first.graph)
+  expect(pane.layoutResult).toBe(first.layout)
+
+  for (const start of [1_100_000, 1_200_000, 1_300_000, 1_400_000]) {
+    await panTo(start)
+  }
+  expect(cuts).toHaveLength(5)
+  await panTo(1_000_000)
+  expect(cuts).toHaveLength(6)
+  expect(pane.graph).not.toBe(first.graph)
 })
 
 test('a pan inside the held cut keeps the reference strip whole and true to the linear view, with edge marks where the graph runs on', async () => {
