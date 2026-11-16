@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 //
 // Screenshots a hosted JBrowse session with this checkout's dist/ standing in
-// for the published bundle, to look at a change before it is released.
+// for the published bundle, to look at a change before it is released. The
+// HPRC demo's config reads HPRC_WALKS, the walk file this bundle reads.
 //
 // Usage:
 //   node scripts/preview-candidate.mjs '<?config=...&session=...>' out.png
@@ -11,6 +12,7 @@ import { parseArgs } from 'node:util'
 
 import {
   gotoHosted,
+  hprcConfigReadingWalks,
   launchBrowser,
   waitGraphPainted,
 } from './hostedBrowser.mjs'
@@ -40,7 +42,7 @@ const browser = await launchBrowser({
 })
 try {
   const page = await browser.newPage()
-  await candidateServer(values.dist)(page)
+  await candidateServer(values.dist, {}, await hprcConfigReadingWalks())(page)
   await gotoHosted(page, values.version, query)
   const ready = await waitGraphPainted(page, Number(values.timeout)).then(
     () => true,

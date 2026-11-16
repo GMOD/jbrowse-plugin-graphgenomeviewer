@@ -3,8 +3,9 @@
 // Reshoots the figures in img/ on jbrowse.org's hosted JBrowse, with this
 // checkout's dist/ standing in for the published bundle. FIGURES holds every
 // one, each `{ session, act?, config?, dir? }`: the session spec, what to do
-// before the shot, the config, the HPRC demo's unless it names another, and
-// the directory the figure lives in, img/ unless it names another.
+// before the shot, the config, the HPRC demo's reading HPRC_WALKS unless it
+// names another, and the directory the figure lives in, img/ unless it names
+// another.
 //
 // A figure is 1400 px wide unless it names a `width`.
 //
@@ -30,6 +31,7 @@ import { parseArgs } from 'node:util'
 import {
   HPRC_CONFIG,
   gotoHosted,
+  hprcConfigReadingWalks,
   launchBrowser,
   waitGraphPainted,
 } from './hostedBrowser.mjs'
@@ -1021,6 +1023,7 @@ if (unknown.length > 0) {
     `no figure ${unknown.join(', ')}: ${Object.keys(FIGURES).join(', ')}`,
   )
 }
+const hprcConfig = await hprcConfigReadingWalks()
 
 // The spec's SVG on a white page, at the width core drew it
 async function specShot(context, spec) {
@@ -1064,10 +1067,11 @@ async function appShot(context, name) {
   const { session, act, config = HPRC_CONFIG, width = 1400 } = FIGURES[name]
   const page = await context.newPage()
   await page.setViewport({ width, height: 1600 })
-  await candidateServer(values.dist, {
-    [FIXTURES]: 'test_data',
-    [DOCS]: 'docs',
-  })(page)
+  await candidateServer(
+    values.dist,
+    { [FIXTURES]: 'test_data', [DOCS]: 'docs' },
+    hprcConfig,
+  )(page)
   await gotoHosted(
     page,
     values.version,

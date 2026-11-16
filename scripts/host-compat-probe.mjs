@@ -28,6 +28,7 @@ import {
   HPRC_CONFIG,
   HPRC_WALKS,
   gotoHosted,
+  hprcConfigReadingWalks,
   launchBrowser,
 } from './hostedBrowser.mjs'
 import { ENTRY, candidateServer } from './serveCandidate.mjs'
@@ -84,20 +85,12 @@ const { values } = parseArgs({
 })
 const versions = values.versions?.split(',') ?? DEFAULT_VERSIONS
 const timeout = Number(values.timeout)
-// The hosted config as readers get it, but reading this bundle's walk file:
-// the candidate is probed against the data it reads, not the data the live
+// The candidate is probed against the data it reads, not the data the live
 // bundle reads.
-const probeConfig = values.published
-  ? undefined
-  : JSON.parse(
-      JSON.stringify(await (await fetch(HPRC_CONFIG)).json(), (key, value) =>
-        key === 'walksUri' ? HPRC_WALKS : value,
-      ),
-    )
 const serveCandidate = candidateServer(
   values.dist,
   {},
-  { [new URL(HPRC_CONFIG).pathname]: probeConfig },
+  values.published ? {} : await hprcConfigReadingWalks(),
 )
 
 async function probeOne(browser, version) {

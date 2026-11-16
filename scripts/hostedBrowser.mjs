@@ -11,6 +11,19 @@ export const HPRC_CONFIG = 'https://jbrowse.org/demos/hprc/config.json'
 export const HPRC_WALKS =
   'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38'
 
+// The hosted config as readers get it, but reading this bundle's walk file,
+// for a candidateServer `documents` entry at the config's own path
+export async function hprcConfigReadingWalks() {
+  const config = await (await fetch(HPRC_CONFIG)).json()
+  return {
+    [new URL(HPRC_CONFIG).pathname]: JSON.parse(
+      JSON.stringify(config, (key, value) =>
+        key === 'walksUri' ? HPRC_WALKS : value,
+      ),
+    ),
+  }
+}
+
 // Chrome 155 turns WebGL off under --use-gl=swiftshader.
 // --enable-unsafe-swiftshader lets it draw WebGL with SwiftShader on a machine
 // with no GPU.
