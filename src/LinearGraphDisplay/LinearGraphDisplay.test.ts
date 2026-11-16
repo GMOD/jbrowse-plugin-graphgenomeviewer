@@ -2143,6 +2143,19 @@ test("the linear view's SVG export draws the graph through the screen's transfor
   ).toContain('data-testid="graph-pane-svg"')
 })
 
+test('the SVG export clips a drawing placed by its window at the key column, as the screen does', async () => {
+  const { pane } = await forceGraph()
+  pane.setLegendSize({ width: 120, height: 40 })
+  const markup = renderToStaticMarkup(
+    (await pane.renderSvg()) as React.ReactElement,
+  )
+  const id = `graph-${pane.id}-drawing-clip`
+  expect(markup).toContain(
+    `<clipPath id="${id}"><rect width="${pane.drawingWidth}"`,
+  )
+  expect(markup).toContain(`clip-path="url(#${id})"`)
+})
+
 test('the SVG export greys what lies outside an open bubble, as the screen does', async () => {
   const { pane } = await shownGraph({ windowStart: 1_015_000, windowBp: 9000 })
   const exported = async () =>

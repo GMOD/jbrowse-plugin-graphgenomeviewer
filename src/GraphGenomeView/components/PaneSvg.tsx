@@ -381,40 +381,51 @@ export default function PaneSvg({
   const height = model.canvasHeight
   const tubeMap = !!model.layoutResult?.tubeMap
   const opts = { rasterizeLayers: rasterize }
+  const clipId = `${idPrefix}-drawing-clip`
+  const clipped = model.drawingClip !== undefined
   return (
     <g data-testid="graph-pane-svg">
-      {model.facetPanels ? (
-        <Facets model={model} rasterize={rasterize} idPrefix={idPrefix} />
-      ) : tubeMap ? (
-        <PaintLayer
-          width={width}
-          height={height}
-          opts={opts}
-          paint={ctx => {
-            paintTubeMap(asCanvasCtx(ctx), model, { highlightNode: null })
-          }}
-        />
-      ) : (
-        <Body
-          model={model}
-          lift={model.drawnHighlight}
-          drawPaths={model.effectiveDrawPaths}
-          width={width}
-          height={height}
-          rasterize={rasterize}
-        />
-      )}
-      {/* in the screen's stacking order, bottom first */}
-      {model.facetPanels ? null : (
-        <>
-          <BubbleHalos model={model} />
-          <GenePins model={model} />
-          <SizeLabels model={model} />
-          <LabelLayer model={model} />
-          <WalkRowsOverlay model={model} vector />
-          <RowLabels model={model} />
-        </>
-      )}
+      {clipped ? (
+        <defs>
+          <clipPath id={clipId}>
+            <rect width={model.drawingWidth} height={height} />
+          </clipPath>
+        </defs>
+      ) : null}
+      <g clipPath={clipped ? `url(#${clipId})` : undefined}>
+        {model.facetPanels ? (
+          <Facets model={model} rasterize={rasterize} idPrefix={idPrefix} />
+        ) : tubeMap ? (
+          <PaintLayer
+            width={width}
+            height={height}
+            opts={opts}
+            paint={ctx => {
+              paintTubeMap(asCanvasCtx(ctx), model, { highlightNode: null })
+            }}
+          />
+        ) : (
+          <Body
+            model={model}
+            lift={model.drawnHighlight}
+            drawPaths={model.effectiveDrawPaths}
+            width={width}
+            height={height}
+            rasterize={rasterize}
+          />
+        )}
+        {/* in the screen's stacking order, bottom first */}
+        {model.facetPanels ? null : (
+          <>
+            <BubbleHalos model={model} />
+            <GenePins model={model} />
+            <SizeLabels model={model} />
+            <LabelLayer model={model} />
+            <WalkRowsOverlay model={model} vector />
+            <RowLabels model={model} />
+          </>
+        )}
+      </g>
       {model.referenceStripShown ? (
         <PaintLayer
           width={width}
