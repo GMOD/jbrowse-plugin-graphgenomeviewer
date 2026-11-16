@@ -1131,6 +1131,24 @@ test('a pan inside the held cut keeps the reference strip whole and true to the 
   expect(pane.referenceStripOverhangs).toBe(true)
 })
 
+test('an rGFA force track folds by its snap level, so a zoom inside one cut folds as a fresh view of it does', async () => {
+  const { view, pane, cuts } = await forceGraph()
+  const foldAt = (span: number) =>
+    Math.round((FOLD_PX * 2 ** (Math.ceil(Math.log2(span) * 2) / 2)) / WIDTH_PX)
+  expect(pane.cutFoldBp).toBe(foldAt(60_000))
+  view.zoomTo(50_000 / WIDTH_PX, WIDTH_PX / 2)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(pane.cutFoldBp).toBe(foldAt(50_000))
+  const centre = view.offsetPx * view.bpPerPx + 25_000
+  const fresh = await forceGraph({
+    windowStart: centre - 25_000,
+    windowBp: 50_000,
+  })
+  expect(fresh.pane.cutRegion).toEqual(pane.cutRegion)
+  expect(fresh.pane.cutFoldBp).toBe(pane.cutFoldBp)
+})
+
 test('a 20-step pan at GSTM1 and at the amylase locus lays the graph out at most three times', async () => {
   for (const [start, end] of [
     [109_670_011, 109_705_011],

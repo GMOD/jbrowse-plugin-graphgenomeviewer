@@ -30,6 +30,7 @@ import {
   hostCut,
   hostWindow,
   sameCut,
+  snapLevel,
   snappedCut,
 } from '../GraphGenomeView/host'
 import { GraphPane, formatSpanBp } from '../GraphGenomeView/model'
@@ -191,6 +192,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           ? 'coarse'
           : 'fine'
       },
+      foldFor(
+        region: SubgraphRegion | undefined,
+        seen: HostWindow | undefined,
+      ) {
+        const bpPerPx = seen?.bpPerPx ?? self.host?.bpPerPx ?? 0
+        return Math.round(
+          FOLD_PX *
+            (seen && self.snapsHostCut && sameCut(region, snappedCut(seen))
+              ? (bpPerPx * snapLevel(seen.span)) / seen.span
+              : bpPerPx),
+        )
+      },
     }))
     .views(self => ({
       cutFor(seen: HostWindow) {
@@ -205,15 +218,15 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
     }))
     .views(self => ({
       cutHoldsAt(seen: HostWindow) {
-        return (
-          (self.snapsHostCut
-            ? sameCut(self.cutRegion, self.cutFor(seen))
-            : cutHolds(
-                self.cutRegion,
-                seen,
-                layoutModeByValue(self.chosenLayoutMode).cutMargins,
-              )) && !self.foldDrifted(seen.bpPerPx)
-        )
+        return self.snapsHostCut
+          ? sameCut(self.cutRegion, self.cutFor(seen)) &&
+              (!!self.graph?.paths?.length ||
+                self.cutFoldBp === self.foldFor(self.cutRegion, seen))
+          : cutHolds(
+              self.cutRegion,
+              seen,
+              layoutModeByValue(self.chosenLayoutMode).cutMargins,
+            ) && !self.foldDrifted(seen.bpPerPx)
       },
     }))
     .views(self => ({
@@ -338,9 +351,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           return
         }
         const coarse = self.cutTier === 'coarse'
-        self.cutFoldBp = Math.round(
-          FOLD_PX * (self.settledWindow?.bpPerPx ?? self.host?.bpPerPx ?? 0),
-        )
+        const seen = self.settledWindow
+        self.cutFoldBp = self.foldFor(region, seen)
         self.markCut()
         return self.cutSubgraph(
           adapterConfig,
