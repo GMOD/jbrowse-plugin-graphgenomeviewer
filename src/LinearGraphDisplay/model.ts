@@ -20,7 +20,7 @@ import {
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
 import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
-import { reaction } from 'mobx'
+import { reaction, when } from 'mobx'
 
 import {
   isDrawLimitError,
@@ -376,7 +376,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           return
         }
         const coarse = self.cutTier === 'coarse'
-        const seen = self.settledWindow
+        const seen =
+          self.settledWindow ?? (self.host ? hostWindow(self.host) : undefined)
         self.cutFoldBp = self.foldFor(region, seen)
         self.markCut()
         return self.cutSubgraph(
@@ -537,8 +538,20 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       // the linear view and fetches nothing; the settle clock wakes on its
       // debounced blocks.
       afterAttach() {
+        // a restored cut waits for the view's window, which its fold and
+        // snap are read against, unless the settle clock cuts first
         if (self.cutRegion && !self.graph) {
-          void self.cut()
+          addDisposer(
+            self,
+            when(
+              () => !self.host || hostWindow(self.host) !== undefined,
+              () => {
+                if (self.recuts === 0) {
+                  self.reload()
+                }
+              },
+            ),
+          )
         }
         addDisposer(
           self,

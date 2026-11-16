@@ -25,7 +25,7 @@ import SimpleFeature from '@jbrowse/core/util/simpleFeature'
 import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
-import { reaction } from 'mobx'
+import { reaction, runInAction } from 'mobx'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import LinearGraphDisplayF from './index'
@@ -2427,4 +2427,58 @@ test('in a flipped view a force track cuts and slides as the release line did, s
   const before = pane.translateX
   view.horizontalScroll(100)
   expect(pane.translateX - before).toBeCloseTo(-100, 6)
+})
+
+test('a restored force track fetches its snapped cut once, folded for the window it is restored into', async () => {
+  const { view, cuts, signals } = createEnvironment()
+  view.zoomTo(60_000 / WIDTH_PX)
+  view.scrollTo(1_000_000 / view.bpPerPx)
+  const saved = {
+    refName: REF,
+    assemblyName: ASM,
+    start: 966_656,
+    end: 1_064_960,
+  }
+  view.showTrack(
+    'graph',
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force', cutRegion: saved },
+  )
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts.map(c => c.region)).toEqual([saved])
+  expect(signals.some(s => s.aborted)).toBe(false)
+  const fresh = await forceGraph()
+  expect(pane.cutFoldBp).toBe(fresh.pane.cutFoldBp)
+})
+
+test('a force track restored before its view shows a window waits for one, and fetches its cut once', async () => {
+  const { view, cuts, signals } = createEnvironment()
+  view.setDisplayedRegions([])
+  const saved = {
+    refName: REF,
+    assemblyName: ASM,
+    start: 966_656,
+    end: 1_064_960,
+  }
+  view.showTrack(
+    'graph',
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force', cutRegion: saved },
+  )
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(0)
+  runInAction(() => {
+    view.setDisplayedRegions([
+      { refName: REF, start: 0, end: CONTIG, assemblyName: ASM },
+    ])
+    view.zoomTo(60_000 / WIDTH_PX)
+    view.scrollTo(1_000_000 / view.bpPerPx)
+  })
+  await wait(SETTLE_MS)
+  expect(cuts.map(c => c.region)).toEqual([saved])
+  expect(signals.some(s => s.aborted)).toBe(false)
 })
