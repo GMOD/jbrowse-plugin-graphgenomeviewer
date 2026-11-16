@@ -777,6 +777,54 @@ describe('walk rows', () => {
     expect(model.layoutResult?.tubeMapPanels).toBeUndefined()
   })
 
+  // A#2 skips the reference's middle kilobase and a SNP in it, which a fold
+  // of 1000 bp merges into one box
+  test("a folded split tube map's hovered box is lit and counted in each panel", async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'tubemap',
+      facet: 'sample',
+      tubeMapFold: 1000,
+    })
+    await model.loadGFA(
+      [
+        'H\tVN:Z:1.1',
+        'S\tb0\t*\tLN:i:1000',
+        'S\tr1\tA',
+        'S\ta1\tC',
+        'S\tb1\t*\tLN:i:1000',
+        'S\tb2\t*\tLN:i:1000',
+        'L\tb0\t+\tr1\t+\t0M',
+        'L\tb0\t+\ta1\t+\t0M',
+        'L\tr1\t+\tb1\t+\t0M',
+        'L\ta1\t+\tb1\t+\t0M',
+        'L\tb1\t+\tb2\t+\t0M',
+        'L\tb0\t+\tb2\t+\t0M',
+        'W\tGRCh38\t0\tchr1\t0\t3001\t>b0>r1>b1>b2',
+        'W\tB\t1\tctg\t0\t3001\t>b0>r1>b1>b2',
+        'W\tA\t1\tctg\t0\t3001\t>b0>a1>b1>b2',
+        'W\tA\t2\tctg\t0\t2000\t>b0>b2',
+        '',
+      ].join('\n'),
+      'folded walks',
+    )
+    model.setWidth(800)
+    const views = model.tubeMapPanelViews!
+    expect(views.map(v => v.label)).toEqual(['B', 'A'])
+    const coarse = model.layoutResult!.tubeMap!.coarse!
+    const middle = coarse.coarseOf.get('b1+')!
+    expect(coarse.members.get(middle)).toEqual(
+      expect.arrayContaining(['r1+', 'a1+', 'b1+']),
+    )
+    model.setHoveredPanel(1)
+    model.setHoveredNode(middle)
+    expect(model.tubeMapPanelHover?.map(h => h && [h.here, h.of])).toEqual([
+      [1, 1],
+      [1, 2],
+    ])
+  })
+
   // the pictures are a layout's worth of work per panel
   test("a hovered lane row fades a split tube map's tubes and redraws no panel", async () => {
     rpcRespond()

@@ -212,10 +212,11 @@ export function memberAt(
   return spans.reduce((a, b) => (distance(b) < distance(a) ? b : a)).id
 }
 
-// How many of a panel's walks pass `node` of the cut, of how many it holds, a
-// bundle counting each walk it stands for
+// How many of a panel's walks pass `node` of the graph the panels were laid
+// out from, the cut or its fold, of how many it holds, a bundle counting each
+// walk it stands for
 export function panelWalksThrough(
-  cut: Pick<Graph, 'paths'>,
+  laid: Pick<Graph, 'paths'>,
   node: Pick<GraphNode, 'id' | 'departureVisits'>,
   panel: Pick<Graph, 'paths' | 'referencePath'>,
 ) {
@@ -229,7 +230,7 @@ export function panelWalksThrough(
     }
   }
   const here = new Set(
-    walksThrough(cut, node)
+    walksThrough(laid, node)
       .map(w => walkOf(w.name))
       .filter(walk => all.has(walk)),
   )

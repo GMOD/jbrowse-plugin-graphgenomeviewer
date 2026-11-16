@@ -210,12 +210,13 @@ export const withTubeMapViews = withFitViews
         return undefined
       }
       const node = this.hoveredMember ?? id
-      const cutNode = self.graph?.nodes.find(n => n.id === node)
+      const laid = self.layoutResult?.tubeMap?.coarse?.graph ?? self.graph
+      const laidNode = laid?.nodes.find(n => n.id === node)
       return pictures.map(({ panel }) => {
         const drawing = panel.result.tubeMap
         const box = boxOf(drawing, node)
-        return box && cutNode && self.graph
-          ? { box, ...panelWalksThrough(self.graph, cutNode, drawing.graph) }
+        return box && laid && laidNode
+          ? { box, ...panelWalksThrough(laid, laidNode, drawing.graph) }
           : undefined
       })
     },
