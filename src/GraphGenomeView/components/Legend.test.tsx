@@ -20,3 +20,35 @@ test('a long note wraps at its width, so the key is no wider than that', () => {
   expect(note.style.maxWidth).toBe('260px')
   expect(note.style.whiteSpace).toBe('normal')
 })
+
+// The review's clipped count lines: beside KIV-2's range line, beside a
+// narrower range, and with no position ramp. The line is sized by the widest
+// it can come to, unseen, whether or not the labels have filled it.
+test('the unlabelled count line carries an unseen sizer of the widest it can come to, filled or blank', () => {
+  for (const [under, sizer] of [
+    [
+      '1,204 unlabelled, 10.5 kb or less each',
+      '1,204 unlabelled, 10.5 kb or less each',
+    ],
+    ['361 unlabelled, 2 bp or less each', '377 unlabelled, 2 bp or less each'],
+    ['', '377 unlabelled, 2 bp or less each'],
+  ]) {
+    const { unmount } = render(
+      <LegendRowView
+        row={{
+          key: 'not-shown',
+          label: 'nodes not shown',
+          swatch: { kind: 'fill', stops: [{ offset: 0, color: '#fff' }] },
+          under,
+          unlabelledLine: true,
+          sizer,
+        }}
+      />,
+    )
+    const sized = screen.getByTestId('graph-key-sizer')
+    expect(sized.textContent).toBe(sizer)
+    expect(sized.style.visibility).toBe('hidden')
+    expect(sized.nextElementSibling?.textContent).toBe(under || '\u00a0')
+    unmount()
+  }
+})

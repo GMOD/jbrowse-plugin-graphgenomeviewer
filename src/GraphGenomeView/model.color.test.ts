@@ -532,6 +532,7 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   expect(unlabelled).toEqual({ count: 5, smallest: 1, largest: 5 })
   expect(keyed?.under).toBe('')
   expect(drawn?.under).toBe('5 unlabelled, 5 bp or less each')
+  expect(drawn?.sizer).toBe('100 unlabelled, 100 bp or less each')
 })
 
 // mean depth 2.2, which a middle bar keyed as "2 walks" though no node has it

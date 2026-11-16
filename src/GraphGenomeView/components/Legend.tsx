@@ -58,8 +58,11 @@ export const LegendRowView = observer(function LegendRowView({
           {at}
         </div>
       ) : row.unlabelledLine ? (
-        <div style={{ ...indent, ...unlabelledLineStyle }} title={row.under}>
-          {row.under || '\u00a0'}
+        <div style={{ ...indent, display: 'grid' }} title={row.under}>
+          <span style={sizerStyle} aria-hidden data-testid="graph-key-sizer">
+            {row.sizer}
+          </span>
+          <span style={unlabelledLineStyle}>{row.under || '\u00a0'}</span>
         </div>
       ) : row.under ? (
         <div style={indent}>{row.under}</div>
@@ -70,9 +73,12 @@ export const LegendRowView = observer(function LegendRowView({
   )
 })
 
-// as wide as the key the other lines make, and no wider
+// The count line and its sizer share one cell, which the sizer's words make
+// as wide as the line can come to, so the line widens the key as much with
+// no label placed as with every one; it clips past that, and no wider
+const sizerStyle = { gridArea: '1 / 1', visibility: 'hidden' as const }
 const unlabelledLineStyle = {
-  boxSizing: 'border-box' as const,
+  gridArea: '1 / 1',
   width: 0,
   minWidth: '100%',
   overflow: 'hidden',

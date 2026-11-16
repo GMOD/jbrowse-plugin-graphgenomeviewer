@@ -97,6 +97,8 @@ export interface LegendRow {
   // whether or not there are any and no wider than the key, so the key's
   // size waits on no label
   unlabelledLine?: true
+  // the widest words the line under can come to, which size it unseen
+  sizer?: string
   title?: string
   walk?: LiftedWalk
   closesBubble?: true
@@ -252,10 +254,30 @@ export function keyRow(entry: GraphKeyEntry): LegendRow {
   }
 }
 
-// The rows of one section of bandage-core's key
+// The count line with every placeholder the drawing holds unlabelled
+export function widestUnlabelledText(model: GraphPaneModel) {
+  const all = { count: 0, smallest: Infinity, largest: 0 }
+  for (const node of model.drawnGraph?.nodes ?? []) {
+    if (node.placeholder) {
+      all.count++
+      all.smallest = Math.min(all.smallest, node.length)
+      all.largest = Math.max(all.largest, node.length)
+    }
+  }
+  return unlabelledText(all.count > 0 ? all : undefined)
+}
+
+// The rows of one section of bandage-core's key, a line kept blank for the
+// unlabelled count sized by the widest it can come to
 function keyRowsOf(model: GraphPaneModel, id: GraphKeySectionId) {
   return (
-    model.graphKey.find(section => section.id === id)?.entries.map(keyRow) ?? []
+    model.graphKey
+      .find(section => section.id === id)
+      ?.entries.map(entry =>
+        entry.under === ''
+          ? { ...keyRow(entry), sizer: widestUnlabelledText(model) }
+          : keyRow(entry),
+      ) ?? []
   )
 }
 
