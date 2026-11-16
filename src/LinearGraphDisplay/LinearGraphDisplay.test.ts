@@ -194,6 +194,7 @@ function createEnvironment({
   coarse = COARSE_TIER,
   paths = false,
   geneLaneFilter = undefined as string[] | undefined,
+  contig = CONTIG,
 } = {}) {
   console.warn = vi.fn()
   // reduced motion, so a re-cut lands without a morph's frames
@@ -363,7 +364,7 @@ function createEnvironment({
   }
 
   const assemblyRegions = [
-    { refName: REF, start: 0, end: CONTIG, assemblyName: ASM },
+    { refName: REF, start: 0, end: contig, assemblyName: ASM },
   ]
   const assembly = {
     name: ASM,
@@ -913,12 +914,11 @@ test('a layout whose x is not reference bp draws its own viewport of the window 
   expect(pane.hostPlacesX).toBe(false)
   expect(pane.viewportOwner).not.toBe('host')
   expect(cuts).toHaveLength(2)
-  expect(cuts[1]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
+  expect(cuts[1]!.region).toMatchObject({ start: 966_656, end: 1_064_960 })
   view.scrollTo(2_000_000 / view.bpPerPx)
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(3)
-  expect(cuts[2]!.region.start).toBe(2_000_000)
-  expect(Math.abs(cuts[2]!.region.end - 2_060_000)).toBeLessThanOrEqual(1)
+  expect(cuts[2]!.region).toMatchObject({ start: 1_982_464, end: 2_080_768 })
   await pane.switchLayout('auto')
   await wait(SETTLE_MS)
   expect(pane.hostPlacesX).toBe(true)
@@ -969,7 +969,7 @@ test('walk rows on an rGFA track cut for the step budget, not for snarls', async
   expect(cuts.at(-1)!.snarls).toBeUndefined()
 })
 
-test('a launch in the force layout cuts the window alone', async () => {
+test('a launch in the force layout cuts the snapped window', async () => {
   const { view, cuts } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -985,8 +985,104 @@ test('a launch in the force layout cuts the window alone', async () => {
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
   expect(cuts).toHaveLength(1)
-  expect(cuts[0]!.region).toMatchObject({ start: 1_000_000, end: 1_060_000 })
+  expect(cuts[0]!.region).toMatchObject({ start: 966_656, end: 1_064_960 })
 })
+
+async function forceGraph({
+  windowStart = 1_000_000,
+  windowBp = 60_000,
+  paths = false,
+  contig = CONTIG,
+  track = 'graph',
+} = {}) {
+  const env = createEnvironment({ paths, contig })
+  const { view } = env
+  view.zoomTo(windowBp / WIDTH_PX)
+  view.scrollTo(windowStart / view.bpPerPx)
+  view.showTrack(track, {}, { type: 'LinearGraphDisplay', layoutMode: 'force' })
+  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  pane.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  const layouts = () =>
+    env.rpcCall.mock.calls.filter(
+      ([, method]) => method === 'GraphComputeLayout',
+    ).length
+  const panTo = async (start: number) => {
+    view.scrollTo(start / view.bpPerPx)
+    await wait(SETTLE_MS)
+  }
+  return { ...env, pane, layouts, panTo }
+}
+
+function placement(pane: LinearGraphDisplayModel) {
+  return {
+    cut: pane.cutRegion,
+    layout: pane.layoutResult,
+    scale: pane.scale,
+    translateX: pane.translateX,
+    translateY: pane.translateY,
+  }
+}
+
+test('a force layout does not cut again for a pan inside its snapped cut', async () => {
+  const { view, pane, cuts, layouts, panTo } = await forceGraph()
+  expect(cuts).toHaveLength(1)
+  const layout = pane.layoutResult
+  const laid = layouts()
+  await panTo(1_002_000)
+  await panTo(980_000)
+  view.horizontalScroll(-100)
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
+  expect(layouts()).toBe(laid)
+  expect(pane.layoutResult).toBe(layout)
+})
+
+test('a force layout draws a window the same way however the view came to it', async () => {
+  const { view, pane, panTo } = await forceGraph({ paths: true })
+  await panTo(1_001_000)
+  const fromTheLeft = placement(pane)
+  await panTo(2_000_000)
+  await panTo(1_001_000)
+  const fromTheRight = placement(pane)
+  expect(fromTheRight.cut).toEqual(fromTheLeft.cut)
+  expect(fromTheRight.scale).toBeCloseTo(fromTheLeft.scale, 9)
+  expect(fromTheRight.translateX).toBeCloseTo(fromTheLeft.translateX, 6)
+  expect(fromTheRight.translateY).toBeCloseTo(fromTheLeft.translateY, 6)
+  expect(pane.cutRegion).toMatchObject({ start: 966_656, end: 1_064_960 })
+
+  const centre = view.offsetPx + WIDTH_PX / 2
+  view.zoomTo(view.bpPerPx * 4, WIDTH_PX / 2)
+  await wait(SETTLE_MS)
+  expect(pane.cutRegion).not.toEqual(fromTheLeft.cut)
+  view.zoomTo(view.bpPerPx / 4, WIDTH_PX / 2)
+  await wait(SETTLE_MS)
+  expect(view.offsetPx + WIDTH_PX / 2).toBeCloseTo(centre, 6)
+  const zoomedBack = placement(pane)
+  expect(zoomedBack.cut).toEqual(fromTheLeft.cut)
+  expect(zoomedBack.scale).toBeCloseTo(fromTheLeft.scale, 9)
+  expect(zoomedBack.translateX).toBeCloseTo(fromTheLeft.translateX, 6)
+  expect(zoomedBack.translateY).toBeCloseTo(fromTheLeft.translateY, 6)
+})
+
+test('a 20-step pan at GSTM1 and at the amylase locus lays the graph out at most three times', async () => {
+  for (const [start, end] of [
+    [109_670_011, 109_705_011],
+    [103_540_000, 103_780_000],
+  ] as const) {
+    const span = end - start
+    const offset = (i: number) => Math.round((i - 10) * 0.05 * span)
+    const { layouts, panTo } = await forceGraph({
+      windowStart: start + offset(0),
+      windowBp: span,
+      contig: 250_000_000,
+    })
+    for (let i = 1; i <= 20; i++) {
+      await panTo(start + offset(i))
+    }
+    expect(layouts()).toBeLessThanOrEqual(3)
+  }
+}, 60_000)
 
 // Reset track settings, undo and the config editor write the deletions
 // layer to the config, as setSlot does here
@@ -1917,28 +2013,16 @@ test('a graph with walks is drawn whole at any zoom', async () => {
   expect(pane.foldNote).toBeUndefined()
 })
 
-test('a force drawing follows the linear view at once, as a screen map, until the re-cut lands', async () => {
-  const { view } = createEnvironment()
-  view.zoomTo(60_000 / WIDTH_PX)
-  view.scrollTo(1_000_000 / view.bpPerPx)
-  view.showTrack(
-    'graph',
-    {},
-    { type: 'LinearGraphDisplay', layoutMode: 'force' },
-  )
-  const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
-  pane.startRenderingBackend(fakeRenderer())
-  await wait(SETTLE_MS)
+test('a force drawing holds its fit through a pan inside its cut, and no screen map of the last frame stands in', async () => {
+  const { view, pane, cuts } = await forceGraph()
   expect(pane.hostPlacesX).toBe(false)
-  const { scale, translateX } = pane
-  view.horizontalScroll(40)
-  expect(pane.scale).toBe(scale)
-  expect(pane.translateX).toBeCloseTo(translateX - 40, 6)
-
-  const at = pane.translateX
-  const offset = view.offsetPx
-  view.zoomTo(view.bpPerPx / 2)
-  expect(pane.scale).toBeCloseTo(scale * 2, 9)
-  // a screen x maps as the view's own does: x' = 2 (x + offset) - offset'
-  expect(pane.translateX).toBeCloseTo(2 * (at + offset) - view.offsetPx, 6)
+  view.horizontalScroll(20)
+  expect(pane.viewportOwner).toBe('fit')
+  expect(pane.fittedTransform).toMatchObject({
+    scale: pane.scale,
+    translateX: pane.translateX,
+    translateY: pane.translateY,
+  })
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(1)
 })

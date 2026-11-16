@@ -24,7 +24,14 @@ import { reaction } from 'mobx'
 
 import { isNodeLimitError, isUnzoomableNodeLimitError } from '../nodeLimitError'
 import { denseCovers } from './denseWindow'
-import { cutHolds, hostCut, hostWindow } from '../GraphGenomeView/host'
+import {
+  cutHolds,
+  cutRuleOf,
+  hostCut,
+  hostWindow,
+  sameCut,
+  snappedCut,
+} from '../GraphGenomeView/host'
 import { GraphPane, formatSpanBp } from '../GraphGenomeView/model'
 import { FACET_KEY_PX } from '../GraphGenomeView/pane/fitViews'
 import { paneBase } from '../GraphGenomeView/pane/paneBase'
@@ -186,6 +193,30 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
     }))
     .views(self => ({
+      cutFor(seen: HostWindow) {
+        return self.snapsHostCut
+          ? snappedCut(seen)
+          : hostCut(
+              seen,
+              self.capFor(self.tierAt(seen.bpPerPx)),
+              layoutModeByValue(self.chosenLayoutMode).cutMargins,
+            )
+      },
+    }))
+    .views(self => ({
+      cutHoldsAt(seen: HostWindow) {
+        return (
+          (self.snapsHostCut
+            ? sameCut(self.cutRegion, self.cutFor(seen))
+            : cutHolds(
+                self.cutRegion,
+                seen,
+                layoutModeByValue(self.chosenLayoutMode).cutMargins,
+              )) && !self.foldDrifted(seen.bpPerPx)
+        )
+      },
+    }))
+    .views(self => ({
       get settledCapBp() {
         const seen = self.settledWindow
         return seen ? self.capFor(self.tierAt(seen.bpPerPx)) : Infinity
@@ -323,11 +354,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       recutAt(seen: HostWindow) {
         const tier = self.tierAt(seen.bpPerPx)
         self.coarseCut = tier === 'coarse'
-        self.cutRegion = hostCut(
-          seen,
-          self.capFor(tier),
-          layoutModeByValue(self.chosenLayoutMode).cutMargins,
-        )
+        self.cutRegion = self.cutFor(seen)
         self.recuts++
         return self.cut()
       },
@@ -350,22 +377,19 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
           })
         },
         // The settle clock. A window the cut still holds fetches nothing;
-        // one past its edge re-cuts, on the tier the zoom asks for, with
-        // margins when the host places x and the window alone when the
-        // layout draws its own picture of it. A canceled cut is re-made by
+        // one past its edge re-cuts, on the tier the zoom asks for, as
+        // cutFor says. A canceled cut is re-made by
         // the next move, and a window a refused cut covers keeps its notice
         // without asking again. Returns whether it re-cut.
         settleOn(seen: HostWindow): boolean {
           self.settledWindow = seen
-          const margins = layoutModeByValue(self.chosenLayoutMode).cutMargins
           if (
             self.regionTooLarge ||
             denseCovers(self.dense, seen) ||
             (!self.loadCanceled &&
               self.tierAt(seen.bpPerPx) === self.cutTier &&
-              cutHolds(self.cutRegion, seen, margins) &&
-              !self.cutStale &&
-              !self.foldDrifted(seen.bpPerPx))
+              self.cutHoldsAt(seen) &&
+              !self.cutStale)
           ) {
             return false
           }
@@ -394,8 +418,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             seen &&
             !self.regionTooLarge &&
             (self.cutStale ||
-              layoutModeByValue(from).cutMargins !==
-                layoutModeByValue(self.chosenLayoutMode).cutMargins)
+              cutRuleOf(from) !== cutRuleOf(self.chosenLayoutMode))
           ) {
             const cut = self.recutAt(seen)
             this.followCut(cut, seen)
@@ -426,7 +449,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         now: { bpPerPx: number; offsetPx: number },
       ) {
         const bounds = self.layoutBounds
-        if (!bounds || !self.followsHostView) {
+        if (!bounds || !self.followsHostView || self.snapsHostCut) {
           return
         }
         // no longer the fit, so the fit autorun cannot undo it before the

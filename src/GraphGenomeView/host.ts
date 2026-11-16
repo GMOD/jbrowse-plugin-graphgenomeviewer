@@ -1,4 +1,7 @@
+import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
+
 import type { SubgraphRegion } from '../GetSubgraph'
+import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 
 // The members of a LinearGenomeView a hosted pane reads and drives.
 // Structural, because this plugin takes no runtime dependency on the LGV
@@ -134,6 +137,41 @@ export function hostCut(
     start,
     end,
   }
+}
+
+export function cutRuleOf(mode: LayoutModeValue) {
+  return mode === 'force'
+    ? 'snapped'
+    : layoutModeByValue(mode).cutMargins
+      ? 'margins'
+      : 'window'
+}
+
+export function snapLevel(span: number) {
+  return 2 ** (Math.ceil(Math.log2(span) * 2 - 1e-9) / 2)
+}
+
+export function snappedCut(window: HostWindow): SubgraphRegion {
+  const level = snapLevel(window.span)
+  const centre = Math.round((window.start + window.end) / level) * (level / 2)
+  return {
+    refName: window.refName,
+    assemblyName: window.assemblyName,
+    start: Math.max(window.regionStart, Math.round(centre - 0.75 * level)),
+    end: Math.min(window.regionEnd, Math.round(centre + 0.75 * level)),
+  }
+}
+
+export function sameCut(
+  cut: SubgraphRegion | undefined,
+  other: SubgraphRegion,
+) {
+  return (
+    cut?.refName === other.refName &&
+    cut.assemblyName === other.assemblyName &&
+    cut.start === other.start &&
+    cut.end === other.end
+  )
 }
 
 // With margins, a cut holds while the window is inside it; without, only the

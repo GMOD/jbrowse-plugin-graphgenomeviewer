@@ -36,6 +36,7 @@ import { padded } from '@jbrowse/bandage-core/viewport'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { untracked } from 'mobx'
 
+import { cutRuleOf } from '../host'
 import { measureReadout } from '../readoutMeasure'
 import { sectionHeadersPx, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
@@ -415,6 +416,9 @@ export const withFitViews = withHostViews
     get usableHeight() {
       const { top, bottom } = this.fitPads
       return this.viewBox.height - top - bottom
+    },
+    get snapsHostCut() {
+      return !!self.host && cutRuleOf(self.chosenLayoutMode) === 'snapped'
     },
     // Where the fit puts the drawing, beside the key, or undefined until
     // there is a layout and a measured canvas to fit it into
