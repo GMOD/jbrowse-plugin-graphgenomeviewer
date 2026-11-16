@@ -1,3 +1,4 @@
+import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { act, renderHook } from '@testing-library/react'
 
 import { PANS_WITH_DRAWING } from './PaneLayer'
@@ -82,6 +83,73 @@ test('the canvas reads out the gene chip under the pointer, since the chip leave
   })
   move(300, 25)
   expect(result.current.hoveredChip).toBeUndefined()
+  vi.unstubAllGlobals()
+})
+
+test('a pointer over a node or link the drawing folded finds neither, so neither is hovered or selected', () => {
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    frames.push(cb),
+  )
+  const setHoveredNode = vi.fn()
+  const setHoveredEdge = vi.fn()
+  const model = fakeModel({
+    isPanning: false,
+    draggingNode: null,
+    overlayLabels: { genes: [] },
+    walkRowBars: undefined,
+    axisScale: { scaleX: 1, scaleY: 1 },
+    positionsVersion: 0,
+    nodeInk: undefined,
+    hoverLightsEverything: true,
+    effectiveDrawPaths: false,
+    nodePositions: {
+      r1: [
+        { x: 0, y: 100 },
+        { x: 100, y: 100 },
+      ],
+      f: [
+        { x: 140, y: 40 },
+        { x: 160, y: 40 },
+      ],
+    },
+    graph: {
+      nodes: [
+        { id: 'r1', name: 'r1', length: 100 },
+        { id: 'f', name: 'f', length: 2 },
+      ],
+      edges: [{ from: 'r1', to: 'f' }],
+    },
+    drawnFold: { ...NO_FOLD, nodes: new Set(['f']), edges: new Set([0]) },
+    setHoveredPanel: vi.fn(),
+    setHoveredNode,
+    setHoveredTube: vi.fn(),
+    setHoveredEdge,
+    tubeMapPanelAt: () => null,
+  })
+  const { result } = renderHook(() =>
+    usePaneGestures(model as unknown as GraphPaneModel),
+  )
+  const hover = (x: number, y: number) => {
+    act(() => {
+      result.current.handlers.onPointerMove(at(x, y))
+      frames.shift()?.(0)
+    })
+  }
+  result.current.handlers.onClick(at(150, 40))
+  expect(model.setSelectedNode).toHaveBeenLastCalledWith(null)
+  hover(150, 40)
+  expect(setHoveredNode).toHaveBeenLastCalledWith(null, {
+    x: 150,
+    y: 40,
+  })
+  hover(120, 70)
+  expect(setHoveredEdge).toHaveBeenLastCalledWith(null)
+  hover(50, 100)
+  expect(setHoveredNode).toHaveBeenLastCalledWith('r1', {
+    x: 50,
+    y: 100,
+  })
   vi.unstubAllGlobals()
 })
 

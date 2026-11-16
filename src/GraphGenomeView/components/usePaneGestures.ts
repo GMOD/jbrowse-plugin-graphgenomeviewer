@@ -233,6 +233,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       model.axisScale,
       model.positionsVersion,
       model.nodeInk,
+      model.drawnFold,
     )
   }
 
@@ -256,6 +257,7 @@ export function usePaneGestures(model: GraphPaneModel) {
       model.hiddenEdgeIndexes,
       model.deletionRoutes,
       model.layoutResult?.stranded,
+      model.drawnFold,
     )
   }
 

@@ -931,6 +931,13 @@ export const withGraphViews = paneBase
     get nodeNeighbors() {
       return self.drawnGraph ? buildNeighbors(self.drawnGraph) : undefined
     },
+    // what the drawing on the canvas folded as too small to draw
+    get drawnFold() {
+      return self.drawnBatch.collapsed
+    },
+    get folded() {
+      return this.drawnFold?.nodes
+    },
     get nodeInk(): NodeInk {
       return nodeInk(
         self.drawnGraph,
