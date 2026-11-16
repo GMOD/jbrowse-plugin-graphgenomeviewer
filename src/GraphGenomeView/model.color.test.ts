@@ -506,6 +506,30 @@ test("the graph writes a placeholder's length with node lengths off, and every n
   ])
 })
 
+test("the key's nodes not shown entry counts the placeholders the labels left without a length", async () => {
+  mockRpcCall.mockImplementation(
+    (_session: unknown, method: string, request: EngineRequest) =>
+      method === 'GraphComputeLayout'
+        ? layoutEngine(request)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const placeholders = Array.from({ length: 100 }, (_, i) => [
+    `S\tp${i}\t*\tLN:i:${i + 1}\tnl:i:1`,
+    `L\t1\t+\tp${i}\t+\t0M`,
+    `L\tp${i}\t+\t2\t+\t0M`,
+  ])
+  const model = createModel()
+  model.setWidth(800)
+  await model.loadGFA(`${SIMPLE_GFA}${placeholders.flat().join('\n')}\n`, 'g')
+  model.startRenderingBackend(fakeRenderer())
+  const { unlabelled } = model.overlayLabels
+  const notShown = model.graphKey
+    .flatMap(section => section.entries)
+    .find(entry => entry.key === 'not-shown')
+  expect(unlabelled).toEqual({ count: 5, smallest: 1, largest: 5 })
+  expect(notShown?.under).toBe('5 unlabelled, 5 bp or less each')
+})
+
 // mean depth 2.2, which a middle bar keyed as "2 walks" though no node has it
 test('the node thickness key draws its two bars as wide as the thickest and thinnest nodes draw', async () => {
   mockRpcCall.mockImplementation(
