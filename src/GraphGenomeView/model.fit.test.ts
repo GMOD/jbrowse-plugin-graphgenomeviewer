@@ -6,6 +6,7 @@ import { Canvas2DRenderer } from '@jbrowse/bandage-core/renderer/Canvas2DRendere
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { recordingCanvas } from '@jbrowse/bandage-core/renderer/recordingCanvas'
 import { applyPatch, types } from '@jbrowse/mobx-state-tree'
+import { autorun } from 'mobx'
 
 import { legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
@@ -298,6 +299,22 @@ describe('canvas height follows the drawing', () => {
     expect(model.scale).toBeLessThan(wide)
     expect(minOf(xs)).toBeGreaterThanOrEqual(0)
     expect(maxOf(xs)).toBeLessThanOrEqual(400 - model.keyColumnPx)
+  })
+
+  test('a key measured again at the size it has lays the labels out no second time', async () => {
+    rpcRespond()
+    const model = createModel()
+    await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+    model.setLegendSize({ width: 150, height: 60 })
+    const layouts: unknown[] = []
+    const stop = autorun(() => {
+      layouts.push(model.overlayLabels)
+    })
+    model.setLegendSize({ width: 150, height: 60 })
+    expect(layouts).toHaveLength(1)
+    model.setLegendSize({ width: 150, height: 80 })
+    expect(layouts).toHaveLength(2)
+    stop()
   })
 
   test('the hover tooltip moves beside a legend that reaches its corner', async () => {

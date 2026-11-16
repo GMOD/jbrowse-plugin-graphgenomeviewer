@@ -346,7 +346,12 @@ export const withSettingActions = withTubeMapViews
       self.hoveredNode = node ?? null
     },
     setLegendSize(size: { width: number; height: number }) {
-      self.legendSize = size
+      if (
+        size.width !== self.legendSize.width ||
+        size.height !== self.legendSize.height
+      ) {
+        self.legendSize = size
+      }
     },
     setHoveredEdge(edgeIdx: number | null) {
       self.hoveredEdge = self.hoverLightsEverything ? edgeIdx : null
