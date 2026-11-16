@@ -1,5 +1,6 @@
 import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
+import { passLabelCandidates } from '@jbrowse/bandage-core/passLabels'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
@@ -65,6 +66,21 @@ export const GraphPane = withLaunchActions
             stripOverhangs: self.referenceStripOverhangs,
             unlabelled: self.labelsNodeSizes ? 'reserved' : undefined,
           })
+        : []
+    },
+  }))
+  // Each lifted walk's passes named on the graph, which the labels place
+  // with the rest; a faceted pane names none
+  .views(self => ({
+    get passLabels() {
+      return !self.facetPanels &&
+        self.walkLift?.walks.some(walk => walk.walkPasses)
+        ? passLabelCandidates(
+            self.drawnBatch,
+            self.walkLift,
+            self.screenTransform,
+            { width: self.paneWidth, height: self.canvasHeight },
+          )
         : []
     },
   }))

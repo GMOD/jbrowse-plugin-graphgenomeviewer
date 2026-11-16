@@ -4,6 +4,8 @@ import { EXON_COLOR } from '@jbrowse/bandage-core/genes/exonOutline'
 import { sizeLeader } from '@jbrowse/bandage-core/graphLabels'
 import { geneCoverageNote, geneLeader } from '@jbrowse/bandage-core/labelLayout'
 import { labelWidth } from '@jbrowse/bandage-core/overlayLabels'
+import { passLeader } from '@jbrowse/bandage-core/passLabels'
+import { abgrToCssRgba } from '@jbrowse/bandage-core/renderer/colorBits'
 import { isAlive } from '@jbrowse/mobx-state-tree'
 import { observer } from 'mobx-react'
 
@@ -15,8 +17,8 @@ import type { BubbleHalo } from '@jbrowse/bandage-core/bubbles/bubbleHalos'
 import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
 
 // Every chip drawn over the graph, above all of its ink: bubble names, gene
-// names on their pins, and the leader from a placeholder's length stacked off
-// its loop. `overlayLabels` has placed
+// names on their pins, each lifted walk's passes by name, and the leader from
+// a placeholder's length stacked off its loop. `overlayLabels` has placed
 // them against each other and against the row labels already.
 
 const GENE_INK = '#1c1c22'
@@ -45,12 +47,19 @@ const LabelLayer = observer(function LabelLayer({
 }: {
   model: GraphPaneModel
 }) {
-  const { bubbles, genes, ticks, sizes } = model.overlayLabels
+  const { bubbles, genes, ticks, passes, sizes } = model.overlayLabels
   const leaders = sizes.flatMap(label => {
     const leader = sizeLeader(label)
     return leader ? [{ key: label.key, ...leader }] : []
   })
-  if (bubbles.length + genes.length + ticks.length + leaders.length === 0) {
+  if (
+    bubbles.length +
+      genes.length +
+      ticks.length +
+      passes.length +
+      leaders.length ===
+    0
+  ) {
     return null
   }
   const {
@@ -181,6 +190,28 @@ const LabelLayer = observer(function LabelLayer({
               italic
               testId="graph-gene-pin-label"
             />
+          </g>
+        )
+      })}
+      {passes.map(({ item, x, y, w, text }) => {
+        const ink = abgrToCssRgba(item.ink)
+        const { x1, y1, x2, y2 } = passLeader({ x, y }, item.at)
+        return (
+          <g
+            key={`${item.walk}-${item.pass}`}
+            data-testid="graph-pass-label"
+            style={{ pointerEvents: 'none' }}
+          >
+            <line
+              x1={x1}
+              x2={x2}
+              y1={y1}
+              y2={y2}
+              stroke={ink}
+              strokeWidth={1}
+            />
+            <circle cx={item.at.x} cy={item.at.y} r={2} fill={ink} />
+            <LabelChip x={x} y={y} w={w} text={text} color={ink} bold />
           </g>
         )
       })}
