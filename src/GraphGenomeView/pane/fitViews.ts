@@ -611,7 +611,7 @@ export const withFitViews = withHostViews
     applySelection(b: Renderer) {
       const id = self.selectedNode
       b.setNodeHighlights(
-        id === null || self.folded?.has(id)
+        id === null || self.folded.has(id)
           ? new Map()
           : new Map([[id, SELECT_BRIGHTEN]]),
       )

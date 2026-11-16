@@ -8,6 +8,7 @@ import { fakeRenderer } from './modelTestSupport'
 import { READ_WAIT_MS } from './pane/renderingActions'
 import stateModelFactory from './viewModel'
 
+import type { GraphLayers } from './graphLayers'
 import type { LabelLayoutSource } from '@jbrowse/bandage-core/labelLayout'
 
 const runs = vi.hoisted(() => ({ onLaidOutGraph: 0 }))
@@ -154,12 +155,12 @@ function picture(model: Model, labels: Model['overlayLabels']) {
   }
 }
 
-async function settledView(walkStrip = false) {
+async function settledView(layers?: GraphLayers) {
   const model = stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'auto',
     loadedTrackId: 'graph',
-    ...(walkStrip ? { layers: { walkStrip: true } } : {}),
+    ...(layers ? { layers } : {}),
   })
   model.setWidth(1200)
   model.startRenderingBackend(fakeRenderer())
@@ -203,6 +204,14 @@ test('a settled view lays its labels out once on the laid-out graph', async () =
     sizes: [],
     bubbles: [],
   })
+})
+
+// a rebuild that folds what the last one folded leaves the halos and the
+// labels as they were
+test('a settled view with bubble halos shown lays its labels out once', async () => {
+  const { model, runs } = await settledView({ bubbles: true })
+  expect(model.bubbleHalos.length).toBeGreaterThan(0)
+  expect(runs).toBe(1)
 })
 
 const chipTexts = (model: Model) =>
@@ -259,7 +268,7 @@ test('a gene track read again on a settled view keeps the labels it does not tou
 })
 
 test("a sample filter that reads the rows' genes again leaves the placed labels in place", async () => {
-  const { model } = await settledView(true)
+  const { model } = await settledView({ walkStrip: true })
   const rowReads = () => model.walkGeneReads?.reads.map(read => read.row)
   expect(rowReads()).toEqual(['HG00097#1#CM1'])
   const { seen, stop } = chipsSeen(model)

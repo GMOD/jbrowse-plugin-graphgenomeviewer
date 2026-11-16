@@ -114,7 +114,7 @@ export const withWalkRowViews = withLaunchViews
     // that finds it in a hairball, unless the drawing folded it
     get walkStripLocator() {
       const id = self.stripHover ? self.hoveredNode : null
-      return id === null || self.folded?.has(id)
+      return id === null || self.folded.has(id)
         ? undefined
         : nodeAnchor(self.nodePositions?.[id], self.toScreen)
     },

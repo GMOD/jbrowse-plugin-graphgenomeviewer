@@ -34,6 +34,7 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
+import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
@@ -173,6 +174,13 @@ function samePins(a: GenePin[], b: GenePin[]) {
       return other !== undefined && samePin(pin, other)
     })
   )
+}
+
+function sameKeys(
+  a: ReadonlySet<string> | ReadonlyMap<string, unknown>,
+  b: ReadonlySet<string> | ReadonlyMap<string, unknown>,
+) {
+  return a.size === b.size && [...a.keys()].every(key => b.has(key))
 }
 
 // undefined for a pane outside any track or view, as a test makes one
@@ -932,6 +940,32 @@ export const withGraphViews = paneBase
         : undefined
     },
   }))
+  // The nodes the drawing on the canvas folded as too small to draw, and the
+  // reference nodes inside the sites it folded, kept while a rebuild folds
+  // the same ones, so what reads them is not laid out again for nothing
+  .views(self => {
+    const fold = computed(
+      () => {
+        const collapsed = self.drawnBatch.collapsed
+        return {
+          nodes: collapsed?.nodes ?? NO_FOLD.nodes,
+          within: collapsed?.within ?? NO_FOLD.within,
+        }
+      },
+      {
+        equals: (a, b) =>
+          sameKeys(a.nodes, b.nodes) && sameKeys(a.within, b.within),
+      },
+    )
+    return {
+      get folded() {
+        return fold.get().nodes
+      },
+      get foldedWithin() {
+        return fold.get().within
+      },
+    }
+  })
   .views(self => ({
     get nodeNeighbors() {
       return self.drawnGraph ? buildNeighbors(self.drawnGraph) : undefined
@@ -939,9 +973,6 @@ export const withGraphViews = paneBase
     // what the drawing on the canvas folded as too small to draw
     get drawnFold() {
       return self.drawnBatch.collapsed
-    },
-    get folded() {
-      return this.drawnFold?.nodes
     },
     // how wide each node is drawn, a node inside a run of folded sites as
     // wide as the run's even stroke
@@ -1153,14 +1184,14 @@ export const withGraphViews = paneBase
       if (shown.length === 0 || !this.drawsNodes || !self.graph || !positions) {
         return []
       }
-      const fold = this.drawnFold
-      const drawn = fold?.nodes.size
+      const { folded, foldedWithin } = self
+      const drawn = folded.size
         ? Object.fromEntries(
-            Object.entries(positions).filter(([id]) => !fold.nodes.has(id)),
+            Object.entries(positions).filter(([id]) => !folded.has(id)),
           )
         : positions
       return bubbleHalos(self.graph, shown, drawn, self.repeatArrays).filter(
-        halo => !halo.nodeIds.every(id => fold?.within.has(id)),
+        halo => !halo.nodeIds.every(id => foldedWithin.has(id)),
       )
     },
     // What `reference-position` paints from, which is also what `auto`

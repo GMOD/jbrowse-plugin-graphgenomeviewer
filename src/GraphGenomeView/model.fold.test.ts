@@ -92,7 +92,7 @@ test('a bubble is ringed along its drawn nodes, and not at all where the drawing
 test('a node the drawing folds is not lit as selected, nor ringed from the walk strip', async () => {
   const model = await drawnGap571()
   const folded = [...model.drawnFold!.nodes][0]!
-  const drawn = model.graph!.nodes.find(n => !model.folded!.has(n.id))!.id
+  const drawn = model.graph!.nodes.find(n => !model.folded.has(n.id))!.id
   const highlights = vi.fn()
   const renderer = { ...fakeRenderer(), setNodeHighlights: highlights }
   model.setSelectedNode(folded)

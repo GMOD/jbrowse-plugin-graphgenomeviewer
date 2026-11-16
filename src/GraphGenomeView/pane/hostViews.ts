@@ -180,7 +180,7 @@ export const withHostViews = withWalkRowViews
       return span && nodeId !== null
         ? {
             ...span,
-            anchor: self.folded?.has(nodeId)
+            anchor: self.folded.has(nodeId)
               ? undefined
               : nodeAnchor(self.nodePositions?.[nodeId], self.toScreen),
           }
