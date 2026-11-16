@@ -49,6 +49,7 @@ export const PaneSvgLayer = observer(function PaneSvgLayer({
       style={{
         ...paneLayerStyle(zIndex, overflow),
         userSelect: pansWithDrawing ? 'none' : undefined,
+        clipPath: model.drawingClip,
       }}
       width={model.paneWidth}
       height={model.canvasHeight}

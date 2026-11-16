@@ -297,6 +297,7 @@ const GraphCanvasBody = observer(function GraphCanvasBody({
             ...canvasStyle,
             width: model.paneWidth,
             height: model.canvasHeight,
+            clipPath: model.drawingClip,
             display: 'block',
             position: 'relative',
             zIndex: 1,

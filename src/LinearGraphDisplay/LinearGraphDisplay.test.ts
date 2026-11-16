@@ -1206,6 +1206,22 @@ test('a pan inside the held cut keeps the reference strip whole and true to the 
   expect(pane.referenceStripOverhangs).toBe(true)
 })
 
+test('a drawing placed by its window is clipped at the key column it runs under', async () => {
+  const { pane } = await forceGraph()
+  pane.setLegendSize({ width: 120, height: 40 })
+  await wait(0)
+  const key = pane.paneWidth - pane.drawingWidth
+  expect(key).toBe(120 + 2 * LEGEND_INSET_PX)
+  expect(pane.drawingClip).toBe(`inset(0px ${key}px 0px 0px)`)
+  const xs = Object.values(pane.nodePositions ?? {}).flatMap(line =>
+    line.map(p => p.x * pane.scale + pane.translateX),
+  )
+  expect(xs.some(x => x > pane.drawingWidth)).toBe(true)
+  await pane.switchLayout('auto')
+  await wait(SETTLE_MS)
+  expect(pane.drawingClip).toBeUndefined()
+})
+
 test('an rGFA force track folds by its snap level, so a zoom inside one cut folds as a fresh view of it does', async () => {
   const { view, pane, cuts } = await forceGraph()
   const foldAt = (span: number) =>

@@ -492,6 +492,11 @@ export const withFitViews = withHostViews
           )
         : undefined
     },
+    get drawingClip() {
+      return this.followsWindow
+        ? `inset(0px ${self.paneWidth - this.drawingWidth}px 0px 0px)`
+        : undefined
+    },
     // Where the fit puts the drawing, beside the key, or undefined until
     // there is a layout and a measured canvas to fit it into
     get fittedTransform() {
