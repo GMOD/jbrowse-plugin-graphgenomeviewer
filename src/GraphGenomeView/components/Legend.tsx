@@ -11,9 +11,9 @@ import {
   legendNoteStyle,
   legendRowStyle,
 } from './legendStyles'
-import { legendSections, rowPitch, swatchColumn } from '../legendSections'
+import { rowPitch, swatchColumn } from '../legendSections'
 
-import type { LegendRow } from '../legendSections'
+import type { LegendRow, drawnLegendSections } from '../legendSections'
 import type { GraphPaneModel } from '../model'
 
 // One row: its swatch then its words, or a note with neither.
@@ -57,6 +57,10 @@ export const LegendRowView = observer(function LegendRowView({
         <div style={indent} data-testid="graph-walk-at">
           {at}
         </div>
+      ) : row.unlabelledLine ? (
+        <div style={{ ...indent, ...unlabelledLineStyle }} title={row.under}>
+          {row.under || '\u00a0'}
+        </div>
       ) : row.under ? (
         <div style={indent}>{row.under}</div>
       ) : null}
@@ -65,6 +69,15 @@ export const LegendRowView = observer(function LegendRowView({
     <div style={legendNoteStyle}>{row.label}</div>
   )
 })
+
+// as wide as the key the other lines make, and no wider
+const unlabelledLineStyle = {
+  boxSizing: 'border-box' as const,
+  width: 0,
+  minWidth: '100%',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+}
 
 const closeStyle = {
   pointerEvents: 'auto' as const,
@@ -77,13 +90,14 @@ const closeStyle = {
 }
 
 // Every key the drawing needs in one box, a section each, every line at one
-// pitch
+// pitch: the sections the pane measures it for
 export const LegendPanel = observer(function LegendPanel({
   model,
+  sections,
 }: {
   model: GraphPaneModel
+  sections: ReturnType<typeof drawnLegendSections>
 }) {
-  const sections = legendSections(model)
   if (sections.length === 0) {
     return null
   }

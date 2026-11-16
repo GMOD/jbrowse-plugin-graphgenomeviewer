@@ -21,6 +21,7 @@ import WalkRowsOverlay from './WalkRowsOverlay'
 import WalkStrip from './WalkStrip'
 import WalkStripLocator from './WalkStripLocator'
 import { usePaneGestures, useWheelZoom } from './usePaneGestures'
+import { drawnLegendSections, legendSections } from '../legendSections'
 import { PAPER_CSS } from '../pane/paneBase'
 import { createGraphRenderer } from '../renderer/GraphRenderer'
 
@@ -152,6 +153,13 @@ export const Legends = observer(function Legends({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const atRest = model.legendAtRest
+  // what the key draws, which the model derives as the drawing changes, so
+  // the labels wait for its measure; the panel draws in the same render, so
+  // the measure after it is of that key
+  const shape = model.keyShape
+  useEffect(() => {
+    model.setKeyShapeOf(() => JSON.stringify(legendSections(model)))
+  }, [model])
   useEffect(() => {
     const el = ref.current
     if (!el || !atRest) {
@@ -169,7 +177,10 @@ export const Legends = observer(function Legends({
         resizes.observe(el.firstElementChild)
       }
       if (isAlive(model) && model.legendAtRest) {
-        model.setLegendSize({ width: el.offsetWidth, height: el.scrollHeight })
+        model.setLegendSize(
+          { width: el.offsetWidth, height: el.scrollHeight },
+          shape,
+        )
       }
     }
     resizes.observe(el)
@@ -177,7 +188,7 @@ export const Legends = observer(function Legends({
     return () => {
       resizes.disconnect()
     }
-  }, [model, atRest])
+  }, [model, atRest, shape])
   return (
     <div
       ref={ref}
@@ -189,7 +200,7 @@ export const Legends = observer(function Legends({
           model.canvasHeight - 2 * LEGEND_INSET_PX - model.referenceStripZonePx,
       }}
     >
-      <LegendPanel model={model} />
+      <LegendPanel model={model} sections={drawnLegendSections(model)} />
     </div>
   )
 })

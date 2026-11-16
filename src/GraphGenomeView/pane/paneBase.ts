@@ -354,6 +354,17 @@ export const paneBase = types
     // what the legends in the pane's corner measure, so no label
     // is placed under them
     legendSize: { width: 0, height: 0 },
+    // How a host that measures its key says what the key draws, and what it
+    // drew when last measured. Its size sets the pane's height and the fit,
+    // so the labels wait for the two to agree.
+    keyShapeOf: undefined as (() => string) | undefined,
+    measuredKeyShape: undefined as string | undefined,
+    // the floor a host whose height follows its key last answered, so the
+    // labels wait for a height it is about to grow to
+    answeredKeyFloor: undefined as number | undefined,
+    // the feature reads over the cut not yet landed, whose genes, repeats
+    // and bubbles the labels wait for
+    featureReadsInFlight: 0,
     // The bubble index rows over the cut window, when the source track has
     // one beside its segments. Undefined for a graph with no index, whose
     // bubbles are `derivedBubbles` instead.

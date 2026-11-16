@@ -550,6 +550,16 @@ export const withLoadActions = withEngineSettings.actions(self => {
     }
   }
 
+  // A read the labels wait for, until what it read is in place
+  function* whileReading<T>(read: Promise<unknown>) {
+    self.featureReadsInFlight++
+    try {
+      return (yield read) as T
+    } finally {
+      self.featureReadsInFlight--
+    }
+  }
+
   // Features over the cut. A failed read warns and returns undefined, so an
   // annotation never fails the load.
   function* readFeatures(
@@ -559,12 +569,14 @@ export const withLoadActions = withEngineSettings.actions(self => {
     signal?: AbortSignal,
   ) {
     try {
-      return (yield getSession(self).rpcManager.call(
-        getRpcSessionId(self),
-        'CoreGetFeatures',
-        // eslint-disable-next-line no-restricted-syntax -- several annotation reads run beside the layout, which owns the status line until they are all that is left
-        { adapterConfig, regions: [region], signal },
-      )) as Feature[]
+      return yield* whileReading<Feature[]>(
+        getSession(self).rpcManager.call(
+          getRpcSessionId(self),
+          'CoreGetFeatures',
+          // eslint-disable-next-line no-restricted-syntax -- several annotation reads run beside the layout, which owns the status line until they are all that is left
+          { adapterConfig, regions: [region], signal },
+        ),
+      )
     } catch (e) {
       // a cut the next one replaced aborts its reads, which is not a failure
       if (!signal?.aborted) {
@@ -1015,16 +1027,20 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const graph = self.graph
       const signal = restartTrackRead('walk')
       const fetched = new Map<string, GeneModel[]>()
-      yield Promise.all(
-        reads.map(({ row, trackId, region }) =>
-          flow(function* () {
-            const genes = yield* haplotypeGenes(trackId, region, signal)
-            if (genes) {
-              fetched.set(row, genes)
-            }
-          })(),
-        ),
-      )
+      if (reads.length > 0) {
+        yield* whileReading(
+          Promise.all(
+            reads.map(({ row, trackId, region }) =>
+              flow(function* () {
+                const genes = yield* haplotypeGenes(trackId, region, signal)
+                if (genes) {
+                  fetched.set(row, genes)
+                }
+              })(),
+            ),
+          ),
+        )
+      }
       if (
         !signal.aborted &&
         isAlive(self) &&
@@ -1041,14 +1057,22 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const key = JSON.stringify(reads)
       const graph = self.graph
       const signal = restartTrackRead('own')
-      const fetched = (yield Promise.all(
-        reads.map(({ stableRefName, trackId, region }) =>
-          flow(function* () {
-            const genes = yield* haplotypeGenes(trackId, region, signal)
-            return (genes ?? []).map(g => ({ ...g, refName: stableRefName }))
-          })(),
-        ),
-      )) as GeneModel[][]
+      const fetched =
+        reads.length === 0
+          ? []
+          : yield* whileReading<GeneModel[][]>(
+              Promise.all(
+                reads.map(({ stableRefName, trackId, region }) =>
+                  flow(function* () {
+                    const genes = yield* haplotypeGenes(trackId, region, signal)
+                    return (genes ?? []).map(g => ({
+                      ...g,
+                      refName: stableRefName,
+                    }))
+                  })(),
+                ),
+              ),
+            )
       if (
         !signal.aborted &&
         isAlive(self) &&

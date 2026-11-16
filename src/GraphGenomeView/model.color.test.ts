@@ -6,7 +6,7 @@ import {
 } from '@jbrowse/bandage-core/renderer/colorBits'
 import { applySnapshot, getSnapshot } from '@jbrowse/mobx-state-tree'
 
-import { legendSections } from './legendSections'
+import { drawnLegendSections, legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import {
   MOCK_LAYOUT,
@@ -523,11 +523,15 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   await model.loadGFA(`${SIMPLE_GFA}${placeholders.flat().join('\n')}\n`, 'g')
   model.startRenderingBackend(fakeRenderer())
   const { unlabelled } = model.overlayLabels
-  const notShown = model.graphKey
+  const keyed = model.graphKey
     .flatMap(section => section.entries)
     .find(entry => entry.key === 'not-shown')
+  const drawn = drawnLegendSections(model)
+    .flatMap(section => section.rows)
+    .find(row => row.key === 'not-shown')
   expect(unlabelled).toEqual({ count: 5, smallest: 1, largest: 5 })
-  expect(notShown?.under).toBe('5 unlabelled, 5 bp or less each')
+  expect(keyed?.under).toBe('')
+  expect(drawn?.under).toBe('5 unlabelled, 5 bp or less each')
 })
 
 // mean depth 2.2, which a middle bar keyed as "2 walks" though no node has it

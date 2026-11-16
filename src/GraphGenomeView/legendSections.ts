@@ -1,6 +1,6 @@
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
-import { walkKeyEntry } from '@jbrowse/bandage-core/graphKey'
+import { unlabelledText, walkKeyEntry } from '@jbrowse/bandage-core/graphKey'
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
 import {
   BAR_PX as WALK_ROW_BAR_PX,
@@ -93,6 +93,10 @@ export interface LegendRow {
   swatch?: LegendSwatch
   strong?: string
   under?: string
+  // the line under is the count of placeholders left unlabelled, kept
+  // whether or not there are any and no wider than the key, so the key's
+  // size waits on no label
+  unlabelledLine?: true
   title?: string
   walk?: LiftedWalk
   closesBubble?: true
@@ -619,4 +623,18 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     headed.add(group)
     return { ...section, heading: group }
   })
+}
+
+// The key as drawn: its line for the unlabelled count filled in once the
+// labels are placed
+export function drawnLegendSections(model: GraphPaneModel) {
+  const count = unlabelledText(model.overlayLabels.unlabelled)
+  return legendSections(model).map(section => ({
+    ...section,
+    rows: section.rows.map(row =>
+      row.under === ''
+        ? { ...row, under: count, unlabelledLine: true as const }
+        : row,
+    ),
+  }))
 }

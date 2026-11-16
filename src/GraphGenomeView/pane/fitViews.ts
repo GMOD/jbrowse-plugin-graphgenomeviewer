@@ -11,10 +11,7 @@ import {
   keyColumnPx,
   keyHeightPx,
 } from '@jbrowse/bandage-core/keyColumn'
-import {
-  LEGEND_INSET_PX,
-  layoutLabels,
-} from '@jbrowse/bandage-core/labelLayout'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import {
   barEnd,
@@ -544,9 +541,6 @@ export const withFitViews = withHostViews
         fadeEntering(batch, graph.edges, entering)
       }
       return { batch, viewportBounds }
-    },
-    get overlayLabels() {
-      return layoutLabels(self)
     },
     // where the hovered node sits on a lifted walk, while one is hovered
     hoveredOn(walk: LiftedWalk) {

@@ -537,7 +537,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         )
         // Nor is the track shorter than its key and the drawing's floor, as a
         // standalone pane is not: a key cut by the track's height loses its
-        // last rows. Only a change in that floor grows it.
+        // last rows. Only a change in that floor grows it, and the labels wait
+        // for the track to have answered it.
+        self.setAnsweredKeyFloor(self.canvasFloor)
         addDisposer(
           self,
           reaction(
@@ -546,6 +548,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
               if (floor > self.height) {
                 self.setHeight(Math.ceil(floor))
               }
+              self.setAnsweredKeyFloor(floor)
             },
             { name: 'GraphKeyHeight' },
           ),

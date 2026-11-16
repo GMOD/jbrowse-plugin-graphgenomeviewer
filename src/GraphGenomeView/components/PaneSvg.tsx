@@ -14,8 +14,8 @@ import { paintTubeMap } from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
 import { HEADING_GAP_PX, HEADING_INK } from './legendStyles'
 import {
+  drawnLegendSections,
   facetKeyRows,
-  legendSections,
   rowPitch,
   swatchColumn,
   swatchWidth,
@@ -181,7 +181,7 @@ function Keys({
   model: GraphPaneModel
   idPrefix: string
 }) {
-  const sections = legendSections(model)
+  const sections = drawnLegendSections(model)
   if (sections.length === 0) {
     return null
   }

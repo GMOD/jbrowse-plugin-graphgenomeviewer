@@ -345,7 +345,16 @@ export const withSettingActions = withTubeMapViews
           : undefined
       self.hoveredNode = node ?? null
     },
-    setLegendSize(size: { width: number; height: number }) {
+    setAnsweredKeyFloor(floor: number) {
+      self.answeredKeyFloor = floor
+    },
+    setKeyShapeOf(shapeOf: () => string) {
+      self.keyShapeOf = shapeOf
+    },
+    setLegendSize(size: { width: number; height: number }, shape?: string) {
+      if (shape !== undefined) {
+        self.measuredKeyShape = shape
+      }
       if (
         size.width !== self.legendSize.width ||
         size.height !== self.legendSize.height

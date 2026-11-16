@@ -1,4 +1,5 @@
 import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
+import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
 import { reaction } from 'mobx'
@@ -13,9 +14,18 @@ import { canonicalAssemblyName } from '../launchFromGraph/launchFromGraph'
 import { withLaunchActions } from './pane/launchActions'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
+import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 export { MAX_GRAPH_REGION_BP, fileName, formatSpanBp } from './pane/paneBase'
+
+const NO_LABELS: LabelLayout = {
+  bubbles: [],
+  ticks: [],
+  genes: [],
+  passes: [],
+  sizes: [],
+}
 
 // The pane every graph drawing is: a view of its own, or a display inside a
 // linear view. Built in stages under pane/, each extending the one before,
@@ -53,9 +63,42 @@ export const GraphPane = withLaunchActions
             genePins: self.genePins,
             halos: self.bubbleHalos,
             stripOverhangs: self.referenceStripOverhangs,
-            unlabelled: self.overlayLabels.unlabelled,
+            unlabelled: 'reserved',
           })
         : []
+    },
+  }))
+  // The labels, placed once the frame they are placed in is settled: the
+  // layout is in, no read of genes, repeats or bubbles is on its way, the
+  // key's size is measured for the key as it is now, and a track has grown to
+  // hold it. The key's height never
+  // waits on the labels, since it keeps its line for the unlabelled count
+  // whenever placeholders are drawn, so placing them settles nothing again.
+  .views(self => ({
+    get keyShape() {
+      return self.keyShapeOf?.()
+    },
+  }))
+  .views(self => ({
+    get labelFrameSettled() {
+      const keyMeasured =
+        self.keyShape === undefined ||
+        !self.legendAtRest ||
+        self.measuredKeyShape === self.keyShape
+      const heightAnswered =
+        self.answeredKeyFloor === undefined ||
+        self.answeredKeyFloor === self.canvasFloor
+      return (
+        self.layoutResult !== undefined &&
+        self.featureReadsInFlight === 0 &&
+        keyMeasured &&
+        heightAnswered
+      )
+    },
+  }))
+  .views(self => ({
+    get overlayLabels() {
+      return self.labelFrameSettled ? layoutLabels(self) : NO_LABELS
     },
   }))
   .views(self => ({
