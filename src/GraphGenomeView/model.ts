@@ -63,7 +63,7 @@ export const GraphPane = withLaunchActions
             genePins: self.genePins,
             halos: self.bubbleHalos,
             stripOverhangs: self.referenceStripOverhangs,
-            unlabelled: 'reserved',
+            unlabelled: self.labelsNodeSizes ? 'reserved' : undefined,
           })
         : []
     },

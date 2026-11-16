@@ -535,6 +535,42 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   expect(drawn?.sizer).toBe('100 unlabelled, 100 bp or less each')
 })
 
+test("a lifted walk's drawing labels no node length, so its key keeps no line for the count", async () => {
+  mockRpcCall.mockImplementation(
+    (_session: unknown, method: string, request: EngineRequest) =>
+      method === 'GraphComputeLayout'
+        ? layoutEngine(request)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const placeholders = Array.from({ length: 3 }, (_, i) => [
+    `S\tp${i}\t*\tLN:i:${i + 1}\tnl:i:1`,
+    `L\t1\t+\tp${i}\t+\t0M`,
+    `L\tp${i}\t+\t2\t+\t0M`,
+  ])
+  const model = createModel()
+  model.setWidth(800)
+  await model.loadGFA(
+    [
+      `${SIMPLE_GFA}${placeholders.flat().join('\n')}`,
+      'W\tGRCh38\t0\tchr1\t0\t8\t>1>2',
+      'W\tA\t1\tctg\t0\t9\t>1>p0>2',
+      '',
+    ].join('\n'),
+    'g',
+  )
+  model.startRenderingBackend(fakeRenderer())
+  const notShown = () =>
+    drawnLegendSections(model)
+      .flatMap(section => section.rows)
+      .find(row => row.key === 'not-shown')
+  expect(notShown()?.unlabelledLine).toBe(true)
+  model.liftWalks(['A#1#ctg'])
+  expect(model.labelsNodeSizes).toBe(false)
+  expect(notShown()).toBeDefined()
+  expect(notShown()?.unlabelledLine).toBeUndefined()
+  expect(notShown()?.under).toBeUndefined()
+})
+
 // mean depth 2.2, which a middle bar keyed as "2 walks" though no node has it
 test('the node thickness key draws its two bars as wide as the thickest and thinnest nodes draw', async () => {
   mockRpcCall.mockImplementation(
