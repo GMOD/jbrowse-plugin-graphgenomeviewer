@@ -15,17 +15,17 @@
   a few seconds. The stress engine instead holds the reference straight along x,
   so zooming in crops one picture. The Layout menu and the settings dialog
   switch engines
-- In a linear view's track, a force-directed drawing is cut on a fixed grid
-  and held while the view stays inside its cut, so a pan slides the drawing
-  with the ruler and lays nothing out again until the view crosses to the
-  next cut. The track keeps its last four cuts, so a pan back draws one again
-  without a fetch. Where a cut is over the node limit the window is cut
-  alone, and in a flipped view every pan cuts the window alone
+- In a linear view's track, a force-directed drawing is cut on a fixed grid and
+  held while the view stays inside its cut, so a pan slides the drawing with the
+  ruler and lays nothing out again until the view crosses to the next cut. The
+  track keeps its last four cuts, so a pan back draws one again without a fetch.
+  Where a cut is over the node limit the window is cut alone, and in a flipped
+  view every pan cuts the window alone
   - A pinch that starts on a node zooms the drawing itself. The drawing then
     stops following the view until the next cut lands
   - A dragged node keeps its place while its cut is one of the four kept. Once
-    the track drops that cut, a pan back lays it out afresh and the node
-    returns to where the layout puts it
+    the track drops that cut, a pan back lays it out afresh and the node returns
+    to where the layout puts it
 - **Walk rows** make a repeat expansion read as bar length. See
   [haplotypes.md](haplotypes.md#walk-rows)
 - **Tube maps** follow

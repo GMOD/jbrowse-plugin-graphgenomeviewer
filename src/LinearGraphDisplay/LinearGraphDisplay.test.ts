@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
 import {
@@ -26,7 +28,6 @@ import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { reaction, runInAction } from 'mobx'
-import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import LinearGraphDisplayF from './index'
@@ -2571,9 +2572,9 @@ test('a cut kept under other cut options is fetched again, not shown from the fo
   pane.setSubgraphContext(3)
   await panTo(1_000_000)
   expect(pane.cutRegion).toMatchObject({ start: 966_656 })
-  expect(
-    cuts.filter(c => c.region.start === 966_656).map(c => c.hops),
-  ).toEqual([cuts[0]!.hops, 3])
+  expect(cuts.filter(c => c.region.start === 966_656).map(c => c.hops)).toEqual(
+    [cuts[0]!.hops, 3],
+  )
 })
 
 test('a cut kept under another reference path is fetched again, not shown from the four kept', async () => {
@@ -2665,17 +2666,16 @@ test('a drawing placed by its window is clipped at the key column on its canvas,
   expect(tagOf(canvas, 'graph-genome-canvas')).toContain(clip)
   expect(tagOf(canvas, 'graph-hover-layer')).toContain(clip)
   const overlay = renderToStaticMarkup(
-    createElement(PaneSvgLayer, {
-      model: pane,
-      zIndex: 2,
-      testId: 'an-overlay',
-      children: null,
-    }),
+    createElement(
+      PaneSvgLayer,
+      { model: pane, zIndex: 2, testId: 'an-overlay' },
+      null,
+    ),
   )
   expect(tagOf(overlay, 'an-overlay')).toContain(clip)
 })
 
-test("a force track restored with a viewport of its own is placed by its window once its cut lands, not where the session left the drawing", async () => {
+test('a force track restored with a viewport of its own is placed by its window once its cut lands, not where the session left the drawing', async () => {
   const { view } = createEnvironment({ paths: true })
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -2685,7 +2685,12 @@ test("a force track restored with a viewport of its own is placed by its window 
     {
       type: 'LinearGraphDisplay',
       layoutMode: 'force',
-      cutRegion: { refName: REF, assemblyName: ASM, start: 966_656, end: 1_064_960 },
+      cutRegion: {
+        refName: REF,
+        assemblyName: ASM,
+        start: 966_656,
+        end: 1_064_960,
+      },
       scale: 2,
       translateX: 50,
     },

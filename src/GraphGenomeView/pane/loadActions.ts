@@ -594,6 +594,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         endLoad()
       }
     }
+    return undefined
   }
 
   // A read the labels wait for, until what it read is in place
@@ -954,7 +955,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       region: SubgraphRegion,
       opts: SubgraphCutOptions = {},
       foldBelowBp?: number,
-      keep = false,
+      keep?: boolean,
     ) {
       return yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
         const readsOf = namesReads(adapterConfig)
@@ -993,7 +994,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
           foldBelowBp,
           self.referencePath,
         ])
-        function* fetched() {
+        let cut = keep && !readsOf ? keptCuts.get(key) : undefined
+        if (!cut) {
           self.setStatusMessage('Fetching subgraph')
           const fetchStart = performance.now()
           const source = (yield getSession(self).rpcManager.call(
@@ -1015,27 +1017,24 @@ export const withLoadActions = withEngineSettings.actions(self => {
               },
             },
           )) as string | WalkCut
-          if (!isLive()) {
-            return undefined
-          }
-          self.setFetchMs(performance.now() - fetchStart)
-          if (!source) {
-            throw new Error(
-              'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
+          if (isLive()) {
+            self.setFetchMs(performance.now() - fetchStart)
+            if (!source) {
+              throw new Error(
+                'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
+              )
+            }
+            cut = yield* parsedCut(
+              source,
+              regionLabel(region),
+              region,
+              readsOf,
+              foldBelowBp,
             )
           }
-          return yield* parsedCut(
-            source,
-            regionLabel(region),
-            region,
-            readsOf,
-            foldBelowBp,
-          )
         }
-        const kept = keep && !readsOf ? keptCuts.get(key) : undefined
-        const cut = kept ?? (yield* fetched())
         const overNodeLimit =
-          keep &&
+          keep === true &&
           !!cut &&
           self.modeDrawsNodes &&
           cut.graph.nodes.length > self.maxGraphNodes

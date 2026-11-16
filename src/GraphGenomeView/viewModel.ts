@@ -119,7 +119,9 @@ export default function stateModelFactory() {
     }))
     .actions(self => {
       const clearPane = self.clearGraph
-      function loadRegion(region: SubgraphRegion | undefined) {
+      function loadRegion(
+        region: SubgraphRegion | undefined,
+      ): Promise<unknown> | undefined {
         if (self.gfaLocation) {
           // a whole file has no assembly to name the view by
           if (!self.displayName) {
@@ -171,7 +173,7 @@ export default function stateModelFactory() {
         // The graph keeps the region by the session's names, which hover sync
         // and launches compare with, so a stated alias resolves first, once
         // its assembly's refName aliases have loaded.
-        load(): Promise<void> | undefined {
+        load(): Promise<unknown> | undefined {
           const stated = self.loadedRegion
           const session = getSession(self)
           const { assemblyManager } = session
