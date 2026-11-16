@@ -1,7 +1,7 @@
 import { sameBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import { contains } from '@jbrowse/bandage-core/viewport'
 import { getSession } from '@jbrowse/core/util'
-import { addDisposer } from '@jbrowse/mobx-state-tree'
+import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
 import { autorun, reaction, untracked } from 'mobx'
 
 import { withLoadActions } from './loadActions'
@@ -28,10 +28,79 @@ import type { LayoutEngineKind } from '@jbrowse/bandage-core/layoutEngines'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 
+// How long after a cut's layout lands its labels wait for reads still on
+// their way. The slowest ordinary read measured landed 0.92 s after the
+// layout; one that never lands must not leave the view unlabelled.
+export const READ_WAIT_MS = 1500
+
 export const withRenderingActions = withLoadActions
+  .views(self => ({
+    get keyShape() {
+      return self.keyShapeOf?.()
+    },
+  }))
+  // The frame the labels are placed in, settled: the layout is in, no read of
+  // genes, repeats or bubbles is on its way while the cut's labels await
+  // them, the key's size is measured for the key as it is now, and a track
+  // has grown to hold it. The key's height never waits on the labels, since
+  // it keeps its line for the unlabelled count whenever placeholders are
+  // drawn, so placing them settles nothing again.
+  .views(self => ({
+    get labelFrameSettled() {
+      const keyMeasured =
+        self.keyShape === undefined ||
+        !self.legendAtRest ||
+        self.measuredKeyShape === self.keyShape
+      const heightAnswered =
+        self.answeredKeyFloor === undefined ||
+        self.answeredKeyFloor === self.canvasFloor
+      return (
+        self.layoutResult !== undefined &&
+        (self.featureReadsInFlight === 0 || !self.labelsAwaitReads) &&
+        keyMeasured &&
+        heightAnswered
+      )
+    },
+  }))
   .actions(self => ({
     startRenderingBackend(backend: Renderer) {
       if (!self.autorunsInstalled) {
+        // A cut's labels wait for its reads until first placed, and no
+        // longer than READ_WAIT_MS after its layout lands; a read landing
+        // after that lays them out again
+        let readWait: ReturnType<typeof setTimeout> | undefined
+        addDisposer(self, () => {
+          clearTimeout(readWait)
+        })
+        addDisposer(
+          self,
+          reaction(
+            () => (self.labelsAwaitReads ? self.layoutResult : undefined),
+            laid => {
+              clearTimeout(readWait)
+              readWait = laid
+                ? setTimeout(() => {
+                    if (isAlive(self)) {
+                      self.stopAwaitingReads()
+                    }
+                  }, READ_WAIT_MS)
+                : undefined
+            },
+            { fireImmediately: true },
+          ),
+        )
+        addDisposer(
+          self,
+          reaction(
+            () => self.labelFrameSettled,
+            settled => {
+              if (settled) {
+                self.stopAwaitingReads()
+              }
+            },
+            { fireImmediately: true },
+          ),
+        )
         // Autorun: keep the view fitted to the graph until the user moves it.
         // Reading fittedTransform tracks everything the fit depends on, so
         // it re-fits as the layout arrives, the canvas is measured and the

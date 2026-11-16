@@ -393,6 +393,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
     self.geneTrackFeatures = undefined
     self.walkGeneFeatures = undefined
     self.ownGeneFeatures = undefined
+    self.labelsAwaitReads = true
     walkGeneCache.clear()
     abortTrackReads()
     self.repeatArrays = undefined
@@ -842,6 +843,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
 
   return {
     // back to the import form
+    stopAwaitingReads() {
+      self.labelsAwaitReads = false
+    },
     clearGraph() {
       dropGraph()
       self.expandedWalks = []

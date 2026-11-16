@@ -4,6 +4,7 @@ import { reaction } from 'mobx'
 import { legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import { fakeRenderer } from './modelTestSupport'
+import { READ_WAIT_MS } from './pane/renderingActions'
 import stateModelFactory from './viewModel'
 
 import type { LabelLayoutSource } from '@jbrowse/bandage-core/labelLayout'
@@ -64,12 +65,21 @@ const later = <T>(value: T, ms: number) =>
     }, ms),
   )
 
+const reads = {
+  reference: (): Promise<unknown> =>
+    later([gene('CFH', 'chr1', 1005, 1025)], 20),
+  haplotype: (): Promise<unknown> =>
+    later([gene('CFHR3', 'CM1', 5011, 5019)], 40),
+}
+const ordinaryReads = { ...reads }
+
 const bySlot = (obj: Record<string, unknown>, key?: unknown) => obj[String(key)]
 const adapterOnly = (obj: Record<string, unknown>, key?: unknown) =>
   key === 'adapter' ? obj.adapter : undefined
 
 beforeEach(() => {
   runs.onLaidOutGraph = 0
+  Object.assign(reads, ordinaryReads)
   vi.mocked(readConfObject).mockImplementation(bySlot)
   mockSession.assemblyNames = ['hg38', 'HG00097']
   mockSession.tracks = [
@@ -98,8 +108,8 @@ beforeEach(() => {
         ? Promise.resolve(GFA)
         : method === 'CoreGetFeatures'
           ? args.adapterConfig?.which === 'hg38'
-            ? later([gene('CFH', 'chr1', 1005, 1025)], 20)
-            : later([gene('CFHR3', 'CM1', 5011, 5019)], 40)
+            ? reads.reference()
+            : reads.haplotype()
           : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
   )
 })
@@ -143,11 +153,12 @@ function picture(model: Model, labels: Model['overlayLabels']) {
   }
 }
 
-async function settledView() {
+async function settledView(walkStrip = false) {
   const model = stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'auto',
     loadedTrackId: 'graph',
+    ...(walkStrip ? { layers: { walkStrip: true } } : {}),
   })
   model.setWidth(1200)
   model.startRenderingBackend(fakeRenderer())
@@ -191,4 +202,73 @@ test('a settled view lays its labels out once on the laid-out graph', async () =
     sizes: [],
     bubbles: [],
   })
+})
+
+const chipTexts = (model: Model) =>
+  model.overlayLabels.genes.map(({ text }) => text).sort()
+
+// every set of chips the labels show from now on, each once in a row
+function chipsSeen(model: Model) {
+  const seen: string[][] = []
+  const stop = reaction(
+    () => chipTexts(model),
+    texts => seen.push(texts),
+    { fireImmediately: true, equals: (a, b) => a.join() === b.join() },
+  )
+  return { seen, stop }
+}
+
+test('a read that never lands holds the labels back no longer than READ_WAIT_MS after the layout', async () => {
+  reads.haplotype = () => new Promise<never>(() => {})
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+    loadedTrackId: 'graph',
+  })
+  model.setWidth(1200)
+  model.startRenderingBackend(fakeRenderer())
+  const stopKey = measureKeyAsDrawn(model)
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+  await vi.waitFor(
+    () => {
+      expect(chipTexts(model)).toEqual(['CFH'])
+    },
+    { timeout: READ_WAIT_MS + 1000, interval: 50 },
+  )
+  expect(model.featureReadsInFlight).toBeGreaterThan(0)
+  expect(runs.onLaidOutGraph).toBe(1)
+  stopKey()
+})
+
+test('a gene track read again on a settled view keeps the labels it does not touch while it reads, and lays them out again as it lands', async () => {
+  const { model } = await settledView()
+  const { seen, stop } = chipsSeen(model)
+  reads.reference = () => later([gene('CFH', 'chr1', 1005, 1025)], 150)
+  const reload = model.reloadGenes()
+  await later(undefined, 50)
+  expect(model.featureReadsInFlight).toBe(1)
+  expect(chipTexts(model)).toEqual(['CFHR3'])
+  await reload
+  await later(undefined, 50)
+  expect(seen).toEqual([['CFH', 'CFHR3'], ['CFHR3'], ['CFH', 'CFHR3']])
+  stop()
+})
+
+test("a sample filter that reads the rows' genes again leaves the placed labels in place", async () => {
+  const { model } = await settledView(true)
+  const rowReads = () => model.walkGeneReads?.reads.map(read => read.row)
+  expect(rowReads()).toEqual(['HG00097#1#CM1'])
+  const { seen, stop } = chipsSeen(model)
+  model.setWalkRowSamples(['GRCh38'])
+  expect(rowReads()).toEqual([])
+  model.setWalkRowSamples(undefined)
+  expect(rowReads()).toEqual(['HG00097#1#CM1'])
+  await vi.waitFor(() => {
+    expect(model.walkGeneFeatures?.size).toBe(1)
+  })
+  expect(seen).toEqual([['CFH', 'CFHR3']])
+  stop()
 })

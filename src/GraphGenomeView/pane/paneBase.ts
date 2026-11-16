@@ -365,6 +365,9 @@ export const paneBase = types
     // the feature reads over the cut not yet landed, whose genes, repeats
     // and bubbles the labels wait for
     featureReadsInFlight: 0,
+    // whether the cut's labels still wait for those reads, which they do only
+    // until first placed
+    labelsAwaitReads: true,
     // The bubble index rows over the cut window, when the source track has
     // one beside its segments. Undefined for a graph with no index, whose
     // bubbles are `derivedBubbles` instead.

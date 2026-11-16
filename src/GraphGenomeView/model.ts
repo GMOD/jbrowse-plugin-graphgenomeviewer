@@ -68,34 +68,7 @@ export const GraphPane = withLaunchActions
         : []
     },
   }))
-  // The labels, placed once the frame they are placed in is settled: the
-  // layout is in, no read of genes, repeats or bubbles is on its way, the
-  // key's size is measured for the key as it is now, and a track has grown to
-  // hold it. The key's height never
-  // waits on the labels, since it keeps its line for the unlabelled count
-  // whenever placeholders are drawn, so placing them settles nothing again.
-  .views(self => ({
-    get keyShape() {
-      return self.keyShapeOf?.()
-    },
-  }))
-  .views(self => ({
-    get labelFrameSettled() {
-      const keyMeasured =
-        self.keyShape === undefined ||
-        !self.legendAtRest ||
-        self.measuredKeyShape === self.keyShape
-      const heightAnswered =
-        self.answeredKeyFloor === undefined ||
-        self.answeredKeyFloor === self.canvasFloor
-      return (
-        self.layoutResult !== undefined &&
-        self.featureReadsInFlight === 0 &&
-        keyMeasured &&
-        heightAnswered
-      )
-    },
-  }))
+  // The labels, placed once the frame is settled (labelFrameSettled)
   .views(self => ({
     get overlayLabels() {
       return self.labelFrameSettled ? layoutLabels(self) : NO_LABELS
