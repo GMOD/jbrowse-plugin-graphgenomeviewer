@@ -634,10 +634,15 @@ export function walkKeyRow(model: GraphPaneModel, walk: LiftedWalk) {
 }
 
 // The faceted pane's one key line under its panels: each panel's title keys
-// its walk, so this keys only what every panel greys and the skips
+// its walk, so this keys only what every panel greys, the skips and what the
+// panels leave undrawn
 export function facetKeyRows(model: GraphPaneModel) {
   return model.facetPanels
-    ? [...keyRowsOf(model, 'walks'), ...keyRowsOf(model, 'skips')]
+    ? [
+        ...keyRowsOf(model, 'walks'),
+        ...keyRowsOf(model, 'skips'),
+        ...keyRowsOf(model, 'too-small'),
+      ]
     : []
 }
 
@@ -677,6 +682,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     },
     core('graph-compressed-legend', 'compressed'),
     { testid: 'graph-fold-legend', rows: foldRows(model) },
+    core('graph-too-small-legend', 'too-small'),
   ].filter(section => section.rows.length > 0)
   const groups = new Set(sections.flatMap(section => section.group ?? []))
   if (groups.size < 2) {

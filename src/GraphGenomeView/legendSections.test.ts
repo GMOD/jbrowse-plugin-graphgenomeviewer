@@ -3,6 +3,7 @@ import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { walkLift } from '@jbrowse/bandage-core/walkHighlight'
 
 import {
+  facetKeyRows,
   legendSections,
   rowPitch,
   swatchHeight,
@@ -177,6 +178,29 @@ test("a lifted lane's heads are keyed with a swatch of the lane and its head", (
     expect(swatchHeight(heads.swatch!)).toBeGreaterThan(0)
     expect(rowPitch(rows)).toBeGreaterThanOrEqual(swatchHeight(heads.swatch!))
   }
+})
+
+test("the key, and a faceted pane's key line, end with what the drawing folds and the bp it folds under", () => {
+  const marks = {
+    ...MARKS,
+    foldedNodes: new Set(Array.from({ length: 38 }, (_, i) => `n${i}`)),
+    foldedSkips: new Set([1, 2, 3, 4]),
+    foldedUnderBp: 19,
+  }
+  const line = '38 nodes and 4 skips under 19 bp not drawn'
+  const model = keyModel(DEPTHS, { marks })
+  expect(
+    legendSections(model)
+      .at(-1)!
+      .rows.map(r => r.label),
+  ).toEqual([line])
+  const faceted = Object.assign(keyModel(DEPTHS, { marks }), {
+    facetPanels: [],
+  })
+  expect(facetKeyRows(faceted).map(r => r.label)).toContain(line)
+  expect(
+    legendSections(keyModel(DEPTHS)).flatMap(s => s.rows.map(r => r.label)),
+  ).not.toContainEqual(expect.stringMatching(/not drawn/))
 })
 
 test("a walk row key's hollow bar keeps its rim round its fill", () => {
