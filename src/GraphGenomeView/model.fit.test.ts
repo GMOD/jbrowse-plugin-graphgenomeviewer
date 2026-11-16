@@ -314,6 +314,8 @@ describe('canvas height follows the drawing', () => {
     expect(layouts).toHaveLength(1)
     model.setLegendSize({ width: 150, height: 80 })
     expect(layouts).toHaveLength(2)
+    model.setLegendSize({ width: 170, height: 80 })
+    expect(layouts).toHaveLength(3)
     stop()
   })
 
