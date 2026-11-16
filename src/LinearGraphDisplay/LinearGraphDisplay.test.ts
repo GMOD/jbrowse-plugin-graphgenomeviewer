@@ -34,6 +34,7 @@ import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
 import type { LinearGraphDisplayModel } from './model'
 import type { SubgraphRegion, SubgraphTier } from '../GetSubgraph'
+import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { MenuItem } from '@jbrowse/core/ui'
 import type { Instance } from '@jbrowse/mobx-state-tree'
@@ -103,17 +104,21 @@ interface Cut {
   hops?: number
 }
 
-const FORCE_LAYOUT = {
-  nodePositions: {
-    'f100+': [
-      { x: 0, y: 0 },
-      { x: 400, y: 0 },
-    ],
-    'f101+': [
-      { x: 500, y: 300 },
-      { x: 900, y: 300 },
-    ],
-  },
+// The engine's request laid out where it was seeded: the reference along x
+// in bp order and each node off it a lane below, each a line short of the
+// next seed
+function fakeEngine({ nodes }: EngineRequest['graph']) {
+  return {
+    nodePositions: Object.fromEntries(
+      nodes.map(({ id, length, x = 0, y = 0 }) => [
+        id,
+        [
+          { x, y },
+          { x: x + length * 0.015, y },
+        ],
+      ]),
+    ),
+  }
 }
 
 function fakeRenderer() {
@@ -191,6 +196,8 @@ function createEnvironment({
   geneLaneFilter = undefined as string[] | undefined,
 } = {}) {
   console.warn = vi.fn()
+  // reduced motion, so a re-cut lands without a morph's frames
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
   const pluginManager = new PluginManager()
   RgfaTabixAdapterF(pluginManager)
   GbzBaseSyntenyAdapterF(pluginManager)
@@ -397,6 +404,7 @@ function createEnvironment({
           forcedByteBudget?: number
         }
         options?: { engine: string }
+        graph?: EngineRequest['graph']
         signal?: AbortSignal
         adapterConfig?: { type?: string }
       },
@@ -441,8 +449,8 @@ function createEnvironment({
       if (method === 'GetGraphHaplotypes') {
         return Promise.resolve(haplotypeNames)
       }
-      if (method === 'GraphComputeLayout') {
-        return Promise.resolve({ result: FORCE_LAYOUT, duration: 1 })
+      if (method === 'GraphComputeLayout' && args.graph) {
+        return Promise.resolve({ result: fakeEngine(args.graph), duration: 1 })
       }
       if (method === 'CoreGetFeatures') {
         return Promise.resolve(
