@@ -102,10 +102,10 @@ export const withWalkRowViews = withLaunchViews
       return self.rowVisitsNeeded ? (self.walkRowBars?.rows ?? []) : []
     },
     // Where the drawing has the node a strip point lights, for the ring
-    // that finds it in a hairball
+    // that finds it in a hairball, unless the drawing folded it
     get walkStripLocator() {
       const id = self.stripHover ? self.hoveredNode : null
-      return id === null
+      return id === null || self.folded?.has(id)
         ? undefined
         : nodeAnchor(self.nodePositions?.[id], self.toScreen)
     },

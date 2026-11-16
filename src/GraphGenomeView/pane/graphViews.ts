@@ -1128,8 +1128,9 @@ export const withGraphViews = paneBase
       return layoutModeByValue(self.drawnLayoutMode ?? self.chosenLayoutMode)
         .drawsNodes
     },
-    // The bubbles as halos along their nodes.
-    // Reads positionsVersion so a dragged node takes its halo with it.
+    // The bubbles as halos along their drawn nodes, and none for a bubble
+    // the drawing folds whole. Reads positionsVersion so a dragged node
+    // takes its halo with it.
     get bubbleHalos() {
       dependOn(self.positionsVersion)
       const positions = self.layoutResult?.nodePositions
@@ -1143,7 +1144,15 @@ export const withGraphViews = paneBase
       if (shown.length === 0 || !this.drawsNodes || !self.graph || !positions) {
         return []
       }
-      return bubbleHalos(self.graph, shown, positions, self.repeatArrays)
+      const fold = this.drawnFold
+      const drawn = fold?.nodes.size
+        ? Object.fromEntries(
+            Object.entries(positions).filter(([id]) => !fold.nodes.has(id)),
+          )
+        : positions
+      return bubbleHalos(self.graph, shown, drawn, self.repeatArrays).filter(
+        halo => !halo.nodeIds.every(id => fold?.within.has(id)),
+      )
     },
     // What `reference-position` paints from, which is also what `auto`
     // resolves to on any anchored graph

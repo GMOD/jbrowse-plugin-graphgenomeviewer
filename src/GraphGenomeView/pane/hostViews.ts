@@ -160,7 +160,8 @@ export const withHostViews = withWalkRowViews
   }))
   .views(self => ({
     // The lit span on the strip, and where the graph drew what it is of:
-    // the hovered node, the hovered bubble's name, or the selected node
+    // the hovered node, the hovered bubble's name, or the selected node,
+    // unless the drawing folded it
     get referenceStripLit() {
       if (!self.referenceStripShown) {
         return undefined
@@ -179,7 +180,9 @@ export const withHostViews = withWalkRowViews
       return span && nodeId !== null
         ? {
             ...span,
-            anchor: nodeAnchor(self.nodePositions?.[nodeId], self.toScreen),
+            anchor: self.folded?.has(nodeId)
+              ? undefined
+              : nodeAnchor(self.nodePositions?.[nodeId], self.toScreen),
           }
         : undefined
     },

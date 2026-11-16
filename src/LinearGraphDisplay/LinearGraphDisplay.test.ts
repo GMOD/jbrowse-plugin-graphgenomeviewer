@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
+import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
 import {
   REFERENCE_STRIP_ZONE_PX,
@@ -1375,6 +1376,20 @@ test('a pan inside the held cut keeps the reference strip whole and true to the 
   expect(over.left).toBeGreaterThan(0)
   expect(over.right).toBeGreaterThan(0)
   expect(pane.referenceStripOverhangs).toBe(true)
+})
+
+test('the reference strip draws no line to a selected node the drawing folds', async () => {
+  const { pane } = await forceGraph()
+  const node = pane.graph!.nodes.find(n => pane.nodeSpan(n.id))!.id
+  pane.setSelectedNode(node)
+  expect(pane.referenceStripLit?.anchor).toBeDefined()
+  const { batch, viewportBounds } = pane.buildDrawing(undefined, false)!
+  pane.setGeometryMetrics(
+    0,
+    { ...batch, collapsed: { ...NO_FOLD, nodes: new Set([node]) } },
+    { scale: pane.scale, bounds: viewportBounds },
+  )
+  expect(pane.referenceStripLit).toMatchObject({ anchor: undefined })
 })
 
 test('a drawing placed by its window is clipped at the key column it runs under', async () => {

@@ -606,12 +606,14 @@ export const withFitViews = withHostViews
       return padded(paneViewportOf(self), VIEWPORT_PANES_BUILT)
     },
     // The selection as a draw-time colour override, keyed by node so it
-    // survives a rebuild renumbering the batch. The hover is paintHover's,
-    // on a layer of its own.
+    // survives a rebuild renumbering the batch, and none while the drawing
+    // folds it. The hover is paintHover's, on a layer of its own.
     applySelection(b: Renderer) {
       const id = self.selectedNode
       b.setNodeHighlights(
-        id === null ? new Map() : new Map([[id, SELECT_BRIGHTEN]]),
+        id === null || self.folded?.has(id)
+          ? new Map()
+          : new Map([[id, SELECT_BRIGHTEN]]),
       )
     },
     // the hovered node, unless the selection already lights it

@@ -4,8 +4,9 @@ import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 
 import { mockRpcCall } from './modelTestMocks'
-import { createAnchoredModel } from './modelTestSupport'
+import { createAnchoredModel, fakeRenderer } from './modelTestSupport'
 
+import type { GraphLayers } from './graphLayers'
 import type { GraphPaneModel } from './model'
 import type { Fold } from '@jbrowse/bandage-core/levelOfDetail'
 import type { EngineRequest } from '@jbrowse/bandage-core/pipeline'
@@ -27,14 +28,14 @@ const GAP571 = readFileSync(
 
 // chr1:27,851,829-27,856,000 laid out by the reference, with node lengths
 // written, as the canvas draws it at the fit
-async function drawnGap571() {
+async function drawnGap571(layers: GraphLayers = { lengths: true }) {
   mockRpcCall.mockImplementation(
     (_session: unknown, method: string, request: EngineRequest) =>
       method === 'GraphComputeLayout'
         ? layoutEngine(request)
         : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
   )
-  const model = createAnchoredModel({ layers: { lengths: true } })
+  const model = createAnchoredModel({ layers })
   model.setWidth(1200)
   await model.loadGFA(GAP571, 'gap571')
   model.setLegendSize({ width: 150, height: 60 })
@@ -59,4 +60,46 @@ test('the labels are laid out without the nodes the drawing on the canvas folds'
   expect(label).toBeDefined()
   draw(model, { ...NO_FOLD, nodes: new Set([label!.node]) })
   expect(model.overlayLabels.sizes.map(l => l.node)).not.toContain(label!.node)
+})
+
+// a halo along nothing drawn, or along reference the fold draws as one even
+// stroke, marks a site the drawing leaves out
+function haloOnFold(model: GraphPaneModel) {
+  const fold = model.drawnFold
+  return (halo: { nodeIds: string[] }) =>
+    halo.nodeIds.some(id => fold?.nodes.has(id)) ||
+    halo.nodeIds.every(id => fold?.within.has(id))
+}
+
+test('a bubble is ringed along its drawn nodes, and not at all where the drawing folds it whole, until a zoom draws it again', async () => {
+  const model = await drawnGap571({ bubbles: true })
+  const onFold = haloOnFold(model)
+  expect(model.drawnFold?.sites.length).toBeGreaterThan(0)
+  expect(model.bubbleHalos.filter(onFold)).toEqual([])
+  expect(model.overlayLabels.ticks.map(t => t.item).filter(onFold)).toEqual([])
+  expect(model.bubbleHalos.length).toBeLessThan(model.bubbles.length)
+  while (model.drawnFold?.sites.length) {
+    model.zoom(2, 600, 200)
+    draw(model)
+  }
+  expect(model.bubbleHalos).toHaveLength(model.bubbles.length)
+})
+
+test('a node the drawing folds is not lit as selected, nor ringed from the walk strip', async () => {
+  const model = await drawnGap571()
+  const folded = [...model.drawnFold!.nodes][0]!
+  const drawn = model.graph!.nodes.find(n => !model.folded!.has(n.id))!.id
+  const highlights = vi.fn()
+  const renderer = { ...fakeRenderer(), setNodeHighlights: highlights }
+  model.setSelectedNode(folded)
+  model.applySelection(renderer)
+  expect(highlights).toHaveBeenLastCalledWith(new Map())
+  model.setSelectedNode(drawn)
+  model.applySelection(renderer)
+  expect([...highlights.mock.lastCall![0].keys()]).toEqual([drawn])
+  model.setStripHover({ row: 'GRCh38', offset: 0 })
+  model.setHoveredNode(folded)
+  expect(model.walkStripLocator).toBeUndefined()
+  model.setHoveredNode(drawn)
+  expect(model.walkStripLocator).toBeDefined()
 })
