@@ -6,7 +6,11 @@ import {
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
-import { keyColumnPx, keyHeightPx } from '@jbrowse/bandage-core/keyColumn'
+import {
+  fitBesideKey,
+  keyColumnPx,
+  keyHeightPx,
+} from '@jbrowse/bandage-core/keyColumn'
 import {
   LEGEND_INSET_PX,
   layoutLabels,
@@ -188,7 +192,13 @@ export const withFitViews = withHostViews
     // How far the drawing, walk rows and their readouts reach: to the key's
     // column
     get drawingWidth() {
-      return self.paneWidth - this.keyColumnPx
+      return self.facetPanels || self.tubeMapReads
+        ? self.paneWidth
+        : fitBesideKey({
+            paneWidth: self.paneWidth,
+            canvasHeight: this.canvasHeight,
+            legendSize: self.legendSize,
+          }).width
     },
     // The height that shows every row of the key, and the drawing's own
     // floor, which leaves room to hover a node and read its tooltip
@@ -366,7 +376,8 @@ export const withFitViews = withHostViews
       if (self.pixelRows) {
         return Math.min(ceiling, Math.max(floor, bounds.h + padsY))
       }
-      const usableWidth = self.paneWidth - pads.left - pads.right
+      const usableWidth =
+        self.paneWidth - this.keyColumnPx - pads.left - pads.right
       return bounds.w > 0 && usableWidth > 0
         ? Math.min(
             ceiling,
@@ -387,7 +398,7 @@ export const withFitViews = withHostViews
         : { width: self.paneWidth, height: this.canvasHeight }
     },
     // The fit's margins: a facet panel's all round, else room for the row
-    // labels, the genes and strip above, and the key's column
+    // labels, and the genes and strip above
     get fitPads() {
       return this.facetGrid
         ? {
@@ -399,7 +410,7 @@ export const withFitViews = withHostViews
         : {
             left: this.fitPadLeft,
             top: this.fitPadTop,
-            right: FIT_PADDING + this.keyColumnPx,
+            right: FIT_PADDING,
             bottom: FIT_PADDING,
           }
     },
@@ -408,11 +419,15 @@ export const withFitViews = withHostViews
       const { top, bottom } = this.fitPads
       return this.viewBox.height - top - bottom
     },
-    // Where the fit puts the drawing, or undefined until there is a layout
-    // and a measured canvas to fit it into
+    // Where the fit puts the drawing, beside the key, or undefined until
+    // there is a layout and a measured canvas to fit it into
     get fittedTransform() {
       const bounds = this.layoutBounds
-      const { width, height } = this.viewBox
+      const grid = this.facetGrid
+      const { width, height } = grid ?? {
+        width: this.drawingWidth,
+        height: this.canvasHeight,
+      }
       const pads = this.fitPads
       return bounds
         ? fitTransform(bounds, width, height, self.pixelRows, {

@@ -245,6 +245,42 @@ describe('canvas height follows the drawing', () => {
     sized.mockRestore()
   })
 
+  test('the drawing fits beside the key where bandage-core fits it, as wide and as tall as before', async () => {
+    rpcRespond()
+    const placed = async (model: ReturnType<typeof createModel>) => {
+      model.setWidth(900)
+      model.setLegendSize({ width: 150, height: 60 })
+      await model.loadGFA(RGFA_FOUR_RANKS, 'four ranks')
+      model.zoomToFit()
+      return {
+        drawingWidth: model.drawingWidth,
+        layoutFit: model.layoutFit,
+        canvasHeight: model.canvasHeight,
+        fit: model.fittedTransform,
+      }
+    }
+    expect(await placed(createModel())).toEqual({
+      drawingWidth: 738,
+      layoutFit: { width: 738, height: 600 },
+      canvasHeight: expect.closeTo(299.333, 3),
+      fit: {
+        scale: expect.closeTo(43.867, 3),
+        translateX: 40,
+        translateY: expect.closeTo(40, 9),
+      },
+    })
+    expect(await placed(createAnchoredModel())).toEqual({
+      drawingWidth: 738,
+      layoutFit: { width: 738, height: 600 },
+      canvasHeight: 160,
+      fit: {
+        scale: 0.1878,
+        translateX: expect.closeTo(134.6, 9),
+        translateY: 50,
+      },
+    })
+  })
+
   test('a pane too narrow for the key and the drawing keeps the key whole and shrinks the drawing', async () => {
     rpcRespond()
     const model = createModel()
