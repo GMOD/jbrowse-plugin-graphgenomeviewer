@@ -26,12 +26,15 @@ import { applyPatch, getType, types } from '@jbrowse/mobx-state-tree'
 import { linearGenomeViewStateModelFactory } from '@jbrowse/plugin-linear-genome-view'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { reaction, runInAction } from 'mobx'
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
-import { hostWindow } from '../GraphGenomeView/host'
+import GraphCanvas from '../GraphGenomeView/components/GraphCanvas'
+import { PaneSvgLayer } from '../GraphGenomeView/components/PaneLayer'
+import { hostWindow, snappedCut } from '../GraphGenomeView/host'
 import {
   MIN_CANVAS_HEIGHT,
   forceLayouts,
@@ -2549,4 +2552,125 @@ test("a chain hanging off where the cut's start runs through a reference node, w
   const ink = windowInk(pane)
   expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
   expect(ink.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
+})
+
+test("a width that changes an rGFA cut's fold fetches the same snapped cut again, folded anew, rather than holding it or reusing the one folded for the old width", async () => {
+  const { view, pane, cuts } = await forceGraph()
+  const fold = pane.cutFoldBp
+  const region = pane.cutRegion
+  view.setWidth(990)
+  await wait(SETTLE_MS)
+  expect(pane.cutRegion).toEqual(region)
+  expect(pane.cutFoldBp).not.toBe(fold)
+  expect(cuts).toHaveLength(2)
+})
+
+test('a cut kept under other cut options is fetched again, not shown from the four kept', async () => {
+  const { pane, cuts, panTo } = await forceGraph()
+  await panTo(1_100_000)
+  pane.setSubgraphContext(3)
+  await panTo(1_000_000)
+  expect(pane.cutRegion).toMatchObject({ start: 966_656 })
+  expect(
+    cuts.filter(c => c.region.start === 966_656).map(c => c.hops),
+  ).toEqual([cuts[0]!.hops, 3])
+})
+
+test('a cut kept under another reference path is fetched again, not shown from the four kept', async () => {
+  const { pane, cuts, panTo } = await forceGraph({ paths: true })
+  await panTo(1_100_000)
+  pane.setReferencePath('HG1')
+  await panTo(1_000_000)
+  expect(cuts.filter(c => c.region.start === 966_656)).toHaveLength(2)
+})
+
+test("a cut kept from the track's other adapter is fetched again, not shown from the four kept", async () => {
+  const { session, pane, cuts, panTo } = await forceGraph()
+  await panTo(1_100_000)
+  session.tracks[0].setSubschema('adapter', {
+    type: 'RgfaTabixAdapter',
+    uri: 'other',
+  })
+  expect(pane.sourceAdapter?.segmentsLocation).toMatchObject({
+    uri: 'other.segs.bed.gz',
+  })
+  await panTo(1_000_000)
+  expect(cuts.filter(c => c.region.start === 966_656)).toHaveLength(2)
+})
+
+test('a snapped cut found over the node limit stands for its own region, tier, fold and options alone, and the last 64 are remembered', async () => {
+  const { view, pane, cuts, panTo } = await forceGraph({ paths: true })
+  // past 1.5 Mb a window alone holds 31 nodes and its snapped cut 51
+  pane.setMaxGraphNodes(40)
+  const snappedHere = () => snappedCut(hostWindow(pane.host!)!)
+  const asked = (start: number) =>
+    cuts.filter(c => c.region.start === start).length
+  await panTo(1_620_000)
+  const deep = snappedHere()
+  expect(pane.cutRegion).toMatchObject({ start: 1_620_000, end: 1_680_000 })
+  expect(asked(deep.start)).toBe(1)
+  await panTo(1_800_000)
+  expect(pane.cutRegion).toMatchObject({ start: 1_800_000, end: 1_860_000 })
+  await panTo(1_000_000)
+  expect(pane.cutRegion).toMatchObject({ start: 966_656, end: 1_064_960 })
+  await panTo(1_620_000)
+  expect(pane.cutRegion).toMatchObject({ start: 1_620_000 })
+  expect(asked(deep.start)).toBe(1)
+
+  view.setWidth(990)
+  await wait(SETTLE_MS)
+  expect(snappedHere()).toEqual(deep)
+  expect(asked(deep.start)).toBe(2)
+  pane.setSubgraphContext(3)
+  await panTo(1_000_000)
+  await panTo(1_620_000)
+  expect(asked(deep.start)).toBe(3)
+  expect(pane.cutRegion).toMatchObject({ start: 1_620_000 })
+}, 30_000)
+
+test('a snapped cut wider than the bp cap is never asked for: the window is cut alone', async () => {
+  const { pane, cuts, panTo } = await forceGraph()
+  pane.setMaxRegionBp(80_000)
+  await panTo(1_100_000)
+  const snapped = snappedCut(hostWindow(pane.host!)!)
+  expect(snapped.end - snapped.start).toBeGreaterThan(80_000)
+  expect(cuts.some(c => c.region.start === snapped.start)).toBe(false)
+  expect(pane.cutRegion).toMatchObject({ start: 1_100_000, end: 1_160_000 })
+})
+
+test("a drawing placed by its window sits centred between the pane's top and bottom pads, below the reference strip", async () => {
+  const { pane } = await forceGraph({ paths: true })
+  const { top, bottom } = pane.fitPads
+  expect(top).toBeGreaterThan(REFERENCE_STRIP_ZONE_PX)
+  const bounds = pane.heldBounds!
+  const y0 = bounds.minY * pane.scale + pane.translateY
+  const y1 = (bounds.minY + bounds.h) * pane.scale + pane.translateY
+  expect(y0 - top).toBeCloseTo(pane.canvasHeight - bottom - y1, 6)
+  expect(y0).toBeGreaterThan(top + 1)
+})
+
+test('a drawing placed by its window is clipped at the key column on its canvas, its hover layer and its overlays alike', async () => {
+  const { pane } = await forceGraph()
+  pane.setLegendSize({ width: 120, height: 40 })
+  await wait(0)
+  const clip = `clip-path:${pane.drawingClip}`
+  const tagOf = (markup: string, testId: string) =>
+    new RegExp(`<[a-z]+ [^>]*data-testid="${testId}"[^>]*>`).exec(markup)?.[0]
+  const canvas = renderToStaticMarkup(
+    createElement(GraphCanvas, {
+      model: pane,
+      handle: { canvasRef: () => {}, canvas: null },
+    }),
+  )
+  expect(tagOf(canvas, 'graph-genome-canvas')).toContain(clip)
+  expect(tagOf(canvas, 'graph-hover-layer')).toContain(clip)
+  const overlay = renderToStaticMarkup(
+    createElement(PaneSvgLayer, {
+      model: pane,
+      zIndex: 2,
+      testId: 'an-overlay',
+      children: null,
+    }),
+  )
+  expect(tagOf(overlay, 'an-overlay')).toContain(clip)
 })
