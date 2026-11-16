@@ -982,7 +982,7 @@ test('a launch in the force layout cuts the window alone', async () => {
 
 // Reset track settings, undo and the config editor write the deletions
 // layer to the config, as setSlot does here
-test('a force track lays out with the stress engine by default, and an engine setting from anywhere lays it out again', async () => {
+test('a force track lays out with the FMMM engine by default, and an engine setting from anywhere lays it out again', async () => {
   const { view, rpcCall } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -1001,16 +1001,16 @@ test('a force track lays out with the stress engine by default, and an engine se
     rpcCall.mock.calls
       .filter(c => c[1] === 'GraphComputeLayout')
       .map(c => c[2].options?.engine)
-  expect(engines()).toEqual(['stress'])
+  expect(engines()).toEqual(['fmmm'])
 
-  display.setLayoutEngine('fmmm')
+  display.setLayoutEngine('stress')
   await vi.waitFor(() => {
-    expect(engines()).toEqual(['stress', 'fmmm'])
+    expect(engines()).toEqual(['fmmm', 'stress'])
   })
 
   display.configuration.setSlot('layers', { deletions: false })
   await vi.waitFor(() => {
-    expect(engines()).toEqual(['stress', 'fmmm', 'fmmm'])
+    expect(engines()).toEqual(['fmmm', 'stress', 'stress'])
   })
 })
 
@@ -1037,7 +1037,7 @@ test('a force track lays out for the pane it fits the drawing to: the width to t
 
   display.setLegendSize({ width: 200, height: 100 })
   display.resizeHeight(100)
-  display.setLayoutEngine('fmmm')
+  display.setLayoutEngine('stress')
   await vi.waitFor(() => {
     expect(fits()).toHaveLength(2)
   })
@@ -1249,7 +1249,7 @@ test('closing a drawn track reads nothing of the dead display', async () => {
   )
 })
 
-test('a track whose config names no layout opens force-directed, drawn by stress', async () => {
+test('a track whose config names no layout opens force-directed, drawn by FMMM', async () => {
   const { view } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
@@ -1258,24 +1258,24 @@ test('a track whose config names no layout opens force-directed, drawn by stress
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
   expect(display.chosenLayoutMode).toBe('force')
-  expect(display.chosenLayoutEngine).toBe('stress')
+  expect(display.chosenLayoutEngine).toBe('fmmm')
   expect(display.usesLayoutEngine).toBe(true)
 })
 
-test('a config that picks FMMM opens with it, and the graph view it launches keeps it', async () => {
+test('a config that picks stress opens with it, and the graph view it launches keeps it', async () => {
   const { view } = createEnvironment()
   view.zoomTo(60_000 / WIDTH_PX)
   view.scrollTo(1_000_000 / view.bpPerPx)
   view.showTrack(
     'graph-bare',
     {},
-    { type: 'LinearGraphDisplay', layoutEngine: 'fmmm' },
+    { type: 'LinearGraphDisplay', layoutEngine: 'stress' },
   )
   const display = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   display.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
-  expect(display.chosenLayoutEngine).toBe('fmmm')
-  expect(display.graphViewSpec).toMatchObject({ layoutEngine: 'fmmm' })
+  expect(display.chosenLayoutEngine).toBe('stress')
+  expect(display.graphViewSpec).toMatchObject({ layoutEngine: 'stress' })
 })
 
 test("a track naming its reference by an alias of the view's assembly cuts the window", async () => {
@@ -1725,7 +1725,7 @@ test('the track menu opens the window on screen in a graph genome view, drawn as
     loadedRegion: { refName: REF, assemblyName: ASM },
     layoutMode: 'tubemapref',
     subgraphContext: display.subgraphContext,
-    layoutEngine: 'stress',
+    layoutEngine: 'fmmm',
     layoutQuality: 3,
     bubbleSpread: 'compress',
     linearLayout: true,

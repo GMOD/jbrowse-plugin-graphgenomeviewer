@@ -10,10 +10,11 @@
 | Tube map              | node order, widths log-scaled                | W or P lines                 |
 | Tube map on reference | reference bp                                 | W or P lines and a reference |
 
-- **Force-directed** uses Bandage's OGDF FMMM engine. It lays out unbranching
-  runs, so a 15,000-node cut draws in a few seconds. A graph track uses the
-  stress engine, which holds the reference straight along x, so zooming in crops
-  one picture. The Layout menu and the settings dialog switch engines
+- **Force-directed** uses Bandage's OGDF FMMM engine, in a graph track and a
+  graph view alike. It lays out unbranching runs, so a 15,000-node cut draws in
+  a few seconds. The stress engine instead holds the reference straight along x,
+  so zooming in crops one picture. The Layout menu and the settings dialog
+  switch engines
 - **Walk rows** make a repeat expansion read as bar length. See
   [haplotypes.md](haplotypes.md#walk-rows)
 - **Tube maps** follow

@@ -160,10 +160,10 @@ describe.skipIf(!runE2E)('the graph track and the hover sync', () => {
     expect(state.type).toBe('LinearGraphDisplay')
     expect(state.nodeCount).toBeGreaterThan(0)
     expect(state.cutRegion).toMatchObject({ refName: REF_NAME })
-    // a track naming no layout opens force-directed under stress (ADR-046),
-    // on the ramp the linear lanes can be painted with
+    // a track naming no layout opens force-directed under FMMM, on the ramp
+    // the linear lanes can be painted with
     expect(state.chosenLayoutMode).toBe('force')
-    expect(state.chosenLayoutEngine).toBe('stress')
+    expect(state.chosenLayoutEngine).toBe('fmmm')
     expect(state.hostPlacesX).toBe(false)
     expect(state.effectiveColorScheme).toBe('reference-position')
   })
