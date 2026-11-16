@@ -65,8 +65,22 @@ function hoverTip(
         ? `${region.assemblyName} ${regionLabel({ refName: region.refName, ...span })}`
         : undefined
     const genes = genesOverNode(model.genePins, node.id)
+    const genesLine =
+      genes.length > 0 ? (
+        <>
+          <br />
+          <em>{genes.join(', ')}</em>
+        </>
+      ) : null
     return placeholder
-      ? { body: placeholder }
+      ? {
+          body: (
+            <>
+              {placeholder}
+              {genesLine}
+            </>
+          ),
+        }
       : {
           body: (
             <>
@@ -86,12 +100,7 @@ function hoverTip(
                   Reference {onReference}
                 </>
               ) : null}
-              {genes.length > 0 ? (
-                <>
-                  <br />
-                  <em>{genes.join(', ')}</em>
-                </>
-              ) : null}
+              {genesLine}
               {/* gfa-to-tabix --max-component left its component off the
               reference, so the cut holds only its ends */}
               {node.moved ? (

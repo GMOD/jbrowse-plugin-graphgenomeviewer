@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react'
 import HoverTooltip from './HoverTooltip'
 
 import type { GraphPaneModel } from '../model'
+import type { GenePin } from '@jbrowse/bandage-core/genes/genePins'
 
 function shown(state: Record<string, unknown>) {
   const model = {
@@ -84,6 +85,55 @@ test('a backbone node reads its own location only', () => {
       hoveredSpan: { start: 1000, end: 2000 },
     }),
   ).toEqual(['s7 — 1,000 bp, depth 1.0GRCh38 chr6:1,001-2,000 (rank 0)'])
+})
+
+const pinOver = (
+  name: string,
+  refName: string,
+  onReference: boolean,
+): GenePin => ({
+  gene: { name, refName, start: 0, end: 100, strand: 1, exons: [] },
+  exons: '',
+  exonsByNode: [],
+  nodeIds: new Set(['7']),
+  at: { x: 0, y: 0 },
+  covered: 1,
+  onReference,
+  walks: 1,
+})
+
+test('a node and a folded node both list the genes over them, a copy off the reference with its haplotype', () => {
+  const tipOf = (node: Record<string, unknown>) => {
+    const model = {
+      hoveredNode: '7',
+      hoveredEdge: null,
+      hoveredWalkRowText: undefined,
+      hoveredTubeText: undefined,
+      tooltipRightPx: 8,
+      deletions: [],
+      hoverNodeById: new Map([['7', node]]),
+      genePins: [
+        pinOver('CFH', 'GRCh38#0#chr1', true),
+        pinOver('ENSG00000289697', 'HG00097#1#CM1', false),
+      ],
+    } as unknown as GraphPaneModel
+    const { container, unmount } = render(
+      <HoverTooltip model={model} chip={undefined} />,
+    )
+    const text = container.textContent
+    unmount()
+    return text
+  }
+  const node = { id: '7', name: 's7', length: 1200, depth: 2 }
+  const genes = 'CFH, ENSG00000289697 · HG00097#1'
+  expect(tipOf(node)).toContain(genes)
+  const folded = tipOf({
+    ...node,
+    placeholder: true,
+    stable: { refName: 'HG00097#1#CM1', start: 500, rank: 1 },
+  })
+  expect(folded).toContain('nodes not shown')
+  expect(folded).toContain(genes)
 })
 
 // HG002 takes the 1 to 3 link past node 2, 50 bp of GRCh38 chr1
