@@ -30,16 +30,14 @@ export function chipReadoutAt(
   px: number,
   py: number,
 ) {
-  const pin = genes.find(chip => inChip(chip, px, py))?.item
-  if (!pin) {
-    return undefined
-  }
-  const { gene } = pin
-  const note = geneCoverageNote(pin)
-  return {
-    label: gene.name,
-    readout: `${gene.refName}:${gene.start.toLocaleString()}-${gene.end.toLocaleString()}${note ? `, ${note} in the cut` : ''}`,
-  }
+  const named = genes.find(chip => inChip(chip, px, py))?.item
+  const note = named && geneCoverageNote(named.pin)
+  return named
+    ? {
+        label: named.name,
+        readout: `${named.pin.gene.refName}:${named.pin.gene.start.toLocaleString()}-${named.pin.gene.end.toLocaleString()}${note ? `, ${note} in the cut` : ''}`,
+      }
+    : undefined
 }
 
 const LabelLayer = observer(function LabelLayer({
@@ -151,7 +149,7 @@ const LabelLayer = observer(function LabelLayer({
           strokeOpacity={0.6}
         />
       ))}
-      {genes.map(({ item: pin, x, y, w, text }) => {
+      {genes.map(({ item: { pin, name }, x, y, w, text }) => {
         const { gene } = pin
         const { x1, y1, x2, y2 } = geneLeader(
           { x, y },
@@ -162,7 +160,7 @@ const LabelLayer = observer(function LabelLayer({
           contigThickness,
         )
         return (
-          <g key={`${gene.name}-${gene.start}`}>
+          <g key={`${gene.name}-${gene.refName}-${gene.start}`}>
             <line
               x1={x1}
               x2={x2}
@@ -176,8 +174,8 @@ const LabelLayer = observer(function LabelLayer({
               x={x}
               y={y}
               w={w}
-              text={gene.name}
-              note={text.slice(gene.name.length) || undefined}
+              text={name}
+              note={text.slice(name.length) || undefined}
               color={GENE_INK}
               edge={EXON_COLOR}
               italic

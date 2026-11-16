@@ -1,0 +1,189 @@
+import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
+import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
+import { readConfObject } from '@jbrowse/core/configuration'
+
+import { mockRpcCall, mockSession } from './modelTestMocks'
+import stateModelFactory from './viewModel'
+
+vi.mock('@jbrowse/core/util', async () =>
+  (await import('./modelTestMocks')).coreUtilMock(),
+)
+vi.mock(import('@jbrowse/core/configuration'), async importOriginal =>
+  (await import('./modelTestMocks')).configurationMock(await importOriginal()),
+)
+vi.mock('@jbrowse/core/util/io', async () =>
+  (await import('./modelTestMocks')).ioMock(),
+)
+
+// GRCh38 walks r1 r2 r3 over chr1:1000-1030; each of eight haplotypes walks r1,
+// a node of its own, and r3, from 5000 on its contig CM1
+const SAMPLES = [
+  'HG00097',
+  'HG00099',
+  'HG00128',
+  'HG00133',
+  'HG01109',
+  'HG01123',
+  'HG01960',
+  'HG02055',
+]
+const GFA = [
+  'S\tr1\tAAAAAAAAAA',
+  'S\tr2\tCCCCCCCCCC',
+  'S\tr3\tGGGGGGGGGG',
+  ...SAMPLES.map((_, i) => `S\th${i}\tTTTTTTTTTT`),
+  'L\tr1\t+\tr2\t+\t0M',
+  'L\tr2\t+\tr3\t+\t0M',
+  ...SAMPLES.flatMap((_, i) => [
+    `L\tr1\t+\th${i}\t+\t0M`,
+    `L\th${i}\t+\tr3\t+\t0M`,
+  ]),
+  'W\tGRCh38\t0\tchr1\t1000\t1030\t>r1>r2>r3',
+  ...SAMPLES.map((s, i) => `W\t${s}\t1\tCM1\t5000\t5030\t>r1>h${i}>r3`),
+  '',
+].join('\n')
+
+const SYMBOLS = ['CFH', 'CFHR1', 'CFHR2', 'CFHR3', 'CFHR4']
+const UNNAMED = 'ENSG00000289697'
+const gene = (name: string, refName: string, start: number, end: number) => ({
+  type: 'gene',
+  name,
+  refName,
+  start,
+  end,
+  strand: 1,
+  subfeatures: [{ type: 'exon', start, end }],
+})
+
+// the reference's genes lie whole in the cut but CFHR4, which runs past it;
+// each haplotype's lie whole in its walk, over its own node and the
+// reference's either side, and only some haplotypes carry NBPF26
+const REFERENCE_GENES = [
+  ...SYMBOLS.map(name =>
+    name === 'CFHR4'
+      ? gene(name, 'chr1', 1015, 1045)
+      : gene(name, 'chr1', 1005, 1025),
+  ),
+  gene(UNNAMED, 'chr1', 1005, 1025),
+]
+const haplotypeGenes = (sample: string) => [
+  ...SYMBOLS.map(name => gene(name, 'CM1', 5005, 5025)),
+  gene(UNNAMED, 'CM1', 5005, 5025),
+  ...(['HG00128', 'HG01123'].includes(sample)
+    ? [gene('NBPF26', 'CM1', 5011, 5019)]
+    : []),
+]
+
+const bySlot = (obj: Record<string, unknown>, key?: unknown) => obj[String(key)]
+const adapterOnly = (obj: Record<string, unknown>, key?: unknown) =>
+  key === 'adapter' ? obj.adapter : undefined
+
+beforeEach(() => {
+  vi.mocked(readConfObject).mockImplementation(bySlot)
+  mockSession.assemblyNames = ['hg38', ...SAMPLES]
+  mockSession.tracks = [
+    { trackId: 'graph', assemblyNames: [], adapter: {} },
+    {
+      trackId: 'refseq',
+      name: 'RefSeq genes',
+      assemblyNames: ['hg38'],
+      adapter: { type: 'Gff3TabixAdapter', which: 'hg38' },
+    },
+    ...SAMPLES.map(s => ({
+      trackId: `${s}_genes`,
+      name: `${s} genes`,
+      assemblyNames: [s],
+      adapter: { type: 'Gff3TabixAdapter', which: s },
+    })),
+  ]
+  mockRpcCall.mockReset()
+  mockRpcCall.mockImplementation(
+    (
+      _sid: unknown,
+      method: string,
+      args: { adapterConfig?: { which?: string } },
+    ) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(GFA)
+        : method === 'CoreGetFeatures'
+          ? Promise.resolve(
+              args.adapterConfig?.which === 'hg38'
+                ? REFERENCE_GENES
+                : haplotypeGenes(args.adapterConfig?.which ?? ''),
+            )
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+})
+
+afterEach(() => {
+  vi.mocked(readConfObject).mockImplementation(adapterOnly)
+  mockSession.tracks = []
+  mockSession.assemblyNames = []
+})
+
+async function drawn() {
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'auto',
+    loadedTrackId: 'graph',
+  })
+  model.setWidth(1600)
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+  await model.loadOwnGenes()
+  return model
+}
+
+const chips = (model: Awaited<ReturnType<typeof drawn>>) =>
+  model.overlayLabels.genes.map(chip => chip.text).sort()
+
+test("forty pins of eight haplotypes' copies of five genes give five names, each once, on the reference", async () => {
+  const model = await drawn()
+  const copies = model.genePins.filter(
+    pin =>
+      SYMBOLS.includes(pin.gene.name) && pin.gene.refName !== 'GRCh38#0#chr1',
+  )
+  expect(copies).toHaveLength(40)
+  expect(chips(model)).toEqual(
+    ['CFH', 'CFHR1', 'CFHR2', 'CFHR3', 'CFHR4 · 15 of 30 bp', 'NBPF26'].sort(),
+  )
+})
+
+test("lifting one walk names that walk's own copies, with its haplotype, and no other's", async () => {
+  const model = await drawn()
+  model.setWalkLayers([{ walk: 'HG00133#1#CM1' }])
+  expect(chips(model)).toEqual(
+    [
+      'CFH',
+      'CFHR1',
+      'CFHR2',
+      'CFHR3',
+      'CFHR4 · 15 of 30 bp',
+      ...SYMBOLS.map(name => `${name} · HG00133#1`),
+      'NBPF26 · HG00128#1',
+    ].sort(),
+  )
+})
+
+test('a gene only haplotypes carry is named once, on the copy the most walks step, then the first contig by name', async () => {
+  const model = await drawn()
+  const named = model.overlayLabels.genes.filter(
+    chip => chip.item.pin.gene.name === 'NBPF26',
+  )
+  expect(named.map(chip => chip.item.pin.gene.refName)).toEqual([
+    'HG00128#1#CM1',
+  ])
+})
+
+test('a gene with no symbol is not named, and keeps its outlines and its hover', async () => {
+  const model = await drawn()
+  expect(chips(model).some(text => text.includes(UNNAMED))).toBe(false)
+  const unnamed = model.genePins.filter(pin => pin.gene.name === UNNAMED)
+  expect(unnamed).toHaveLength(9)
+  expect(exonStretches(unnamed, () => 1).length).toBeGreaterThanOrEqual(9)
+  expect(genesOverNode(model.genePins, 'h0+')).toContain(
+    `${UNNAMED} · HG00097#1`,
+  )
+})

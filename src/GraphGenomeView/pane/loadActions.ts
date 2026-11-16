@@ -9,7 +9,6 @@ import {
 import { walkRowLayoutOf } from '@jbrowse/bandage-core/layout/walkRowLayout'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
-import { panSNHaplotype, panSNSample } from '@jbrowse/bandage-core/pansn'
 import {
   anchorFromPaths,
   chooseReferencePath,
@@ -1046,14 +1045,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
         reads.map(({ stableRefName, trackId, region }) =>
           flow(function* () {
             const genes = yield* haplotypeGenes(trackId, region, signal)
-            // a chip reading LPA twice would not say whose copy each is
-            const whose =
-              panSNHaplotype(stableRefName) ?? panSNSample(stableRefName)
-            return (genes ?? []).map(g => ({
-              ...g,
-              name: `${g.name} · ${whose}`,
-              refName: stableRefName,
-            }))
+            return (genes ?? []).map(g => ({ ...g, refName: stableRefName }))
           })(),
         ),
       )) as GeneModel[][]

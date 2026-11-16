@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
+import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import {
   edgeHoverText,
   placeholderHoverText,
@@ -63,6 +64,7 @@ function hoverTip(
       region && span && !isBackbone(node)
         ? `${region.assemblyName} ${regionLabel({ refName: region.refName, ...span })}`
         : undefined
+    const genes = genesOverNode(model.genePins, node.id)
     return placeholder
       ? { body: placeholder }
       : {
@@ -82,6 +84,12 @@ function hoverTip(
                 <>
                   <br />
                   Reference {onReference}
+                </>
+              ) : null}
+              {genes.length > 0 ? (
+                <>
+                  <br />
+                  <em>{genes.join(', ')}</em>
                 </>
               ) : null}
               {/* gfa-to-tabix --max-component left its component off the

@@ -524,6 +524,10 @@ export const withGraphViews = paneBase
         }
       )
     },
+    // the names of the lifted walks, whose own genes the labels name
+    get liftedWalks() {
+      return this.walkLift?.walks.map(walk => walk.name)
+    },
     // A label per walk, which the pickers, the keys and a bubble's label all
     // read, so a walk name repeated across records reads the same everywhere
     get walkLabels() {

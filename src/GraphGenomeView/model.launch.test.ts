@@ -266,7 +266,7 @@ describe('launching out of the graph', () => {
     await model.loadOwnGenes()
     expect(model.ownGeneFeatures).toEqual([
       expect.objectContaining({
-        name: 'stx2A · Sakai#1',
+        name: 'stx2A',
         refName: 'Sakai#1#chr',
         start: 90001,
         end: 90003,

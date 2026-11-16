@@ -14,6 +14,7 @@ function shown(state: Record<string, unknown>) {
     hoveredTubeText: undefined,
     tooltipRightPx: 8,
     deletions: [],
+    genePins: [],
     ...state,
   } as unknown as GraphPaneModel
   render(<HoverTooltip model={model} chip={undefined} />)
