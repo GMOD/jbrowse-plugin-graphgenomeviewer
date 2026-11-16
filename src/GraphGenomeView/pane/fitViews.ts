@@ -31,6 +31,7 @@ import {
   followTransform,
   layoutExtent,
   referenceProfile,
+  shownBounds,
 } from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -60,21 +61,39 @@ import {
 } from './paneBase'
 import { trackedDpr } from '../trackedDpr'
 
+import type { SubgraphRegion } from '../../GetSubgraph'
 import type { FacetGrid, FacetSetting } from '@jbrowse/bandage-core/facetGrid'
 import type {
   GeneGaps,
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
-import type { ReferenceProfile } from '@jbrowse/bandage-core/pipeline'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 
-const landedReference = new WeakMap<LayoutResult, ReferenceProfile>()
+function heldLayoutOf(
+  graph: Graph,
+  layout: LayoutResult,
+  region: SubgraphRegion | undefined,
+) {
+  return {
+    profile: referenceProfile(graph, layout.nodePositions),
+    bounds: region && shownBounds(graph, layout, region),
+  }
+}
 
-export function holdReference(graph: Graph, layout: LayoutResult) {
-  if (!landedReference.has(layout)) {
-    landedReference.set(layout, referenceProfile(graph, layout.nodePositions))
+const landedLayouts = new WeakMap<
+  LayoutResult,
+  ReturnType<typeof heldLayoutOf>
+>()
+
+export function holdReference(
+  graph: Graph,
+  layout: LayoutResult,
+  region: SubgraphRegion | undefined,
+) {
+  if (!landedLayouts.has(layout)) {
+    landedLayouts.set(layout, heldLayoutOf(graph, layout, region))
   }
 }
 
@@ -460,12 +479,18 @@ export const withFitViews = withHostViews
         !this.facetGrid
       )
     },
-    get heldReference() {
-      const { graph, layoutResult } = self
+    get heldLayout() {
+      const { graph, layoutResult, graphRegion } = self
       return graph && layoutResult && this.followsWindow
-        ? (landedReference.get(layoutResult) ??
-            referenceProfile(graph, layoutResult.nodePositions))
+        ? (landedLayouts.get(layoutResult) ??
+            heldLayoutOf(graph, layoutResult, graphRegion))
         : undefined
+    },
+    get heldReference() {
+      return this.heldLayout?.profile
+    },
+    get heldBounds() {
+      return this.heldLayout?.bounds ?? this.layoutBounds
     },
     get followPads() {
       const pads = this.fitPads
@@ -486,7 +511,7 @@ export const withFitViews = withHostViews
     get heldScale() {
       const pieces = this.heldReference
       const region = self.graphRegion
-      const bounds = this.layoutBounds
+      const bounds = this.heldBounds
       const span = this.viewSpan
       return pieces && region && bounds && span
         ? cutScale(
@@ -506,7 +531,7 @@ export const withFitViews = withHostViews
       const seen = this.heldWindow
       const pieces = this.heldReference
       const scale = this.heldScale
-      const bounds = this.layoutBounds
+      const bounds = this.heldBounds
       const placed =
         seen && pieces && scale !== undefined && bounds
           ? followTransform(

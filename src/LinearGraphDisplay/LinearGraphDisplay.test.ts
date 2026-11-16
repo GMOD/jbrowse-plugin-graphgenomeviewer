@@ -68,6 +68,7 @@ function syntheticGraph(
   tier: SubgraphTier,
   region: SubgraphRegion,
   paths = false,
+  loopAtStart = false,
 ) {
   const step = tier === 'fine' ? 10_000 : 250_000
   const lines = ['H\tVN:Z:1.0']
@@ -100,6 +101,20 @@ function syntheticGraph(
       lines.push(`L\t${from}\t+\t${tier[0]}${k + 1}\t+\t0M`)
     }
   }
+  // a chain off the reference node the cut's start runs through, so it
+  // hangs outside every window the cut holds
+  if (loopAtStart && tier === 'fine') {
+    const id = `${tier[0]}${first}`
+    let from = id
+    for (let rank = 1; rank <= 24; rank++) {
+      const allele = `${id}l${rank}`
+      lines.push(
+        `S\t${allele}\t*\tLN:i:${step}\tSN:Z:HG${rank}#1#${REF}\tSO:i:${first * step}\tSR:i:${rank}`,
+        `L\t${from}\t+\t${allele}\t+\t0M`,
+      )
+      from = allele
+    }
+  }
   if (paths) {
     lines.push(`P\t${REF}\t${ref.join(',')}\t*`, `P\tHG1\t${alt.join(',')}\t*`)
   }
@@ -115,17 +130,26 @@ interface Cut {
 
 // The engine's request laid out where it was seeded: the reference along x
 // in bp order and each node off it a lane below, each a line short of the
-// next seed
+// next seed, but a chain hung off the cut's start stacked straight up
 function fakeEngine({ nodes }: EngineRequest['graph']) {
   return {
     nodePositions: Object.fromEntries(
-      nodes.map(({ id, length, x = 0, y = 0 }) => [
-        id,
-        [
-          { x, y },
-          { x: x + length * 0.015, y },
-        ],
-      ]),
+      nodes.map(({ id, length, x = 0, y = 0 }) => {
+        const step = Number(/l(\d+)[+-]?$/.exec(id)?.[1] ?? 0)
+        const rise = length * 0.015
+        return [
+          id,
+          step > 0
+            ? [
+                { x, y: -rise * (step - 1) },
+                { x, y: -rise * step },
+              ]
+            : [
+                { x, y },
+                { x: x + rise, y },
+              ],
+        ]
+      }),
     ),
   }
 }
@@ -204,6 +228,7 @@ function createEnvironment({
   paths = false,
   geneLaneFilter = undefined as string[] | undefined,
   contig = CONTIG,
+  loopAtStart = false,
 } = {}) {
   console.warn = vi.fn()
   // reduced motion, so a re-cut lands without a morph's frames
@@ -480,7 +505,7 @@ function createEnvironment({
       if (args.signal) {
         signals.push(args.signal)
       }
-      const gfa = syntheticGraph(cut.tier, cut.region, paths)
+      const gfa = syntheticGraph(cut.tier, cut.region, paths, loopAtStart)
       const hold = held
       return hold
         ? new Promise<string>(resolve => {
@@ -1006,8 +1031,9 @@ async function forceGraph({
   paths = false,
   contig = CONTIG,
   track = 'graph',
+  loopAtStart = false,
 } = {}) {
-  const env = createEnvironment({ paths, contig })
+  const env = createEnvironment({ paths, contig, loopAtStart })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
@@ -2512,3 +2538,15 @@ test('a snapped cut over the node limit leaves the drawing on screen until the w
   expect(states.filter(s => !s.drawn)).toEqual([])
   expect(states.filter(s => s.phase === 'error' || s.error)).toEqual([])
 }, 30_000)
+
+test("a chain hanging off where the cut's start runs through a reference node, which no window the cut holds shows, does not shrink the drawing", async () => {
+  const { pane } = await forceGraph({ paths: true, loopAtStart: true })
+  expect(pane.graph!.nodes.filter(n => /l\d+/.test(n.id))).toHaveLength(24)
+  const { top, bottom } = pane.fitPads
+  const usable = pane.canvasHeight - top - bottom
+  expect(pane.layoutBounds!.h).toBeGreaterThan(20 * pane.heldBounds!.h)
+  expect(pane.scale).toBeGreaterThan((10 * usable) / pane.layoutBounds!.h)
+  const ink = windowInk(pane)
+  expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
+  expect(ink.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
+})

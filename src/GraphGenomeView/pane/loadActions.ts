@@ -334,7 +334,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       const previous = self.layoutResult
       const before = self.screenTransform
       if (self.snapsHostCut) {
-        holdReference(graph, computed.result)
+        holdReference(graph, computed.result, self.graphRegion)
       }
       laidOutGraph = graph
       self.layoutResult = computed.result
