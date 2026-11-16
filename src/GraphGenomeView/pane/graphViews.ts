@@ -1102,7 +1102,7 @@ export const withGraphViews = paneBase
         self.graph &&
         genes.length > 0 &&
         positions
-        ? genePins(self.graph, genes, positions)
+        ? genePins(self.graph, genes, positions, self.layoutResult?.stranded)
         : []
     },
     // The bubbles as halos along their nodes.
