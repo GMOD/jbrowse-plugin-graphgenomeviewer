@@ -406,11 +406,11 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
         followCut(cut: ReturnType<typeof self.cut>, seen: HostWindow) {
           const latest = ++followed
           const region = self.cutRegion
-          void Promise.resolve(cut).then(() => {
+          void Promise.resolve(cut).then(overNodeLimit => {
             if (
               isAlive(self) &&
               followed === latest &&
-              isNodeLimitError(self.error)
+              (overNodeLimit === true || isNodeLimitError(self.error))
             ) {
               if (self.snapped(region, seen)) {
                 this.refuseSnappedCut(seen)

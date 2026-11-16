@@ -2482,3 +2482,33 @@ test('a force track restored before its view shows a window waits for one, and f
   expect(cuts.map(c => c.region)).toEqual([saved])
   expect(signals.some(s => s.aborted)).toBe(false)
 })
+
+test('a snapped cut over the node limit leaves the drawing on screen until the window alone lands, and the track never shows an error for it', async () => {
+  const { pane, cuts, panTo } = await forceGraph({
+    paths: true,
+    windowStart: 1_380_000,
+  })
+  const states: { phase: string; drawn: boolean; error: unknown }[] = []
+  const stop = reaction(
+    () => ({
+      phase: pane.displayPhase,
+      drawn: pane.layoutResult !== undefined,
+      error: pane.error,
+    }),
+    state => states.push(state),
+    { fireImmediately: true },
+  )
+  // past 1.5 Mb the bubbles run eight ranks deep: a window alone there
+  // holds 31 nodes and its snapped cut 51
+  pane.setMaxGraphNodes(40)
+  await wait(SETTLE_MS)
+  for (let i = 1; i <= 16; i++) {
+    await panTo(1_380_000 + i * 15_000)
+  }
+  stop()
+  expect(pane.cutRegion).toMatchObject({ start: 1_620_000, end: 1_680_000 })
+  expect(cuts.some(c => c.region.start === 1_620_000)).toBe(true)
+  expect(states.length).toBeGreaterThan(1)
+  expect(states.filter(s => !s.drawn)).toEqual([])
+  expect(states.filter(s => s.phase === 'error' || s.error)).toEqual([])
+}, 30_000)

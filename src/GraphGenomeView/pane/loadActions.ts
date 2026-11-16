@@ -572,18 +572,18 @@ export const withLoadActions = withEngineSettings.actions(self => {
 
   // Runs `body` as a load. It raises the spinner and clears the error first,
   // and while it is the live load it reports a failure and ends the spinner.
-  function* runLoad(
+  function* runLoad<T>(
     label: string,
     body: (load: {
       isLive: () => boolean
       signal: AbortSignal
-    }) => Generator<PromiseLike<unknown>, void, unknown>,
+    }) => Generator<PromiseLike<unknown>, T, unknown>,
   ) {
     const load = beginLoad()
     self.isLoading = true
     self.error = undefined
     try {
-      yield* body(load)
+      return yield* body(load)
     } catch (e) {
       if (load.isLive()) {
         console.error(`[GraphGenomeView.${label}]`, e)
@@ -946,7 +946,9 @@ export const withLoadActions = withEngineSettings.actions(self => {
     // One cut of a region, laid out with the annotations over it. Whether
     // the region may be cut is the caller's call; overlapping cuts are
     // ordered by liveLoad, so the latest one lands. A cut the caller `keep`s
-    // is shown again from KEPT_CUTS without a fetch or a layout.
+    // is shown again from KEPT_CUTS without a fetch or a layout, and one over
+    // the node limit is not shown: the drawing on screen stays, and the cut
+    // resolves true for the caller to cut the window alone.
     cutSubgraph: flow(function* (
       adapterConfig: Record<string, unknown>,
       region: SubgraphRegion,
@@ -954,7 +956,7 @@ export const withLoadActions = withEngineSettings.actions(self => {
       foldBelowBp?: number,
       keep = false,
     ) {
-      yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
+      return yield* runLoad('cutSubgraph', function* ({ isLive, signal }) {
         const readsOf = namesReads(adapterConfig)
           ? (graph: Graph) =>
               getSession(self).rpcManager.call(
@@ -991,13 +993,10 @@ export const withLoadActions = withEngineSettings.actions(self => {
           foldBelowBp,
           self.referencePath,
         ])
-        const kept = keep && !readsOf ? keptCuts.get(key) : undefined
-        if (kept) {
-          yield* showCut(keepCut(key, kept), true, alongside)
-        } else {
+        function* fetched() {
           self.setStatusMessage('Fetching subgraph')
           const fetchStart = performance.now()
-          const cut = (yield getSession(self).rpcManager.call(
+          const source = (yield getSession(self).rpcManager.call(
             getRpcSessionId(self),
             'GetSubgraph',
             {
@@ -1017,29 +1016,37 @@ export const withLoadActions = withEngineSettings.actions(self => {
             },
           )) as string | WalkCut
           if (!isLive()) {
-            return
+            return undefined
           }
           self.setFetchMs(performance.now() - fetchStart)
-          if (!cut) {
+          if (!source) {
             throw new Error(
               'Adapter returned no GFA — region may be outside indexed data or the adapter does not implement getSubgraph',
             )
           }
-          const parsed = yield* parsedCut(
-            cut,
+          return yield* parsedCut(
+            source,
             regionLabel(region),
             region,
             readsOf,
             foldBelowBp,
           )
-          if (parsed) {
-            yield* showCut(
-              keep && !readsOf ? keepCut(key, parsed) : parsed,
-              true,
-              alongside,
-            )
-          }
         }
+        const kept = keep && !readsOf ? keptCuts.get(key) : undefined
+        const cut = kept ?? (yield* fetched())
+        const overNodeLimit =
+          keep &&
+          !!cut &&
+          self.modeDrawsNodes &&
+          cut.graph.nodes.length > self.maxGraphNodes
+        if (cut && !overNodeLimit) {
+          yield* showCut(
+            keep && !readsOf ? keepCut(key, cut) : cut,
+            true,
+            alongside,
+          )
+        }
+        return overNodeLimit
       })
     }),
     // A track change re-reads that annotation alone. The graph, its layout
