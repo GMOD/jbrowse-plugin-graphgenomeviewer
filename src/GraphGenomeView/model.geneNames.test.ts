@@ -1,6 +1,7 @@
 import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
+import { MAX_ZOOM } from '@jbrowse/bandage-core/zoomLimits'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { autorun, reaction } from 'mobx'
 
@@ -238,11 +239,28 @@ test('pins read again the same, or still none, change nothing a label reads', as
   stop()
 })
 
+// A transform under which a pane 500 px wide lies along the middle of r2 at
+// the deepest zoom, so it shows r2 and the haplotypes' own nodes beside it,
+// and not r1 or r3
+function alongR2(model: {
+  layoutResult?: { nodePositions: Record<string, { x: number }[]> }
+}) {
+  const xs = model.layoutResult!.nodePositions['r2+']!.map(p => p.x)
+  const left = xs.reduce((a, b) => Math.min(a, b))
+  const right = xs.reduce((a, b) => Math.max(a, b))
+  const scale = MAX_ZOOM
+  expect((right - left) * scale).toBeGreaterThan(500)
+  return {
+    scale,
+    translateX: -((left + right) / 2) * scale + 250,
+  }
+}
+
 // Y-rand-10's pane showed the reference's nodes, which GRCh38 alone walks,
 // while the haplotypes' walks stepped nodes off the pane, and the key said
-// "7 walks | 1 walk" over a line drawn as one walk is; here the pane beside a
-// wide key shows r2 and the haplotypes' own nodes, which one walk steps each,
-// and the drawing holds r1 and r3, which every walk steps, beyond it
+// "7 walks | 1 walk" over a line drawn as one walk is; here the pane shows r2
+// and the haplotypes' own nodes, which one walk steps each, and the drawing
+// holds r1 and r3, which every walk steps, beyond it
 test("the key's node thicknesses are those of the nodes the pane shows", async () => {
   const model = await drawn()
   model.startRenderingBackend(fakeRenderer())
@@ -260,18 +278,34 @@ test("the key's node thicknesses are those of the nodes the pane shows", async (
   )
   model.setTransform(model.scale, model.translateX + 1, model.translateY)
   expect(changes).toBe(0)
+  model.setWidth(500)
+  const { scale, translateX } = alongR2(model)
+  model.setTransform(scale, translateX, model.translateY)
+  expect(thicknesses()).toEqual(['1 walk'])
+  stop()
+})
+
+// L6-amy's pane, panned, drew a skip's dashes and a thick reference node in
+// the strip under the key, and the key listed neither; here r3, which every
+// walk steps, lies under a key as wide as the pane less 88 px
+test('a node drawn under the key is keyed', async () => {
+  const model = await drawn()
+  model.startRenderingBackend(fakeRenderer())
   const r2 = model.layoutResult!.nodePositions['r2+']![0]!
   model.setLegendSize({ width: 1500, height: 40 })
   model.setTransform(100, 40 - (r2.x + 1) * 100, model.translateY)
-  expect(thicknesses()).toEqual(['1 walk'])
-  stop()
+  expect(
+    model.graphKey
+      .find(section => section.id === 'node-width')
+      ?.entries.map(entry => entry.text),
+  ).toEqual(['9 walks', '1 walk'])
 })
 
 // An attached pane keys the view a pan or zoom settles on, so the key, and
 // the labels that wait on its measure, hold still through the gesture
 test('an attached pane keys the view it settles on, not each step of a pan', async () => {
   const model = attachedModel({ layoutMode: 'auto', loadedTrackId: 'graph' })
-  model.setWidth(1600)
+  model.setWidth(500)
   await model.cutSubgraph(
     {},
     { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
@@ -285,9 +319,8 @@ test('an attached pane keys the view it settles on, not each step of a pan', asy
     expect(model.settledKeyView?.layout).toBe(model.layoutResult)
   })
   expect(thicknesses()).toEqual(['9 walks', '1 walk'])
-  const r2 = model.layoutResult!.nodePositions['r2+']![0]!
-  model.setLegendSize({ width: 1500, height: 40 })
-  model.setTransform(100, 40 - (r2.x + 1) * 100, model.translateY)
+  const { scale, translateX } = alongR2(model)
+  model.setTransform(scale, translateX, model.translateY)
   expect(thicknesses()).toEqual(['9 walks', '1 walk'])
   await vi.waitFor(() => {
     expect(thicknesses()).toEqual(['1 walk'])

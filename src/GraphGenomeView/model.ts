@@ -87,7 +87,11 @@ export const GraphPane = withLaunchActions
   }))
   .views(self => ({
     get liveKeyView() {
-      return keyedView(self, self.axisScale, self)
+      return keyedView(self, self.axisScale, {
+        paneWidth: self.drawingClip ? self.drawingWidth : self.paneWidth,
+        canvasHeight: self.canvasHeight,
+        referenceStripZonePx: self.referenceStripZonePx,
+      })
     },
     get keyView() {
       const settled = self.settledKeyView
