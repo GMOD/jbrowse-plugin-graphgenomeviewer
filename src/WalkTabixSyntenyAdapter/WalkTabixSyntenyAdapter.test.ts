@@ -408,6 +408,18 @@ test("each lane's colour and the anchor's are their rows' in the samples sheet",
   ])
 })
 
+test('a samples sheet that fails to read leaves the lanes uncoloured', async () => {
+  const header = await makeAdapter({
+    samplesTsvLocation: {
+      localPath: '/no/such/samples.tsv',
+      locationType: 'LocalPathLocation',
+    },
+  }).getHeader()
+  expect(header).not.toHaveProperty('anchorColor')
+  expect(header.lanes.length).toBeGreaterThan(0)
+  expect(header.lanes.some(lane => 'color' in lane)).toBe(false)
+})
+
 test("the anchor's contigs are its refNames, and a lane lists none", async () => {
   const adapter = makeAdapter()
   expect(await adapter.getRefNames({ assemblyName: 'hg38' })).toEqual(['chr1'])

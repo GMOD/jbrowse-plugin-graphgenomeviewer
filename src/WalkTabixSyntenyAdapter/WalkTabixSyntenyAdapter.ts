@@ -69,7 +69,9 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
    * `lanes` is every haplotype the header names but the anchor's own,
    * declared up front so the display can offer the whole graph's haplotypes
    * before a fetch has placed any of them. A lane's `color`, and the anchor's
-   * `anchorColor`, is its haplotype's in `samplesTsvLocation`, where it has one.
+   * `anchorColor`, is its haplotype's in `samplesTsvLocation`, where it has one;
+   * a sheet that fails to read leaves the lanes uncoloured rather than failing
+   * them
    */
   async getHeader(opts: BaseOptions = {}) {
     const [{ haplotypes }, colorOf] = await Promise.all([
@@ -103,17 +105,15 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
   private async sheetColors(opts: BaseOptions) {
     const location = this.getConf('samplesTsvLocation')
     return locationIsSet(location)
-      ? sheetColorOf(
-          (
-            await getSamplesTsvSources({
-              location,
-              names: undefined,
-              namesLabel: 'the walk file',
-              pluginManager: this.pluginManager,
-              opts,
-            })
-          ).sources,
-          assemblyByPanSNPrefix(this),
+      ? getSamplesTsvSources({
+          location,
+          names: undefined,
+          namesLabel: 'the walk file',
+          pluginManager: this.pluginManager,
+          opts,
+        }).then(
+          ({ sources }) => sheetColorOf(sources, assemblyByPanSNPrefix(this)),
+          () => undefined,
         )
       : undefined
   }
