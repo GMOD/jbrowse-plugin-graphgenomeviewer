@@ -361,6 +361,17 @@ export const withSettingActions = withTubeMapViews
       ) {
         self.legendSize = size
       }
+      const frame = self.keyFrame
+      if (
+        !frame ||
+        (!self.keyFrameHeld &&
+          (size.width !== frame.width || size.height !== frame.height))
+      ) {
+        self.keyFrame = size
+      }
+    },
+    setKeyFrameHeld(held: boolean) {
+      self.keyFrameHeld = held
     },
     setHoveredEdge(edgeIdx: number | null) {
       self.hoveredEdge = self.hoverLightsEverything ? edgeIdx : null

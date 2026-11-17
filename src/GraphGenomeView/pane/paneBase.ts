@@ -354,6 +354,12 @@ export const paneBase = types
     // what the legends in the pane's corner measure, so no label
     // is placed under them
     legendSize: { width: 0, height: 0 },
+    // The key's size the pane is framed by: its height floors the pane and
+    // its width is the column the fit leaves it. It follows the key a layout
+    // or a setting leaves, and is held while a pan or zoom changes what the
+    // key lists (keyFrameHeld), so the pane never moves with the view.
+    keyFrame: undefined as { width: number; height: number } | undefined,
+    keyFrameHeld: false,
     // How a host that measures its key says what the key draws, and what it
     // drew when last measured. Its size sets the pane's height and the fit,
     // so the labels wait for the two to agree.

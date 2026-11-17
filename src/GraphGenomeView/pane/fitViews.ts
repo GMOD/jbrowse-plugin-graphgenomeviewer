@@ -221,7 +221,12 @@ export const withFitViews = withHostViews
     // marks that come and go with the fit's scale, so a column for them would
     // refit the drawing it is measured from.
     get keyColumnPx() {
-      return self.facetPanels || self.tubeMapReads ? 0 : keyColumnPx(self)
+      return self.facetPanels || self.tubeMapReads
+        ? 0
+        : keyColumnPx({ legendSize: this.framedLegendSize })
+    },
+    get framedLegendSize() {
+      return self.keyFrame ?? self.legendSize
     },
     // How far the drawing, walk rows and their readouts reach: to the key's
     // column
@@ -231,7 +236,7 @@ export const withFitViews = withHostViews
         : fitBesideKey({
             paneWidth: self.paneWidth,
             canvasHeight: this.canvasHeight,
-            legendSize: self.legendSize,
+            legendSize: this.framedLegendSize,
           }).width
     },
     // The height that shows every row of the key, and the drawing's own
@@ -239,7 +244,12 @@ export const withFitViews = withHostViews
     get canvasFloor() {
       return Math.max(
         MIN_CANVAS_HEIGHT,
-        self.facetPanels ? 0 : keyHeightPx(self),
+        self.facetPanels
+          ? 0
+          : keyHeightPx({
+              legendSize: this.framedLegendSize,
+              referenceStripZonePx: self.referenceStripZonePx,
+            }),
       )
     },
     // Row i's readout as the pane places it, measured as it is drawn

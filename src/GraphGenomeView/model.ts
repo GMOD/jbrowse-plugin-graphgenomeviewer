@@ -302,6 +302,34 @@ export const GraphPane = withLaunchActions
           },
         ),
       )
+      // The key's frame holds from the moment the view the key keys moves,
+      // or the drawing is rebuilt for a moved view, until the key changes
+      // with neither, as a setting changes it, or a new layout or pane width
+      // comes
+      addDisposer(
+        self,
+        reaction(
+          () => ({
+            shape: self.keyShape,
+            view: self.keyView,
+            rebuilt: self.builtViewport?.viewportDirty,
+            layout: self.layoutResult,
+            width: self.paneWidth,
+            owner: self.viewportOwner,
+          }),
+          (now, was) => {
+            const moved =
+              !sameBounds(now.view, was.view) || now.rebuilt !== was.rebuilt
+            self.setKeyFrameHeld(
+              now.owner !== 'fit' &&
+                now.layout === was.layout &&
+                now.width === was.width &&
+                (moved || (now.shape === was.shape && self.keyFrameHeld)),
+            )
+          },
+          { name: 'GraphKeyFrame' },
+        ),
+      )
       // A cut option changed by anything cuts again: a setting, the config
       // editor, undo or a session delta. A change of layout mode cuts through
       // relayout.

@@ -1,5 +1,6 @@
 import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
+import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { MAX_ZOOM } from '@jbrowse/bandage-core/zoomLimits'
 import { readConfObject } from '@jbrowse/core/configuration'
@@ -325,4 +326,46 @@ test('an attached pane keys the view it settles on, not each step of a pan', asy
   await vi.waitFor(() => {
     expect(thicknesses()).toEqual(['1 walk'])
   })
+})
+
+// rand-chr1-1's pane grew by a row and shrank back as a pan brought an
+// off-reference node in and out of the key, and moved everything below it
+test("a pan or zoom never moves the pane's height, which follows the key a setting changes", async () => {
+  const model = attachedModel({ layoutMode: 'auto', loadedTrackId: 'graph' })
+  model.setWidth(500)
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+  model.startRenderingBackend(fakeRenderer())
+  model.setKeyShapeOf(() => JSON.stringify(model.graphKey))
+  const thicknesses = () =>
+    model.graphKey
+      .find(section => section.id === 'node-width')
+      ?.entries.map(entry => entry.text)
+  await vi.waitFor(() => {
+    expect(model.settledKeyView?.layout).toBe(model.layoutResult)
+  })
+  const floorOf = (keyPx: number) =>
+    keyPx + 2 * LEGEND_INSET_PX + model.referenceStripZonePx
+  model.setLegendSize({ width: 200, height: 420 })
+  const height = model.canvasHeight
+  expect(height).toBe(floorOf(420))
+  const { scale, translateX } = alongR2(model)
+  model.setTransform(scale, translateX, model.translateY)
+  await vi.waitFor(() => {
+    expect(thicknesses()).toEqual(['1 walk'])
+  })
+  model.setLegendSize({ width: 180, height: 300 })
+  expect(model.canvasHeight).toBe(height)
+  model.setTransform(scale, translateX - 100, model.translateY)
+  await vi.waitFor(() => {
+    expect(model.keyView.minX).toBe(model.liveKeyView.minX)
+  })
+  model.setLegendSize({ width: 190, height: 380 })
+  expect(model.canvasHeight).toBe(height)
+  model.setNodeWidth('uniform')
+  expect(thicknesses()).toBeUndefined()
+  model.setLegendSize({ width: 180, height: 250 })
+  expect(model.canvasFloor).toBe(floorOf(250))
 })
