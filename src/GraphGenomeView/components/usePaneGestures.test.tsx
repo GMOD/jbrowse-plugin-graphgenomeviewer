@@ -60,6 +60,8 @@ test('the canvas reads out the gene chip under the pointer, since the chip leave
       end: 160_664_259,
     },
     covered: 1,
+    anchored: 1,
+    body: [],
   }
   const model = fakeModel({
     isPanning: false,

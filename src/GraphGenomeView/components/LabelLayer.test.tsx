@@ -19,6 +19,8 @@ const pin: GenePin = {
   nodeIds: new Set(['h0+']),
   at: { x: 0, y: 0 },
   covered: 1,
+  anchored: 1,
+  body: [],
   onReference: false,
   walks: 1,
 }

@@ -98,6 +98,8 @@ const pinOver = (
   nodeIds: new Set(['7']),
   at: { x: 0, y: 0 },
   covered: 1,
+  anchored: 1,
+  body: [],
   onReference,
   walks: 1,
 })
