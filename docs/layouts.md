@@ -33,9 +33,10 @@
   [tube-maps.md](tube-maps.md)
 - **Show › Show node lengths** (off by default) writes each node's length on it
   where the node is long enough to hold it. A "nodes not shown" placeholder
-  states its length either way. Placeholders drawn too small to hold their
-  length on one spot share one length, the longest, and the key counts the rest
-  as unlabelled, as it counts a length with no room on the pane
+  states its length either way. Placeholders on one spot share one length, the
+  longest, whether or not their loops could hold it, two lengths that read the
+  same stand at least a line apart, and the key counts the rest as unlabelled,
+  as it counts a length with no room on the pane
 - The key lists only what the pane shows: an exon, a node thickness or a mark
   that lies on the cut past the window or under the key is not keyed
 - **Show › Show links that skip reference** (on by default) draws each link that
