@@ -14,6 +14,7 @@ import { paintTubeMap } from './TubeMapOverlay'
 import WalkRowsOverlay from './WalkRowsOverlay'
 import { HEADING_GAP_PX, HEADING_INK } from './legendStyles'
 import {
+  countWords,
   drawnLegendSections,
   facetKeyRows,
   rowPitch,
@@ -144,10 +145,11 @@ function svgRow(
   const sw = column ?? swatchWidth(swatch)
   const indent = column === undefined ? 0 : column + 5
   const words = (row.strong ?? '') + row.label
+  const reserved = row.sizer === undefined ? '' : ` ${countWords(row.sizer)}`
   return {
     key: row.key,
     width: Math.max(
-      sw + 5 + words.length * LABEL_CHAR_PX,
+      sw + 5 + (words.length + reserved.length) * LABEL_CHAR_PX,
       indent + (row.under?.length ?? 0) * LABEL_CHAR_PX,
     ),
     height: row.under ? pitch * 2 : pitch,
@@ -161,6 +163,7 @@ function svgRow(
         <text x={left + sw + 5} y={0}>
           {row.strong ? <tspan fontWeight="bold">{row.strong}</tspan> : null}
           {row.label}
+          {row.count ? <tspan>{` ${countWords(row.count)}`}</tspan> : null}
         </text>
         {row.under ? (
           <text x={left + indent} y={pitch}>

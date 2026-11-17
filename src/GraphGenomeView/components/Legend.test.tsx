@@ -22,10 +22,13 @@ test('a long note wraps at its width, so the key is no wider than that', () => {
 })
 
 // The review's clipped count lines: beside KIV-2's range line, beside a
-// narrower range, and with no position ramp. The line is sized by the widest
-// it can come to, unseen, whether or not the labels have filled it.
-test('the unlabelled count line carries an unseen sizer of the widest it can come to, filled or blank', () => {
-  for (const [under, sizer] of [
+// narrower range, and with no position ramp. The count rides the row of
+// "nodes not shown", after its words, and is sized by the widest it can come
+// to, unseen, whether or not the labels have filled it; nothing is kept for
+// it under the row, which read as an empty line where every placeholder was
+// labelled.
+test('the unlabelled count rides its row after the words, sized unseen by the widest it can come to, filled or blank', () => {
+  for (const [count, sizer] of [
     [
       '1,204 unlabelled, 10.5 kb or less each',
       '1,204 unlabelled, 10.5 kb or less each',
@@ -33,28 +36,33 @@ test('the unlabelled count line carries an unseen sizer of the widest it can com
     ['361 unlabelled, 2 bp or less each', '377 unlabelled, 2 bp or less each'],
     ['', '377 unlabelled, 2 bp or less each'],
   ]) {
-    const { unmount } = render(
+    const { container, unmount } = render(
       <LegendRowView
         row={{
           key: 'not-shown',
           label: 'nodes not shown',
           swatch: { kind: 'fill', stops: [{ offset: 0, color: '#fff' }] },
-          under,
-          unlabelledLine: true,
+          count,
           sizer,
         }}
       />,
     )
     const sized = screen.getByTestId('graph-key-sizer')
-    expect(sized.textContent).toBe(sizer)
+    expect(sized.textContent).toBe(`· ${sizer}`)
     expect(sized.style.visibility).toBe('hidden')
-    const line = sized.nextElementSibling as HTMLElement
-    expect(line.textContent).toBe(under || '\u00a0')
+    const shown = screen.getByTestId('graph-key-count')
+    expect(shown.textContent).toBe(count ? `· ${count}` : '')
+    // one line: the words, then the count in the sizer's cell
+    expect(container.firstElementChild!.children).toHaveLength(1)
+    expect(shown.parentElement).toBe(sized.parentElement)
+    expect(shown.parentElement!.previousElementSibling!.textContent).toBe(
+      'nodes not shown',
+    )
     // no wider than the sizer makes the key, clipped past it
-    expect(line.style.width).toBe('0px')
-    expect(line.style.minWidth).toBe('100%')
-    expect(line.style.overflow).toBe('hidden')
-    expect(line.style.textOverflow).toBe('ellipsis')
+    expect(shown.style.width).toBe('0px')
+    expect(shown.style.minWidth).toBe('100%')
+    expect(shown.style.overflow).toBe('hidden')
+    expect(shown.style.textOverflow).toBe('ellipsis')
     unmount()
   }
 })

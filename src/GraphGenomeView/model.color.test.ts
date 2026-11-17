@@ -526,6 +526,21 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   model.setWidth(800)
   await model.loadGFA(`${SIMPLE_GFA}${placeholders.flat().join('\n')}\n`, 'g')
   model.startRenderingBackend(fakeRenderer())
+  const exported = () =>
+    renderToStaticMarkup(
+      createElement(
+        'svg',
+        null,
+        createElement(PaneSvg, { model, idPrefix: 'k' }),
+      ),
+    )
+  const keyWidth = (svg: string) =>
+    /data-testid="graph-svg-keys"><rect [^>]*width="([\d.]+)"/.exec(svg)?.[1]
+  // a key not yet measured holds the labels back, so the count is blank
+  model.setKeyShapeOf(() => 'unmeasured')
+  expect(model.overlayLabels.unlabelled).toBeUndefined()
+  const blank = exported()
+  model.setLegendSize(model.legendSize, 'unmeasured')
   const { unlabelled } = model.overlayLabels
   const keyed = model.graphKey
     .flatMap(section => section.entries)
@@ -535,19 +550,19 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
     .find(row => row.key === 'not-shown')
   expect(unlabelled).toEqual({ count: 5, smallest: 1, largest: 5 })
   expect(keyed?.under).toBe('')
-  expect(drawn?.under).toBe('5 unlabelled, 5 bp or less each')
+  expect(drawn?.under).toBeUndefined()
+  expect(drawn?.count).toBe('5 unlabelled, 5 bp or less each')
   expect(drawn?.sizer).toBe('100 unlabelled, 100 bp or less each')
-  const exported = renderToStaticMarkup(
-    createElement(
-      'svg',
-      null,
-      createElement(PaneSvg, { model, idPrefix: 'k' }),
-    ),
+  const filled = exported()
+  expect(filled).toMatch(
+    /nodes not shown<tspan> · 5 unlabelled, 5 bp or less each<\/tspan><\/text>/,
   )
-  expect(exported).toContain('5 unlabelled, 5 bp or less each')
+  expect(blank).not.toContain('unlabelled')
+  expect(keyWidth(filled)).toBeDefined()
+  expect(keyWidth(filled)).toBe(keyWidth(blank))
 })
 
-test("a lifted walk's drawing labels no node length, so its key keeps no line for the count", async () => {
+test("a lifted walk's drawing labels no node length, so its key keeps no room for the count", async () => {
   mockRpcCall.mockImplementation(
     (_session: unknown, method: string, request: EngineRequest) =>
       method === 'GraphComputeLayout'
@@ -575,11 +590,12 @@ test("a lifted walk's drawing labels no node length, so its key keeps no line fo
     drawnLegendSections(model)
       .flatMap(section => section.rows)
       .find(row => row.key === 'not-shown')
-  expect(notShown()?.unlabelledLine).toBe(true)
+  expect(notShown()?.sizer).toBeDefined()
   model.liftWalks(['A#1#ctg'])
   expect(model.labelsNodeSizes).toBe(false)
   expect(notShown()).toBeDefined()
-  expect(notShown()?.unlabelledLine).toBeUndefined()
+  expect(notShown()?.sizer).toBeUndefined()
+  expect(notShown()?.count).toBeUndefined()
   expect(notShown()?.under).toBeUndefined()
 })
 

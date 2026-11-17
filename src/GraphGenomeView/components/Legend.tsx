@@ -11,7 +11,7 @@ import {
   legendNoteStyle,
   legendRowStyle,
 } from './legendStyles'
-import { rowPitch, swatchColumn } from '../legendSections'
+import { countWords, rowPitch, swatchColumn } from '../legendSections'
 
 import type { LegendRow, drawnLegendSections } from '../legendSections'
 import type { GraphPaneModel } from '../model'
@@ -51,18 +51,21 @@ export const LegendRowView = observer(function LegendRowView({
           {row.strong ? <strong>{row.strong}</strong> : null}
           {row.label}
         </span>
+        {row.sizer === undefined ? null : (
+          <span style={countCellStyle} title={row.count || undefined}>
+            <span style={sizerStyle} aria-hidden data-testid="graph-key-sizer">
+              {countWords(row.sizer)}
+            </span>
+            <span style={countStyle} data-testid="graph-key-count">
+              {countWords(row.count)}
+            </span>
+          </span>
+        )}
         {after}
       </div>
       {at ? (
         <div style={indent} data-testid="graph-walk-at">
           {at}
-        </div>
-      ) : row.unlabelledLine ? (
-        <div style={{ ...indent, display: 'grid' }} title={row.under}>
-          <span style={sizerStyle} aria-hidden data-testid="graph-key-sizer">
-            {row.sizer}
-          </span>
-          <span style={unlabelledLineStyle}>{row.under || '\u00a0'}</span>
         </div>
       ) : row.under ? (
         <div style={indent}>{row.under}</div>
@@ -73,11 +76,12 @@ export const LegendRowView = observer(function LegendRowView({
   )
 })
 
-// The count line and its sizer share one cell, which the sizer's words make
-// as wide as the line can come to, so the line widens the key as much with
+// The count and its sizer share one cell, which the sizer's words make as
+// wide as the count can come to, so the count widens the key as much with
 // no label placed as with every one; it clips past that, and no wider
+const countCellStyle = { display: 'grid' }
 const sizerStyle = { gridArea: '1 / 1', visibility: 'hidden' as const }
-const unlabelledLineStyle = {
+const countStyle = {
   gridArea: '1 / 1',
   width: 0,
   minWidth: '100%',

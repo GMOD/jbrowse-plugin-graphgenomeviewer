@@ -112,11 +112,10 @@ export interface LegendRow {
   swatch?: LegendSwatch
   strong?: string
   under?: string
-  // the line under is the count of placeholders left unlabelled, kept
-  // whether or not there are any and no wider than the key, so the key's
-  // size waits on no label
-  unlabelledLine?: true
-  // the widest words the line under can come to, which size it unseen
+  // after the words, the count of placeholders the labels left unlabelled,
+  // '' until they are placed or where none is; `sizer`, the widest it can
+  // come to, reserves its room unseen, so the key's size waits on no label
+  count?: string
   sizer?: string
   title?: string
   walk?: LiftedWalk
@@ -303,6 +302,10 @@ export function keyRow(entry: GraphKeyEntry): LegendRow {
   }
 }
 
+// A row's count after its words, set off by a dot
+export const countWords = (count: string | undefined) =>
+  count ? `· ${count}` : ''
+
 // The count line with every placeholder the drawing holds unlabelled
 export function widestUnlabelledText(model: GraphPaneModel) {
   const all = { count: 0, smallest: Infinity, largest: 0 }
@@ -316,16 +319,17 @@ export function widestUnlabelledText(model: GraphPaneModel) {
   return unlabelledText(all.count > 0 ? all : undefined)
 }
 
-// The rows of one section of bandage-core's key, a line kept blank for the
-// unlabelled count sized by the widest it can come to
+// The rows of one section of bandage-core's key. The line core keeps under
+// "nodes not shown" for the unlabelled count rides that row instead, blank
+// and sized by the widest it can come to
 function keyRowsOf(model: GraphPaneModel, id: GraphKeySectionId) {
   return (
     model.graphKey
       .find(section => section.id === id)
-      ?.entries.map(entry =>
-        entry.under === ''
-          ? { ...keyRow(entry), sizer: widestUnlabelledText(model) }
-          : keyRow(entry),
+      ?.entries.map(({ under, ...entry }) =>
+        under === ''
+          ? { ...keyRow(entry), count: '', sizer: widestUnlabelledText(model) }
+          : keyRow(under === undefined ? entry : { ...entry, under }),
       ) ?? []
   )
 }
@@ -702,16 +706,14 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
   })
 }
 
-// The key as drawn: its line for the unlabelled count filled in once the
-// labels are placed
+// The key as drawn: the unlabelled count filled in once the labels are
+// placed
 export function drawnLegendSections(model: GraphPaneModel) {
   const count = unlabelledText(model.overlayLabels.unlabelled)
   return legendSections(model).map(section => ({
     ...section,
     rows: section.rows.map(row =>
-      row.under === ''
-        ? { ...row, under: count, unlabelledLine: true as const }
-        : row,
+      row.count === undefined ? row : { ...row, count },
     ),
   }))
 }
