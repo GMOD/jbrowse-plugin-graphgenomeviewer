@@ -618,9 +618,7 @@ describe('walk rows', () => {
     expect(model.viewBox).toEqual({ width: grid.width, height: grid.height })
     // the grid, then the key line under it
     expect(model.canvasHeight).toBe(Math.max(160, grid.total + 8 + 19))
-    expect(facetKeyRows(model).map(r => r.label)).toEqual([
-      'only in other haplotypes',
-    ])
+    expect(facetKeyRows(model).map(r => r.label)).toEqual(['other haplotypes'])
     expect(model.scale).toBeCloseTo(grid.scale, 10)
     expect(model.scale).not.toBeCloseTo(whole, 10)
     expect(
@@ -683,9 +681,10 @@ describe('walk rows', () => {
     model.liftWalks(['B#1#ctg'])
     const svg = model.figure()!
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
-    // B walks every node, so the drawing fades only GRCh38's link past 2
-    expect(svg).toContain('>links not on B#1</text>')
-    expect(svg).not.toContain('only in other haplotypes')
+    // B walks every node, so the grey is GRCh38's link past 2 and what
+    // GRCh38 shares under B's lane
+    expect(svg).toContain('>other haplotypes</text>')
+    expect(svg).not.toContain('not on B#1')
   })
 
   test('a tube map lifts no walk: its tubes are the walks', async () => {

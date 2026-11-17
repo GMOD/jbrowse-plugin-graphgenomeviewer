@@ -2731,8 +2731,9 @@ test('a snapped cut wider than the bp cap is never asked for: the window is cut 
   expect(pane.cutRegion).toMatchObject({ start: 1_100_000, end: 1_160_000 })
 })
 
-test("a drawing placed by its window sits centred between the pane's top and bottom pads, below the reference strip", async () => {
+test("a drawing its window places and fits to the track sits centred between the pane's top and bottom pads, below the reference strip", async () => {
   const { pane } = await forceGraph({ paths: true })
+  pane.setHeightMode('fit')
   const { top, bottom } = pane.fitPads
   expect(top).toBeGreaterThan(REFERENCE_STRIP_ZONE_PX)
   const bounds = pane.heldBounds!
@@ -2824,10 +2825,10 @@ function windowReferenceInk(pane: LinearGraphDisplayModel) {
   }
 }
 
-test("the track's sizing is its heightMode slot, fit unless set, and the track menu switches it", async () => {
+test("the track's sizing is its heightMode slot, fixed unless set, and the track menu switches it", async () => {
   const { pane } = await forceGraph()
-  expect(pane.heightMode).toBe('fit')
-  expect(pane.trackFit).toBe('fit')
+  expect(pane.heightMode).toBe('fixed')
+  expect(pane.trackFit).toBe('fixed')
   const sizing = pane
     .trackMenuItems()
     .find(item => 'label' in item && item.label === 'Track sizing') as
@@ -2838,9 +2839,9 @@ test("the track's sizing is its heightMode slot, fit unless set, and the track m
     TRACK_FIT_LABELS.grow,
     TRACK_FIT_LABELS.fit,
   ])
-  sizing!.subMenu[0]!.onClick()
-  expect(pane.heightMode).toBe('fixed')
-  expect(pane.trackFit).toBe('fixed')
+  sizing!.subMenu[2]!.onClick()
+  expect(pane.heightMode).toBe('fit')
+  expect(pane.trackFit).toBe('fit')
 })
 
 test("at fixed a zoom magnifies a drawing whose cut is taller than the track, which fit holds still at the track's height", async () => {
