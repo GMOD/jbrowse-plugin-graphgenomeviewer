@@ -5,7 +5,7 @@ import { readConfObject } from '@jbrowse/core/configuration'
 import { autorun, reaction } from 'mobx'
 
 import { mockRpcCall, mockSession } from './modelTestMocks'
-import { fakeRenderer } from './modelTestSupport'
+import { attachedModel, fakeRenderer } from './modelTestSupport'
 import stateModelFactory from './viewModel'
 
 vi.mock('@jbrowse/core/util', async () =>
@@ -265,4 +265,31 @@ test("the key's node thicknesses are those of the nodes the pane shows", async (
   model.setTransform(100, 40 - (r2.x + 1) * 100, model.translateY)
   expect(thicknesses()).toEqual(['1 walk'])
   stop()
+})
+
+// An attached pane keys the view a pan or zoom settles on, so the key, and
+// the labels that wait on its measure, hold still through the gesture
+test('an attached pane keys the view it settles on, not each step of a pan', async () => {
+  const model = attachedModel({ layoutMode: 'auto', loadedTrackId: 'graph' })
+  model.setWidth(1600)
+  await model.cutSubgraph(
+    {},
+    { refName: 'chr1', assemblyName: 'hg38', start: 1000, end: 1030 },
+  )
+  model.startRenderingBackend(fakeRenderer())
+  const thicknesses = () =>
+    model.graphKey
+      .find(section => section.id === 'node-width')
+      ?.entries.map(entry => entry.text)
+  await vi.waitFor(() => {
+    expect(model.settledKeyView?.layout).toBe(model.layoutResult)
+  })
+  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  const r2 = model.layoutResult!.nodePositions['r2+']![0]!
+  model.setLegendSize({ width: 1500, height: 40 })
+  model.setTransform(100, 40 - (r2.x + 1) * 100, model.translateY)
+  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  await vi.waitFor(() => {
+    expect(thicknesses()).toEqual(['1 walk'])
+  })
 })

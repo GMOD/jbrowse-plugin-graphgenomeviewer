@@ -14,10 +14,13 @@ import {
 } from '../graphTrackConfig'
 import { canonicalAssemblyName } from '../launchFromGraph/launchFromGraph'
 import { withLaunchActions } from './pane/launchActions'
+import { VIEWPORT_DEBOUNCE_MS } from './pane/paneBase'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
 import type { GraphKey, GraphKeyEntry } from '@jbrowse/bandage-core/graphKey'
 import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
+import type { Bounds } from '@jbrowse/bandage-core/pipeline'
+import type { PaneLayout } from './tubeMapPanels'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 export { MAX_GRAPH_REGION_BP, fileName, formatSpanBp } from './pane/paneBase'
@@ -29,6 +32,12 @@ const NO_LABELS: LabelLayout = {
   passes: [],
   sizes: [],
 }
+
+const sameBounds = (a: Bounds, b: Bounds) =>
+  a.minX === b.minX &&
+  a.maxX === b.maxX &&
+  a.minY === b.minY &&
+  a.maxY === b.maxY
 
 const sameEntry = (a: GraphKeyEntry, b: GraphKeyEntry | undefined) =>
   !!b &&
@@ -63,9 +72,33 @@ export const GraphPane = withLaunchActions
       return self.facetPanels?.map(panel => self.buildDrawing(panel, false))
     },
   }))
+  // The view the key keys, set once a pan or zoom has settled (afterAttach),
+  // so the key, and the labels that wait on its measure, hold still through a
+  // gesture. Until one is set on the drawing's layout, the pane's view as it
+  // is.
+  .volatile(() => ({
+    settledKeyView: undefined as
+      { view: Bounds; layout: PaneLayout | undefined } | undefined,
+  }))
+  .actions(self => ({
+    setSettledKeyView(view: Bounds) {
+      self.settledKeyView = { view, layout: self.layoutResult }
+    },
+  }))
+  .views(self => ({
+    get liveKeyView() {
+      return keyedView(self, self.axisScale, self)
+    },
+    get keyView() {
+      const settled = self.settledKeyView
+      return settled && settled.layout === self.layoutResult
+        ? settled.view
+        : this.liveKeyView
+    },
+  }))
   // bandage-core's key for the graph on screen, which the legend and the
   // facet key draw: of the drawing the pane shows beside the key, or of
-  // every facet panel's whole. A pan that brings no mark in or out leaves it
+  // every facet panel's whole. A view that brings no mark in or out leaves it
   // as it was.
   .views(self => {
     const key = computed(
@@ -90,10 +123,7 @@ export const GraphPane = withLaunchActions
                       drawing ? [drawing.batch] : [],
                     ),
                   )
-                : drawnMarks(
-                    [self.drawnBatch],
-                    keyedView(self, self.axisScale, self),
-                  ),
+                : drawnMarks([self.drawnBatch], self.keyView),
               genePins: self.genePins,
               halos: self.bubbleHalos,
               stripOverhangs: self.referenceStripOverhangs,
@@ -250,6 +280,21 @@ export const GraphPane = withLaunchActions
             // added, which would drop and re-read the names
             equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
             name: 'GraphHaplotypeNames',
+          },
+        ),
+      )
+      addDisposer(
+        self,
+        reaction(
+          () => self.liveKeyView,
+          view => {
+            self.setSettledKeyView(view)
+          },
+          {
+            delay: VIEWPORT_DEBOUNCE_MS,
+            fireImmediately: true,
+            equals: sameBounds,
+            name: 'GraphKeyView',
           },
         ),
       )
