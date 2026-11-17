@@ -33,7 +33,11 @@
   [tube-maps.md](tube-maps.md)
 - **Show › Show node lengths** (off by default) writes each node's length on it
   where the node is long enough to hold it. A "nodes not shown" placeholder
-  states its length either way
+  states its length either way. Placeholders drawn too small to hold their
+  length on one spot share one length, the longest, and the key counts the
+  rest as unlabelled, as it counts a length with no room on the pane
+- The key lists only what the pane shows: an exon, a node thickness or a mark
+  that lies on the cut past the window or under the key is not keyed
 - **Show › Show links that skip reference** (on by default) draws each link that
   skips reference sequence, with no words: dashed where the span it jumps on
   screen holds three dashes, and a plain line with no arrowhead where shorter
@@ -110,8 +114,14 @@ stretch of node it sits on, and pins the gene's name under its midpoint.
   the cut are read
 - A name never covers a node its gene is not on, so it moves a row or is left
   off
-- The label of a gene partly in the cut gives how much of it the cut holds:
-  `LPA · 35 of 132.8 kb`
+- The label of a gene partly in the cut gives how much of it the cut holds,
+  each amount in its own unit: `LPA · 35 of 132.8 kb`, `PRKN · 8.2 kb of 1.4 Mb`
+- A gene whose midpoint is off the pane or under the key is named at the
+  nearest point of it the pane shows. A gene the pane shows none of is not
+  named
+- Where the reference walks a collapsed repeat's copies over one loop of
+  nodes, the loop is named for the copy the reference passes first. The other
+  copies keep their exons and their hover, with no name
 - In a graph genome view, a tube map draws genes in rows above the tubes. In a
   linear view the gene track shows them ([tube-maps.md](tube-maps.md#axes))
 - Where the linear view shows genes as a lane, the graph names only what the
