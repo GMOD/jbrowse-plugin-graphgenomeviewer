@@ -713,14 +713,18 @@ export const withFitViews = withHostViews
             ? undefined
             : `${layoutModeByValue(self.chosenLayoutMode).label} draws a picture of its own, which the SVG export does not`
     },
-    // The drawing as a standalone SVG, fitted, with its genes, its lifted
-    // walks' keys, facet panels and the strip of walk rows; see figureSvg
+    // The drawing as a standalone SVG with its genes, its lifted walks' keys,
+    // facet panels and the strip of walk rows; see figureSvg. A track's is
+    // the scene its pane shows: the drawing beside the key at the track's
+    // height, framed as the screen frames it. A view's own pane fits it.
     figure() {
       const { graph, layoutResult } = self
+      const framed = !!self.host && !self.facetGrid
       return graph && layoutResult && !this.figureUnavailable
         ? figureSvg(graph, layoutResult, {
-            width: self.paneWidth,
-            height: self.paneCeiling,
+            width: framed ? self.drawingWidth : self.paneWidth,
+            height: framed ? self.canvasHeight : self.paneCeiling,
+            frame: framed ? self.screenTransform : undefined,
             walks: self.walkLayers,
             facet: self.facetSpec,
             colorScheme: self.effectiveColorScheme,

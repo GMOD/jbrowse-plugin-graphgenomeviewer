@@ -1409,6 +1409,29 @@ test('a drawing placed by its window is clipped at the key column it runs under'
   expect(pane.drawingClip).toBeUndefined()
 })
 
+test("a track's SVG export is the scene its pane shows: the drawing beside the key at the track's height, framed as the screen frames it", async () => {
+  const { pane, panTo } = await forceGraph()
+  await panTo(970_000)
+  pane.setLegendSize({ width: 120, height: 40 })
+  await wait(0)
+  const svg = pane.figure()!
+  expect(svg).toContain(
+    `width="${pane.drawingWidth}" height="${pane.canvasHeight}">`,
+  )
+  expect(pane.canvasHeight).toBeLessThan(pane.paneCeiling)
+  const px = (v: number) => +v.toFixed(1)
+  const drawnAt = (pane.graph?.nodes ?? [])
+    .filter(n => n.stable?.rank === 0)
+    .map(n => pane.nodePositions?.[n.id]?.[0])
+    .filter(p => p !== undefined)
+    .map(
+      p =>
+        `M${px(p.x * pane.scaleX + pane.translateX)} ${px(p.y * pane.scaleY + pane.translateY)}L`,
+    )
+  expect(drawnAt.length).toBeGreaterThan(0)
+  expect(drawnAt.some(d => svg.includes(d))).toBe(true)
+})
+
 test('an rGFA force track folds by its snap level, so a zoom inside one cut folds as a fresh view of it does', async () => {
   const { view, pane, cuts } = await forceGraph()
   const foldAt = (span: number) =>
