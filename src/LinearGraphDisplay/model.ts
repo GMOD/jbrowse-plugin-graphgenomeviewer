@@ -166,6 +166,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       get trackFit() {
         return self.heightMode
       },
+      get referenceRoom() {
+        return self.heightMode === 'grow' ? self.growMaxHeight : self.height
+      },
       get canRetryLoad() {
         return self.cutRegion !== undefined
       },

@@ -27,8 +27,9 @@ import {
   followTransform,
   layoutExtent,
   referenceProfile,
+  referenceReach,
+  referenceScale,
   shownBounds,
-  windowScale,
 } from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -496,6 +497,11 @@ export const withFitViews = withHostViews
     get trackFit(): TrackFit {
       return 'fit'
     },
+    // The height a drawing at the window's scale keeps the window's reference
+    // inside: the pane's own, or the most a track grows to
+    get referenceRoom(): number {
+      return this.canvasHeight
+    },
     get heldLayout() {
       const { graph, layoutResult, graphRegion } = self
       return graph && layoutResult && this.followsWindow
@@ -534,11 +540,12 @@ export const withFitViews = withHostViews
       const span = this.viewSpan
       return pieces && region && bounds && span
         ? scalesByWindow(this.trackFit)
-          ? windowScale(
+          ? referenceScale(
               pieces,
               region,
               span,
               this.drawingWidth,
+              this.referenceRoom,
               this.followPads,
             )
           : cutScale(
@@ -573,12 +580,13 @@ export const withFitViews = withHostViews
             )
           : undefined
       const placed =
-        followed && held && bounds && scalesByWindow(this.trackFit)
+        seen && followed && held && bounds && scalesByWindow(this.trackFit)
           ? {
               ...followed,
               translateY: windowTranslateY({
                 segments: held.segments,
                 reference: held.reference,
+                held: referenceReach(held.profile, seen),
                 scale: followed.scale,
                 translateX: followed.translateX,
                 bounds,

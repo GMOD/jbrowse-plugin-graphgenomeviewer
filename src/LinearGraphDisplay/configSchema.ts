@@ -120,7 +120,7 @@ export function configSchemaFactory() {
       }),
       ...heightModeConfigSchemaFields({
         heightMode:
-          "how a force drawing the view's window places meets the track's height: `fit` shrinks the whole cut to the track's height; `fixed` draws it at the window's scale, so a zoom magnifies it, and marks where it runs past the top or bottom; `grow` does the same in a track grown to hold the cut, up to `growMaxHeight`",
+          "how a force drawing the view's window places meets the track's height: `fit` shrinks the whole cut to the track's height; `fixed` draws it at the window's scale, so a zoom magnifies it, lowered only as far as keeps the reference the window shows inside the track, which it holds whole, and marks where what hangs off that reference runs past the top or bottom; `grow` does the same in a track grown to hold the cut, up to `growMaxHeight`",
         growMaxHeight: 'the tallest `grow` makes the track, in px',
         defaultHeightMode: DEFAULT_TRACK_FIT,
       }),

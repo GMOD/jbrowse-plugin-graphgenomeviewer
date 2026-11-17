@@ -2,7 +2,12 @@ import { createElement } from 'react'
 
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
-import { fittedTranslateY } from '@jbrowse/bandage-core/pipeline'
+import {
+  cutScale,
+  fittedTranslateY,
+  referenceScale,
+  windowScale,
+} from '@jbrowse/bandage-core/pipeline'
 import {
   REFERENCE_STRIP_ZONE_PX,
   stripOverhang,
@@ -154,8 +159,10 @@ interface Cut {
 
 // The engine's request laid out where it was seeded: the reference along x
 // in bp order and each node off it a lane below, each a line short of the
-// next seed, but a chain stacked straight up from the node it hangs off
-function fakeEngine({ nodes }: EngineRequest['graph']) {
+// next seed, but a chain stacked straight up from the node it hangs off. A
+// `zigzag` lays each reference node rising that many units up for each along
+// and the next falling as far, which no turn of the drawing lays flat.
+function fakeEngine({ nodes }: EngineRequest['graph'], zigzag = 0) {
   const seeded = new Map(nodes.map(({ id, x = 0 }) => [id, x]))
   return {
     nodePositions: Object.fromEntries(
@@ -171,13 +178,20 @@ function fakeEngine({ nodes }: EngineRequest['graph']) {
                 { x: from, y: -rise * step },
               ]
             : [
-                { x, y },
-                { x: x + rise, y },
+                { x, y: y - zigzag * rise * zigLift(id, false) },
+                { x: x + rise, y: y - zigzag * rise * zigLift(id, true) },
               ],
         ]
       }),
     ),
   }
+}
+
+// A reference node of even number rises to its end, and one of odd number
+// falls from its start; any other node lies flat
+function zigLift(id: string, atEnd: boolean) {
+  const k = /^[fc](\d+)[+-]?$/.exec(id)?.[1]
+  return k === undefined ? 0 : Number(k) % 2 === (atEnd ? 0 : 1) ? 1 : 0
 }
 
 function fakeRenderer() {
@@ -256,6 +270,7 @@ function createEnvironment({
   contig = CONTIG,
   loopAtStart = false,
   loopInside = false,
+  zigzag = 0,
 } = {}) {
   console.warn = vi.fn()
   // reduced motion, so a re-cut lands without a morph's frames
@@ -512,7 +527,10 @@ function createEnvironment({
         return Promise.resolve(haplotypeNames)
       }
       if (method === 'GraphComputeLayout' && args.graph) {
-        return Promise.resolve({ result: fakeEngine(args.graph), duration: 1 })
+        return Promise.resolve({
+          result: fakeEngine(args.graph, zigzag),
+          duration: 1,
+        })
       }
       if (method === 'CoreGetFeatures') {
         return Promise.resolve(
@@ -1066,8 +1084,15 @@ async function forceGraph({
   track = 'graph',
   loopAtStart = false,
   loopInside = false,
+  zigzag = 0,
 } = {}) {
-  const env = createEnvironment({ paths, contig, loopAtStart, loopInside })
+  const env = createEnvironment({
+    paths,
+    contig,
+    loopAtStart,
+    loopInside,
+    zigzag,
+  })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
@@ -2847,6 +2872,56 @@ test("a drawing taller than a fixed track keeps the window's reference between t
   expect(pane.graphKey.map(s => s.id)).toContain('overhang')
   pane.setHeightMode('fit')
   expect(pane.edgeMarks).toEqual({ top: [], bottom: [] })
+})
+
+test("a fixed track whose reference zigzags taller than the track draws it at the largest scale that keeps the reference any view-width window shows inside, and holds the window's own whole at every pan", async () => {
+  const { view, pane } = await forceGraph({
+    zigzag: 4,
+    loopInside: true,
+    paths: true,
+  })
+  pane.setHeightMode('fixed')
+  const { top, bottom } = pane.fitPads
+  const profile = pane.heldReference!
+  const cut = pane.graphRegion!
+  const span = pane.viewSpan!
+  const width = pane.drawingWidth
+  const pads = pane.followPads
+  const scale = pane.scale
+  expect(scale).toBeLessThan(windowScale(profile, cut, span, width, pads)! / 2)
+  expect(scale).toBeGreaterThan(
+    2 *
+      cutScale(
+        profile,
+        cut,
+        span,
+        pane.heldBounds!,
+        width,
+        pane.canvasHeight,
+        pads,
+      )!,
+  )
+  expect(scale).toBeCloseTo(
+    referenceScale(profile, cut, span, width, pane.canvasHeight, pads)!,
+    9,
+  )
+  for (let step = 0; step < 4; step++) {
+    const ink = windowReferenceInk(pane)
+    expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
+    expect(ink.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
+    expect(pane.scale).toBe(scale)
+    view.horizontalScroll(-WIDTH_PX / 8)
+    await wait(0)
+  }
+  pane.setHeightMode('grow')
+  expect(pane.height).toBe(pane.growMaxHeight)
+  expect(pane.scale).toBeCloseTo(
+    referenceScale(profile, cut, span, width, pane.growMaxHeight, pads)!,
+    9,
+  )
+  const grown = windowReferenceInk(pane)
+  expect(grown.y0).toBeGreaterThanOrEqual(top - 1e-6)
+  expect(grown.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
 })
 
 test("at grow the track is as tall as the whole cut drawn at the window's scale, up to growMaxHeight, and at fixed the slot's height", async () => {
