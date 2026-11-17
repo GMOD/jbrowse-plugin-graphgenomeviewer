@@ -2799,10 +2799,10 @@ function windowReferenceInk(pane: LinearGraphDisplayModel) {
   }
 }
 
-test("the track's sizing is its heightMode slot, fixed unless set, and the track menu switches it", async () => {
+test("the track's sizing is its heightMode slot, fit unless set, and the track menu switches it", async () => {
   const { pane } = await forceGraph()
-  expect(pane.heightMode).toBe('fixed')
-  expect(pane.trackFit).toBe('fixed')
+  expect(pane.heightMode).toBe('fit')
+  expect(pane.trackFit).toBe('fit')
   const sizing = pane
     .trackMenuItems()
     .find(item => 'label' in item && item.label === 'Track sizing') as
@@ -2813,9 +2813,9 @@ test("the track's sizing is its heightMode slot, fixed unless set, and the track
     TRACK_FIT_LABELS.grow,
     TRACK_FIT_LABELS.fit,
   ])
-  sizing!.subMenu[2]!.onClick()
-  expect(pane.heightMode).toBe('fit')
-  expect(pane.trackFit).toBe('fit')
+  sizing!.subMenu[0]!.onClick()
+  expect(pane.heightMode).toBe('fixed')
+  expect(pane.trackFit).toBe('fixed')
 })
 
 test("at fixed a zoom magnifies a drawing whose cut is taller than the track, which fit holds still at the track's height", async () => {
@@ -2836,6 +2836,7 @@ test("at fixed a zoom magnifies a drawing whose cut is taller than the track, wh
 
 test("a drawing taller than a fixed track keeps the window's reference between the pads and marks the edges it runs past, which the key names", async () => {
   const { pane } = await forceGraph({ loopInside: true, paths: true })
+  pane.setHeightMode('fixed')
   const { top, bottom } = pane.fitPads
   const ink = windowReferenceInk(pane)
   expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
