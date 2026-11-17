@@ -112,9 +112,10 @@ export interface LegendRow {
   swatch?: LegendSwatch
   strong?: string
   under?: string
-  // after the words, the count of placeholders the labels left unlabelled,
-  // '' until they are placed or where none is; `sizer`, the widest it can
-  // come to, reserves its room unseen, so the key's size waits on no label
+  // after the words, how many placeholders the labels left unlabelled, ''
+  // until they are placed or where none is, their lengths in the row's
+  // title; `sizer`, the widest it can come to, reserves its room unseen, so
+  // the key's size waits on no label
   count?: string
   sizer?: string
   title?: string
@@ -306,17 +307,14 @@ export function keyRow(entry: GraphKeyEntry): LegendRow {
 export const countWords = (count: string | undefined) =>
   count ? `· ${count}` : ''
 
-// The count line with every placeholder the drawing holds unlabelled
-export function widestUnlabelledText(model: GraphPaneModel) {
-  const all = { count: 0, smallest: Infinity, largest: 0 }
-  for (const node of model.drawnGraph?.nodes ?? []) {
-    if (node.placeholder) {
-      all.count++
-      all.smallest = Math.min(all.smallest, node.length)
-      all.largest = Math.max(all.largest, node.length)
-    }
-  }
-  return unlabelledText(all.count > 0 ? all : undefined)
+const unlabelledCount = (count: number) =>
+  count > 0 ? `${count.toLocaleString('en-US')} unlabelled` : ''
+
+// The count with every placeholder the drawing holds unlabelled
+export function widestUnlabelledCount(model: GraphPaneModel) {
+  return unlabelledCount(
+    (model.drawnGraph?.nodes ?? []).filter(node => node.placeholder).length,
+  )
 }
 
 // The rows of one section of bandage-core's key. The line core keeps under
@@ -328,7 +326,7 @@ function keyRowsOf(model: GraphPaneModel, id: GraphKeySectionId) {
       .find(section => section.id === id)
       ?.entries.map(({ under, ...entry }) =>
         under === ''
-          ? { ...keyRow(entry), count: '', sizer: widestUnlabelledText(model) }
+          ? { ...keyRow(entry), count: '', sizer: widestUnlabelledCount(model) }
           : keyRow(under === undefined ? entry : { ...entry, under }),
       ) ?? []
   )
@@ -707,13 +705,23 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
 }
 
 // The key as drawn: the unlabelled count filled in once the labels are
-// placed
+// placed, and bandage-core's words for them, with their lengths, as its title
 export function drawnLegendSections(model: GraphPaneModel) {
-  const count = unlabelledText(model.overlayLabels.unlabelled)
+  const { unlabelled } = model.overlayLabels
+  const count = unlabelledCount(unlabelled?.count ?? 0)
+  const words = unlabelledText(unlabelled)
   return legendSections(model).map(section => ({
     ...section,
     rows: section.rows.map(row =>
-      row.count === undefined ? row : { ...row, count },
+      row.count === undefined
+        ? row
+        : {
+            ...row,
+            count,
+            ...(words
+              ? { title: row.title ? `${row.title}\n${words}` : words }
+              : {}),
+          },
     ),
   }))
 }

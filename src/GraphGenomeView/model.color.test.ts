@@ -551,12 +551,14 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   expect(unlabelled).toEqual({ count: 5, smallest: 1, largest: 5 })
   expect(keyed?.under).toBe('')
   expect(drawn?.under).toBeUndefined()
-  expect(drawn?.count).toBe('5 unlabelled, 5 bp or less each')
-  expect(drawn?.sizer).toBe('100 unlabelled, 100 bp or less each')
+  expect(drawn?.count).toBe('5 unlabelled')
+  expect(drawn?.sizer).toBe('100 unlabelled')
+  expect(drawn?.title).toBe('5 unlabelled, 5 bp or less each')
   const filled = exported()
   expect(filled).toMatch(
-    /nodes not shown<tspan> · 5 unlabelled, 5 bp or less each<\/tspan><\/text>/,
+    /nodes not shown<tspan> · 5 unlabelled<\/tspan><\/text>/,
   )
+  expect(filled).toContain('<title>5 unlabelled, 5 bp or less each</title>')
   expect(blank).not.toContain('unlabelled')
   expect(keyWidth(filled)).toBeDefined()
   expect(keyWidth(filled)).toBe(keyWidth(blank))

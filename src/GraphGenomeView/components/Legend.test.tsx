@@ -21,20 +21,21 @@ test('a long note wraps at its width, so the key is no wider than that', () => {
   expect(note.style.whiteSpace).toBe('normal')
 })
 
-// The review's clipped count lines: beside KIV-2's range line, beside a
-// narrower range, and with no position ramp. The count rides the row of
-// "nodes not shown", after its words, and is sized by the widest it can come
-// to, unseen, whether or not the labels have filled it; nothing is kept for
-// it under the row, which read as an empty line where every placeholder was
-// labelled.
+// The review's clipped count lines: every placeholder unlabelled, some, and
+// none. The count rides the row of "nodes not shown", after its words, and
+// is sized by the widest it can come to, unseen, whether or not the labels
+// have filled it; nothing is kept for it under the row, which read as an
+// empty line where every placeholder was labelled. Their lengths are the
+// row's title.
 test('the unlabelled count rides its row after the words, sized unseen by the widest it can come to, filled or blank', () => {
-  for (const [count, sizer] of [
+  for (const [count, sizer, title] of [
     [
-      '1,204 unlabelled, 10.5 kb or less each',
+      '1,204 unlabelled',
+      '1,204 unlabelled',
       '1,204 unlabelled, 10.5 kb or less each',
     ],
-    ['361 unlabelled, 2 bp or less each', '377 unlabelled, 2 bp or less each'],
-    ['', '377 unlabelled, 2 bp or less each'],
+    ['361 unlabelled', '377 unlabelled', '361 unlabelled, 2 bp or less each'],
+    ['', '377 unlabelled', undefined],
   ]) {
     const { container, unmount } = render(
       <LegendRowView
@@ -44,6 +45,7 @@ test('the unlabelled count rides its row after the words, sized unseen by the wi
           swatch: { kind: 'fill', stops: [{ offset: 0, color: '#fff' }] },
           count,
           sizer,
+          ...(title ? { title } : {}),
         }}
       />,
     )
@@ -52,6 +54,9 @@ test('the unlabelled count rides its row after the words, sized unseen by the wi
     expect(sized.style.visibility).toBe('hidden')
     const shown = screen.getByTestId('graph-key-count')
     expect(shown.textContent).toBe(count ? `· ${count}` : '')
+    expect(container.firstElementChild!.getAttribute('title')).toBe(
+      title ?? null,
+    )
     // one line: the words, then the count in the sizer's cell
     expect(container.firstElementChild!.children).toHaveLength(1)
     expect(shown.parentElement).toBe(sized.parentElement)

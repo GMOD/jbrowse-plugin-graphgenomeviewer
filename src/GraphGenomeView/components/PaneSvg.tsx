@@ -155,6 +155,7 @@ function svgRow(
     height: row.under ? pitch * 2 : pitch,
     draw: left => (
       <g key={row.key} {...FONT}>
+        {row.count && row.title ? <title>{row.title}</title> : null}
         <SvgSwatch
           swatch={swatch}
           x={left + (sw - swatchWidth(swatch)) / 2}

@@ -52,7 +52,7 @@ export const LegendRowView = observer(function LegendRowView({
           {row.label}
         </span>
         {row.sizer === undefined ? null : (
-          <span style={countCellStyle} title={row.count || undefined}>
+          <span style={countCellStyle}>
             <span style={sizerStyle} aria-hidden data-testid="graph-key-sizer">
               {countWords(row.sizer)}
             </span>
