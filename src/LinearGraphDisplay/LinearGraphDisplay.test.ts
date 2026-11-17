@@ -2744,3 +2744,42 @@ test('a force track restored with a viewport of its own is placed by its window 
     translateY: pane.translateY,
   })
 })
+
+// the middle of the window the tests open on
+const MIDDLE_BP = 1_030_000
+
+test('while a morph slides a re-cut in, the labels wait and the key holds the frame before it', async () => {
+  const { pane } = await forceGraph()
+  expect(pane.labelFrameSettled).toBe(true)
+  expect(pane.graphKey.map(s => s.id)).not.toContain('too-small')
+  const node = pane.graph!.nodes.find(
+    n =>
+      n.stable?.rank === 0 &&
+      n.stable.start <= MIDDLE_BP &&
+      MIDDLE_BP < n.stable.start + n.length,
+  )!.id
+  pane.setMorphing(true)
+  expect(pane.labelFrameSettled).toBe(false)
+  const { batch, viewportBounds } = pane.buildDrawing(undefined, false)!
+  const site = {
+    nodes: [node],
+    edges: [],
+    refName: REF,
+    start: MIDDLE_BP,
+    end: MIDDLE_BP,
+    bp: 1,
+    x: 0,
+    y: 0,
+    count: 1,
+    total: 2,
+  }
+  pane.setGeometryMetrics(
+    0,
+    { ...batch, collapsed: { ...NO_FOLD, sites: [site] } },
+    { scale: pane.scale, bounds: viewportBounds },
+  )
+  expect(pane.graphKey.map(s => s.id)).not.toContain('too-small')
+  pane.setMorphing(false)
+  expect(pane.labelFrameSettled).toBe(true)
+  expect(pane.graphKey.map(s => s.id)).toContain('too-small')
+})

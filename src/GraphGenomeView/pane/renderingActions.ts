@@ -39,10 +39,10 @@ export const withRenderingActions = withLoadActions
       return self.keyShapeOf?.()
     },
   }))
-  // The frame the labels are placed in, settled: the layout is in, no read of
-  // genes, repeats or bubbles is on its way while the cut's labels await
-  // them, the key's size is measured for the key as it is now, and a track
-  // has grown to hold it. The key's height never waits on the labels, since
+  // The frame the labels are placed in, settled: the layout is in and no
+  // morph is sliding to it, no read of genes, repeats or bubbles is on its
+  // way while the cut's labels await them, the key's size is measured for the
+  // key as it is now, and a track has grown to hold it. The key's height never waits on the labels, since
   // it keeps its line for the unlabelled count whenever placeholders are
   // drawn, so placing them settles nothing again.
   .views(self => ({
@@ -56,6 +56,7 @@ export const withRenderingActions = withLoadActions
         self.answeredKeyFloor === self.canvasFloor
       return (
         self.layoutResult !== undefined &&
+        !self.morphing &&
         (self.featureReadsInFlight === 0 || !self.labelsAwaitReads) &&
         keyMeasured &&
         heightAnswered

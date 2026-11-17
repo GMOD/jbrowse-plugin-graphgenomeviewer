@@ -127,7 +127,7 @@ export const GraphPane = withLaunchActions
                       drawing ? [drawing.batch] : [],
                     ),
                   )
-                : drawnMarks([self.drawnBatch], self.keyView),
+                : drawnMarks([self.settledBatch], self.keyView),
               genePins: self.genePins,
               halos: self.bubbleHalos,
               stripOverhangs: self.referenceStripOverhangs,

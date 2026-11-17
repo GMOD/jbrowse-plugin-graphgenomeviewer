@@ -122,6 +122,15 @@ export const withSettingActions = withTubeMapViews
       self.lastGeometryStrokeCount = batch.nodeStrokes.length
       self.builtViewport = { ...built, viewportDirty: self.viewportDirty }
       self.drawnBatch = batch
+      if (!self.morphing) {
+        self.settledBatch = batch
+      }
+    },
+    setMorphing(morphing: boolean) {
+      self.morphing = morphing
+      if (!morphing) {
+        self.settledBatch = self.drawnBatch
+      }
     },
     markPainted() {
       self.paintedViewport = self.builtViewport
@@ -664,6 +673,9 @@ export const withSettingActions = withTubeMapViews
         cancelAnimationFrame(morph.frame)
         morph = undefined
       }
+      if (isAlive(self) && self.morphing) {
+        self.setMorphing(false)
+      }
     }
 
     function finishMorph() {
@@ -734,12 +746,16 @@ export const withSettingActions = withTubeMapViews
             )
           }
         }
+        self.setMorphing(true)
         blend(0)
         morph = runMorph(
           blend,
           () => isAlive(self) && self.layoutResult === next,
           () => {
             morph = undefined
+            if (isAlive(self)) {
+              self.setMorphing(false)
+            }
           },
         )
       },

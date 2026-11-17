@@ -436,6 +436,11 @@ export const paneBase = types
     morphEntering: undefined as MorphEntering | undefined,
     // The batch the canvas holds, which the hover layer lights over it
     drawnBatch: EMPTY_BATCH,
+    // whether a morph is sliding the drawing to a layout just landed
+    morphing: false,
+    // the batch of the last frame no morph was under way in, which the key
+    // reads so it never shows a morph's in-between folds
+    settledBatch: EMPTY_BATCH,
     // The zoom and the window the current batch was built for; a pan that
     // stays inside it needs no rebuild.
     builtViewport: undefined as BuiltViewport | undefined,
