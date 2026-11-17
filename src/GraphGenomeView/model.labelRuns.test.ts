@@ -5,6 +5,7 @@ import { reaction } from 'mobx'
 import { legendSections } from './legendSections'
 import { mockRpcCall, mockSession } from './modelTestMocks'
 import { fakeRenderer } from './modelTestSupport'
+import { VIEWPORT_DEBOUNCE_MS } from './pane/paneBase'
 import { READ_WAIT_MS } from './pane/renderingActions'
 import stateModelFactory from './viewModel'
 
@@ -212,6 +213,34 @@ test('a settled view with bubble halos shown lays its labels out once', async ()
   const { model, runs } = await settledView({ bubbles: true })
   expect(model.bubbleHalos.length).toBeGreaterThan(0)
   expect(runs).toBe(1)
+})
+
+// zoomed in to 100 px a layout unit with chr1:1008 at the pane's middle,
+// then moved a pane and a half left, past the drawing the last build covered
+async function pannedPastBuild(model: Model) {
+  const keep = reaction(
+    () => model.overlayLabels,
+    () => {},
+    { fireImmediately: true },
+  )
+  model.setTransform(100, 600 - 1008 * 100, 80 - 10 * 100)
+  await later(undefined, VIEWPORT_DEBOUNCE_MS + 100)
+  const zoomed = model.builtViewport
+  runs.onLaidOutGraph = 0
+  const to = model.translateX - 1.5 * model.paneWidth
+  model.setTransform(model.scale, to, model.translateY)
+  await later(undefined, VIEWPORT_DEBOUNCE_MS + 100)
+  keep()
+  return { zoomed, to }
+}
+
+// the rebuild paints on the pane what the build before it did
+test('a pan that rebuilds the drawing for the moved view lays its labels out once, for the move', async () => {
+  const { model } = await settledView()
+  const { zoomed, to } = await pannedPastBuild(model)
+  expect(model.translateX).toBe(to)
+  expect(model.builtViewport).not.toBe(zoomed)
+  expect(runs.onLaidOutGraph).toBe(1)
 })
 
 const chipTexts = (model: Model) =>

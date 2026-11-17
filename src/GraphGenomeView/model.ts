@@ -1,10 +1,11 @@
+import { sameInkOnPane } from '@jbrowse/bandage-core/drawnInk'
 import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
 import { passLabelCandidates } from '@jbrowse/bandage-core/passLabels'
 import { keyedView } from '@jbrowse/bandage-core/viewport'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
-import { computed, reaction } from 'mobx'
+import { computed, reaction, untracked } from 'mobx'
 
 import {
   configHaplotypes,
@@ -158,6 +159,27 @@ export const GraphPane = withLaunchActions
         : []
     },
   }))
+  // The pane's batch as the labels read its ink: a rebuild that paints the
+  // same ink on the pane, as the one after a settled fit or a pan does, is
+  // not news to them, so it does not lay them out again
+  .views(self => {
+    const inkOnPane = computed(() => self.drawnBatch, {
+      equals: (a, b) =>
+        untracked(() =>
+          sameInkOnPane(a, b, {
+            ...self.screenTransform,
+            width: self.paneWidth,
+            height: self.canvasHeight,
+          }),
+        ),
+    })
+    return {
+      get drawnInk() {
+        inkOnPane.get()
+        return untracked(() => self.drawnBatch)
+      },
+    }
+  })
   // The labels, placed once the frame is settled (labelFrameSettled)
   .views(self => ({
     get overlayLabels() {
