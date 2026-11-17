@@ -386,6 +386,28 @@ test('the header declares every haplotype but the anchor as a lane', async () =>
   ])
 })
 
+test('a header from no samples sheet states no lane or anchor colour', async () => {
+  const header = await makeAdapter().getHeader()
+  expect(header).not.toHaveProperty('anchorColor')
+  expect(header.lanes.some(lane => 'color' in lane)).toBe(false)
+})
+
+test("each lane's colour and the anchor's are their rows' in the samples sheet", async () => {
+  const header = await makeAdapter({
+    assemblyNameToPanSN: { hg38: 'GRCh38', 'HG002.1': 'HG002#1' },
+    samplesTsvLocation: {
+      localPath: require.resolve('./test_data/lane_colors.tsv'),
+      locationType: 'LocalPathLocation',
+    },
+  }).getHeader()
+  expect(header.anchorColor).toBe('#555555')
+  expect(header.lanes).toEqual([
+    { name: 'HG00097#1', label: 'HG00097#1', group: 'HG00097' },
+    { name: 'HG002.1', label: 'HG002#1', group: 'HG002', color: '#2a9fd0' },
+    { name: 'HG002#2', label: 'HG002#2', group: 'HG002', color: '#d0302a' },
+  ])
+})
+
 test("the anchor's contigs are its refNames, and a lane lists none", async () => {
   const adapter = makeAdapter()
   expect(await adapter.getRefNames({ assemblyName: 'hg38' })).toEqual(['chr1'])

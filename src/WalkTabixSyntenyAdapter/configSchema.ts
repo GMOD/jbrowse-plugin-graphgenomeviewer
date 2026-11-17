@@ -99,7 +99,10 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
      * A tab-separated table of per-sample metadata, which the graph view's
      * walk rows group by. Its header row names the columns, and its first
      * column is the walk's sample (`HG00097`) or haplotype (`HG00097#1`).
-     * Empty means no grouping.
+     * Empty means no grouping. A `color` column (`#rgb` or `#rrggbb`) colours
+     * that haplotype's lane, as the header's `lanes[].color` and
+     * `anchorColor`, and its lifted walk in the graph display; a row whose
+     * `assembly` column names a lane's assembly counts for it too.
      */
     samplesTsvLocation: fileLocationSlot(''),
     /**

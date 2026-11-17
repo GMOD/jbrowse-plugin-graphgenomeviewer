@@ -975,3 +975,83 @@ describe('reads', () => {
     )
   })
 })
+
+describe("a lifted walk's samples sheet colour", () => {
+  const SHEET_TRACK = {
+    trackId: 'walks',
+    assemblyNames: ['hg38'],
+    adapter: {
+      type: 'WalkTabixSyntenyAdapter',
+      assemblyNames: ['hg38'],
+      assemblyNameToPanSN: { hg38: 'GRCh38' },
+      samplesTsvLocation: { uri: 'samples.tsv', locationType: 'UriLocation' },
+    },
+  }
+  const WALKS = [
+    'H\tVN:Z:1.0',
+    'S\t1\tACGT',
+    'S\t2\tA',
+    'S\t3\tG',
+    'S\t4\tTTGCA',
+    'L\t1\t+\t2\t+\t0M',
+    'L\t1\t+\t3\t+\t0M',
+    'L\t2\t+\t4\t+\t0M',
+    'L\t3\t+\t4\t+\t0M',
+    'P\tGRCh38#0#chr6\t1+,2+,4+\t*',
+    'P\tHG002#1#c\t1+,3+,4+\t*',
+    'P\tHG002#2#c\t1+,2+,4+\t*',
+    'P\tHG00097#1#c\t1+,3+,4+\t*',
+  ].join('\n')
+
+  async function liftedWith(layers: { walk: string; color?: object }[]) {
+    mockSession.tracks = [SHEET_TRACK]
+    mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(WALKS)
+        : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+    mockReadFile.mockResolvedValue(
+      [
+        'name\tcolor\tassembly',
+        'HG002#1\t#2a9fd0\t',
+        'HG002\t#d0302a\t',
+        'reference\t#555555\thg38',
+      ].join('\n'),
+    )
+    const model = createView({
+      layoutMode: 'force',
+      loadedTrackId: SHEET_TRACK.trackId,
+      loadedRegion: ON_HG38,
+    })
+    await model.load()
+    await model.loadWalkRowSampleTable()
+    model.setWalkLayers(layers)
+    return new Map(
+      model.walkLift?.walks.map(w => [w.name, w.encoding.value]) ?? [],
+    )
+  }
+
+  test('a walk whose layer states no colour takes its haplotype, sample or assembly row colour', async () => {
+    const values = await liftedWith([
+      { walk: 'GRCh38#0#chr6' },
+      { walk: 'HG002#1#c' },
+      { walk: 'HG002#2#c' },
+      { walk: 'HG00097#1#c' },
+    ])
+    expect(Object.fromEntries(values)).toEqual({
+      'GRCh38#0#chr6': '#555555',
+      'HG002#1#c': '#2a9fd0',
+      'HG002#2#c': '#d0302a',
+      'HG00097#1#c': undefined,
+    })
+  })
+
+  test("a layer's stated colour beats its sheet colour", async () => {
+    const values = await liftedWith([
+      { walk: 'HG002#1#c', color: { scheme: 'purple' } },
+      { walk: 'HG002#2#c', color: { value: '#00ff00' } },
+    ])
+    expect(values.get('HG002#1#c')).toBeUndefined()
+    expect(values.get('HG002#2#c')).toBe('#00ff00')
+  })
+})

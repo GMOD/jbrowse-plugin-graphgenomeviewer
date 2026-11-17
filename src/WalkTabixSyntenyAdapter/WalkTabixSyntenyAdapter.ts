@@ -8,6 +8,7 @@ import {
 } from '@jbrowse/bandage-core/pansn'
 import { updateStatus } from '@jbrowse/core/util'
 import { ObservableCreate } from '@jbrowse/core/util/rxjs'
+import { getSamplesTsvSources } from '@jbrowse/core/util/samplesTsv'
 import { walksKept } from '@jbrowse/graph-walks'
 
 import {
@@ -19,6 +20,7 @@ import {
   stepsInWindow,
 } from './walkLanes.ts'
 import { WalkIndex } from '../RgfaTabixAdapter/walkReader.ts'
+import { locationIsSet } from '../locationName.ts'
 import { PanSNRefNames, openWalkReader } from '../panSNTabix.ts'
 import { ComparativeAdapterBase } from '../synteny/ComparativeAdapterBase.ts'
 import {
@@ -27,6 +29,7 @@ import {
   requestedPairs,
 } from '../synteny/lanePairs.ts'
 import { laneZoomNotice } from '../synteny/laneZoomNotice.ts'
+import { sheetColorOf } from '../synteny/sheetColors.ts'
 
 import type { WalkTabixSyntenyAdapterConfig } from './configSchema.ts'
 import type { SubgraphAdapterOptions } from '../GetSubgraph.ts'
@@ -65,27 +68,54 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
   /**
    * `lanes` is every haplotype the header names but the anchor's own,
    * declared up front so the display can offer the whole graph's haplotypes
-   * before a fetch has placed any of them
+   * before a fetch has placed any of them. A lane's `color`, and the anchor's
+   * `anchorColor`, is its haplotype's in `samplesTsvLocation`, where it has one.
    */
   async getHeader(opts: BaseOptions = {}) {
-    const { haplotypes } = await this.walks.reader.header(opts)
+    const [{ haplotypes }, colorOf] = await Promise.all([
+      this.walks.reader.header(opts),
+      this.sheetColors(opts),
+    ])
     const { anchor } = this
     const anchorPrefix = resolvePanSNPrefix(this, anchor)
     const asmByPrefix = assemblyByPanSNPrefix(this)
+    const isAnchor = (prefix: string) =>
+      prefix === anchorPrefix || panSNSample(prefix) === anchorPrefix
+    const anchorColor = colorOf?.(haplotypes.find(isAnchor) ?? anchorPrefix)
     return {
       hasCoarseTier: false,
       anchorAssemblyName: anchor,
+      ...(anchorColor === undefined ? {} : { anchorColor }),
       lanes: haplotypes
-        .filter(
-          prefix =>
-            prefix !== anchorPrefix && panSNSample(prefix) !== anchorPrefix,
-        )
-        .map(prefix => ({
-          name: laneAssemblyName(asmByPrefix, prefix),
-          label: prefix,
-          group: panSNSample(prefix),
-        })),
+        .filter(prefix => !isAnchor(prefix))
+        .map(prefix => {
+          const color = colorOf?.(prefix)
+          return {
+            name: laneAssemblyName(asmByPrefix, prefix),
+            label: prefix,
+            group: panSNSample(prefix),
+            ...(color === undefined ? {} : { color }),
+          }
+        }),
     }
+  }
+
+  private async sheetColors(opts: BaseOptions) {
+    const location = this.getConf('samplesTsvLocation')
+    return locationIsSet(location)
+      ? sheetColorOf(
+          (
+            await getSamplesTsvSources({
+              location,
+              names: undefined,
+              namesLabel: 'the walk file',
+              pluginManager: this.pluginManager,
+              opts,
+            })
+          ).sources,
+          assemblyByPanSNPrefix(this),
+        )
+      : undefined
   }
 
   // A lane's contigs are named only in its walk rows, so only the anchor's

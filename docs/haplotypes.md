@@ -94,6 +94,13 @@ then cyan to navy, yellow to red, pink to plum and lime to forest. The first two
 stay apart for red-green colour blindness. The rainbow ramp is for reference
 position only.
 
+A walk whose layer states no field, scheme or `value` takes its haplotype's
+`color` from the track's `samplesTsvLocation`: the row named `HG002#1`, else
+`HG002`, else the row whose `assembly` column names the haplotype's assembly. A
+`WalkTabixSyntenyAdapter` lane takes the same colour, so a thread and its lane
+match. Only `#rgb` and `#rrggbb` count. A field, scheme or
+`"color": { "value": "#2a9fd0" }` in the layer wins.
+
 ### Example: KIV-2 overlaid
 
 With Progress along the walk on each lifted walk, the view shades each walk

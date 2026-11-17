@@ -36,6 +36,7 @@ import {
 } from '@jbrowse/bandage-core/layoutModes'
 import { NO_FOLD, nodesNotDrawn } from '@jbrowse/bandage-core/levelOfDetail'
 import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
+import { assemblyByPanSNPrefix } from '@jbrowse/bandage-core/pansn'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
   pathColorsLegible,
@@ -77,6 +78,7 @@ import {
 } from '../../launchFromGraph/launchFromGraph'
 import { locationIsSet } from '../../locationName.ts'
 import { trackAdapterConfig } from '../../panSNAliases/trackAdapterConfig'
+import { sheetColorOf } from '../../synteny/sheetColors.ts'
 import {
   GENE_ADAPTER_TYPES,
   annotationNoun,
@@ -256,6 +258,10 @@ export const withGraphViews = paneBase
     // the track the graph is cut from: the one the pane is a display of
     get sourceTrack(): AnyTrackConfig | undefined {
       return orUndefined(() => getContainingTrack(self).configuration)
+    },
+    get sourceAdapter() {
+      const track = this.sourceTrack
+      return track ? trackAdapterConfig(self, track) : undefined
     },
     get containingView(): object | undefined {
       return orUndefined(() => getContainingView(self))
@@ -512,11 +518,38 @@ export const withGraphViews = paneBase
         ? self.walkLayers
         : self.hoveredRowWalks.map(walk => ({ walk }))
     },
+    // A walk's colour in the source track's samples sheet, as its lane
+    // takes it
+    get sheetColorOf() {
+      const table = self.walkRowSampleTable
+      const adapter = self.sourceAdapter
+      return table && adapter
+        ? sheetColorOf(
+            table,
+            assemblyByPanSNPrefix({ getConf: slot => adapter[slot] }),
+          )
+        : undefined
+    },
+    // The lifted walks, each whose layer states no colour taking its sheet
+    // colour
+    get coloredWalkLayers(): WalkLayer[] {
+      const colorOf = this.sheetColorOf
+      return this.liftedWalkLayers.map(layer => {
+        const { field, scheme, value } = layer.color ?? {}
+        const sheet =
+          (field ?? scheme ?? value) === undefined
+            ? colorOf?.(layer.walk)
+            : undefined
+        return sheet === undefined
+          ? layer
+          : { ...layer, color: { ...layer.color, value: sheet } }
+      })
+    },
     // The lifted walks the graph on screen carries, or undefined when none
     // is named or it carries none of those that were
     get walkLift() {
       const { graph } = self
-      const layers = this.liftedWalkLayers
+      const layers = this.coloredWalkLayers
       return graph &&
         !self.walkCut &&
         layers.length > 0 &&
@@ -536,7 +569,7 @@ export const withGraphViews = paneBase
         lift &&
         self.walkLayers.length > 1 &&
         lift.walks.length > 1
-        ? facetLifts(graph, lift, self.walkLayers, this.walkRamp)
+        ? facetLifts(graph, lift, this.coloredWalkLayers, this.walkRamp)
         : undefined
     },
     // The lifted walks as drawn, each panel's own while faceted
@@ -766,10 +799,6 @@ export const withGraphViews = paneBase
     // the haplotypes the graph on screen was cut for, where a host says
     get cutHaplotypes(): string[] | undefined {
       return undefined
-    },
-    get sourceAdapter() {
-      const track = self.sourceTrack
-      return track ? trackAdapterConfig(self, track) : undefined
     },
     get sourceTrackId() {
       return self.sourceTrack?.trackId as string | undefined

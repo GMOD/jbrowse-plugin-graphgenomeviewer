@@ -1057,8 +1057,8 @@ export const withLoadActions = withEngineSettings.actions(self => {
       yield* reloadAnnotation('genes')
     }),
     // The source track's samples TSV, read once per location, for walk
-    // rows to group by. A failed read leaves the rows ungrouped, says so,
-    // and is tried again on the next cut.
+    // rows to group by and lifted walks to take colours from. A failed read
+    // leaves the rows ungrouped, says so, and is tried again on the next cut.
     loadWalkRowSampleTable: flow(function* () {
       const location = self.walkRowSamplesTsv
       const key = location ? JSON.stringify(location) : undefined
