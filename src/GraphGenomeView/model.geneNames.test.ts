@@ -206,6 +206,21 @@ test('an exon on a node the drawing folds is not outlined, and its gene stays ov
   expect(genesOverNode(model.genePins, 'h0+')).toContain('CFH · HG00097#1')
 })
 
+test('an exon on a reference node that only the lanes across a folded site draw is not outlined', async () => {
+  const model = await drawn()
+  const outlinedOn = (id: string) =>
+    model.exonOutlines.filter(s => s.key.endsWith(`-${id}`))
+  expect(outlinedOn('h0+').length).toBeGreaterThan(0)
+  const { batch, viewportBounds } = model.buildDrawing(undefined, false)!
+  model.setGeometryMetrics(
+    0,
+    { ...batch, laneOnly: { nodes: new Set(['h0+']), edges: new Set() } },
+    { scale: model.scale, bounds: viewportBounds },
+  )
+  expect(outlinedOn('h0+')).toEqual([])
+  expect(outlinedOn('h1+').length).toBeGreaterThan(0)
+})
+
 test('pins read again the same, or still none, change nothing a label reads', async () => {
   const model = await drawn()
   const seen: unknown[] = []

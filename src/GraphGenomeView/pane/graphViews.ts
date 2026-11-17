@@ -34,7 +34,7 @@ import {
   layoutModeByValue,
   modeUsesLayoutEngine,
 } from '@jbrowse/bandage-core/layoutModes'
-import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
+import { NO_FOLD, nodesNotDrawn } from '@jbrowse/bandage-core/levelOfDetail'
 import { nodeInk } from '@jbrowse/bandage-core/nodeWidths'
 import { pathOrigin } from '@jbrowse/bandage-core/pathAnchoring'
 import {
@@ -957,9 +957,17 @@ export const withGraphViews = paneBase
           sameKeys(a.nodes, b.nodes) && sameKeys(a.within, b.within),
       },
     )
+    const notDrawn = computed(() => nodesNotDrawn(self.drawnBatch), {
+      equals: sameKeys,
+    })
     return {
       get folded() {
         return fold.get().nodes
+      },
+      // the folded nodes and, with walks lifted, the reference nodes inside a
+      // folded site that only the lanes crossing it draw
+      get notDrawn() {
+        return notDrawn.get()
       },
       get foldedWithin() {
         return fold.get().within
@@ -1293,7 +1301,7 @@ export const withGraphViews = paneBase
         self.nodeInk.halfWidthPx,
         walkLift,
         undefined,
-        self.folded,
+        self.notDrawn,
       )
     },
   }))
