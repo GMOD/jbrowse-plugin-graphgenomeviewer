@@ -1,6 +1,8 @@
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
+import { DEFAULT_TRACK_FIT } from '@jbrowse/bandage-core/trackFit'
+import { heightModeConfigSchemaFields } from '@jbrowse/display-kit/heightModeConfigSchemaFields'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'
 
@@ -115,6 +117,12 @@ export function configSchemaFactory() {
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,
         height: 'the height of the track the graph is drawn in',
+      }),
+      ...heightModeConfigSchemaFields({
+        heightMode:
+          "how a force drawing the view's window places meets the track's height: `fixed` draws it at the window's scale, so a zoom magnifies it, and marks where it runs past the top or bottom; `grow` does the same in a track grown to hold the cut, up to `growMaxHeight`; `fit` shrinks the whole cut to the track's height",
+        growMaxHeight: 'the tallest `grow` makes the track, in px',
+        defaultHeightMode: DEFAULT_TRACK_FIT,
       }),
     },
     {

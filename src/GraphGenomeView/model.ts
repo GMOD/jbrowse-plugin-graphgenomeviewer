@@ -130,7 +130,7 @@ export const GraphPane = withLaunchActions
                 : drawnMarks([self.settledBatch], self.keyView),
               genePins: self.genePins,
               halos: self.bubbleHalos,
-              stripOverhangs: self.referenceStripOverhangs,
+              stripOverhangs: self.referenceStripOverhangs || self.runsPastEdge,
               unlabelled: self.labelsNodeSizes ? 'reserved' : undefined,
             })
           : []

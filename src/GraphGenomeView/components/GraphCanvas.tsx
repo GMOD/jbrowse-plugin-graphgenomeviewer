@@ -7,6 +7,7 @@ import { useRenderingBackend } from '@jbrowse/render-core/useRenderingBackend'
 import { observer } from 'mobx-react'
 
 import BubbleHalos from './BubbleHalos'
+import EdgeMarksOverlay from './EdgeMarksOverlay'
 import FacetPanels from './FacetPanels'
 import GenePins from './GenePins'
 import GraphToolbar from './GraphToolbar'
@@ -317,6 +318,7 @@ const GraphCanvasBody = observer(function GraphCanvasBody({
             <TubeMapOverlay model={model} />
             <HoverLayer model={model} />
             <ReferenceStripOverlay model={model} />
+            <EdgeMarksOverlay model={model} />
             <RowLabels model={model} />
             <GraphSizeLabels model={model} />
             <BubbleHalos model={model} />

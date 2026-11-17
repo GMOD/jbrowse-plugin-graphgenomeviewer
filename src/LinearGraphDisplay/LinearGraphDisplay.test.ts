@@ -8,6 +8,7 @@ import {
   stripOverhang,
   stripPixels,
 } from '@jbrowse/bandage-core/referenceStrip'
+import { TRACK_FIT_LABELS, grownHeight } from '@jbrowse/bandage-core/trackFit'
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
   ConfigurationReference,
@@ -64,6 +65,8 @@ const COARSE_TIER: Record<string, unknown> = {
 }
 // the linear view's coarse blocks settle behind a debounce
 const SETTLE_MS = 700
+// where loopInside hangs its chain, the middle of the windows tests open on
+const LOOP_BP = 1_030_000
 
 // A backbone of `step`-long segments with a small allele bubble on every
 // second one; past 1.5 Mb the fine tier's bubbles run eight ranks deep, so a
@@ -74,6 +77,7 @@ function syntheticGraph(
   region: SubgraphRegion,
   paths = false,
   loopAtStart = false,
+  loopInside = false,
 ) {
   const step = tier === 'fine' ? 10_000 : 250_000
   const lines = ['H\tVN:Z:1.0']
@@ -120,6 +124,21 @@ function syntheticGraph(
       from = allele
     }
   }
+  // a chain off the reference node at LOOP_BP, which every window over it
+  // shows
+  const loopAt = Math.floor(LOOP_BP / step)
+  if (loopInside && tier === 'fine' && loopAt > first && loopAt < last - 1) {
+    const id = `${tier[0]}${loopAt}`
+    let from = id
+    for (let rank = 1; rank <= 24; rank++) {
+      const allele = `${id}l${rank}`
+      lines.push(
+        `S\t${allele}\t*\tLN:i:${step}\tSN:Z:HG${rank}#1#${REF}\tSO:i:${loopAt * step}\tSR:i:${rank}`,
+        `L\t${from}\t+\t${allele}\t+\t0M`,
+      )
+      from = allele
+    }
+  }
   if (paths) {
     lines.push(`P\t${REF}\t${ref.join(',')}\t*`, `P\tHG1\t${alt.join(',')}\t*`)
   }
@@ -135,19 +154,21 @@ interface Cut {
 
 // The engine's request laid out where it was seeded: the reference along x
 // in bp order and each node off it a lane below, each a line short of the
-// next seed, but a chain hung off the cut's start stacked straight up
+// next seed, but a chain stacked straight up from the node it hangs off
 function fakeEngine({ nodes }: EngineRequest['graph']) {
+  const seeded = new Map(nodes.map(({ id, x = 0 }) => [id, x]))
   return {
     nodePositions: Object.fromEntries(
       nodes.map(({ id, length, x = 0, y = 0 }) => {
         const step = Number(/l(\d+)[+-]?$/.exec(id)?.[1] ?? 0)
         const rise = length * 0.015
+        const from = seeded.get(id.replace(/l\d+(?=[+-]?$)/, '')) ?? x
         return [
           id,
           step > 0
             ? [
-                { x, y: -rise * (step - 1) },
-                { x, y: -rise * step },
+                { x: from, y: -rise * (step - 1) },
+                { x: from, y: -rise * step },
               ]
             : [
                 { x, y },
@@ -234,6 +255,7 @@ function createEnvironment({
   geneLaneFilter = undefined as string[] | undefined,
   contig = CONTIG,
   loopAtStart = false,
+  loopInside = false,
 } = {}) {
   console.warn = vi.fn()
   // reduced motion, so a re-cut lands without a morph's frames
@@ -510,7 +532,13 @@ function createEnvironment({
       if (args.signal) {
         signals.push(args.signal)
       }
-      const gfa = syntheticGraph(cut.tier, cut.region, paths, loopAtStart)
+      const gfa = syntheticGraph(
+        cut.tier,
+        cut.region,
+        paths,
+        loopAtStart,
+        loopInside,
+      )
       const hold = held
       return hold
         ? new Promise<string>(resolve => {
@@ -1037,8 +1065,9 @@ async function forceGraph({
   contig = CONTIG,
   track = 'graph',
   loopAtStart = false,
+  loopInside = false,
 } = {}) {
-  const env = createEnvironment({ paths, contig, loopAtStart })
+  const env = createEnvironment({ paths, contig, loopAtStart, loopInside })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
@@ -2745,8 +2774,98 @@ test('a force track restored with a viewport of its own is placed by its window 
   })
 })
 
-// the middle of the window the tests open on
-const MIDDLE_BP = 1_030_000
+// The window's reference as drawn, in screen px
+function windowReferenceInk(pane: LinearGraphDisplayModel) {
+  const seen = hostWindow(pane.host!)!
+  const ys: number[] = []
+  for (const node of pane.graph!.nodes) {
+    const [a, b] = pane.nodePositions?.[node.id] ?? []
+    const start = node.stable?.start ?? -1
+    const lo = Math.max(seen.start, start)
+    const hi = Math.min(seen.end, start + node.length)
+    if (node.stable?.rank === 0 && a && b && hi > lo) {
+      for (const bp of [lo, hi]) {
+        const f = (bp - start) / node.length
+        ys.push(
+          pane.toScreen({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f })
+            .y,
+        )
+      }
+    }
+  }
+  return {
+    y0: ys.reduce((m, y) => Math.min(m, y), Infinity),
+    y1: ys.reduce((m, y) => Math.max(m, y), -Infinity),
+  }
+}
+
+test("the track's sizing is its heightMode slot, fixed unless set, and the track menu switches it", async () => {
+  const { pane } = await forceGraph()
+  expect(pane.heightMode).toBe('fixed')
+  expect(pane.trackFit).toBe('fixed')
+  const sizing = pane
+    .trackMenuItems()
+    .find(item => 'label' in item && item.label === 'Track sizing') as
+    | { subMenu: (MenuItem & { label: string; onClick: () => void })[] }
+    | undefined
+  expect(sizing?.subMenu.map(item => item.label)).toEqual([
+    TRACK_FIT_LABELS.fixed,
+    TRACK_FIT_LABELS.grow,
+    TRACK_FIT_LABELS.fit,
+  ])
+  sizing!.subMenu[2]!.onClick()
+  expect(pane.heightMode).toBe('fit')
+  expect(pane.trackFit).toBe('fit')
+})
+
+test("at fixed a zoom magnifies a drawing whose cut is taller than the track, which fit holds still at the track's height", async () => {
+  const { view, pane } = await forceGraph({ loopInside: true, paths: true })
+  pane.setHeightMode('fit')
+  const { top, bottom } = pane.fitPads
+  const usable = pane.canvasHeight - top - bottom
+  expect(pane.heldBounds!.h * pane.scale).toBeCloseTo(usable, 6)
+  const fitted = pane.scale
+  view.zoomTo(view.bpPerPx / 1.2, WIDTH_PX / 2)
+  expect(pane.scale).toBeCloseTo(fitted, 9)
+  pane.setHeightMode('fixed')
+  const fixed = pane.scale
+  expect(fixed).toBeGreaterThan(2 * fitted)
+  view.zoomTo(view.bpPerPx / 1.2, WIDTH_PX / 2)
+  expect(pane.scale).toBeGreaterThan(fixed)
+})
+
+test("a drawing taller than a fixed track keeps the window's reference between the pads and marks the edges it runs past, which the key names", async () => {
+  const { pane } = await forceGraph({ loopInside: true, paths: true })
+  const { top, bottom } = pane.fitPads
+  const ink = windowReferenceInk(pane)
+  expect(ink.y0).toBeGreaterThanOrEqual(top - 1e-6)
+  expect(ink.y1).toBeLessThanOrEqual(pane.canvasHeight - bottom + 1e-6)
+  const marks = pane.edgeMarks!
+  expect(marks.top.length + marks.bottom.length).toBeGreaterThan(0)
+  expect(pane.runsPastEdge).toBe(true)
+  expect(pane.graphKey.map(s => s.id)).toContain('overhang')
+  pane.setHeightMode('fit')
+  expect(pane.edgeMarks).toEqual({ top: [], bottom: [] })
+})
+
+test("at grow the track is as tall as the whole cut drawn at the window's scale, up to growMaxHeight, and at fixed the slot's height", async () => {
+  const { pane } = await forceGraph({ loopInside: true, paths: true })
+  expect(pane.height).toBe(300)
+  pane.setHeightMode('grow')
+  const wanted = grownHeight(pane.heldBounds!, pane.scale, pane.followPads)
+  expect(wanted).toBeGreaterThan(pane.growMaxHeight)
+  expect(pane.height).toBe(pane.growMaxHeight)
+  expect(pane.canvasHeight).toBe(pane.growMaxHeight)
+  const flat = await forceGraph()
+  flat.pane.setHeightMode('grow')
+  expect(flat.pane.height).toBe(
+    Math.max(
+      flat.pane.canvasFloor,
+      grownHeight(flat.pane.heldBounds!, flat.pane.scale, flat.pane.followPads),
+    ),
+  )
+  expect(flat.pane.height).toBeLessThan(300)
+})
 
 test('while a morph slides a re-cut in, the labels wait and the key holds the frame before it', async () => {
   const { pane } = await forceGraph()
@@ -2755,8 +2874,8 @@ test('while a morph slides a re-cut in, the labels wait and the key holds the fr
   const node = pane.graph!.nodes.find(
     n =>
       n.stable?.rank === 0 &&
-      n.stable.start <= MIDDLE_BP &&
-      MIDDLE_BP < n.stable.start + n.length,
+      n.stable.start <= LOOP_BP &&
+      LOOP_BP < n.stable.start + n.length,
   )!.id
   pane.setMorphing(true)
   expect(pane.labelFrameSettled).toBe(false)
@@ -2765,8 +2884,8 @@ test('while a morph slides a re-cut in, the labels wait and the key holds the fr
     nodes: [node],
     edges: [],
     refName: REF,
-    start: MIDDLE_BP,
-    end: MIDDLE_BP,
+    start: LOOP_BP,
+    end: LOOP_BP,
     bp: 1,
     x: 0,
     y: 0,

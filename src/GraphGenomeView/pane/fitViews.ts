@@ -6,11 +6,7 @@ import {
 } from '@jbrowse/bandage-core/facetGrid'
 import { figureSvg } from '@jbrowse/bandage-core/figure'
 import { rowLabelBox } from '@jbrowse/bandage-core/graphLabels'
-import {
-  fitBesideKey,
-  keyColumnPx,
-  keyHeightPx,
-} from '@jbrowse/bandage-core/keyColumn'
+import { keyColumnPx, keyHeightPx } from '@jbrowse/bandage-core/keyColumn'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import {
@@ -32,6 +28,7 @@ import {
   layoutExtent,
   referenceProfile,
   shownBounds,
+  windowScale,
 } from '@jbrowse/bandage-core/pipeline'
 import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
@@ -41,6 +38,13 @@ import {
   tubeMapGeneRows,
 } from '@jbrowse/bandage-core/tubeMap/genes'
 import { padded } from '@jbrowse/bandage-core/viewport'
+import {
+  drawnSegments,
+  edgeOverruns,
+  referenceSegments,
+  scalesByWindow,
+  windowTranslateY,
+} from '@jbrowse/bandage-core/trackFit'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { untracked } from 'mobx'
 
@@ -68,6 +72,7 @@ import type {
   RowPitch,
 } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import type { Renderer } from '@jbrowse/bandage-core/renderer/types'
+import type { TrackFit } from '@jbrowse/bandage-core/trackFit'
 import type { Graph, LayoutResult } from '@jbrowse/bandage-core/types'
 import type { LiftedWalk, WalkLift } from '@jbrowse/bandage-core/walkHighlight'
 
@@ -76,9 +81,12 @@ function heldLayoutOf(
   layout: LayoutResult,
   region: SubgraphRegion | undefined,
 ) {
+  const profile = referenceProfile(graph, layout.nodePositions)
   return {
-    profile: referenceProfile(graph, layout.nodePositions),
+    profile,
     bounds: region && shownBounds(graph, layout, region),
+    segments: drawnSegments(graph, layout),
+    reference: referenceSegments(profile),
   }
 }
 
@@ -231,13 +239,7 @@ export const withFitViews = withHostViews
     // How far the drawing, walk rows and their readouts reach: to the key's
     // column
     get drawingWidth() {
-      return self.facetPanels || self.tubeMapReads
-        ? self.paneWidth
-        : fitBesideKey({
-            paneWidth: self.paneWidth,
-            canvasHeight: this.canvasHeight,
-            legendSize: this.framedLegendSize,
-          }).width
+      return self.paneWidth - this.keyColumnPx
     },
     // The height that shows every row of the key, and the drawing's own
     // floor, which leaves room to hover a node and read its tooltip
@@ -486,8 +488,13 @@ export const withFitViews = withHostViews
         !layout.referenceAxis &&
         !layout.pixelRows &&
         !layout.tubeMap &&
-        !this.facetGrid
+        !self.facetPanels
       )
+    },
+    // How a drawing the window places meets the pane's height (core's
+    // trackFit). A pane of its own fits the whole cut; a track says.
+    get trackFit(): TrackFit {
+      return 'fit'
     },
     get heldLayout() {
       const { graph, layoutResult, graphRegion } = self
@@ -502,13 +509,15 @@ export const withFitViews = withHostViews
     get heldBounds() {
       return this.heldLayout?.bounds ?? this.layoutBounds
     },
+    // fitPads where no facet grid tiles the pane, which a followed window
+    // never has, read without the grid so a track grown to the drawing does
+    // not read its own height
     get followPads() {
-      const pads = this.fitPads
       return {
-        padLeft: pads.left,
-        padTop: pads.top,
-        padRight: pads.right,
-        padBottom: pads.bottom,
+        padLeft: this.fitPadLeft,
+        padTop: this.fitPadTop,
+        padRight: FIT_PADDING,
+        padBottom: FIT_PADDING,
       }
     },
     get heldWindow() {
@@ -524,15 +533,23 @@ export const withFitViews = withHostViews
       const bounds = this.heldBounds
       const span = this.viewSpan
       return pieces && region && bounds && span
-        ? cutScale(
-            pieces,
-            region,
-            span,
-            bounds,
-            this.drawingWidth,
-            this.canvasHeight,
-            this.followPads,
-          )
+        ? scalesByWindow(this.trackFit)
+          ? windowScale(
+              pieces,
+              region,
+              span,
+              this.drawingWidth,
+              this.followPads,
+            )
+          : cutScale(
+              pieces,
+              region,
+              span,
+              bounds,
+              this.drawingWidth,
+              this.canvasHeight,
+              this.followPads,
+            )
         : undefined
     },
     // a window on another sequence puts the held cut past the pane's edge
@@ -542,7 +559,8 @@ export const withFitViews = withHostViews
       const pieces = this.heldReference
       const scale = this.heldScale
       const bounds = this.heldBounds
-      const placed =
+      const held = this.heldLayout
+      const followed =
         seen && pieces && scale !== undefined && bounds
           ? followTransform(
               pieces,
@@ -554,6 +572,22 @@ export const withFitViews = withHostViews
               this.followPads,
             )
           : undefined
+      const placed =
+        followed && held && bounds && scalesByWindow(this.trackFit)
+          ? {
+              ...followed,
+              translateY: windowTranslateY({
+                segments: held.segments,
+                reference: held.reference,
+                scale: followed.scale,
+                translateX: followed.translateX,
+                bounds,
+                paneWidth: this.drawingWidth,
+                paneHeight: this.canvasHeight,
+                pads: this.followPads,
+              }),
+            }
+          : followed
       return placed &&
         layoutResult &&
         (graphRegion?.refName !== seen?.refName ||
@@ -566,6 +600,27 @@ export const withFitViews = withHostViews
               placed.scale * layoutExtent(layoutResult.nodePositions).minX,
           }
         : placed
+    },
+    // Where the drawing runs past the pane's top, under the reference
+    // strip, or its bottom, for a drawing the window places
+    get edgeMarks() {
+      const held = this.followsWindow ? this.heldLayout : undefined
+      return held
+        ? edgeOverruns(
+            held.segments,
+            {
+              scale: self.scale,
+              translateX: self.translateX,
+              translateY: self.translateY,
+            },
+            this.drawingWidth,
+            { top: self.referenceStripZonePx, bottom: this.canvasHeight },
+          )
+        : undefined
+    },
+    get runsPastEdge() {
+      const marks = this.edgeMarks
+      return !!marks && marks.top.length + marks.bottom.length > 0
     },
     get drawingClip() {
       return this.followsWindow

@@ -3,6 +3,11 @@ import type { ReactNode } from 'react'
 
 import { layoutModeByValue } from '@jbrowse/bandage-core/layoutModes'
 import {
+  TRACK_FITS,
+  TRACK_FIT_LABELS,
+  grownHeight,
+} from '@jbrowse/bandage-core/trackFit'
+import {
   ConfigurationReference,
   getConf,
   setConf,
@@ -10,7 +15,7 @@ import {
 import { BaseDisplay } from '@jbrowse/core/pluggableElementTypes'
 import { computeSvgReady } from '@jbrowse/core/svg/svgReady'
 import { getSession } from '@jbrowse/core/util'
-import TrackHeightMixin from '@jbrowse/display-kit/TrackHeightMixin'
+import HeightModeMixin from '@jbrowse/display-kit/HeightModeMixin'
 import { editPlotMenuItems } from '@jbrowse/display-kit/plotMenu'
 import { addDisposer, isAlive, types } from '@jbrowse/mobx-state-tree'
 import {
@@ -18,6 +23,7 @@ import {
   computeDisplayPhase,
 } from '@jbrowse/render-core/displayPhase'
 import BubbleChartIcon from '@mui/icons-material/BubbleChart'
+import HeightIcon from '@mui/icons-material/Height'
 import RouteIcon from '@mui/icons-material/Route'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { reaction, when } from 'mobx'
@@ -108,7 +114,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
     .compose(
       'LinearGraphDisplay',
       BaseDisplay,
-      TrackHeightMixin(),
+      HeightModeMixin(),
       GraphPane,
       types.model({
         type: types.literal('LinearGraphDisplay'),
@@ -157,6 +163,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       get canvasHeight() {
         return self.height
       },
+      get trackFit() {
+        return self.heightMode
+      },
       get canRetryLoad() {
         return self.cutRegion !== undefined
       },
@@ -172,6 +181,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       // undefined for a track with none
       get coarseAboveBpPerPx() {
         return coarseHandover(self.sourceAdapter?.coarse)
+      },
+      // In grow, the height that holds the whole cut at the window's scale,
+      // and never less than the key needs
+      get growTargetHeight() {
+        const scale = self.followsWindow ? self.heldScale : undefined
+        const bounds = self.heldBounds
+        return scale !== undefined && bounds
+          ? Math.max(
+              self.canvasFloor,
+              grownHeight(bounds, scale, self.followPads),
+            )
+          : self.fitTargetHeight
       },
     }))
     .views(self => ({
@@ -829,6 +850,18 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
             ? [{ label: 'Haplotypes', icon: RouteIcon, subMenu: haplotypes }]
             : []),
           ...self.graphMenuItems(),
+          {
+            label: 'Track sizing',
+            icon: HeightIcon,
+            subMenu: TRACK_FITS.map(fit => ({
+              type: 'radio' as const,
+              label: TRACK_FIT_LABELS[fit],
+              checked: self.heightMode === fit,
+              onClick: () => {
+                self.setHeightMode(fit)
+              },
+            })),
+          },
           {
             label: 'Graph settings...',
             icon: SettingsIcon,

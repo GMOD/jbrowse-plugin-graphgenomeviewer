@@ -6,6 +6,7 @@ import { svgCanvas } from '@jbrowse/bandage-core/renderer/svgCanvas'
 import { PaintLayer } from '@jbrowse/core/util/paintLayer'
 
 import BubbleHalos from './BubbleHalos'
+import { paintEdgeMarks } from './EdgeMarksOverlay'
 import GenePins from './GenePins'
 import LabelLayer from './LabelLayer'
 import { SvgSwatch } from './LegendSwatch'
@@ -440,6 +441,16 @@ export default function PaneSvg({
               lit: undefined,
               dpr: 1,
             })
+          }}
+        />
+      ) : null}
+      {model.runsPastEdge ? (
+        <PaintLayer
+          width={width}
+          height={height}
+          opts={opts}
+          paint={ctx => {
+            paintEdgeMarks(asCanvasCtx(ctx), model)
           }}
         />
       ) : null}
