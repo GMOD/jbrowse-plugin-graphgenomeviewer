@@ -34,17 +34,17 @@ import { REFERENCE_STRIP_ZONE_PX } from '@jbrowse/bandage-core/referenceStrip'
 import { buildGeometry } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { layoutGeometryInputs } from '@jbrowse/bandage-core/renderer/geometryInputs'
 import {
-  GENE_ROW_PX,
-  tubeMapGeneRows,
-} from '@jbrowse/bandage-core/tubeMap/genes'
-import { padded } from '@jbrowse/bandage-core/viewport'
-import {
   drawnSegments,
   edgeOverruns,
   referenceSegments,
   scalesByWindow,
   windowTranslateY,
 } from '@jbrowse/bandage-core/trackFit'
+import {
+  GENE_ROW_PX,
+  tubeMapGeneRows,
+} from '@jbrowse/bandage-core/tubeMap/genes'
+import { padded } from '@jbrowse/bandage-core/viewport'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { untracked } from 'mobx'
 

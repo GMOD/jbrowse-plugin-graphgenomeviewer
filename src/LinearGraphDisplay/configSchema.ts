@@ -1,7 +1,7 @@
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
-import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { DEFAULT_TRACK_FIT } from '@jbrowse/bandage-core/trackFit'
+import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { heightModeConfigSchemaFields } from '@jbrowse/display-kit/heightModeConfigSchemaFields'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
 import { types } from '@jbrowse/mobx-state-tree'

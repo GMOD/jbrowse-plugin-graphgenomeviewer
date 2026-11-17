@@ -39,9 +39,9 @@
   as it counts a length with no room on the pane
 - The key lists what the pane shows, the drawing under the key included, and
   nothing else: an exon, a node thickness or a mark that lies on the cut past
-  the window is not keyed, and the last line counts the sites left out where
-  the pane shows. A pan or zoom never moves the pane's height; a key that lists
-  more than it had room for when the drawing was laid out scrolls
+  the window is not keyed, and the last line counts the sites left out where the
+  pane shows. A pan or zoom never moves the pane's height; a key that lists more
+  than it had room for when the drawing was laid out scrolls
 - **Show › Show links that skip reference** (on by default) draws each link that
   skips reference sequence, with no words: dashed where the span it jumps on
   screen holds three dashes, and a plain line with no arrowhead where shorter

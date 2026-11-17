@@ -42,7 +42,7 @@ export const PaneSvgLayer = observer(function PaneSvgLayer({
   overflow?: 'hidden' | 'visible'
   testId?: string
   pansWithDrawing?: boolean
-  children: ReactNode
+  children?: ReactNode
 }) {
   return (
     <svg

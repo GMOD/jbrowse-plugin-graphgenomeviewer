@@ -2655,7 +2655,7 @@ test('a cut kept under another reference path is fetched again, not shown from t
 test("a cut kept from the track's other adapter is fetched again, not shown from the four kept", async () => {
   const { session, pane, cuts, panTo } = await forceGraph()
   await panTo(1_100_000)
-  session.tracks[0].setSubschema('adapter', {
+  session.tracks[0]!.setSubschema('adapter', {
     type: 'RgfaTabixAdapter',
     uri: 'other',
   })
@@ -2733,11 +2733,11 @@ test('a drawing placed by its window is clipped at the key column on its canvas,
   expect(tagOf(canvas, 'graph-genome-canvas')).toContain(clip)
   expect(tagOf(canvas, 'graph-hover-layer')).toContain(clip)
   const overlay = renderToStaticMarkup(
-    createElement(
-      PaneSvgLayer,
-      { model: pane, zIndex: 2, testId: 'an-overlay' },
-      null,
-    ),
+    createElement(PaneSvgLayer, {
+      model: pane,
+      zIndex: 2,
+      testId: 'an-overlay',
+    }),
   )
   expect(tagOf(overlay, 'an-overlay')).toContain(clip)
 })
@@ -2888,8 +2888,8 @@ test('while a morph slides a re-cut in, the labels wait and the key holds the fr
     start: LOOP_BP,
     end: LOOP_BP,
     bp: 1,
-    x: 0,
-    y: 0,
+    x: (viewportBounds.minX + viewportBounds.maxX) / 2,
+    y: (viewportBounds.minY + viewportBounds.maxY) / 2,
     count: 1,
     total: 2,
   }
