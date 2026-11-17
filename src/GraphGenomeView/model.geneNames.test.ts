@@ -2,9 +2,10 @@ import { exonStretches } from '@jbrowse/bandage-core/genes/exonOutline'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import { readConfObject } from '@jbrowse/core/configuration'
-import { autorun } from 'mobx'
+import { autorun, reaction } from 'mobx'
 
 import { mockRpcCall, mockSession } from './modelTestMocks'
+import { fakeRenderer } from './modelTestSupport'
 import stateModelFactory from './viewModel'
 
 vi.mock('@jbrowse/core/util', async () =>
@@ -234,5 +235,34 @@ test('pins read again the same, or still none, change nothing a label reads', as
   await model.loadOwnGenes()
   model.setLayer('deletions', !model.showDeletionEdges)
   expect(seen).toHaveLength(2)
+  stop()
+})
+
+// Y-rand-10's pane showed the reference's nodes, which GRCh38 alone walks,
+// while the haplotypes' walks stepped nodes off the pane, and the key said
+// "7 walks | 1 walk" over a line drawn as one walk is; here the pane beside a
+// wide key shows r2 and the haplotypes' own nodes, which one walk steps each,
+// and the drawing holds r1 and r3, which every walk steps, beyond it
+test("the key's node thicknesses are those of the nodes the pane shows", async () => {
+  const model = await drawn()
+  model.startRenderingBackend(fakeRenderer())
+  const thicknesses = () =>
+    model.graphKey
+      .find(section => section.id === 'node-width')
+      ?.entries.map(entry => entry.text)
+  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  let changes = 0
+  const stop = reaction(
+    () => model.graphKey,
+    () => {
+      changes++
+    },
+  )
+  model.setTransform(model.scale, model.translateX + 1, model.translateY)
+  expect(changes).toBe(0)
+  const r2 = model.layoutResult!.nodePositions['r2+']![0]!
+  model.setLegendSize({ width: 1500, height: 40 })
+  model.setTransform(100, 40 - (r2.x + 1) * 100, model.translateY)
+  expect(thicknesses()).toEqual(['1 walk'])
   stop()
 })

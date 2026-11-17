@@ -1,9 +1,10 @@
 import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
 import { layoutLabels } from '@jbrowse/bandage-core/labelLayout'
 import { passLabelCandidates } from '@jbrowse/bandage-core/passLabels'
+import { keyedView } from '@jbrowse/bandage-core/viewport'
 import { getRpcSessionId, getSession } from '@jbrowse/core/util'
 import { addDisposer, isAlive } from '@jbrowse/mobx-state-tree'
-import { reaction } from 'mobx'
+import { computed, reaction } from 'mobx'
 
 import {
   configHaplotypes,
@@ -15,6 +16,7 @@ import { canonicalAssemblyName } from '../launchFromGraph/launchFromGraph'
 import { withLaunchActions } from './pane/launchActions'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
+import type { GraphKey, GraphKeyEntry } from '@jbrowse/bandage-core/graphKey'
 import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
@@ -28,6 +30,29 @@ const NO_LABELS: LabelLayout = {
   sizes: [],
 }
 
+const sameEntry = (a: GraphKeyEntry, b: GraphKeyEntry | undefined) =>
+  !!b &&
+  a.key === b.key &&
+  a.text === b.text &&
+  a.strong === b.strong &&
+  a.under === b.under &&
+  a.hover === b.hover &&
+  a.walk === b.walk &&
+  JSON.stringify(a.swatch) === JSON.stringify(b.swatch)
+
+const sameKey = (a: GraphKey, b: GraphKey) =>
+  a.length === b.length &&
+  a.every((section, i) => {
+    const other = b[i]
+    return (
+      !!other &&
+      section.id === other.id &&
+      section.group === other.group &&
+      section.entries.length === other.entries.length &&
+      section.entries.every((entry, j) => sameEntry(entry, other.entries[j]))
+    )
+  })
+
 // The pane every graph drawing is: a view of its own, or a display inside a
 // linear view. Built in stages under pane/, each extending the one before,
 // and given here the cut options both hosts share.
@@ -39,36 +64,51 @@ export const GraphPane = withLaunchActions
     },
   }))
   // bandage-core's key for the graph on screen, which the legend and the
-  // facet key draw
-  .views(self => ({
-    get graphKey() {
-      const graph = self.drawnGraph
-      const drawings = self.facetDrawings
-      return graph
-        ? graphKey(graph, self.layoutResult ?? {}, {
-            region: self.graphRegion,
-            referenceRamp: self.referenceRamp,
-            lift: self.walkLift,
-            panels: self.facetPanels,
-            walkLabel: name => self.walkLabel(name),
-            nodeWidth: self.nodeWidth,
-            contigThickness: self.contigThickness,
-            edgeWidth: self.linkWidth,
-            connectorThickness: self.connectorThickness,
-            drawsNodes: self.drawsNodes,
-            marks: drawnMarks(
-              drawings
-                ? drawings.flatMap(drawing => (drawing ? [drawing.batch] : []))
-                : [self.drawnBatch],
-            ),
-            genePins: self.genePins,
-            halos: self.bubbleHalos,
-            stripOverhangs: self.referenceStripOverhangs,
-            unlabelled: self.labelsNodeSizes ? 'reserved' : undefined,
-          })
-        : []
-    },
-  }))
+  // facet key draw: of the drawing the pane shows beside the key, or of
+  // every facet panel's whole. A pan that brings no mark in or out leaves it
+  // as it was.
+  .views(self => {
+    const key = computed(
+      () => {
+        const graph = self.drawnGraph
+        const drawings = self.facetDrawings
+        return graph
+          ? graphKey(graph, self.layoutResult ?? {}, {
+              region: self.graphRegion,
+              referenceRamp: self.referenceRamp,
+              lift: self.walkLift,
+              panels: self.facetPanels,
+              walkLabel: name => self.walkLabel(name),
+              nodeWidth: self.nodeWidth,
+              contigThickness: self.contigThickness,
+              edgeWidth: self.linkWidth,
+              connectorThickness: self.connectorThickness,
+              drawsNodes: self.drawsNodes,
+              marks: drawings
+                ? drawnMarks(
+                    drawings.flatMap(drawing =>
+                      drawing ? [drawing.batch] : [],
+                    ),
+                  )
+                : drawnMarks(
+                    [self.drawnBatch],
+                    keyedView(self, self.axisScale, self),
+                  ),
+              genePins: self.genePins,
+              halos: self.bubbleHalos,
+              stripOverhangs: self.referenceStripOverhangs,
+              unlabelled: self.labelsNodeSizes ? 'reserved' : undefined,
+            })
+          : []
+      },
+      { equals: sameKey },
+    )
+    return {
+      get graphKey() {
+        return key.get()
+      },
+    }
+  })
   // Each lifted walk's passes named on the graph, which the labels place
   // with the rest; a faceted pane names none
   .views(self => ({
