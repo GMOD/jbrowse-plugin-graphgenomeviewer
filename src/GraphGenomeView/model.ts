@@ -17,10 +17,10 @@ import { withLaunchActions } from './pane/launchActions'
 import { VIEWPORT_DEBOUNCE_MS } from './pane/paneBase'
 
 import type { SubgraphCutOptions, SubgraphRegion } from '../GetSubgraph'
+import type { PaneLayout } from './tubeMapPanels'
 import type { GraphKey, GraphKeyEntry } from '@jbrowse/bandage-core/graphKey'
 import type { LabelLayout } from '@jbrowse/bandage-core/labelLayout'
 import type { Bounds } from '@jbrowse/bandage-core/pipeline'
-import type { PaneLayout } from './tubeMapPanels'
 import type { Instance } from '@jbrowse/mobx-state-tree'
 
 export { MAX_GRAPH_REGION_BP, fileName, formatSpanBp } from './pane/paneBase'
