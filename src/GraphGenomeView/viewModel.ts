@@ -1,13 +1,17 @@
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { BaseViewModel } from '@jbrowse/core/pluggableElementTypes/models'
-import { getSession } from '@jbrowse/core/util'
+import { getSession, isViewContainer } from '@jbrowse/core/util'
 import { isAlive, types } from '@jbrowse/mobx-state-tree'
 
+import { graphTrackChoices } from './graphTrackChoices'
 import { HOVER_HIGHLIGHT_VALUES } from './hoverHighlight'
 import { lenientMaybeEnum, lenientOptionalEnum } from './lenientEnum'
 import { GraphPane, fileName, formatSpanBp } from './model'
-import { canonicalRegion } from '../launchFromGraph/launchFromGraph'
+import {
+  canonicalRegion,
+  showTrackInLinearView,
+} from '../launchFromGraph/launchFromGraph'
 
 import type { GraphLayers } from './graphLayers'
 import type { NodeColor } from './nodeColor'
@@ -101,6 +105,10 @@ export default function stateModelFactory() {
         return self.loadedTrackId
           ? self.sessionTrack(self.loadedTrackId)
           : undefined
+      },
+      // the session's graph tracks the import form offers
+      get graphTracks() {
+        return graphTrackChoices(getSession(self).tracks)
       },
       get canRetryLoad() {
         return (
@@ -215,6 +223,15 @@ export default function stateModelFactory() {
           if (!self.displayName) {
             self.setDisplayName(fileName(location))
           }
+        }
+      },
+      // The form's way to a graph track: the linear view draws it at every
+      // zoom, so this view, still empty, gives way to it
+      showTrackInLinearView(trackId: string, assembly: string, loc: string) {
+        const session = getSession(self)
+        showTrackInLinearView({ session, trackId, assembly, loc })
+        if (isViewContainer(session)) {
+          session.removeView(self)
         }
       },
       // Here rather than when the rendering backend starts: the canvas only

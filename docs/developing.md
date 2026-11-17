@@ -152,6 +152,7 @@ JBROWSE_TEST_DIR=$PWD/.test-jbrowse-local RUN_E2E=1 pnpm test:e2e
 | `tubeMap.test.ts`            | both tube map layouts paint, and a GBZ cut draws as a tube map track of a linear view                                 |
 | `tubeMapReads.test.ts`       | a GBZ track's GAF reads load through the worker and lay out under its tube map                                        |
 | `walkHover.test.ts`          | hovering a node with walks lifted keeps the view still, since only a browser sizes a key                              |
+| `frontDoor.test.ts`          | Add → Graph genome view's form shows a session graph track in a linear view that draws it, and the empty view closes  |
 | `launchOut.test.ts`          | the view menu and a node's context menu open the linear view beside the graph, not on top                             |
 | `pathAnchoredLayout.test.ts` | a graph with no SN/SO/SR tags draws path-anchored, rows by strain, and paints both canvases                           |
 | `walkRows.test.ts`           | the KIV-2 cut draws a bar per haplotype, tiles by a repeat annotation's unit, and reads `<CNV:TR>`                    |
