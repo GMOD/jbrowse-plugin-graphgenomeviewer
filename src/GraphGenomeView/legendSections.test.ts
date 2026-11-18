@@ -1,5 +1,6 @@
 import { COMPRESSED_KEY } from '@jbrowse/bandage-core/bubbleSpreads'
 import { drawnMarks, graphKey } from '@jbrowse/bandage-core/graphKey'
+import { LIFT_BACKDROP_CSS } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 import { walkLift } from '@jbrowse/bandage-core/walkHighlight'
 
 import {
@@ -219,4 +220,61 @@ test("a walk row key's hollow bar keeps its rim round its fill", () => {
   expect(walkRowSwatch({ kind: 'bar', fill: '#3c4148' })).not.toHaveProperty(
     'rim',
   )
+})
+
+function stripLegend(over: Record<string, unknown>) {
+  return rowsOf(
+    Object.assign(keyModel(DEPTHS), {
+      referenceStripShown: true,
+      referenceStripFaded: true,
+      liftedWalksLabel: 'these walks',
+      ...over,
+    }),
+    'graph-reference-strip-legend',
+  )
+}
+
+test('a strip of several walks keys its grey in the colour of a row that breaks', () => {
+  const walk = (reference: boolean) => ({
+    name: reference ? 'ref' : 'alt',
+    reference,
+    encoding: { field: 'walk', scheme: 'blues' },
+    colors: new Map(),
+    nodeIds: new Set(),
+  })
+  const rows = stripLegend({
+    walkLift: { walks: [walk(true), walk(false)] },
+    walkLabel: (name: string) => name,
+    graph: undefined,
+    referenceStripBlocks: [
+      { colors: ['red', 'blue'] },
+      { colors: ['red', LIFT_BACKDROP_CSS] },
+    ],
+  })
+  expect(rows?.map(r => r.label)).toEqual([
+    'reference each walk passes through',
+    'grey where a walk does not pass through',
+  ])
+  const swatch = rows?.[1]?.swatch
+  expect(
+    swatch?.kind === 'bands' ? swatch.bands[0]?.map(s => s.color) : undefined,
+  ).toEqual([
+    'blue',
+    'blue',
+    LIFT_BACKDROP_CSS,
+    LIFT_BACKDROP_CSS,
+    'blue',
+    'blue',
+  ])
+})
+
+test('a strip with no walk lifted keys its grey as outside the open bubble', () => {
+  const rows = stripLegend({
+    effectiveColorScheme: 'depth',
+    referenceStripBlocks: [{ colors: ['red'] }],
+  })
+  expect(rows?.map(r => r.label)).toEqual([
+    'reference',
+    'reference outside the open bubble',
+  ])
 })

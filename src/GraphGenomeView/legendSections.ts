@@ -378,26 +378,51 @@ function stripBands(model: GraphPaneModel): Stop[][] {
   ]
 }
 
+// A row's own colour either side of grey, off the first row that breaks
+function brokenRowBand(blocks: GraphPaneModel['referenceStripBlocks']) {
+  const row = blocks
+    .find(b => b.colors.includes(LIFT_BACKDROP_CSS))
+    ?.colors.indexOf(LIFT_BACKDROP_CSS)
+  const color =
+    row === undefined
+      ? undefined
+      : blocks.map(b => b.colors[row]).find(c => c && c !== LIFT_BACKDROP_CSS)
+  return color ? bandStops([color, LIFT_BACKDROP_CSS, color]) : undefined
+}
+
 function stripRows(model: GraphPaneModel): LegendRow[] {
   if (!model.referenceStripShown) {
     return []
   }
-  const rowPerWalk = (model.walkLift?.walks.length ?? 0) > 1
+  const walks = model.walkLift?.walks ?? []
+  const rowPerWalk = walks.length > 1
+  const broken = walks.length > 0 && brokenRowBand(model.referenceStripBlocks)
   return [
     {
       key: 'strip',
-      label: `reference${rowPerWalk ? ', a row per walk' : ''}`,
+      label: rowPerWalk
+        ? 'reference each walk passes through'
+        : walks[0] && !walks[0].reference
+          ? `reference ${model.liftedWalksLabel} passes through`
+          : 'reference',
       swatch: { kind: 'bands', bands: stripBands(model) },
     },
     ...(model.referenceStripFaded
       ? [
-          fillRow(
-            'strip-faded',
-            LIFT_BACKDROP_CSS,
-            model.walkLift
-              ? `reference not on ${rowPerWalk ? "that row's walk" : model.liftedWalksLabel}`
-              : 'reference outside the open bubble',
-          ),
+          walks.length > 0
+            ? {
+                key: 'strip-faded',
+                label: `grey where ${rowPerWalk ? 'a walk' : model.liftedWalksLabel} does not pass through`,
+                swatch: {
+                  kind: 'bands' as const,
+                  bands: [broken || flat(LIFT_BACKDROP_CSS)],
+                },
+              }
+            : fillRow(
+                'strip-faded',
+                LIFT_BACKDROP_CSS,
+                'reference outside the open bubble',
+              ),
         ]
       : []),
     ...keyRowsOf(model, 'overhang'),
@@ -680,7 +705,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     {
       testid: 'graph-reference-strip-legend',
       rows: stripRows(model),
-      group: 'Top strip',
+      group: 'Reference strip',
     },
     core('graph-compressed-legend', 'compressed'),
     { testid: 'graph-fold-legend', rows: foldRows(model) },
