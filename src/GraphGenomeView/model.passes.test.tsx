@@ -1,7 +1,9 @@
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
+import { abgrHex } from '@jbrowse/bandage-core/renderer/colorBits'
 import { render } from '@testing-library/react'
 
 import PassBars from './components/PassBars'
+import WalkStrip from './components/WalkStrip'
 import { mockRpcCall } from './modelTestMocks'
 import stateModelFactory from './viewModel'
 
@@ -36,7 +38,7 @@ const GFA = [
   '',
 ].join('\n')
 
-async function liftedByPass() {
+async function liftedByPass(walkStrip = false) {
   mockRpcCall.mockImplementation(
     (_session: unknown, method: string, request: EngineRequest) =>
       method === 'GraphComputeLayout'
@@ -46,6 +48,7 @@ async function liftedByPass() {
   const model = stateModelFactory().create({
     type: 'GraphGenomeView',
     layoutMode: 'ordered',
+    layers: { walkStrip },
   })
   model.setWidth(1200)
   await model.loadGFA(GFA, 'repeat')
@@ -94,4 +97,25 @@ test('a view of its own draws a bar along each walk lifted by pass, colouring th
   }
   model.setWalkLayers([{ walk: 'ref#0#chr' }, { walk: 'hap#1#ctg' }])
   expect(model.passBars).toEqual([])
+})
+
+test("the strip paints a walk lifted by pass in its passes' colours, and its pass bar goes while the strip draws its row", async () => {
+  const model = await liftedByPass(true)
+  const drawn = model.walkLift!.walks.find(w => w.name === 'hap#1#ctg')!
+  const passColors = drawn.walkPasses!.passes.map(pass => abgrHex(pass.ink))
+  expect(passColors).toHaveLength(3)
+  const { getByTestId } = render(<WalkStrip model={model} />)
+  const hapRow = [
+    ...getByTestId('graph-walk-strip').querySelectorAll(
+      '[data-testid="graph-walk-row"]',
+    ),
+  ].find(row => row.querySelector('linearGradient'))!
+  const stops = [...hapRow.querySelectorAll('stop')].map(stop =>
+    stop.getAttribute('stop-color'),
+  )
+  expect(stops).toEqual(expect.arrayContaining(passColors))
+  expect(model.passBars).toEqual([])
+  model.setWalkRowSamples(['ref'])
+  expect(model.walkStripRows!.rows).toEqual([])
+  expect(model.passBars.map(bar => bar.walk)).toEqual(['hap#1#ctg'])
 })

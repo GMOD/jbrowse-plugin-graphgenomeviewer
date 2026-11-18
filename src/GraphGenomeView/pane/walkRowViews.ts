@@ -103,11 +103,12 @@ export const withWalkRowViews = withLaunchViews
       return self.rowVisitsNeeded ? (self.walkRowBars?.rows ?? []) : []
     },
     // Each walk lifted by pass along its own length, under a drawing of
-    // nodes in a view of its own, as bandage-core's figure stacks them; a
-    // faceted pane names no pass
+    // nodes in a view of its own, as bandage-core's figure stacks them, but
+    // for a walk whose row the strip draws in its passes' colours; a faceted
+    // pane names no pass
     get passBars() {
       return !self.host && self.drawsNodes && !self.facetPanels
-        ? passBars(self.walkLift)
+        ? passBars(self.walkLift, this.walkStripRows)
         : []
     },
     // Where the drawing has the node a strip point lights, for the ring
