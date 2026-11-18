@@ -97,6 +97,9 @@ function regionBox() {
 test('with graph tracks in the session the form leads with them, a track drawing at any zoom first on its whole first contig', async () => {
   const model = renderPicker([WALKS, OVERVIEW])
   expect(screen.getByText('Show a graph track')).toBeTruthy()
+  expect(screen.getByTestId('graph-import-tip').textContent).toMatch(
+    /track in a linear genome view.*Pick a graph track and a region below/,
+  )
   expect(regionBox()).toHaveProperty('value', 'chr1')
   fireEvent.click(screen.getByTestId('graph-track-show'))
   await waitFor(() => {
@@ -137,8 +140,10 @@ test('a region on a sequence the assembly lacks is refused in the form, which sh
   expect(model.showTrackInLinearView).not.toHaveBeenCalled()
 })
 
-test('with no graph tracks the form opens a small GFA file and says where a pangenome opens', () => {
+test('with no graph tracks the form opens a small GFA file, and its tip says a pangenome opens as a track through File → Open track', () => {
   renderForm()
   expect(screen.getByText('Open a small GFA file')).toBeTruthy()
-  expect(screen.getByText(/File → Open track/)).toBeTruthy()
+  expect(screen.getByTestId('graph-import-tip').textContent).toMatch(
+    /track in a linear genome view.*gfa-to-tabix.*File → Open track/,
+  )
 })

@@ -1,7 +1,15 @@
 import { useState } from 'react'
 
 import { ErrorBanner } from '@jbrowse/core/ui'
-import { Button, Divider, Paper, TextField, Typography } from '@mui/material'
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
+import {
+  Alert,
+  Button,
+  Divider,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { observer } from 'mobx-react'
 import { makeStyles } from 'tss-react/mui'
 
@@ -26,6 +34,7 @@ const useStyles = makeStyles()(theme => ({
   flex1: { flex: 1 },
   paper: { padding: 16, margin: 8, maxWidth: 560, marginInline: 'auto' },
   header: { marginBottom: 12 },
+  tip: { marginBottom: 16 },
   divider: { marginBlock: 16 },
   footer: { marginTop: 12, display: 'flex', justifyContent: 'flex-end' },
   dragging: {
@@ -89,14 +98,22 @@ const ImportForm = observer(function ImportForm({
         handleDrop(event)
       }}
     >
+      <Alert
+        severity="info"
+        icon={<LightbulbOutlinedIcon fontSize="inherit" />}
+        className={classes.tip}
+        data-testid="graph-import-tip"
+      >
+        A pangenome graph usually reads best as a track in a linear genome view,
+        which redraws it as you pan and zoom.{' '}
+        {graphTracks.length > 0
+          ? 'Pick a graph track and a region below.'
+          : 'Index it with gfa-to-tabix and open it with File → Open track.'}
+      </Alert>
       {graphTracks.length > 0 ? (
         <>
           <div className={classes.header}>
             <Typography variant="h6">Show a graph track</Typography>
-            <Typography variant="body2" color="text.secondary">
-              A linear genome view draws the graph at the region shown, and
-              again as you pan and zoom
-            </Typography>
           </div>
           <GraphTrackPicker model={model} choices={graphTracks} />
           <Divider className={classes.divider} />
@@ -109,10 +126,6 @@ const ImportForm = observer(function ImportForm({
       ) : (
         <div className={classes.header}>
           <Typography variant="h6">Open a small GFA file</Typography>
-          <Typography variant="body2" color="text.secondary">
-            A pangenome indexed with gfa-to-tabix opens as a track instead: File
-            → Open track
-          </Typography>
         </div>
       )}
 
