@@ -107,8 +107,9 @@ const WalkFormsAdapter = ConfigurationSchema(
      * The most compressed bytes the forms cut fetches from the walk file,
      * its blocks of walks kept in short form included, which its directory
      * gives before any row is read. A pinned window over it shows an error
-     * instead. The default admits a gene-sized window of the MHC's densest
-     * stretch and refuses one whose cut would run a browser tab out of memory.
+     * instead. The default admits the MHC windows the format 7 file drew.
+     * Bytes stand in for memory only roughly: a window under the budget can
+     * still be heavy for a browser tab.
      */
     walkByteBudget: {
       type: 'integer',

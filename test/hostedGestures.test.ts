@@ -220,7 +220,7 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     expect((await display()).followsHostView).toBe(true)
   })
 
-  it('a drag scrolls the linear view, and the graph slides where its window places it, up and down too', async () => {
+  it('a drag scrolls the linear view, and the graph slides where its window places it', async () => {
     const before = await state()
     const box = await boxOf(GRAPH_CANVAS)
     // on empty canvas near the bottom left, past the key when it sits there
