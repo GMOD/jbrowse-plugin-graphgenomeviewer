@@ -131,20 +131,23 @@ function phasedRow(haplotype) {
   return `${sample} HP${n}`
 }
 const CALLSET_ROW_PX = 18
-function callsetLane(haplotypes) {
+const CALLSET_CHIP_PX = 22
+function callsetLane(haplotypes, rowPx = CALLSET_ROW_PX) {
   return {
     trackId: 'hprc2_pgbi_grch38',
     type: 'LinearVariantDisplay',
+    records: { show: false },
     rows: {
       sort: haplotypes.map(phasedRow),
       labels: Object.fromEntries(haplotypes.map(h => [phasedRow(h), h])),
-      step: CALLSET_ROW_PX,
+      step: rowPx,
       axis: { tree: false },
     },
-    height: haplotypes.length * CALLSET_ROW_PX,
+    height: haplotypes.length * rowPx + CALLSET_CHIP_PX,
   }
 }
 const CALLSET_TRACK = callsetLane(HAPLOTYPES)
+const bothHaplotypes = samples => samples.flatMap(s => [`${s}.1`, `${s}.2`])
 
 function graphView(props) {
   return {
@@ -306,14 +309,18 @@ async function hoverExonVariant(page) {
   await page.mouse.move(target.x, target.y)
 }
 
-const cfhrSamples = trackView(CFHR_LOC, {
-  trackId: LANES,
-  layoutMode: 'tubemapref',
-  subgraphHaplotypes: SAMPLES,
-  tubeMapFold: 1000,
-  facet: 'sample',
-  height: 900,
-})
+const cfhrSamples = trackView(
+  CFHR_LOC,
+  {
+    trackId: LANES,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: SAMPLES,
+    tubeMapFold: 1000,
+    facet: 'sample',
+    height: 900,
+  },
+  [callsetLane(bothHaplotypes(SAMPLES), 14)],
+)
 
 // the first six samples of each superpopulation in the demo's sample table
 const POPULATION_SAMPLES = [
@@ -324,23 +331,33 @@ const POPULATION_SAMPLES = [
   ...['HG02602', 'HG02698', 'HG03704', 'HG03834', 'HG03942', 'HG04160'],
 ]
 
-const cfhrPopulations = trackView(CFHR_LOC, {
-  trackId: LANES,
-  layoutMode: 'tubemapref',
-  subgraphHaplotypes: POPULATION_SAMPLES,
-  tubeMapFold: 1000,
-  facet: 'superpopulation',
-  height: 1250,
-})
+const POPULATION_CALLSET = callsetLane(bothHaplotypes(POPULATION_SAMPLES), 4)
 
-const c4Bundled = trackView(C4_LOC, {
-  trackId: LANES,
-  layoutMode: 'tubemapref',
-  subgraphHaplotypes: POPULATION_SAMPLES,
-  tubeMapFold: 1000,
-  tubeMapRoutes: 'bundled',
-  height: 700,
-})
+const cfhrPopulations = trackView(
+  CFHR_LOC,
+  {
+    trackId: LANES,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    facet: 'superpopulation',
+    height: 1250,
+  },
+  [POPULATION_CALLSET],
+)
+
+const c4Bundled = trackView(
+  C4_LOC,
+  {
+    trackId: LANES,
+    layoutMode: 'tubemapref',
+    subgraphHaplotypes: POPULATION_SAMPLES,
+    tubeMapFold: 1000,
+    tubeMapRoutes: 'bundled',
+    height: 700,
+  },
+  [POPULATION_CALLSET],
+)
 
 // Points at the box `sample`'s panel draws over `bp` of the linear view, as a
 // reader would at a gene above it
@@ -665,7 +682,7 @@ const FIGURES = {
   ordered_micb_link_width: {
     session: linearView(
       MICB_LOC,
-      [GENE_TRACK],
+      [GENE_TRACK, POPULATION_CALLSET],
       [
         graphView({
           loadedTrackId: LANES,
@@ -680,27 +697,35 @@ const FIGURES = {
   },
   // one map, each route a stack of its superpopulations' strands
   tube_map_c4_routes_by_population: {
-    session: trackView(C4_LOC, {
-      trackId: LANES,
-      layoutMode: 'tubemapref',
-      subgraphHaplotypes: POPULATION_SAMPLES,
-      tubeMapFold: 1000,
-      tubeMapRoutes: 'bundled',
-      tubeMapColorBy: 'superpopulation',
-      height: 700,
-    }),
+    session: trackView(
+      C4_LOC,
+      {
+        trackId: LANES,
+        layoutMode: 'tubemapref',
+        subgraphHaplotypes: POPULATION_SAMPLES,
+        tubeMapFold: 1000,
+        tubeMapRoutes: 'bundled',
+        tubeMapColorBy: 'superpopulation',
+        height: 700,
+      },
+      [POPULATION_CALLSET],
+    ),
   },
   // every haplotype its own tube, ordered route by route and by population
   tube_map_c4_grouped_by_population: {
-    session: trackView(C4_LOC, {
-      trackId: LANES,
-      layoutMode: 'tubemapref',
-      subgraphHaplotypes: POPULATION_SAMPLES,
-      tubeMapFold: 1000,
-      tubeMapRoutes: 'grouped',
-      tubeMapColorBy: 'superpopulation',
-      height: 900,
-    }),
+    session: trackView(
+      C4_LOC,
+      {
+        trackId: LANES,
+        layoutMode: 'tubemapref',
+        subgraphHaplotypes: POPULATION_SAMPLES,
+        tubeMapFold: 1000,
+        tubeMapRoutes: 'grouped',
+        tubeMapColorBy: 'superpopulation',
+        height: 900,
+      },
+      [POPULATION_CALLSET],
+    ),
   },
   tube_map_micb_track: {
     session: trackView(
@@ -745,7 +770,7 @@ const FIGURES = {
   tube_map_micb: {
     session: linearView(
       MICB_LOC,
-      [GENE_TRACK],
+      [GENE_TRACK, CALLSET_TRACK],
       [
         graphView({
           loadedTrackId: LANES,
@@ -856,6 +881,16 @@ async function recolorAnnotations(page) {
 // with neither keeps the lane's own order. A lane's rows are `drawnRows` on
 // JBrowse main and `sources` on the releases before it.
 async function orderLaneRowsByKey(page) {
+  await page.waitForFunction(
+    () =>
+      window.JBrowseSession.views[0].tracks
+        .map(t => t.displays[0])
+        .filter(d =>
+          ['LinearMafDisplay', 'LinearVariantDisplay'].includes(d.type),
+        )
+        .every(d => (d.drawnRows ?? d.sources)?.length > 0),
+    { timeout: 180_000 },
+  )
   await page.evaluate(() => {
     const displays = window.JBrowseSession.views[0].tracks.map(
       t => t.displays[0],

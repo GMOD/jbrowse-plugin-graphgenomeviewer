@@ -11,9 +11,10 @@ through a bubble reads heavy and a private one thin, without lifting any walk.
 **Node width › By frequency** draws a node as wide as the share of haplotypes
 through it, so the two settings together read as allele frequency. The Ordered
 layout hangs each alternate allele below the reference, where its links stand
-out.
+out. The callset's rows of the same haplotypes show it too: a common allele is a
+near-solid column, a rare one a few cells.
 
-![60 haplotypes through MICB's exons 2–4 in the Ordered layout, nodes by frequency and links by walks. Common alternate alleles hang below the reference on heavy links and rare ones on thin links](../img/ordered_micb_link_width.png)
+![60 haplotypes through MICB's exons 2–4 in the Ordered layout under their callset rows, nodes by frequency and links by walks. Common alternate alleles hang below the reference on heavy links and rare ones on thin links](../img/ordered_micb_link_width.png)
 
 ## Lifting walks
 

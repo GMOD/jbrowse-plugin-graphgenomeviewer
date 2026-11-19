@@ -24,9 +24,10 @@ Pick **Tube map** or **Tube map on reference** from the layout menu
   tubes. In a linear view, the gene track shows them
 
 MICB's exons 2–4 open as a graph genome view under the linear view they came
-from. Hovering a variant's box bands its bp in the linear view:
+from. Hovering a variant's box bands its bp in the linear view, where the
+callset's rows carry the same allele:
 
-![MICB's exons 2–4 as a graph genome view, a variant's box hovered and its bp banded in the linear view above](../img/tube_map_micb.png)
+![MICB's exons 2–4 as a graph genome view under the callset's rows, a variant's box hovered and its bp banded across both](../img/tube_map_micb.png)
 
 Eight HPRC haplotypes over MICB's exons 2–4 draw on the reference axis under the
 RefSeq genes, with HPRC's multiple alignment between:
@@ -81,9 +82,11 @@ walks.
 - Reads are not drawn while split
 
 An 85 kb deletion removes CFHR3 and CFHR1 on 139 of HPRC's 464 haplotypes. Here
-eight samples get a panel each:
+eight samples get a panel each, under the callset's rows of their haplotypes.
+The four panels that skip the genes are the four samples whose rows carry the
+deletion:
 
-![CFHR3 and CFHR1 as a tube map track split by sample, eight panels under the RefSeq genes](../img/tube_map_cfhr_samples.png)
+![CFHR3 and CFHR1 as a tube map track split by sample, eight panels under the RefSeq genes and the callset's rows, the deletion a solid block in four samples' rows](../img/tube_map_cfhr_samples.png)
 
 Hovering the reference's CFHR3–CFHR1 box in HG01960's panel counts 2 of 2
 haplotypes through it for the carriers and 0 of 2 for the rest:
@@ -92,9 +95,10 @@ haplotypes through it for the carriers and 0 of 2 for the rest:
 
 Split by `superpopulation`, the map draws a panel per group of six samples.
 Hovering CFHR1's box in AFR counts 5 of 12 haplotypes through it there, against
-12 of 12 in EAS:
+12 of 12 in EAS. The callset rows above run in the panels' order, twelve to a
+group:
 
-![CFHR3 and CFHR1 split by superpopulation, a panel each for AFR, AMR, EAS, EUR and SAS, each title counting its haplotypes through the hovered box](../img/tube_map_cfhr_populations_hover.png)
+![CFHR3 and CFHR1 split by superpopulation under the callset's rows, a panel each for AFR, AMR, EAS, EUR and SAS, each title counting its haplotypes through the hovered box](../img/tube_map_cfhr_populations_hover.png)
 
 ## Routes and tube colour
 
@@ -110,9 +114,11 @@ column, with the reference charcoal and a key per value.
 
 The map draws thirty HPRC samples over C4A and C4B as a tube per route coloured
 by superpopulation. The main route, five strands wide, skips the 6.4 kb HERV-K
-in C4B, and thin tubes skip or add a whole 33 kb module:
+in C4B, and thin tubes skip or add a whole 33 kb module. The callset's sixty
+rows above show the same alleles: the HERV-K deletion a block in most rows, a
+missing module a line across C4A to C4B:
 
-![C4A and C4B as a tube per route coloured by superpopulation](../img/tube_map_c4_routes_by_population.png)
+![C4A and C4B as a tube per route coloured by superpopulation, under the callset's rows of the same sixty haplotypes](../img/tube_map_c4_routes_by_population.png)
 
 Hovering a tube lists its haplotypes:
 
