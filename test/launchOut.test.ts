@@ -198,19 +198,17 @@ describe.skipIf(!runE2E)('launching out of the graph', () => {
         canvas.scrollIntoView({ block: 'start' })
         const rect = canvas.getBoundingClientRect()
         // a backbone segment on screen: its own coordinates are on the one
-        // loaded assembly, so the exact-span item is the one offered
+        // loaded assembly, so the exact-span item is the one offered. The
+        // point is the middle of the middle piece of its line, which lies on
+        // the line where the midpoint of a bent node's ends does not
         const bottom = Math.min(rect.bottom, window.innerHeight)
         const at = (id: string) => {
-          const segments = view.nodePositions[id]
-          const first = segments[0]
-          const last = segments.at(-1)
+          const line = view.nodePositions[id]
+          const a = line[Math.floor((line.length - 1) / 2)]
+          const b = line[Math.ceil((line.length - 1) / 2)]
           return {
-            x:
-              rect.left +
-              (((first.x + last.x) / 2) * view.scaleX + view.translateX),
-            y:
-              rect.top +
-              (((first.y + last.y) / 2) * view.scaleY + view.translateY),
+            x: rect.left + (((a.x + b.x) / 2) * view.scaleX + view.translateX),
+            y: rect.top + (((a.y + b.y) / 2) * view.scaleY + view.translateY),
           }
         }
         const node = view.graph.nodes.find(
