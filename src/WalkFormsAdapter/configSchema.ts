@@ -105,13 +105,14 @@ const WalkFormsAdapter = ConfigurationSchema(
     /**
      * #slot
      * The most compressed bytes the forms cut fetches from the walk file,
-     * which its directory gives before any row is read. A pinned window
-     * over it shows an error instead. 1 MB holds about 1 Mb of the MHC, whose
-     * cut takes 13 s and 0.8 GB.
+     * its blocks of walks kept in short form included, which its directory
+     * gives before any row is read. A pinned window over it shows an error
+     * instead. The default admits a gene-sized window of the MHC's densest
+     * stretch and refuses one whose cut would run a browser tab out of memory.
      */
     walkByteBudget: {
       type: 'integer',
-      defaultValue: 1_000_000,
+      defaultValue: 1_500_000,
     },
   },
   {

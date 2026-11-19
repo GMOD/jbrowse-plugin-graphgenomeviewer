@@ -165,8 +165,11 @@ largest change ("66% · del 18.4kb"):
   `del 18.4kb`, `del 6.46kb->94bp`, `repl 32.7kb->58.7kb`, `shift 94.2kb` or
   `ref`, and "+N" counts its other changes, which the variants under it name.
   Changes every form shares stay out of the label
-- `walkByteBudget`, 1 MB by default, caps what the cut fetches. A pinned window
-  over it shows an error naming how much of the window fits
+- `walkByteBudget`, 1.5 MB by default, caps what the cut fetches, the blocks of
+  walks the file keeps in short form included. It admits a gene-sized window of
+  the MHC's densest stretch and refuses one whose cut would run a browser tab
+  out of memory. A pinned window over it shows an error naming how much of the
+  window fits
 - A detour the walk file keeps in short form counts in full: graph-walks builds
   it from its length and its place on the reference, so its changes are the ones
   its steps make
