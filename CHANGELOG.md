@@ -1,3 +1,9 @@
+## [10.0.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.1...v10.0.2) (2026-11-19)
+
+### Other Changes
+
+- A build made for a view the pane had already left is rebuilt ([73a4cfe](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/73a4cfedac84a209618d22b34e5b695d0be20153))
+
 ## [10.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.0...v10.0.1) (2026-11-19)
 
 ### Other Changes
