@@ -55,9 +55,10 @@ test('a panel drawing built before the fit is built again for the fitted view', 
   model.setWidth(1200)
   model.setLegendSize({ width: 150, height: 60 })
   await later(VIEWPORT_DEBOUNCE_MS + 100)
-  const panels = model.facetDrawings!
+  const rebuilt = model.facetDrawings
   stop()
-  expect(panels).not.toBe(early)
+  expect(rebuilt).not.toBe(early)
+  const panels = (rebuilt ?? []).flatMap(panel => panel ?? [])
   expect(panels.map(p => p.scale)).toEqual([model.scale, model.scale])
   expect(panels.map(p => p.batch.nodeStrokes.length > 0)).toEqual([true, true])
 })
