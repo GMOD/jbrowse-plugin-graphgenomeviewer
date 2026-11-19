@@ -22,12 +22,14 @@ import type { Browser, Page } from 'puppeteer'
 
 // RUN_E2E=1 pnpm test:e2e test/hostedGestures.test.ts
 //
-// A force layout in a track draws in its own coordinates, but follows the
-// linear view's pan and zoom as a stretched picture until the re-cut lands. So
-// the view drives it: a horizontal drag or ctrl+wheel over it moves the view
-// as over any track, a vertical drag pans the graph, and a press on a node
-// drags the node and leaves the view where it is. Core pans on pointerdown and
-// range-selects on mousedown, and only a real browser dispatches both.
+// A force layout in a track draws in its own coordinates, placed by the linear
+// view's window: the window's stretch of the reference lies where the view's
+// ruler, narrowed to the drawing's width beside the key, puts its bp. So the
+// view drives it: a drag or ctrl+wheel over it moves the view as over any
+// track, and the drawing slides with the window, at its own scale; a press on
+// a node drags the node and leaves the view where it is. Core pans on
+// pointerdown and range-selects on mousedown, and only a real browser
+// dispatches both.
 const runE2E = process.env.RUN_E2E === '1'
 
 const DISPLAY = '[data-testid="linear-graph-display"]'
@@ -77,6 +79,51 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
             d.translateY,
             d.positionsVersion,
           ].join(),
+        }
+      },
+      [LGV_ID, RGFA_TRACK_ID],
+    )
+  }
+
+  // Where the drawing puts the reference the view shows, and where the view's
+  // ruler narrowed to the drawing's width puts the same bp, each averaged over
+  // those bp, in pane px; and whether the drawing sits where its window places
+  // it rather than where a drag left it
+  function placedByWindow() {
+    return page.evaluate(
+      ([viewId, trackId]: string[]) => {
+        const view = window.JBrowseSession.views.find(v => v.id === viewId)
+        const d = view.tracks.find(
+          (t: { configuration: { trackId: string } }) =>
+            t.configuration.trackId === trackId,
+        ).displays[0]
+        const pieces: { bp0: number; bp1: number; x0: number; x1: number }[] =
+          d.heldReference.pieces
+        const { padLeft, padRight } = d.followPads
+        const usable = d.drawingWidth - padLeft - padRight
+        const span = view.bpPerPx * view.width
+        const leftBp =
+          view.displayedRegions[0].start + view.offsetPx * view.bpPerPx
+        let covered = 0
+        let drawn = 0
+        let ruled = 0
+        for (const p of pieces) {
+          const lo = Math.max(leftBp, p.bp0)
+          const hi = Math.min(leftBp + span, p.bp1)
+          if (hi > lo) {
+            const mid = (lo + hi) / 2
+            const x = p.x0 + ((p.x1 - p.x0) * (mid - p.bp0)) / (p.bp1 - p.bp0)
+            covered += hi - lo
+            drawn += (hi - lo) * (x * d.scale + d.translateX)
+            ruled += (hi - lo) * (padLeft + (usable * (mid - leftBp)) / span)
+          }
+        }
+        const placed = d.windowTransform
+        return {
+          drawn: drawn / covered,
+          ruled: ruled / covered,
+          transform: [d.scale, d.translateX, d.translateY],
+          placed: [placed?.scale, placed?.translateX, placed?.translateY],
         }
       },
       [LGV_ID, RGFA_TRACK_ID],
@@ -173,9 +220,8 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     expect((await display()).followsHostView).toBe(true)
   })
 
-  it('a drag scrolls the linear view, carries the graph with it, and pans it vertically', async () => {
+  it('a drag scrolls the linear view, and the graph slides where its window places it, up and down too', async () => {
     const before = await state()
-    const was = await display()
     const box = await boxOf(GRAPH_CANVAS)
     // on empty canvas near the bottom left, past the key when it sits there
     const key = await boxOf(`${DISPLAY} [data-legend-corner="bottom-left"]`)
@@ -184,11 +230,11 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
     await drag(key + 20, box.y + box.height - 50)
     await viewMoved('offsetPx', before.offsetPx)
     const after = await state()
-    expect(after.translateX - before.translateX).toBeCloseTo(
-      before.offsetPx - after.offsetPx,
-      6,
-    )
-    expect((await display()).translateY - was.translateY).toBeCloseTo(30, 6)
+    expect(after.offsetPx).toBeLessThan(before.offsetPx)
+    expect(after.translateX).toBeGreaterThan(before.translateX)
+    const { drawn, ruled, transform, placed } = await placedByWindow()
+    expect(drawn).toBeCloseTo(ruled, 6)
+    expect(transform).toEqual(placed)
   }, 60_000)
 
   it('a drag on a node moves the node and leaves the view', async () => {
@@ -272,10 +318,10 @@ describe.skipIf(!runE2E)('gestures on a graph track that pans itself', () => {
       [LGV_ID, before.offsetPx] as [string, number],
     )
     const after = await state()
-    expect(after.translateX - before.translateX).toBeCloseTo(
-      before.offsetPx - after.offsetPx,
-      6,
-    )
+    expect(after.offsetPx).toBeLessThan(before.offsetPx)
+    expect(after.translateX).toBeGreaterThan(before.translateX)
+    const { drawn, ruled } = await placedByWindow()
+    expect(drawn).toBeCloseTo(ruled, 6)
   }, 60_000)
 
   it('a drag on a plain track still pans the linear view', async () => {
