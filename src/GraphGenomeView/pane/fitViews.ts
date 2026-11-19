@@ -49,7 +49,7 @@ import { padded } from '@jbrowse/bandage-core/viewport'
 import { walkPosition } from '@jbrowse/bandage-core/walkKey'
 import { untracked } from 'mobx'
 
-import { cutRuleOf, hostWindow } from '../host'
+import { cutRuleOf, hostWindow, paneWindow } from '../host'
 import { measureReadout } from '../readoutMeasure'
 import { sectionHeadersPx, sectionPlacement } from '../walkRowGroups'
 import { withHostViews } from './hostViews'
@@ -559,19 +559,21 @@ export const withFitViews = withHostViews
             )
         : undefined
     },
-    // a window on another sequence puts the held cut past the pane's edge
+    // a window on another sequence puts the held cut past the pane's edge,
+    // and a view past its sequence's end lays its bp there as the ruler does
     get windowTransform() {
-      const { graphRegion, layoutResult } = self
+      const { graphRegion, layoutResult, host } = self
       const seen = this.heldWindow
+      const ruler = seen && host ? paneWindow(host) : undefined
       const pieces = this.heldReference
       const scale = this.heldScale
       const bounds = this.heldBounds
       const held = this.heldLayout
       const followed =
-        seen && pieces && scale !== undefined && bounds
+        seen && ruler && pieces && scale !== undefined && bounds
           ? followTransform(
               pieces,
-              seen,
+              ruler,
               scale,
               bounds,
               this.drawingWidth,

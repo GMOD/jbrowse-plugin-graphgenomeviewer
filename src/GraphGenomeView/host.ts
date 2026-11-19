@@ -111,6 +111,17 @@ export function hostWindow(view: LinearHost): HostWindow | undefined {
     : undefined
 }
 
+// The bp the view's width spans on the window's sequence, running past the
+// sequence's ends where the view does, where hostWindow stops at them
+export function paneWindow(view: LinearHost) {
+  const block = widest(view.dynamicBlocks.contentBlocks)
+  const start =
+    block && block.start - (block.offsetPx - view.offsetPx) * view.bpPerPx
+  return start === undefined
+    ? undefined
+    : { start, end: start + view.bpPerPx * view.width }
+}
+
 // The window plus one window-width each side, clamped to the displayed
 // region, with the margins narrowed until the whole cut fits under `capBp`.
 export function hostCut(

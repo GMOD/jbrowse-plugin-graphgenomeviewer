@@ -1172,6 +1172,19 @@ test("the reference at the window's centre is drawn at the track's centre at eve
   expect(cuts).toHaveLength(1)
 })
 
+test("a view past its sequence's start draws the reference's start where the ruler puts bp 0, so a pan there slides the drawing as one inside does", async () => {
+  const { view, pane, cuts } = await forceGraph({ windowStart: 0 })
+  const { left, right } = pane.fitPads
+  const usable = pane.drawingWidth - left - right
+  for (const px of [0, 50, 100]) {
+    view.scrollTo(-px)
+    expect(view.offsetPx).toBeCloseTo(-px, 9)
+    expect(screenXOf(pane, 0)).toBeCloseTo(left + (usable * px) / WIDTH_PX, 6)
+    await wait(SETTLE_MS)
+  }
+  expect(cuts).toHaveLength(1)
+})
+
 // The window's stretch of the reference and every node off it anchored
 // inside the window, in pane px
 function windowInk(pane: LinearGraphDisplayModel) {
