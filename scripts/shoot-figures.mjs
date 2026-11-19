@@ -1132,6 +1132,21 @@ async function appShot(context, name) {
     .waitForNetworkIdle({ idleTime: 1500, timeout: 90_000 })
     .catch(() => {})
   await sleep(2500)
+  // a panel that drew nothing is its paper alone, every pixel the first's
+  const blankPanels = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('[data-testid="graph-facet-canvas"]')]
+        .map(canvas => {
+          const { data } = canvas
+            .getContext('2d')
+            .getImageData(0, 0, canvas.width, canvas.height)
+          return data.some((v, k) => v !== data[k % 4])
+        })
+        .filter(inked => !inked).length,
+  )
+  if (blankPanels > 0) {
+    throw new Error(`${blankPanels} facet panels drew nothing`)
+  }
   const clip = await page.evaluate(() => {
     const rects = [
       ...document.querySelectorAll('[data-testid^="view-container"]'),
