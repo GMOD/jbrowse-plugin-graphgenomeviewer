@@ -234,6 +234,7 @@ const kiv2Force = {
   encoding: { color: { field: 'position' } },
   maxRegionBp: 143000,
   height: 400,
+  heightMode: 'grow',
 }
 const kiv2Lanes = {
   trackId: LANES,
@@ -572,6 +573,20 @@ const FIGURES = {
         height: 560,
       },
       [VNTR_TRACK],
+      [
+        {
+          type: 'LinearSyntenyView',
+          tracks: [LANES],
+          collapseEmptyRows: true,
+          views: [
+            { assembly: 'hg38', loc: KIV2_ARRAY_LOC, tracks: [VNTR_TRACK] },
+            {
+              assembly: 'HG00133.1',
+              loc: 'CM090050.1:162,064,651-162,216,062',
+            },
+          ],
+        },
+      ],
     ),
   },
   // ggbandage's kiv2_overlay: three walks lifted together, each shaded along
@@ -803,12 +818,16 @@ const FIGURES = {
     ),
   },
   force_mhc: {
-    session: trackView(MHC_LOC, {
-      trackId: RGFA,
-      layoutMode: 'force',
-      encoding: { color: { field: 'position' } },
-      height: 420,
-    }),
+    session: trackView(
+      MHC_LOC,
+      {
+        trackId: RGFA,
+        layoutMode: 'force',
+        encoding: { color: { field: 'position' } },
+        height: 420,
+      },
+      [mafLane(HAPLOTYPES)],
+    ),
     act: hoverLongestAllele,
   },
   // every founder's insertions and deletions at B73's bp above its walk, the

@@ -33,7 +33,7 @@ Tube maps have no picker, since their tubes are the walks.
 
 ### Example: GSTM1
 
-HG00133 lifted alone runs cyan to navy past the 18 kb its deletion skips:
+HG00133 lifted alone runs cyan to navy past the GSTM1 copy its deletion skips:
 
 ![HG00133's walk lifted at GSTM1 under the eight haplotypes' alignment rows](../img/force_gstm1_walk.png)
 
@@ -63,8 +63,10 @@ With two or more lifted, **Haplotypes › Arrange** facets the pane.
   go across as draw each panel largest; `columns` fixes the count
 - Hovering a node gives its position on each walk's contig in the key
 
-Through KIV-2, HG00097 adds one loop to GRCh38's (+22.2 kb), HG01960 skips most
-of GRCh38's for the big loop (+49.9 kb), and HG00133 takes both (+116.4 kb):
+Through KIV-2, HG00097 adds one loop to GRCh38's, HG01960 skips most of GRCh38's
+for the big loop, and HG00133 takes both; each panel's key gives its walk's
+length. Under the panels, a synteny view reads HG00133 against GRCh38 from the
+same walk files, the array opening out to HG00133's longer one:
 
 ![The KIV-2 array side by side: GRCh38, HG00097, HG01960 and HG00133](../img/force_kiv2_facet.png)
 
@@ -109,8 +111,8 @@ light to dark along its own length in its own hue. Where a walk passes a node
 more than once, the view draws a thread per pass:
 
 - GRCh38 runs in along 30 kb of flank from either side to the array's loops
-- HG00133 alone runs the loop at the lower left, and HG00133 and HG00097 run the
-  loop at the lower right together
+- HG00133 and HG00097 run the loop above the array together, and HG00133 alone
+  runs the loop below it and a small one further left
 - **Bubble spread › Compress lengths** in Graph settings keeps HG00133's extra
   copies from dwarfing the rest, so read lengths off the key
 

@@ -133,8 +133,9 @@ stretch of node it sits on, and pins the gene's name under its midpoint.
   `gene_name`, `Name`, `gene` or `gene_id` get no name
 
 In MHC class II, HLA-DRB5, HLA-DRB6 and HLA-DRB1 sit over their exons. Hovering
-HG01071's 46.9 kb allele shows it replaces 173 bp of GRCh38 between HLA-DRB5 and
-HLA-DRB6:
+HG01071's 46.9 kb allele bands the stretch of GRCh38 it replaces between
+HLA-DRB5 and HLA-DRB6, and the alignment rows above show which haplotypes differ
+from GRCh38 along it:
 
 ![MHC class II under its genes, HG01071's 46.9 kb allele hovered](../img/force_mhc.png)
 
