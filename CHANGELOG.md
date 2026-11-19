@@ -1,3 +1,11 @@
+## [10.0.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.2...v10.0.3) (2026-11-19)
+
+### Other Changes
+
+- The drawing is built for a settled window the pane tracks, not a counter bumped over untracked reads of the transform ([b189842](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b189842101b0bf73bd3bf3efa775f9c7af8e4b8c))
+- Every figure reshot on main, the KIV-2 force tracks grown to hold their loops, a MAF lane over MHC and a synteny view under the KIV-2 panels ([9dd7f7b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9dd7f7baa12d75a3f91d3534912cb025deff93e7))
+- A pan or zoom settles the build window once it rests, and an SVG export draws the view as it is ([665f5ea](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/665f5eae15ee2939b993228dead9a257886a1af2))
+
 ## [10.0.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.1...v10.0.2) (2026-11-19)
 
 ### Other Changes
