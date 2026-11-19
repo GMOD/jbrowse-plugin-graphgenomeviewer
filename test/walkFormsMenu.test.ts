@@ -226,7 +226,7 @@ describe.skipIf(!runE2E)('the forms track menu at LPA', () => {
     await screenshot(page, 'forms-menu-panned')
   }, 120_000)
 
-  // The MHC's forms merge at a coarser floor: 11 at 1 kb, 6 at 10 kb
+  // The MHC's forms merge at a coarser floor: 12 at 1 kb, 6 at 10 kb
   it('re-pins to the visible region, and the rows change', async () => {
     const before = await formsState(page)
     await page.evaluate(async () => {
@@ -282,7 +282,7 @@ describe.skipIf(!runE2E)('the forms track menu at LPA', () => {
     const after = await waitForRows(page, before.rows)
     expect(Date.now() - started).toBeLessThan(30_000)
     expect(after.error).toMatch(
-      /The pinned window chr6:[\d,]+-[\d,]+ is too large to cut for structural forms: about .* of it fits in walkByteBudget, 1\.0 MB\. Pin a narrower window or raise walkByteBudget/,
+      /The pinned window chr6:[\d,]+-[\d,]+ is too large to cut for structural forms: about .* of it fits in walkByteBudget, 1\.5 MB\. Pin a narrower window or raise walkByteBudget/,
     )
     await screenshot(page, 'forms-menu-over-budget')
   }, 120_000)
