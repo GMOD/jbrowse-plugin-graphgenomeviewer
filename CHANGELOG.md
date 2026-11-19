@@ -1,3 +1,11 @@
+## [10.0.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.0...v10.0.1) (2026-11-19)
+
+### Other Changes
+
+- Shoot the CFHR, C4 and MICB figures under their callset rows ([4e202d3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4e202d3c3a607e99cef4ce624132edfd6b1bdff3))
+- A facet panel built before the pane's fit is built again for the fitted view ([eea19e8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/eea19e8be4e1fa51ae54f52e096d48717373c924))
+- Type the facet rebuild test's panels without a non-null assertion ([069f501](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/069f501de808b22d55c2ce3b99648809c1d087b9))
+
 ## [10.0.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v9.1.0...v10.0.0) (2026-11-19)
 
 ### Documentation
