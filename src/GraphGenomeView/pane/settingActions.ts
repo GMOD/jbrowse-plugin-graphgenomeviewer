@@ -15,7 +15,7 @@ import {
   routeStarts,
   runMorph,
 } from './morph'
-import { VIEWPORT_DEBOUNCE_MS, forceLayouts } from './paneBase'
+import { VIEWPORT_DEBOUNCE_MS, dependOn, forceLayouts } from './paneBase'
 import { withTubeMapViews } from './tubeMapViews'
 import { nodeOwnLocation } from '../../launchFromGraph/contributors'
 import { liveViewIds } from '../../launchFromGraph/linearViewTarget'
@@ -789,6 +789,9 @@ export const withSettingActions = withTubeMapViews
           self,
           autorun(
             () => {
+              // every move of the view restarts the wait, so the window
+              // settles once the gesture rests rather than while it runs
+              dependOn(self.liveBuildView)
               clearTimeout(settleTimer)
               if (!self.buildViewSettled) {
                 if (

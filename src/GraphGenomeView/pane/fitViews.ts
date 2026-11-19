@@ -769,16 +769,19 @@ export const withFitViews = withHostViews
     },
   }))
   .views(self => ({
-    // The drawing's batch with `highlight`'s walks lifted, for buildView. A
+    // The drawing's batch with `highlight`'s walks lifted, for `view`. A
     // caller's autorun rebuilds it when that window moves, when a drag moves
     // the positions, and when any display option read here changes.
-    buildDrawing(highlight: WalkLift | undefined, drawPaths: boolean) {
+    buildDrawing(
+      highlight: WalkLift | undefined,
+      drawPaths: boolean,
+      view = self.buildView,
+    ) {
       const { graph, nodeById, layoutResult, deletionDrawing } = self
       if (!graph || !nodeById || !layoutResult || !deletionDrawing) {
         return undefined
       }
       dependOn(self.positionsVersion)
-      const view = self.buildView
       const batch = buildGeometry({
         // walk rows' overlay draws every bar, the reference's among them;
         // its nodes stay in the hit index, so hovering the bar finds them

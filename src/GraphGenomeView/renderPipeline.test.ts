@@ -191,6 +191,21 @@ test('a pan past the built window moves the build window and a node drag moves t
   expect(model.positionsVersion).toBe(positions + 1)
 })
 
+// A zoom held over several debounce periods rebuilds once, when it rests: each
+// step restarts the wait, so the geometry is not rebuilt under a moving gesture
+test('a long zoom rebuilds once it rests, not while it moves', async () => {
+  const model = await drawnModel()
+  const before = model.builtViewport
+  for (let step = 0; step < 20; step++) {
+    model.zoom(1.05, 100, 100)
+    await sleep(50)
+  }
+  expect(model.builtViewport).toBe(before)
+  await sleep(400)
+  expect(model.builtViewport).not.toBe(before)
+  expect(model.buildViewSettled).toBe(true)
+})
+
 // A build covers a pane on every side of the one shown, so an ordinary pan is
 // a repaint of strokes already uploaded: no debounce, no blank margin, no
 // rebuild. A zoom changes what the strokes are and rebuilds however small.
