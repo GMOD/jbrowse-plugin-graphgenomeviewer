@@ -1,3 +1,11 @@
+## [10.0.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.7...v10.0.8) (2026-11-20)
+
+### Other Changes
+
+- Two repeat arrays over one span take keys of their own, so the Repeat picker can pick the second ([92b20b8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/92b20b89edbb2f859beaba652cb5750ea3788cc7))
+- The reference walk row takes the gene track's genes only while x lies along that track's assembly ([f6435de](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f6435dec641dbe91a5151a4971a353f3cfd5498d))
+- The graph track's key column gains a Haplotypes button under the layout switch, which opens the track menu's Highlight list and counts the walks highlighted ([2ead608](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2ead6081c45f9434ce242e88df05e5b1f7ce8bd7))
+
 ## [10.0.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.6...v10.0.7) (2026-11-20)
 
 ### Other Changes
