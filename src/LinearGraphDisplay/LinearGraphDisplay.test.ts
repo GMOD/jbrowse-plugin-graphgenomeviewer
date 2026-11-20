@@ -1521,6 +1521,21 @@ test('an rGFA force track folds by its snap level, so a zoom inside one cut fold
   expect(fresh.pane.cutFoldBp).toBe(pane.cutFoldBp)
 })
 
+test('a layout switched to force right after a zoom, before the window settles, folds its one cut as a fresh force view of the new window does', async () => {
+  const { view, pane, cuts } = await shownGraph()
+  view.zoomTo(30_000 / WIDTH_PX, WIDTH_PX / 2)
+  await pane.switchLayout('force')
+  await wait(SETTLE_MS)
+  expect(cuts).toHaveLength(2)
+  const centre = view.offsetPx * view.bpPerPx + 15_000
+  const fresh = await forceGraph({
+    windowStart: centre - 15_000,
+    windowBp: 30_000,
+  })
+  expect(pane.cutRegion).toEqual(fresh.pane.cutRegion)
+  expect(pane.cutFoldBp).toBe(fresh.pane.cutFoldBp)
+})
+
 test('a 20-step pan at GSTM1 and at the amylase locus lays the graph out at most three times', async () => {
   for (const [start, end] of [
     [109_670_011, 109_705_011],

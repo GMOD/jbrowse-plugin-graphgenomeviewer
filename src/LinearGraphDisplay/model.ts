@@ -421,6 +421,7 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
     }))
     .actions(self => ({
       recutAt(seen: HostWindow) {
+        self.settledWindow = seen
         const tier = self.tierAt(seen.bpPerPx)
         self.coarseCut = tier === 'coarse'
         self.cutRegion = self.cutFor(seen)

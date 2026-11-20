@@ -23,7 +23,6 @@ Commitment, not size, separates an item here from a proposal in
 | [Undoing the reference path does not re-anchor](todo/reference-path-undo.md)                           | layout               | Move re-anchoring into a reaction on referencePath, and drop the dialog's recomputeLayout call. |
 | [wholeGraph re-parses a cut without anchoring, folding or reads](todo/whole-graph-skips-derivation.md) | loading              | Factor parseAndLayout's post-parse steps into deriveGraph and call it from wholeGraph.          |
 | [RgfaTabixAdapter has no samplesTsvLocation slot](todo/rgfa-samples-tsv-slot.md)                       | adapters             | Share the walk-file slots, samplesTsvLocation among them, from panSNTabix.ts.                   |
-| [A layout change during the settle debounce cuts with the old fold](todo/relayout-stale-fold.md)       | linear graph display | Have recutAt set settledWindow to the window it cuts at.                                        |
 | [An unknown layoutMode, layoutEngine or hover in a track config throws](todo/lenient-track-enums.md)   | linear graph display | Use GraphGenomeView/lenientEnum.ts for all three slots in LinearGraphDisplay/configSchema.ts.   |
 
 ## Needs a visual call
