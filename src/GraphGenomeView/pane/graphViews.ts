@@ -760,6 +760,10 @@ export const withGraphViews = paneBase
             !this.bubbleIsOpen(bubble) &&
             !nodeIds.every(id => focus.nodeIds.has(id))
     },
+    nodeFaded(nodeId: string) {
+      const highlight = this.drawnHighlight
+      return !!highlight && !highlight.nodeIds.has(nodeId)
+    },
   }))
   .views(self => ({
     // The bubbles halos draw and labels open: the window's, and those inside
