@@ -1,3 +1,13 @@
+## [10.0.7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.6...v10.0.7) (2026-11-20)
+
+### Other Changes
+
+- Haplotype lanes align each walk to the reference with less repeated work ([8dd0e9f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8dd0e9f355f16356f5a269697842c846207239af))
+- The graph track's key column opens with a two-button switch between the force engines, FMMM and stress, and a button for the track menu's other Layout rows ([a2bc52d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a2bc52d434e53ca4663408a9af31e5e3354ce5e9))
+- Bandage-core 14.0.2 names a lifted haplotype's copy of a gene only where it lies on that haplotype's own sequence ([76c828f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/76c828faa3f7da5a5ac03494e2f0b98dc326cf47))
+- A gene chip's hover gives the gene's span 1-based on its contig's own name ([3aee522](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3aee522fcbcfc17d5b8cc4fff7f2b0c8d72678e7))
+- A tube map's column value reads a walk's haplotype row as the samples table spells it ([8da0369](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8da03690bcd482972a8b55537a07fd6846d2bef8))
+
 ## [10.0.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.5...v10.0.6) (2026-11-20)
 
 ### Other Changes
