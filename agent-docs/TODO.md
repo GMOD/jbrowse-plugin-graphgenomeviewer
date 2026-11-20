@@ -25,9 +25,7 @@ Commitment, not size, separates an item here from a proposal in
 | [wholeGraph re-parses a cut without anchoring, folding or reads](todo/whole-graph-skips-derivation.md) | loading              | Factor parseAndLayout's post-parse steps into deriveGraph and call it from wholeGraph.          |
 | [RgfaTabixAdapter has no samplesTsvLocation slot](todo/rgfa-samples-tsv-slot.md)                       | adapters             | Share the walk-file slots, samplesTsvLocation among them, from panSNTabix.ts.                   |
 | [A layout change during the settle debounce cuts with the old fold](todo/relayout-stale-fold.md)       | linear graph display | Have recutAt set settledWindow to the window it cuts at.                                        |
-| [The gene chip readout prints a 0-based start and the PanSN name](todo/gene-chip-readout.md)           | genes                | Print gene.start + 1 on the contig name in LabelLayer.tsx, or use core regionLabel.             |
 | [The reference walk row gets every gene unfiltered](todo/reference-row-gene-filter.md)                 | walk rows            | Filter the reference row's genes as BandageJS's genesOnRow does.                                |
-| [A samples TSV row named HG00097#01 never matches](todo/column-key-haplotype.md)                       | tube map             | Use core panSNHaplotype in columnKeyOf in tubeMapPanels.ts.                                     |
 | [An unknown layoutMode, layoutEngine or hover in a track config throws](todo/lenient-track-enums.md)   | linear graph display | Use GraphGenomeView/lenientEnum.ts for all three slots in LinearGraphDisplay/configSchema.ts.   |
 
 ## Needs a visual call
