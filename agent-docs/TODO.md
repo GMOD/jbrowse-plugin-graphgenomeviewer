@@ -17,9 +17,10 @@ Commitment, not size, separates an item here from a proposal in
 
 ## Ready to take
 
-| Item                                                                       | Area       | First move                                                                        |
-| -------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
-| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs. |
+| Item                                                                       | Area       | First move                                                                                                                                         |
+| -------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs.                                                                  |
+| [Circular contigs](todo/circular-contigs.md)                               | circular   | Add an optional `Graph.circular`, set at load when a link joins the reference path's last step to its first, with the five ring fixtures as tests. |
 
 ## Needs a visual call
 
