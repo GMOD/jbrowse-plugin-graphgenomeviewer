@@ -1,3 +1,9 @@
+## [10.0.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.4...v10.0.5) (2026-11-20)
+
+### Other Changes
+
+- Graph-walks 8.0.1: a window inside a hole in the reference returns the jumps a piece makes across it, and links 'between' adds the reference's link from tile to tile under a keep without it and an abridged piece's step across two abutting reference lines ([eadce3b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/eadce3bd905777c932105407e48dd11047e44ac8))
+
 ## [10.0.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.3...v10.0.4) (2026-11-20)
 
 ### Other Changes
