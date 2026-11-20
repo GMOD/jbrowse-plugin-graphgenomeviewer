@@ -1,3 +1,14 @@
+## [10.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.9...v10.1.0) (2026-11-20)
+
+### Other Changes
+
+- Agent-docs/todo/circular-contigs.md files what an audit of five ring fixtures found wrong or missing for a circular contig, the Graph.circular proposal and the three calls it needs ([bdf252f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/bdf252ffbe46fe7099cfe1caf320f4eefd2faf86))
+- Five figures reshot on 10.0.9, whose cuts draw the links their shown haplotypes walk: the KIV-2 overlay and facet, both GSTM1 force figures and the MICB link-width figure ([d52d707](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d52d7077b203e47fae9299b6dab3995a7b8ed992))
+- The graph track's tests follow bandage-core's node lengths default rather than pin it off: each test that drew labels with lengths off by default states the layer it needs, so the track writes every node's length once core's default turns them on, and its tests pass on either core ([df72ffd](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/df72ffd40e99016f80b6a89a3ab90107b5e744c0))
+- The graph track's tests follow bandage-core's length rule, under which no length covers an exon outline or a node it does not name: CFH's lengths stand along their nodes clear of its exons and h0's off its node on a leader, with CFHR3's name above it, and 84 of 100 placeholders drawn over each other are left for the key to count, where 19 were ([ad978c4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ad978c4aa66b86d6396e46b7c201dc6e39328bb0))
+- Bandage-core 14.1.0 writes each node's length by default, keeps a length off exon outlines and nodes it does not name, and keeps threads on the nodes they walk at any pane size ([5d7fcbb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5d7fcbbb32ca72c58f51efd739ff6c2c2bed4df7))
+- Walk rows write no node lengths: with bandage-core 14.1.0's lengths on by default, the maize shared-insertions figure wrote two lengths of nodes the rows hide, half covered by the HP301 row ([ebacca5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ebacca5873b744427e0e20f2c6d038a0f083a76e))
+
 ## [10.0.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.8...v10.0.9) (2026-11-20)
 
 ### Other Changes
