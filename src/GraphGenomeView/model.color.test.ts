@@ -550,17 +550,17 @@ test("the key's nodes not shown entry counts the placeholders the labels left wi
   const drawn = drawnLegendSections(model)
     .flatMap(section => section.rows)
     .find(row => row.key === 'not-shown')
-  expect(unlabelled).toEqual({ count: 19, smallest: 1, largest: 42 })
+  expect(unlabelled).toEqual({ count: 84, smallest: 1, largest: 98 })
   expect(keyed?.under).toBe('')
   expect(drawn?.under).toBeUndefined()
-  expect(drawn?.count).toBe('19 unlabelled')
+  expect(drawn?.count).toBe('84 unlabelled')
   expect(drawn?.sizer).toBe('100 unlabelled')
-  expect(drawn?.title).toBe('19 unlabelled, 42 bp or less each')
+  expect(drawn?.title).toBe('84 unlabelled, 98 bp or less each')
   const filled = exported()
   expect(filled).toMatch(
-    /nodes not shown<tspan> · 19 unlabelled<\/tspan><\/text>/,
+    /nodes not shown<tspan> · 84 unlabelled<\/tspan><\/text>/,
   )
-  expect(filled).toContain('<title>19 unlabelled, 42 bp or less each</title>')
+  expect(filled).toContain('<title>84 unlabelled, 98 bp or less each</title>')
   expect(blank).not.toContain('unlabelled')
   expect(keyWidth(filled)).toBeDefined()
   expect(keyWidth(filled)).toBe(keyWidth(blank))
