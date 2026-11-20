@@ -1,6 +1,8 @@
 import { createElement } from 'react'
 
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
+import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
+import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
 import {
   cutScale,
@@ -18,7 +20,9 @@ import PluginManager from '@jbrowse/core/PluginManager'
 import {
   ConfigurationReference,
   ConfigurationSchema,
+  getSlotDefinition,
   readConfObject,
+  slotChoices,
 } from '@jbrowse/core/configuration'
 import AdapterType from '@jbrowse/core/pluggableElementTypes/AdapterType'
 import DisplayType from '@jbrowse/core/pluggableElementTypes/DisplayType'
@@ -38,6 +42,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { reaction, runInAction } from 'mobx'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+import { configSchemaFactory } from './configSchema'
 import LinearGraphDisplayF from './index'
 import { FOLD_PX, coarseHandover } from './model'
 import GbzBaseSyntenyAdapterF from '../GbzBaseSyntenyAdapter/index'
@@ -45,6 +50,7 @@ import GraphCanvas from '../GraphGenomeView/components/GraphCanvas'
 import LayoutSwitch from '../GraphGenomeView/components/LayoutSwitch'
 import { PaneSvgLayer } from '../GraphGenomeView/components/PaneLayer'
 import { hostWindow, snappedCut } from '../GraphGenomeView/host'
+import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
 import {
   MIN_CANVAS_HEIGHT,
   forceLayouts,
@@ -1739,6 +1745,25 @@ test('a launch that states one choice takes the rest from the config', async () 
 // Config, not the display instance, so a share link, Edit plot and Reset
 // track settings all see the choice. Every setter, so a setting wired into
 // the view's props alone fails here.
+test('a track config naming a layout mode, engine or hover this build lacks opens on the defaults, and the config editor still offers every choice', () => {
+  const config = configSchemaFactory().create({
+    type: 'LinearGraphDisplay',
+    displayId: 'from-another-build',
+    layoutMode: 'sideways',
+    layoutEngine: 'neato',
+    hover: 'glow',
+  })
+  const slots = ['layoutMode', 'layoutEngine', 'hover'] as const
+  expect(slots.map(slot => readConfObject(config, slot))).toEqual([
+    'force',
+    'fmmm',
+    'nodes',
+  ])
+  expect(
+    slots.map(slot => slotChoices(getSlotDefinition(config, slot))),
+  ).toEqual([LAYOUT_MODE_VALUES, LAYOUT_ENGINE_VALUES, HOVER_HIGHLIGHT_VALUES])
+})
+
 test('each grammar setter writes the track config, and the pane reads it back', async () => {
   const { display } = await shownGraph()
   display.setLayoutMode('ordered')

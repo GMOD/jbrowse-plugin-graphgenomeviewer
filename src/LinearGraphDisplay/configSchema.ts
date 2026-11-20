@@ -4,10 +4,10 @@ import { DEFAULT_TRACK_FIT } from '@jbrowse/bandage-core/trackFit'
 import { ConfigurationSchema } from '@jbrowse/core/configuration'
 import { heightModeConfigSchemaFields } from '@jbrowse/display-kit/heightModeConfigSchemaFields'
 import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightConfigSchemaFields'
-import { types } from '@jbrowse/mobx-state-tree'
 
 import { graphFacetConfigSchema } from './graphFacetConfigSchema'
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
+import { lenientSlotEnum } from '../GraphGenomeView/lenientEnum'
 import { DEFAULT_LINKS_DRAWN, LINKS_DRAWN_VALUES } from '../linksDrawn'
 
 /**
@@ -28,7 +28,7 @@ export function configSchemaFactory() {
        */
       layoutMode: {
         type: 'stringEnum',
-        model: types.enumeration('LayoutMode', LAYOUT_MODE_VALUES),
+        model: lenientSlotEnum(LAYOUT_MODE_VALUES, 'force'),
         defaultValue: 'force',
       },
       /**
@@ -39,7 +39,7 @@ export function configSchemaFactory() {
        */
       layoutEngine: {
         type: 'stringEnum',
-        model: types.enumeration('LayoutEngine', LAYOUT_ENGINE_VALUES),
+        model: lenientSlotEnum(LAYOUT_ENGINE_VALUES, 'fmmm'),
         defaultValue: 'fmmm',
       },
       /**
@@ -112,7 +112,7 @@ export function configSchemaFactory() {
        */
       hover: {
         type: 'stringEnum',
-        model: types.enumeration('HoverHighlight', HOVER_HIGHLIGHT_VALUES),
+        model: lenientSlotEnum(HOVER_HIGHLIGHT_VALUES, 'nodes'),
         defaultValue: 'nodes',
       },
       /**
@@ -123,7 +123,7 @@ export function configSchemaFactory() {
        */
       links: {
         type: 'stringEnum',
-        model: types.enumeration('LinksDrawn', LINKS_DRAWN_VALUES),
+        model: lenientSlotEnum(LINKS_DRAWN_VALUES, DEFAULT_LINKS_DRAWN),
         defaultValue: DEFAULT_LINKS_DRAWN,
       },
       ...trackHeightConfigSchemaFields({
