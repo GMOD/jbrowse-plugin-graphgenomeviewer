@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 
 import { BUBBLE_HALO_COLOR } from '@jbrowse/bandage-core/bubbles/bubbleLabel'
+import { LABEL_DEFAULTS } from '@jbrowse/bandage-core/graphLabels'
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import {
   abgrToCssRgba,
@@ -500,7 +501,8 @@ test("the graph writes a placeholder's length with node lengths off, and every n
     `${SIMPLE_GFA}S\t3\t*\tLN:i:75000\tnl:i:1\nL\t2\t+\t3\t+\t0M\n`,
     'g',
   )
-  expect(model.layerSet.has('lengths')).toBe(false)
+  expect(model.layerSet.has('lengths')).toBe(LABEL_DEFAULTS.nodeLengths)
+  model.setLayer('lengths', false)
   expect([...model.nodeLengths]).toEqual([['3+', 75000]])
   model.setLayer('lengths', true)
   expect([...model.nodeLengths]).toEqual([
