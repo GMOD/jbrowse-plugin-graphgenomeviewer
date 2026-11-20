@@ -30,8 +30,8 @@ importers:
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/graph-walks':
-        specifier: ^8.0.0
-        version: 8.0.0
+        specifier: ^8.0.1
+        version: 8.0.1
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(react@19.3.1)
@@ -690,8 +690,8 @@ packages:
     resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-walks@8.0.0':
-    resolution: {integrity: sha512-Tkdq/Gdp1MF8y8lL1dUdbPplwK4dW18LaN2eoOem6oxblnrN0SdtRslfr2s9WMNlf4NsSGb/eQzowMBPYyaXMA==}
+  '@jbrowse/graph-walks@8.0.1':
+    resolution: {integrity: sha512-4AidVXyIsggJkckxlgcTJYEMsObd3p+H1+d7PpRU5wflb8NQA1JuqSHePCrypAcL/Kw7QO57kG+dBecIYgUy3g==}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@7.2.0':
@@ -3932,7 +3932,7 @@ snapshots:
 
   '@jbrowse/graph-stress-layout@1.0.0': {}
 
-  '@jbrowse/graph-walks@8.0.0':
+  '@jbrowse/graph-walks@8.0.1':
     dependencies:
       '@gmod/bgzf-filehandle': 6.8.2
       generic-filehandle2: 2.5.1
