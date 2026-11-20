@@ -56,15 +56,16 @@ That is the renderer now: `nodeStrokes` in layout units, `Canvas2DRenderer`
 grouping by paint, and draw calls per frame a function of how many paints the
 drawing uses rather than how many nodes it has (`stress.test.ts` pins it).
 
-The strokes column was measured headless and does not hold on screen. The
-14,999-node fixture takes 71 to 139 ms a frame in a headed window on
-bandage-core `b7ffbc7`, and 90 ms headless by the method above;
-`reference/GPU_RENDERING.md` has the table and where the time goes.
+The strokes column holds only for views with most of the fixture off the pane.
+With the whole 14,999-node fixture in view, a frame takes 100 to 160 ms headless
+by the method above and runs at 10 to 15 frames a second on screen;
+`reference/GPU_RENDERING.md` has the table, where the time goes, and the WebGL2
+prototype that holds vsync on the same views.
 
-- **≤2k nodes**: comfortable. Rebuild under 10 ms, and a frame inside the 48 Hz
-  vsync interval on screen.
-- **~15k nodes**: 7 to 14 frames a second on screen, and `buildGeometry` takes
-  ~60 ms per zoom.
+- **≤2k nodes**: comfortable. Rebuild under 10 ms, and a frame inside the vsync
+  interval on screen.
+- **~15k nodes**: 10 to 26 frames a second on screen with the whole graph in
+  view, and `buildGeometry` takes ~60 ms per zoom.
 - **≥50k nodes**: broken. Geometry alone blows a frame budget by 10×.
 
 **A pan no longer rebuilds.** A build covers the pane plus a whole pane on every
