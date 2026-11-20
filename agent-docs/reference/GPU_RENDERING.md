@@ -1,11 +1,11 @@
 ---
 name: gpu-rendering
 description:
-  Build a WebGL2 backend for the graph view. Canvas2D draws whole-graph views of
-  15k nodes at 10 to 26 frames a second on screen, because Chrome tessellates
-  every visible stroke again each frame, and an instanced WebGL2 prototype of
-  the same batch holds vsync up to 50k nodes. Read this before tuning Canvas2D
-  further or starting the backend.
+  Measurements behind ADR-047's WebGL2 backend for the graph view. Canvas2D
+  draws whole-graph views of 15k nodes at 10 to 26 frames a second on screen,
+  because Chrome tessellates every visible stroke again each frame, and an
+  instanced WebGL2 prototype of the same batch holds vsync up to 50k nodes. Read
+  this before tuning Canvas2D further or starting the backend.
 ---
 
 # GPU rendering: build a WebGL2 backend
@@ -13,8 +13,9 @@ description:
 `createGraphRenderer` returns bandage-core's `Canvas2DRenderer` unconditionally.
 Measured on screen, a WebGL2 painter of the same `RenderBatch` draws every frame
 of a pan inside the vsync interval on graphs up to 50k nodes, where Canvas2D
-misses one to seventeen vsyncs a frame from 15k nodes up. The backend should be
-built, with Canvas2D kept for SVG export and as the fallback.
+misses one to seventeen vsyncs a frame from 15k nodes up. ADR-047 decides to
+build the backend, with Canvas2D kept for SVG export and as the fallback;
+`todo/webgl2-backend.md` holds the work, and this page the measurements.
 
 **Drawing and layout are separate questions.** Running FMMM itself on the GPU
 has the opposite answer, measured and recorded in
@@ -84,23 +85,14 @@ In bandage-core, on a raster canvas, with SVG export unchanged:
   `clearRect` for the background, bevel joins, curves flattened to lines, and
   retained `Path2D` objects, which Chrome tessellates again every frame.
 
-## What the backend has to add to the prototype
+## The prototype, and what the backend leaves as it is
 
 `scripts/render-lab/glPrototype.ts` in bandage-core draws a node segment as a
 capsule and a link cubic as a ribbon tessellated in the vertex shader, one
 instance each, in raw WebGL2 with GLSL in strings. It needs neither
 `@jbrowse/render-core` nor the `.slang` codegen, which the host does not
-re-export. Still to build, each against `Canvas2DRenderer`'s output:
-
-- the faded layer: strokes off the lifted walks drawn opaque into a texture and
-  composited once at `FADED_ALPHA`
-- paint order: skip, turn and along links over the nodes, longest skip first,
-  and lifted nodes over the rest
-- highlights, by rewriting the colours of the highlighted instances
-- dashed skip links, from arc length along the ribbon
-- arrowheads and their halos
-- `resize` against `MAX_CANVAS_DIM_PX`, context loss, and the fallback to
-  Canvas2D where WebGL2 is unavailable
+re-export. `todo/webgl2-backend.md` lists the marks and lifecycle the backend
+has to add to it.
 
 Things the backend leaves as they are:
 

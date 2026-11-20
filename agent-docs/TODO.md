@@ -17,10 +17,11 @@ Commitment, not size, separates an item here from a proposal in
 
 ## Ready to take
 
-| Item                                                                       | Area       | First move                                                                                                                                         |
-| -------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs.                                                                  |
-| [Circular contigs](todo/circular-contigs.md)                               | circular   | Add an optional `Graph.circular`, set at load when a link joins the reference path's last step to its first, with the five ring fixtures as tests. |
+| Item                                                                       | Area       | First move                                                                                                                                               |
+| -------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs.                                                                        |
+| [Circular contigs](todo/circular-contigs.md)                               | circular   | Add an optional `Graph.circular`, set at load when a link joins the reference path's last step to its first, with the five ring fixtures as tests.       |
+| [WebGL2 backend](todo/webgl2-backend.md)                                   | drawing    | Copy bandage-core's scripts/render-lab/glPrototype.ts to src/renderer/WebGL2Renderer.ts implementing `Renderer`, and point the lab's 'gl' painter at it. |
 
 ## Needs a visual call
 
