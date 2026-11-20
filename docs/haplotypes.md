@@ -21,6 +21,8 @@ near-solid column, a rare one a few cells.
 The Highlight picker lifts walks out of the drawing, and the rest fades to grey.
 Tube maps have no picker, since their tubes are the walks.
 
+- On a track, **Haplotypes** in the key column opens the track menu's Highlight
+  list, and its button counts the walks lifted
 - Past a dozen walks, **Haplotypes** lists only lifted ones and **Choose
   haplotypes...** searches the rest
 - A walk lifted alone shades light to dark along itself. Its key is a bar of
