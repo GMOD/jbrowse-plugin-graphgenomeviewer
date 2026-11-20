@@ -1,3 +1,9 @@
+## [10.0.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.3...v10.0.4) (2026-11-20)
+
+### Other Changes
+
+- A graph cut draws the links every haplotype takes between its nodes, with graph-walks 8's links 'between', so a few haplotypes over KIV-2 run its copies as loops again (17,984 edges for the overlay, 17,634 before); walk rows keep the walked links and the synteny lanes ask for none. The KIV-2 overlay figure reshot ([9427bf9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9427bf9112c2ff94e9bb9e6fe4575b03c0529bb5))
+
 ## [10.0.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.2...v10.0.3) (2026-11-19)
 
 ### Other Changes
