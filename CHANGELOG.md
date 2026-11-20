@@ -1,3 +1,15 @@
+## [10.1.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.1.0...v10.1.1) (2026-11-20)
+
+### Other Changes
+
+- The walk-strip todo notes what a track needs beyond the host clause: a strip framed by the host's bpPerPx, a toggle in the track menu and room in the track's height ([1129151](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/112915118059b4a5ecd0b73982b7a3a1f712c9a3))
+- GPU_RENDERING.md states that Canvas2D paints the 15k-node fixture in 71 to 139 ms a frame on screen, where it said 11 ms and ruled a GPU backend not worth it below 50k nodes ([6a049a1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6a049a1dbcd422aadbf9b50ce9149048379bf419))
+- Highlighted walks are the graph track's `walks` config slot, so a hub config, a share link, Edit plot and Reset track settings all carry them ([8534847](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8534847ee7648094a0b94788048f85f91cf121e6))
+- GPU_RENDERING.md rules for a WebGL2 backend: an instanced prototype holds vsync on whole-graph views up to 50k nodes on both GPUs, where Canvas2D draws 3 to 26 frames a second from 15k nodes up ([5f10a4b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/5f10a4b0238b622229a51ffbe63ae329e5b0c7a1))
+- ADR-047 decides the graph view draws with an instanced WebGL2 backend, and todo/webgl2-backend.md holds the work, so a session picking it up starts from the decision rather than a reference page ([8cb6559](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8cb6559d353651e3867167195a1f10eb9879298f))
+- A length on a node the drawing greys fades with it, as a bubble's name outside an open bubble does: force_kiv2_open wrote 53.6 kb, 10.2 kb, 1.2 kb and 942 bp in full black on the pale nodes outside the KIV-2 array, on screen and in the SVG export ([8792204](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/87922047da8da14d46d82027c2b6d4a93f6e5bc1))
+- Seventeen figures reshot on bandage-core 14.1.0, each one whose drawing changed from 10.0.9's: the KIV-2 bubbles, hover and open figures, MHC, the MICB link-width figure and the maize founders write node lengths, the open figure's outside the array faded; both syng C4 figures draw the loop at the right as threads, and the GSTM1, KIV-2 facet and tube map figures move by a few anti-aliased pixels ([49b8b23](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/49b8b233ca9cf8a0e6ff47c4dbf46049fd6ba947))
+
 ## [10.1.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.9...v10.1.0) (2026-11-20)
 
 ### Other Changes
