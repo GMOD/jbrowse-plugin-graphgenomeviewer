@@ -17,10 +17,9 @@ Commitment, not size, separates an item here from a proposal in
 
 ## Ready to take
 
-| Item                                                                             | Area       | First move                                                                        |
-| -------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
-| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md)       | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs. |
-| [RgfaTabixAdapter has no samplesTsvLocation slot](todo/rgfa-samples-tsv-slot.md) | adapters   | Share the walk-file slots, samplesTsvLocation among them, from panSNTabix.ts.     |
+| Item                                                                       | Area       | First move                                                                        |
+| -------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
+| [Strip under LinearGraphDisplay](todo/strip-under-linear-graph-display.md) | walk strip | Pass `host: false` to walkStripApplies from a track and see what the track needs. |
 
 ## Needs a visual call
 

@@ -7,6 +7,7 @@ import {
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { CUT_PRESETS, WalkFile, WalkReader } from '@jbrowse/graph-walks'
+import { getSnapshot } from '@jbrowse/mobx-state-tree'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
 
@@ -194,6 +195,18 @@ test('walksUri names the walk file and its directory', () => {
     uri: 'hprc.GRCh38.walks.gz.idx',
     baseUri: 'https://example.com/',
   })
+})
+
+test('a walk-indexed track keeps the samples TSV its walk rows group by', () => {
+  const samplesTsvLocation = {
+    uri: 'https://example.com/samples.tsv',
+    locationType: 'UriLocation',
+  }
+  const config = configSchema.create({
+    walksUri: 'hprc.GRCh38',
+    samplesTsvLocation,
+  })
+  expect(getSnapshot(config).samplesTsvLocation).toEqual(samplesTsvLocation)
 })
 
 test("the haplotypes a walk file's header names", async () => {

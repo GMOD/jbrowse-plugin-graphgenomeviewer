@@ -79,7 +79,8 @@ VCF from `vg deconstruct -a` or `pggb -V`.
 
 - **Walk files:** the adapter reads `<walksUri>.walks.gz` and its directory
   `<walksUri>.walks.gz.idx`. `defaultHaplotypes` lists the haplotypes the track
-  cuts for until you pick others. `WalkTabixSyntenyAdapter` takes the same
+  cuts for until you pick others, and `samplesTsvLocation` a samples TSV whose
+  columns walk rows group by. `WalkTabixSyntenyAdapter` takes the same
   `walksUri` and also opens in synteny, dotplot and circular views, a lane per
   haplotype
 - **Links drawn:** a walk file's graph draws the links the haplotypes shown
