@@ -56,9 +56,15 @@ That is the renderer now: `nodeStrokes` in layout units, `Canvas2DRenderer`
 grouping by paint, and draw calls per frame a function of how many paints the
 drawing uses rather than how many nodes it has (`stress.test.ts` pins it).
 
-- **≤2k nodes**: comfortable. Rebuild under 10 ms, redraw under 2 ms.
-- **~15k nodes**: fine to draw. `buildGeometry` is now the wall, at ~60 ms per
-  zoom.
+The strokes column was measured headless and does not hold on screen. The
+14,999-node fixture takes 71 to 139 ms a frame in a headed window on
+bandage-core `b7ffbc7`, and 90 ms headless by the method above;
+`reference/GPU_RENDERING.md` has the table and where the time goes.
+
+- **≤2k nodes**: comfortable. Rebuild under 10 ms, and a frame inside the 48 Hz
+  vsync interval on screen.
+- **~15k nodes**: 7 to 14 frames a second on screen, and `buildGeometry` takes
+  ~60 ms per zoom.
 - **≥50k nodes**: broken. Geometry alone blows a frame budget by 10×.
 
 **A pan no longer rebuilds.** A build covers the pane plus a whole pane on every
@@ -87,9 +93,9 @@ translucent ribbons per edge, which is the drawing asked for.
 
 Which wall you hit first depends on the layout mode:
 
-- **Anchored / sample-rows** (O(n), local): geometry build is the wall, and it
-  is a main-thread pass that no GPU backend would take —
-  `reference/GPU_RENDERING.md` prices the port against these numbers.
+- **Anchored / sample-rows** (O(n), local): the geometry build is a main-thread
+  pass that no GPU backend would take, and the paint of each frame is the cost a
+  GPU backend would take (`reference/GPU_RENDERING.md`).
 - **Force (OGDF FMMM in WASM)**: the layout is the wall, and it arrives earlier.
   strangepg's README is the best available calibration — its _parallelized C_
   Fruchterman-Reingold is "still slow for 10k+ nodes". Ours is single-threaded
