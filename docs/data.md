@@ -82,6 +82,17 @@ VCF from `vg deconstruct -a` or `pggb -V`.
   cuts for until you pick others. `WalkTabixSyntenyAdapter` takes the same
   `walksUri` and also opens in synteny, dotplot and circular views, a lane per
   haplotype
+- **Links drawn:** a walk file's graph draws the links the haplotypes shown
+  walk. **Links drawn** in the track menu has two options:
+  - **walked by the haplotypes shown** (`walked`, the default)
+  - **taken by any haplotype between the nodes shown** (`between`), which adds
+    the links the file's other haplotypes take between those nodes, such as a
+    jump back to an earlier copy of a repeat or a deletion none of the shown
+    haplotypes has
+  - A config sets it on the track's display:
+    `"displays": [{ "type": "LinearGraphDisplay", "displayId": "hprc_walks-LinearGraphDisplay", "links": "between" }]`
+  - Walk rows, tube maps and haplotype lanes draw each haplotype as its own
+    path, so the setting changes nothing in them
 - **Graph index:**
   `{ "type": "RgfaTabixAdapter", "uri": "https://example.com/hprc", "format": 2, "coarse": { "uri": "https://example.com/hprc.fold10000", "format": 2, "foldBelowBp": 10000 } }`
   reads `<uri>.graph.bed.gz` and its `.tbi`. Past `aboveBpPerPx` (default

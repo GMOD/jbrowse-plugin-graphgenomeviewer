@@ -8,6 +8,10 @@ labelled with its haplotypes and length. **Link width › By walks** in Graph
 settings does the same for links, deletions included, so the common route
 through a bubble reads heavy and a private one thin, without lifting any walk.
 
+A walk file's graph draws the links the haplotypes shown walk. **Links drawn**
+in the track menu adds the links any other haplotype in the file takes between
+the nodes shown ([data.md](data.md#track-config)).
+
 **Node width › By frequency** draws a node as wide as the share of haplotypes
 through it, so the two settings together read as allele frequency. The Ordered
 layout hangs each alternate allele below the reference, where its links stand

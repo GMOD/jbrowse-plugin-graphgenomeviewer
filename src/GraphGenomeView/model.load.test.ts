@@ -72,7 +72,7 @@ describe('restoring a stated cut', () => {
     expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
-  test('passes the stated context and haplotypes to the cut', async () => {
+  test('passes the stated context and haplotypes to the cut, and asks for the walked links when told nothing', async () => {
     rpcRespond()
     const model = restoredView({
       subgraphContext: 2,
@@ -83,9 +83,28 @@ describe('restoring a stated cut', () => {
       expect.any(String),
       'GetSubgraph',
       expect.objectContaining({
-        opts: { hops: 2, haplotypes: ['HG002#1', 'HG005#2'] },
+        opts: { hops: 2, haplotypes: ['HG002#1', 'HG005#2'], links: 'walked' },
       }),
     )
+  })
+
+  test("a view stating links 'between' cuts for them, and a switch back cuts again", async () => {
+    rpcRespond()
+    const model = restoredView({ links: 'between' })
+    const cutFor = (links: string) => [
+      expect.any(String),
+      'GetSubgraph',
+      expect.objectContaining({ opts: expect.objectContaining({ links }) }),
+    ]
+    const cuts = () =>
+      mockRpcCall.mock.calls.filter(c => c[1] === 'GetSubgraph')
+    await model.load()
+    expect(cuts()).toEqual([cutFor('between')])
+    expect(model.cutStale).toBe(false)
+    model.setLinks('walked')
+    expect(model.cutStale).toBe(true)
+    await model.load()
+    expect(cuts()).toEqual([cutFor('between'), cutFor('walked')])
   })
 
   // Only a GBZ cut follows snarls past the window; a walk file cuts the same

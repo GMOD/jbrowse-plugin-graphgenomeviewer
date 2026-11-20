@@ -8,6 +8,7 @@ import { types } from '@jbrowse/mobx-state-tree'
 
 import { graphFacetConfigSchema } from './graphFacetConfigSchema'
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
+import { DEFAULT_LINKS_DRAWN, LINKS_DRAWN_VALUES } from '../linksDrawn'
 
 /**
  * #config LinearGraphDisplay
@@ -113,6 +114,17 @@ export function configSchemaFactory() {
         type: 'stringEnum',
         model: types.enumeration('HoverHighlight', HOVER_HIGHLIGHT_VALUES),
         defaultValue: 'nodes',
+      },
+      /**
+       * #slot
+       * the links a cut of a walk file draws: `walked`, those the haplotypes
+       * shown walk, or `between`, also those any other haplotype in the file
+       * takes between the nodes shown. Walk rows draw no links
+       */
+      links: {
+        type: 'stringEnum',
+        model: types.enumeration('LinksDrawn', LINKS_DRAWN_VALUES),
+        defaultValue: DEFAULT_LINKS_DRAWN,
       },
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,

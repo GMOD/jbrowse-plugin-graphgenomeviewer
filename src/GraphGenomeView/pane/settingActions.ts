@@ -27,6 +27,7 @@ import type { GraphGrammar } from './graphViews'
 import type { ScreenTransform } from './keepInView'
 import type { MorphEntering } from './morph'
 import type { BuildView, HoveredTube, TubeMapRoutes } from './paneBase'
+import type { LinksDrawn } from '../../linksDrawn'
 import type { GraphLayer } from '../graphLayers'
 import type { HoverHighlight } from '../hoverHighlight'
 import type { WalkRowGroupBy } from '../walkRowGroups'
@@ -142,6 +143,9 @@ export const withSettingActions = withTubeMapViews
     },
     setLayoutMode(mode: LayoutModeValue) {
       self.writeGrammar({ layoutMode: mode })
+    },
+    setLinks(links: LinksDrawn) {
+      self.writeGrammar({ links })
     },
     setHover(hover: HoverHighlight) {
       self.writeGrammar({ hover })

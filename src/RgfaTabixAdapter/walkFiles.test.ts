@@ -59,6 +59,11 @@ const rejoinPrefix = fixture('rejoin')
 // 21 and rejoins at 4000, in tile 4000
 const followPrefix = fixture('follow')
 
+// Reference nodes 1-20, 1 kb each, in 1 kb tiles:
+//   W HG002 1 ctg >1>2>6>7...>20      skips 3, 4 and 5
+//   W HG003 1 ctg >1>2>3>4>5>6...>20  the reference's own route
+const skipFollowPrefix = fixture('skipfollow')
+
 const local = (path: string) => ({
   localPath: path,
   locationType: 'LocalPathLocation',
@@ -236,6 +241,52 @@ test("a cut takes graph-walks' browser preset, the cut rules every reader shares
   const tables = await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600))
   expect(cut.mock.calls[0]?.[2]).toMatchObject(CUT_PRESETS.browser)
   expect(tables).toMatchObject({ abridged: [] })
+  cut.mockRestore()
+})
+
+const linkLines = (gfa: string) =>
+  gfa
+    .split('\n')
+    .filter(l => l.startsWith('L\t'))
+    .map(l => l.split('\t').slice(1, 5).join(''))
+
+test("a cut told nothing asks graph-walks for the links its walks take, 'walked'", async () => {
+  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const gfa = await gfaOf(
+    makeAdapter(skipFollowPrefix).getSubgraph(chr1(0, 8000), {
+      haplotypes: ['HG003#1'],
+    }),
+  )
+  expect(cut.mock.calls[0]?.[2]?.links).toBe('walked')
+  expect(linkLines(gfa)).toContain('2+3+')
+  expect(linkLines(gfa)).not.toContain('2+6+')
+  cut.mockRestore()
+})
+
+test("links 'between' reaches graph-walks, and the cut lists the link another haplotype takes between its nodes", async () => {
+  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const gfa = await gfaOf(
+    makeAdapter(skipFollowPrefix).getSubgraph(chr1(0, 8000), {
+      haplotypes: ['HG003#1'],
+      links: 'between',
+    }),
+  )
+  expect(cut.mock.calls[0]?.[2]?.links).toBe('between')
+  expect(linkLines(gfa)).toContain('2+3+')
+  expect(linkLines(gfa)).toContain('2+6+')
+  expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG003#1#ctg'])
+  cut.mockRestore()
+})
+
+test("a walk-rows cut asks for 'walked' whatever links it is handed", async () => {
+  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const adapter = makeAdapter(skipFollowPrefix)
+  await adapter.getSubgraph(chr1(0, 8000), { walkRows: true })
+  await adapter.getSubgraph(chr1(0, 8000), {
+    walkRows: true,
+    links: 'between',
+  })
+  expect(cut.mock.calls.map(c => c[2]?.links)).toEqual(['walked', 'walked'])
   cut.mockRestore()
 })
 

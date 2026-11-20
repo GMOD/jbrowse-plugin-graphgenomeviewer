@@ -181,9 +181,9 @@ carry, is cut once on attach; following the linear view is the track's job.
 ## Snapshots
 
 What the drawing shows is the display config, in core's plot vocabulary where it
-has a word: `layoutMode`, `encoding`, `size`, `layers`, `facet`, `rows` and
-`hover`. A share link and Reset track settings see them all; Edit plot shows the
-ones core's `PLOT_VOCABULARY` names (`facet`, `rows` and `size`), plus every
+has a word: `layoutMode`, `encoding`, `size`, `layers`, `facet`, `rows`, `hover`
+and `links`. A share link and Reset track settings see them all; Edit plot shows
+the ones core's `PLOT_VOCABULARY` names (`facet`, `rows` and `size`), plus every
 `plot: true` slot.
 
 - The node color is `encoding.color`: `{ value: 'grey' | 'uniform' }` or
@@ -298,6 +298,15 @@ Haplotypes menu's "Every haplotype in the graph" sets it, and a harness tracing
 a cut for every haplotype sets the same. A graph view opened from the track
 takes the set with it. The cut decodes only those walks and the reference's.
 Each fragment runs from its walk's first step on the window to its last.
+
+Which links the cut lists is the display's `links`, in graph-walks' own words.
+`walked`, the default, lists the links the kept walks' steps take. `between`
+also lists the links any other walk in the file takes between the cut's nodes.
+The track menu's **Links drawn** writes it. It travels in `cutOptions`, so
+`cutKey`, the kept cuts' keys and the over-limit keys change with it and the
+window is cut again. Only a layout that draws links sends it: a cut for walk
+rows or a tube map asks for `walked` and the lanes for `none` whatever the
+setting, since none of them draws those links.
 
 Before format 1 went, format 2 was checked against gfa-to-tabix 0.11.0's format
 1 files of the same chr22 graph: 50 windows of 0.6-100 kb on GRCh38 and CHM13
