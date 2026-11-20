@@ -68,6 +68,8 @@ With two or more lifted, **Haplotypes › Arrange** facets the pane.
 - Panels share one view, so a pan, zoom or hover in one applies to all. As many
   go across as draw each panel largest; `columns` fixes the count
 - Hovering a node gives its position on each walk's contig in the key
+- On a track, the key row under the panels ends with the layout switch and
+  **Haplotypes**, whose list turns the panels off again
 
 Through KIV-2, HG00097 adds one loop to GRCh38's, HG01960 skips most of GRCh38's
 for the big loop, and HG00133 takes both; each panel's key gives its walk's

@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
+import FacetPanels from './FacetPanels'
 import HaplotypeSwitch from './HaplotypeSwitch'
 import { rpcRespond } from '../modelTestSupport'
 import stateModelFactory from '../viewModel'
@@ -76,4 +78,32 @@ test('a tube map, whose tubes are the walks, and a graph with no walks draw no h
     expect(container.innerHTML).toBe('')
     unmount()
   }
+})
+
+test("a faceted pane's key row holds the controls its host hands it, after its key", async () => {
+  rpcRespond()
+  const model = stateModelFactory().create({
+    type: 'GraphGenomeView',
+    layoutMode: 'ordered',
+    walkLayers: [{ walk: 'GRCh38#0#chr1' }, { walk: 'B#1#ctg' }],
+    facet: 'walk',
+  })
+  await model.loadGFA(WALKS_GFA, 'graph')
+  model.setWidth(800)
+  expect(model.facetPanels).toHaveLength(2)
+  const drawn = (controls?: React.ReactNode) =>
+    renderToStaticMarkup(
+      <FacetPanels
+        model={model}
+        handlers={{}}
+        canvasStyle={{}}
+        controls={controls}
+      />,
+    )
+  const withSwitch = drawn(<HaplotypeSwitch model={model} inline />)
+  const key = withSwitch.indexOf('data-testid="graph-facet-key"')
+  expect(key).toBeGreaterThan(-1)
+  expect(withSwitch.indexOf('graph-haplotype-switch')).toBeGreaterThan(key)
+  expect(withSwitch).toContain('2 of 3')
+  expect(drawn()).not.toContain('graph-haplotype-switch')
 })
