@@ -1,3 +1,9 @@
+## [10.0.6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.5...v10.0.6) (2026-11-20)
+
+### Other Changes
+
+- Bandage-core 14.0.1 keys a "0 walks" link thickness for links no drawn walk takes, and four figures reshot on graph-walks 8.0.1's links 'between': the KIV-2 facet and both GSTM1 force figures draw the loops other haplotypes take around the shown walks, and the MICB link-width figure keys its 0-walk links ([08c91b1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/08c91b1921fe7e68bc70696a83a76ca33672dc5d))
+
 ## [10.0.5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.4...v10.0.5) (2026-11-20)
 
 ### Other Changes
