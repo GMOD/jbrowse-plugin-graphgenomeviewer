@@ -1,3 +1,17 @@
+## [10.0.9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.8...v10.0.9) (2026-11-20)
+
+### Other Changes
+
+- A graph cut draws the links its shown haplotypes walk again, and a `links` setting, Links drawn in the track menu, switches it to the links any haplotype takes between the nodes shown ([6842149](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6842149d4a41c8435ecab004f130367efcee9f6d))
+- A facet's order is its `sort` alone: the `domain` key 7.x wrote is no longer read ([b0fe5f3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b0fe5f3effb889eef43d074104a22909ccd4cd4c))
+- A faceted graph track keeps the layout switch and the Haplotypes button, at the end of the key row under its panels ([10b3b22](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/10b3b229759d72292f410c365cb2ee201867a985))
+- A layout switched right after a zoom, before the window settles, cuts and folds at the window it is switched in ([4eff9a7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4eff9a7d00ca2a272c81614c7da567193129ee92))
+- A reference path that undo or a session delta writes re-anchors the graph and lays it out again, as the picker does ([ed23954](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ed23954f545503d3095060fd46c3db11837823bf))
+- A track config naming a layoutMode, layoutEngine, hover or links value this build lacks opens on the slot's default, and the config editor still lists every choice ([8cd9571](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8cd95710adcfd3326c69a7190cb71ba44cc27003))
+- A walk-rows cut parsed whole for a layout that draws nodes anchors on the track's reference walk and keeps its reads, as a cut parsed whole at once does ([096ab5d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/096ab5d3b0bb3341a506f527d6432a5a2b7574cc))
+- A walk-indexed RgfaTabixAdapter track keeps its samplesTsvLocation, so its walk rows offer Group by ([48c089b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/48c089baae18cc9219601b894dd1f4f6d9da9eb5))
+- The faceted key row's test takes its panels' handlers from the pane's own hook ([7120e9a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/7120e9aee88d6d267a85eb75d809d36ba036bd5f))
+
 ## [10.0.8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.0.7...v10.0.8) (2026-11-20)
 
 ### Other Changes
