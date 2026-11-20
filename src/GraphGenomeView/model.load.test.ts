@@ -924,3 +924,75 @@ describe('a walk-file cut', () => {
     expect(model.graph!.paths).toEqual(loadGraph(WALK_TABLES, 'whole').paths)
   })
 })
+
+// WALK_TABLES without its tags, as a GBZ cuts it, with the reference walk
+// second: the walks alone place it
+const PATH_TABLES: GraphTables = {
+  ...WALK_TABLES,
+  nodes: {
+    ...WALK_TABLES.nodes,
+    refs: Int32Array.of(-1, -1, -1, -1),
+    refNames: [],
+  },
+  walks: {
+    names: ['HG002#1#chr1', 'GRCh38#0#chr1', 'HG003#1#chr1'],
+    starts: Float64Array.of(0, 1000, 0),
+    ends: Float64Array.of(3400, 5000, 4000),
+    offsets: Int32Array.of(0, 3, 6, 9),
+    steps: Int32Array.of(0, 2, 3, 0, 1, 3, 0, 1, 3),
+    reversed: new Uint8Array(9),
+  },
+}
+
+describe('a path walk cut parsed whole after walk rows', () => {
+  const READ = { name: 'r1', path: [{ name: '3', strand: '+' }] }
+  const adapter = {
+    type: 'GbzBaseSyntenyAdapter',
+    reads: 'reads.gaf.gz',
+    assemblyNameToPanSN: { hg38: 'GRCh38' },
+  }
+
+  beforeEach(() => {
+    mockRpcCall.mockReset()
+    mockSession.tracks = [{ ...TEST_TRACK, adapter }]
+    mockRpcCall.mockImplementation(
+      (_sid: unknown, method: string, args: { opts: SubgraphCutOptions }) =>
+        method === 'GetSubgraph'
+          ? Promise.resolve(
+              walkCutFor(PATH_TABLES, TEST_REGION, args.opts.walkRows),
+            )
+          : method === 'GetGraphReads'
+            ? Promise.resolve({ records: [READ], total: 1 })
+            : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+    )
+  })
+
+  async function cutIn(layoutMode: string) {
+    const model = restoredView({ layoutMode })
+    await model.cutSubgraph(adapter, TEST_REGION, {
+      walkRows: layoutMode === 'walkrows',
+    })
+    return model
+  }
+
+  test('anchors on the walk the track puts on the assembly, as a cut parsed whole at once does', async () => {
+    const direct = await cutIn('auto')
+    const model = await cutIn('walkrows')
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    expect(model.walkCut).toBeUndefined()
+    expect(direct.graph!.referencePath).toBe('GRCh38#0#chr1')
+    expect(model.graph!.referencePath).toBe(direct.graph!.referencePath)
+    expect(model.loadedReferencePath).toBe(direct.loadedReferencePath)
+    expect(model.drawsLoadedReference).toBe(true)
+  })
+
+  test('keeps the reads read over the walk-rows cut', async () => {
+    const model = await cutIn('walkrows')
+    expect(model.graph!.reads).toEqual([READ])
+    model.setLayoutMode('auto')
+    await model.recomputeLayout()
+    expect(model.graph!.reads).toEqual([READ])
+    expect(model.readsShown).toEqual({ shown: 1, total: 1 })
+  })
+})
