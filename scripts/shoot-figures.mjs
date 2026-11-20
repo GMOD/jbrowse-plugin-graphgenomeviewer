@@ -460,7 +460,7 @@ const FIGURES = {
           },
           layoutMode: 'force',
           referencePath: 'grch38#chr6:31972046-32055647',
-          walkLayers: [
+          walks: [
             syngThread('grch38#chr6:31972046-32055647', 'grey'),
             syngThread('HG01978#2#JAGYVR010000046.1:2470802-2587140', 'blue'),
             syngThread(
@@ -496,7 +496,7 @@ const FIGURES = {
         layoutMode: 'force',
         encoding: { color: { field: 'position' } },
         subgraphHaplotypes: HAPLOTYPES,
-        walkLayers: [{ walk: 'HG00133#1#CM090045.1' }],
+        walks: [{ walk: 'HG00133#1#CM090045.1' }],
         height: 320,
       },
       [mafLane(HAPLOTYPES)],
@@ -525,7 +525,7 @@ const FIGURES = {
         trackId: LANES,
         layoutMode: 'force',
         subgraphHaplotypes: ['HG01960.1', 'HG00133.1', 'HG03041#2'],
-        walkLayers: [
+        walks: [
           { walk: 'HG01960#1#CM088644.1' },
           { walk: 'HG00133#1#CM090045.1' },
           { walk: 'HG03041#2#CM088727.1' },
@@ -563,7 +563,7 @@ const FIGURES = {
       KIV2_ARRAY_LOC,
       {
         ...kiv2Lanes,
-        walkLayers: [
+        walks: [
           { walk: 'GRCh38#0#chr6' },
           { walk: 'HG00097#1#JBIRDD010000043.1' },
           { walk: 'HG01960#1#JBHIHM010000036.1' },
@@ -603,7 +603,7 @@ const FIGURES = {
           loadedRegion: KIV2_FLANKED,
           subgraphHaplotypes: ['HG00133#2', 'HG00097#1'],
           layoutMode: 'force',
-          walkLayers: [
+          walks: [
             { walk: 'GRCh38#0#chr6', color: { field: 'progress' } },
             { walk: 'HG00133#2#CM090065.1', color: { field: 'progress' } },
             {

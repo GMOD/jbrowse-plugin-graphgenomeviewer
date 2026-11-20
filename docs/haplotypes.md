@@ -78,10 +78,10 @@ same walk files, the array opening out to HG00133's longer one:
 
 ![The KIV-2 array side by side: GRCh38, HG00097, HG01960 and HG00133](../img/force_kiv2_facet.png)
 
-A session states walks and facet:
+A track config or a session states the highlighted walks and the facet:
 
 ```json
-"walkLayers": [
+"walks": [
   { "walk": "GRCh38#0#chr6" },
   { "walk": "HG00133#1#CM090050.1", "color": { "scheme": "purple" } }
 ],
@@ -126,10 +126,10 @@ more than once, the view draws a thread per pass:
 
 ![GRCh38, HG00133 and HG00097 lifted together at KIV-2, each shaded along its own length](../img/force_kiv2_overlay.png)
 
-The session lifts each walk with its field:
+The `walks` slot lifts each walk with its field:
 
 ```json
-"walkLayers": [
+"walks": [
   { "walk": "GRCh38#0#chr6", "color": { "field": "progress" } },
   { "walk": "HG00133#2#CM090065.1", "color": { "field": "progress" } },
   { "walk": "HG00097#1#JBIRDD010000043.1", "color": { "field": "progress" } }

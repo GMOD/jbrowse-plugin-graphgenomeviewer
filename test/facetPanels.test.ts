@@ -73,7 +73,7 @@ const session = {
           type: 'LinearGraphDisplay',
           trackId: TRACK,
           layoutMode: 'force',
-          walkLayers: [{ walk: 'HG002#1#chr1' }, { walk: 'HG002#2#chr1' }],
+          walks: [{ walk: 'HG002#1#chr1' }, { walk: 'HG002#2#chr1' }],
           facet: 'walk',
           height: 400,
           maxRegionBp: 400_000,
