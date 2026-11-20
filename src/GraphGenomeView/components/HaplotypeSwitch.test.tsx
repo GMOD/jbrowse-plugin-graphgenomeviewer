@@ -1,8 +1,15 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import FacetPanels from './FacetPanels'
 import HaplotypeSwitch from './HaplotypeSwitch'
+import { usePaneGestures } from './usePaneGestures'
 import { rpcRespond } from '../modelTestSupport'
 import stateModelFactory from '../viewModel'
 
@@ -91,11 +98,12 @@ test("a faceted pane's key row holds the controls its host hands it, after its k
   await model.loadGFA(WALKS_GFA, 'graph')
   model.setWidth(800)
   expect(model.facetPanels).toHaveLength(2)
+  const { handlers } = renderHook(() => usePaneGestures(model)).result.current
   const drawn = (controls?: React.ReactNode) =>
     renderToStaticMarkup(
       <FacetPanels
         model={model}
-        handlers={{}}
+        handlers={handlers}
         canvasStyle={{}}
         controls={controls}
       />,
