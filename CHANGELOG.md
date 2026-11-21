@@ -1,3 +1,11 @@
+## [10.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.1.1...v10.2.0) (2026-11-21)
+
+### Other Changes
+
+- The key reads the strip's tabs and the drawing's top and bottom edge marks from bandage-core as two entries, each with its own swatch ([fbef00b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fbef00bad8f18aef488333cbfa0806e85512108f))
+- Bandage-core 14.2.0 and graph-walks 8.0.2: the key's two edge-mark rows come from a published core, and a gene copy the reference walks over an earlier copy's nodes is named in that copy's name ([145c94b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/145c94b1ae1130f7148b53c271c7d5f599f91292))
+- Eighteen figures reshot on bandage-core 14.2.0: six for the key's reworded reference strip row, three more for strokes whose edges moved by a few pixels, and nine whose committed copies 10.1.1 no longer drew ([632d556](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/632d5565266c72589a7cf61bcda3c0bdf5a1fa81))
+
 ## [10.1.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.1.0...v10.1.1) (2026-11-20)
 
 ### Other Changes
