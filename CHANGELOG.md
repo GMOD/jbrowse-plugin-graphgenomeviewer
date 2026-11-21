@@ -1,3 +1,9 @@
+## [10.4.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.0...v10.4.1) (2026-11-21)
+
+### Other Changes
+
+- Graph-walks 9.1.0: over-budget windows are refused before their rows are decoded and departure-dense windows cut faster, with every figure drawing as before ([d4b15f3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d4b15f353913f4807f820a9162ef0863c07cde7d))
+
 ## [10.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.3.0...v10.4.0) (2026-11-21)
 
 ### Other Changes
