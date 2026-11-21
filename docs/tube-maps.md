@@ -134,8 +134,9 @@ routes stack, and superpopulation sets the colour:
 A gbz-base track draws GAF reads under the haplotypes in both tube map layouts.
 [data.md](data.md#reads) sets up the reads file.
 
-- The track draws up to 5000 reads a cut. Forward reads are blue and reverse
-  red. Haplotype tubes turn grey beside reads
+- The track draws up to 5000 reads a cut. Forward reads are red and reverse
+  blue, as JBrowse's alignments track colours strands. Haplotype tubes turn grey
+  beside reads
 - The cs tag's edits draw on the reads: substituted bases, `*` for an insertion,
   grey for a deletion
 
