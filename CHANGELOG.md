@@ -1,3 +1,10 @@
+## [10.4.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.3.0...v10.4.0) (2026-11-21)
+
+### Other Changes
+
+- The tube map docs say forward reads are red and reverse blue, as JBrowse's alignments track colours strands, the read ramps bandage-core takes from tubemap-core 2.1.0 ([37f3bc5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/37f3bc5ea01193d1b65d81ad1a4aff174f672543))
+- Bandage-core 14.3.0: tube map reads are painted forward red and reverse blue from tubemap-core 2.1.0's read ramps, as JBrowse's alignments track colours strands, and tube_map_reads.png is reshot with them ([d5d2e3e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d5d2e3e288c704611d8f6681a204552342b94a05))
+
 ## [10.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.2.0...v10.3.0) (2026-11-21)
 
 ### Other Changes
