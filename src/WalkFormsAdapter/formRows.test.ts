@@ -111,7 +111,7 @@ test('a replacement is one variant over its REF span', () => {
   expect(v.name).toBe('repl 600bp->2kb')
 })
 
-test('a lopsided replacement colours as the side it nearly is', () => {
+test('a replacement is one at any ratio of its sides, and colours by its net change', () => {
   const forms = structuralForms(
     [
       haplotype('A#1', [departure(2000, 8460, 94)]),
@@ -122,16 +122,11 @@ test('a lopsided replacement colours as the side it nearly is', () => {
     { window },
   )
   expect(
-    formVariants(forms).map(v => [
-      v.name,
-      v.mark.kind,
-      v.mark.lopsided,
-      v.consequence,
-    ]),
+    formVariants(forms).map(v => [v.name, v.mark.kind, v.alt, v.consequence]),
   ).toEqual([
-    ['del 6.46kb->94bp', 'replacement', 'deletion', 'loss'],
-    ['ins 178bp->13.9kb', 'replacement', 'insertion', 'gain'],
-    ['repl 600bp->500bp', 'replacement', undefined, 'loss'],
+    ['repl 6.46kb->94bp', 'replacement', '<CPX>', 'loss'],
+    ['repl 178bp->13.9kb', 'replacement', '<CPX>', 'gain'],
+    ['repl 600bp->500bp', 'replacement', '<CPX>', 'loss'],
   ])
 })
 

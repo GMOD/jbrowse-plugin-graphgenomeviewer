@@ -174,7 +174,7 @@ largest change ("66% · del 18.4kb"):
 - `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
   the rest share an empty "other forms" row
 - A row label names the form's largest change in graph-walks' tokens, such as
-  `del 18.4kb`, `del 6.46kb->94bp`, `repl 32.7kb->58.7kb`, `shift 94.2kb` or
+  `del 18.4kb`, `repl 86.6kb->1bp`, `repl 32.7kb->58.7kb`, `shift 94.2kb` or
   `ref`, and "+N" counts its other changes, which the variants under it name.
   Changes every form shares stay out of the label
 - `walkByteBudget`, 1.5 MB by default, caps what the cut fetches, the blocks of
@@ -187,9 +187,10 @@ largest change ("66% · del 18.4kb"):
   its steps make
 - Each change is a variant with a `consequence` of `loss`, `gain`, `shift` or
   `inversion`, which `encoding.color` paints with a key. A replacement counts as
-  a loss or gain by its net change. graph-walks labels one whose smaller side is
-  under 5% of the other as a deletion or insertion, so C4's 6,460 bp to 94 bp
-  reads `del 6.46kb->94bp`
+  a loss or gain by its net change. graph-walks calls a change a deletion only
+  where the haplotype runs 0 bp of its own and an insertion only where it leaves
+  out 0 bp of the reference; anything else is a replacement with both sizes, the
+  reference's first, so MHC's 86.6 kb to 1 bp reads `repl 86.6kb->1bp`
 - The adapter sets a form's genotype to `1` at its own changes and `.` where its
   walks do not span a site
 - The display's notifications name the haplotypes with no walk over the window
