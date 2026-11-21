@@ -1,3 +1,13 @@
+## [10.3.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.2.0...v10.3.0) (2026-11-21)
+
+### Other Changes
+
+- A replacement on the forms track colours as a loss or gain by its net change alone, and the docs and the test name it as graph-walks does once a change is a deletion or insertion only with 0 bp on a side: repl 6.46kb->94bp where the tag read del 6.46kb->94bp, with no lopsided field read from a mark ([23298fb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/23298fb90ccfbbc70ab00d02caeabd5140d71e30))
+- The adapter's test names HG002's 20 bp walked in place of 600 bp of GRCh38 as graph-walks does once only a 0 bp side makes a deletion: its row reads 33% · repl 600bp->20bp where it read del 580bp, and its feature is CPX, complex_substitution, where it was DEL, deletion, still coloured a loss ([6f6871b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6f6871b9cb1d4265e02c47cb5d3fa712b053d7f9))
+- The forms track docs give the tokens graph-walks now writes, a shift with both sides as shift 32.7kb->32.7kb and CYP2D6's gain with a 1 bp deletion joined to it as repl 1bp->13.7kb, and say a variant's mark holds both sides as refLength and altLength ([a3f0ce0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a3f0ce0072744b5e5d5a6bc234589d758557e05d))
+- The forms track reads no shift: a variant's consequence is loss, gain or inversion, a deletion and an insertion elsewhere are two variants, a row that would read like another names what tells it apart as del 2kb, ins 800bp, and the docs' colour key and tokens follow graph-walks ([472e824](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/472e8242fde9fee5960cc70e31bc0644d2f5ce01))
+- Graph-walks 9.0.0: the forms track names a change a deletion or insertion only where one side is 0 bp, joins no indel under 50 bp to a larger change, names no shift, gives a duplication both sides where it leaves the reference out, and tells apart rows that would read alike ([26f1906](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/26f190614de70562f08dc63bcc91e1357882d4a4))
+
 ## [10.2.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.1.1...v10.2.0) (2026-11-21)
 
 ### Other Changes
