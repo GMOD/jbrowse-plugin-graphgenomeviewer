@@ -11,7 +11,7 @@ import { DEFAULT_MAX_FORMS } from '../slotDefaults.ts'
 
 import type { Mark, MarkKind, StructuralForms } from '@jbrowse/graph-walks'
 
-export const CONSEQUENCES = ['loss', 'gain', 'shift', 'inversion'] as const
+export const CONSEQUENCES = ['loss', 'gain', 'inversion'] as const
 
 export type Consequence = (typeof CONSEQUENCES)[number]
 
@@ -34,12 +34,6 @@ const KINDS: Record<
     type: 'inversion',
     alt: '<INV>',
     consequence: 'inversion',
-  },
-  shift: {
-    svType: 'CPX',
-    type: 'complex_structural_alteration',
-    alt: '<CPX>',
-    consequence: 'shift',
   },
 }
 

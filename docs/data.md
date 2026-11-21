@@ -149,9 +149,9 @@ largest change ("66% · del 18.4kb"):
           "field": "consequence",
           "scale": {
             "type": "ordinal",
-            "domain": ["loss", "gain", "shift", "inversion"],
-            "range": ["#e41a1c", "#800080", "#8a94a3", "#ff7f00"],
-            "names": ["Loss", "Gain", "Shifted, same length", "Inversion"]
+            "domain": ["loss", "gain", "inversion"],
+            "range": ["#e41a1c", "#800080", "#ff7f00"],
+            "names": ["Loss", "Gain", "Inversion"]
           },
           "legend": { "title": "Change" }
         }
@@ -174,9 +174,10 @@ largest change ("66% · del 18.4kb"):
 - `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
   the rest share an empty "other forms" row
 - A row label names the form's largest change in graph-walks' tokens, such as
-  `del 18.4kb`, `repl 1bp->13.7kb`, `repl 32.7kb->58.7kb`,
-  `shift 32.7kb->32.7kb` or `ref`, and "+N" counts its other changes, which the
-  variants under it name. Changes every form shares stay out of the label
+  `del 18.4kb`, `repl 37.2kb->6bp`, `dup 94.1kb` or `ref`, and "+N" counts its
+  other changes, which the variants under it name. Changes every form shares
+  stay out of the label, and where two rows would read the same each names the
+  changes that tell it apart: `del 32.7kb, del 6.37kb`
 - `walkByteBudget`, 1.5 MB by default, caps what the cut fetches, the blocks of
   walks the file keeps in short form included. It admits the MHC windows the
   format 7 file drew. Bytes stand in for memory only roughly, so a window under
@@ -185,14 +186,14 @@ largest change ("66% · del 18.4kb"):
 - A detour the walk file keeps in short form counts in full: graph-walks builds
   it from its length and its place on the reference, so its changes are the ones
   its steps make
-- Each change is a variant with a `consequence` of `loss`, `gain`, `shift` or
+- Each change is a variant with a `consequence` of `loss`, `gain` or
   `inversion`, which `encoding.color` paints with a key. A replacement counts as
   a loss or gain by its net change. graph-walks calls a change a deletion only
   where the haplotype runs 0 bp of its own and an insertion only where it leaves
   out 0 bp of the reference; anything else is a replacement with both sizes, the
-  reference's first, so CYP2D6's 13.7 kb gain with a 1 bp deletion joined to it
-  reads `repl 1bp->13.7kb`. A shift gives both sides too. A variant's `mark`
-  holds `refLength` and `altLength`, the two sides
+  reference's first, so GSTT1's 37,159 bp of the reference against 6 bp reads
+  `repl 37.2kb->6bp`. A deletion and an insertion elsewhere stay two variants. A
+  variant's `mark` holds `refLength` and `altLength`, the two sides
 - The adapter sets a form's genotype to `1` at its own changes and `.` where its
   walks do not span a site
 - The display's notifications name the haplotypes with no walk over the window
