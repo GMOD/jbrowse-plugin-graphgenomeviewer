@@ -653,6 +653,8 @@ function createEnvironment({
   return {
     session,
     view,
+    newView: () =>
+      LinearGenomeModel.create({ type: 'LinearGenomeView', tracks: [] }),
     cuts,
     errors,
     addedViews,
@@ -899,11 +901,9 @@ test('a restored session cuts the region it saved', async () => {
 })
 
 test('a track restored before its view measures its width waits for the width, then cuts', async () => {
-  const { view, session, cuts } = createEnvironment()
+  const { view, session, newView, cuts } = createEnvironment()
   const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
-  const restored = session.setOther(
-    getType(view).create({ type: 'LinearGenomeView', tracks: [] }),
-  )
+  const restored = session.setOther(newView())
   restored.setDisplayedRegions(view.displayedRegions)
   restored.showTrack('graph')
   const display = restored.tracks[0]!.displays[0] as LinearGraphDisplayModel
