@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^14.3.4
-        version: 14.3.4
+        specifier: ^14.3.5
+        version: 14.3.5
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@14.3.4':
-    resolution: {integrity: sha512-P4D7XwsWHt9aXLXrvnQa/EIgIQVY6O2J/0cxu4SZ+a432RsFpTkXrUgLSnsW/I+6j2Irrr2xDHz13r8wQFA6qA==}
+  '@jbrowse/bandage-core@14.3.5':
+    resolution: {integrity: sha512-RZgc7Zxc5nk1hU5NUZ4jaD4L86r7omgksQwZUFmh9ieUxZ/nC6xR36GrtDgssEVmSHK+pHVNoTnER94x2h/5aw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -686,8 +686,8 @@ packages:
     resolution: {integrity: sha512-/wIO50DsK87me7qTlo1D6h65Onjk2LMxaWSP19jk220kJp8bic8hL6ITz1+NTi+CttKm0CyzNWJ/eDwgSayGJw==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-stress-layout@1.0.0':
-    resolution: {integrity: sha512-Yw0aMopfOIvHftmHnTP+jPL0uINCt+fdWxHQvrGeektL5KOAvrMBrUyBB1FcNizQZCSnAtYplIoXCL5K0qN7og==}
+  '@jbrowse/graph-stress-layout@1.1.0':
+    resolution: {integrity: sha512-qP/VqpFViuCs1XUaXZdvbmfisCdl7Ti4MRn+7G2TqEgRLtQ0ZWkcMnkXqo049+qbiYE2ggFdYTLkwTYlAxYnIQ==}
     engines: {node: '>=20'}
 
   '@jbrowse/graph-walks@9.1.0':
@@ -3836,12 +3836,12 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.3.4':
+  '@jbrowse/bandage-core@14.3.5':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
       '@jbrowse/graph-fmmm-layout': 1.0.2
-      '@jbrowse/graph-stress-layout': 1.0.0
+      '@jbrowse/graph-stress-layout': 1.1.0
       '@jbrowse/tubemap-core': 2.1.0
 
   '@jbrowse/cigar-utils@5.0.0-beta.20': {}
@@ -3930,7 +3930,7 @@ snapshots:
 
   '@jbrowse/graph-fmmm-layout@1.0.2': {}
 
-  '@jbrowse/graph-stress-layout@1.0.0': {}
+  '@jbrowse/graph-stress-layout@1.1.0': {}
 
   '@jbrowse/graph-walks@9.1.0':
     dependencies:
