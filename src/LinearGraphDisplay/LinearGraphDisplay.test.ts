@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
+import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
 import { LAYOUT_MODE_VALUES } from '@jbrowse/bandage-core/layoutModes'
 import { NO_FOLD } from '@jbrowse/bandage-core/levelOfDetail'
@@ -1117,6 +1118,7 @@ async function forceGraph({
   loopAtStart = false,
   loopInside = false,
   zigzag = 0,
+  display = {},
 } = {}) {
   const env = createEnvironment({
     paths,
@@ -1128,7 +1130,11 @@ async function forceGraph({
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
   view.scrollTo(windowStart / view.bpPerPx)
-  view.showTrack(track, {}, { type: 'LinearGraphDisplay', layoutMode: 'force' })
+  view.showTrack(
+    track,
+    {},
+    { type: 'LinearGraphDisplay', layoutMode: 'force', ...display },
+  )
   const pane = view.tracks[0]!.displays[0] as LinearGraphDisplayModel
   pane.startRenderingBackend(fakeRenderer())
   await wait(SETTLE_MS)
@@ -1509,6 +1515,90 @@ test('a drawing placed by its window is clipped at the key column it runs under'
   await pane.switchLayout('auto')
   await wait(SETTLE_MS)
   expect(pane.drawingClip).toBeUndefined()
+})
+
+test('the key takes a column by default, and over the drawing it leaves the window spanning the pane edge to edge, as the ruler does', async () => {
+  const column = await forceGraph()
+  column.pane.setLegendSize({ width: 120, height: 40 })
+  expect(column.pane.keyPlacement).toBe('column')
+  expect(column.pane.keyColumnPx).toBe(120 + 2 * LEGEND_INSET_PX)
+
+  const { pane } = await forceGraph({ display: { key: 'overlay' } })
+  pane.setLegendSize({ width: 120, height: 40 })
+  await wait(0)
+  expect(pane.keyColumnPx).toBe(0)
+  expect(pane.drawingWidth).toBe(pane.paneWidth)
+  const seen = hostWindow(pane.host!)!
+  expect(screenXOf(pane, seen.start)).toBeCloseTo(0, 6)
+  expect(screenXOf(pane, seen.end, true)).toBeCloseTo(pane.paneWidth, 6)
+})
+
+test('a key over the drawing sits in a band above what the pane shows where the track holds both, and over it where it does not', async () => {
+  const { pane } = await forceGraph({ display: { key: 'overlay' } })
+  pane.setLegendSize({ width: 120, height: 40 })
+  await wait(0)
+  const band = 40 + 2 * LEGEND_INSET_PX + pane.referenceStripZonePx
+  expect(pane.keyBandTop).toBe(band + FIT_PADDING)
+  const ys = pane
+    .graph!.nodes.filter(n => n.stable?.rank === 0)
+    .flatMap(n => pane.nodePositions?.[n.id] ?? [])
+    .filter(p => p.x * pane.scale + pane.translateX >= 0)
+    .map(p => pane.toScreen(p).y)
+  expect(ys.length).toBeGreaterThan(0)
+  expect(ys.every(y => y >= band)).toBe(true)
+
+  pane.setHeight(MIN_CANVAS_HEIGHT)
+  pane.setLegendSize({ width: 120, height: 60 })
+  await wait(0)
+  expect(pane.keyBandTop).toBeUndefined()
+})
+
+test('a hidden key takes no column', async () => {
+  const { pane } = await forceGraph({ display: { key: 'hidden' } })
+  pane.setLegendSize({ width: 120, height: 40 })
+  expect(pane.keyColumnPx).toBe(0)
+})
+
+test('a drawing that follows the window draws and labels only what the view shows, though its cut runs wider', async () => {
+  const { pane, view } = await forceGraph({
+    loopAtStart: true,
+    display: { encoding: { color: { field: 'position' } } },
+  })
+  const seen = hostWindow(pane.host!)!
+  const cut = pane.cutRegion!
+  expect(cut.end - cut.start).toBeGreaterThan(seen.end - seen.start)
+  expect(pane.viewWindow).toEqual({ start: seen.start, end: seen.end })
+
+  const outside = pane.graph!.nodes.filter(n => pane.outsideView.has(n.id))
+  expect(outside.length).toBeGreaterThan(0)
+  expect(outside.every(n => n.stable?.rank !== 0)).toBe(true)
+  const { batch } = pane.buildDrawing(undefined, false)!
+  const drawn = new Set(batch.nodeStrokeRuns.keys())
+  expect(outside.some(n => drawn.has(n.id))).toBe(false)
+
+  const lengths = [...pane.nodeLengths.keys()].map(id =>
+    pane.nodeById!.get(id)!,
+  )
+  expect(
+    lengths
+      .filter(n => n.stable?.rank === 0)
+      .every(
+        n =>
+          n.stable!.start >= seen.start &&
+          n.stable!.start + n.length <= seen.end,
+      ),
+  ).toBe(true)
+
+  expect(pane.referenceRampDomain).toEqual({
+    start: seen.start,
+    end: seen.end,
+  })
+  view.scrollTo(1_010_000 / view.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(pane.referenceRampDomain?.start).toBeCloseTo(
+    hostWindow(pane.host!)!.start,
+    6,
+  )
 })
 
 test("a track's SVG export is the scene its pane shows: the drawing beside the key at the track's height, framed as the screen frames it", async () => {

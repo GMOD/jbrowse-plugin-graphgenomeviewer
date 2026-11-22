@@ -7,6 +7,10 @@ import { trackHeightConfigSchemaFields } from '@jbrowse/display-kit/trackHeightC
 
 import { graphFacetConfigSchema } from './graphFacetConfigSchema'
 import { HOVER_HIGHLIGHT_VALUES } from '../GraphGenomeView/hoverHighlight'
+import {
+  DEFAULT_KEY_PLACEMENT,
+  KEY_PLACEMENT_VALUES,
+} from '../GraphGenomeView/keyPlacement'
 import { lenientSlotEnum } from '../GraphGenomeView/lenientEnum'
 import { DEFAULT_LINKS_DRAWN, LINKS_DRAWN_VALUES } from '../linksDrawn'
 
@@ -141,6 +145,20 @@ export function configSchemaFactory() {
         type: 'stringEnum',
         model: lenientSlotEnum(LINKS_DRAWN_VALUES, DEFAULT_LINKS_DRAWN),
         defaultValue: DEFAULT_LINKS_DRAWN,
+      },
+      /**
+       * #slot
+       * where the key goes: `column`, a column of its own at the track's
+       * right edge, the drawing fitted beside it; `overlay`, at the track's
+       * top right with no column, so a drawing that follows the view's
+       * window spans the track edge to edge under the tracks above it, and
+       * sits below the key where the track is tall enough for both; or
+       * `hidden`
+       */
+      key: {
+        type: 'stringEnum',
+        model: lenientSlotEnum(KEY_PLACEMENT_VALUES, DEFAULT_KEY_PLACEMENT),
+        defaultValue: DEFAULT_KEY_PLACEMENT,
       },
       ...trackHeightConfigSchemaFields({
         defaultHeight: 300,

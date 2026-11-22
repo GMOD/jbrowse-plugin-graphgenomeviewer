@@ -63,6 +63,27 @@ hovered bubble name lights the bubble's span the same way (`hoveredSpan`). A
 tube map has its own bands and walk rows' bars are lengths, so neither gets a
 strip.
 
+A force drawing that follows the window (`followsWindow`) is cut from a snapped
+region wider than the view (`snappedCut`, 786 kb for a 400 kb view), since the
+layout needs the margin. What is drawn and labelled is the view's span, the
+window last settled on (`viewWindow`): nodes off the reference that branch only
+outside it are left out of the batch (`outsideView`), a reference segment's
+length is written only where all of it is in view, genes pin only where they
+meet it, and the position ramp and its key run over it. The reference itself is
+drawn whole, so a link from inside the view still reaches the pane edge.
+
+The key takes a column at the pane's right edge by default, and the drawing fits
+beside it, at about 0.6 of the ruler's scale in a 930 px figure. With
+`key: 'overlay'` it takes no column: the window spans the pane edge to edge
+(`followPads` drops the side padding), and where the track is tall enough for
+the key and what the pane's width shows of the drawing, the drawing sits in the
+room under the key (`keyBandTop`), with labels kept out of that band. Where it
+is not, the key covers the drawing's right end. `key: 'hidden'` draws none. The
+drawing's x is the layout's, not bp, so even at the window's scale it lines up
+with the ruler only as well as the layout keeps the reference straight and even
+(`windowScale` fits the widest view-width stretch of the cut): within about 55
+px of 1860 on the paper's HPRC figures.
+
 The host's hover reaches the pane through `session.hovered`, and a pointer over
 the pane is the host's too. There the host reads its x as bp, which a force or
 ordered drawing's x is not, so while `pointerInPane` holds the pane's own hit
