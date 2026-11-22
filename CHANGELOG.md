@@ -1,3 +1,14 @@
+## [10.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.4...v10.5.0) (2026-11-22)
+
+### Other Changes
+
+- A graph track's key can lie over the drawing or be hidden, and a drawing that follows the view's window draws and labels only the view ([fa8e1f8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/fa8e1f8b5c93fe9dd2d660653ad02beadd0666f2))
+- Bandage-core 14.3.4: a dense graph window seeds its layout in a tenth of the time, so the 14,142-node window of HPRC release 2's pggb chrY graph draws as fast as it did in 9.1.0, with every figure drawing as before ([2394354](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2394354233ec0c1db780b0d8b3775614326c53f7))
+- Bandage-core 14.3.5: a dense graph window's skip-arch test reads only the segments near each arch, so the 14,142-node window of HPRC release 2's pggb chrY graph draws in about 9 s where it took 82 s, and under graph-stress-layout 1.1.0 a deletion nested in a deletion draws as two detours ([39b98e1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/39b98e1941d643a398694f2281988b02eec470c6))
+- Six figures are reshot on this build, where a track that follows the view colours, labels and pins only the view: the MHC, founders, GSTM1 walk and three KIV-2 figures ([4936270](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/49362704532621d5743d2383d1159cd20acc0cb8))
+- A graph track that follows the view draws, labels, pins and colours its whole fetched stretch as 10.4.4 did, and draws only the view under the new `extent: 'view'` setting, which suits a still picture ([2bb9a54](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2bb9a5447bae633ac246f16be38549c72ce3cb98))
+- The MHC, founders, GSTM1 walk and three KIV-2 figures are 10.4.4's again, since a track that follows the view draws its whole fetched stretch by default ([400d8b7](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/400d8b791f88f6a713a56e684c8ac49626a2a75b))
+
 ## [10.4.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.3...v10.4.4) (2026-11-22)
 
 ### Other Changes
