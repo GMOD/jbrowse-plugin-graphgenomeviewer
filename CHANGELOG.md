@@ -1,3 +1,9 @@
+## [10.4.4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.3...v10.4.4) (2026-11-22)
+
+### Other Changes
+
+- Bandage-core 14.3.3: hovering a drawing whose links cross most of it no longer runs the tab out of memory, with every figure drawing as before ([d9c4f7b](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d9c4f7bc0f8dd8aeae7da9c7892af582d83b6729))
+
 ## [10.4.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.2...v10.4.3) (2026-11-22)
 
 ### Other Changes
