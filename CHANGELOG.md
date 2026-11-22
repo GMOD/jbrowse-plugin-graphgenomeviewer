@@ -1,3 +1,11 @@
+## [10.4.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.1...v10.4.2) (2026-11-22)
+
+### Other Changes
+
+- A graph track restored with its session waits for the linear view to measure its width, where it read the width early, broke the key's reactions for good and logged an error on every pan ([0523fc6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0523fc6d8412efdbcc6880c69d0b73a41978048e))
+- Bandage-core 14.3.1: gene names and node lengths are laid out against an index of the exon outlines, so a pan over a 25 Mb window of RefSeq genes no longer lays out its labels for seconds a frame ([d3b473c](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d3b473c09f17c8ccd00288be13979ac0ac59d20b))
+- The restored-session test makes its second view from the environment's own LinearGenomeModel, so the test typecheck reads it as one ([229614f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/229614f61eaf3b143277e94af59165a690de9694))
+
 ## [10.4.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.0...v10.4.1) (2026-11-21)
 
 ### Other Changes
