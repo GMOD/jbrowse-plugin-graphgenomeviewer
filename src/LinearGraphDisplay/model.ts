@@ -168,7 +168,8 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       get viewWindow() {
         const seen = self.settledWindow
         const region = self.graphRegion
-        return self.followsWindow &&
+        return getConf(self, 'extent') === 'view' &&
+          self.followsWindow &&
           seen?.refName === region?.refName &&
           seen?.assemblyName === region?.assemblyName
           ? seen && { start: seen.start, end: seen.end }

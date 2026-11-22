@@ -65,12 +65,17 @@ strip.
 
 A force drawing that follows the window (`followsWindow`) is cut from a snapped
 region wider than the view (`snappedCut`, 786 kb for a 400 kb view), since the
-layout needs the margin. What is drawn and labelled is the view's span, the
-window last settled on (`viewWindow`): nodes off the reference that branch only
-outside it are left out of the batch (`outsideView`), a reference segment's
-length is written only where all of it is in view, genes pin only where they
-meet it, and the position ramp and its key run over it. The reference itself is
-drawn whole, so a link from inside the view still reaches the pane edge.
+layout needs the margin. By default (`extent: 'fetched'`) the whole cut is
+drawn, labelled and pinned, and the position ramp and its key run over the cut,
+so a pan only slides the drawing. With `extent: 'view'` what is drawn and
+labelled is the view's span, the window last settled on (`viewWindow`): nodes
+off the reference that branch only outside it are left out of the batch
+(`outsideView`), a reference segment's length is written only where all of it is
+in view, genes pin only where they meet it, and the position ramp and its key
+run over it. The reference itself is drawn whole, so a link from inside the view
+still reaches the pane edge. That suits a still picture; during a pan the
+layout's x is not bp, so nodes outside the view's bp still sit in the pane, and
+the drawing drops, adds and recolours them in steps as the window settles.
 
 The key takes a column at the pane's right edge by default, and the drawing fits
 beside it, at about 0.6 of the ruler's scale in a 930 px figure. With

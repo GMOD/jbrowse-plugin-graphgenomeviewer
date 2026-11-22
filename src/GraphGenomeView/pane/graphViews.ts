@@ -266,7 +266,8 @@ export const withGraphViews = paneBase
     get keyPlacement(): KeyPlacement {
       return DEFAULT_KEY_PLACEMENT
     },
-    // The bp the linear view shows, while the drawing follows its window
+    // The bp the linear view shows, while the drawing follows its window and
+    // draws only the view (`extent: 'view'`)
     get viewWindow(): ViewWindow | undefined {
       return undefined
     },
@@ -520,8 +521,8 @@ export const withGraphViews = paneBase
     },
     // An open bubble on the reference spans the ramp, so its own nodes take
     // every hue while the rest is grey. A drawing that follows the linear
-    // view's window ramps over the view, so the hues and the key's range
-    // describe what is on screen rather than the wider cut. Undefined for a
+    // view's window and draws only the view ramps over the view, so the hues
+    // and the key's range describe what it draws. Undefined for a
     // graph with none of these, where the ramp spans the drawn extent
     // (computeReferenceRamp)
     get rampDomain() {

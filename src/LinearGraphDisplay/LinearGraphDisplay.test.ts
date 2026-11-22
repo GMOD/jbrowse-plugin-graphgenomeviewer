@@ -1,5 +1,6 @@
 import { createElement } from 'react'
 
+import { labelledNodeLengths } from '@jbrowse/bandage-core/graphLabels'
 import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/keyColumn'
 import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import { LAYOUT_ENGINE_VALUES } from '@jbrowse/bandage-core/layoutEngines'
@@ -17,6 +18,7 @@ import {
   stripPixels,
 } from '@jbrowse/bandage-core/referenceStrip'
 import { TRACK_FIT_LABELS, grownHeight } from '@jbrowse/bandage-core/trackFit'
+import { rangeText } from '@jbrowse/bandage-core/walkKey'
 import PluginManager from '@jbrowse/core/PluginManager'
 import {
   ConfigurationReference,
@@ -58,6 +60,11 @@ import {
   paneBase,
 } from '../GraphGenomeView/pane/paneBase'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
+import {
+  NO_NODES,
+  nodesOutsideWindow,
+  wholeInWindow,
+} from '../GraphGenomeView/viewWindow'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
@@ -1119,6 +1126,7 @@ async function forceGraph({
   loopInside = false,
   zigzag = 0,
   display = {},
+  geneLaneFilter = undefined as string[] | undefined,
 } = {}) {
   const env = createEnvironment({
     paths,
@@ -1126,6 +1134,7 @@ async function forceGraph({
     loopAtStart,
     loopInside,
     zigzag,
+    geneLaneFilter,
   })
   const { view } = env
   view.zoomTo(windowBp / WIDTH_PX)
@@ -1559,10 +1568,84 @@ test('a hidden key takes no column', async () => {
   expect(pane.keyColumnPx).toBe(0)
 })
 
-test('a drawing that follows the window draws and labels only what the view shows, though its cut runs wider', async () => {
-  const { pane, view } = await forceGraph({
+test('a drawing that follows the window draws, labels and ramps over its whole cut by default, so a pan only slides it', async () => {
+  const { pane } = await forceGraph({
     loopAtStart: true,
     display: { encoding: { color: { field: 'position' } } },
+  })
+  const seen = hostWindow(pane.host!)!
+  const graph = pane.graph!
+  expect(pane.viewWindow).toBeUndefined()
+  expect(pane.outsideView.size).toBe(0)
+
+  const branchingOutside = [...nodesOutsideWindow(graph, seen)]
+  expect(branchingOutside.length).toBeGreaterThan(0)
+  const { batch } = pane.buildDrawing(undefined, false)!
+  const drawn = new Set(batch.nodeStrokeRuns.keys())
+  expect(branchingOutside.every(id => drawn.has(id))).toBe(true)
+
+  expect(pane.nodeLengths).toEqual(
+    labelledNodeLengths(graph.nodes, pane.layerSet.has('lengths')),
+  )
+  expect(
+    graph.nodes.some(
+      n => pane.nodeLengths.has(n.id) && !wholeInWindow(n, NO_NODES, seen),
+    ),
+  ).toBe(true)
+
+  const region = pane.graphRegion!
+  expect(pane.rampDomain).toEqual(region)
+  expect(pane.referenceRampDomain).toEqual({
+    start: region.start,
+    end: region.end,
+  })
+})
+
+test("a gene in a drawing's cut but outside the view is pinned by default, and left unpinned where the drawing draws only the view", async () => {
+  const pinned = async (display: Record<string, unknown>) => {
+    const { pane } = await forceGraph({
+      windowStart: 1_020_000,
+      display,
+      geneLaneFilter: ["jexl:feature.type=='gene'"],
+    })
+    await wait(0)
+    const seen = hostWindow(pane.host!)!
+    const gene = pane.backboneGenes?.find(g => g.name === 'insB5')
+    expect(gene && gene.end < seen.start).toBe(true)
+    return pane.genePins.map(pin => pin.gene.name)
+  }
+  expect(await pinned({})).toContain('insB5')
+  expect(await pinned({ extent: 'view' })).not.toContain('insB5')
+})
+
+test('a key over the drawing names the range its colours ramp over: the cut by default, the view under extent view', async () => {
+  const rampRange = async (display: Record<string, unknown>) => {
+    const { pane } = await forceGraph({
+      display: {
+        encoding: { color: { field: 'position' } },
+        key: 'overlay',
+        ...display,
+      },
+    })
+    const entry = pane.graphKey
+      .flatMap(section => section.entries)
+      .find(e => e.key === 'ramp')
+    return { pane, under: entry?.under }
+  }
+  const fetched = await rampRange({})
+  const cut = fetched.pane.graphRegion!
+  expect(fetched.under).toBe(rangeText(undefined, cut.start, cut.end))
+  expect(fetched.pane.referenceStripOverhangs).toBe(true)
+
+  const view = await rampRange({ extent: 'view' })
+  const seen = hostWindow(view.pane.host!)!
+  expect(view.under).toBe(rangeText(undefined, seen.start, seen.end))
+})
+
+test('a drawing that follows the window draws and labels only what the view shows, though its cut runs wider, under extent view', async () => {
+  const { pane, view } = await forceGraph({
+    loopAtStart: true,
+    display: { encoding: { color: { field: 'position' } }, extent: 'view' },
   })
   const seen = hostWindow(pane.host!)!
   const cut = pane.cutRegion!
