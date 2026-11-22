@@ -1,3 +1,11 @@
+## [10.5.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.5.0...v10.5.1) (2026-11-22)
+
+### Other Changes
+
+- Bandage-core 14.4.0: geometryFold gives the fold a build will make before it is built, which the key is sized from, with every figure drawing as before ([9942c93](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9942c93c23024f4fd64be45196030c816159e959))
+- A tube map whose cut abridges walks it draws cuts again with them before laying out, so it lays out once where it laid out the abridged cut and then the full one ([8d1a942](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8d1a94291b5ac3a2cf8882d453db6f5d9717dd43))
+- A first draw and a layout switch build the drawing once: the upload waits for the key, written from what the build will fold, to be measured and for the fit and build window to settle beside it, and the canvas is sized by the paint, so a key that grows the pane after the build builds nothing again ([a713c91](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a713c91c1f53f48ba2548517f7fe911a48e0a37c))
+
 ## [10.5.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.4...v10.5.0) (2026-11-22)
 
 ### Other Changes
