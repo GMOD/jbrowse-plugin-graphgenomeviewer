@@ -1,3 +1,9 @@
+## [10.4.3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.2...v10.4.3) (2026-11-22)
+
+### Other Changes
+
+- Bandage-core 14.3.2: exon outlines are tested against a grid of reach-grown bounds in 8 px cells, so a pan over the 414 RefSeq genes of the HPRC GRCh38 session lays out its gene names in a few ms a frame where it took ~700 ([ff24a5e](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/ff24a5e535ede928fb39f6eb5968c709c3ff43f9))
+
 ## [10.4.2](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.4.1...v10.4.2) (2026-11-22)
 
 ### Other Changes
