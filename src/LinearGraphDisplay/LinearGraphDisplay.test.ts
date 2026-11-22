@@ -898,6 +898,28 @@ test('a restored session cuts the region it saved', async () => {
   expect(cuts[0]!.region).toEqual(saved)
 })
 
+test('a track restored before its view measures its width waits for the width, then cuts', async () => {
+  const { view, session, cuts } = createEnvironment()
+  const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const restored = session.setOther(
+    getType(view).create({ type: 'LinearGenomeView', tracks: [] }),
+  )
+  restored.setDisplayedRegions(view.displayedRegions)
+  restored.showTrack('graph')
+  const display = restored.tracks[0]!.displays[0] as LinearGraphDisplayModel
+  display.startRenderingBackend(fakeRenderer())
+  await wait(SETTLE_MS)
+  expect(display.paneWidth).toBe(0)
+  restored.setWidth(WIDTH_PX)
+  restored.zoomTo(60_000 / WIDTH_PX)
+  restored.scrollTo(1_000_000 / restored.bpPerPx)
+  await wait(SETTLE_MS)
+  expect(errors).not.toHaveBeenCalled()
+  expect(cuts).toHaveLength(1)
+  expect(display.keyView.maxX - display.keyView.minX).toBeGreaterThan(0)
+  errors.mockRestore()
+})
+
 test('a tube map on its own axis ties each reference box to its bp in the linear view', async () => {
   const { view, pane } = await shownGraph({ paths: true })
   await pane.switchLayout('tubemap')
