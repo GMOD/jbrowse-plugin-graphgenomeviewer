@@ -1,10 +1,6 @@
 import { useCallback, useMemo } from 'react'
 
-import {
-  barEnd,
-  scaleBarTree,
-} from '@jbrowse/bandage-core/layout/walkRowDraw'
-import { RAMP_GRADIENT_STOPS } from '@jbrowse/bandage-core/referenceRampCss'
+import { barEnd, scaleBarTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { computed, untracked } from 'mobx'
 import { observer } from 'mobx-react'
 
@@ -308,7 +304,10 @@ const WalkSectionHeaders = observer(function WalkSectionHeaders({
   ))
 })
 
-// Under the last row, a scale bar of the rows' bp, which are not the ruler's
+const SCALE_BAR_ROOM_PX = 14
+
+// Under the last row, or at the pane's foot where the rows run past it, a
+// scale bar of the rows' bp, which are not the ruler's
 const WalkRowsScaleBar = observer(function WalkRowsScaleBar({
   model,
 }: {
@@ -316,52 +315,19 @@ const WalkRowsScaleBar = observer(function WalkRowsScaleBar({
 }) {
   const bars = model.walkRowBars
   const place = model.walkRowPlacement
-  const pitch = model.walkRowPitch
-  if (!bars || !place || !pitch) {
-    return null
-  }
-  const at = model.toScreen({
-    x: bars.origin,
-    y: place.rowY(bars.rows.length + 1),
-  })
-  return <ElTree el={scaleBarTree(model.scaleX, at.x, at.y + 4)} />
-})
-
-const RULER_STRIP_PX = 5
-
-// Over the rows, the reference's positions in the ramp's colours at the
-// ruler's bp, which the rows' colours are read against
-const WalkRowsRulerStrip = observer(function WalkRowsRulerStrip({
-  model,
-}: {
-  model: GraphPaneModel
-}) {
-  const id = useSvgId()
-  const frame = model.hostBpFrame
-  const ramp = model.referenceRampDomain
-  if (!frame || !ramp) {
-    return null
-  }
-  const x0 = ramp.start * frame.scale + frame.translateX
-  const x1 = ramp.end * frame.scale + frame.translateX
-  return (
-    <g data-testid="graph-walk-ruler-strip">
-      <defs>
-        <linearGradient id={id} x1={x0} x2={x1} gradientUnits="userSpaceOnUse">
-          {RAMP_GRADIENT_STOPS.map(s => (
-            <stop key={s.offset} offset={s.offset} stopColor={s.color} />
-          ))}
-        </linearGradient>
-      </defs>
-      <rect
-        x={Math.min(x0, x1)}
-        y={1}
-        width={Math.abs(x1 - x0)}
-        height={RULER_STRIP_PX}
-        fill={`url(#${id})`}
-      />
-    </g>
-  )
+  const at =
+    bars && place
+      ? model.toScreen({ x: bars.origin, y: place.rowY(bars.rows.length + 1) })
+      : undefined
+  return at ? (
+    <ElTree
+      el={scaleBarTree(
+        model.scaleX,
+        Math.max(at.x, 0),
+        Math.min(at.y + 4, model.canvasHeight - SCALE_BAR_ROOM_PX),
+      )}
+    />
+  ) : null
 })
 
 // `vector` for an SVG export, which draws the bars as walkRowsTree's rects
@@ -400,7 +366,6 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         <WalkSectionHeaders model={model} />
         <HoveredWalkRow model={model} />
         <WalkRowsScaleBar model={model} />
-        <WalkRowsRulerStrip model={model} />
       </PaneSvgLayer>
     </>
   ) : null
