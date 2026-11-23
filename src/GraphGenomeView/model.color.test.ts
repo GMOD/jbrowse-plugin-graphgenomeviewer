@@ -584,8 +584,7 @@ test('an open bubble fades the lengths on the nodes it greys, on screen and in t
       'S\t2\t*\tLN:i:50\tSN:Z:chr\tSO:i:1040\tSR:i:0',
       'S\t3\t*\tLN:i:60\tSN:Z:alt\tSO:i:0\tSR:i:1',
       'S\t4\t*\tLN:i:2000\tSN:Z:chr\tSO:i:1090\tSR:i:0',
-      'S\t5\t*\tLN:i:70\tSN:Z:alt2\tSO:i:0\tSR:i:1',
-      ...['0 1', '1 2', '2 4', '1 3', '3 2', '4 5'].map(
+      ...['0 1', '1 2', '2 4', '1 3', '3 2'].map(
         l => `L\t${l.replace(' ', '\t+\t')}\t+\t0M`,
       ),
       '',
@@ -617,14 +616,19 @@ test('an open bubble fades the lengths on the nodes it greys, on screen and in t
         ),
       ].map(([, faded, text]) => [text, faded !== undefined]),
     )
-  // the reference's nodes carry no length
-  const allFull = { '60 bp': false, '70 bp': false }
+  const allFull = {
+    '1 kb': false,
+    '40 bp': false,
+    '50 bp': false,
+    '60 bp': false,
+    '2 kb': false,
+  }
   expect(onScreen()).toEqual(allFull)
   expect(exported()).toEqual(allFull)
 
   const bubble = model.bubbles.find(b => b.segments === '1,3,2')!
   model.toggleBubble(bubble)
-  const outsideFaded = { ...allFull, '70 bp': true }
+  const outsideFaded = { ...allFull, '1 kb': true, '2 kb': true }
   expect(onScreen()).toEqual(outsideFaded)
   expect(exported()).toEqual(outsideFaded)
 
@@ -707,7 +711,7 @@ test('the node thickness key draws its two bars as wide as the thickest and thin
   expect(
     rows?.map(r => [r.label, r.swatch?.kind === 'fill' && r.swatch.height]),
   ).toEqual([
-    ['4 walks', drawnPx('1+')],
-    ['1 walk', drawnPx('2+')],
+    ['depth 4', drawnPx('1+')],
+    ['depth 1', drawnPx('2+')],
   ])
 })

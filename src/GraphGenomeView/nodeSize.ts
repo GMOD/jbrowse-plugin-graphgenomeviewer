@@ -5,11 +5,11 @@ import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 
 // The mark thickness as a config or session writes it: a px number draws every
 // node that thick; `{ field: 'walks', value }` draws a node as thick as the
-// passes the walks make through it, a node six passes cross `value` px;
+// passes the walks make through it, the most passes in the graph `value` px;
 // `{ field: 'depth', value }` thickens a node the more paths carry it, around
 // `value` px; `{ field: 'frequency', value }` draws it as wide as the share of
 // haplotypes through it, `value` px at 100%; `links: 'walks'` draws a link as
-// thick as the walks taking it, on the scale nodes by walks are drawn on.
+// thick as the passes along it, on the scale nodes by walks are drawn on.
 // Unset is nodes and links by walks around 6, which a graph without walks
 // draws by depth.
 export type NodeSize =

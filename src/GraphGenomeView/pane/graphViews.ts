@@ -447,10 +447,7 @@ export const withGraphViews = paneBase
     // a fact about the graph (measured 6.9 ms an allocation on a 30k-node cut).
     get nodeLengths() {
       const graph = self.drawnGraph
-      const lengths = labelledNodeLengths(
-        graph?.nodes ?? [],
-        self.layerSet.has('lengths'),
-      )
+      const lengths = labelledNodeLengths(graph, self.layerSet.has('lengths'))
       return graph
         ? lengthsInWindow(lengths, graph, self.outsideView, self.viewWindow)
         : lengths

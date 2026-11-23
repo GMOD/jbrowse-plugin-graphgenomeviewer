@@ -114,8 +114,8 @@ test("the ramp key's bp read the same in every locale", () => {
 test("the legend draws bandage-core's key, each section under the plugin's testid", () => {
   const model = keyModel(DEPTHS, { edgeWidth: 'walks' }, { compressed: true })
   expect(rowsOf(model, 'graph-width-legend')!.map(r => r.label)).toEqual([
-    '26 walks',
-    '1 walk',
+    'depth 26',
+    'depth 1',
   ])
   expect(
     rowsOf(model, 'graph-width-legend')!.map(r => swatchHeight(r.swatch!)),
