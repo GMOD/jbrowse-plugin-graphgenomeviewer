@@ -1,3 +1,10 @@
+## [10.8.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.7.0...v10.8.0) (2026-11-23)
+
+### Other Changes
+
+- A linear graph display publishes each one-colour walk's colour by PanSN sample and haplotype, so a variant track's row labels in the same view match their threads ([4bdd127](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/4bdd12761e0773b8c2e213a34461790c01fe8019))
+- A walk named by its bare sample publishes its colour with no haplotype, the shape the host reads ([6460e71](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6460e719f793fd4c6816e01f924a4dc165d1e182))
+
 ## [10.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.6.0...v10.7.0) (2026-11-23)
 
 ### Other Changes
