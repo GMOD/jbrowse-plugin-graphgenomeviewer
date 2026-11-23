@@ -69,8 +69,7 @@ export class WalkIndex {
    * takes between those nodes, and every departure from the reference over
    * the window, which walk rows draw.
    * Walk rows draw runs, so the step budget spares them. Only the walks named
-   * in `expand`, or with `expandKept` every walk kept, come back with every
-   * node, as far as the step budget allows.
+   * in `expand` come back with every node.
    */
   async subgraph(
     refName: string,
@@ -81,7 +80,6 @@ export class WalkIndex {
       walkRows,
       links = DEFAULT_LINKS_DRAWN,
       expand,
-      expandKept,
       forcedByteBudget = 0,
     }: SubgraphAdapterOptions,
   ) {
@@ -90,11 +88,9 @@ export class WalkIndex {
       haplotypes?.map(lane => resolvePanSNPrefix(this.adapter, lane)),
       refName,
     )
-    const asked = expandKept
-      ? (keep ?? (() => true))
-      : expand?.length
-        ? (name: string) => expand.includes(name)
-        : undefined
+    const asked = expand?.length
+      ? (name: string) => expand.includes(name)
+      : undefined
     const { graph, kept, fragments, departures } = await this.reader.cut(
       refName,
       region,

@@ -124,9 +124,9 @@ test("the legend draws bandage-core's key, each section under the plugin's testi
       e.swatch?.kind === 'width' ? e.swatch.px : 0,
     ),
   )
+  // the link key reads the links' passes, not the nodes' depths
   expect(rowsOf(model, 'graph-link-width-legend')!.map(r => r.label)).toEqual([
-    '26 walks',
-    '13 walks',
+    '2 walks',
     '1 walk',
   ])
   expect(rowsOf(model, 'graph-compressed-legend')!.map(r => r.label)).toEqual([

@@ -72,7 +72,7 @@ describe('restoring a stated cut', () => {
     expect(model.graphRegion).toEqual(TEST_REGION)
   })
 
-  test('passes the stated context and haplotypes to the cut, asks for the walked links when told nothing, and every node of the walks kept for thickness by walks', async () => {
+  test('passes the stated context and haplotypes to the cut, and asks for the walked links when told nothing', async () => {
     rpcRespond()
     const model = restoredView({
       subgraphContext: 2,
@@ -83,28 +83,9 @@ describe('restoring a stated cut', () => {
       expect.any(String),
       'GetSubgraph',
       expect.objectContaining({
-        opts: {
-          hops: 2,
-          haplotypes: ['HG002#1', 'HG005#2'],
-          links: 'walked',
-          expandKept: true,
-        },
+        opts: { hops: 2, haplotypes: ['HG002#1', 'HG005#2'], links: 'walked' },
       }),
     )
-  })
-
-  test('a view drawing thickness by depth does not fetch every node of the walks kept', async () => {
-    rpcRespond()
-    const model = restoredView()
-    model.setNodeWidth('depth')
-    model.setLinkWidth('uniform')
-    await model.load()
-    expect(
-      mockRpcCall.mock.calls.find(c => c[1] === 'GetSubgraph')?.[2],
-    ).toMatchObject({ opts: { links: 'walked' } })
-    expect(
-      mockRpcCall.mock.calls.find(c => c[1] === 'GetSubgraph')?.[2]?.opts,
-    ).not.toHaveProperty('expandKept')
   })
 
   test("a view stating links 'between' cuts for them, and a switch back cuts again", async () => {

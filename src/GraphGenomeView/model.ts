@@ -265,12 +265,6 @@ export const GraphPane = withLaunchActions
         haplotypes: self.cutHaplotypes,
         ...(self.chosenLayoutMode === 'walkrows' ? { walkRows: true } : {}),
         ...(self.modeDrawsNodes ? { links: self.chosenLinks } : {}),
-        // thickness by walks counts every pass of the walks kept, which the
-        // nodes their detail records hold would otherwise leave out
-        ...(self.modeDrawsNodes &&
-        (self.nodeWidth === 'walks' || self.linkWidth === 'walks')
-          ? { expandKept: true }
-          : {}),
         ...(self.cutsWholeWalks ? { snarls: 'overlapping' as const } : {}),
         ...(self.expandedWalks.length > 0
           ? { expand: self.expandedWalks }
