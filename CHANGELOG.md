@@ -1,3 +1,10 @@
+## [10.7.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.6.0...v10.7.0) (2026-11-23)
+
+### Other Changes
+
+- A graph with walks zoomed out past the fold draws one thread per route, as wide as the haplotypes on it, through bandage-core 14.5.0's foldThreads ([f657fc8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/f657fc852e1cb9ad96580cc0d2fe377e28fe6847))
+- Split by walk, each pick of a folded graph has its own panel lighting its thread, so two haplotypes on one thread no longer leave the pane without panels ([a4ff1eb](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a4ff1eb76d80678b2ce2690cecb00ebcbaa8d0ec))
+
 ## [10.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.5.1...v10.6.0) (2026-11-23)
 
 ### Other Changes
