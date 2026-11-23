@@ -34,6 +34,7 @@ import {
   isUnzoomableNodeLimitError,
 } from '../nodeLimitError'
 import { denseCovers } from './denseWindow'
+import { haplotypeColorsOf } from './haplotypeColors'
 import {
   cutHolds,
   cutRuleOf,
@@ -271,6 +272,9 @@ export function stateModelFactory(configSchema: LinearGraphDisplayConfigModel) {
       },
     }))
     .views(self => ({
+      get haplotypeColors() {
+        return haplotypeColorsOf(self.drawnWalks)
+      },
       overLimitKey(region: SubgraphRegion, seen: HostWindow) {
         return JSON.stringify([
           region,
