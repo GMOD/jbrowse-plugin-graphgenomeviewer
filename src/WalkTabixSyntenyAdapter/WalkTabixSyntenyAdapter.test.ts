@@ -501,6 +501,19 @@ test('the adapter type declares lanes, lane pairs and the graph cut', () => {
   ])
 })
 
+test.each([
+  [{}, true],
+  [{ laneRibbons: 'reference' }, true],
+  [{ laneRibbons: 'neighbours' }, false],
+  [{ laneRibbons: 'sideways' }, true],
+])(
+  'the header reads lanes against the reference unless laneRibbons is neighbours: %o',
+  async (slots, against) => {
+    const header = await makeAdapter(slots).getHeader()
+    expect(header.lanesReadAgainstAnchor).toBe(against)
+  },
+)
+
 test('a short balanced bubble is mismatches, in either order, and any other stays a gap', () => {
   expect(
     bubblesAsMismatches([
@@ -716,7 +729,7 @@ test('a walk turned against the reference for 10 kb or more gains a reverse-stra
 //   W GRCh38  0 chr1 >1>2>3>4>5
 //   W HG002   1 chr1 >1<4<3<2>5
 //   W HG00097 1 chr1 >1>2>3>4>5
-test('the anchor window answers a haplotype turned against the reference with a reverse-strand record of the turned stretch', async () => {
+test('the anchor window answers a haplotype turned against the reference with a reverse-strand record of the turned stretch between the flanks', async () => {
   const records = await firstValueFrom(
     makeAdapter({}, 'inversion')
       .getFeatures({ ...window, end: 55_000 }, {})
@@ -731,8 +744,9 @@ test('the anchor window answers a haplotype turned against the reference with a 
         end: f.get('end'),
       })),
   ).toEqual([
-    { strand: 1, start: 0, end: 55_000 },
+    { strand: 1, start: 0, end: 20_000 },
     { strand: -1, start: 20_000, end: 35_000 },
+    { strand: 1, start: 35_000, end: 55_000 },
   ])
 })
 
