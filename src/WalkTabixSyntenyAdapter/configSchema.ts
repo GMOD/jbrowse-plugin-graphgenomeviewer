@@ -112,8 +112,8 @@ const WalkTabixSyntenyAdapter = ConfigurationSchema(
      * what each lane's ribbons join it to: `reference`, the reference, read
      * from where the walk file places each step, or `neighbours`, the lane
      * above, each pair aligned on the nodes both walk. A multi-way display
-     * from a JBrowse that predates the header's `lanesReadAgainstAnchor` draws
-     * neighbours whatever this says
+     * that does not say it reads lanes against the reference, as JBrowse
+     * releases before it did not, gets `neighbours` whatever this says
      */
     laneRibbons: {
       type: 'stringEnum',

@@ -13,6 +13,7 @@ import { walksKept } from '@jbrowse/graph-walks'
 
 import { laneRecords } from './placementRecords.ts'
 import {
+  anchorAligner,
   arrayFeature,
   cached,
   chainFeature,
@@ -39,9 +40,106 @@ import type { LaneFeatureOptions, LanePair } from '../synteny/lanePairs.ts'
 import type { BaseOptions } from '@jbrowse/core/data_adapters/BaseAdapter'
 import type { Feature } from '@jbrowse/core/util'
 import type { Region } from '@jbrowse/core/util/types'
-import type { WalkFragment } from '@jbrowse/graph-walks'
+import type { WalkFragment, WalkNode } from '@jbrowse/graph-walks'
 
 const haplotypeOf = ({ name }: { name: string }) => panSNHaplotype(name) ?? name
+
+type HeaderOptions = BaseOptions & { readsLanesAgainstAnchor?: true }
+
+interface LaneReading {
+  nodes: Map<number, WalkNode>
+  fragments: WalkFragment[]
+  refName: string
+  region: Region
+  rank: (walk: { name: string }) => number
+  laneOf: (walk: { name: string }) => string
+  walking: Set<string>
+}
+
+function alignedLanes({
+  nodes,
+  fragments,
+  refName,
+  region,
+  rank,
+  laneOf,
+}: LaneReading) {
+  const align = anchorAligner(nodes)
+  const references = fragments.filter(f => f.name === refName)
+  return fragments
+    .filter(fragment => fragment.name !== refName && rank(fragment) >= 0)
+    .map(query => ({
+      rank: rank(query),
+      features: references.flatMap(reference =>
+        align(query, reference).map(chain =>
+          chainFeature({
+            chain,
+            target: reference,
+            query,
+            assemblyName: region.assemblyName,
+            refName: region.refName,
+            mateAssemblyName: laneOf(query),
+          }),
+        ),
+      ),
+    }))
+}
+
+function placedLanes({
+  nodes,
+  fragments,
+  refName,
+  region,
+  rank,
+  laneOf,
+  walking,
+}: LaneReading) {
+  const readLane = laneRecords(nodes)
+  const lanes = new Map<string, WalkFragment[]>()
+  for (const fragment of fragments) {
+    const haplotype = haplotypeOf(fragment)
+    if (
+      fragment.name !== refName &&
+      rank(fragment) >= 0 &&
+      walking.has(haplotype)
+    ) {
+      const lane = lanes.get(haplotype)
+      if (lane === undefined) {
+        lanes.set(haplotype, [fragment])
+      } else {
+        lane.push(fragment)
+      }
+    }
+  }
+  return Array.from(lanes.values(), laneFragments => ({
+    rank: rank(laneFragments[0]!),
+    features: readLane(laneFragments).flatMap(({ fragment, chains, arrays }) =>
+      chains
+        .map(chain =>
+          chainFeature({
+            chain,
+            target: { name: refName, hapStart: 0 },
+            query: fragment,
+            assemblyName: region.assemblyName,
+            refName: region.refName,
+            mateAssemblyName: laneOf(fragment),
+          }),
+        )
+        .concat(
+          arrays.map(record =>
+            arrayFeature({
+              record,
+              query: fragment,
+              assemblyName: region.assemblyName,
+              refName: region.refName,
+              targetName: refName,
+              mateAssemblyName: laneOf(fragment),
+            }),
+          ),
+        ),
+    ),
+  }))
+}
 
 export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<WalkTabixSyntenyAdapterConfig> {
   private readonly walks: WalkIndex = new WalkIndex(openWalkReader(this), this)
@@ -74,9 +172,10 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
    * before a fetch has placed any of them. A lane's `color`, and the anchor's
    * `anchorColor`, is its haplotype's in `samplesTsvLocation`, where it has one;
    * a sheet that fails to read leaves the lanes uncoloured rather than failing
-   * them. `lanesReadAgainstAnchor` is the `laneRibbons` slot's `reference`
+   * them. `lanesReadAgainstAnchor` is stated only to a display that says it
+   * reads it, when the `laneRibbons` slot is `reference`
    */
-  async getHeader(opts: BaseOptions = {}) {
+  async getHeader(opts: HeaderOptions = {}) {
     const [{ haplotypes }, colorOf] = await Promise.all([
       this.walks.reader.header(opts),
       this.sheetColors(opts),
@@ -90,7 +189,9 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     return {
       hasCoarseTier: false,
       anchorAssemblyName: anchor,
-      lanesReadAgainstAnchor: this.getConf('laneRibbons') === 'reference',
+      ...(this.readsAgainstReference(opts)
+        ? { lanesReadAgainstAnchor: true }
+        : {}),
       ...(anchorColor === undefined ? {} : { anchorColor }),
       lanes: haplotypes
         .filter(prefix => !isAnchor(prefix))
@@ -171,14 +272,22 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     )
   }
 
+  private readsAgainstReference(opts: { readsLanesAgainstAnchor?: true }) {
+    return (
+      opts.readsLanesAgainstAnchor === true &&
+      this.getConf('laneRibbons') === 'reference'
+    )
+  }
+
   /**
-   * Each haplotype's records against the reference, read from where the walk
-   * file places its steps (`placementRecords`), on the reference with the
-   * haplotype as its mate, for each haplotype stepping on the reference
-   * inside the window. A haplotype with no step there whose departure spans
-   * it is instead one `spansWindow` record of the departure's stretch, its
-   * mate the haplotype's own sequence between the departure's ends, a point
-   * where it has none.
+   * Each haplotype's records against the reference, on the reference with the
+   * haplotype as its mate: read from where the walk file places its steps
+   * when the display reads lanes against the reference, and otherwise one
+   * record per stretch a haplotype's walk shares with the reference's. A
+   * haplotype with no step on the reference inside the window whose departure
+   * spans it is one `spansWindow` record of the departure's stretch, its mate
+   * the haplotype's own sequence between the departure's ends, a point where
+   * it has none.
    */
   private async anchorFeatures(
     refName: string,
@@ -220,7 +329,6 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
         : prefixes.findIndex(prefix => panSNMatchesPrefix(name, prefix)),
     )
     const rank = ({ name }: { name: string }) => rankOf(name)
-    const readLane = laneRecords(graph.nodes)
     const asmByPrefix = assemblyByPanSNPrefix(this)
     const laneOf = (walk: { name: string }) =>
       laneAssemblyName(asmByPrefix, haplotypeOf(walk))
@@ -232,51 +340,18 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
         )
         .map(haplotypeOf),
     )
-    const lanes = new Map<string, WalkFragment[]>()
-    for (const fragment of fragments) {
-      const haplotype = haplotypeOf(fragment)
-      if (
-        fragment.name !== refName &&
-        rank(fragment) >= 0 &&
-        walking.has(haplotype)
-      ) {
-        const lane = lanes.get(haplotype)
-        if (lane === undefined) {
-          lanes.set(haplotype, [fragment])
-        } else {
-          lane.push(fragment)
-        }
-      }
+    const reading = {
+      nodes: graph.nodes,
+      fragments,
+      refName,
+      region,
+      rank,
+      laneOf,
+      walking,
     }
-    const walked = Array.from(lanes.values(), laneFragments => ({
-      rank: rank(laneFragments[0]!),
-      features: readLane(laneFragments).flatMap(
-        ({ fragment, chains, arrays }) =>
-          chains
-            .map(chain =>
-              chainFeature({
-                chain,
-                target: { name: refName, hapStart: 0 },
-                query: fragment,
-                assemblyName: region.assemblyName,
-                refName: region.refName,
-                mateAssemblyName: laneOf(fragment),
-              }),
-            )
-            .concat(
-              arrays.map(record =>
-                arrayFeature({
-                  record,
-                  query: fragment,
-                  assemblyName: region.assemblyName,
-                  refName: region.refName,
-                  targetName: refName,
-                  mateAssemblyName: laneOf(fragment),
-                }),
-              ),
-            ),
-      ),
-    }))
+    const walked = this.readsAgainstReference(opts)
+      ? placedLanes(reading)
+      : alignedLanes(reading)
     const spanning = departures
       .filter(
         departure =>
