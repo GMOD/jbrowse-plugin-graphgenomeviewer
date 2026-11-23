@@ -38,3 +38,14 @@ test('a folded thread colours every haplotype on it', () => {
     { sample: 'OreR', haplotype: 1, color: 'rgb(31, 119, 180)' },
   ])
 })
+
+test('a walk named by its bare sample publishes no haplotype', () => {
+  expect(
+    haplotypeColorsOf([
+      {
+        name: 'HG002',
+        encoding: { field: 'walk', scheme: 'blue', value: '#1f77b4' },
+      },
+    ]),
+  ).toStrictEqual([{ sample: 'HG002', color: 'rgb(31, 119, 180)' }])
+})
