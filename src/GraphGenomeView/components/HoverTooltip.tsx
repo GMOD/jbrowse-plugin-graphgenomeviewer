@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { againstHoverText } from '@jbrowse/bandage-core/againstReference'
 import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import {
@@ -122,6 +123,14 @@ function hoverTip(
       region && span && !isBackbone(node)
         ? `${region.assemblyName} ${regionLabel({ refName: region.refName, ...span })}`
         : undefined
+    const graph = model.drawnGraph
+    const against =
+      graph &&
+      againstHoverText(
+        graph,
+        node.id,
+        referenceLabel(graph, region) ?? undefined,
+      )
     const genes = genesOverNode(model.genePins, node.id)
     const genesLine =
       genes.length > 0 ? (
@@ -156,6 +165,12 @@ function hoverTip(
                 <>
                   <br />
                   Reference {onReference}
+                </>
+              ) : null}
+              {against ? (
+                <>
+                  <br />
+                  {against}
                 </>
               ) : null}
               {genesLine}

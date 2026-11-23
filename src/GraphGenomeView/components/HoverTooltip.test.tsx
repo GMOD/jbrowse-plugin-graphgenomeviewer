@@ -176,3 +176,43 @@ test('a link skipping reference sequence says the bp it skips of the named refer
   )
   expect(screen.queryByText(/Deletion/)).toBeNull()
 })
+
+// SV-inv-1k-10k: the heads along an inverted stretch name no walk, so the
+// hover counts the walks reading the node against the reference
+test('a reference node some walk reads against the reference says which walks do', () => {
+  const graph = loadGraph(
+    [
+      'S\t1\tAAAAAAAAAA',
+      'S\t2\tCCCCCCCCCC',
+      'S\t3\tGGGGGGGGGG',
+      'L\t1\t+\t2\t+\t0M',
+      'L\t2\t+\t3\t+\t0M',
+      'L\t1\t+\t2\t-\t0M',
+      'L\t2\t-\t3\t+\t0M',
+      'W\tGRCh38\t0\tchr6\t0\t30\t>1>2>3',
+      'W\tinv\t1\tc\t0\t30\t>1<2>3',
+    ].join('\n'),
+    'inversion',
+  )
+  const node = graph.nodes.find(n => n.name === '2')!
+  render(
+    <HoverTooltip
+      model={
+        {
+          hoveredNode: node.id,
+          hoverNodeById: new Map(graph.nodes.map(n => [n.id, n])),
+          hoveredEdge: null,
+          tooltipRightPx: 8,
+          deletions: [],
+          genePins: [],
+          drawnGraph: graph,
+          graphRegion: region,
+        } as unknown as GraphPaneModel
+      }
+      chip={undefined}
+    />,
+  )
+  expect(
+    screen.getByText(/walked against .+'s direction by 1 haplotype: inv#1/),
+  ).toBeTruthy()
+})
