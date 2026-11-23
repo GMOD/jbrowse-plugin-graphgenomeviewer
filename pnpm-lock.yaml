@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^14.4.0
-        version: 14.4.0
+        specifier: ^14.4.1
+        version: 14.4.1
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@14.4.0':
-    resolution: {integrity: sha512-jMujS5qwtev2ViL/XhJ3E/sd7EEQ3XyyIcvTTxjhgKzN84cACyu4VKKZWNfG+PQ6aMr+C9uQAhO1uk4sySwJqw==}
+  '@jbrowse/bandage-core@14.4.1':
+    resolution: {integrity: sha512-8dxZ96gv7Do2yAU9tndTLzOhr5eYO1xvPv8iVUTQ7TpJtMyCz6eByXrJm/RGVegYYqVbcjmUJorVnIs6Vd5bmQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -757,8 +757,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/tubemap-core@2.1.0':
-    resolution: {integrity: sha512-UqNSIkLOfisPZYf/xpzBWxHPB8GrGShSAydXvex39ybJZiItCUWQH3lHhEyedRuQ0fmttfxeuOH6lWh4L8yyxw==}
+  '@jbrowse/tubemap-core@2.1.1':
+    resolution: {integrity: sha512-cqtgRLdU01wvqWYo2gw9uZiTfdU5sSjzUrKYUUV4vkDWwWgf5wWyeMR4xOO81yN8ULNvWireY1zMHmUrIKtBjg==}
 
   '@jbrowse/wiggle-core@5.0.0-beta.20':
     resolution: {integrity: sha512-f+o/wEUptkYGA665E8Ss4+a5AVvQvjM/qL9z49SuGIhNegoUXQDk3vs5zrcW0JqadFydWS/i01JJscuFC5CfPQ==}
@@ -3836,13 +3836,13 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.4.0':
+  '@jbrowse/bandage-core@14.4.1':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
       '@jbrowse/graph-fmmm-layout': 1.0.2
       '@jbrowse/graph-stress-layout': 1.1.0
-      '@jbrowse/tubemap-core': 2.1.0
+      '@jbrowse/tubemap-core': 2.1.1
 
   '@jbrowse/cigar-utils@5.0.0-beta.20': {}
 
@@ -4103,7 +4103,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/tubemap-core@2.1.0': {}
+  '@jbrowse/tubemap-core@2.1.1': {}
 
   '@jbrowse/wiggle-core@5.0.0-beta.20(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)':
     dependencies:
