@@ -585,7 +585,7 @@ export function walkRowSwatch(swatch: KeySwatch): LegendSwatch {
         height: swatch.kind === 'gap' ? swatch.px : WALK_ROW_SWATCH_PX,
         ...(swatch.kind === 'bar' && swatch.rim ? { rim: swatch.rim } : {}),
         ...(swatch.kind === 'bar' && swatch.chevrons
-          ? { chevrons: true as const }
+          ? { chevrons: swatch.chevrons }
           : {}),
       }
 }
