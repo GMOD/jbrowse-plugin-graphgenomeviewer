@@ -45,9 +45,9 @@ const layouts = [
 // skips drew as solid black darts on the backbone, and a skip too short to
 // dash was one plain stroke keyed apart. A skip whose bp come to under
 // SMALL_SITE_PX at the reference's px a bp is not drawn, and the fold says
-// so, unless small sites are shown; any other is dashed, its dashes shorter
-// where its span on screen holds fewer than three, headless there, and one
-// plain stroke only where its span is under a pixel.
+// so, unless small sites are shown; one whose span on screen holds no arch
+// its stroke can shape is left out and counted; any other is dashed,
+// headless where its span holds fewer than three dashes.
 async function skipStrokes(
   create: () => ReturnType<typeof createModel>,
   smallSites: boolean,
@@ -66,7 +66,7 @@ async function skipStrokes(
     1, 2, 50, 571,
   ])
   const wrong: string[] = []
-  const plain: string[] = []
+  const short: string[] = []
   const dashed: string[] = []
   const folded: string[] = []
   for (const scale of [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 6]) {
@@ -84,30 +84,34 @@ async function skipStrokes(
       const span = strokes[0]?.span ?? 0
       const fold = batch.collapsed
       const small = !smallSites && bp * (fold?.pxPerBp ?? 0) < SMALL_SITE_PX
+      const tooShort = !!batch.skipsTooShort?.has(edgeIndex)
       const seen = `${bp} bp at ${scale}`
-      const drawn = `${seen}: ${strokes.length} strokes, ${heads} heads, ${span.toFixed(1)} px across, ${fold?.edges.has(edgeIndex) ? '' : 'not '}folded`
-      if (small !== !!fold?.edges.has(edgeIndex) || small !== !strokes.length) {
+      const drawn = `${seen}: ${strokes.length} strokes, ${heads} heads, ${span.toFixed(1)} px across, ${fold?.edges.has(edgeIndex) ? '' : 'not '}folded${tooShort ? ', too short' : ''}`
+      if (
+        small !== !!fold?.edges.has(edgeIndex) ||
+        (small || tooShort) !== !strokes.length
+      ) {
         wrong.push(drawn)
       } else if (small) {
         folded.push(seen)
-      } else if (strokes.length === 1) {
-        plain.push(seen)
-        if (heads > 0 || span >= 1) {
-          wrong.push(drawn)
-        }
+      } else if (tooShort) {
+        short.push(seen)
       } else {
         dashed.push(seen)
-        if (heads > 0 && span < THREE_DASHES_PX - 1) {
+        if (
+          strokes.some(stroke => !stroke.dashed) ||
+          (heads > 0 && span < THREE_DASHES_PX - 1)
+        ) {
           wrong.push(drawn)
         }
       }
     }
   }
-  return { wrong, plain, dashed, folded }
+  return { wrong, short, dashed, folded }
 }
 
 test.each(layouts)(
-  'at the 571 bp gap under $layout, a skip is dashed at any span a pixel or more across, headless under three full dashes, and folded while its bp come under the small-site line',
+  'at the 571 bp gap under $layout, a skip is dashed wherever its span holds an arch, headless under three full dashes, left out and counted where it holds none, and folded while its bp come under the small-site line',
   async ({ create }) => {
     const { wrong, dashed, folded } = await skipStrokes(create, false)
     expect(wrong).toEqual([])
@@ -119,7 +123,7 @@ test.each(layouts)(
 )
 
 test.each(layouts)(
-  'at the 571 bp gap under $layout with small sites shown, every skip is drawn at every scale, dashed wherever its span is a pixel or more',
+  'at the 571 bp gap under $layout with small sites shown, no skip folds, and each is dashed wherever its span holds an arch and left out and counted where it holds none',
   async ({ create }) => {
     const { wrong, dashed, folded } = await skipStrokes(create, true)
     expect(wrong).toEqual([])
