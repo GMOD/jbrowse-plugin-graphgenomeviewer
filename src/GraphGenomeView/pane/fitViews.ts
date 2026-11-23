@@ -11,6 +11,7 @@ import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import {
   barEnd,
+  barStart,
   boxesGenes,
   rowPitch,
   walkRowReadoutAt,
@@ -314,7 +315,7 @@ export const withFitViews = withHostViews
         screenX <= at.x + measureReadout(at.shown)
       return row &&
         Math.abs(screenY - y) <= pitch.barPx / 2 + 2 &&
-        ((bp >= 0 && bp <= barEnd(row)) || overCut)
+        ((bp >= barStart(row) && bp <= barEnd(row)) || overCut)
         ? i
         : undefined
     },

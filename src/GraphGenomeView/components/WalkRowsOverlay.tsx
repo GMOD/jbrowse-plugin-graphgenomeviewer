@@ -1,6 +1,10 @@
 import { useCallback, useMemo } from 'react'
 
-import { barEnd, scaleBarTree } from '@jbrowse/bandage-core/layout/walkRowDraw'
+import {
+  barEnd,
+  barStart,
+  scaleBarTree,
+} from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { computed, untracked } from 'mobx'
 import { observer } from 'mobx-react'
 
@@ -172,11 +176,22 @@ const WalkRowBlocksCanvas = observer(function WalkRowBlocksCanvas({
   )
 })
 
-// Its own observer, so moving between rows redraws this rect and not every row
-const HoveredWalkRow = observer(function HoveredWalkRow({
+// Its own observer, so moving between rows redraws this rect and not every
+// row; it outlines the bar from where it starts
+export const HoveredWalkRow = observer(function HoveredWalkRow({
   model,
 }: {
-  model: GraphPaneModel
+  model: Pick<
+    GraphPaneModel,
+    | 'walkRowBars'
+    | 'walkRowPlacement'
+    | 'walkRowPitch'
+    | 'hoveredWalkRowText'
+    | 'walkRowList'
+    | 'hoveredWalkRow'
+    | 'toScreen'
+    | 'scaleX'
+  >
 }) {
   const bars = model.walkRowBars
   const place = model.walkRowPlacement
@@ -190,13 +205,16 @@ const HoveredWalkRow = observer(function HoveredWalkRow({
   if (!row) {
     return null
   }
-  const start = model.toScreen({ x: bars.origin, y: place.rowY(index) })
+  const start = model.toScreen({
+    x: bars.origin + barStart(row),
+    y: place.rowY(index),
+  })
   return (
     <rect
       data-testid="graph-walk-row-hovered"
       x={start.x - 2}
       y={start.y - pitch.rowPx / 2 - 1}
-      width={barEnd(row) * model.scaleX + 4}
+      width={(barEnd(row) - barStart(row)) * model.scaleX + 4}
       height={pitch.rowPx + 2}
       fill="none"
       stroke="#111"
@@ -308,10 +326,13 @@ const SCALE_BAR_ROOM_PX = 14
 
 // Under the last row, or at the pane's foot where the rows run past it, a
 // scale bar of the rows' bp, which are not the ruler's
-const WalkRowsScaleBar = observer(function WalkRowsScaleBar({
+export const WalkRowsScaleBar = observer(function WalkRowsScaleBar({
   model,
 }: {
-  model: GraphPaneModel
+  model: Pick<
+    GraphPaneModel,
+    'walkRowBars' | 'walkRowPlacement' | 'toScreen' | 'scaleX' | 'canvasHeight'
+  >
 }) {
   const bars = model.walkRowBars
   const place = model.walkRowPlacement
