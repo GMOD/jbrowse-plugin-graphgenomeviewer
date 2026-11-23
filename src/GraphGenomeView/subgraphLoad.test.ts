@@ -160,6 +160,39 @@ beforeEach(() => {
   mockSession.assemblyManager.assemblyList = []
 })
 
+// R100k-02: none of the haplotypes asked for had a step in the window, and
+// the drawing was the plain reference all of them matching it would draw
+test('the key counts the haplotypes the cut was asked for that it holds no walk of', async () => {
+  const tables = gfaTables(
+    [
+      GFA,
+      'W\tGRCh38\t0\tchr6\t32000000\t32001900\t>s1>s3',
+      'W\tNA20809\t2\tCM094351.1\t31900800\t31903000\t>s1>h1>s3',
+    ].join('\n'),
+  )!
+  mockRpcCall.mockImplementation(
+    (_sid: unknown, method: string, request: EngineRequest) =>
+      method === 'GetSubgraph'
+        ? Promise.resolve(cutOf(tables))
+        : method === 'GraphComputeLayout'
+          ? layoutEngine(request)
+          : Promise.reject(new Error(`Unexpected RPC: ${method}`)),
+  )
+  const model = createView({
+    loadedTrackId: TRACK.trackId,
+    loadedRegion: ON_HG38,
+    subgraphHaplotypes: ['NA20809#2', 'HG002#1', 'HG002#2'],
+  })
+  await model.load()
+  model.startRenderingBackend(fakeRenderer())
+  model.setWidth(800)
+  expect(
+    model.graphKey
+      .flatMap(section => section.entries)
+      .find(entry => entry.key === 'absent')?.text,
+  ).toBe('2 of 3 haplotypes have no walk here')
+})
+
 test('a cut on the reference draws', async () => {
   const model = await cut(ON_HG38)
   expect(model.error).toBeUndefined()
