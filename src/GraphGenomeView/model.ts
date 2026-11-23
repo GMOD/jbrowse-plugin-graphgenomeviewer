@@ -149,7 +149,9 @@ export const GraphPane = withLaunchActions
               edgeWidth: self.linkWidth,
               connectorThickness: self.connectorThickness,
               drawsNodes: self.drawsNodes,
-              haplotypes: askedPrefixes(self.sourceAdapter, self.cutHaplotypes),
+              haplotypes: self.cutStale
+                ? undefined
+                : askedPrefixes(self.sourceAdapter, self.graphHaplotypes),
               marks: drawings
                 ? drawnMarks(
                     drawings.flatMap(drawing =>
