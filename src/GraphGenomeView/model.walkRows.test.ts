@@ -406,6 +406,23 @@ describe('walk rows', () => {
     })
   })
 
+  test('beside a wide key the bars narrow so every readout is drawn whole', async () => {
+    rpcRespond()
+    const model = stateModelFactory().create({
+      type: 'GraphGenomeView',
+      layoutMode: 'walkrows',
+    })
+    await model.loadGFA(WALKS_GFA, 'walks')
+    model.setWidth(800)
+    model.setLegendSize({ width: 600, height: 120 })
+    model.zoomToFit()
+    const bars = model.walkRowBars!
+    expect(bars.rows.length).toBe(3)
+    ;[bars.reference, ...bars.rows].forEach((_, i) => {
+      expect(model.walkRowReadoutOf(i)!.cut).toBe(false)
+    })
+  })
+
   test('the Layout menu lists force-directed once per engine', async () => {
     rpcRespond()
     const model = stateModelFactory().create({

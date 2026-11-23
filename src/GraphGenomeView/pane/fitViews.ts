@@ -209,15 +209,19 @@ export const withFitViews = withHostViews
     // zoomToFit. On a reference-bp layout x is the cut window rather than
     // how far the drawing reaches: an allele anchored far outside it is a
     // fact about the graph, not a reason to draw the window at 6% of the
-    // frame. Walk rows reach as far as
-    // the bars on screen, which a repeat pick or a sample filter narrows
-    // after the layout ran.
+    // frame. Walk rows reach as far as the bars on screen, which a repeat
+    // pick or a sample filter narrows after the layout ran, and far enough
+    // that each readout is drawn whole beside its bar.
     get layoutBounds() {
       const layout = self.layoutResult
       const bars = self.walkRowBars
       const rowsExtent =
         bars && layout?.extent
-          ? walkRowsExtent(bars, this.walkRowPitch)
+          ? walkRowsExtent(bars, this.walkRowPitch, {
+              widthPx: this.drawingWidth - this.fitPadLeft - FIT_PADDING,
+              measure: measureReadout,
+              comparing: self.rowVisitsNeeded,
+            })
           : undefined
       return layout
         ? drawingBounds(layout, {
