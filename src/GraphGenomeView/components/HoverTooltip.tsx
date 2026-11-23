@@ -7,6 +7,7 @@ import {
   edgeHoverText,
   placeholderHoverText,
   regionLabel,
+  skipAt,
 } from '@jbrowse/bandage-core/hoverText'
 import { referenceLabel } from '@jbrowse/bandage-core/reference'
 import {
@@ -187,23 +188,22 @@ function hoverTip(
           ),
         }
   }
-  const edge =
-    model.hoveredEdge === null
-      ? undefined
-      : model.graph?.edges[model.hoveredEdge]
-  if (edge) {
+  const graph = model.graph
+  const hovered = model.hoveredEdge
+  const edge = hovered === null ? undefined : graph?.edges[hovered]
+  if (graph && hovered !== null && edge) {
     const text = edgeHoverText(
       edge,
-      model.deletions.find(d => d.edgeIndex === model.hoveredEdge),
+      skipAt(graph, hovered, model.deletions, model.deletionRoutes),
       id => model.nodeById?.get(id)?.name ?? id,
     )
     // a link that skips reference sequence says how much, naming the
     // reference as the key does, and no event
-    const reference = model.graph ? referenceLabel(model.graph) : undefined
+    const reference = referenceLabel(graph)
     return {
       body: text.deletion ? (
         <>
-          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence`}
+          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence${text.deletion.replacedBy ? `, replaced by ${text.deletion.replacedBy}` : ''}`}
           <br />
           {text.deletion.where}
         </>

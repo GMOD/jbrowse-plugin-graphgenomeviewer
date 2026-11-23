@@ -177,6 +177,51 @@ test('a link skipping reference sequence says the bp it skips of the named refer
   expect(screen.queryByText(/Deletion/)).toBeNull()
 })
 
+// SV-rep-1k-10k: HG01109's 2 bp in place of 1,839 bp of GRCh38, whose
+// routed feet draw in a skip's ink, hovered as "Edge: r1 → x"
+test("a padded foot a force layout routed says what its walk's run skips and what replaces it", () => {
+  const graph = loadGraph(
+    [
+      `S\tr1\t${'A'.repeat(2000)}`,
+      `S\tr2\t${'C'.repeat(1839)}`,
+      `S\tr3\t${'G'.repeat(2000)}`,
+      'S\tx\tTT',
+      'L\tr1\t+\tr2\t+\t0M',
+      'L\tr2\t+\tr3\t+\t0M',
+      'L\tr1\t+\tx\t+\t0M',
+      'L\tx\t+\tr3\t+\t0M',
+      'W\tGRCh38\t0\tchr5\t0\t5839\t>r1>r2>r3',
+      'W\tHG01109\t1\tc\t0\t4002\t>r1>x>r3',
+    ].join('\n'),
+    'replacement',
+    { referencePath: 'GRCh38#0#chr5' },
+  )
+  const id = (name: string) => graph.nodes.find(n => n.name === name)!.id
+  const hoveredEdge = graph.edges.findIndex(
+    e => e.from === id('r1') && e.to === id('x'),
+  )
+  render(
+    <HoverTooltip
+      model={
+        {
+          hoveredNode: null,
+          hoveredEdge,
+          hoveredWalkRowText: undefined,
+          hoveredTubeText: undefined,
+          tooltipRightPx: 8,
+          graph,
+          deletions: deletionEdges(graph),
+          deletionRoutes: { [hoveredEdge]: [{ x: 0, y: 0 }] },
+        } as unknown as GraphPaneModel
+      }
+      chip={undefined}
+    />,
+  )
+  expect(screen.queryByText(/skips/)?.textContent).toBe(
+    'skips 1,839 bp of GRCh38 chr5 sequence, replaced by 2 bpGRCh38#0#chr5:2,001-3,839',
+  )
+})
+
 // SV-inv-1k-10k: the heads along an inverted stretch name no walk, so the
 // hover counts the walks reading the node against the reference
 test('a reference node some walk reads against the reference says which walks do', () => {
