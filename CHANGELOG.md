@@ -1,3 +1,11 @@
+## [10.6.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.5.1...v10.6.0) (2026-11-23)
+
+### Other Changes
+
+- Bandage-core 14.4.1 and tubemap-core 2.1.1: a tube map of a few hundred thousand nodes is laid out where it ran the tab out of memory, with every figure drawing as before ([07d0bc3](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/07d0bc3f9523fa907bd176bb10c36fe2e716a855))
+- Walk-file lanes read each haplotype against the reference from where the walk file places its steps, reporting each stretch where the reference passes the same nodes more than once as a repeat, and a new laneRibbons setting chooses whether the lanes are drawn against the reference or against each other ([c91c5be](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c91c5befb0c7d8c8eb66d6e2ae49afdc98c81ff9))
+- Walk-file lanes draw exactly as before on a JBrowse whose lanes display does not say it reads lanes against the reference, whatever laneRibbons says ([c7f4634](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/c7f463401621f9e9b79ea1bfa1e141d0967d19b4))
+
 ## [10.5.1](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.5.0...v10.5.1) (2026-11-22)
 
 ### Other Changes
