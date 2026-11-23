@@ -271,7 +271,7 @@ test("the key's node thicknesses are those of the nodes the pane shows", async (
     model.graphKey
       .find(section => section.id === 'node-width')
       ?.entries.map(entry => entry.text)
-  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  expect(thicknesses()).toEqual(['depth 9', 'depth 1'])
   let changes = 0
   const stop = reaction(
     () => model.graphKey,
@@ -284,7 +284,7 @@ test("the key's node thicknesses are those of the nodes the pane shows", async (
   model.setWidth(500)
   const { scale, translateX } = alongR2(model)
   model.setTransform(scale, translateX, model.translateY)
-  expect(thicknesses()).toEqual(['1 walk'])
+  expect(thicknesses()).toEqual(['depth 1'])
   stop()
 })
 
@@ -303,7 +303,7 @@ test('a node drawn under the key is keyed', async () => {
     model.graphKey
       .find(section => section.id === 'node-width')
       ?.entries.map(entry => entry.text),
-  ).toEqual(['9 walks', '1 walk'])
+  ).toEqual(['depth 9', 'depth 1'])
 })
 
 // An attached pane keys the view a pan or zoom settles on, so the key, and
@@ -325,12 +325,12 @@ test('an attached pane keys the view it settles on, not each step of a pan', asy
   await vi.waitFor(() => {
     expect(model.settledKeyView?.layout).toBe(model.layoutResult)
   })
-  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  expect(thicknesses()).toEqual(['depth 9', 'depth 1'])
   const { scale, translateX } = alongR2(model)
   model.setTransform(scale, translateX, model.translateY)
-  expect(thicknesses()).toEqual(['9 walks', '1 walk'])
+  expect(thicknesses()).toEqual(['depth 9', 'depth 1'])
   await vi.waitFor(() => {
-    expect(thicknesses()).toEqual(['1 walk'])
+    expect(thicknesses()).toEqual(['depth 1'])
   })
 })
 
@@ -362,7 +362,7 @@ test("a pan or zoom never moves the pane's height, which follows the key a setti
   const { scale, translateX } = alongR2(model)
   model.setTransform(scale, translateX, model.translateY)
   await vi.waitFor(() => {
-    expect(thicknesses()).toEqual(['1 walk'])
+    expect(thicknesses()).toEqual(['depth 1'])
   })
   model.setLegendSize({ width: 180, height: 300 })
   expect(model.canvasHeight).toBe(height)

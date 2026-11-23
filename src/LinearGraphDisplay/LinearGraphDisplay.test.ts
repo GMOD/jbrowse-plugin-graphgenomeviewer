@@ -1608,7 +1608,7 @@ test('a drawing that follows the window draws, labels and ramps over its whole c
   expect(branchingOutside.every(id => drawn.has(id))).toBe(true)
 
   expect(pane.nodeLengths).toEqual(
-    labelledNodeLengths(graph.nodes, pane.layerSet.has('lengths')),
+    labelledNodeLengths(graph, pane.layerSet.has('lengths')),
   )
 
   const region = pane.graphRegion!
