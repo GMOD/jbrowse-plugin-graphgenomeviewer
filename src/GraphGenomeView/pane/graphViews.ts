@@ -874,6 +874,11 @@ export const withGraphViews = paneBase
     get cutHaplotypes(): string[] | undefined {
       return undefined
     },
+    // whether the cut options have changed since the cut on screen was
+    // asked for, where a host says
+    get cutStale() {
+      return false
+    },
     get sourceTrackId() {
       return self.sourceTrack?.trackId as string | undefined
     },
