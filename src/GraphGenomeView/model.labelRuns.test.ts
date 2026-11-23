@@ -202,11 +202,8 @@ test('a settled view lays its labels out once on the laid-out graph', async () =
       ['CFH', 531.2999999999993, 56],
       ['CFHR3', 491.2999999999993, 52],
     ],
-    sizes: [
-      ['10 bp', 531.2999999999993, 106],
-      ['10 bp', 233.77500000000146, 70],
-      ['10 bp', 828.8250000000007, 70],
-    ],
+    // the reference's nodes carry no length
+    sizes: [['10 bp', 531.2999999999993, 106]],
     bubbles: [],
   })
 })

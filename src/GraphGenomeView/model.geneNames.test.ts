@@ -264,6 +264,8 @@ function alongR2(model: {
 // holds r1 and r3, which every walk steps, beyond it
 test("the key's node thicknesses are those of the nodes the pane shows", async () => {
   const model = await drawn()
+  // depth keys the nodes the pane shows; walks key the graph's one scale
+  model.setNodeWidth('depth')
   model.startRenderingBackend(fakeRenderer())
   const thicknesses = () =>
     model.graphKey
@@ -291,6 +293,8 @@ test("the key's node thicknesses are those of the nodes the pane shows", async (
 // walk steps, lies under a key as wide as the pane less 88 px
 test('a node drawn under the key is keyed', async () => {
   const model = await drawn()
+  // depth keys the nodes the pane shows; walks key the graph's one scale
+  model.setNodeWidth('depth')
   model.startRenderingBackend(fakeRenderer())
   const r2 = model.layoutResult!.nodePositions['r2+']![0]!
   model.setLegendSize({ width: 1500, height: 40 })
@@ -306,6 +310,8 @@ test('a node drawn under the key is keyed', async () => {
 // the labels that wait on its measure, hold still through the gesture
 test('an attached pane keys the view it settles on, not each step of a pan', async () => {
   const model = attachedModel({ layoutMode: 'auto', loadedTrackId: 'graph' })
+  // depth keys the nodes the pane shows; walks key the graph's one scale
+  model.setNodeWidth('depth')
   model.setWidth(500)
   await model.cutSubgraph(
     {},
@@ -332,6 +338,8 @@ test('an attached pane keys the view it settles on, not each step of a pan', asy
 // off-reference node in and out of the key, and moved everything below it
 test("a pan or zoom never moves the pane's height, which follows the key a setting changes", async () => {
   const model = attachedModel({ layoutMode: 'auto', loadedTrackId: 'graph' })
+  // depth keys the nodes the pane shows; walks key the graph's one scale
+  model.setNodeWidth('depth')
   model.setWidth(500)
   await model.cutSubgraph(
     {},

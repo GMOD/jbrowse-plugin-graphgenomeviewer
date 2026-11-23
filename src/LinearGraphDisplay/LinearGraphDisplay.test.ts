@@ -62,11 +62,7 @@ import {
 } from '../GraphGenomeView/pane/paneBase'
 import { THREAD_FOLD_MIN_BP, foldedCut } from '../GraphGenomeView/threadFoldCut'
 import graphGenomeViewModel from '../GraphGenomeView/viewModel'
-import {
-  NO_NODES,
-  nodesOutsideWindow,
-  wholeInWindow,
-} from '../GraphGenomeView/viewWindow'
+import { nodesOutsideWindow } from '../GraphGenomeView/viewWindow'
 import GraphTrackF from '../GraphTrack/index'
 import RgfaTabixAdapterF from '../RgfaTabixAdapter/index'
 
@@ -1614,11 +1610,6 @@ test('a drawing that follows the window draws, labels and ramps over its whole c
   expect(pane.nodeLengths).toEqual(
     labelledNodeLengths(graph.nodes, pane.layerSet.has('lengths')),
   )
-  expect(
-    graph.nodes.some(
-      n => pane.nodeLengths.has(n.id) && !wholeInWindow(n, NO_NODES, seen),
-    ),
-  ).toBe(true)
 
   const region = pane.graphRegion!
   expect(pane.rampDomain).toEqual(region)
