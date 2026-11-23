@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^14.4.1
-        version: 14.4.1
+        specifier: ^14.5.0
+        version: 14.5.0
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@14.4.1':
-    resolution: {integrity: sha512-8dxZ96gv7Do2yAU9tndTLzOhr5eYO1xvPv8iVUTQ7TpJtMyCz6eByXrJm/RGVegYYqVbcjmUJorVnIs6Vd5bmQ==}
+  '@jbrowse/bandage-core@14.5.0':
+    resolution: {integrity: sha512-LEhhNrLzxXYUQDu235yYhKvF9G7FeQwqtdjIyI9uvXQVP25vJkmUpEWzJRTqNJarsM0BKe9avxoxfdCl7GShxQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -685,6 +685,9 @@ packages:
   '@jbrowse/graph-fmmm-layout@1.0.2':
     resolution: {integrity: sha512-/wIO50DsK87me7qTlo1D6h65Onjk2LMxaWSP19jk220kJp8bic8hL6ITz1+NTi+CttKm0CyzNWJ/eDwgSayGJw==}
     engines: {node: '>=20'}
+
+  '@jbrowse/graph-fold@1.1.0':
+    resolution: {integrity: sha512-Oa9rp055ACkD52R8IeEjAONlitEkxHj6Fot48VIggt4xUy4U8bwTS3LcP7Lbmi6+5seNQm512PtwK6IEG+dPZA==}
 
   '@jbrowse/graph-stress-layout@1.1.0':
     resolution: {integrity: sha512-qP/VqpFViuCs1XUaXZdvbmfisCdl7Ti4MRn+7G2TqEgRLtQ0ZWkcMnkXqo049+qbiYE2ggFdYTLkwTYlAxYnIQ==}
@@ -3836,11 +3839,12 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.4.1':
+  '@jbrowse/bandage-core@14.5.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
       '@jbrowse/graph-fmmm-layout': 1.0.2
+      '@jbrowse/graph-fold': 1.1.0
       '@jbrowse/graph-stress-layout': 1.1.0
       '@jbrowse/tubemap-core': 2.1.1
 
@@ -3929,6 +3933,8 @@ snapshots:
       - supports-color
 
   '@jbrowse/graph-fmmm-layout@1.0.2': {}
+
+  '@jbrowse/graph-fold@1.1.0': {}
 
   '@jbrowse/graph-stress-layout@1.1.0': {}
 

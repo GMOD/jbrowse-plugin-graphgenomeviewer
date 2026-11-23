@@ -121,10 +121,15 @@ replaced reference reaches that many bp, and the shortest way from each one's
 ends back to the backbone, so the drawing gains detail as the view zooms in and
 nothing big is ever cut loose. The drawing is then clipped to the region it was
 cut for (`clipToWindow`), and the legend says what was folded. A graph with
-walks is drawn whole, since a folded detour would need every walk rerouted.
-Bubble index rows smaller than the fold are dropped, since their members are
-gone. Without margins any window change re-cuts; with them, a zoom whose fold
-differs twofold from the cut's re-cuts too.
+walks folds through bandage-core's `foldThreads` (`threadFoldCut.ts`), which
+reroutes every walk with `@jbrowse/graph-fold` and draws one thread per route,
+as wide as the haplotypes on it. The pane keeps the unfolded cut beside it, for
+the walk and reference pickers, row hover and a reference change. A layout that
+draws each walk (tube map) takes the cut unfolded. A fold graph-fold refuses
+draws whole, with the reason in the legend. Bubble index rows smaller than the
+fold are dropped, since their members are gone. Without margins any window
+change re-cuts; with them, a zoom whose fold differs twofold from the cut's
+re-cuts too.
 
 At bovine DEFB (chr27:6.0-7.25 Mb) the fold keeps the large loops of the
 1,233-node cut at every level: 45 alleles at 10 kb, 16 at 50 kb.
