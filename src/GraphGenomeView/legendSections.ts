@@ -695,7 +695,7 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
   const core = (testid: string, id: GraphKeySectionId, group?: string) => ({
     testid,
     rows: model.facetPanels && id === 'walks' ? [] : keyRowsOf(model, id),
-    group,
+    group: model.graphKey.find(section => section.id === id)?.group ?? group,
   })
   const sections: LegendSection[] = [
     { testid: 'graph-open-bubble-legend', rows: openBubbleRows(model) },

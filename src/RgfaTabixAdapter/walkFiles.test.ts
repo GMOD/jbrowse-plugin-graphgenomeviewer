@@ -249,6 +249,21 @@ test('a cut asked to expand walks hands the reader their names', async () => {
   cut.mockRestore()
 })
 
+test('a cut asked to expand the walks it keeps hands the reader its keep filter, or every walk', async () => {
+  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const adapter = makeAdapter(headerPrefix)
+  await adapter.getSubgraph(chr1(1000, 2600), {
+    haplotypes: ['HG002#1'],
+    expandKept: true,
+  })
+  await adapter.getSubgraph(chr1(1000, 2600), { expandKept: true })
+  const [kept, every] = cut.mock.calls.map(c => c[2]?.expand)
+  expect(kept?.('HG002#1#chr1')).toBe(true)
+  expect(kept?.('HG002#2#chr1')).toBe(false)
+  expect(every?.('HG002#2#chr1')).toBe(true)
+  cut.mockRestore()
+})
+
 test("a cut takes graph-walks' browser preset, the cut rules every reader shares", async () => {
   const cut = vi.spyOn(WalkReader.prototype, 'cut')
   const tables = await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600))

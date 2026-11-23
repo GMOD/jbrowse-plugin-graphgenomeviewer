@@ -35,6 +35,9 @@ export interface SubgraphCutOptions {
   links?: LinksDrawn
   // walks, `sample#haplotype#contig`, a walk-file cut fetches every node of
   expand?: string[]
+  // a walk-file cut fetches every node of every walk it keeps, as far as its
+  // step budget allows, so thickness by walks counts every pass
+  expandKept?: boolean
   forcedByteBudget?: number
 }
 

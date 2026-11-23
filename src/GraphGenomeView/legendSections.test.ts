@@ -125,7 +125,8 @@ test("the legend draws bandage-core's key, each section under the plugin's testi
     ),
   )
   expect(rowsOf(model, 'graph-link-width-legend')!.map(r => r.label)).toEqual([
-    '2 walks',
+    '26 walks',
+    '13 walks',
     '1 walk',
   ])
   expect(rowsOf(model, 'graph-compressed-legend')!.map(r => r.label)).toEqual([
@@ -151,6 +152,16 @@ test('a key of several groups heads each once, a key of one stays bare', () => {
   expect(both.map(s => s.heading)).toEqual(['Node thickness', 'Link thickness'])
   const one = legendSections(keyModel(DEPTHS))
   expect(one.map(s => s.heading)).toEqual([undefined])
+})
+
+test("nodes and links by walks are one thickness, under core's heading", () => {
+  const sections = legendSections(
+    keyModel(DEPTHS, { nodeWidth: 'walks', edgeWidth: 'walks' }),
+  )
+  expect(sections.map(s => [s.testid, s.heading])).toEqual([
+    ['graph-width-legend', undefined],
+  ])
+  expect(sections[0]!.group).toBe('Thickness')
 })
 
 test('every row of a key shares one pitch, roomy enough for its tallest', () => {
