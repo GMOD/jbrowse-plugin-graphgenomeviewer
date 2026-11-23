@@ -615,14 +615,16 @@ export const withGraphViews = paneBase
         this.modeDrawsNodes &&
         graph &&
         lift &&
-        self.walkLayers.length > 1 &&
-        lift.walks.length > 1
-        ? facetLifts(
-            graph,
-            lift,
-            threadLayers(graph, this.coloredWalkLayers),
-            this.walkRamp,
-          )
+        self.walkLayers.length > 1
+        ? graph.threadFold
+          ? this.coloredWalkLayers.flatMap(layer => {
+              const layers = threadLayers(graph, [layer])
+              const own = walkLift(graph, layers, this.walkRamp)
+              return own ? facetLifts(graph, own, layers, this.walkRamp) : []
+            })
+          : lift.walks.length > 1
+            ? facetLifts(graph, lift, this.coloredWalkLayers, this.walkRamp)
+            : undefined
         : undefined
     },
     // The lifted walks as drawn, each panel's own while faceted

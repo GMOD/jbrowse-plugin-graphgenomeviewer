@@ -3092,6 +3092,18 @@ test("a fold to threads keeps the cut's walks in the pickers, and a layout that 
   expect(pane.walkLift!.walks.map(w => [w.name, w.count])).toEqual([['HG1', 2]])
 })
 
+test('split by walk, two picks on one thread of a fold each have a panel that lights that thread', async () => {
+  const { display } = await shownGraph({ paths: 'twins' })
+  display.liftWalks(['HG1', 'HG2'])
+  display.setFacet('walk')
+  expect(display.graph!.threadFold).toBeDefined()
+  expect(
+    display.facetPanels!.map(panel =>
+      panel.walks.map(w => [w.name, w.count, w.picked]),
+    ),
+  ).toEqual([[['HG1', 2, ['HG1']]], [['HG1', 2, ['HG2']]]])
+})
+
 test('a reference picked on a folded graph folds the cut again on it, its walks still in the pickers, and one that revisits a node unfolds it with the reason', async () => {
   const { pane } = await shownGraph({ paths: 'repathable' })
   pane.setReferencePath('HG1')
