@@ -388,7 +388,7 @@ export const withLaunchActions = withRenderingActions
         {
           ...layerItem('Show small sites', 'smallSites'),
           helpText:
-            'Draw every node and skip at any zoom. Off, a site too small to see at this zoom is left out and counted in the key, and drawn again as you zoom in',
+            'Draw every node, and every skip long enough on screen to arch, at any zoom. Off, a site too small to see at this zoom is left out and counted in the key, and drawn again as you zoom in',
         },
         layerItem('Show node lengths', 'lengths'),
         {

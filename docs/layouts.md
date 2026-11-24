@@ -43,10 +43,12 @@
   pane shows. A pan or zoom never moves the pane's height; a key that lists more
   than it had room for when the drawing was laid out scrolls
 - **Show › Show links that skip reference** (on by default) draws each link that
-  skips reference sequence, with no words: dashed where the span it jumps on
-  screen holds three dashes, and a plain line with no arrowhead where shorter
-- **Show › Show small sites** (off by default) draws every node and skip at any
-  zoom. Off, a site too small to see at the current zoom, a stretch off the
+  skips reference sequence, with no words, dashed. Where the span it jumps on
+  screen is short it arches low between its ends; in a graph with walks, one
+  too short on screen to arch is left out and the key's last line counts it,
+  and in a graph without walks a short one is a plain line with no arrowhead
+- **Show › Show small sites** (off by default) draws every node, and every skip
+  long enough on screen to arch, at any zoom. Off, a site too small to see at the current zoom, a stretch off the
   reference or a skip only a few pixels long, is left out: the reference runs
   straight through it, the key's last line counts the nodes and skips left out
   and the bp they are under, and zooming in draws each site again
