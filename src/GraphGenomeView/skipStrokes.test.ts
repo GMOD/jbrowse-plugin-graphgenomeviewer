@@ -84,7 +84,7 @@ async function skipStrokes(
       const span = strokes[0]?.span ?? 0
       const fold = batch.collapsed
       const small = !smallSites && bp * (fold?.pxPerBp ?? 0) < SMALL_SITE_PX
-      const tooShort = !!batch.skipsTooShort?.has(edgeIndex)
+      const tooShort = !!batch.collapsed?.tooShort.has(edgeIndex)
       const seen = `${bp} bp at ${scale}`
       const drawn = `${seen}: ${strokes.length} strokes, ${heads} heads, ${span.toFixed(1)} px across, ${fold?.edges.has(edgeIndex) ? '' : 'not '}folded${tooShort ? ', too short' : ''}`
       if (
