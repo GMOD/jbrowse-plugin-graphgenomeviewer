@@ -64,6 +64,7 @@ function keyModel(
     bubbleHalos: [],
     pathLegend: [],
     tubeMapKeys: {},
+    drawnGraph: graph,
     graphKey: graphKey(graph, layout, {
       marks: MARKS,
       ...options,
@@ -134,6 +135,15 @@ test("the legend draws bandage-core's key, each section under the plugin's testi
   ])
 })
 
+// review 5: a short skip drawn in link ink had no key entry
+test('a plain link is keyed in a graph with walks, and a graph without walks keeps its key', () => {
+  const { paths: _, ...rgfa } = DEPTHS
+  expect(rowsOf(keyModel(DEPTHS), 'graph-link-legend')).toMatchObject([
+    { label: 'link', swatch: { kind: 'line' } },
+  ])
+  expect(rowsOf(keyModel(rgfa), 'graph-link-legend')).toBeUndefined()
+})
+
 test('colour keys are square chips, unlike the thickness bars', () => {
   const model = keyModel(
     { name: 'off', nodes: [node('x', 1)], edges: [] },
@@ -147,16 +157,21 @@ test('colour keys are square chips, unlike the thickness bars', () => {
   expect(swatchWidth(off)).toBe(swatchHeight(off))
 })
 
+// with no link drawn, so the Marks group holds nothing
+const NO_LINK = { marks: { ...MARKS, plainLink: false } }
+
 test('a key of several groups heads each once, a key of one stays bare', () => {
-  const both = legendSections(keyModel(DEPTHS, { edgeWidth: 'walks' }))
+  const both = legendSections(
+    keyModel(DEPTHS, { edgeWidth: 'walks', ...NO_LINK }),
+  )
   expect(both.map(s => s.heading)).toEqual(['Node thickness', 'Link thickness'])
-  const one = legendSections(keyModel(DEPTHS))
+  const one = legendSections(keyModel(DEPTHS, NO_LINK))
   expect(one.map(s => s.heading)).toEqual([undefined])
 })
 
 test("nodes and links by walks are one thickness, under core's heading", () => {
   const sections = legendSections(
-    keyModel(DEPTHS, { nodeWidth: 'walks', edgeWidth: 'walks' }),
+    keyModel(DEPTHS, { nodeWidth: 'walks', edgeWidth: 'walks', ...NO_LINK }),
   )
   expect(sections.map(s => [s.testid, s.heading])).toEqual([
     ['graph-width-legend', undefined],
