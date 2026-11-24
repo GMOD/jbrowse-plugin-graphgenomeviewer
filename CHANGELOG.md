@@ -1,3 +1,9 @@
+## [10.9.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.8.0...v10.9.0) (2026-11-24)
+
+### Other Changes
+
+- A drawing under extent view follows the window with a walk lifted and coloured by reference position, since whether the pane is faceted no longer reads the lanes' colours ([39d4fe6](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/39d4fe60fc055a81155b45f84eb48bacc170d12b))
+
 ## [10.8.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.7.0...v10.8.0) (2026-11-23)
 
 ### Other Changes
