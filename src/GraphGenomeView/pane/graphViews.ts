@@ -861,6 +861,15 @@ export const withGraphViews = paneBase
               : ''
           }`
     },
+    // the stretches the cut a fold was made of did not load, by node name,
+    // which a folded node's count of the nodes it holds leaves out
+    get notLoadedNames() {
+      return new Set(
+        (self.unfoldedGraph?.nodes ?? []).flatMap(node =>
+          node.placeholder ? [node.name] : [],
+        ),
+      )
+    },
     // why a graph with walks is drawn whole at a zoom that folds one
     get foldRefusalNote() {
       const reason = self.foldRefusal

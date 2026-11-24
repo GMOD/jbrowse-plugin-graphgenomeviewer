@@ -311,3 +311,37 @@ test('a reference node some walk reads against the reference says which walks do
     screen.getByText(/walked against .+'s direction by 1 haplotype: inv#1/),
   ).toBeTruthy()
 })
+
+// a reference node a fold holds counts the nodes folded into it, not the
+// stretches a cut did not load that ride it
+test('a folded node counts the nodes folded into it, leaving out stretches not loaded', () => {
+  const node = {
+    id: 'a~c+',
+    name: 'a~c',
+    length: 2000,
+    depth: 2,
+    members: ['a', 'b', 'c', 'q', 'HG2#1#c:10-110'],
+    stable: { refName: 'chr', start: 0, rank: 0 },
+  }
+  const model = {
+    hoveredNode: node.id,
+    hoverNodeById: new Map([[node.id, node]]),
+    hoveredEdge: null,
+    hoveredWalkRowText: undefined,
+    hoveredTubeText: undefined,
+    tooltipRightPx: 8,
+    deletions: [],
+    genePins: [],
+    graph: {
+      name: 'fold',
+      nodes: [node],
+      edges: [],
+      paths: [],
+      threadFold: { belowBp: 500, haplotypes: 2, walks: 2, stepless: 0 },
+    },
+    notLoadedNames: new Set(['HG2#1#c:10-110']),
+    walkLabel: (name: string) => name,
+  } as unknown as GraphPaneModel
+  const { container } = render(<HoverTooltip model={model} chip={undefined} />)
+  expect(container.textContent).toContain('4 nodes folded into it')
+})

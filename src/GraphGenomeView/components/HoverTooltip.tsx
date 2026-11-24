@@ -175,7 +175,12 @@ function hoverTip(
                 </>
               ) : null}
               {genesLine}
-              {foldedNodeLines(model, node.id, node.members?.length)}
+              {foldedNodeLines(
+                model,
+                node.id,
+                node.members?.filter(name => !model.notLoadedNames.has(name))
+                  .length,
+              )}
               {/* gfa-to-tabix --max-component left its component off the
               reference, so the cut holds only its ends */}
               {node.moved ? (
