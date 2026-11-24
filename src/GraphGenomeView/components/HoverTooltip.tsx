@@ -203,9 +203,13 @@ function hoverTip(
     return {
       body: text.deletion ? (
         <>
-          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence`}
-          <br />
-          {text.deletion.where}
+          {`skips ${text.deletion.bp ? `${text.deletion.bp} of ` : ''}${reference ?? 'the reference'} sequence`}
+          {text.deletion.where ? (
+            <>
+              <br />
+              {text.deletion.where}
+            </>
+          ) : null}
         </>
       ) : (
         <>
