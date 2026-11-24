@@ -174,7 +174,7 @@ test('a node inside a run of folded sites is hit and outlined as wide as the run
   }
 })
 
-test('Show small sites is off by default; turned on, it draws every node and skip and keys nothing as not drawn, on screen and in the SVG, and is saved with the session', async () => {
+test('Show small sites is off by default; turned on, it draws every node and keys as not drawn only the skips too short on screen to arch, on screen and in the SVG, and is saved with the session', async () => {
   const model = await drawnGap571()
   const item = () =>
     (model.showMenuItems() as MenuItem[]).find(
@@ -188,8 +188,11 @@ test('Show small sites is off by default; turned on, it draws every node and ski
   draw(model)
   expect(item().checked).toBe(true)
   expect(model.drawnFold?.sites).toEqual([])
-  expect(model.graphKey.map(s => s.id)).not.toContain('too-small')
-  expect(model.figure()).not.toMatch(/not drawn/)
+  expect(
+    model.graphKey.find(s => s.id === 'too-small')?.entries.map(e => e.text),
+  ).toEqual(['2 skips under 3 bp not drawn'])
+  expect(model.figure()).toMatch(/2 skips under 3 bp not drawn/)
+  expect(model.figure()).not.toMatch(/nodes? (and \d+ skips? )?under/)
   const snapshot = getSnapshot(model)
   expect(snapshot.layers).toEqual({ lengths: true, smallSites: true })
   expect(stateModelFactory().create(snapshot).smallSites).toBe('nodes')

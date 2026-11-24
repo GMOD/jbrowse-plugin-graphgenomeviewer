@@ -46,11 +46,13 @@
   skips reference sequence, with no words, dashed. Where the span it jumps on
   screen is short it arches low between its ends, and where too short to arch it
   is a plain line with no arrowhead, at its walks' width in a graph with walks
-- **Show › Show small sites** (off by default) draws every node and skip at any
-  zoom. Off, a site too small to see at the current zoom, a stretch off the
-  reference or a skip only a few pixels long, is left out: the reference runs
-  straight through it, the key's last line counts the nodes and skips left out
-  and the bp they are under, and zooming in draws each site again
+- **Show › Show small sites** (off by default) draws every node at any zoom.
+  Off, a site too small to see at the current zoom, a stretch off the reference
+  or a skip only a few pixels long, is left out: the reference runs straight
+  through it, the key's last line counts the nodes and skips left out and the bp
+  they are under, and zooming in draws each site again. Either way, in a graph
+  with walks, a skip too short on screen to arch is drawn as its plain line and
+  counted on that line
 
 ## Reference strip
 
