@@ -11,7 +11,6 @@ import { LEGEND_INSET_PX } from '@jbrowse/bandage-core/labelLayout'
 import { FIT_PADDING } from '@jbrowse/bandage-core/layout/fitAssumptions'
 import {
   barEnd,
-  barStart,
   boxesGenes,
   rowPitch,
   walkRowReadoutAt,
@@ -283,18 +282,21 @@ export const withFitViews = withHostViews
         : undefined
     },
     // A hovered row's label and its readout in full, while its rows are too
-    // thin to draw readouts or where its own readout is drawn cut short
+    // thin to draw readouts or where the line drawn leaves some of it out
     get hoveredWalkRowText() {
       const i = self.walkRowList.findIndex(r => r.name === self.hoveredWalkRow)
       const row = self.walkRowList[i]
       const at = row ? this.walkRowReadoutOf(i) : undefined
-      return row && at && (this.walkRowPitch?.readouts === false || at.cut)
-        ? { label: row.label, readout: at.text }
+      return row &&
+        at &&
+        (this.walkRowPitch?.readouts === false || at.full !== at.shown)
+        ? { label: row.label, readout: at.full }
         : undefined
     },
     // The walk row under a pane point, as its index among the reference row
-    // and the rows below it, where the point is on its bar or, for a readout
-    // drawn cut, between the bar's end and the readout's
+    // and the rows below it, where the point is on its bar or, for a line
+    // that leaves some of its readout out, between the bar's end and the
+    // line's
     walkRowAt(screenX: number, screenY: number) {
       const bars = self.walkRowBars
       const pitch = this.walkRowPitch
@@ -314,12 +316,13 @@ export const withFitViews = withHostViews
         ? (bars.origin + barEnd(row)) * self.scaleX + self.translateX
         : 0
       const overCut =
-        !!at?.cut &&
+        !!at &&
+        at.full !== at.shown &&
         screenX >= endX &&
         screenX <= at.x + measureReadout(at.shown)
       return row &&
         Math.abs(screenY - y) <= pitch.barPx / 2 + 2 &&
-        ((bp >= barStart(row) && bp <= barEnd(row)) || overCut)
+        ((bp >= 0 && bp <= barEnd(row)) || overCut)
         ? i
         : undefined
     },

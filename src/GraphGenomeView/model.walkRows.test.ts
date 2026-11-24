@@ -400,9 +400,7 @@ describe('walk rows', () => {
       const end = (bars.origin + barEnd(row)) * model.scaleX + model.translateX
       expect(end).toBeLessThanOrEqual(keyLeft)
       const at = model.walkRowReadoutOf(i)!
-      for (const line of at.lines) {
-        expect(at.x + measureReadout(line)).toBeLessThanOrEqual(keyLeft)
-      }
+      expect(at.x + measureReadout(at.shown)).toBeLessThanOrEqual(keyLeft)
     })
   })
 
