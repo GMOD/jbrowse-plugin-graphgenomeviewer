@@ -25,6 +25,7 @@ import {
 import { paintWalkRowSpans, walkRowSpans } from '../walkRowSpans'
 
 import type { GraphPaneModel } from '../model'
+import type { El } from '@jbrowse/bandage-core/el'
 import type { RowPitch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 
 // The walk-rows layout's bars: one per haplotype walk under the reference
@@ -351,6 +352,22 @@ export const WalkRowsScaleBar = observer(function WalkRowsScaleBar({
   ) : null
 })
 
+// The rows' trees, their text set with no letter spacing of the page's, so a
+// readout is drawn as wide as measureReadout found it
+export const WalkRowTrees = observer(function WalkRowTrees({
+  trees,
+}: {
+  trees: El[]
+}) {
+  return (
+    <g letterSpacing={0}>
+      {trees.map((tree, i) => (
+        <ElTree key={i} el={tree} />
+      ))}
+    </g>
+  )
+})
+
 // `vector` for an SVG export, which draws the bars as walkRowsTree's rects
 const WalkRowsOverlay = observer(function WalkRowsOverlay({
   model,
@@ -380,9 +397,7 @@ const WalkRowsOverlay = observer(function WalkRowsOverlay({
         testId="graph-walk-rows"
       >
         <PaneTranslateGroup model={model} drawnAt={drawn.at}>
-          {drawn.trees.map((tree, i) => (
-            <ElTree key={i} el={tree} />
-          ))}
+          <WalkRowTrees trees={drawn.trees} />
         </PaneTranslateGroup>
         <WalkSectionHeaders model={model} />
         <HoveredWalkRow model={model} />

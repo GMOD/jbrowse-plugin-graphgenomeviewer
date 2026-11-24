@@ -4,6 +4,7 @@ import { autorun, observable, runInAction } from 'mobx'
 
 import {
   HoveredWalkRow,
+  WalkRowTrees,
   WalkRowsScaleBar,
   walkRowTreesOnPane,
 } from './WalkRowsOverlay'
@@ -129,4 +130,23 @@ test("a scale bar under the rows gives a round length at the rows' scale, not th
   expect(Number(line!.getAttribute('y1'))).toBeGreaterThan(
     model.toScreen({ x: 0, y: model.walkRowPlacement.rowY(1) }).y,
   )
+})
+
+// JBrowse's page sets letter spacing that SVG text inherits and a canvas
+// measure does not, so H-SMN drew HG00133#1's readout 20 px wider than
+// measured, under the key
+test('the readouts are drawn with no letter spacing of the page', () => {
+  const { source, stop } = pane()
+  const drawn = walkRowTreesOnPane(source, 't', false).get()!
+  stop()
+  const { container } = render(
+    <svg style={{ letterSpacing: '0.1em' }}>
+      <WalkRowTrees trees={drawn.trees} />
+    </svg>,
+  )
+  const texts = [...container.querySelectorAll('text')]
+  expect(texts.length).toBeGreaterThan(0)
+  for (const text of texts) {
+    expect(text.closest('[letter-spacing="0"]')).not.toBeNull()
+  }
 })
