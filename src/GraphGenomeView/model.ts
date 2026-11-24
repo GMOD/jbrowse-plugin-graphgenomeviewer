@@ -391,6 +391,13 @@ export const GraphPane = withLaunchActions
           (now, was) => {
             const moved =
               !sameBounds(now.view, was.view) || now.rebuilt !== was.rebuilt
+            if (
+              now.layout !== was.layout ||
+              now.width !== was.width ||
+              (now.owner === 'fit' && was.owner !== 'fit')
+            ) {
+              self.resetKeyFrame()
+            }
             self.setKeyFrameHeld(
               now.owner !== 'fit' &&
                 now.layout === was.layout &&

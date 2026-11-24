@@ -174,7 +174,7 @@ test('a node inside a run of folded sites is hit and outlined as wide as the run
   }
 })
 
-test('Show small sites, off by default, folds nothing and keys no fold, on screen and in the SVG, and is saved with the session', async () => {
+test('Show small sites, off by default, draws every node and skip and keys nothing as not drawn, on screen and in the SVG, and is saved with the session', async () => {
   const model = await drawnGap571()
   const item = () =>
     (model.showMenuItems() as MenuItem[]).find(
@@ -188,11 +188,29 @@ test('Show small sites, off by default, folds nothing and keys no fold, on scree
   draw(model)
   expect(item().checked).toBe(true)
   expect(model.drawnFold?.sites).toEqual([])
-  expect(
-    model.graphKey.flatMap(s => s.entries).map(e => e.text),
-  ).not.toContainEqual(expect.stringMatching(/bp not drawn/))
-  expect(model.figure()).not.toMatch(/bp not drawn/)
+  expect(model.graphKey.map(s => s.id)).not.toContain('too-small')
+  expect(model.figure()).not.toMatch(/not drawn/)
   const snapshot = getSnapshot(model)
   expect(snapshot.layers).toEqual({ lengths: true, smallSites: true })
   expect(stateModelFactory().create(snapshot).smallSites).toBe('nodes')
+})
+
+// BandageJS's chrM:8,000-8,300: a skip drawn at one fit was too short to
+// draw at the next, and a key column that followed the key back and forth
+// re-fitted the drawing without end
+test('while fitted, a key that shrinks keeps the column and the floor its fit was made beside; once the user moves the view, they follow it', async () => {
+  const model = await drawnGap571()
+  expect(model.viewportOwner).toBe('fit')
+  model.setLegendSize({ width: 300, height: 400 })
+  const column = model.keyColumnPx
+  const floor = model.canvasFloor
+  model.setLegendSize({ width: 150, height: 60 })
+  expect(model.keyColumnPx).toBe(column)
+  expect(model.canvasFloor).toBe(floor)
+  model.setLegendSize({ width: 320, height: 420 })
+  expect(model.keyColumnPx).toBeGreaterThan(column)
+  model.setTransform(model.scaleX * 2, model.translateX, model.translateY)
+  expect(model.viewportOwner).not.toBe('fit')
+  model.setLegendSize({ width: 150, height: 60 })
+  expect(model.keyColumnPx).toBeLessThan(column)
 })
