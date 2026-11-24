@@ -704,8 +704,6 @@ export function legendSections(model: GraphPaneModel): LegendSection[] {
     core('graph-width-legend', 'node-width', 'Node thickness'),
     core('graph-link-width-legend', 'link-width', 'Link thickness'),
     core('graph-halo-legend', 'halo', 'Marks'),
-    // with walks, a skip too short on screen to arch draws in link ink; a
-    // graph without walks keeps its key as it was
     ...(model.drawnGraph?.paths?.length
       ? [core('graph-link-legend', 'links', 'Marks')]
       : []),

@@ -174,7 +174,7 @@ test('a node inside a run of folded sites is hit and outlined as wide as the run
   }
 })
 
-test('Show small sites, off by default, draws every node and skip and keys nothing as not drawn, on screen and in the SVG, and is saved with the session', async () => {
+test('Show small sites is off by default; turned on, it draws every node and skip and keys nothing as not drawn, on screen and in the SVG, and is saved with the session', async () => {
   const model = await drawnGap571()
   const item = () =>
     (model.showMenuItems() as MenuItem[]).find(

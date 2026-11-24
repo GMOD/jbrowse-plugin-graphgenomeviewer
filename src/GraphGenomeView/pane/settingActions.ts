@@ -431,7 +431,6 @@ export const withSettingActions = withTubeMapViews
     setKeyFrameHeld(held: boolean) {
       self.keyFrameHeld = held
     },
-    // a new fit takes the key's frame afresh
     resetKeyFrame() {
       self.keyFrame = undefined
     },
