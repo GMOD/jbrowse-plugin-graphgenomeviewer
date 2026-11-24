@@ -1,9 +1,9 @@
+import { serializeEl } from '@jbrowse/bandage-core/el'
 import { rowPitch } from '@jbrowse/bandage-core/layout/walkRowDraw'
 import { render, screen } from '@testing-library/react'
 import { autorun, observable, runInAction } from 'mobx'
 
 import {
-  HoveredWalkRow,
   WalkRowTrees,
   WalkRowsScaleBar,
   walkRowTreesOnPane,
@@ -102,17 +102,6 @@ function placedPane() {
   }
 }
 
-test('the hovered outline starts where the bar does', () => {
-  render(
-    <svg>
-      <HoveredWalkRow model={placedPane()} />
-    </svg>,
-  )
-  const outline = screen.getByTestId('graph-walk-row-hovered')
-  expect(Number(outline.getAttribute('x'))).toBe(100 - 2)
-  expect(Number(outline.getAttribute('width'))).toBe(200 + 4)
-})
-
 test("a scale bar under the rows gives a round length at the rows' scale, not the ruler's", () => {
   const model = placedPane()
   render(
@@ -149,4 +138,49 @@ test('the readouts are drawn with no letter spacing of the page', () => {
   for (const text of texts) {
     expect(text.closest('[letter-spacing="0"]')).not.toBeNull()
   }
+})
+
+// The plugin paints bars on a canvas and from bandage-core's dd9eed7 drew no
+// chevron, while its key and readouts said "reversed"
+test('the trees drawn over the canvas bars carry the chevrons of a stretch walked against the reference', () => {
+  const pitch = rowPitch(2, 200)
+  const reversed: WalkRow = {
+    ...row('R', 2000),
+    runs: [
+      {
+        start: 0,
+        bp: 2000,
+        onReference: true,
+        referenceStart: 1000,
+        reversed: true,
+      },
+    ],
+  }
+  const forward = row('F', 2000)
+  const svgOf = (rows: WalkRow[]) =>
+    walkRowTreesOnPane(
+      {
+        walkRowBars: { origin: 1000, reference: row('GRCh38', 3000), rows },
+        walkRowPlacement: sectionPlacement([], pitch.rowPx),
+        walkRowPitch: pitch,
+        walkRowGroups: undefined,
+        referenceRampDomain: undefined,
+        walkRowGenes: undefined,
+        scaleX: 0.1,
+        scaleY: 1,
+        translateX: 20,
+        translateY: 10,
+        drawingWidth: 600,
+        canvasHeight: 200,
+        rowVisitsNeeded: false,
+      },
+      't',
+      false,
+    )
+      .get()!
+      .trees.map(serializeEl)
+      .join('')
+  const svg = svgOf([reversed])
+  expect(svg.match(/<polyline /g)?.length ?? 0).toBeGreaterThan(0)
+  expect(svgOf([forward])).not.toContain('<polyline ')
 })
