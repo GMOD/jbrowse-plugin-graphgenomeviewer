@@ -179,7 +179,7 @@ test('a link skipping reference sequence says the bp it skips of the named refer
 
 // SV-rep-1k-10k: HG01109's 2 bp in place of 1,839 bp of GRCh38, whose
 // routed feet draw in a skip's ink, hovered as "Edge: r1 → x"
-test("a padded foot a force layout routed says what its walk's run skips and what replaces it", () => {
+test("a padded foot a force layout routed says what its walk's run skips", () => {
   const graph = loadGraph(
     [
       `S\tr1\t${'A'.repeat(2000)}`,
@@ -218,7 +218,7 @@ test("a padded foot a force layout routed says what its walk's run skips and wha
     />,
   )
   expect(screen.queryByText(/skips/)?.textContent).toBe(
-    'skips 1,839 bp of GRCh38 chr5 sequence, replaced by 2 bpGRCh38#0#chr5:2,001-3,839',
+    'skips 1,839 bp of GRCh38 chr5 sequenceGRCh38#0#chr5:2,001-3,839',
   )
 })
 

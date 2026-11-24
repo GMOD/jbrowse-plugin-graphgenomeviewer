@@ -203,7 +203,7 @@ function hoverTip(
     return {
       body: text.deletion ? (
         <>
-          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence${text.deletion.replacedBy ? `, replaced by ${text.deletion.replacedBy}` : ''}`}
+          {`skips ${text.deletion.bp} of ${reference ?? 'the reference'} sequence`}
           <br />
           {text.deletion.where}
         </>
