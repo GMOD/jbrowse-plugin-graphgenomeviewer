@@ -196,7 +196,7 @@ test('the key counts the haplotypes the cut was asked for that it holds no walk 
 // review 3: the note read the picker, so picking two others over a drawing
 // cut for three said "2 of 2 haplotypes have no walk here" of a cut that
 // never asked for them, and a stopped load kept it so
-test('the note on haplotypes with no walk counts the ones the drawing on screen was cut for, and none while the picker asks for others', async () => {
+test('the note on haplotypes with no walk counts the ones the drawing on screen was cut for, while the picker asks for others, a cut for them is in flight and once it is stopped', async () => {
   const tables = gfaTables(
     [
       GFA,
@@ -229,7 +229,7 @@ test('the note on haplotypes with no walk counts the ones the drawing on screen 
 
   model.setSubgraphHaplotypes(['HG003#1', 'HG003#2'])
   expect(model.cutStale).toBe(true)
-  expect(absent()).toBeUndefined()
+  expect(absent()).toBe(drawn)
 
   mockRpcCall.mockImplementation((_sid: unknown, method: string) =>
     method === 'GetSubgraph'
