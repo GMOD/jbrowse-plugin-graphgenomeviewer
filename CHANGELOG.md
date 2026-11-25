@@ -1,3 +1,19 @@
+## [10.10.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.9.0...v10.10.0) (2026-11-25)
+
+### Other Changes
+
+- Walk rows in a linear view draw a ruler-aligned strip of the reference's colours and a scale bar of the rows' bp, and the key says the rows are not on the ruler's scale and draws a reversed swatch's chevrons ([81ac482](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/81ac482ec33ecf0a6e027501cc35a8fd75573a63))
+- The walk-file adapter's rows test reads a stop per end of the bar ([a78ef77](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a78ef77c6307d03050c35e6d3afce13842fedf0a))
+- Walk rows drop the ruler strip, the reference row's colours tying them to the ruler, and keep the scale bar on screen ([e849799](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/e8497997e5276a25197fc9b1f061e9bf1afd952e))
+- A walk row key swatch's chevrons are typed from bandage-core's swatch, with no const assertion ([d2e3a14](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/d2e3a1414d4dcf87df1d97fa8f047e3de95f2dcb))
+- A walk row's hover outline and hit test start where its bar does, a repeat call is scored against the bp its walk walks, not those it spends away from the window, and the scale bar under the rows is tested at the rows' own scale ([b2b89a5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/b2b89a5dabf83ce2d05dca16ba5c81905555382d))
+- Walk rows fit their bars to the width left of the key so every readout is drawn whole beside its bar, where it was cut to "…" at H-8p23, H-MAPT, H-SMN, H-TSPY and R1M-06 ([26857c5](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/26857c577ea5bf672cb3b20fa3fa6f72b362f184))
+- Walk row readouts are drawn with no letter spacing of the page, so each is as wide as measureReadout measured it; JBrowse's inherited spacing drew them about 3% wider, and at H-SMN one ran under the key once its bars left it just enough room ([490f082](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/490f082665dbd90681933cdd4f1ed10f7381d1e8))
+- Walk rows follow bandage-core's left-aligned bars and one-line readouts: the hover outline and hit test run from the bar's left end again, and a row's hover gives its full readout wherever the line drawn leaves some of it out ([cea85d8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/cea85d8eb0a745bd520104fe2faf1bcad17b0a8b))
+- The plugin's own test fails if the walk row trees drawn over its canvas bars lose the chevrons of a stretch walked against the reference, or draw any on a forward row; the outline test that read the dropped bar offset is gone ([8acd92a](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/8acd92a218b445a456aa1855995427ee78ea833b))
+- Bandage-core 14.6.0 ([a781230](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/a781230fa6edfbe606c3fb95bb9d96cdad5c448e))
+- The walk-rows gap e2e test reads the gap from HG002's hover, "5.0 kb, of which 1.0 kb not drawn", since the row's one line beside its bar now says 5.0 kb and the grey stretch between its pieces is keyed not drawn ([0c6f5f8](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/0c6f5f89ee96384e91c5aff68d0774e9af0b85c9))
+
 ## [10.9.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.8.0...v10.9.0) (2026-11-24)
 
 ### Other Changes
