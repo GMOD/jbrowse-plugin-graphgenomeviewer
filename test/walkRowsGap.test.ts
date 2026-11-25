@@ -104,7 +104,7 @@ describe.skipIf(!runE2E)('walk rows with a piece gap', () => {
     await cleanupJBrowse()
   })
 
-  it('draws HG002 as one row whose readout names the gap', async () => {
+  it('draws HG002 as one row whose hover names the gap', async () => {
     const labels = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="graph-row-label"]')].map(
         el => el.textContent.trim(),
@@ -116,7 +116,16 @@ describe.skipIf(!runE2E)('walk rows with a piece gap', () => {
         el => el.textContent,
       ),
     )
-    expect(readouts).toContain('5.0 kb, of which 1.0 kb out of view')
+    expect(readouts).toEqual(['5.0 kb', '5.0 kb'])
+    const [hg002] = await page.$$('[data-testid="graph-walk-row"]')
+    await hg002?.hover()
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('[data-testid="graph-walk-row-tooltip"]')
+          ?.textContent.includes('HG002#1 — 5.0 kb, of which 1.0 kb not drawn'),
+      { timeout: 10_000 },
+    )
     await screenshot(page, 'walk-rows-gap')
   }, 60_000)
 })
