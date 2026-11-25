@@ -927,16 +927,19 @@ describe('what the row axis draws, in pixels', () => {
     expect(hidden.hiddenEdgeIndexes!.size).toBe(0)
   })
 
-  // a skip too short on screen for full dashes is dashed shorter, under the
-  // one entry, where d719794 drew it a plain stroke keyed "short skip"
-  test('the legend keys the dashed links only where the drawing holds them', async () => {
+  // this graph has no walks, so its skips keep their dashes; with walks
+  // each is one solid arch (skipStrokes.test.ts)
+  test('the legend keys the dashed links of a graph without walks only where the drawing holds them', async () => {
     const deletionRows = (model: Awaited<ReturnType<typeof fitted>>) =>
       legendSections(model)
         .filter(s => s.testid === 'graph-deletion-legend')
         .flatMap(s => s.rows)
     const shown = await fitted()
     shown.startRenderingBackend(fakeRenderer())
-    expect(drawnMarks([shown.drawnBatch]).dashedSkip).toBe(true)
+    expect(drawnMarks([shown.drawnBatch])).toMatchObject({
+      archSkip: false,
+      dashedSkip: true,
+    })
     expect(deletionRows(shown)).toMatchObject([
       {
         label: expect.stringMatching(/^skips .* sequence/),

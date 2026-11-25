@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { layoutEngine } from '@jbrowse/bandage-core/layoutEngines'
 import { SMALL_SITE_PX } from '@jbrowse/bandage-core/levelOfDetail'
+import { EDGE_DEFAULT_COLOR } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
 
 import { mockRpcCall } from './modelTestMocks'
 import { createAnchoredModel, createModel } from './modelTestSupport'
@@ -23,7 +24,8 @@ const GAP571 = readFileSync(
   'utf8',
 )
 
-// a dashed skip holds a dash, a gap and a dash at the fewest, each 11 px
+// a skip takes its head where its span on screen would hold three 11 px
+// dashes
 const THREE_DASHES_PX = 33
 
 const layouts = [
@@ -46,8 +48,9 @@ const layouts = [
 // dash was one plain stroke keyed apart. A skip whose bp come to under
 // SMALL_SITE_PX at the reference's px a bp is not drawn, and the fold says
 // so, unless small sites are shown; one whose span on screen holds no arch
-// its stroke can shape is the plain link it is, headless; any other is
-// dashed, headless where its span holds fewer than three dashes.
+// its stroke can shape is the plain link it is, headless; any other is one
+// solid arch in link ink, headless where its span holds fewer than three
+// dashes. The owner found dashes over a short span ugly.
 async function skipStrokes(
   create: () => ReturnType<typeof createModel>,
   smallSites: boolean,
@@ -67,7 +70,7 @@ async function skipStrokes(
   ])
   const wrong: string[] = []
   const plain: string[] = []
-  const dashed: string[] = []
+  const arched: string[] = []
   const folded: string[] = []
   for (const scale of [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 6]) {
     for (const skip of model.deletions) {
@@ -96,9 +99,12 @@ async function skipStrokes(
           wrong.push(drawn)
         }
       } else {
-        dashed.push(seen)
+        arched.push(seen)
         if (
-          strokes.some(stroke => !stroke.dashed) ||
+          strokes.length !== 1 ||
+          !strokes[0]!.arch ||
+          strokes[0]!.dashed ||
+          strokes[0]!.color !== EDGE_DEFAULT_COLOR ||
           (heads > 0 && span < THREE_DASHES_PX - 1)
         ) {
           wrong.push(drawn)
@@ -106,15 +112,15 @@ async function skipStrokes(
       }
     }
   }
-  return { wrong, plain, dashed, folded }
+  return { wrong, plain, arched, folded }
 }
 
 test.each(layouts)(
-  'at the 571 bp gap under $layout, a skip is dashed wherever its span holds an arch, headless under three full dashes, a plain link where it holds none, and folded while its bp come under the small-site line',
+  'at the 571 bp gap under $layout, a skip is one solid arch in link ink wherever its span holds an arch, headless under three dashes long, a plain link where it holds none, and folded while its bp come under the small-site line',
   async ({ create }) => {
-    const { wrong, dashed, folded } = await skipStrokes(create, false)
+    const { wrong, arched, folded } = await skipStrokes(create, false)
     expect(wrong).toEqual([])
-    expect(dashed).toEqual(
+    expect(arched).toEqual(
       expect.arrayContaining(['50 bp at 3', '571 bp at 0.25']),
     )
     expect(folded).toEqual(expect.arrayContaining(['1 bp at 0.1']))
@@ -122,12 +128,12 @@ test.each(layouts)(
 )
 
 test.each(layouts)(
-  'at the 571 bp gap under $layout with small sites shown, no skip folds, and each is dashed wherever its span holds an arch and a plain link where it holds none',
+  'at the 571 bp gap under $layout with small sites shown, no skip folds, and each is one solid arch wherever its span holds an arch and a plain link where it holds none',
   async ({ create }) => {
-    const { wrong, dashed, folded } = await skipStrokes(create, true)
+    const { wrong, arched, folded } = await skipStrokes(create, true)
     expect(wrong).toEqual([])
     expect(folded).toEqual([])
-    expect(dashed).toEqual(
+    expect(arched).toEqual(
       expect.arrayContaining(['50 bp at 3', '571 bp at 0.25', '1 bp at 6']),
     )
   },
