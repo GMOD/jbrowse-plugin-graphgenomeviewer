@@ -705,6 +705,7 @@ const FIGURES = {
           subgraphHaplotypes: POPULATION_SAMPLES,
           layoutMode: 'ordered',
           size: { field: 'frequency', value: 10, links: 'walks' },
+          layers: { smallSites: true },
           paneHeight: 280,
         }),
       ],

@@ -15,8 +15,10 @@ the nodes shown ([data.md](data.md#track-config)).
 **Node width › By frequency** draws a node as wide as the share of haplotypes
 through it, so the two settings together read as allele frequency. The Ordered
 layout hangs each alternate allele below the reference, where its links stand
-out. The callset's rows of the same haplotypes show it too: a common allele is a
-near-solid column, a rare one a few cells.
+out. Alleles of a few bp are too small to see across a whole gene, so the figure
+below turns on **Show small sites** to draw them at this zoom. The callset's
+rows of the same haplotypes show it too: a common allele is a near-solid column,
+a rare one a few cells.
 
 ![60 haplotypes through MICB's exons 2–4 in the Ordered layout under their callset rows, nodes by frequency and links by walks. Common alternate alleles hang below the reference on heavy links and rare ones on thin links](../img/ordered_micb_link_width.png)
 
