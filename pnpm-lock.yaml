@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^14.6.0
-        version: 14.6.0
+        specifier: ^14.7.0
+        version: 14.7.0
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@14.6.0':
-    resolution: {integrity: sha512-onu+pRFWJ84A5Q2OXnS8ahz8AwXQel06+uPJ1zxDt7H+jWv1PPeBkeUJ7jkhElL7tsJ2HCYw+OI3zG5uPYytnQ==}
+  '@jbrowse/bandage-core@14.7.0':
+    resolution: {integrity: sha512-u3HS6la8K9YwIIWMKU+gbnRQob3d1yy3utXR1/KJIsy6CGW1G71Pr9RuS9r1ZDdnWd14Eg6Q1BJc1kfUxkHhXA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -686,8 +686,8 @@ packages:
     resolution: {integrity: sha512-/wIO50DsK87me7qTlo1D6h65Onjk2LMxaWSP19jk220kJp8bic8hL6ITz1+NTi+CttKm0CyzNWJ/eDwgSayGJw==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-fold@1.1.0':
-    resolution: {integrity: sha512-Oa9rp055ACkD52R8IeEjAONlitEkxHj6Fot48VIggt4xUy4U8bwTS3LcP7Lbmi6+5seNQm512PtwK6IEG+dPZA==}
+  '@jbrowse/graph-fold@1.2.0':
+    resolution: {integrity: sha512-rTjerGvVBeJt9Y85U904bzzwZsfEHYd7b0N3M73LmAToMECovCJgBnY3HmwUJob0dOsmcZ2mPDE7nMgHidaXxw==}
 
   '@jbrowse/graph-stress-layout@1.1.0':
     resolution: {integrity: sha512-qP/VqpFViuCs1XUaXZdvbmfisCdl7Ti4MRn+7G2TqEgRLtQ0ZWkcMnkXqo049+qbiYE2ggFdYTLkwTYlAxYnIQ==}
@@ -3839,12 +3839,12 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.6.0':
+  '@jbrowse/bandage-core@14.7.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
       '@jbrowse/graph-fmmm-layout': 1.0.2
-      '@jbrowse/graph-fold': 1.1.0
+      '@jbrowse/graph-fold': 1.2.0
       '@jbrowse/graph-stress-layout': 1.1.0
       '@jbrowse/tubemap-core': 2.1.1
 
@@ -3934,7 +3934,7 @@ snapshots:
 
   '@jbrowse/graph-fmmm-layout@1.0.2': {}
 
-  '@jbrowse/graph-fold@1.1.0': {}
+  '@jbrowse/graph-fold@1.2.0': {}
 
   '@jbrowse/graph-stress-layout@1.1.0': {}
 
