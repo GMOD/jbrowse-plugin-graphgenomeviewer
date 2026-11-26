@@ -460,7 +460,12 @@ export const withGraphViews = paneBase
     },
     // The cut's walks, not the threads a fold made of them
     get pathCount() {
-      return (self.unfoldedGraph ?? self.graph)?.paths?.length ?? 0
+      return (
+        (self.unfoldedGraph
+          ? self.unfoldedGraph.paths
+          : (self.cutWalks ?? self.graph?.paths)
+        )?.length ?? 0
+      )
     },
     // No hover is changing the legend, so its size is the one to fit the
     // drawing around
@@ -494,7 +499,11 @@ export const withGraphViews = paneBase
     // The paths this graph could be anchored on, for the picker. Empty for an
     // rGFA, which has no P/W records and needs none.
     get anchorPaths() {
-      return (self.unfoldedGraph ?? self.graph)?.anchorPaths ?? []
+      return (
+        (self.unfoldedGraph
+          ? self.unfoldedGraph.anchorPaths
+          : (self.cutWalks ?? self.graph?.anchorPaths)) ?? []
+      )
     },
     // Every walk the graph carries, named for a picker, whatever the count,
     // and for a graph folded to threads every walk of the cut it was folded
@@ -503,7 +512,7 @@ export const withGraphViews = paneBase
     get walkChoices() {
       const paths = self.unfoldedGraph
         ? self.unfoldedGraph.paths?.filter(path => path.nodeIds.length > 0)
-        : self.graph?.paths
+        : (self.cutWalks ?? self.graph?.paths)
       return paths?.length ? pathLegend(paths) : []
     },
     // Whether the drawing is actually painted per path, which is not the same

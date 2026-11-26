@@ -346,6 +346,41 @@ test('a folded node counts the nodes folded into it, leaving out stretches not l
   expect(container.textContent).toContain('4 nodes folded into it')
 })
 
+// runs name no node off the reference, so a fold of them holds reference
+// nodes alone and the count says so
+test('a node folded from runs counts the reference nodes folded into it', () => {
+  const node = {
+    id: 'a~c+',
+    name: 'a~c',
+    length: 2000,
+    depth: 2,
+    members: ['a', 'b', 'c'],
+    stable: { refName: 'chr', start: 0, rank: 0 },
+  }
+  const model = {
+    hoveredNode: node.id,
+    hoverNodeById: new Map([[node.id, node]]),
+    hoveredEdge: null,
+    hoveredWalkRowText: undefined,
+    hoveredTubeText: undefined,
+    tooltipRightPx: 8,
+    deletions: [],
+    genePins: [],
+    graph: {
+      name: 'fold',
+      nodes: [node],
+      edges: [],
+      paths: [],
+      threadFold: { belowBp: 500, haplotypes: 2, walks: 2, stepless: 0 },
+    },
+    notLoadedNames: new Set(),
+    cutWalks: [{ name: 'chr', sample: 'chr', start: 0, length: 2000 }],
+    walkLabel: (name: string) => name,
+  } as unknown as GraphPaneModel
+  const { container } = render(<HoverTooltip model={model} chip={undefined} />)
+  expect(container.textContent).toContain('3 reference nodes folded into it')
+})
+
 test("a folded node's hover gives a lone haplotype's thread its count, so it does not read as one of a wider thread's haplotypes", () => {
   const node = { id: 'a+', name: 'a', length: 2000, depth: 5 }
   const model = {

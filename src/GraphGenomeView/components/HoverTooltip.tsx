@@ -65,12 +65,13 @@ function eventLines(events: readonly { text: string }[]) {
 
 // A folded node's hover: the nodes it holds, the events it is drawn for and
 // the threads through it, each with its count and what its haplotypes differ
-// by under the fold
+// by under the fold. A fold of runs names only the reference nodes it holds.
 function foldedNodeLines(
   model: GraphPaneModel,
   nodeId: string,
   held: number | undefined,
 ) {
+  const nodes = model.cutWalks ? 'reference nodes' : 'nodes'
   const graph = model.graph
   const threads = graph?.threadFold
     ? threadsThrough(graph, nodeId, name => model.walkLabel(name)).sort(
@@ -82,7 +83,7 @@ function foldedNodeLines(
       {held && held > 1 ? (
         <>
           <br />
-          {held.toLocaleString()} nodes folded into it
+          {held.toLocaleString()} {nodes} folded into it
         </>
       ) : null}
       {eventLines(eventsAtNode(model.threadEvents ?? [], nodeId))}

@@ -244,6 +244,15 @@ export default class WalkTabixSyntenyAdapter extends ComparativeAdapterBase<Walk
     return this.walks.subgraph(refName, region, opts)
   }
 
+  // The same walks as runs, for a fold to threads, as RgfaTabixAdapter reads
+  // them
+  async getSubgraphRuns(region: Region, opts: SubgraphAdapterOptions = {}) {
+    const refName = await this.refNames.resolveForCut(region, {
+      signal: opts.signal,
+    })
+    return this.walks.runs(refName, region, opts)
+  }
+
   // The window's walks for the haplotypes named and the reference, with
   // every departure from the reference over it and no link read; a window
   // past a budget fails as a zoom-in notice for lanes. Named lanes come back

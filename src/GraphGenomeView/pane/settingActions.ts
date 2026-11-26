@@ -58,6 +58,7 @@ export const withSettingActions = withTubeMapViews
       self.foldRefusal = cut.foldRefusal
       self.threadEvents = cut.threadEvents
       self.unfoldedGraph = cut.unfoldedGraph
+      self.cutWalks = cut.cutWalks
     },
   }))
   .actions(() => ({

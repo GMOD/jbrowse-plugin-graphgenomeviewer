@@ -4,7 +4,9 @@ import {
   graphFromTables,
   graphTablesGFA,
 } from '@jbrowse/bandage-core/gfa/graphTables'
+import { absentHaplotypesText } from '@jbrowse/bandage-core/graphKey'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
+import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { readConfObject } from '@jbrowse/core/configuration'
 import { CUT_PRESETS, WalkFile, WalkReader } from '@jbrowse/graph-walks'
 import { getSnapshot } from '@jbrowse/mobx-state-tree'
@@ -13,9 +15,11 @@ import { toArray } from 'rxjs/operators'
 
 import Adapter from './RgfaTabixAdapter.ts'
 import configSchema from './configSchema.ts'
+import { foldedCut, foldedRuns } from '../GraphGenomeView/threadFoldCut.ts'
 import { isUnzoomableNodeLimitError } from '../nodeLimitError.ts'
 
 import type { WalkCut } from './walkCut.ts'
+import type { FoldedCut } from '../GraphGenomeView/threadFoldCut.ts'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 
 // chr22 of HPRC v2.1 at base level, one walk file per reference in walk
@@ -507,3 +511,169 @@ test('a cut on a signal already aborted reads no unit', async () => {
   expect(read).not.toHaveBeenCalled()
   read.mockRestore()
 })
+
+// What a fold to threads draws and says, by node name: its nodes, threads and
+// events, less what only a fold of a cut can know, the off-reference nodes a
+// folded node holds
+function foldShown(fold: FoldedCut | { refusal: string }) {
+  if ('refusal' in fold) {
+    throw new Error(fold.refusal)
+  }
+  const { graph, threadEvents = [] } = fold
+  const named = (ids: readonly string[]) =>
+    ids.map(id => graph.nodes.find(node => node.id === id)?.name)
+  return {
+    nodes: graph.nodes.map(({ name, length, depth, stable }) => ({
+      name,
+      length,
+      depth,
+      start: stable?.start,
+    })),
+    edges: graph.edges.map(({ from, to, passes }) => ({
+      ends: named([from, to]),
+      passes,
+    })),
+    paths: graph.paths?.map(({ name, count, variation, nodeIds }) => ({
+      name,
+      count,
+      variation,
+      nodes: named(nodeIds),
+    })),
+    events: threadEvents.map(({ text, haplotypes }) => ({ text, haplotypes })),
+  }
+}
+
+describe.each([
+  ['one 10 kb tile', rejoinPrefix],
+  ['1 kb tiles', followPrefix],
+])("a window's runs, in %s", (_, prefix) => {
+  const region = chr1(0, 6000)
+  const cutFold = async (adapter: Adapter, bp: number) => {
+    const cut = await adapter.getSubgraph(region)
+    const graph = loadGraph(cut, 'chr1:1-6,000', {
+      referencePath: 'GRCh38#0#chr1',
+    })
+    return foldedCut(graph, bp)
+  }
+
+  test.each([50, 500, 2000])(
+    'fold at %d bp to the threads the cut folds to',
+    async bp => {
+      const adapter = makeAdapter(prefix)
+      const read = await adapter.getSubgraphRuns(region)
+      const fromRuns = foldedRuns(read!.runs, bp, 'chr1:1-6,000')
+      expect(foldShown(fromRuns)).toEqual(foldShown(await cutFold(adapter, bp)))
+    },
+  )
+
+  test("name the cut's walks for the pickers, which the fold has no unfolded graph to list", async () => {
+    const adapter = makeAdapter(prefix)
+    const read = await adapter.getSubgraphRuns(region)
+    const fold = foldedRuns(read!.runs, 500, 'chr1:1-6,000')
+    const cut = await cutFold(adapter, 500)
+    expect('cutWalks' in fold ? fold.cutWalks : undefined).toEqual(
+      cut.unfoldedGraph?.anchorPaths,
+    )
+    expect('unfoldedGraph' in fold ? fold.unfoldedGraph : 'refused').toBe(
+      undefined,
+    )
+  })
+
+  test("hold only reference nodes in a folded node's members", async () => {
+    const adapter = makeAdapter(prefix)
+    const read = await adapter.getSubgraphRuns(region)
+    const fold = foldedRuns(read!.runs, 2000, 'chr1:1-6,000')
+    const reference = new Set(
+      (await cutFold(adapter, 2000)).unfoldedGraph?.nodes
+        .filter(node => node.stable?.rank === 0)
+        .map(node => node.name),
+    )
+    const members =
+      'graph' in fold
+        ? fold.graph.nodes.flatMap(node => node.members ?? [])
+        : []
+    expect(members.length).toBeGreaterThan(0)
+    expect(members.filter(name => !reference.has(name))).toEqual([])
+  })
+})
+
+// Every haplotype but HG003 skips 3, 4 and 5, 2-5 kb, so over 3-4 kb with the
+// cut's 1 kb of context it has no step and departs across the whole of it
+test('a fold of runs tells a haplotype that jumps over the window from one with no walk there', async () => {
+  const adapter = makeAdapter(skipFollowPrefix)
+  const read = await adapter.getSubgraphRuns(chr1(3000, 4000))
+  expect(read!.runs.departing.names).toEqual([
+    'HG002#1#ctg',
+    'HG004#1#ctg',
+    'HG005#1#ctg',
+    'HG007#1#ctg',
+  ])
+  const fold = foldedRuns(read!.runs, 50, 'chr1:3,001-4,000')
+  expect(
+    'graph' in fold
+      ? absentHaplotypesText(
+          fold.graph,
+          ['HG002#1', 'HG003#1', 'HG009#1'],
+          'GRCh38 chr1',
+        )
+      : fold.refusal,
+  ).toBe(
+    'of 3 haplotypes, 1 has no step on GRCh38 chr1 here and 1 has no walk here',
+  )
+})
+
+test('runs of a window over walkByteBudget read no unit and say so as a cut does', async () => {
+  const read = vi.spyOn(WalkFile.prototype, 'read')
+  const runs = makeAdapter(headerPrefix, {
+    walkByteBudget: 100,
+  }).getSubgraphRuns(chr1(1000, 2600))
+  await expect(runs).rejects.toMatchObject({
+    name: 'NodeLimitError',
+    message: expect.stringMatching(/walkByteBudget/),
+  })
+  expect(read).not.toHaveBeenCalled()
+  read.mockRestore()
+})
+
+test('runs of a window take the browser preset a cut takes', async () => {
+  const runs = vi.spyOn(WalkReader.prototype, 'runs')
+  await makeAdapter(headerPrefix).getSubgraphRuns(chr1(1000, 2600))
+  const { context, contained, departureByteBudget } = CUT_PRESETS.browser
+  expect(runs.mock.calls[0]?.[2]).toMatchObject({
+    context,
+    contained,
+    departureByteBudget,
+  })
+  runs.mockRestore()
+})
+
+// The hosted HPRC v2.1 walk file for GRCh38, a copy on ada of the bytes
+// jbrowse.org serves. Skipped where it is absent.
+const hosted =
+  '/home/cdiesh/work/blocks/genome-5.0.0-hdr/hprc-v2.1-mc-grch38.GRCh38'
+const hostedPresent = existsSync(`${hosted}.walks.gz`)
+
+test.skipIf(!hostedPresent)(
+  "HLA class II's every-haplotype view, past the step budget as a cut, folds from runs to a graph the track draws",
+  async () => {
+    const adapter = makeAdapter(hosted)
+    const hla = { ...chr1(32_510_000, 32_600_000), refName: 'chr6' }
+    await expect(adapter.getSubgraph(hla)).rejects.toMatchObject({
+      name: 'NodeLimitError',
+      regionTooLarge: true,
+    })
+    const read = await adapter.getSubgraphRuns(hla)
+    const fold = foldedRuns(read!.runs, 640, 'chr6:32,510,001-32,600,000')
+    const graph = 'graph' in fold ? fold.graph : undefined
+    expect('refusal' in fold ? fold.refusal : undefined).toBeUndefined()
+    expect(graph?.threadFold?.haplotypes).toBeGreaterThan(400)
+    expect(graph?.nodes.length).toBeGreaterThan(10)
+    expect(graph?.nodes.length).toBeLessThan(20_000)
+    expect(
+      ('threadEvents' in fold ? (fold.threadEvents ?? []) : []).filter(event =>
+        event.text.includes('inside the window'),
+      ),
+    ).toEqual([])
+  },
+  120_000,
+)

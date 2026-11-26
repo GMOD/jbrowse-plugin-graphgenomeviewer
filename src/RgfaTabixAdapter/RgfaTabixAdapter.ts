@@ -253,4 +253,14 @@ export default class RgfaTabixAdapter extends BaseFeatureDataAdapter<RgfaTabixAd
       { hops, signal },
     )
   }
+
+  // A walk-indexed graph's walks over a region as runs, for a fold to
+  // threads (WalkIndex.runs); undefined where the region is to be cut
+  async getSubgraphRuns(region: Region, opts: SubgraphAdapterOptions = {}) {
+    const index = this.index(opts.tier)
+    const refName = await index.refNames.resolveForCut(region, {
+      signal: opts.signal,
+    })
+    return index.walks?.runs(refName, region, opts)
+  }
 }

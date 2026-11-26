@@ -1,5 +1,10 @@
 import { resolvePanSNPrefix } from '@jbrowse/bandage-core/pansn'
-import { CUT_PRESETS, checkRange, walksKept } from '@jbrowse/graph-walks'
+import {
+  CUT_PRESETS,
+  RunsRefusedError,
+  checkRange,
+  walksKept,
+} from '@jbrowse/graph-walks'
 
 import { walkCutFor } from './walkCut.ts'
 import { DEFAULT_LINKS_DRAWN } from '../linksDrawn.ts'
@@ -109,6 +114,42 @@ export class WalkIndex {
       region,
       walkRows,
     )
+  }
+
+  /**
+   * The walks the graph display's cut of a window holds, as runs, for a fold
+   * to threads: no step is decoded and no node made, so the step budget does
+   * not apply and the byte budget alone bounds it. Undefined for a file that
+   * does not state that its reference passes no node twice, whose window is
+   * cut instead.
+   */
+  async runs(
+    refName: string,
+    region: { start: number; end: number },
+    { signal, haplotypes, forcedByteBudget = 0 }: SubgraphAdapterOptions,
+  ) {
+    const { context, contained, byteBudget, departureByteBudget, budgetNames } =
+      this.cutOptions()
+    try {
+      const runs = await this.reader.runs(refName, region, {
+        context,
+        contained,
+        byteBudget: Math.max(byteBudget, forcedByteBudget),
+        departureByteBudget,
+        budgetNames,
+        signal,
+        keep: walksKept(
+          haplotypes?.map(lane => resolvePanSNPrefix(this.adapter, lane)),
+          refName,
+        ),
+      })
+      return { runs }
+    } catch (e) {
+      if (!(e instanceof RunsRefusedError)) {
+        throw e
+      }
+      return undefined
+    }
   }
 
   /**
