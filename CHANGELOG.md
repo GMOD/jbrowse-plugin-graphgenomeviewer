@@ -1,3 +1,11 @@
+## [10.12.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.11.0...v10.12.0) (2026-11-26)
+
+### Other Changes
+
+- Graph-walks 9.2.0 installs without waiting out the minimum release age, as its earlier releases do ([2b4bda4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/2b4bda4012f7637bb3c66fe3257b121baccec098))
+- Bandage-core 14.9.0 and graph-walks 9.2.0 ([1e86c51](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/1e86c514a535637e52c89bed38dec6dfce542bff))
+- A folded node's hover writes each thread's line from core, its count first, so a lone haplotype reads "1 haplotype: HG00097#1" rather than a bare name that looks like one of the wider thread's haplotypes above it ([6273f4d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/6273f4d0a73f86fa8850641128a68ec183021a0e))
+
 ## [10.11.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.10.0...v10.11.0) (2026-11-25)
 
 ### Other Changes
