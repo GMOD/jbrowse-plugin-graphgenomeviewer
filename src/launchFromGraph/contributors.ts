@@ -52,8 +52,9 @@ export interface AssemblySpan {
 }
 
 // Where a node's sequence sits on each loaded assembly: its own rGFA
-// location, and where every walk through it passes it on that walk's contig.
-// `except` is the assembly the reference band is already drawn on.
+// location, and where every walk through it passes it on that walk's contig,
+// which a folded graph does not state, as its node lengths are not the walks'
+// own. `except` is the assembly the reference band is already drawn on.
 export function nodeAssemblySpans(
   graph: Graph,
   node: GraphNode,
@@ -77,7 +78,10 @@ export function nodeAssemblySpans(
   if (own) {
     add(own)
   }
-  for (const visit of graph.pathVisits?.get(node.name) ?? []) {
+  const visits = graph.threadFold
+    ? []
+    : (graph.pathVisits?.get(node.name) ?? [])
+  for (const visit of visits) {
     add({
       sample: panSNSample(visit.path),
       haplotype: panSNHaplotype(visit.path),

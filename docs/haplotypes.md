@@ -69,7 +69,10 @@ With two or more lifted, **Haplotypes › Arrange** facets the pane.
   `facet_grid(sample ~ haplotype)`
 - Panels share one view, so a pan, zoom or hover in one applies to all. As many
   go across as draw each panel largest; `columns` fixes the count
-- Hovering a node gives its position on each walk's contig in the key
+- Hovering a node gives its position on each walk's contig in the key. A graph
+  that merges small differences into the reference no longer draws a walk's own
+  lengths, so there the key gives no position, and a thread several haplotypes
+  share gives no range, since no one range is true of all of them
 - On a track, the key row under the panels ends with the layout switch and
   **Haplotypes**, whose list turns the panels off again
 
