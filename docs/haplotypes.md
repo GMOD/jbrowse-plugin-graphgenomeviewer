@@ -72,7 +72,8 @@ With two or more lifted, **Haplotypes › Arrange** facets the pane.
 - Hovering a node gives its position on each walk's contig in the key. A graph
   that merges small differences into the reference no longer draws a walk's own
   lengths, so there the key gives no position, and a thread several haplotypes
-  share gives no range, since no one range is true of all of them
+  share gives no range, since no one range is true of all of them. A walk whose
+  record gives no start (`*` in a GFA W line) gets no range or position either
 - On a track, the key row under the panels ends with the layout switch and
   **Haplotypes**, whose list turns the panels off again
 
