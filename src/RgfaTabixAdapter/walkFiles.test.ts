@@ -8,6 +8,7 @@ import { absentHaplotypesText } from '@jbrowse/bandage-core/graphKey'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { readConfObject } from '@jbrowse/core/configuration'
+import { openLocation } from '@jbrowse/core/util/io'
 import { CUT_PRESETS, WalkFile, WalkReader } from '@jbrowse/graph-walks'
 import { getSnapshot } from '@jbrowse/mobx-state-tree'
 import { firstValueFrom } from 'rxjs'
@@ -548,16 +549,29 @@ describe.each([
   ['1 kb tiles', followPrefix],
 ])("a window's runs, in %s", (_, prefix) => {
   const region = chr1(0, 6000)
-  const cutFold = async (adapter: Adapter, bp: number) => {
-    const cut = await adapter.getSubgraph(region)
-    const graph = loadGraph(cut, 'chr1:1-6,000', {
-      referencePath: 'GRCh38#0#chr1',
+  // the window's cut as the adapter makes it, but contained, as runs are read
+  const cutFold = async (_adapter: Adapter, bp: number) => {
+    const file = (localPath: string) =>
+      openLocation({ localPath, locationType: 'LocalPathLocation' })
+    const reader = WalkReader.fromFilehandles({
+      data: file(`${prefix}.walks.gz`),
+      directory: file(`${prefix}.walks.gz.idx`),
     })
-    return foldedCut(graph, bp)
+    const { graph, kept, fragments, departures } = await reader.cut(
+      'GRCh38#0#chr1',
+      region,
+      { ...CUT_PRESETS.browser, contained: true },
+    )
+    return foldedCut(
+      loadGraph(graph.tables(kept, fragments, departures), 'chr1:1-6,000', {
+        referencePath: 'GRCh38#0#chr1',
+      }),
+      bp,
+    )
   }
 
   test.each([50, 500, 2000])(
-    'fold at %d bp to the threads the cut folds to',
+    'fold at %d bp to the threads the contained cut folds to',
     async bp => {
       const adapter = makeAdapter(prefix)
       const read = await adapter.getSubgraphRuns(region)
@@ -635,13 +649,13 @@ test('runs of a window over walkByteBudget read no unit and say so as a cut does
   read.mockRestore()
 })
 
-test('runs of a window take the browser preset a cut takes', async () => {
+test("runs of a window take the browser preset's context and budgets, read contained", async () => {
   const runs = vi.spyOn(WalkReader.prototype, 'runs')
   await makeAdapter(headerPrefix).getSubgraphRuns(chr1(1000, 2600))
-  const { context, contained, departureByteBudget } = CUT_PRESETS.browser
+  const { context, departureByteBudget } = CUT_PRESETS.browser
   expect(runs.mock.calls[0]?.[2]).toMatchObject({
     context,
-    contained,
+    contained: true,
     departureByteBudget,
   })
   runs.mockRestore()

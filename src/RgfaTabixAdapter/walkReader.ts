@@ -119,21 +119,23 @@ export class WalkIndex {
   /**
    * The walks the graph display's cut of a window holds, as runs, for a fold
    * to threads: no step is decoded and no node made, so the step budget does
-   * not apply and the byte budget alone bounds it. Undefined for a file that
-   * does not state that its reference passes no node twice, whose window is
-   * cut instead.
+   * not apply and the byte budget alone bounds it. Read contained: a walk
+   * that leaves the window and steps the reference elsewhere in the tiles read
+   * would otherwise keep that stretch, which graph-fold refuses as off the
+   * reference nodes it folds. Undefined for a file that does not state that
+   * its reference passes no node twice, whose window is cut instead.
    */
   async runs(
     refName: string,
     region: { start: number; end: number },
     { signal, haplotypes, forcedByteBudget = 0 }: SubgraphAdapterOptions,
   ) {
-    const { context, contained, byteBudget, departureByteBudget, budgetNames } =
+    const { context, byteBudget, departureByteBudget, budgetNames } =
       this.cutOptions()
     try {
       const runs = await this.reader.runs(refName, region, {
         context,
-        contained,
+        contained: true,
         byteBudget: Math.max(byteBudget, forcedByteBudget),
         departureByteBudget,
         budgetNames,
