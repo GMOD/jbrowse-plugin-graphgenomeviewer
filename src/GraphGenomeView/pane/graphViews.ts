@@ -57,7 +57,7 @@ import {
   LIFT_BACKDROP_CSS,
   computeReferenceRamp,
 } from '@jbrowse/bandage-core/renderer/GeometryBuilder'
-import { threadLayers } from '@jbrowse/bandage-core/threadFold'
+import { openBranchSpan, threadLayers } from '@jbrowse/bandage-core/threadFold'
 import { tubeMapNodeColors } from '@jbrowse/bandage-core/tubeMap/nodeColors'
 import { axisScaleOf } from '@jbrowse/bandage-core/viewport'
 import { facetLifts, walkLift } from '@jbrowse/bandage-core/walkHighlight'
@@ -143,6 +143,7 @@ import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
 import type { SmallSites } from '@jbrowse/bandage-core/levelOfDetail'
 import type { NodeWidth } from '@jbrowse/bandage-core/nodeWidths'
 import type { AssemblyNames } from '@jbrowse/bandage-core/reference'
+import type { ThreadEvent } from '@jbrowse/bandage-core/threadFold'
 import type { Graph, GraphNode } from '@jbrowse/bandage-core/types'
 import type { NodeInk } from '@jbrowse/bandage-core/util/hitDetection'
 import type { WalkLayer } from '@jbrowse/bandage-core/walkEncoding'
@@ -216,15 +217,21 @@ function nodeMapOf(graph: Graph) {
   return m
 }
 
-// A node's reference interval, an allele's between its flanks
+// A node's reference interval, an allele's between its flanks, and a fold's
+// branch that continues past the window's out to its far breakpoint, which
+// no flank inside the window reaches
 function spanIn(
   nodeId: string,
   nodeById: Map<string, GraphNode> | undefined,
   neighbors: ReturnType<typeof buildNeighbors> | undefined,
+  events: readonly ThreadEvent[] | undefined,
 ) {
-  return nodeById && neighbors
-    ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
-    : undefined
+  return (
+    openBranchSpan(events ?? [], nodeId) ??
+    (nodeById && neighbors
+      ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+      : undefined)
+  )
 }
 
 // The layout, node color and hover as a host stores them: a view of its own
@@ -1582,7 +1589,12 @@ export const withGraphViews = paneBase
         : undefined
     },
     nodeSpan(nodeId: string) {
-      return spanIn(nodeId, self.nodeById, self.nodeNeighbors)
+      return spanIn(
+        nodeId,
+        self.nodeById,
+        self.nodeNeighbors,
+        self.threadEvents,
+      )
     },
     // The drawing the pointer is over: its panel's while a tube map is split,
     // each panel laid out alone and merging its own runs
@@ -1639,7 +1651,12 @@ export const withGraphViews = paneBase
       const nodeId = self.hoveredNode
       const bubble = self.hoveredBubble
       return nodeId !== null
-        ? spanIn(nodeId, self.hoverNodeById, self.hoverNeighbors)
+        ? spanIn(
+            nodeId,
+            self.hoverNodeById,
+            self.hoverNeighbors,
+            self.threadEvents,
+          )
         : bubble && !bubble.offReference
           ? { start: bubble.start, end: bubble.end }
           : undefined

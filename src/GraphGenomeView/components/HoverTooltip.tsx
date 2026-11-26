@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { againstHoverText } from '@jbrowse/bandage-core/againstReference'
@@ -5,6 +6,7 @@ import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import {
   edgeHoverText,
+  nodeHoverName,
   placeholderHoverText,
   regionLabel,
   skipAt,
@@ -117,6 +119,7 @@ function hoverTip(
     : undefined
   if (node) {
     const placeholder = placeholderHoverText(node)
+    const name = nodeHoverName(model.graph, node)
     const merged = model.hoverDrawing?.members.get(node.id)
     const own = nodeOwnLocation(node)
     const region = model.graphRegion
@@ -153,9 +156,16 @@ function hoverTip(
       : {
           body: (
             <>
-              <strong>{node.name}</strong>
-              {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
-              {node.length.toLocaleString()} bp, depth {node.depth.toFixed(1)}
+              {name === undefined ? (
+                <strong>{node.length.toLocaleString()} bp</strong>
+              ) : (
+                <>
+                  <strong>{name}</strong>
+                  {merged ? ` and ${merged.length - 1} more` : ''} —{' '}
+                  {node.length.toLocaleString()} bp
+                </>
+              )}
+              , depth {node.depth.toFixed(1)}
               {/* the assembly that contributed the segment, and where on it */}
               {own ? (
                 <>
@@ -243,9 +253,30 @@ const HoverTooltip = observer(function HoverTooltip({
   chip: Readout | undefined
 }) {
   const tip = hoverTip(model, chip)
+  const ref = useRef<HTMLDivElement>(null)
+  const [left, setLeft] = useState(false)
+  const right = model.tooltipRightPx
+  const node = model.hoveredNodeScreenBox
+  // Measured before paint, as it would stand in the corner: where it would
+  // cover the node it tells of, it stands in the other corner
+  useLayoutEffect(() => {
+    const el = ref.current
+    const x1 = model.paneWidth - right
+    setLeft(
+      !!el &&
+        !!node &&
+        node.x1 >= x1 - el.offsetWidth &&
+        node.x0 <= x1 &&
+        node.y1 >= el.offsetTop,
+    )
+  }, [model.paneWidth, right, node])
   return tip ? (
     <div
-      style={{ ...tooltipStyle, right: model.tooltipRightPx }}
+      ref={ref}
+      style={{
+        ...tooltipStyle,
+        ...(left ? { left: TOOLTIP_INSET_PX } : { right }),
+      }}
       data-testid={tip.testId}
     >
       {tip.body}

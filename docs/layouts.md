@@ -64,8 +64,11 @@ colour.
 
 - Touching segments alternate between two tiers while 12 px or more wide on
   average. A base-level cut draws as one band
-- Hovering a node or bubble name boxes its reference span on the strip and draws
-  a leader to the node. An allele's span runs between its flanks
+- Hovering a node or bubble name boxes its reference span on the strip and
+  outlines the node in the same ink. An allele's span runs between its flanks,
+  and a branch that continues past the window runs out to where it rejoins.
+  Where the pane cuts the span, the box is open on that side; a span wholly past
+  an edge boxes that edge's triangle
 - While haplotypes are lifted, the strip gives each walk a row, pale where the
   walk skips a segment. A deletion is a pale gap
 - A triangle at either end marks where the graph draws reference past that edge

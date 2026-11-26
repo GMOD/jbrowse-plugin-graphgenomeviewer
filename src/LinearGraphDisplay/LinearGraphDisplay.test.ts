@@ -1518,18 +1518,20 @@ test('a pan inside the held cut keeps the reference strip whole and true to the 
   )
 })
 
-test('the reference strip draws no line to a selected node the drawing folds', async () => {
+test('the graph outlines the selected node the strip outlines, unless the drawing folds it', async () => {
   const { pane } = await forceGraph()
   const node = pane.graph!.nodes.find(n => pane.nodeSpan(n.id))!.id
   pane.setSelectedNode(node)
-  expect(pane.referenceStripLit?.anchor).toBeDefined()
+  expect(pane.referenceStripLit).toEqual(pane.nodeSpan(node))
+  expect(pane.referenceStripNode).toBe(node)
   const { batch, view } = pane.buildDrawing(undefined, false)!
   pane.setGeometryMetrics(
     0,
     { ...batch, collapsed: { ...NO_FOLD, nodes: new Set([node]) } },
     view,
   )
-  expect(pane.referenceStripLit).toMatchObject({ anchor: undefined })
+  expect(pane.referenceStripLit).toEqual(pane.nodeSpan(node))
+  expect(pane.referenceStripNode).toBeNull()
 })
 
 test('a drawing placed by its window is clipped at the key column it runs under', async () => {

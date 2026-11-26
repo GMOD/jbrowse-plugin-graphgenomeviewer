@@ -1,4 +1,6 @@
 import { formatBp } from '@jbrowse/bandage-core/graphLabels'
+import { stripInk } from '@jbrowse/bandage-core/referenceStrip'
+import { hexAbgr } from '@jbrowse/bandage-core/renderer/colorBits'
 import { referenceBoxes, rulerBoxes } from '@jbrowse/bandage-core/tubeMap/axis'
 import {
   connectorAt,
@@ -32,7 +34,7 @@ import {
   panelWalksThrough,
 } from '../tubeMapPanels'
 import { withFitViews } from './fitViews'
-import { HOVER_BRIGHTEN } from './paneBase'
+import { HOVER_BRIGHTEN, SELECT_BRIGHTEN } from './paneBase'
 import { trackedDpr } from '../trackedDpr'
 
 import type { HoveredTube } from './paneBase'
@@ -316,13 +318,22 @@ export const withTubeMapViews = withFitViews
         )
         ctx.setTransform(1, 0, 0, 1, 0, 0)
       } else {
+        const cased = self.referenceStripNode
+        const lit = cased ?? node
         r.uploadGeometry(batch)
         r.setNodeHighlights(
-          node === null ? new Map() : new Map([[node, HOVER_BRIGHTEN]]),
+          lit === null
+            ? new Map()
+            : new Map([
+                [
+                  lit,
+                  lit === self.selectedNode ? SELECT_BRIGHTEN : HOVER_BRIGHTEN,
+                ],
+              ]),
         )
         r.setEdgeHighlight(self.hoveredEdge, HOVER_BRIGHTEN)
         r.updateTransform(self.paintTransform)
-        r.renderHighlights()
+        r.renderHighlights(cased === null ? undefined : hexAbgr(stripInk()))
       }
     },
   }))
