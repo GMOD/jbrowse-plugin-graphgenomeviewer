@@ -173,7 +173,7 @@ largest change ("66% · del 18.4kb"):
   CHM13 as a haplotype
 - `maxForms`, 8 by default, caps the rows: the largest forms get one each, and
   the rest share an empty "other forms" row
-- A row label names the form's largest change in graph-walks' tokens, such as
+- A row label names the form's largest change in gfa-tabix's tokens, such as
   `del 18.4kb`, `repl 37.2kb->6bp`, `dup 94.1kb` or `ref`, and "+N" counts its
   other changes, which the variants under it name. Changes every form shares
   stay out of the label, and where two rows would read the same each names the
@@ -183,12 +183,12 @@ largest change ("66% · del 18.4kb"):
   format 7 file drew. Bytes stand in for memory only roughly, so a window under
   the budget can still be heavy for a browser tab. A pinned window over it shows
   an error naming how much of the window fits
-- A detour the walk file keeps in short form counts in full: graph-walks builds
-  it from its length and its place on the reference, so its changes are the ones
+- A detour the walk file keeps in short form counts in full: gfa-tabix builds it
+  from its length and its place on the reference, so its changes are the ones
   its steps make
 - Each change is a variant with a `consequence` of `loss`, `gain` or
   `inversion`, which `encoding.color` paints with a key. A replacement counts as
-  a loss or gain by its net change. graph-walks calls a change a deletion only
+  a loss or gain by its net change. gfa-tabix calls a change a deletion only
   where the haplotype runs 0 bp of its own and an insertion only where it leaves
   out 0 bp of the reference; anything else is a replacement with both sizes, the
   reference's first, so GSTT1's 37,159 bp of the reference against 6 bp reads
@@ -206,8 +206,8 @@ largest change ("66% · del 18.4kb"):
   the config's `pinned` and `floorBp`. A new floor regroups the cut without
   reading the walk file again
 - A re-pin over `walkByteBudget` shows the error in place of the rows
-- graph-walks'
-  [structural-forms.md](https://github.com/GMOD/graph-walks/blob/main/docs/structural-forms.md)
+- gfa-tabix's
+  [structural-forms.md](https://github.com/GMOD/gfa-tabix-js/blob/main/docs/structural-forms.md)
   gives the grouping rules and their measurements
 
 ## Reads

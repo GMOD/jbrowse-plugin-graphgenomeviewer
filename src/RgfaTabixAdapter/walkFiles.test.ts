@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 
+import { CUT_PRESETS, WalkFile } from '@gmod/gfa-tabix'
 import {
   graphFromTables,
   graphTablesGFA,
@@ -8,8 +9,7 @@ import { absentHaplotypesText } from '@jbrowse/bandage-core/graphKey'
 import { walkRowsOf } from '@jbrowse/bandage-core/layout/walkRowRuns'
 import { loadGraph } from '@jbrowse/bandage-core/pipeline'
 import { readConfObject } from '@jbrowse/core/configuration'
-import { openLocation } from '@jbrowse/core/util/io'
-import { CUT_PRESETS, WalkFile, WalkReader } from '@jbrowse/graph-walks'
+import { CachedFilehandle, openLocation } from '@jbrowse/core/util/io'
 import { getSnapshot } from '@jbrowse/mobx-state-tree'
 import { firstValueFrom } from 'rxjs'
 import { toArray } from 'rxjs/operators'
@@ -244,20 +244,22 @@ test('an unset walksIndex reads the directory beside the walk file', async () =>
 })
 
 test('a cut asked to expand walks hands the reader their names', async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600), {
     expand: ['HG002#1#chr1'],
   })
-  const expand = cut.mock.calls[0]?.[2]?.expand
-  expect(expand?.('HG002#1#chr1')).toBe(true)
-  expect(expand?.('HG002#2#chr1')).toBe(false)
+  const expand = cut.mock.calls[0]?.[3]?.expand
+  const asks = (name: string) =>
+    typeof expand === 'function' ? expand(name) : expand?.includes(name)
+  expect(asks('HG002#1#chr1')).toBe(true)
+  expect(asks('HG002#2#chr1')).toBe(false)
   cut.mockRestore()
 })
 
 test("a cut takes graph-walks' browser preset, the cut rules every reader shares", async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   const tables = await makeAdapter(headerPrefix).getSubgraph(chr1(1000, 2600))
-  expect(cut.mock.calls[0]?.[2]).toMatchObject(CUT_PRESETS.browser)
+  expect(cut.mock.calls[0]?.[3]).toMatchObject(CUT_PRESETS.browser)
   expect(tables).toMatchObject({ abridged: [] })
   cut.mockRestore()
 })
@@ -269,27 +271,27 @@ const linkLines = (gfa: string) =>
     .map(l => l.split('\t').slice(1, 5).join(''))
 
 test("a cut told nothing asks graph-walks for the links its walks take, 'walked'", async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   const gfa = await gfaOf(
     makeAdapter(skipFollowPrefix).getSubgraph(chr1(0, 8000), {
       haplotypes: ['HG003#1'],
     }),
   )
-  expect(cut.mock.calls[0]?.[2]?.links).toBe('walked')
+  expect(cut.mock.calls[0]?.[3]?.links).toBe('walked')
   expect(linkLines(gfa)).toContain('2+3+')
   expect(linkLines(gfa)).not.toContain('2+6+')
   cut.mockRestore()
 })
 
 test("links 'between' reaches graph-walks, and the cut lists the link another haplotype takes between its nodes", async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   const gfa = await gfaOf(
     makeAdapter(skipFollowPrefix).getSubgraph(chr1(0, 8000), {
       haplotypes: ['HG003#1'],
       links: 'between',
     }),
   )
-  expect(cut.mock.calls[0]?.[2]?.links).toBe('between')
+  expect(cut.mock.calls[0]?.[3]?.links).toBe('between')
   expect(linkLines(gfa)).toContain('2+3+')
   expect(linkLines(gfa)).toContain('2+6+')
   expect(walkNames(gfa)).toEqual(['GRCh38#0#chr1', 'HG003#1#ctg'])
@@ -297,19 +299,19 @@ test("links 'between' reaches graph-walks, and the cut lists the link another ha
 })
 
 test("a walk-rows cut asks for 'walked' whatever links it is handed", async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   const adapter = makeAdapter(skipFollowPrefix)
   await adapter.getSubgraph(chr1(0, 8000), { walkRows: true })
   await adapter.getSubgraph(chr1(0, 8000), {
     walkRows: true,
     links: 'between',
   })
-  expect(cut.mock.calls.map(c => c[2]?.links)).toEqual(['walked', 'walked'])
+  expect(cut.mock.calls.map(c => c[3]?.links)).toEqual(['walked', 'walked'])
   cut.mockRestore()
 })
 
 test('walk rows fetch every node of no walk unless asked', async () => {
-  const cut = vi.spyOn(WalkReader.prototype, 'cut')
+  const cut = vi.spyOn(WalkFile.prototype, 'getCutForRange')
   const adapter = makeAdapter(headerPrefix)
   await adapter.getSubgraph(chr1(1000, 2600), { haplotypes: ['HG002#1'] })
   await adapter.getSubgraph(chr1(1000, 2600), {
@@ -321,7 +323,7 @@ test('walk rows fetch every node of no walk unless asked', async () => {
     walkRows: true,
   })
   await adapter.getSubgraph(chr1(1000, 2600), { walkRows: true })
-  expect(cut.mock.calls.map(c => c[2]?.expand)).toEqual([
+  expect(cut.mock.calls.map(c => c[3]?.expand)).toEqual([
     undefined,
     undefined,
     undefined,
@@ -342,11 +344,20 @@ test('a cut for some haplotypes keeps a reference walk named without a haplotype
   ])
 })
 
+// An adapter that has read its walk file's header and directory, which every
+// read of a window starts from, so a spy on reads sees only a window's units
+async function warmed(adapter: Adapter) {
+  await adapter.getHaplotypeNames()
+  await adapter.getRegionByteSize([chr1(0, 100)])
+  return adapter
+}
+
 test('a cut over walkByteBudget reads no unit', async () => {
-  const read = vi.spyOn(WalkFile.prototype, 'read')
-  const cut = makeAdapter(headerPrefix, { walkByteBudget: 100 }).getSubgraph(
-    chr1(1000, 2600),
+  const adapter = await warmed(
+    makeAdapter(headerPrefix, { walkByteBudget: 100 }),
   )
+  const read = vi.spyOn(CachedFilehandle.prototype, 'read')
+  const cut = adapter.getSubgraph(chr1(1000, 2600))
   await expect(cut).rejects.toMatchObject({
     name: 'NodeLimitError',
     message: expect.stringMatching(/walkByteBudget/),
@@ -369,9 +380,9 @@ test('a cut no zoom fits under walkByteBudget cuts under a budget forced to what
 })
 
 test('a cut or a feature read over a range that is not finite reads nothing', async () => {
-  const read = vi.spyOn(WalkFile.prototype, 'read')
-  const bytesFor = vi.spyOn(WalkReader.prototype, 'bytesFor')
-  const adapter = makeAdapter(headerPrefix)
+  const adapter = await warmed(makeAdapter(headerPrefix))
+  const read = vi.spyOn(CachedFilehandle.prototype, 'read')
+  const bytesFor = vi.spyOn(WalkFile.prototype, 'getBytesForRange')
   const region = chr1(Number.NaN, 2600)
   await expect(adapter.getSubgraph(region)).rejects.toThrow(
     "GRCh38#0#chr1:NaN-2600 is not a finite range to query the graph's index for",
@@ -409,13 +420,13 @@ test("a walk-indexed graph's features are the reference nodes overlapping the wi
 })
 
 test('the byte gate measures the bytes a cut of the window reads', async () => {
-  const bytesFor = vi.spyOn(WalkReader.prototype, 'bytesFor')
+  const bytesFor = vi.spyOn(WalkFile.prototype, 'getBytesForRange')
   const size = await makeAdapter(headerPrefix).getRegionByteSize([
     chr1(2100, 2600),
   ])
   expect(size).toBeGreaterThan(0)
-  expect(bytesFor.mock.calls.map(call => call.slice(0, 2))).toEqual([
-    ['GRCh38#0#chr1', { start: 2100, end: 2600 }],
+  expect(bytesFor.mock.calls.map(call => call.slice(0, 3))).toEqual([
+    ['GRCh38#0#chr1', 2100, 2600],
   ])
   bytesFor.mockRestore()
 })
@@ -501,9 +512,8 @@ test('a haplotype that jumps over the window draws as a row of its departure', a
 })
 
 test('a cut on a signal already aborted reads no unit', async () => {
-  const adapter = makeAdapter(headerPrefix)
-  await adapter.getHaplotypeNames()
-  const read = vi.spyOn(WalkFile.prototype, 'read')
+  const adapter = await warmed(makeAdapter(headerPrefix))
+  const read = vi.spyOn(CachedFilehandle.prototype, 'read')
   const aborted = new AbortController()
   aborted.abort(new Error('panned away'))
   await expect(
@@ -553,13 +563,14 @@ describe.each([
   const cutFold = async (_adapter: Adapter, bp: number) => {
     const file = (localPath: string) =>
       openLocation({ localPath, locationType: 'LocalPathLocation' })
-    const reader = WalkReader.fromFilehandles({
-      data: file(`${prefix}.walks.gz`),
-      directory: file(`${prefix}.walks.gz.idx`),
+    const reader = new WalkFile({
+      walksFilehandle: file(`${prefix}.walks.gz`),
+      idxFilehandle: file(`${prefix}.walks.gz.idx`),
     })
-    const { graph, kept, fragments, departures } = await reader.cut(
+    const { graph, kept, fragments, departures } = await reader.getCutForRange(
       'GRCh38#0#chr1',
-      region,
+      region.start,
+      region.end,
       { ...CUT_PRESETS.browser, contained: true },
     )
     return foldedCut(
@@ -637,10 +648,11 @@ test('a fold of runs tells a haplotype that jumps over the window from one with 
 })
 
 test('runs of a window over walkByteBudget read no unit and say so as a cut does', async () => {
-  const read = vi.spyOn(WalkFile.prototype, 'read')
-  const runs = makeAdapter(headerPrefix, {
-    walkByteBudget: 100,
-  }).getSubgraphRuns(chr1(1000, 2600))
+  const adapter = await warmed(
+    makeAdapter(headerPrefix, { walkByteBudget: 100 }),
+  )
+  const read = vi.spyOn(CachedFilehandle.prototype, 'read')
+  const runs = adapter.getSubgraphRuns(chr1(1000, 2600))
   await expect(runs).rejects.toMatchObject({
     name: 'NodeLimitError',
     message: expect.stringMatching(/walkByteBudget/),
@@ -650,10 +662,10 @@ test('runs of a window over walkByteBudget read no unit and say so as a cut does
 })
 
 test("runs of a window take the browser preset's context and budgets, read contained", async () => {
-  const runs = vi.spyOn(WalkReader.prototype, 'runs')
+  const runs = vi.spyOn(WalkFile.prototype, 'getRunsForRange')
   await makeAdapter(headerPrefix).getSubgraphRuns(chr1(1000, 2600))
   const { context, departureByteBudget } = CUT_PRESETS.browser
-  expect(runs.mock.calls[0]?.[2]).toMatchObject({
+  expect(runs.mock.calls[0]?.[3]).toMatchObject({
     context,
     contained: true,
     departureByteBudget,
@@ -688,6 +700,24 @@ test.skipIf(!hostedPresent)(
         event.text.includes('inside the window'),
       ),
     ).toEqual([])
+  },
+  120_000,
+)
+
+test.skipIf(!hostedPresent)(
+  'a pericentromeric tile, its haplotypes in pieces, is not folded from runs, so the view cuts it and the cut is refused as before',
+  async () => {
+    const adapter = makeAdapter(hosted)
+    const tile = { ...chr1(38_993_920, 39_059_456), refName: 'chr9' }
+    const read = await adapter.getSubgraphRuns(tile)
+    const fold = foldedRuns(read!.runs, 668, 'chr9:38,993,921-39,059,456')
+    expect('refusal' in fold ? fold.refusal : undefined).toMatch(
+      /^the 464 haplotypes here are in [\d,]+ pieces, more than 1.5 a haplotype/,
+    )
+    await expect(adapter.getSubgraph(tile)).rejects.toMatchObject({
+      name: 'NodeLimitError',
+      regionTooLarge: true,
+    })
   },
   120_000,
 )

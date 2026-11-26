@@ -1,10 +1,10 @@
+import { abridgedWalks } from '@gmod/gfa-tabix'
 import { walkRowRuns } from '@jbrowse/bandage-core/layout/walkRowRuns'
-import { abridgedWalks } from '@jbrowse/graph-walks'
 
+import type { AbridgedWalk } from '@gmod/gfa-tabix'
 import type { GraphTables } from '@jbrowse/bandage-core/gfa/graphTables'
 import type { WalkRunsTables } from '@jbrowse/bandage-core/gfa/walkRuns'
 import type { WalkRowRuns } from '@jbrowse/bandage-core/layout/walkRowRuns'
-import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 /**
  * A cut: the tables, the walks it abridged, and for walk rows the rows' runs

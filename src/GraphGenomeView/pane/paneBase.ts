@@ -19,6 +19,7 @@ import type { WalkCut } from '../../RgfaTabixAdapter/walkCut.ts'
 import type { RepeatArray } from '../repeats/repeatFeatures'
 import type { PaneLayout } from '../tubeMapPanels'
 import type { SampleRow } from '../walkRowGroups'
+import type { AbridgedWalk } from '@gmod/gfa-tabix'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { LayoutModeValue } from '@jbrowse/bandage-core/layoutModes'
@@ -30,7 +31,6 @@ import type { Graph, PathOrigin } from '@jbrowse/bandage-core/types'
 import type { AxisScale } from '@jbrowse/bandage-core/util/geometry'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
-import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 // Ceiling on the pane, and what it falls back to before there is a layout to
 // size against. A roughly square drawing (FMMM) hits this and keeps the

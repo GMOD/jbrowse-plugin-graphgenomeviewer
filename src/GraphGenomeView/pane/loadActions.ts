@@ -52,6 +52,7 @@ import type { RunsCut, WalkCut } from '../../RgfaTabixAdapter/walkCut.ts'
 import type { GafReads } from '../../gaf/gafFile'
 import type { FoldedCut } from '../threadFoldCut'
 import type { PaneLayout } from '../tubeMapPanels'
+import type { AbridgedWalk } from '@gmod/gfa-tabix'
 import type { MinigraphBubble } from '@jbrowse/bandage-core/bubbles/bubbleLine'
 import type { GeneModel } from '@jbrowse/bandage-core/genes/genePins'
 import type { FitSize } from '@jbrowse/bandage-core/layout/fitAssumptions'
@@ -67,7 +68,6 @@ import type {
 } from '@jbrowse/bandage-core/types'
 import type { Feature } from '@jbrowse/core/util'
 import type { FileLocation } from '@jbrowse/core/util/types'
-import type { AbridgedWalk } from '@jbrowse/graph-walks'
 
 // a host panning back and forth over a few snapped cuts
 const KEPT_CUTS = 4

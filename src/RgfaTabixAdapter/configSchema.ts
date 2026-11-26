@@ -35,7 +35,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `<walksUri>.walks.gz` and its directory `<walksUri>.walks.gz.idx`.
  * `gfa-to-tabix --walks -o <prefix>` writes one per reference sample, so a
  * track names one as `<prefix>.<sample>`. The adapter reads walk format 8,
- * which gfa-to-tabix writes from 5.0, through @jbrowse/graph-walks. Such a
+ * which gfa-to-tabix writes from 5.0, through @gmod/gfa-tabix. Such a
  * graph's cut carries
  * the haplotypes' walks, and `defaultHaplotypes` names the ones it is cut for
  * until the user picks others.

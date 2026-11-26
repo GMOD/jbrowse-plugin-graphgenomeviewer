@@ -14,6 +14,9 @@ importers:
       '@gmod/gbz-base':
         specifier: ^7.4.1
         version: 7.4.1
+      '@gmod/gfa-tabix':
+        specifier: ^10.1.0
+        version: 10.1.0
       '@gmod/tabix':
         specifier: ^3.13.1
         version: 3.13.1
@@ -29,10 +32,6 @@ importers:
       '@jbrowse/display-ui':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
-      # PLACEHOLDER: regenerate with `pnpm install` once @jbrowse/graph-walks 9.3.0 is published
-      '@jbrowse/graph-walks':
-        specifier: ^9.3.0
-        version: 9.3.0
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(react@19.3.1)
@@ -606,6 +605,10 @@ packages:
     resolution: {integrity: sha512-Le+Rpj9Jp7GAOpo05XwYFhZbsakhC6TOfaslgW7F72xm2q6Z11dwDZwZFd0S93x2bgbasvO7S3Zr1oL+QBf2SA==}
     hasBin: true
 
+  '@gmod/gfa-tabix@10.1.0':
+    resolution: {integrity: sha512-nRwa6MCvnHEYsA4o59PHAZOADcB8BLMQ72d1+TByoOHz0PYnoZPvzWBrQ2jloBbhEV7hcnjFvWNpIlcR7B7Elw==}
+    engines: {node: '>=20'}
+
   '@gmod/hclust@6.0.0':
     resolution: {integrity: sha512-/vCkUXOhCcNmLp13Alw8Vyf+48tYg8La4SfziOJkpgX0HrHCHa6xJZQSenpYuhYCc++kK0X+mQCbSTESKGanIg==}
 
@@ -658,6 +661,8 @@ packages:
     resolution: {integrity: PLACEHOLDER-bandage-core-14.10.0}
     engines: {node: '>=20'}
     hasBin: true
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@jbrowse/cigar-utils@5.0.0-beta.20':
     resolution: {integrity: sha512-xj7ddclZXlNUbj3+ENOswa0g/1ANizs98RNnI5Hevm5G42JJW6gefZ/ixIO8fNPumSQulYC8kcmjY1R8hn02TQ==}
@@ -695,11 +700,6 @@ packages:
 
   '@jbrowse/graph-stress-layout@1.1.0':
     resolution: {integrity: sha512-qP/VqpFViuCs1XUaXZdvbmfisCdl7Ti4MRn+7G2TqEgRLtQ0ZWkcMnkXqo049+qbiYE2ggFdYTLkwTYlAxYnIQ==}
-    engines: {node: '>=20'}
-
-  # PLACEHOLDER: the published tarball's integrity, once @jbrowse/graph-walks 9.3.0 is published
-  '@jbrowse/graph-walks@9.3.0':
-    resolution: {integrity: PLACEHOLDER-graph-walks-9.3.0}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@7.2.0':
@@ -3787,6 +3787,11 @@ snapshots:
     dependencies:
       generic-filehandle2: 2.5.1
 
+  '@gmod/gfa-tabix@10.1.0':
+    dependencies:
+      '@gmod/bgzf-filehandle': 6.8.2
+      generic-filehandle2: 2.5.1
+
   '@gmod/hclust@6.0.0':
     dependencies:
       '@gmod/newick': 1.0.3
@@ -3942,11 +3947,6 @@ snapshots:
   '@jbrowse/graph-fold@1.3.0': {}
 
   '@jbrowse/graph-stress-layout@1.1.0': {}
-
-  '@jbrowse/graph-walks@9.3.0':
-    dependencies:
-      '@gmod/bgzf-filehandle': 6.8.2
-      generic-filehandle2: 2.5.1
 
   '@jbrowse/jexl@7.2.0': {}
 

@@ -24,7 +24,7 @@ import type { Instance } from '@jbrowse/mobx-state-tree'
  * `walksUri` takes the prefix of one reference's walk file, `<prefix>.<sample>`,
  * and resolves `<walksUri>.walks.gz` and its directory `<walksUri>.walks.gz.idx`.
  * The adapter reads walk format 8, which gfa-to-tabix writes from 5.0, through
- * @jbrowse/graph-walks.
+ * @gmod/gfa-tabix.
  * Only a window on the anchor is answered.
  *
  * #example

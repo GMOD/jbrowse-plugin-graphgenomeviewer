@@ -11,12 +11,12 @@
 // an hg38 region of a Minigraph-Cactus graph), and [hops] defaults to the one
 // hop the view asks for.
 //
-// The script runs the adapter's cut, @jbrowse/graph-walks' rgfaCut, rather than
+// The script runs the adapter's cut, @gmod/gfa-tabix's GfaTabixFile, rather than
 // the adapter, which node's type stripping cannot load.
 import fs from 'node:fs'
 
 import { TabixIndexedFile } from '@gmod/tabix'
-import { refNameLookup, resolveRefName, rgfaCut } from '@jbrowse/graph-walks'
+import { GfaTabixFile, refNameLookup, resolveRefName } from '@gmod/gfa-tabix'
 
 const [prefix, sample, refName, start, end, out, hops = '1'] =
   process.argv.slice(2)
@@ -36,9 +36,10 @@ if (tabixRefName === undefined) {
   throw new Error(`${prefix}.segs.bed.gz has no sequence ${sample} ${refName}`)
 }
 
-const gfa = await rgfaCut(
-  files,
-  { refName: tabixRefName, start: Number(start), end: Number(end) },
+const gfa = await new GfaTabixFile(files).getGraphForRange(
+  tabixRefName,
+  Number(start),
+  Number(end),
   { hops: Number(hops) },
 )
 fs.writeFileSync(out, `${gfa}\n`)
