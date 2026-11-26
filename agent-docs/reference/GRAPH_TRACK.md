@@ -436,6 +436,19 @@ stepless, takes the rows from the runs, and paints the bars through
 render-core's `spanMark` (`walkRowSpans.ts`). A layout that draws nodes parses
 the cut whole (`wholeGraph`). ADR-043 records the decision.
 
+A graph folded to threads skips it too. Where the track's zoom folds walks to
+threads (`foldsThreads`), the pane asks for the window's walks as runs
+(`foldRuns` in the cut options), which graph-walks reads from the tiles' rows
+and blocks units without decoding a step: `walkByteBudget` bounds the read and
+the node limit bounds the fold. The runs are read contained, and bandage-core's
+`foldThreadRuns` folds them to the graph `foldThreads` draws of the window's
+contained cut. A file whose header does not state `revisited:i:0`, runs
+graph-fold refuses, a reference path the user picked, walk rows, tube maps and
+reads keep the cut. A runs fold has no unfolded graph: the pickers, the path
+count and a row's hover list the cut's walks from the runs (`cutWalks`), and a
+folded node's hover counts only the reference nodes it holds, since sequence off
+the reference has no node names in runs.
+
 The cut crosses to the main thread as bandage-core's `GraphTables`, not GFA
 text: node, link and step arrays, every link end and step an index into the node
 table. `GetSubgraph` hands their buffers to postMessage to transfer, and
