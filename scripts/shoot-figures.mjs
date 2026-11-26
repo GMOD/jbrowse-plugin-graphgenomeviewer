@@ -468,7 +468,7 @@ const FIGURES = {
               'orange',
             ),
           ],
-          paneHeight: 520,
+          paneHeight: 340,
         }),
       ],
     ),
