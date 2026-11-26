@@ -1534,6 +1534,23 @@ test('the graph outlines the selected node the strip outlines, unless the drawin
   expect(pane.referenceStripNode).toBeNull()
 })
 
+test('with hover off, a hovered node is neither boxed on the strip nor lifted and outlined, and a selection still is', async () => {
+  const { pane } = await forceGraph()
+  const node = pane.graph!.nodes.find(
+    n => pane.nodeSpan(n.id) && !pane.folded.has(n.id),
+  )!.id
+  pane.setHoveredNode(node)
+  expect(pane.hoverLayerLit).toBe(node)
+  expect(pane.referenceStripLit).toEqual(pane.nodeSpan(node))
+  pane.setHover('off')
+  expect(pane.hoverLayerLit).toBeNull()
+  expect(pane.referenceStripNode).toBeNull()
+  expect(pane.referenceStripLit).toBeUndefined()
+  pane.setSelectedNode(node)
+  expect(pane.hoverLayerLit).toBe(node)
+  expect(pane.referenceStripLit).toEqual(pane.nodeSpan(node))
+})
+
 test('a drawing placed by its window is clipped at the key column it runs under', async () => {
   const { pane, panTo } = await forceGraph()
   await panTo(970_000)

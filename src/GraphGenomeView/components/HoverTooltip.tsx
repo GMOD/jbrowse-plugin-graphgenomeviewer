@@ -6,9 +6,11 @@ import { isBackbone } from '@jbrowse/bandage-core/anchoredNodes'
 import { genesOverNode } from '@jbrowse/bandage-core/genes/geneNames'
 import {
   edgeHoverText,
+  nodeEndLabel,
   nodeHoverName,
   placeholderHoverText,
   regionLabel,
+  replacedStretchText,
   skipAt,
 } from '@jbrowse/bandage-core/hoverText'
 import { referenceLabel } from '@jbrowse/bandage-core/reference'
@@ -124,11 +126,15 @@ function hoverTip(
     const own = nodeOwnLocation(node)
     const region = model.graphRegion
     const span = model.hoveredSpan
+    const graph = model.drawnGraph
     const onReference =
       region && span && !isBackbone(node)
-        ? `${region.assemblyName} ${regionLabel({ refName: region.refName, ...span })}`
+        ? replacedStretchText(
+            (graph && referenceLabel(graph, region)) ??
+              `${region.assemblyName} ${region.refName}`,
+            span,
+          )
         : undefined
-    const graph = model.drawnGraph
     const against =
       graph &&
       againstHoverText(
@@ -176,7 +182,7 @@ function hoverTip(
               {onReference ? (
                 <>
                   <br />
-                  Reference {onReference}
+                  {onReference}
                 </>
               ) : null}
               {against ? (
@@ -212,6 +218,10 @@ function hoverTip(
       edge,
       skipAt(graph, hovered, model.deletions, model.deletionRoutes),
       id => model.nodeById?.get(id)?.name ?? id,
+      (id, strand) => {
+        const end = model.nodeById?.get(id)
+        return end ? nodeEndLabel(graph, end, strand) : `${id}${strand}`
+      },
     )
     // a link that skips reference sequence says how much, naming the
     // reference as the key does, and no event

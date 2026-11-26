@@ -51,7 +51,7 @@ import {
 } from '@jbrowse/bandage-core/reference'
 import {
   buildNeighbors,
-  nodeReferenceSpan,
+  statedReferenceSpan,
 } from '@jbrowse/bandage-core/referenceSpan'
 import {
   LIFT_BACKDROP_CSS,
@@ -217,10 +217,10 @@ function nodeMapOf(graph: Graph) {
   return m
 }
 
-// A node's reference interval, an allele's between its flanks, and a fold's
-// branch that continues past the window's out to its far breakpoint, which
-// no flank inside the window reaches
-function spanIn(
+// A node's reference interval as the data gives it: its own, an allele's
+// between its two flanks, or a fold's branch that continues past the window's
+// out to its far breakpoint. A node with one flank in reach has none.
+export function spanIn(
   nodeId: string,
   nodeById: Map<string, GraphNode> | undefined,
   neighbors: ReturnType<typeof buildNeighbors> | undefined,
@@ -229,7 +229,7 @@ function spanIn(
   return (
     openBranchSpan(events ?? [], nodeId) ??
     (nodeById && neighbors
-      ? nodeReferenceSpan({ nodeId, nodeById, neighbors })
+      ? statedReferenceSpan({ nodeId, nodeById, neighbors })
       : undefined)
   )
 }

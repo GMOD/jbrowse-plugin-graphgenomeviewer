@@ -161,11 +161,11 @@ export const withHostViews = withWalkRowViews
     },
   }))
   .views(self => ({
-    // The lit span on the strip: the hovered node's, the hovered bubble's, or
-    // the selected node's
+    // The lit span on the strip: the hovered node's while hover lights
+    // nodes, the hovered bubble's, or the selected node's
     get referenceStripLit() {
       const bubble = self.hoveredNode === null ? self.hoveredBubble : null
-      const nodeId = self.hoveredNode ?? self.selectedNode
+      const nodeId = self.litNode ?? self.selectedNode
       const span =
         bubble && !bubble.offReference
           ? { start: bubble.start, end: bubble.end }
@@ -178,7 +178,7 @@ export const withHostViews = withWalkRowViews
     // same ink, unless the drawing folded it
     get referenceStripNode() {
       const bubble = self.hoveredNode === null ? self.hoveredBubble : null
-      const nodeId = self.hoveredNode ?? self.selectedNode
+      const nodeId = self.litNode ?? self.selectedNode
       return this.referenceStripLit &&
         !(bubble && !bubble.offReference) &&
         nodeId !== null &&
