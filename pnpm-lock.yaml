@@ -30,8 +30,8 @@ importers:
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.1)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@7.2.0)
       '@jbrowse/graph-walks':
-        specifier: ^9.1.0
-        version: 9.1.0
+        specifier: ^9.2.0
+        version: 9.2.0
       '@jbrowse/render-core':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20(react@19.3.1)
@@ -49,8 +49,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
       '@jbrowse/bandage-core':
-        specifier: ^14.7.0
-        version: 14.7.0
+        specifier: ^14.9.0
+        version: 14.9.0
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -651,8 +651,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@jbrowse/bandage-core@14.7.0':
-    resolution: {integrity: sha512-u3HS6la8K9YwIIWMKU+gbnRQob3d1yy3utXR1/KJIsy6CGW1G71Pr9RuS9r1ZDdnWd14Eg6Q1BJc1kfUxkHhXA==}
+  '@jbrowse/bandage-core@14.9.0':
+    resolution: {integrity: sha512-0ZQtokt3Rm4IVRW6Zs6oErqfe59QOR9jn+/zWZOX5HB0bWHQdYqJ0ojc01CjMHmDKl+wrgJD/Y4AtKKlV/2tNw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -693,8 +693,8 @@ packages:
     resolution: {integrity: sha512-qP/VqpFViuCs1XUaXZdvbmfisCdl7Ti4MRn+7G2TqEgRLtQ0ZWkcMnkXqo049+qbiYE2ggFdYTLkwTYlAxYnIQ==}
     engines: {node: '>=20'}
 
-  '@jbrowse/graph-walks@9.1.0':
-    resolution: {integrity: sha512-H+G7WQNjaypsjJB1xwFxIMf14gSC0G7t3uckjl8LNVN44edqGlxS4YDuju3VbAyYHUHjbh22HtaUhfFvykipVA==}
+  '@jbrowse/graph-walks@9.2.0':
+    resolution: {integrity: sha512-Rc+rxC6i/CEh0OcUkZGLXYV5Z0Q+LdfiXJUF3T1qhqY9sl7Sye72g3/2HjtQ5x2hasztLIv06gzCeQuDCulzJQ==}
     engines: {node: '>=20'}
 
   '@jbrowse/jexl@7.2.0':
@@ -3839,7 +3839,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.7.0':
+  '@jbrowse/bandage-core@14.9.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
@@ -3938,7 +3938,7 @@ snapshots:
 
   '@jbrowse/graph-stress-layout@1.1.0': {}
 
-  '@jbrowse/graph-walks@9.1.0':
+  '@jbrowse/graph-walks@9.2.0':
     dependencies:
       '@gmod/bgzf-filehandle': 6.8.2
       generic-filehandle2: 2.5.1
