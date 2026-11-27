@@ -1,3 +1,13 @@
+## [10.14.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.13.0...v10.14.0) (2026-11-27)
+
+### Other Changes
+
+- A node hovered on a lifted thread of a folded graph says nothing of where it lies on the thread's contig, as bandage-core's walkPosition now returns { onWalk, at } and gives no position where node lengths are not the walk's own, and a node off the walk still says it is not on it; the linear views' hover band places a node on a folded graph only by its own location, not by the walks passing it; the haplotypes guide says a folded graph's key gives no position and no range for a thread several haplotypes share ([195fa6f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/195fa6fbadd906072817a102e815a1855195e87b))
+- The haplotypes guide says a walk whose GFA record gives no start gets no range or position in the key ([be96423](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/be9642326d6592b402dcfe316f6884db58048928))
+- The linear views' hover band places a node by a walk's visits only where the walk's record states its start, as a GFA W line with `*` counts its visits from a 0 it does not state ([560b9a9](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/560b9a9b81a58eab2157615292b8d6aa946797c7))
+- @jbrowse/bandage-core is taken at ^14.11.0, the release this stated-spans change ships in, whose walkPosition returns { onWalk, at } and whose GraphPath states its end: against 14.10.0 a lifted walk's hover reads no position and the hover band places no walk. 14.11.0 and the lockfile's PLACEHOLDER integrity are filled in by that release ([3aa38c4](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/3aa38c4c3625c1c0cab060ea0e129c7781cddbc1))
+- Take the published @jbrowse/bandage-core 15.0.0 ([5586434](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/55864346b43eea5497d04724b1a1200f36aec768))
+
 ## [10.13.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.12.0...v10.13.0) (2026-11-26)
 
 ### Other Changes
