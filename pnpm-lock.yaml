@@ -48,10 +48,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(supports-color@7.2.0))
-      # PLACEHOLDER: regenerate with `pnpm install` once @jbrowse/bandage-core 14.11.0 (the release fills in its number) is published
       '@jbrowse/bandage-core':
-        specifier: ^14.11.0
-        version: 14.11.0
+        specifier: ^15.0.0
+        version: 15.0.0
       '@jbrowse/cli':
         specifier: 5.0.0-beta.20
         version: 5.0.0-beta.20
@@ -656,9 +655,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  # PLACEHOLDER: the published tarball's integrity, once @jbrowse/bandage-core 14.11.0 is published
-  '@jbrowse/bandage-core@14.11.0':
-    resolution: {integrity: PLACEHOLDER-bandage-core-14.11.0}
+  '@jbrowse/bandage-core@15.0.0':
+    resolution: {integrity: sha512-XJQxSkfaXW3j2tHHKSOqjBoyXnt5Moq7OSf6u9JCJ3BuWjKQ3ELoTJwvVtstVbvEJGaIbQpxv3do1pf/p7K4vg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3846,7 +3844,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@jbrowse/bandage-core@14.11.0':
+  '@jbrowse/bandage-core@15.0.0':
     dependencies:
       '@gmod/gbz-base': 7.4.1
       '@gmod/tabix': 3.13.1
