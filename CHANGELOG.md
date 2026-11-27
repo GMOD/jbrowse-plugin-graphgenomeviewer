@@ -1,3 +1,10 @@
+## [10.15.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.14.0...v10.15.0) (2026-11-27)
+
+### Other Changes
+
+- A node's hover band places it on a walk's assembly only where the walk's records state spans their own steps fill (bandage-core spanStated), as the node details and the hover position do, not wherever a record states an end ([9bb984d](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/9bb984d943481d562424803bc61cf74aebbdb890))
+- Take the published @jbrowse/bandage-core 15.1.0 ([767b41f](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/commit/767b41f0eb54f98726aaa2842d24dca9bfba7134))
+
 ## [10.14.0](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer/compare/v10.13.0...v10.14.0) (2026-11-27)
 
 ### Other Changes
